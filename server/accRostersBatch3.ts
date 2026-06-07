@@ -39,36 +39,36 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Groundball Pitcher"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 0, 0, 1, 3, 4, 0, 0, 0, 0]) },
-    // Matt Roach — SR RHP #41, 2.93 ERA; reliable starter/closer
-    { firstName: "Matt", lastName: "Roach", position: "P", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 41,
+    // Trent Roach — SR RHP #41, 2.93 ERA; reliable starter/closer
+    { firstName: "Trent", lastName: "Roach", position: "P", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 41,
       hitForAvg: 20, power: 16, speed: 34, arm: 65, fielding: 42, errorResistance: 55, velocity: 60, control: 56, stamina: 65, stuff: 55,
       clutch: 68, vsLHP: 65, grit: 64, stealing: 16, running: 43, throwing: 76, recovery: 54, wRISP: 55, vsLefty: 52, poise: 56, heater: 58, agile: 48,
       abilities: ["Strong Starter", "Sharpness"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 3, 1, 0, 3, 0, 0, 0, 0]) },
-    // Ryan Espinoza — JR RHP #28, 3.69 ERA; swing man
-    { firstName: "Ryan", lastName: "Espinoza", position: "P", eligibility: "JR", homeState: "CA", hometown: "Stockton", jerseyNumber: 28,
+    // Otto Espinoza — JR RHP #28, 3.69 ERA; swing man
+    { firstName: "Otto", lastName: "Espinoza", position: "P", eligibility: "JR", homeState: "CA", hometown: "Stockton", jerseyNumber: 28,
       hitForAvg: 20, power: 16, speed: 34, arm: 62, fielding: 38, errorResistance: 50, velocity: 55, control: 50, stamina: 54, stuff: 50,
       clutch: 62, vsLHP: 58, grit: 60, stealing: 14, running: 40, throwing: 70, recovery: 48, wRISP: 50, vsLefty: 46, poise: 50, heater: 52, agile: 44,
       abilities: ["Escape Pitch", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 3, 0, 0, 0, 3, 3, 0, 0, 0]) },
-    // Cory Grove — JR RHP #35, 4.08 ERA
-    { firstName: "Cory", lastName: "Grove", position: "P", eligibility: "JR", homeState: "CA", hometown: "Oakland", jerseyNumber: 35,
+    // Tanner Grove — JR RHP #35, 4.08 ERA
+    { firstName: "Tanner", lastName: "Grove", position: "P", eligibility: "JR", homeState: "CA", hometown: "Oakland", jerseyNumber: 35,
       hitForAvg: 20, power: 16, speed: 33, arm: 58, fielding: 35, errorResistance: 48, velocity: 51, control: 47, stamina: 56, stuff: 46,
       clutch: 58, vsLHP: 55, grit: 58, stealing: 13, running: 38, throwing: 66, recovery: 46, wRISP: 46, vsLefty: 42, poise: 48, heater: 48, agile: 40,
       abilities: ["Groundball Pitcher"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 3, 1, 0, 3, 0, 0, 0, 0]) },
-    // Jake Colombara — FR RHP #27, 4.15 ERA
-    { firstName: "Jake", lastName: "Colombara", position: "P", eligibility: "FR", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 27,
+    // Cade Colombara — FR RHP #27, 4.15 ERA
+    { firstName: "Cade", lastName: "Colombara", position: "P", eligibility: "FR", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 27,
       hitForAvg: 12, power: 10, speed: 30, arm: 48, fielding: 26, errorResistance: 38, velocity: 46, control: 40, stamina: 52, stuff: 40,
       clutch: 46, vsLHP: 44, grit: 48, stealing: 12, running: 32, throwing: 58, recovery: 40, wRISP: 40, vsLefty: 38, poise: 42, heater: 44, agile: 36,
       abilities: ["Poker Face"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 3, 0, 0, 0, 0, 0, 0, 0]) },
-    // Nick Spalliero — SO RHP #19, 4.26 ERA
-    { firstName: "Nick", lastName: "Spalliero", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Francisco", jerseyNumber: 19,
+    // Ryan Spalliero — SO RHP #19, 4.26 ERA
+    { firstName: "Ryan", lastName: "Spalliero", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Francisco", jerseyNumber: 19,
       hitForAvg: 12, power: 10, speed: 30, arm: 50, fielding: 28, errorResistance: 40, velocity: 48, control: 43, stamina: 56, stuff: 42,
       clutch: 52, vsLHP: 48, grit: 52, stealing: 12, running: 34, throwing: 60, recovery: 42, wRISP: 42, vsLefty: 40, poise: 44, heater: 46, agile: 38,
       abilities: ["Heavy Ball"], potential: "B", catcherAbility: null,
@@ -104,36 +104,36 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Contact Hitter", "Two-Strike Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Brock Kenady — SR 3B #17; .320 AVG (real SS, listed 3B to accommodate Campbell at SS)
-    { firstName: "Brock", lastName: "Kenady", position: "3B", eligibility: "SR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 17,
+    // Jett Kenady — SR 3B #17; .320 AVG
+    { firstName: "Jett", lastName: "Kenady", position: "3B", eligibility: "SR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 17,
       hitForAvg: 64, power: 50, speed: 48, arm: 46, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 24, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 52, stealing: 40, running: 42, throwing: 56, recovery: 42, wRISP: 49, vsLefty: 46, poise: 47, heater: 0, agile: 43,
       abilities: ["Contact Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Cruz Murillo — SO 1B #21; .317 AVG, 11 HR
-    { firstName: "Cruz", lastName: "Murillo", position: "1B", eligibility: "SO", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 21,
+    // Daniel Murillo — SO 1B #21; .317 AVG, 11 HR
+    { firstName: "Daniel", lastName: "Murillo", position: "1B", eligibility: "SO", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 21,
       hitForAvg: 60, power: 58, speed: 40, arm: 36, fielding: 52, errorResistance: 46, velocity: 0, control: 0, stamina: 24, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 50, stealing: 34, running: 34, throwing: 48, recovery: 42, wRISP: 49, vsLefty: 46, poise: 45, heater: 0, agile: 36,
       abilities: ["Power Hitter", "Consigliere"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Will Errecart — SR SS #1; utility infielder
-    { firstName: "Will", lastName: "Errecart", position: "SS", eligibility: "SR", homeState: "CA", hometown: "Chico", jerseyNumber: 1,
+    // Brady Errecart — SR SS #1; utility infielder
+    { firstName: "Brady", lastName: "Errecart", position: "SS", eligibility: "SR", homeState: "CA", hometown: "Chico", jerseyNumber: 1,
       hitForAvg: 48, power: 38, speed: 52, arm: 40, fielding: 52, errorResistance: 44, velocity: 0, control: 0, stamina: 22, stuff: 0,
       clutch: 46, vsLHP: 40, grit: 44, stealing: 40, running: 42, throwing: 52, recovery: 37, wRISP: 44, vsLefty: 38, poise: 40, heater: 0, agile: 47,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Austin Snyder — FR 1B #14
-    { firstName: "Austin", lastName: "Snyder", position: "1B", eligibility: "FR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 14,
+    // Gannon Snyder — FR 1B #14
+    { firstName: "Gannon", lastName: "Snyder", position: "1B", eligibility: "FR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 14,
       hitForAvg: 40, power: 42, speed: 36, arm: 34, fielding: 44, errorResistance: 38, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 38, vsLHP: 34, grit: 38, stealing: 26, running: 26, throwing: 42, recovery: 30, wRISP: 36, vsLefty: 32, poise: 34, heater: 0, agile: 32,
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Kyle Nakao — FR 2B #55; utility
-    { firstName: "Kyle", lastName: "Nakao", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Torrance", jerseyNumber: 55,
+    // Taichi Nakao — FR 2B #55; utility
+    { firstName: "Taichi", lastName: "Nakao", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Torrance", jerseyNumber: 55,
       hitForAvg: 36, power: 28, speed: 44, arm: 34, fielding: 42, errorResistance: 36, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 36, vsLHP: 30, grit: 34, stealing: 30, running: 34, throwing: 40, recovery: 29, wRISP: 34, vsLefty: 29, poise: 31, heater: 0, agile: 40,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
@@ -147,36 +147,36 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Power Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Austin Kodama — SO OF #6; .228 AVG
-    { firstName: "Austin", lastName: "Kodama", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Jose", jerseyNumber: 6,
+    // Ethan Kodama — SO OF #6; .228 AVG
+    { firstName: "Ethan", lastName: "Kodama", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Jose", jerseyNumber: 6,
       hitForAvg: 42, power: 34, speed: 56, arm: 40, fielding: 44, errorResistance: 38, velocity: 0, control: 0, stamina: 22, stuff: 0,
       clutch: 38, vsLHP: 34, grit: 38, stealing: 40, running: 42, throwing: 42, recovery: 30, wRISP: 36, vsLefty: 32, poise: 34, heater: 0, agile: 50,
       abilities: ["Consigliere"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Thomas Jeon — FR OF #51
-    { firstName: "Thomas", lastName: "Jeon", position: "OF", eligibility: "FR", homeState: "CA", hometown: "Irvine", jerseyNumber: 51,
+    // Kevin Jeon — FR OF #51
+    { firstName: "Kevin", lastName: "Jeon", position: "OF", eligibility: "FR", homeState: "CA", hometown: "Irvine", jerseyNumber: 51,
       hitForAvg: 36, power: 28, speed: 52, arm: 36, fielding: 38, errorResistance: 34, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 36, vsLHP: 30, grit: 34, stealing: 32, running: 36, throwing: 38, recovery: 29, wRISP: 34, vsLefty: 29, poise: 31, heater: 0, agile: 47,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Nicolas Leroy — JR OF #26; .263 AVG
-    { firstName: "Nicolas", lastName: "Leroy", position: "OF", eligibility: "JR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 26,
+    // Tyler Leroy — JR OF #26; .190 AVG
+    { firstName: "Tyler", lastName: "Leroy", position: "OF", eligibility: "JR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 26,
       hitForAvg: 48, power: 40, speed: 52, arm: 42, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 22, stuff: 0,
       clutch: 44, vsLHP: 40, grit: 42, stealing: 38, running: 40, throwing: 44, recovery: 35, wRISP: 42, vsLefty: 38, poise: 38, heater: 0, agile: 47,
       abilities: ["Consigliere"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Hunter Head — SO OF #25; .250 AVG
-    { firstName: "Hunter", lastName: "Head", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 25,
+    // Tristan Head — SO OF #25; .125 AVG
+    { firstName: "Tristan", lastName: "Head", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 25,
       hitForAvg: 46, power: 44, speed: 44, arm: 40, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 22, stuff: 0,
       clutch: 42, vsLHP: 38, grit: 40, stealing: 34, running: 34, throwing: 42, recovery: 34, wRISP: 40, vsLefty: 36, poise: 36, heater: 0, agile: 40,
       abilities: ["Contact Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Charlie Norum — JR OF #45; .240 AVG
-    { firstName: "Charlie", lastName: "Norum", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Walnut Creek", jerseyNumber: 45,
+    // Jackson Norum — JR OF #45; .083 AVG
+    { firstName: "Jackson", lastName: "Norum", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Walnut Creek", jerseyNumber: 45,
       hitForAvg: 46, power: 38, speed: 50, arm: 40, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 22, stuff: 0,
       clutch: 42, vsLHP: 38, grit: 40, stealing: 36, running: 38, throwing: 42, recovery: 34, wRISP: 40, vsLefty: 36, poise: 36, heater: 0, agile: 45,
       abilities: ["Consigliere"], potential: "B", catcherAbility: null,
