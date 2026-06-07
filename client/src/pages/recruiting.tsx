@@ -110,6 +110,19 @@ function getInterestBarColor(level: number): string {
   return "bg-blue-300";
 }
 
+function quantizeInterestWidth(level: number): number {
+  return Math.min(100, Math.round(level / 20) * 20);
+}
+
+function qualifyTrend(gain: number): string {
+  if (gain >= 15) return "rising sharply";
+  if (gain >= 7) return "rising";
+  if (gain > 0) return "rising slightly";
+  if (gain <= -15) return "falling sharply";
+  if (gain <= -7) return "falling";
+  return "falling slightly";
+}
+
 function getInterestChangeLabel(change: number): { label: string; color: string } {
   if (change >= 15) return { label: "Big Boost", color: "text-green-400" };
   if (change >= 8) return { label: "Good Progress", color: "text-green-400" };
@@ -2476,7 +2489,12 @@ function RecruitRow({
   const [showEmailPicker, setShowEmailPicker] = useState(false);
   const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
   const [selectedEmailPitch, setSelectedEmailPitch] = useState<string | null>(null);
-  const [showTopSchools, setShowTopSchools] = useState(recruit.stage === "verbal");
+  const [showTopSchools, setShowTopSchools] = useState(() => {
+    if (recruit.stage === "verbal") return true;
+    if (!recruit.topSchools || !userTeamId) return false;
+    const visibleCount = recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8;
+    return recruit.topSchools.slice(0, visibleCount).some(s => s.teamId === userTeamId);
+  });
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   const isOverNilBudget = nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer;
@@ -3014,7 +3032,7 @@ function RecruitRow({
                       <div className="w-16 h-1.5 bg-muted/40 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${getInterestBarColor(recruit.interest!.interestLevel)}`}
-                          style={{ width: `${recruit.interest!.interestLevel}%` }}
+                          style={{ width: `${quantizeInterestWidth(recruit.interest!.interestLevel)}%` }}
                         />
                       </div>
                       <span className={`text-[9px] font-bold ${interestMeta.color}`}>{interestMeta.label}</span>
@@ -3142,7 +3160,7 @@ function RecruitRow({
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {trend.trend === "up" ? `Interest rising (+${trend.recentGain} recently)` : `Interest falling (${trend.recentGain} recently)`}
+                            {`Interest ${qualifyTrend(trend.recentGain)}`}
                           </TooltipContent>
                         </Tooltip>
                       )}
@@ -3166,7 +3184,7 @@ function RecruitRow({
                     <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden" data-testid={`interest-bar-${recruit.id}`}>
                       <div
                         className={`h-full rounded-full transition-all ${getInterestBarColor(recruit.interest!.interestLevel)}`}
-                        style={{ width: `${recruit.interest!.interestLevel}%` }}
+                        style={{ width: `${quantizeInterestWidth(recruit.interest!.interestLevel)}%` }}
                       />
                     </div>
                   ) : (
@@ -3745,7 +3763,7 @@ function RecruitRow({
                     {schoolTrend && schoolTrend.trend !== "flat" && (
                       <div className={`flex items-center gap-0.5 text-[10px] min-w-[40px] ${schoolTrend.trend === "up" ? "text-green-400" : "text-red-400"}`}>
                         {schoolTrend.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                        <span>{schoolTrend.trend === "up" ? "+" : ""}{schoolTrend.recentGain}</span>
+                        <span>{qualifyTrend(schoolTrend.recentGain).split(" ").pop()}</span>
                       </div>
                     )}
                     <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>

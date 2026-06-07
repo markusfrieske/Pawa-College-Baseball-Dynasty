@@ -18081,6 +18081,7 @@ export async function registerRoutes(
         a.season === season && (a.actionType === "visit" || a.actionType === "head_coach_visit")
       ).length;
       let pointsSpent = 0;
+      const pendingTopSchoolGains = new Map<string, number>();
       for (let i = 0; i < focusedRecruits.length && pointsSpent < actionsBudget; i++) {
         const { recruit, interest } = focusedRecruits[i];
         const remaining = actionsBudget - pointsSpent;
@@ -18194,7 +18195,10 @@ export async function registerRoutes(
             hasOffer: interest.hasOffer || actionType === "offer",
           });
         }
-        
+
+        // Accumulate interest gain for top-schools update (batched after the loop)
+        pendingTopSchoolGains.set(recruit.id, (pendingTopSchoolGains.get(recruit.id) || 0) + interestGain);
+
         const isForced = forcedHumanTeamIds.has(team.id);
         const isAlertableAction = team.isAutoPilot || isDeadlineForced;
         await storage.createRecruitingAction({
@@ -18224,6 +18228,27 @@ export async function registerRoutes(
             season,
             isDeadlineForced,
           });
+        }
+      }
+
+      // Batch-update recruit_top_schools for this CPU team so ranking reflects actual recruiting activity.
+      // Human action handlers update accumulatedInterest per action; we mirror that here after the loop.
+      if (pendingTopSchoolGains.size > 0) {
+        try {
+          const teamTopSchools = await storage.getTopSchoolsByTeam(team.id);
+          const topSchoolMap = new Map(teamTopSchools.map(ts => [ts.recruitId, ts]));
+          await Promise.all(
+            Array.from(pendingTopSchoolGains.entries()).map(async ([recruitId, gainTotal]) => {
+              const row = topSchoolMap.get(recruitId);
+              if (row) {
+                await storage.updateRecruitTopSchool(row.id, {
+                  accumulatedInterest: (row.accumulatedInterest || 0) + gainTotal,
+                });
+              }
+            })
+          );
+        } catch (tsErr) {
+          console.error("[cpu-recruiting] Failed to update recruit_top_schools:", tsErr);
         }
       }
 
