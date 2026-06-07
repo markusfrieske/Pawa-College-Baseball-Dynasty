@@ -3634,10 +3634,24 @@ function RecruitRow({
                 const visibleSchools = recruit.topSchools!.slice(0, visibleCount);
                 const userIdx = visibleSchools.findIndex(s => s.teamId === userTeamId);
                 if (userIdx >= 0) {
+                  const hasOffer = recruit.interest?.hasOffer;
                   return (
-                    <span className="text-[9px] font-pixel text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
-                      #{userIdx + 1} of {visibleSchools.length}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-pixel text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
+                        #{userIdx + 1} of {visibleSchools.length}
+                      </span>
+                      {!hasOffer && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex items-center gap-0.5 text-[9px] text-amber-400/80 cursor-default" data-testid={`text-offer-required-${recruit.id}`}>
+                              <Lock className="w-2.5 h-2.5" />
+                              Offer needed
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Recruits can only commit to schools that have extended a scholarship offer — interest alone won't close the deal</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   );
                 }
                 return (

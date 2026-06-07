@@ -1454,7 +1454,7 @@ export async function registerRoutes(
           }
         }
         let topSchools = Array.from(deduped.values())
-          .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+          .sort((a, b) => (b.interestLevel + b.accumulatedInterest) - (a.interestLevel + a.accumulatedInterest))
           .slice(0, topSchoolsCount)
           .map(ts => {
             const team = teamMap.get(ts.teamId)!;
@@ -1465,8 +1465,7 @@ export async function registerRoutes(
               primaryColor: team.primaryColor,
               interestLevel: ts.interestLevel + ts.accumulatedInterest,
             };
-          })
-          .sort((a, b) => b.interestLevel - a.interestLevel);
+          });
         
         // Fallback: if no stored top schools, generate from league teams
         if (topSchools.length === 0) {
@@ -20028,7 +20027,7 @@ export async function registerRoutes(
         }
       }
       let topSchools = Array.from(dedupedDetail.values())
-        .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+        .sort((a, b) => (b.interestLevel + b.accumulatedInterest) - (a.interestLevel + a.accumulatedInterest))
         .slice(0, topSchoolsCount)
         .map(ts => {
           const team = teamMap.get(ts.teamId)!;
@@ -20039,8 +20038,7 @@ export async function registerRoutes(
             primaryColor: team.primaryColor,
             interestLevel: ts.interestLevel + ts.accumulatedInterest,
           };
-        })
-        .sort((a, b) => b.interestLevel - a.interestLevel);
+        });
       
       // Fallback if no stored top schools
       if (topSchools.length === 0) {
