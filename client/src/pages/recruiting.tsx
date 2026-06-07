@@ -214,6 +214,7 @@ const sortOptions = [
   { value: "myInterest", label: "Interest in You (High to Low)" },
   { value: "trendUp", label: "Rising Interest First" },
   { value: "competition", label: "Most Contested First" },
+  { value: "myRank", label: "My Rank (Best First)" },
 ];
 
 export default function RecruitingPage() {
@@ -909,6 +910,21 @@ export default function RecruitingPage() {
       }
       case "competition": {
         return (b.teamsIn || 0) - (a.teamsIn || 0);
+      }
+      case "myRank": {
+        const userTeamId = data?.team?.id;
+        const getRank = (r: RecruitWithInterest): number => {
+          if (!userTeamId || !r.topSchools) return 9999;
+          const scoutPct = r.interest?.scoutPercentage || 0;
+          if (scoutPct === 0) return 9999;
+          const visibleCount = r.stage === "top3" ? 3 : r.stage === "top5" ? 5 : 8;
+          const idx = r.topSchools.slice(0, visibleCount).findIndex(s => s.teamId === userTeamId);
+          return idx === -1 ? 9999 : idx + 1;
+        };
+        const aRank = getRank(a);
+        const bRank = getRank(b);
+        if (aRank !== bRank) return aRank - bRank;
+        return (a.classRank || 999) - (b.classRank || 999);
       }
       case "boardRank": {
         const aRank = a.interest?.boardRank ?? 9999;
