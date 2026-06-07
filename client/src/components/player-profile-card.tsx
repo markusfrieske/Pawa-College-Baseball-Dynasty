@@ -583,6 +583,13 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 };
                 const tier = ability?.tier;
                 const tierStyle = tier ? tierStyles[tier] : null;
+                const storyBadgeColor = tier === "gold"
+                  ? "text-yellow-400"
+                  : tier === "blue"
+                  ? "text-blue-400"
+                  : tier === "red"
+                  ? "text-red-400"
+                  : "text-amber-400";
 
                 if (abilityName === "Bad Ball Hitter") {
                   return (
@@ -597,7 +604,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                         <span className="bg-red-600/20 text-red-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(239,68,68,0.70)" }}>Ball Hitter</span>
                       </Badge>
                       {isStoryAcquired && (
-                        <span className="text-[9px] font-pixel text-amber-400 flex items-center gap-0.5" title="Acquired through a storyline arc">
+                        <span className={`text-[9px] font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
                           <Sparkles className="w-2.5 h-2.5" />STORY
                         </span>
                       )}
@@ -616,7 +623,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                       {abilityName}
                     </Badge>
                     {isStoryAcquired && (
-                      <span className="text-[9px] font-pixel text-amber-400 flex items-center gap-0.5" title="Acquired through a storyline arc">
+                      <span className={`text-[9px] font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
                         <Sparkles className="w-2.5 h-2.5" />STORY
                       </span>
                     )}
