@@ -86,6 +86,7 @@ import type { Recruit, RecruitingInterest, Team, LastSeasonStats } from "@shared
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD } from "@shared/recruitThresholds";
 import { TrajectoryIcon } from "@/components/ui/trajectory-icon";
+import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
@@ -2713,16 +2714,6 @@ function RecruitRow({
                   ))}
                 </div>
               )}
-              {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
-                <span className={`flex items-center gap-0.5 px-1 py-0.5 rounded border ${
-                  recruit.trajectory === 1 ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" :
-                  recruit.trajectory === 3 ? "bg-amber-500/10 border-amber-500/40 text-amber-400" :
-                  recruit.trajectory === 4 ? "bg-red-500/10 border-red-500/40 text-red-400" :
-                  "bg-slate-500/10 border-slate-500/40 text-slate-400"
-                }`} data-testid={`badge-traj-row-${recruit.id}`}>
-                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[10px]" />
-                </span>
-              )}
               {recruit.recruitType === "TRANSFER" ? (
                 <Badge className="bg-purple-600/30 text-purple-400 border-purple-600/50 text-[8px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-transfer-${recruit.id}`}>
                   TRANSFER {recruit.recruitYear || ""} {recruit.fromTeamName ? `(${recruit.fromTeamName})` : ""}
@@ -3397,12 +3388,23 @@ function RecruitRow({
             </div>
           )}
 
+          {/* Trajectory row — hitters only, visible after 50% scouted */}
+          {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+            <div className="flex items-center gap-1" data-testid={`traj-row-${recruit.id}`}>
+              <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
+              <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
+              <span className={`text-[9px] font-mono ${
+                recruit.trajectory === 1 ? "text-emerald-400" :
+                recruit.trajectory === 3 ? "text-amber-400" :
+                recruit.trajectory === 4 ? "text-red-400" :
+                "text-slate-400"
+              }`}>{TRAJECTORY_FULL_LABELS[recruit.trajectory] ?? ""}</span>
+            </div>
+          )}
+
           {/* Row 1 — ATTRIBUTES */}
           <div className="flex items-center gap-1 flex-wrap">
             <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">ATTRIBUTES</span>
-            {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
-              <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
-            )}
             {primaryAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
