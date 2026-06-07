@@ -330,11 +330,11 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 4, 4, 0, 1, 0, 0]) },
-    // Grant Govel — RHP SO (corrected from FR), 9-1/2.55 — jersey #95
+    // Grant Govel — RHP SO (corrected from FR), 9-1/2.55 — jersey #95 — Big Ten ace-level raised
     { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 95,
-      hitForAvg: 14, power: 10, speed: 32, arm: 61, fielding: 35, errorResistance: 46, velocity: 63, control: 58, stamina: 63, stuff: 58,
+      hitForAvg: 14, power: 10, speed: 32, arm: 70, fielding: 35, errorResistance: 46, velocity: 76, control: 68, stamina: 63, stuff: 70,
       clutch: 76, vsLHP: 70, grit: 66, stealing: 8, running: 30, throwing: 74, recovery: 49, wRISP: 56, vsLefty: 56, poise: 61, heater: 62, agile: 40,
-      abilities: ["Strong Starter", "Inside Pitch", "Staredown"], potential: "A+", catcherAbility: null,
+      abilities: ["Strong Starter", "Inside Pitch", "Staredown", "Efficient"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 1, 0]) },
@@ -354,9 +354,9 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
-    // Adam Troy — RHP JR (corrected from SR) closer, 11 SV (3rd nation), 32 K in 25.2 IP — jersey #33, R/R
+    // Adam Troy — RHP JR closer, 11 SV (3rd nation), 32 K/25.2 IP — jersey #33 — national closer range raised
     { firstName: "Adam", lastName: "Troy", position: "P", eligibility: "JR", homeState: "TX", hometown: "Houston", jerseyNumber: 33,
-      hitForAvg: 12, power: 10, speed: 32, arm: 60, fielding: 33, errorResistance: 44, velocity: 61, control: 54, stamina: 63, stuff: 58,
+      hitForAvg: 12, power: 10, speed: 32, arm: 70, fielding: 33, errorResistance: 44, velocity: 75, control: 65, stamina: 63, stuff: 70,
       clutch: 80, vsLHP: 70, grit: 66, stealing: 8, running: 30, throwing: 74, recovery: 44, wRISP: 60, vsLefty: 57, poise: 63, heater: 61, agile: 40,
       abilities: ["Fireman", "Winner's Luck", "Decisive", "Strong Finisher", "Straddle"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -452,11 +452,11 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Adrian Lopez — 1B JR (corrected from 3B, 392 PO confirms 1B) — jersey #5, Baldwin Park CA
+    // Adrian Lopez — 1B JR (392 PO team-leading 1B) — jersey #5, Baldwin Park CA — fielding/errorResistance raised
     { firstName: "Adrian", lastName: "Lopez", position: "1B", eligibility: "JR", homeState: "CA", hometown: "Baldwin Park", jerseyNumber: 5,
-      hitForAvg: 62, power: 57, speed: 56, arm: 50, fielding: 30, errorResistance: 20, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 62, power: 57, speed: 56, arm: 50, fielding: 55, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 50, grit: 56, stealing: 46, running: 46, throwing: 64, recovery: 42, wRISP: 54, vsLefty: 48, poise: 54, heater: 0, agile: 40,
-      abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
+      abilities: ["Contact Hitter", "Defensive Artisan"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
@@ -485,11 +485,11 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Brock Slaton — OF SR (Graduate), .118 AVG — jersey #2, Baton Rouge LA, L/L (corrected from R/R)
+    // Brock Slaton — OF SR (Graduate), .118 AVG — jersey #2, Baton Rouge LA — hitForAvg corrected from 65 to 32
     { firstName: "Brock", lastName: "Slaton", position: "OF", eligibility: "SR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 2,
-      hitForAvg: 65, power: 61, speed: 61, arm: 56, fielding: 34, errorResistance: 24, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 32, power: 61, speed: 61, arm: 56, fielding: 34, errorResistance: 24, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 56, vsLHP: 52, grit: 58, stealing: 46, running: 48, throwing: 66, recovery: 44, wRISP: 56, vsLefty: 52, poise: 56, heater: 0, agile: 50,
-      abilities: ["Power Hitter", "Walkoff Hitter"], potential: "B+", catcherAbility: null,
+      abilities: ["Walkoff Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
@@ -501,26 +501,26 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Augie Lopez — OF SO, team HR leader 19 HR/57 RBI — jersey #24, Hermosa Beach CA, L bat/R throw (real C/1B/OF, listed OF for roster balance)
+    // Augie Lopez — OF SO, team HR leader 19 HR/57 RBI — jersey #24 — power raised to match elite production
     { firstName: "Augie", lastName: "Lopez", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Hermosa Beach", jerseyNumber: 24,
-      hitForAvg: 55, power: 74, speed: 34, arm: 56, fielding: 44, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 74, vsLHP: 64, grit: 60, stealing: 34, running: 38, throwing: 56, recovery: 44, wRISP: 76, vsLefty: 64, poise: 76, heater: 0, agile: 42,
+      hitForAvg: 55, power: 80, speed: 34, arm: 56, fielding: 44, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 78, vsLHP: 64, grit: 60, stealing: 34, running: 38, throwing: 56, recovery: 44, wRISP: 80, vsLefty: 64, poise: 78, heater: 0, agile: 42,
       abilities: ["Power Hitter", "Walkoff Hitter", "vs. Breaking Pitches"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Chase Herrell — OF SO, #45, Milford OH — real RHP listed as OF for roster balance (validator: 9-11P max)
+    // Chase Herrell — OF SO, #45, Milford OH — real RHP listed as OF; arm raised to pitcher range
     { firstName: "Chase", lastName: "Herrell", position: "OF", eligibility: "SO", homeState: "OH", hometown: "Milford", jerseyNumber: 45,
-      hitForAvg: 48, power: 44, speed: 50, arm: 62, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 48, vsLHP: 44, grit: 50, stealing: 42, running: 48, throwing: 62, recovery: 38, wRISP: 44, vsLefty: 42, poise: 48, heater: 0, agile: 46,
+      hitForAvg: 48, power: 44, speed: 50, arm: 70, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 48, vsLHP: 44, grit: 50, stealing: 42, running: 48, throwing: 70, recovery: 38, wRISP: 44, vsLefty: 42, poise: 48, heater: 0, agile: 46,
       abilities: ["Resilient", "Double Play"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Ben Cushnie — OF SO, #41, Santa Clarita CA — real LHP listed as OF for roster balance (validator: 9-11P max)
+    // Ben Cushnie — OF SO, #41, Santa Clarita CA — real LHP listed as OF; arm raised to pitcher range
     { firstName: "Ben", lastName: "Cushnie", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Santa Clarita", jerseyNumber: 41,
-      hitForAvg: 46, power: 42, speed: 52, arm: 50, fielding: 52, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 46, vsLHP: 42, grit: 48, stealing: 44, running: 50, throwing: 52, recovery: 36, wRISP: 42, vsLefty: 40, poise: 46, heater: 0, agile: 48,
+      hitForAvg: 46, power: 42, speed: 52, arm: 68, fielding: 52, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 46, vsLHP: 42, grit: 48, stealing: 44, running: 50, throwing: 68, recovery: 36, wRISP: 42, vsLefty: 40, poise: 46, heater: 0, agile: 48,
       abilities: ["First Pitch Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
