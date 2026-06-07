@@ -912,37 +912,6 @@ export default function RecruitProfilePage() {
                       <p className="text-xs text-muted-foreground">Bats</p>
                       <p className="font-bold">{recruit.batHand || "R"}</p>
                     </div>
-                    {!checkIsPitcher(recruit.position) && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          Trajectory
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <HelpCircle className="w-3 h-3" />
-                            </TooltipTrigger>
-                            <TooltipContent>How this hitter tends to make contact — groundball, line drive, gap, or flyball. Revealed at 50% scouting.</TooltipContent>
-                          </Tooltip>
-                        </p>
-                        {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            {(recruit as any).trajectory === 1 && <ArrowDownRight className="w-4 h-4 text-emerald-400" />}
-                            {(recruit as any).trajectory === 2 && <ArrowRight className="w-4 h-4 text-slate-400" />}
-                            {(recruit as any).trajectory === 3 && <ArrowUpRight className="w-4 h-4 text-amber-400" />}
-                            {(recruit as any).trajectory === 4 && <ArrowUp className="w-4 h-4 text-red-400" />}
-                            <span className={`font-bold text-sm ${
-                              (recruit as any).trajectory === 1 ? "text-emerald-400" :
-                              (recruit as any).trajectory === 3 ? "text-amber-400" :
-                              (recruit as any).trajectory === 4 ? "text-red-400" :
-                              "text-slate-400"
-                            }`}>
-                              {TRAJECTORY_FULL_LABELS[(recruit as any).trajectory ?? 2] ?? "Line Drive"}
-                            </span>
-                          </div>
-                        ) : (
-                          <p className="font-bold text-muted-foreground/50">???</p>
-                        )}
-                      </div>
-                    )}
                   </div>
                   {leagueData?.league?.progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
                     <div className="mt-4 pt-4 border-t border-border">
@@ -2085,6 +2054,36 @@ function RecruitAttributesSection({
         </>
       ) : (
         <>
+          {/* Trajectory — revealed at 50% scouting, right above Contact */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground w-24 flex items-center gap-1">
+              Trajectory
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="w-3 h-3" />
+                </TooltipTrigger>
+                <TooltipContent>How this hitter tends to make contact — groundball, line drive, gap, or flyball. Revealed at 50% scouting.</TooltipContent>
+              </Tooltip>
+            </span>
+            {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
+              <div className="flex items-center gap-1.5">
+                {recruit.trajectory === 1 && <ArrowDownRight className="w-4 h-4 text-emerald-400" />}
+                {recruit.trajectory === 2 && <ArrowRight className="w-4 h-4 text-slate-400" />}
+                {recruit.trajectory === 3 && <ArrowUpRight className="w-4 h-4 text-amber-400" />}
+                {recruit.trajectory === 4 && <ArrowUp className="w-4 h-4 text-red-400" />}
+                <span className={`font-bold text-sm ${
+                  recruit.trajectory === 1 ? "text-emerald-400" :
+                  recruit.trajectory === 3 ? "text-amber-400" :
+                  recruit.trajectory === 4 ? "text-red-400" :
+                  "text-slate-400"
+                }`}>
+                  {TRAJECTORY_FULL_LABELS[recruit.trajectory ?? 2] ?? "Line Drive"}
+                </span>
+              </div>
+            ) : (
+              <span className="font-bold text-sm text-muted-foreground/50">???</span>
+            )}
+          </div>
           {renderAttribute("Contact", "hitForAvg", recruit.hitForAvg)}
           {renderAttribute("Power", "power", recruit.power)}
           {renderAttribute("Speed", "speed", recruit.speed)}
