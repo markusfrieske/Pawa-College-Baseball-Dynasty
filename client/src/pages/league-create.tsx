@@ -35,18 +35,22 @@ const availableConferences = [
 ];
 
 const seasonLengthOptions = [
-  { value: "short", label: "Short Season - 10 Games (5 weeks)" },
-  { value: "standard", label: "Standard Season - 20 Games (5 weeks)" },
-  { value: "medium", label: "Extended Season - 16 Games (4 weeks)" },
-  { value: "long", label: "Long Season - 40 Games (10 weeks)" },
+  { value: "standard", label: "Standard Season — 23 Games (5 weeks + 3 spring)" },
+  { value: "medium",   label: "Medium Season — 46 Games (10 weeks + 6 spring)" },
+  { value: "long",     label: "Long Season — 69 Games (15 weeks + 9 spring)" },
 ];
 
 const seasonScheduleBreakdown: Record<string, string> = {
-  short:    "5 weeks · 1 conf game + 1 OOC game each week · 10 regular season games · 4 spring training games",
-  standard: "5 weeks · 5 conf series (3 games each) · 5 OOC midweeks · 20 regular season games · 4 spring training games",
-  medium:   "4 weeks · 4 conf series (3 games each) · 4 OOC midweeks · 16 regular season games · 4 spring training games",
-  long:     "10 weeks · 10 conf series (3 games each) · 10 OOC midweeks · 40 regular season games · 4 spring training games",
+  standard: "5 weeks · 5 conf series (3 games each) · 5 OOC midweeks · 20 regular season games · 3 spring training games",
+  medium:   "10 weeks · 10 conf series (3 games each) · 10 OOC midweeks · 40 regular season games · 6 spring training games",
+  long:     "15 weeks · 15 conf series (3 games each) · 15 OOC midweeks · 60 regular season games · 9 spring training games",
 };
+
+function isValidTeamCount(n: number, confCount: number): boolean {
+  if (confCount === 0) return false;
+  if (n === 14 && confCount === 3) return true; // [6,4,4] — all even
+  return n % (2 * confCount) === 0;
+}
 
 export default function LeagueCreatePage() {
   const [name, setName] = useState("");
@@ -67,15 +71,17 @@ export default function LeagueCreatePage() {
   }, [selectedConferences]);
 
   const teamCountOptions = useMemo(() => {
-    const counts = [6, 8, 10, 12, 14, 16, 18];
-    const options = counts
-      .filter(n => n < totalAvailableTeams)
+    const confCount = selectedConferences.length;
+    if (confCount === 0 || totalAvailableTeams === 0) return [];
+    const candidates = [6, 8, 10, 12, 14, 16, 18, 20];
+    const options = candidates
+      .filter(n => n < totalAvailableTeams && isValidTeamCount(n, confCount))
       .map(n => ({ value: String(n), label: `${n} Teams` }));
-    if (totalAvailableTeams > 0) {
+    if (isValidTeamCount(totalAvailableTeams, confCount)) {
       options.push({ value: String(totalAvailableTeams), label: `All Teams (${totalAvailableTeams})` });
     }
     return options;
-  }, [totalAvailableTeams]);
+  }, [totalAvailableTeams, selectedConferences.length]);
 
   const toggleConference = (confId: string) => {
     setSelectedConferences(prev => {
@@ -86,12 +92,15 @@ export default function LeagueCreatePage() {
         const conf = availableConferences.find(c => c.id === id);
         return sum + (conf?.teams || 0);
       }, 0);
-      const currentTeamCount = parseInt(maxTeams);
-      if (currentTeamCount > newTotal && newTotal > 0) {
-        const validCounts = [6, 8, 10, 12, 14, 16, 18].filter(n => n <= newTotal);
+      const confCount = next.length;
+      const currentCount = parseInt(maxTeams);
+      const isCurrentValid = newTotal > 0 && confCount > 0 && currentCount <= newTotal && isValidTeamCount(currentCount, confCount);
+      if (!isCurrentValid && newTotal > 0 && confCount > 0) {
+        const validCounts = [6, 8, 10, 12, 14, 16, 18, 20]
+          .filter(n => n <= newTotal && isValidTeamCount(n, confCount));
         if (validCounts.length > 0) {
           setMaxTeams(String(validCounts[validCounts.length - 1]));
-        } else {
+        } else if (isValidTeamCount(newTotal, confCount)) {
           setMaxTeams(String(newTotal));
         }
       }
@@ -261,12 +270,6 @@ export default function LeagueCreatePage() {
                   disabled={selectedConferences.length === 0}
                   data-testid="select-team-count"
                 />
-                {maxTeams === "14" && selectedConferences.length === 3 && (
-                  <p className="mt-1.5 text-[10px] text-muted-foreground flex items-center gap-1.5">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold/60" />
-                    6·4·4 split across 3 conferences
-                  </p>
-                )}
               </div>
 
               <div>

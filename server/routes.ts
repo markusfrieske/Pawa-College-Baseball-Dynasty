@@ -9393,9 +9393,9 @@ export async function registerRoutes(
       // Determine max weeks for season based on phase
       const seasonWeeks: Record<string, number> = {
         "short": 5,
-        "medium": 4,
+        "medium": 10,
         "standard": 5,
-        "long": 10,
+        "long": 15,
       };
       const maxWeeks = seasonWeeks[league.seasonLength || "standard"] || 5;
       
@@ -10524,7 +10524,7 @@ export async function registerRoutes(
           break;
         }
 
-        const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+        const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
@@ -10984,7 +10984,7 @@ export async function registerRoutes(
         while (gIter < MAX_GAME_ITER && gamePhases.includes(currentLeague.currentPhase)) {
           gIter++;
           const phase = currentLeague.currentPhase;
-          const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+          const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
           const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
           if (["preseason", "spring_training", "regular_season"].includes(phase)) {
@@ -11191,7 +11191,7 @@ export async function registerRoutes(
 
         if (phase === "conference_championship") break;
 
-        const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+        const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (preseasonPhases.includes(phase)) {
@@ -11284,7 +11284,7 @@ export async function registerRoutes(
         if (phase === "cws") break;
         if (phase === "offseason_departures") break;
 
-        const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+        const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (["preseason", "spring_training", "regular_season"].includes(phase)) {
@@ -21200,7 +21200,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     return rounds;
   }
 
-  const numWeeks = seasonLength === "long" ? 10 : (seasonLength === "short" || seasonLength === "standard") ? 5 : 4;
+  const numWeeks = seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
 
   const confMap = new Map<string, TeamType[]>();
   for (const team of leagueTeams) {
@@ -21496,7 +21496,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   // Target: reach targetGamesPerTeam regular-season games for each team.
   // Odd-sized conferences (e.g. 5-team) get fewer conf games due to phantom-team byes;
   // the top-up loop below bridges the gap with extra OOC midweek games.
-  const targetGamesPerTeam = seasonLength === "long" ? 40 : seasonLength === "short" ? 10 : seasonLength === "standard" ? 20 : 16;
+  const targetGamesPerTeam = seasonLength === "long" ? 60 : seasonLength === "medium" ? 40 : 20;
   const topupCeiling = targetGamesPerTeam + 4; // prevent runaway inflation
   const confByTeamFinal = new Map<string, string>();
   for (const [cid, teams] of confMap) for (const t of teams) confByTeamFinal.set(t.id, cid);
@@ -21657,7 +21657,7 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     new Set(leagueTeams.map(t => t.conferenceId).filter(Boolean)).size >= 2;
 
   const league = await storage.getLeague(leagueId);
-  const TARGET = league?.seasonLength === "standard" ? 3 : 4; // target exhibition games per team
+  const TARGET = league?.seasonLength === "long" ? 9 : league?.seasonLength === "medium" ? 6 : 3; // 3/6/9 spring games per standard/medium/long
   const matchups: Array<{ homeTeamId: string; awayTeamId: string }> = [];
   const gameCounts = new Map(leagueTeams.map(t => [t.id, 0]));
 
