@@ -50,6 +50,7 @@ import {
   Save,
   RotateCcw,
   Star,
+  CheckCircle,
 } from "lucide-react";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1706,6 +1707,21 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
     refetchInterval: 30000,
   });
 
+  const walkonReadyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/walkons/ready`);
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "walkons", "readiness"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      toast({ title: "Bids Locked In", description: "Your bids are locked. Waiting for all teams." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const nudgeMutation = useMutation({
     mutationFn: async (teamId: string) => {
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/teams/${teamId}/nudge`);
@@ -1943,7 +1959,32 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                           )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          {!team.isAutoPilot && (
+                          {isWalkonsPhase && team.userId === currentUser?.id && (
+                            <RetroButton
+                              variant="primary"
+                              size="sm"
+                              onClick={() => walkonReadyMutation.mutate()}
+                              disabled={walkonReadyMutation.isPending}
+                              data-testid={`button-lockin-bids-${team.teamId}`}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              {walkonReadyMutation.isPending ? "Locking..." : "Lock In Bids"}
+                            </RetroButton>
+                          )}
+                          {!team.isAutoPilot && team.userId !== currentUser?.id && (
+                            <RetroButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => nudgeMutation.mutate(team.teamId)}
+                              disabled={nudgeMutation.isPending}
+                              data-testid={`button-nudge-${team.teamId}`}
+                              className="border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
+                            >
+                              <BellRing className="w-3 h-3 mr-1" />
+                              Nudge
+                            </RetroButton>
+                          )}
+                          {!team.isAutoPilot && team.userId === currentUser?.id && !isWalkonsPhase && (
                             <RetroButton
                               variant="outline"
                               size="sm"
