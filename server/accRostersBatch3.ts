@@ -77,7 +77,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Hideki Prather — JR C #3, team star; .333/.421/.632, 14 HR
     { firstName: "Hideki", lastName: "Prather", position: "C", eligibility: "JR", homeState: "CA", hometown: "San Mateo", jerseyNumber: 3,
-      hitForAvg: 64, power: 63, speed: 40, arm: 57, fielding: 61, errorResistance: 52, velocity: 0, control: 0, stamina: 20, stuff: 0,
+      hitForAvg: 62, power: 61, speed: 40, arm: 57, fielding: 61, errorResistance: 52, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 54, vsLHP: 50, grit: 50, stealing: 38, running: 38, throwing: 52, recovery: 43, wRISP: 51, vsLefty: 48, poise: 45, heater: 0, agile: 36,
       abilities: ["Power Hitter", "Consigliere", "Head-first Slide"], potential: "A-", catcherAbility: 52,
       throwHand: "R", batHand: "R",
