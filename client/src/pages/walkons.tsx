@@ -90,6 +90,7 @@ export default function WalkonsPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const [posFilter, setPosFilter] = useState("all");
+  const [rosterPosFilter, setRosterPosFilter] = useState("all");
   const [showSigned, setShowSigned] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [confirmCut, setConfirmCut] = useState<Player | null>(null);
@@ -257,6 +258,9 @@ export default function WalkonsPage() {
   const activeRoster = roster.filter((p: { departureType?: string | null }) => !p.departureType);
   const rosterCount = activeRoster.length;
   const sortedRoster = [...roster].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  const filteredRoster = rosterPosFilter === "all"
+    ? sortedRoster
+    : sortedRoster.filter(p => p.position === rosterPosFilter);
   // Open roster slots = how many more walk-ons you can win (and bid on)
   const openSlots = Math.max(0, MAX_ROSTER - rosterCount);
   const activeBidCount = Object.keys(bids).length;
@@ -496,8 +500,23 @@ export default function WalkonsPage() {
                 </div>
               </RetroCardHeader>
               <RetroCardContent>
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <Filter className="w-3 h-3 text-muted-foreground" />
+                  {positions.map(pos => (
+                    <RetroButton
+                      key={pos}
+                      variant={rosterPosFilter === pos ? "primary" : "ghost"}
+                      size="sm"
+                      onClick={() => setRosterPosFilter(pos)}
+                      className="text-[9px] px-2 py-1"
+                      data-testid={`filter-roster-pos-${pos}`}
+                    >
+                      {pos === "all" ? "All" : pos}
+                    </RetroButton>
+                  ))}
+                </div>
                 <div className="space-y-1 max-h-[60vh] overflow-y-auto">
-                  {sortedRoster.map(player => (
+                  {filteredRoster.map(player => (
                     <div
                       key={player.id}
                       className="flex items-center gap-2 p-2 rounded bg-muted/20 hover-elevate cursor-pointer"
@@ -548,6 +567,9 @@ export default function WalkonsPage() {
                       </RetroButton>
                     </div>
                   ))}
+                  {filteredRoster.length === 0 && sortedRoster.length > 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">No players at {rosterPosFilter}</p>
+                  )}
                   {sortedRoster.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-4">No players on roster</p>
                   )}
