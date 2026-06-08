@@ -272,12 +272,14 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     // INFIELDERS (6)
-    // Rintaro Sasaki — SO 1B #3 (.269/7HR/41RBI; raw attrs high because Stanford scale=0.909607 reduces all attrs)
+    // Rintaro Sasaki — SO 1B #3 (.269/7HR/41RBI)
     // FIXED: jersey 21→3, batHand R→L (real B/T = L/R)
+    // protectedAttrs: hitForAvg/power bypass Stanford scale (1.122642) — raw = exact in-game value
     { firstName: "Rintaro", lastName: "Sasaki", position: "1B", eligibility: "SO", homeState: "CA", hometown: "Stanford", jerseyNumber: 3,
-      hitForAvg: 98, power: 93, speed: 60, arm: 46, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 82, power: 90, speed: 60, arm: 46, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 62, vsLHP: 56, grit: 58, stealing: 54, running: 54, throwing: 50, recovery: 48, wRISP: 64, vsLefty: 56, poise: 62, heater: 0, agile: 40,
       abilities: ["Line Drive", "Consigliere"], potential: "B+", catcherAbility: null,
+      protectedAttrs: ["hitForAvg", "power"],
       throwHand: "R", batHand: "L",
       ...noPitches },
     // Jimmy Nati — SR 3B #6, team HR/RBI leader (.300/16HR/50RBI, All-ACC Gold Glove finalist)
@@ -326,10 +328,12 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Teddy Tokheim — SO OF #18, elite power (.349/16HR/OPS 1.359 as true FR, led all freshmen nationally)
     // FIXED: batHand S→R (real B/T = R/R); elig FR→SO; clutch bumped to reflect elite production
+    // protectedAttrs: hitForAvg/power bypass Stanford scale (1.122642) — raw = exact in-game value
     { firstName: "Teddy", lastName: "Tokheim", position: "OF", eligibility: "SO", homeState: "MN", hometown: "Edina", jerseyNumber: 18,
-      hitForAvg: 90, power: 91, speed: 42, arm: 55, fielding: 48, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 89, power: 90, speed: 42, arm: 55, fielding: 48, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 82, vsLHP: 66, grit: 78, stealing: 30, running: 42, throwing: 58, recovery: 22, wRISP: 28, vsLefty: 24, poise: 28, heater: 0, agile: 44,
       abilities: ["Counterattack", "Power Hitter", "Multi-Hit", "Tough Out"], potential: "A", catcherAbility: null,
+      protectedAttrs: ["hitForAvg", "power"],
       throwHand: "R", batHand: "R",
       ...noPitches },
     // Tatum Marsh — SO OF #4, Freshman All-American (.377/3HR/47R; FIXED: elig JR→SO, jersey 7→4)
