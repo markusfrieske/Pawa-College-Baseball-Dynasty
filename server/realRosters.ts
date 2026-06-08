@@ -280,14 +280,17 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
       calibrated = { ...calibrated, abilities: gatedAbilities };
 
       // 3. Elite speedster running/stealing boost: OVR > 500 + speed ≥ 90 → S-grade running/stealing.
+      //    Skipped when the attr is listed in protectedAttrs — the roster file value is authoritative.
       const ovrAfterGating = gatedAbilities !== p.abilities
         ? calculateOVR({ ...calibrated })
         : ovrForGating;
       if (ovrAfterGating > 500 && typeof calibrated.speed === "number") {
         const spd = calibrated.speed;
-        if (spd >= 90 && spd <= 94 && (calibrated.running ?? 0) < 90) {
+        const runningProtected = p.protectedAttrs?.includes("running") ?? false;
+        const stealingProtected = p.protectedAttrs?.includes("stealing") ?? false;
+        if (spd >= 90 && spd <= 94 && (calibrated.running ?? 0) < 90 && !runningProtected) {
           calibrated = { ...calibrated, running: 90 };
-        } else if (spd >= 95 && (calibrated.stealing ?? 0) < 90) {
+        } else if (spd >= 95 && (calibrated.stealing ?? 0) < 90 && !stealingProtected) {
           calibrated = { ...calibrated, stealing: 90 };
         }
       }

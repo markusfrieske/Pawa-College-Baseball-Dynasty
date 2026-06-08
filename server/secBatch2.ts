@@ -312,12 +312,12 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // INFIELDERS (7)
       // Justin Lebron — SS JR, 3-run HR vs SC, reached 6 straight games, top draft prospect
-      // Profile: Lightning Speed (gold stealing) — speed+stealing elite speedster. Clutch/running A-grade.
+      // Profile: Lightning Speed (gold stealing) — speed+stealing elite speedster. Clutch A-grade, running B-grade (protected).
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
         hitForAvg: 63, power: 65, speed: 90, arm: 67, fielding: 59, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 70, vsLHP: 38, grit: 38, stealing: 90, running: 70, throwing: 66, recovery: 38, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
+        clutch: 70, vsLHP: 38, grit: 38, stealing: 90, running: 74, throwing: 66, recovery: 38, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
         abilities: ["Power Hitter", "Defensive Artisan", "Consigliere", "Lightning Speed"], potential: "A+", catcherAbility: null,
-        protectedAttrs: ["speed", "stealing"],
+        protectedAttrs: ["speed", "stealing", "running"],
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
