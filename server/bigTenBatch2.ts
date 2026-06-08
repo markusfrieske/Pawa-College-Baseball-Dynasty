@@ -788,8 +788,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Maddox Molony — SS JR, BA #122 2026 draft
       { firstName: "Maddox", lastName: "Molony", position: "SS", eligibility: "JR", homeState: "OR", hometown: "West Linn", jerseyNumber: 2,
-        hitForAvg: 64, power: 64, speed: 66, arm: 62, fielding: 55, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 64, vsLHP: 58, grit: 64, stealing: 49, running: 49, throwing: 70, recovery: 46, wRISP: 64, vsLefty: 58, poise: 64, heater: 0, agile: 52,
+        hitForAvg: 62, power: 62, speed: 64, arm: 61, fielding: 54, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 62, vsLHP: 57, grit: 62, stealing: 48, running: 48, throwing: 68, recovery: 45, wRISP: 62, vsLefty: 57, poise: 62, heater: 0, agile: 51,
         abilities: ["Revenge", "Power Hitter", "Defensive Artisan", "Consigliere"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -829,9 +829,9 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // OUTFIELDERS (6)
       // Drew Smith — OF JR, 14 HR (team lead)
       { firstName: "Drew", lastName: "Smith", position: "OF", eligibility: "JR", homeState: "OR", hometown: "Beaverton", jerseyNumber: 15,
-        hitForAvg: 62, power: 62, speed: 66, arm: 65, fielding: 58, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 64, vsLHP: 60, grit: 64, stealing: 49, running: 50, throwing: 66, recovery: 46, wRISP: 64, vsLefty: 60, poise: 64, heater: 0, agile: 52,
-        abilities: ["Trickster", "Spray Hitter", "Power Hitter"], potential: "A", catcherAbility: null,
+        hitForAvg: 61, power: 61, speed: 64, arm: 63, fielding: 57, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 63, vsLHP: 59, grit: 63, stealing: 48, running: 49, throwing: 64, recovery: 45, wRISP: 63, vsLefty: 59, poise: 63, heater: 0, agile: 51,
+        abilities: ["Consigliere", "Spray Hitter", "Power Hitter"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },

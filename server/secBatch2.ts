@@ -726,8 +726,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Daniel Jackson — JR C, GENERATIONAL: .396/.493, 29 HR, 83 RBI, 25 SB — 1st in SEC HISTORY with 20HR/20SB
     { firstName: "Daniel", lastName: "Jackson", position: "C", eligibility: "JR", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 3,
       generational: true,
-      hitForAvg: 65, power: 62, speed: 60, arm: 52, fielding: 48, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 90, vsLHP: 82, grit: 48, stealing: 52, running: 55, throwing: 53, recovery: 60, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 60,
+      hitForAvg: 63, power: 61, speed: 59, arm: 51, fielding: 47, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 88, vsLHP: 80, grit: 47, stealing: 51, running: 54, throwing: 52, recovery: 59, wRISP: 84, vsLefty: 78, poise: 82, heater: 0, agile: 59,
       abilities: ["Spray Hitter", "Consigliere", "Storming Home", "Power Hitter", "Unpredictable"], potential: "A+", catcherAbility: 70,
       throwHand: "R", batHand: "R",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
@@ -792,8 +792,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Tre Phelps — JR OF #1 (fix batHand L→R, jersey #5→#1), .370, 19 HR, 57 RBI
     { firstName: "Tre", lastName: "Phelps", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Cumming", jerseyNumber: 1,
-      hitForAvg: 69, power: 59, speed: 65, arm: 61, fielding: 54, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 78, vsLHP: 66, grit: 76, stealing: 49, running: 50, throwing: 66, recovery: 54, wRISP: 78, vsLefty: 72, poise: 78, heater: 0, agile: 54,
+      hitForAvg: 67, power: 57, speed: 63, arm: 59, fielding: 52, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 76, vsLHP: 64, grit: 74, stealing: 48, running: 49, throwing: 64, recovery: 52, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 52,
       abilities: ["Power Hitter", "Consigliere", "Spray Hitter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

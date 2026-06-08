@@ -95,8 +95,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Cade Arrambide — .331 / 16 HR / 43 RBI / .675 SLG — elite power-hitting C
     { firstName: "Cade", lastName: "Arrambide", position: "C", eligibility: "SO", homeState: "TX", hometown: "Tomball", jerseyNumber: 0,
-      hitForAvg: 73, power: 85, speed: 60, arm: 73, fielding: 74, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 78, vsLHP: 75, grit: 75, stealing: 58, running: 58, throwing: 79, recovery: 65, wRISP: 78, vsLefty: 75, poise: 78, heater: 0, agile: 32,
+      hitForAvg: 70, power: 81, speed: 57, arm: 70, fielding: 70, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 74, vsLHP: 71, grit: 71, stealing: 55, running: 55, throwing: 75, recovery: 62, wRISP: 74, vsLefty: 71, poise: 74, heater: 0, agile: 30,
       abilities: ["Power Hitter", "Defensive Artisan", "Consigliere", "Pull Hitter"], potential: "A", catcherAbility: 76,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "brown", hairStyle: "short",
@@ -312,9 +312,9 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (6)
       // Brendan Lawson — SS SO, top 2027 draft prospect, .317/10 HR/61 RBI as FR
       { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "SO", homeState: "ON", hometown: "Toronto", jerseyNumber: 2,
-        hitForAvg: 62, power: 47, speed: 68, arm: 62, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 84, vsLHP: 80, grit: 70, stealing: 56, running: 65, throwing: 72, recovery: 62, wRISP: 86, vsLefty: 80, poise: 86, heater: 0, agile: 68,
-        abilities: ["Magician", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
+        hitForAvg: 61, power: 46, speed: 66, arm: 61, fielding: 64, errorResistance: 65, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 82, vsLHP: 78, grit: 68, stealing: 55, running: 64, throwing: 70, recovery: 61, wRISP: 84, vsLefty: 78, poise: 84, heater: 0, agile: 66,
+        abilities: ["Tough Out", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
@@ -369,8 +369,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Ethan Surowiec — OF/DH SO, Northwoods League MVP (.387/17 HR)
       { firstName: "Ethan", lastName: "Surowiec", position: "OF", eligibility: "SO", homeState: "MS", hometown: "Oxford", jerseyNumber: 18,
-        hitForAvg: 64, power: 64, speed: 68, arm: 65, fielding: 52, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 68, vsLHP: 64, grit: 68, stealing: 51, running: 51, throwing: 60, recovery: 42, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 38,
+        hitForAvg: 61, power: 61, speed: 64, arm: 61, fielding: 49, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 64, vsLHP: 61, grit: 64, stealing: 48, running: 48, throwing: 57, recovery: 40, wRISP: 66, vsLefty: 61, poise: 66, heater: 0, agile: 36,
         abilities: ["Shock Commander", "vs. Ace", "Power Hitter", "Consigliere"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
