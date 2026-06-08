@@ -688,7 +688,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 9,
-      hitForAvg: 74, power: 65, speed: 57, arm: 39, fielding: 65, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 74, power: 64, speed: 57, arm: 39, fielding: 65, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 76, vsLHP: 60, grit: 39, stealing: 45, running: 47, throwing: 60, recovery: 39, wRISP: 72, vsLefty: 65, poise: 68, heater: 0, agile: 53,
       abilities: ["Power Hitter", "Opposite Field Hitter", "Good Infield Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",

@@ -121,14 +121,39 @@ function findMultiplier(
   const ovrLo   = computeOVR(attrsLo, abilities, position, firstName, lastName, teamName, conference);
   const ovrHi   = computeOVR(attrsHi, abilities, position, firstName, lastName, teamName, conference);
 
-  let finalM: number, finalOVR: number, finalAttrs: Record<string, number | null>;
+  let finalOVR: number, finalAttrs: Record<string, number | null>;
   if (Math.abs(ovrLo - targetOVR) <= Math.abs(ovrHi - targetOVR)) {
-    finalM = lo; finalOVR = ovrLo; finalAttrs = attrsLo;
+    finalOVR = ovrLo; finalAttrs = attrsLo;
   } else {
-    finalM = hi; finalOVR = ovrHi; finalAttrs = attrsHi;
+    finalOVR = ovrHi; finalAttrs = attrsHi;
   }
 
-  return { m: finalM, resultOVR: finalOVR, newAttrs: finalAttrs };
+  // Fine-tune: if still > 3 above target, try decrementing individual attrs
+  // to close the gap without undershooting by more than 3.
+  const TUNE_ATTRS = ["hitForAvg","power","speed","arm","fielding","errorResistance",
+                      "clutch","vsLHP","grit","stealing","running","throwing"] as const;
+  const TOLERANCE = 3;
+  let improved = true;
+  while (improved && finalOVR - targetOVR > TOLERANCE) {
+    improved = false;
+    for (const attr of TUNE_ATTRS) {
+      const current = finalAttrs[attr];
+      if (typeof current !== "number") continue;
+      const minV = COMMON_ATTRS.has(attr) ? 10 : 20;
+      if (current <= minV) continue;
+      const candidate = { ...finalAttrs, [attr]: current - 1 };
+      const candidateOVR = computeOVR(candidate, abilities, position, firstName, lastName, teamName, conference);
+      // Accept if it gets us closer to target without going more than TOLERANCE below
+      if (Math.abs(candidateOVR - targetOVR) < Math.abs(finalOVR - targetOVR)) {
+        finalAttrs = candidate;
+        finalOVR = candidateOVR;
+        improved = true;
+        break;
+      }
+    }
+  }
+
+  return { m: NaN, resultOVR: finalOVR, newAttrs: finalAttrs };
 }
 
 interface TargetPlayer {
@@ -266,12 +291,12 @@ const targets: TargetPlayer[] = [
   },
   {
     name: "Brendan Lawson", firstName: "Brendan", lastName: "Lawson",
-    // "Magician" (gold) → replaced with "Tough Out" (blue) so target < 500 works.
-    // Roster file ability change: "Magician" → "Tough Out".
+    // "Magician" (gold) removed; already has "Defensive Artisan". Final: 2 abilities.
+    // Roster file: remove "Magician", keep ["Defensive Artisan", "Consigliere"].
     position: "SS", team: "Florida", conference: "SEC",
     file: "server/secBatch1.ts", lineNum: 315,
     targetOVR: 499,
-    abilities: ["Tough Out", "Defensive Artisan", "Consigliere"],
+    abilities: ["Defensive Artisan", "Consigliere"],
     raw: { hitForAvg:62, power:47, speed:68, arm:62, fielding:65, errorResistance:66,
            velocity:0, control:0, stamina:0, stuff:0,
            clutch:84, vsLHP:80, grit:70, stealing:56, running:65, throwing:72,
@@ -280,12 +305,11 @@ const targets: TargetPlayer[] = [
   },
   {
     name: "Drew Smith", firstName: "Drew", lastName: "Smith",
-    // "Trickster" (gold) → replaced with "Consigliere" (blue) so target < 500 works.
-    // Roster file ability change: "Trickster" → "Consigliere".
+    // "Trickster" (gold) → "Pressure Run" (blue). Roster file: replace "Trickster".
     position: "OF", team: "Oregon", conference: "Big Ten",
     file: "server/bigTenBatch2.ts", lineNum: 832,
     targetOVR: 499,
-    abilities: ["Consigliere", "Spray Hitter", "Power Hitter"],
+    abilities: ["Pressure Run", "Spray Hitter", "Power Hitter"],
     raw: { hitForAvg:62, power:62, speed:66, arm:65, fielding:58, errorResistance:40,
            velocity:0, control:0, stamina:0, stuff:0,
            clutch:64, vsLHP:60, grit:64, stealing:49, running:50, throwing:66,
