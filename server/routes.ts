@@ -21868,12 +21868,14 @@ async function generateExhibitionGames(leagueId: string, season: number) {
 
     let partner: (typeof leagueTeams)[number] | undefined;
     if (hasMultipleConfs) {
-      // OOC only: prefer underserved cross-conf only — never push any team above TARGET.
+      // OOC only: prefer underserved cross-conf first, then fall back to a team already at
+      // TARGET (pushing it to TARGET+1) to ensure t1 still reaches TARGET.
       // Never pair with a same-conference team.
       const xConfPool = leagueTeams
         .filter(t => t.id !== t1.id && confByTeamId.get(t.id) !== t1Conf && !topupSkipped.has(t.id))
         .sort((a, b) => (gameCounts.get(a.id) ?? 0) - (gameCounts.get(b.id) ?? 0));
-      partner = xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < TARGET);
+      partner = xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < TARGET)
+             ?? xConfPool.find(t => (gameCounts.get(t.id) ?? 0) === TARGET);
     } else {
       // Single-conf: any team strictly below TARGET.
       partner = shuffle([...leagueTeams])

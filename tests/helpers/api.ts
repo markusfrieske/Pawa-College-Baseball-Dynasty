@@ -43,7 +43,7 @@ export async function createLeague(
       maxTeams: opts.maxTeams ?? 13,
       cpuDifficulty: opts.cpuDifficulty ?? "beginner",
       selectedConferences: opts.selectedConferences ?? ["SEC", "ACC", "Big 12"],
-      seasonLength: opts.seasonLength ?? "medium",
+      seasonLength: opts.seasonLength ?? "standard",
       progressionEnabled: opts.progressionEnabled ?? false,
     },
   });

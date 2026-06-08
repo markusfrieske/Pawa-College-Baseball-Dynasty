@@ -15,7 +15,7 @@
  * path: CWS champion, SR-skip-to-offseason_departures, and the GET safety-net.
  *
  * All CPU teams are on autopilot; AI image generation is skipped (no API key in test env).
- * Target: completes in under 10 minutes using "medium" season length.
+ * Target: completes in under 10 minutes using "standard" season length.
  */
 
 import { test, expect } from "@playwright/test";
@@ -214,7 +214,7 @@ test.describe("Full Season-to-Season Flow", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     expect(league.id, "League must have an ID").toBeTruthy();
@@ -261,14 +261,13 @@ test.describe("Full Season-to-Season Flow", () => {
       `3-star recruits should exist in meaningful numbers (got ${has3Star} out of ${recruits.length})`
     ).toBeGreaterThan(Math.floor(minExpected * 0.15));
 
-    // Verify per-team regular season game counts for a 4-week medium season.
+    // Verify per-team regular season game counts for a 5-week standard season.
     //
-    // Medium season = 4 weeks, 3-game Fri/Sat/Sun conference series + 1 OOC midweek/week.
-    // Target: 16 games per team (4 conf series × 3 games + 4 OOC = 16).
-    // For 5-team conferences, one RR round is dropped due to odd-team count;
-    // some teams play 3 conf series (9 games) + 4 OOC = 13, with top-up OOC.
-    // For even-sized conferences (4-team), all 3 opponents played in 3 of 4 weeks
-    // with a repeat series in week 4. Acceptable range: 12–20.
+    // Standard season = 5 weeks, 3-game Fri/Sat/Sun conference series + 1 OOC midweek/week.
+    // Target: 20 games per team (5 conf series × 3 games + 5 OOC = 20).
+    // For 5-team conferences, one bye per round; teams play 4 conf series (12 conf
+    // games) + 5 OOC = 17 minimum. For even-sized conferences (4-team), all 3
+    // opponents played across 5 weeks with repeats. Acceptable range: 13–24.
     const schedResp = await request.get(`/api/leagues/${league.id}/schedule`);
     expect(schedResp.ok(), "Schedule endpoint should succeed").toBe(true);
     const schedData = await schedResp.json();
@@ -285,13 +284,13 @@ test.describe("Full Season-to-Season Flow", () => {
     );
 
     // ── Total game count: range check ───────────────────────────────────────────────
-    // Medium season (4 weeks, 3-game series): target 16 games per team.
-    // Even-sized conferences (4-team): all 3 opponents faced + 1 repeat = 12 conf games
-    //   + 4 OOC midweeks = exactly 16.
-    // Odd-sized conferences (5-team): one bye per round; 3-4 conf series (9-12 conf
-    //   games) + OOC top-up to reach 16. Top-up partners may go up to the ceiling of
-    //   targetGamesPerTeam+4 = 20. Floor of 13 ensures at minimum 3 conf series + 4
-    //   OOC per team (top-up failures for genuinely isolated teams).
+    // Standard season (5 weeks, 3-game series): target 20 games per team.
+    // Even-sized conferences (4-team): all 3 opponents faced across 5 weeks with
+    //   repeats = 15 conf games + 5 OOC midweeks = exactly 20.
+    // Odd-sized conferences (5-team): one bye per round; 4 conf series (12 conf
+    //   games) + OOC top-up to reach 20. Top-up partners may go up to the ceiling of
+    //   targetGamesPerTeam+4 = 24. Floor of 13 ensures at minimum valid games for
+    //   any isolated team (top-up failure edge case).
     const teamGameCounts = new Map<string, number>();
     for (const t of teams) teamGameCounts.set(t.id, 0);
     for (const g of regularGames) {
@@ -300,8 +299,8 @@ test.describe("Full Season-to-Season Flow", () => {
     }
     for (const [teamId, count] of teamGameCounts) {
       expect(
-        count >= 13 && count <= 20,
-        `Team ${teamId}: regular season game count must be 13–20 (got ${count})`
+        count >= 13 && count <= 24,
+        `Team ${teamId}: regular season game count must be 13–24 (got ${count})`
       ).toBe(true);
     }
 
@@ -337,7 +336,7 @@ test.describe("Full Season-to-Season Flow", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -591,7 +590,7 @@ test.describe("Full Season-to-Season Flow", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -629,7 +628,7 @@ test.describe("Full Season-to-Season Flow", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -679,7 +678,7 @@ test.describe("Full Season-to-Season Flow", () => {
         maxTeams: 13,
         cpuDifficulty: "elite",
         selectedConferences: ["SEC", "ACC", "Big 12"],
-        seasonLength: "medium",
+        seasonLength: "standard",
         progressionEnabled: true,
       });
 
@@ -748,7 +747,7 @@ test.describe("Full Season-to-Season Flow", () => {
       let state = await getLeague(request, league.id);
       visitedPhases.push(state.currentPhase);
 
-      const MAX_ADVANCES = 150; // safety cap for medium season (~20+ weeks)
+      const MAX_ADVANCES = 150; // safety cap for standard season (~15+ weeks)
       let advanceCount = 0;
 
       // Readiness-gated phases require force-advance (marks coaches ready + advances).
@@ -966,7 +965,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -1017,7 +1016,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -1069,7 +1068,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -1142,7 +1141,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -1218,7 +1217,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "medium",
+      seasonLength: "standard",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
