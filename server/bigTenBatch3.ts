@@ -324,7 +324,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10) — 1-8 pitch scale
     // Mason Edwards — LHP JR Thursday ace, 8-0/2.07/95.2 IP/169 K — TEAM ELITE STUFF; 4.4 BB/9 tempers control grade
     { firstName: "Mason", lastName: "Edwards", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 30,
-      hitForAvg: 16, power: 12, speed: 33, arm: 94, fielding: 64, errorResistance: 54, velocity: 98, control: 68, stamina: 78, stuff: 99,
+      hitForAvg: 16, power: 12, speed: 33, arm: 94, fielding: 64, errorResistance: 54, velocity: 98, control: 68, stamina: 74, stuff: 99,
       clutch: 85, vsLHP: 99, grit: 66, stealing: 8, running: 32, throwing: 85, recovery: 66, wRISP: 66, vsLefty: 66, poise: 66, heater: 66, agile: 44,
       abilities: ["Full Throttle", "Crossfire", "Pace", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -332,7 +332,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 0, 4, 4, 0, 1, 0, 0]) },
     // Grant Govel — RHP SO, 10-3/2.87/103.1 IP/99 K/16 BB — jersey #95 — team IP leader; 1.4 BB/9 is elite command nationally
     { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 95,
-      hitForAvg: 14, power: 10, speed: 32, arm: 78, fielding: 35, errorResistance: 46, velocity: 76, control: 84, stamina: 78, stuff: 76,
+      hitForAvg: 14, power: 10, speed: 32, arm: 78, fielding: 35, errorResistance: 46, velocity: 76, control: 84, stamina: 74, stuff: 76,
       clutch: 76, vsLHP: 70, grit: 66, stealing: 8, running: 30, throwing: 74, recovery: 49, wRISP: 56, vsLefty: 56, poise: 61, heater: 62, agile: 40,
       abilities: ["Strong Starter", "Inside Pitch", "Staredown", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -340,7 +340,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 1, 0]) },
     // Diego Velazquez — RHP FR, 5-1/4.26/31.2 IP/34 K/9 BB — excellent 2.6 BB/9 for a freshman starter
     { firstName: "Diego", lastName: "Velazquez", position: "P", eligibility: "FR", homeState: "CA", hometown: "Reseda", jerseyNumber: 4,
-      hitForAvg: 13, power: 10, speed: 32, arm: 62, fielding: 33, errorResistance: 44, velocity: 59, control: 60, stamina: 63, stuff: 53,
+      hitForAvg: 13, power: 10, speed: 32, arm: 62, fielding: 33, errorResistance: 44, velocity: 59, control: 60, stamina: 48, stuff: 53,
       clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 47, vsLefty: 48, poise: 52, heater: 56, agile: 40,
       abilities: ["Strong Starter", "Inside Pitch", "Sharpness"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -348,7 +348,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // Andrew Johnson — RHP SO, 7-2/3.31/84.1 IP/81 K/27 BB — solid swing starter
     { firstName: "Andrew", lastName: "Johnson", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Juan Capistrano", jerseyNumber: 13,
-      hitForAvg: 12, power: 9, speed: 32, arm: 58, fielding: 31, errorResistance: 42, velocity: 58, control: 56, stamina: 72, stuff: 49,
+      hitForAvg: 12, power: 9, speed: 32, arm: 58, fielding: 31, errorResistance: 42, velocity: 58, control: 56, stamina: 60, stuff: 49,
       clutch: 60, vsLHP: 58, grit: 62, stealing: 8, running: 30, throwing: 66, recovery: 45, wRISP: 43, vsLefty: 45, poise: 48, heater: 54, agile: 40,
       abilities: ["Pace", "Winner's Luck", "True Slider"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -356,7 +356,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // Adam Troy — RHP JR closer, 1-4/4.09/12 SV/33 IP/38 K — jersey #33 — national closer range raised
     { firstName: "Adam", lastName: "Troy", position: "P", eligibility: "JR", homeState: "TX", hometown: "Houston", jerseyNumber: 33,
-      hitForAvg: 12, power: 10, speed: 32, arm: 70, fielding: 33, errorResistance: 44, velocity: 75, control: 65, stamina: 63, stuff: 70,
+      hitForAvg: 12, power: 10, speed: 32, arm: 70, fielding: 33, errorResistance: 44, velocity: 75, control: 65, stamina: 30, stuff: 70,
       clutch: 80, vsLHP: 70, grit: 66, stealing: 8, running: 30, throwing: 74, recovery: 44, wRISP: 60, vsLefty: 57, poise: 63, heater: 61, agile: 40,
       abilities: ["Fireman", "Winner's Luck", "Decisive", "Strong Finisher", "Straddle"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -364,7 +364,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 4]) },
     // Henry Chabot — RHP SR, 2-0/2.20/16.1 IP/20 K/15 BB — solid K rate despite high walks; rotation depth
     { firstName: "Henry", lastName: "Chabot", position: "P", eligibility: "SR", homeState: "AZ", hometown: "Paradise Valley", jerseyNumber: 26,
-      hitForAvg: 14, power: 11, speed: 32, arm: 51, fielding: 32, errorResistance: 44, velocity: 54, control: 51, stamina: 30, stuff: 52,
+      hitForAvg: 14, power: 11, speed: 32, arm: 51, fielding: 32, errorResistance: 44, velocity: 54, control: 51, stamina: 32, stuff: 52,
       clutch: 60, vsLHP: 56, grit: 62, stealing: 8, running: 28, throwing: 64, recovery: 45, wRISP: 45, vsLefty: 46, poise: 48, heater: 52, agile: 36,
       abilities: ["Guts", "Crossfire"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -372,7 +372,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 1, 0, 0]) },
     // Gavin Lauridsen — FR RHP, 3-1/4.73/45.2 IP/40 K/27 BB — inconsistency accurate; PG 1st Team/Top-100 national — #22, Tustin CA
     { firstName: "Gavin", lastName: "Lauridsen", position: "P", eligibility: "FR", homeState: "CA", hometown: "Tustin", jerseyNumber: 22,
-      hitForAvg: 12, power: 9, speed: 32, arm: 56, fielding: 30, errorResistance: 40, velocity: 62, control: 51, stamina: 62, stuff: 58,
+      hitForAvg: 12, power: 9, speed: 32, arm: 56, fielding: 30, errorResistance: 40, velocity: 62, control: 51, stamina: 56, stuff: 58,
       clutch: 60, vsLHP: 58, grit: 60, stealing: 8, running: 28, throwing: 66, recovery: 44, wRISP: 44, vsLefty: 46, poise: 50, heater: 56, agile: 38,
       abilities: ["Strong Starter", "Inside Pitch", "Winner's Luck"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -380,7 +380,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // Sax Matson — JR LHP, 2-2/4.19/43 IP/54 K/22 BB — 11.3 K/9 is strong; #25, Olympia WA, R bat/L throw
     { firstName: "Sax", lastName: "Matson", position: "P", eligibility: "JR", homeState: "WA", hometown: "Olympia", jerseyNumber: 25,
-      hitForAvg: 13, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 41, velocity: 55, control: 52, stamina: 65, stuff: 60,
+      hitForAvg: 13, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 41, velocity: 55, control: 52, stamina: 40, stuff: 60,
       clutch: 58, vsLHP: 54, grit: 58, stealing: 8, running: 28, throwing: 62, recovery: 43, wRISP: 43, vsLefty: 44, poise: 48, heater: 50, agile: 36,
       abilities: ["Guts", "Crossfire"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "R",
@@ -388,7 +388,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 1, 0, 4, 0, 0, 0, 0, 0]) },
     // Ace Whitehead — LHP SR (Graduate) — #27, Lampasas TX
     { firstName: "Ace", lastName: "Whitehead", position: "P", eligibility: "SR", homeState: "TX", hometown: "Lampasas", jerseyNumber: 27,
-      hitForAvg: 12, power: 9, speed: 30, arm: 48, fielding: 28, errorResistance: 40, velocity: 53, control: 56, stamina: 42, stuff: 52,
+      hitForAvg: 12, power: 9, speed: 30, arm: 48, fielding: 28, errorResistance: 40, velocity: 53, control: 56, stamina: 30, stuff: 52,
       clutch: 60, vsLHP: 52, grit: 58, stealing: 8, running: 28, throwing: 60, recovery: 40, wRISP: 43, vsLefty: 44, poise: 48, heater: 50, agile: 34,
       abilities: ["Decisive", "Strong Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -396,7 +396,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 1, 0, 4, 4, 0, 0, 0, 0]) },
     // Rohan Kasanagottu — FR RHP, 0.00 ERA/8.1 IP/12 K/4 BB — 12.9 K/9; standout freshman reliever — #36, Fremont CA
     { firstName: "Rohan", lastName: "Kasanagottu", position: "P", eligibility: "FR", homeState: "CA", hometown: "Fremont", jerseyNumber: 36,
-      hitForAvg: 10, power: 8, speed: 30, arm: 52, fielding: 24, errorResistance: 35, velocity: 56, control: 44, stamina: 56, stuff: 55,
+      hitForAvg: 10, power: 8, speed: 30, arm: 52, fielding: 24, errorResistance: 35, velocity: 56, control: 44, stamina: 30, stuff: 55,
       clutch: 46, vsLHP: 44, grit: 48, stealing: 8, running: 26, throwing: 56, recovery: 36, wRISP: 33, vsLefty: 36, poise: 38, heater: 46, agile: 30,
       abilities: ["Groundball Pitcher"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -511,7 +511,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Chase Herrell — OF SO, 6-4/4.94/58.1 IP/47 K/26 BB — real RHP listed as OF; arm raised to pitcher range — #45, Milford OH
     { firstName: "Chase", lastName: "Herrell", position: "OF", eligibility: "SO", homeState: "OH", hometown: "Milford", jerseyNumber: 45,
-      hitForAvg: 48, power: 44, speed: 50, arm: 74, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 48, power: 44, speed: 50, arm: 74, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 40, stuff: 0,
       clutch: 48, vsLHP: 44, grit: 50, stealing: 42, running: 48, throwing: 70, recovery: 38, wRISP: 44, vsLefty: 42, poise: 48, heater: 0, agile: 46,
       abilities: ["Resilient", "Double Play"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -519,7 +519,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Ben Cushnie — OF SO, 1.64 ERA/22 IP/13 K/8 BB — real LHP listed as OF; arm raised to pitcher range — #41, Santa Clarita CA
     { firstName: "Ben", lastName: "Cushnie", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Santa Clarita", jerseyNumber: 41,
-      hitForAvg: 46, power: 42, speed: 52, arm: 72, fielding: 52, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 46, power: 42, speed: 52, arm: 72, fielding: 52, errorResistance: 49, velocity: 0, control: 0, stamina: 32, stuff: 0,
       clutch: 46, vsLHP: 42, grit: 48, stealing: 44, running: 50, throwing: 68, recovery: 36, wRISP: 42, vsLefty: 40, poise: 46, heater: 0, agile: 48,
       abilities: ["First Pitch Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",

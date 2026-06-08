@@ -7,7 +7,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (11)
       // Gabe Gaeckle — JR RHP, 4.14 ERA/12GS — stuff corrected (was inflated)
       { firstName: "Gabe", lastName: "Gaeckle", position: "P", eligibility: "JR", homeState: "CA", hometown: "Aptos", jerseyNumber: 20,
-        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 40, errorResistance: 54, velocity: 68, control: 53, stamina: 60, stuff: 63,
+        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 40, errorResistance: 54, velocity: 68, control: 53, stamina: 67, stuff: 63,
         clutch: 80, vsLHP: 76, grit: 68, stealing: 10, running: 34, throwing: 78, recovery: 51, wRISP: 61, vsLefty: 61, poise: 65, heater: 68, agile: 44,
         abilities: ["Kageura", "Heavy Ball", "Winner's Luck", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -15,7 +15,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [1, 0, 4, 0, 4, 4, 0, 0, 0, 0]) },
       // Cole Gibler — SO LHP, 5.46 ERA/5GS — stuff/control lowered to match ERA
       { firstName: "Cole", lastName: "Gibler", position: "P", eligibility: "SO", homeState: "MO", hometown: "Blue Springs", jerseyNumber: 29,
-        hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 47, stamina: 55, stuff: 50,
+        hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 47, stamina: 48, stuff: 50,
         clutch: 70, vsLHP: 76, grit: 68, stealing: 8, running: 30, throwing: 72, recovery: 51, wRISP: 51, vsLefty: 60, poise: 56, heater: 60, agile: 40,
         abilities: ["Pace", "Fireman", "Kageura", "Natural Shuuto"], potential: "A-", catcherAbility: null,
         throwHand: "L", batHand: "L",
@@ -23,7 +23,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [6, 0, 0, 0, 0, 4, 0, 1, 0, 0]) },
       // Colin Fisher — JR LHP, 5.59 ERA/10GS/4-7 — stuff/poise lowered
       { firstName: "Colin", lastName: "Fisher", position: "P", eligibility: "JR", homeState: "OK", hometown: "Noble", jerseyNumber: 38,
-        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 49, stamina: 63, stuff: 48,
+        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 49, stamina: 60, stuff: 48,
         clutch: 64, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 42, vsLefty: 58, poise: 42, heater: 56, agile: 40,
         abilities: ["Fireman", "Sharpness", "Natural Shuuto"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
@@ -31,7 +31,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [1, 3, 0, 0, 0, 0, 4, 0, 1, 0]) },
       // Ethan McElvain — JR LHP, 1.88 ERA/6-0/6SV/55K — dominant closer, all raised
       { firstName: "Ethan", lastName: "McElvain", position: "P", eligibility: "JR", homeState: "TN", hometown: "Thompson's Station", jerseyNumber: 33,
-        hitForAvg: 13, power: 10, speed: 32, arm: 57, fielding: 33, errorResistance: 44, velocity: 66, control: 63, stamina: 70, stuff: 67,
+        hitForAvg: 13, power: 10, speed: 32, arm: 57, fielding: 33, errorResistance: 44, velocity: 66, control: 63, stamina: 30, stuff: 67,
         clutch: 66, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 70, recovery: 47, wRISP: 47, vsLefty: 58, poise: 64, heater: 60, agile: 40,
         abilities: ["Fireman", "Constant Speed", "Heavy Ball"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "S",
@@ -39,7 +39,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [1, 0, 0, 0, 0, 0, 4, 0, 0, 3]) },
       // Hunter Dietz — SO LHP, 131K/85.2IP/13.8 K9 — vel/stuff raised (SEC K leader)
       { firstName: "Hunter", lastName: "Dietz", position: "P", eligibility: "SO", homeState: "FL", hometown: "Trinity", jerseyNumber: 32,
-        hitForAvg: 12, power: 10, speed: 32, arm: 54, fielding: 33, errorResistance: 44, velocity: 76, control: 55, stamina: 50, stuff: 72,
+        hitForAvg: 12, power: 10, speed: 32, arm: 54, fielding: 33, errorResistance: 44, velocity: 76, control: 55, stamina: 74, stuff: 72,
         clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 56, vsLefty: 48, poise: 51, heater: 64, agile: 40,
         abilities: ["Strong Starter", "vs. Strong Batters", "Doctor K"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "R",
@@ -47,7 +47,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 0, 3, 1, 0, 4, 4, 0, 0, 0]) },
       // Tate McGuire — JR RHP midweek starter, MO/Liberty, 5.20 ERA / 7 GS / 20 app
       { firstName: "Tate", lastName: "McGuire", position: "P", eligibility: "JR", homeState: "MO", hometown: "Liberty", jerseyNumber: 26,
-        hitForAvg: 14, power: 10, speed: 32, arm: 57, fielding: 34, errorResistance: 46, velocity: 56, control: 51, stamina: 50, stuff: 54,
+        hitForAvg: 14, power: 10, speed: 32, arm: 57, fielding: 34, errorResistance: 46, velocity: 56, control: 51, stamina: 57, stuff: 54,
         clutch: 70, vsLHP: 64, grit: 68, stealing: 9, running: 32, throwing: 72, recovery: 44, wRISP: 50, vsLefty: 51, poise: 54, heater: 59, agile: 40,
         abilities: ["Fireman", "Guts"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -55,7 +55,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]) },
       // Peyton Lee — FR RHP, 9.19 ERA struggling — vel/ctrl lowered to match results
       { firstName: "Peyton", lastName: "Lee", position: "P", eligibility: "FR", homeState: "AR", hometown: "Maumelle", jerseyNumber: 22,
-        hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 52, control: 37, stamina: 41, stuff: 48,
+        hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 52, control: 37, stamina: 32, stuff: 48,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 10, running: 30, throwing: 54, recovery: 26, wRISP: 24, vsLefty: 26, poise: 25, heater: 41, agile: 36,
         abilities: ["True Slider", "Tunneling"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -63,7 +63,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 1, 0]) },
       // Parker Coil — SR LHP, 3.99 ERA/3-0/2SV — vel/stuff raised, recovery up
       { firstName: "Parker", lastName: "Coil", position: "P", eligibility: "SR", homeState: "OK", hometown: "Edmond", jerseyNumber: 36,
-        hitForAvg: 12, power: 10, speed: 30, arm: 55, fielding: 33, errorResistance: 44, velocity: 67, control: 55, stamina: 33, stuff: 64,
+        hitForAvg: 12, power: 10, speed: 30, arm: 55, fielding: 33, errorResistance: 44, velocity: 67, control: 55, stamina: 34, stuff: 64,
         clutch: 62, vsLHP: 60, grit: 64, stealing: 8, running: 28, throwing: 64, recovery: 56, wRISP: 58, vsLefty: 58, poise: 60, heater: 65, agile: 42,
         abilities: ["Fireman", "Heavy Ball"], potential: "A-", catcherAbility: null,
         throwHand: "L", batHand: "R",
@@ -71,7 +71,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 4, 0, 0, 0, 4, 0, 0, 0, 3]) },
       // Steele Eaves — SO RHP, 7-1/3.92 ERA/28app — stuff/clutch raised
       { firstName: "Steele", lastName: "Eaves", position: "P", eligibility: "SO", homeState: "AR", hometown: "Lonoke", jerseyNumber: 13,
-        hitForAvg: 12, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 44, velocity: 55, control: 54, stamina: 45, stuff: 58,
+        hitForAvg: 12, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 44, velocity: 55, control: 54, stamina: 38, stuff: 58,
         clutch: 66, vsLHP: 56, grit: 62, stealing: 8, running: 28, throwing: 64, recovery: 42, wRISP: 48, vsLefty: 46, poise: 52, heater: 52, agile: 38,
         abilities: ["Fireman", "Guts", "Strong Starter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -79,7 +79,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
       // James DeCremer — SO RHP #40, AZ/Phoenix — 14 app, 3 GS, 4.66 ERA, 19.1 IP
       { firstName: "James", lastName: "DeCremer", position: "P", eligibility: "SO", homeState: "AZ", hometown: "Phoenix", jerseyNumber: 40,
-        hitForAvg: 11, power: 8, speed: 30, arm: 44, fielding: 26, errorResistance: 38, velocity: 50, control: 46, stamina: 38, stuff: 46,
+        hitForAvg: 11, power: 8, speed: 30, arm: 44, fielding: 26, errorResistance: 38, velocity: 50, control: 46, stamina: 44, stuff: 46,
         clutch: 52, vsLHP: 48, grit: 58, stealing: 7, running: 27, throwing: 58, recovery: 36, wRISP: 38, vsLefty: 36, poise: 44, heater: 48, agile: 36,
         abilities: ["Inside Pitch", "Constant Speed"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -87,7 +87,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 0, 0]) },
       // Cooper Dossett — JR RHP, 6.88 ERA — control lowered
       { firstName: "Cooper", lastName: "Dossett", position: "P", eligibility: "JR", homeState: "AR", hometown: "Springdale", jerseyNumber: 48,
-        hitForAvg: 11, power: 8, speed: 30, arm: 42, fielding: 24, errorResistance: 36, velocity: 50, control: 40, stamina: 40, stuff: 44,
+        hitForAvg: 11, power: 8, speed: 30, arm: 42, fielding: 24, errorResistance: 36, velocity: 50, control: 40, stamina: 38, stuff: 44,
         clutch: 50, vsLHP: 46, grit: 56, stealing: 7, running: 26, throwing: 56, recovery: 34, wRISP: 36, vsLefty: 34, poise: 42, heater: 46, agile: 36,
         abilities: ["Guts", "Release"], potential: "B", catcherAbility: null,
         throwHand: "R", batHand: "R",
