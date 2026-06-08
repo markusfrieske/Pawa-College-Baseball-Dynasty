@@ -1045,10 +1045,10 @@ export default function RecruitProfilePage() {
             <RetroCard>
               <RetroCardHeader className="flex items-center gap-2">
                 Recruiting Priorities
-                {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && <Lock className="w-4 h-4 text-muted-foreground" />}
+                {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !isFullyRevealed && <Lock className="w-4 h-4 text-muted-foreground" />}
               </RetroCardHeader>
               <RetroCardContent>
-                {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
+                {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || isFullyRevealed) ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {priorities.map((p) => (
                       <div key={p.key}>
@@ -2062,10 +2062,10 @@ function RecruitAttributesSection({
                 <TooltipTrigger>
                   <HelpCircle className="w-3 h-3" />
                 </TooltipTrigger>
-                <TooltipContent>How this hitter tends to make contact — groundball, line drive, gap, or flyball. Revealed at 50% scouting.</TooltipContent>
+                <TooltipContent>How this hitter tends to make contact — groundball, line drive, gap, or flyball. Revealed at 50% scouting (blue chips always shown).</TooltipContent>
               </Tooltip>
             </span>
-            {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
+            {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || isFullyRevealed) ? (
               <div className="flex items-center gap-1.5">
                 {recruit.trajectory === 1 && <ArrowDownRight className="w-4 h-4 text-emerald-400" />}
                 {recruit.trajectory === 2 && <ArrowRight className="w-4 h-4 text-slate-400" />}
