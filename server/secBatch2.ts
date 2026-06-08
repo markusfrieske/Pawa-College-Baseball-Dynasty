@@ -312,14 +312,12 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // INFIELDERS (7)
       // Justin Lebron — SS JR, 3-run HR vs SC, reached 6 straight games, top draft prospect
-      // Requested: Gambler (clutch gold) + Express Baserunning (running gold). Max 1 gold per player enforced
-      // by validate-abilities. Gambler chosen as primary gold (high clutch/wRISP stats); Express Baserunning
-      // is the approved fallback that was retained previously and can replace Gambler if the priority changes.
+      // Profile: Lightning Speed (gold stealing) — speed+stealing elite speedster. Clutch/running A-grade.
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
         hitForAvg: 63, power: 65, speed: 90, arm: 67, fielding: 59, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 78, vsLHP: 38, grit: 38, stealing: 65, running: 74, throwing: 66, recovery: 38, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
-        abilities: ["Bunt Artisan", "Power Hitter", "Defensive Artisan", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
-        protectedAttrs: ["speed"],
+        clutch: 70, vsLHP: 38, grit: 38, stealing: 90, running: 70, throwing: 66, recovery: 38, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
+        abilities: ["Power Hitter", "Defensive Artisan", "Consigliere", "Lightning Speed"], potential: "A+", catcherAbility: null,
+        protectedAttrs: ["speed", "stealing"],
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
