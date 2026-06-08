@@ -121,11 +121,11 @@ function findMultiplier(
   const ovrLo   = computeOVR(attrsLo, abilities, position, firstName, lastName, teamName, conference);
   const ovrHi   = computeOVR(attrsHi, abilities, position, firstName, lastName, teamName, conference);
 
-  let finalOVR: number, finalAttrs: Record<string, number | null>;
+  let finalM: number, finalOVR: number, finalAttrs: Record<string, number | null>;
   if (Math.abs(ovrLo - targetOVR) <= Math.abs(ovrHi - targetOVR)) {
-    finalOVR = ovrLo; finalAttrs = attrsLo;
+    finalM = lo; finalOVR = ovrLo; finalAttrs = attrsLo;
   } else {
-    finalOVR = ovrHi; finalAttrs = attrsHi;
+    finalM = hi; finalOVR = ovrHi; finalAttrs = attrsHi;
   }
 
   // Fine-tune: if still > 3 above target, try decrementing individual attrs
@@ -153,7 +153,7 @@ function findMultiplier(
     }
   }
 
-  return { m: NaN, resultOVR: finalOVR, newAttrs: finalAttrs };
+  return { m: finalM, resultOVR: finalOVR, newAttrs: finalAttrs };
 }
 
 interface TargetPlayer {
