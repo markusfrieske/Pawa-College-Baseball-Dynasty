@@ -167,6 +167,7 @@ export async function advanceWeek(
 ): Promise<unknown> {
   const resp = await request.post(`/api/leagues/${leagueId}/advance`, {
     data: {},
+    timeout: 120_000,
   });
   if (!resp.ok()) {
     throw new Error(`advance failed: ${resp.status()} ${await resp.text()}`);
@@ -186,6 +187,7 @@ export async function forceAdvanceWeek(
 ): Promise<unknown> {
   const resp = await request.post(`/api/leagues/${leagueId}/force-advance`, {
     data: {},
+    timeout: 120_000,
   });
   if (!resp.ok()) {
     throw new Error(`force-advance failed: ${resp.status()} ${await resp.text()}`);
