@@ -631,16 +631,16 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Roch Cholowsky — JR SS, projected #1 overall MLB pick, .335/18HR/62R, leads B10 in runs, generational talent
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 1,
-      hitForAvg: 87, power: 60, speed: 69, arm: 68, fielding: 75, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 90, vsLHP: 90, grit: 42, stealing: 54, running: 58, throwing: 60, recovery: 42, wRISP: 90, vsLefty: 90, poise: 90, heater: 0, agile: 75,
-      abilities: ["Push", "Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Magician"], potential: "A+", catcherAbility: null,
+      hitForAvg: 71, power: 60, speed: 65, arm: 68, fielding: 75, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 59, vsLHP: 53, grit: 42, stealing: 54, running: 50, throwing: 65, recovery: 42, wRISP: 90, vsLefty: 90, poise: 90, heater: 0, agile: 75,
+      abilities: ["Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Magician"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Mulivai Levu — 1B, .347/14HR/54RBI, All-Conference 2025
     { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 39,
       hitForAvg: 67, power: 77, speed: 65, arm: 53, fielding: 51, errorResistance: 73, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 80, vsLHP: 70, grit: 63, stealing: 47, running: 47, throwing: 63, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
+      clutch: 80, vsLHP: 58, grit: 63, stealing: 47, running: 47, throwing: 41, recovery: 41, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
       abilities: ["Line Drive", "Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -648,8 +648,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // Roman Martin — JR, .339/7HR, All-Conference, hybrid C/3B per Daily Bruin
     { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "JR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 7,
       hitForAvg: 66, power: 64, speed: 61, arm: 66, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 52, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
-      abilities: ["Flying Start", "Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
+      clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 44, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
+      abilities: ["Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
@@ -688,8 +688,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 9,
-      hitForAvg: 78, power: 68, speed: 60, arm: 41, fielding: 71, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 80, vsLHP: 63, grit: 70, stealing: 47, running: 50, throwing: 63, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
+      hitForAvg: 78, power: 68, speed: 60, arm: 41, fielding: 68, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 80, vsLHP: 63, grit: 41, stealing: 47, running: 50, throwing: 63, recovery: 41, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Opposite Field Hitter", "Good Infield Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
