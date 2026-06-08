@@ -21853,8 +21853,10 @@ async function generateExhibitionGames(leagueId: string, season: number) {
   //
   // Iterative approach: always pick the most-underserved team and find it a partner.
   // In multi-conf mode all top-up games must be OOC — same-conference pairings are
-  // never created. We never push any team above TARGET — if no partner below TARGET
-  // can be found cross-conf, the underserved team is skipped (stays at TARGET-1).
+  // never created. Preference is given to cross-conf partners also below TARGET;
+  // if none exist, a partner already at TARGET is used (allowing it to reach TARGET+1)
+  // to ensure the underserved team still reaches TARGET. Only if no cross-conf partner
+  // is available at all is the underserved team skipped.
   // Single-conf mode accepts same-conference pairings.
   const topupSkipped = new Set<string>();
   for (let iter = 0; iter < leagueTeams.length * (TARGET + 2); iter++) {
