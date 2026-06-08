@@ -727,8 +727,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Daniel Jackson — JR C, GENERATIONAL: .396/.493, 29 HR, 83 RBI, 25 SB — 1st in SEC HISTORY with 20HR/20SB
     { firstName: "Daniel", lastName: "Jackson", position: "C", eligibility: "JR", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 3,
       generational: true,
-      hitForAvg: 93, power: 61, speed: 82, arm: 51, fielding: 47, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 88, vsLHP: 80, grit: 47, stealing: 82, running: 54, throwing: 52, recovery: 59, wRISP: 84, vsLefty: 78, poise: 82, heater: 0, agile: 59,
+      hitForAvg: 93, power: 59, speed: 82, arm: 50, fielding: 46, errorResistance: 37, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 85, vsLHP: 78, grit: 46, stealing: 82, running: 52, throwing: 50, recovery: 57, wRISP: 82, vsLefty: 76, poise: 80, heater: 0, agile: 57,
       abilities: ["Spray Hitter", "Consigliere", "Storming Home", "Power Hitter", "Unpredictable"], potential: "A+", catcherAbility: 70,
       protectedAttrs: ["hitForAvg", "speed", "stealing"],
       throwHand: "R", batHand: "R",

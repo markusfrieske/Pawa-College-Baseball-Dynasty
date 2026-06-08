@@ -675,8 +675,8 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Drew Burress — JR CF, ONLY DI player with career .756 SLG, 55 R (team most), 7HR/31RBI/49R 2026, ACC POW, top OF in MLB Draft, 56-game OB streak last yr
     { firstName: "Drew", lastName: "Burress", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Stockbridge", jerseyNumber: 8,
-      hitForAvg: 49, power: 76, speed: 56, arm: 49, fielding: 63, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 87, vsLHP: 80, grit: 54, stealing: 46, running: 58, throwing: 58, recovery: 60, wRISP: 85, vsLefty: 78, poise: 81, heater: 0, agile: 70,
+      hitForAvg: 51, power: 79, speed: 58, arm: 51, fielding: 65, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 90, vsLHP: 83, grit: 56, stealing: 48, running: 60, throwing: 60, recovery: 62, wRISP: 88, vsLefty: 81, poise: 84, heater: 0, agile: 73,
       abilities: ["Good Infield Hit", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

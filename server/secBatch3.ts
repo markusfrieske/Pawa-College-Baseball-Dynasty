@@ -772,8 +772,8 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Carson Tinney — JR C transfer Notre Dame, 14 HR (#2 team), 2025 Buster Posey finalist, 445-ft HR
     { firstName: "Carson", lastName: "Tinney", position: "C", eligibility: "JR", homeState: "IN", hometown: "South Bend", jerseyNumber: 19,
-      hitForAvg: 63, power: 74, speed: 50, arm: 56, fielding: 46, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 63, vsLHP: 66, grit: 64, stealing: 51, running: 51, throwing: 61, recovery: 56, wRISP: 78, vsLefty: 72, poise: 76, heater: 0, agile: 38,
+      hitForAvg: 64, power: 75, speed: 51, arm: 57, fielding: 46, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 64, vsLHP: 67, grit: 65, stealing: 52, running: 52, throwing: 62, recovery: 57, wRISP: 79, vsLefty: 73, poise: 77, heater: 0, agile: 38,
       abilities: ["Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A", catcherAbility: 70,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -838,8 +838,8 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Aiden Robbins — JR CF/OF Seton Hall transfer, .358/17HR (TEAM LEADER), 200th career hit, 112mph max EV, top-50 draft
     { firstName: "Aiden", lastName: "Robbins", position: "OF", eligibility: "JR", homeState: "NJ", hometown: "South Orange", jerseyNumber: 1,
-      hitForAvg: 64, power: 71, speed: 60, arm: 41, fielding: 62, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 86, vsLHP: 80, grit: 69, stealing: 51, running: 50, throwing: 69, recovery: 56, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 56,
+      hitForAvg: 65, power: 73, speed: 61, arm: 42, fielding: 63, errorResistance: 69, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 88, vsLHP: 82, grit: 71, stealing: 52, running: 51, throwing: 71, recovery: 57, wRISP: 88, vsLefty: 82, poise: 86, heater: 0, agile: 57,
       abilities: ["Power Hitter", "Consigliere", "Spray Hitter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "S",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

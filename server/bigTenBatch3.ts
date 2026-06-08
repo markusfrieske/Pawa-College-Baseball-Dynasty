@@ -422,8 +422,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Kevin Takeuchi — 2B JR, .311/9 HR/60 RBI/65 R/14 SB — jersey #8, San Diego CA
     { firstName: "Kevin", lastName: "Takeuchi", position: "2B", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 8,
-      hitForAvg: 71, power: 61, speed: 65, arm: 64, fielding: 63, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 80, vsLHP: 74, grit: 66, stealing: 62, running: 64, throwing: 66, recovery: 46, wRISP: 80, vsLefty: 74, poise: 80, heater: 0, agile: 60,
+      hitForAvg: 70, power: 60, speed: 64, arm: 63, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 78, vsLHP: 72, grit: 64, stealing: 61, running: 63, throwing: 64, recovery: 45, wRISP: 78, vsLefty: 72, poise: 78, heater: 0, agile: 59,
       abilities: ["Insurer", "Chance Maker"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -614,8 +614,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Cashel Dugger — JR C, Buster Posey Award watch list, primary backstop
     { firstName: "Cashel", lastName: "Dugger", position: "C", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 40,
-      hitForAvg: 55, power: 48, speed: 59, arm: 67, fielding: 63, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 60, vsLHP: 59, grit: 67, stealing: 45, running: 45, throwing: 83, recovery: 54, wRISP: 61, vsLefty: 58, poise: 65, heater: 0, agile: 36,
+      hitForAvg: 55, power: 48, speed: 58, arm: 66, fielding: 62, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 59, vsLHP: 58, grit: 66, stealing: 45, running: 45, throwing: 82, recovery: 54, wRISP: 60, vsLefty: 57, poise: 64, heater: 0, agile: 36,
       abilities: ["Defensive Artisan", "Revenge", "Consigliere"], potential: "A-", catcherAbility: 70,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -688,8 +688,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 9,
-      hitForAvg: 74, power: 64, speed: 57, arm: 39, fielding: 65, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 76, vsLHP: 60, grit: 39, stealing: 45, running: 47, throwing: 60, recovery: 39, wRISP: 72, vsLefty: 65, poise: 68, heater: 0, agile: 53,
+      hitForAvg: 73, power: 64, speed: 57, arm: 39, fielding: 64, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 75, vsLHP: 60, grit: 39, stealing: 45, running: 47, throwing: 60, recovery: 39, wRISP: 71, vsLefty: 64, poise: 67, heater: 0, agile: 53,
       abilities: ["Power Hitter", "Opposite Field Hitter", "Good Infield Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
