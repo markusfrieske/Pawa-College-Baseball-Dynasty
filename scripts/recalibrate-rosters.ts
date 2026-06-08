@@ -99,19 +99,97 @@ const TOP_71_ORDER: string[] = [
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
 
-function teamAvgOVR(players: RealPlayer[]): number {
+// Mirrors SCALE_ATTRS and COMMON_ATTRS_FOR_CLAMP from server/realRosters.ts.
+const CAL_SCALE_ATTRS = [
+  "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "stealing",
+  "velocity", "control", "stuff",
+  "clutch", "vsLHP", "grit", "running", "throwing", "recovery", "wRISP", "vsLefty", "poise", "heater", "agile",
+] as const;
+const CAL_COMMON_ATTRS = new Set([
+  "clutch", "vsLHP", "grit", "stealing", "running", "throwing", "recovery",
+  "wRISP", "vsLefty", "poise", "heater", "agile",
+]);
+// Pitcher-only and hitter-only attr sets — mirrors PITCHER_ATTRS / HITTER_ATTRS in server/realRosters.ts.
+const CAL_PITCHER_ATTRS = new Set([
+  "velocity", "control", "stuff", "wRISP", "vsLefty", "poise", "heater", "agile", "recovery", "grit", "clutch",
+]);
+const CAL_HITTER_ATTRS = new Set([
+  "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "stealing",
+  "clutch", "vsLHP", "grit", "running", "throwing", "recovery",
+]);
+
+// H-P balance overrides that will be written to rosterScaleFactors.ts.
+// The binary search MUST simulate these so calibration accounts for their OVR impact.
+const HP_PITCHER_OVERRIDES: Record<string, number> = {
+  "Louisiana": 1.08, "Clemson": 1.05, "Virginia Tech": 1.06,
+  "Southern Miss": 1.05, "Georgia": 1.04, "Georgia Tech": 1.03,
+};
+const HP_HITTER_OVERRIDES: Record<string, number> = {
+  "Louisiana": 0.92, "Clemson": 0.95, "Virginia Tech": 0.94,
+  "Southern Miss": 0.94, "Georgia": 0.96, "Georgia Tech": 0.96,
+};
+
+// Compute ACTUAL avg OVR after applying scale + optional P/H multipliers.
+// Mirrors server/realRosters.ts scalePlayer() including the P/H split logic.
+// pitcherMult applies to PITCHER_ATTRS on pitchers; hitterMult applies to HITTER_ATTRS on hitters.
+function computeActualAvgOVR(
+  players: RealPlayer[],
+  scale: number,
+  pitcherMult = 1,
+  hitterMult = 1,
+): number {
   if (players.length === 0) return 300;
-  const total = players.reduce((s, p) => s + calculateOVR(p as Parameters<typeof calculateOVR>[0]), 0);
+  let total = 0;
+  for (const p of players) {
+    const isPitcher = PITCHER_POSITIONS.has(p.position);
+    const scaled = { ...p } as Record<string, unknown>;
+    for (const attr of CAL_SCALE_ATTRS) {
+      const val = p[attr];
+      if (typeof val !== "number") continue;
+      const minV = CAL_COMMON_ATTRS.has(attr) ? 10 : 20;
+      // Determine effective factor including P/H multiplier
+      let effFactor = scale;
+      if (isPitcher && CAL_PITCHER_ATTRS.has(attr)) effFactor = scale * pitcherMult;
+      else if (!isPitcher && CAL_HITTER_ATTRS.has(attr)) effFactor = scale * hitterMult;
+      const sGradeCap = (val <= 90 || effFactor < 1) ? 89 : 99;
+      let v = Math.round(Math.max(minV, Math.min(sGradeCap, val * effFactor)));
+      if (isPitcher && (attr === "hitForAvg" || attr === "power")) v = Math.min(v, 30);
+      scaled[attr] = v;
+    }
+    total += calculateOVR(scaled as Parameters<typeof calculateOVR>[0]);
+  }
   return total / players.length;
 }
 
-function targetOVR(rank: number): number {
-  // Calibrated for current raw attr levels (~170-270 raw OVR range after hitter-calibration passes).
-  // Rank 1 target ~300, rank 149 target ~176; produces scale factors ≈0.85–1.6 range.
-  // Bottom anchor < raw OVR for weakest teams so they get sf < 1.0, allowing weak individual
-  // players to fall into the sub-150 OVR range (as the validate-ovr-bands 100-149 band requires).
-  // This formula is the right range after the calibrate-hitter-attrs feedback loop stabilized.
-  return 340 - (rank - 1) * (180 / 148);
+// Target ACTUAL avg OVR for a team at national rank N.
+// Anchored to the real post-scale distribution: rank 1 ≈ 395, rank 71 ≈ 289, rank 149 ≈ 170.
+// Targets actual computed OVR (not a linear nominal) so the binary-search calibration
+// can hit exact targets — eliminating the rank-gap drift caused by OVR formula non-linearity.
+function targetActualOVR(rank: number): number {
+  return Math.round(395 - (rank - 1) * (395 - 170) / 148);
+}
+
+// Binary search for the exact base scale factor such that
+// computeActualAvgOVR(players, sf, pitcherMult, hitterMult) == target.
+// Including P/H overrides in the search ensures the target OVR is hit AFTER
+// those overrides are applied, keeping computed rank == NR for all teams.
+function findScaleFactor(
+  players: RealPlayer[],
+  target: number,
+  pitcherMult = 1,
+  hitterMult = 1,
+): number {
+  let lo = 0.40, hi = 2.50;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (computeActualAvgOVR(players, mid, pitcherMult, hitterMult) < target) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+function teamRawAvgOVR(players: RealPlayer[]): number {
+  if (players.length === 0) return 300;
+  return players.reduce((s, p) => s + calculateOVR(p as Parameters<typeof calculateOVR>[0]), 0) / players.length;
 }
 
 // ─── Collect all unique team names from RAW_UNCALIBRATED_ROSTERS ──────────
@@ -122,7 +200,7 @@ const top71Set = new Set(TOP_71_ORDER);
 // Compute current OVR per team using raw (unscaled) rosters
 const teamOVRs: { name: string; currentOVR: number }[] = allTeams.map(name => ({
   name,
-  currentOVR: teamAvgOVR(RAW_UNCALIBRATED_ROSTERS[name]),
+  currentOVR: teamRawAvgOVR(RAW_UNCALIBRATED_ROSTERS[name]),
 }));
 
 // Teams NOT in the top-71 list, sorted by current OVR descending
@@ -157,10 +235,12 @@ interface TeamCalib {
 
 const calibrations: TeamCalib[] = [];
 for (const [name, rank] of nationalRankMap.entries()) {
-  const currentOVR = teamAvgOVR(RAW_UNCALIBRATED_ROSTERS[name]);
-  const target = targetOVR(rank);
-  const scaleFactor = target / currentOVR;
-  calibrations.push({ name, rank, currentOVR: Math.round(currentOVR), target: Math.round(target), scaleFactor });
+  const rawOVR = teamRawAvgOVR(RAW_UNCALIBRATED_ROSTERS[name]);
+  const target = targetActualOVR(rank);
+  const pitcherMult = HP_PITCHER_OVERRIDES[name] ?? 1;
+  const hitterMult  = HP_HITTER_OVERRIDES[name]  ?? 1;
+  const scaleFactor = findScaleFactor(RAW_UNCALIBRATED_ROSTERS[name], target, pitcherMult, hitterMult);
+  calibrations.push({ name, rank, currentOVR: Math.round(rawOVR), target, scaleFactor });
 }
 calibrations.sort((a, b) => a.rank - b.rank);
 
@@ -181,9 +261,10 @@ const lines: string[] = [
   "/**",
   " * Auto-generated by scripts/recalibrate-rosters.ts",
   " * Maps each team name to a numeric scale factor for player attribute recalibration.",
-  " * ScaleFactor = targetAvgOVR / currentAvgOVR",
+  " * ScaleFactor is found by iterative binary search: computeActualAvgOVR(team, sf) = targetActualOVR(rank)",
+  " * This eliminates rank-gap drift caused by OVR formula non-linearity (89-attr cap).",
   " * Applied to: hitForAvg, power, speed, arm, fielding, errorResistance, stealing,",
-  " *             velocity, control, stamina, stuff, clutch, vsLHP, grit, running,",
+  " *             velocity, control, stuff, clutch, vsLHP, grit, running,",
   " *             throwing, recovery, wRISP, vsLefty, poise, heater, agile",
   " * Each attribute clamped to [20, 99] after scaling.",
   " */",
@@ -210,27 +291,20 @@ lines.push(" * Used to fix RPI rank drift caused by H-P imbalances — specifica
 lines.push(" * hitters are over-powered relative to their pitching staff.");
 lines.push(" */");
 lines.push("export const PITCHER_SCALE_OVERRIDES: Record<string, number> = {");
-lines.push("  // H-P balance fixes: boost pitchers so the gap narrows and rank aligns to intent.");
+lines.push("  // H-P balance fixes only: boost pitchers where hitters are over-powered relative to staff.");
+lines.push("  // Rank correction is handled by the iterative calibration; no rank-correction entries here.");
 lines.push('  "Louisiana":       1.08,');
 lines.push('  "Clemson":         1.05,');
 lines.push('  "Virginia Tech":   1.06,');
 lines.push('  "Southern Miss":   1.05,');
 lines.push('  "Georgia":         1.04,');
 lines.push('  "Georgia Tech":    1.03,');
-lines.push("  // Rank-correction overrides: both P+H reduced for teams computing too high");
-lines.push('  "Nebraska":        0.97,');
-lines.push('  "Cal Poly":        0.96,');
-lines.push('  "Troy":            0.96,');
-lines.push('  "Wake Forest":     0.95,');
-lines.push("  // Rank-correction overrides: both P+H boosted for teams computing too low");
-lines.push('  "Texas A&M":       1.04,');
-lines.push('  "Auburn":          1.02,');
-lines.push('  "Mississippi State": 1.04,');
 lines.push("};");
 lines.push("");
 lines.push("/**");
 lines.push(" * Per-team hitter attribute multiplier applied ON TOP of the base ROSTER_SCALE_FACTORS entry.");
 lines.push(" * Default = 1.0 (no override). Values < 1 reduce hitter attrs; values > 1 boost them.");
+lines.push(" * Only used for true H-P imbalance fixes, not rank correction.");
 lines.push(" */");
 lines.push("export const HITTER_SCALE_OVERRIDES: Record<string, number> = {");
 lines.push("  // H-P balance fixes: reduce hitters to narrow inflated gap");
@@ -240,15 +314,6 @@ lines.push('  "Virginia Tech":   0.94,');
 lines.push('  "Southern Miss":   0.94,');
 lines.push('  "Georgia":         0.96,');
 lines.push('  "Georgia Tech":    0.96,');
-lines.push("  // Rank-correction overrides: both P+H reduced for teams computing too high");
-lines.push('  "Nebraska":        0.97,');
-lines.push('  "Cal Poly":        0.95,');
-lines.push('  "Troy":            0.94,');
-lines.push('  "Wake Forest":     0.94,');
-lines.push("  // Rank-correction overrides: both P+H boosted for teams computing too low");
-lines.push('  "Texas A&M":       1.05,');
-lines.push('  "Auburn":          1.03,');
-lines.push('  "Mississippi State": 1.04,');
 lines.push("};");
 lines.push("");
 
