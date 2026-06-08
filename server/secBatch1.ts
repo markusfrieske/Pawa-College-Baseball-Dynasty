@@ -78,16 +78,16 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 3, 0, 1, 0, 4, 0, 0, 0, 0]) },
     // Ethan Plog — LHP, JUCO transfer (Iowa Western), 9.98 ERA / 9.4 BB/9 — vel/control both down significantly
     { firstName: "Ethan", lastName: "Plog", position: "P", eligibility: "SO", homeState: "WI", hometown: "Green Bay", jerseyNumber: 38,
-      hitForAvg: 10, power: 7, speed: 31, arm: 40, fielding: 29, errorResistance: 42, velocity: 36, control: 28, stamina: 22, stuff: 40,
-      clutch: 52, vsLHP: 64, grit: 54, stealing: 5, running: 24, throwing: 54, recovery: 33, wRISP: 37, vsLefty: 46, poise: 38, heater: 37, agile: 42,
+      hitForAvg: 10, power: 7, speed: 31, arm: 40, fielding: 29, errorResistance: 42, velocity: 37, control: 28, stamina: 22, stuff: 41,
+      clutch: 52, vsLHP: 64, grit: 54, stealing: 5, running: 24, throwing: 54, recovery: 34, wRISP: 37, vsLefty: 46, poise: 39, heater: 38, agile: 42,
       abilities: ["Fireman", "Slow Starter"], potential: "B-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 0, 0, 3]) },
     // Zion Theophilus — Freshman RHP, 4.96 ERA / 8.3 BB/9 — control down for walk rate
     { firstName: "Zion", lastName: "Theophilus", position: "P", eligibility: "FR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 52,
-      hitForAvg: 11, power: 8, speed: 32, arm: 50, fielding: 32, errorResistance: 44, velocity: 50, control: 29, stamina: 36, stuff: 46,
-      clutch: 58, vsLHP: 58, grit: 56, stealing: 6, running: 28, throwing: 62, recovery: 33, wRISP: 36, vsLefty: 38, poise: 36, heater: 0, agile: 33,
+      hitForAvg: 11, power: 8, speed: 32, arm: 50, fielding: 32, errorResistance: 44, velocity: 68, control: 29, stamina: 36, stuff: 64,
+      clutch: 58, vsLHP: 58, grit: 56, stealing: 6, running: 28, throwing: 62, recovery: 51, wRISP: 36, vsLefty: 38, poise: 54, heater: 38, agile: 33,
       abilities: ["Loser's Luck", "Walk", "Slow Starter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
@@ -344,8 +344,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Cash Strayer — SS FR
       { firstName: "Cash", lastName: "Strayer", position: "SS", eligibility: "FR", homeState: "FL", hometown: "St. Petersburg", jerseyNumber: 24,
-        hitForAvg: 26, power: 40, speed: 64, arm: 29, fielding: 29, errorResistance: 29, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 22, vsLHP: 22, grit: 22, stealing: 22, running: 22, throwing: 22, recovery: 26, wRISP: 28, vsLefty: 26, poise: 28, heater: 0, agile: 40,
+        hitForAvg: 31, power: 45, speed: 69, arm: 29, fielding: 29, errorResistance: 29, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 27, vsLHP: 27, grit: 27, stealing: 27, running: 27, throwing: 22, recovery: 26, wRISP: 33, vsLefty: 31, poise: 28, heater: 0, agile: 45,
         abilities: ["Consigliere", "Final Hit"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L", // corrected: batHand was S → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",

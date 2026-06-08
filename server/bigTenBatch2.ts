@@ -745,8 +745,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 0, 1, 0]) },
       // Tyler Jones — SO RHP RP
       { firstName: "Tyler", lastName: "Jones", position: "P", eligibility: "SO", homeState: "CA", hometown: "Sacramento", jerseyNumber: 1,
-        hitForAvg: 8, power: 7, speed: 22, arm: 29, fielding: 19, errorResistance: 28, velocity: 35, control: 26, stamina: 36, stuff: 27,
-        clutch: 33, vsLHP: 32, grit: 33, stealing: 7, running: 20, throwing: 39, recovery: 24, wRISP: 22, vsLefty: 24, poise: 24, heater: 31, agile: 26,
+        hitForAvg: 8, power: 7, speed: 22, arm: 29, fielding: 19, errorResistance: 28, velocity: 42, control: 26, stamina: 36, stuff: 34,
+        clutch: 33, vsLHP: 32, grit: 33, stealing: 7, running: 20, throwing: 39, recovery: 31, wRISP: 22, vsLefty: 24, poise: 31, heater: 38, agile: 26,
         abilities: ["Groundball Pitcher"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
