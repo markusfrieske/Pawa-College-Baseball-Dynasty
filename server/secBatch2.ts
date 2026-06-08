@@ -316,9 +316,10 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // by validate-abilities. Gambler chosen as primary gold (high clutch/wRISP stats); Express Baserunning
       // is the approved fallback that was retained previously and can replace Gambler if the priority changes.
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
-        hitForAvg: 55, power: 60, speed: 66, arm: 67, fielding: 59, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 63, power: 65, speed: 90, arm: 67, fielding: 59, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 78, vsLHP: 38, grit: 38, stealing: 65, running: 74, throwing: 66, recovery: 38, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
         abilities: ["Bunt Artisan", "Power Hitter", "Defensive Artisan", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
+        protectedAttrs: ["speed"],
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
