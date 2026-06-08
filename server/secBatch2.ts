@@ -622,7 +622,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Jake Mitchell — FR OF
     { firstName: "Jake", lastName: "Mitchell", position: "OF", eligibility: "FR", homeState: "AL", hometown: "Tuscaloosa", jerseyNumber: 28,
-      hitForAvg: 47, power: 41, speed: 67, arm: 37, fielding: 21, errorResistance: 65, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 49, power: 43, speed: 67, arm: 37, fielding: 21, errorResistance: 65, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 41, vsLHP: 36, grit: 35, stealing: 59, running: 56, throwing: 54, recovery: 28, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 50,
       abilities: ["Pressure Run"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -925,7 +925,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       { firstName: "Andrew", lastName: "Raymond", position: "C", eligibility: "SO", homeState: "MS", hometown: "Brandon", jerseyNumber: 14,
-        hitForAvg: 45, power: 39, speed: 33, arm: 67, fielding: 64, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 47, power: 41, speed: 33, arm: 67, fielding: 64, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 41, vsLHP: 44, grit: 43, stealing: 34, running: 31, throwing: 40, recovery: 32, wRISP: 34, vsLefty: 32, poise: 36, heater: 0, agile: 28,
         abilities: ["Consigliere", "Two-Strike Hitter"], potential: "B+", catcherAbility: 40,
         throwHand: "R", batHand: "R",
@@ -982,7 +982,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Nick Frontino — SS FR depth
       { firstName: "Nick", lastName: "Frontino", position: "SS", eligibility: "FR", homeState: "FL", hometown: "Sarasota", jerseyNumber: 15,
-        hitForAvg: 43, power: 37, speed: 68, arm: 43, fielding: 26, errorResistance: 21, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 45, power: 39, speed: 68, arm: 43, fielding: 26, errorResistance: 21, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 37, vsLHP: 42, grit: 40, stealing: 60, running: 53, throwing: 38, recovery: 26, wRISP: 26, vsLefty: 25, poise: 28, heater: 0, agile: 40,
         abilities: ["Good Mood", "Timely Whiff"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",

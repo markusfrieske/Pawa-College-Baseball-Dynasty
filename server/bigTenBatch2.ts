@@ -222,7 +222,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // Cooper Timmerman — JR RHP
       // J.D. Hennen — JR RHP
       { firstName: "J.D.", lastName: "Hennen", position: "P", eligibility: "JR", homeState: "MN", hometown: "Shakopee", jerseyNumber: 40,
-        hitForAvg: 10, power: 7, speed: 27, arm: 30, fielding: 19, errorResistance: 30, velocity: 32, control: 35, stamina: 32, stuff: 27,
+        hitForAvg: 10, power: 7, speed: 27, arm: 30, fielding: 19, errorResistance: 30, velocity: 32, control: 33, stamina: 32, stuff: 27,
         clutch: 39, vsLHP: 35, grit: 40, stealing: 6, running: 23, throwing: 42, recovery: 25, wRISP: 25, vsLefty: 25, poise: 28, heater: 32, agile: 26,
         abilities: ["Guts"], potential: "B", catcherAbility: null,
         throwHand: "L", batHand: "L",
@@ -304,7 +304,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Luke Tillman — SS FR
       { firstName: "Luke", lastName: "Tillman", position: "SS", eligibility: "FR", homeState: "NE", hometown: "Gretna", jerseyNumber: 14,
-        hitForAvg: 43, power: 31, speed: 55, arm: 36, fielding: 28, errorResistance: 20, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 43, power: 31, speed: 55, arm: 36, fielding: 26, errorResistance: 18, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 35, vsLHP: 41, grit: 35, stealing: 47, running: 44, throwing: 48, recovery: 24, wRISP: 24, vsLefty: 22, poise: 26, heater: 0, agile: 36,
         abilities: ["vs. Ace"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L",
