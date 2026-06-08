@@ -1051,14 +1051,14 @@ export default function RecruitingPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 md:gap-4">
+          <div className="grid grid-cols-6 gap-1">
             <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/20`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
-            <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Points" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
-            <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Points" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
+            <StatCard icon={<Phone className="w-4 h-4" />} label="Calls" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
+            <StatCard icon={<Eye className="w-4 h-4" />} label="Scouts" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
             <StatCard
               icon={<Building2 className="w-4 h-4" />}
-              label="Visits (Season)"
+              label="Visits"
               value={`${data?.seasonVisitCount?.total ?? 0}/20`}
               highlight={(data?.seasonVisitCount?.total ?? 0) >= 20}
               tooltip={`${data?.seasonVisitCount?.campusVisits ?? 0} campus visit${(data?.seasonVisitCount?.campusVisits ?? 0) !== 1 ? "s" : ""}, ${data?.seasonVisitCount?.hcVisits ?? 0} HC visit${(data?.seasonVisitCount?.hcVisits ?? 0) !== 1 ? "s" : ""} — 20 total cap per season`}
@@ -1066,7 +1066,7 @@ export default function RecruitingPage() {
             {data?.team && (
               <StatCard
                 icon={<DollarSign className="w-4 h-4" />}
-                label="NIL Remaining"
+                label="NIL"
                 value={(() => {
                   const rem = (data.team.nilBudget || 0) - (data.team.nilSpent || 0);
                   return rem >= 1000000
@@ -2312,12 +2312,12 @@ export default function RecruitingPage() {
 
 function StatCard({ icon, label, value, highlight, tooltip }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean; tooltip?: string }) {
   const card = (
-    <div className={`bg-card border p-3 rounded ${highlight ? "border-red-500/50" : "border-border"} ${tooltip ? "cursor-help" : ""}`}>
-      <div className={`flex items-center gap-2 mb-1 ${highlight ? "text-red-400" : "text-muted-foreground"}`}>
-        {icon}
-        <span className="text-xs">{label}</span>
+    <div className={`bg-card border p-1.5 rounded text-center ${highlight ? "border-red-500/50" : "border-border"} ${tooltip ? "cursor-help" : ""}`}>
+      <div className={`flex items-center justify-center gap-1 mb-0.5 ${highlight ? "text-red-400" : "text-muted-foreground"}`}>
+        <span className="[&>svg]:w-3 [&>svg]:h-3">{icon}</span>
+        <span className="text-[9px] uppercase tracking-wide leading-none">{label}</span>
       </div>
-      <p className={`font-bold ${highlight ? "text-red-400" : "text-foreground"}`}>{value}</p>
+      <p className={`text-sm font-bold leading-none ${highlight ? "text-red-400" : "text-foreground"}`}>{value}</p>
     </div>
   );
   if (!tooltip) return card;
