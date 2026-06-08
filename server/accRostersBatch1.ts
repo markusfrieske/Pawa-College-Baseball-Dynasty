@@ -598,9 +598,10 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Vahn Lackey — JR C, .425/.545/.851, 9 HR, 45 RBI, .789 SLG team-leader, USA Collegiate, #2 D1B catcher, 1st Team Preseason All-American, top catcher in MLB Draft, played 8 positions in single game
     { firstName: "Vahn", lastName: "Lackey", position: "C", eligibility: "JR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 25,
-      hitForAvg: 66, power: 49, speed: 19, arm: 61, fielding: 62, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 93, power: 49, speed: 19, arm: 61, fielding: 62, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 80, grit: 64, stealing: 47, running: 50, throwing: 64, recovery: 60, wRISP: 84, vsLefty: 78, poise: 84, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: 78,
+      protectedAttrs: ["hitForAvg"],
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
@@ -623,17 +624,19 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Jarren Advincula — JR 2B (transfer), 2nd-Team All-ACC, leads ALL 2B nationally in WAR (3.66), Golden Spikes Watch, .613 SLG, 27 R
     { firstName: "Jarren", lastName: "Advincula", position: "2B", eligibility: "JR", homeState: "CA", hometown: "San Jose", jerseyNumber: 2,
-      hitForAvg: 59, power: 59, speed: 43, arm: 59, fielding: 56, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 94, power: 59, speed: 43, arm: 59, fielding: 56, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 72, grit: 64, stealing: 47, running: 56, throwing: 64, recovery: 60, wRISP: 78, vsLefty: 72, poise: 76, heater: 0, agile: 64,
       abilities: ["Two-Strike Hitter", "Defensive Artisan", "Power Hitter", "Storming Home"], potential: "A", catcherAbility: null,
+      protectedAttrs: ["hitForAvg"],
       throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...noPitches },
     // Carson Kerce — JR SS, Brooks Wallace SS Watch List semifinalist, top-50 SS, .621 SLG, 3.14 WAR
     { firstName: "Carson", lastName: "Kerce", position: "SS", eligibility: "JR", homeState: "GA", hometown: "Kennesaw", jerseyNumber: 3,
-      hitForAvg: 57, power: 57, speed: 55, arm: 57, fielding: 57, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 92, power: 57, speed: 55, arm: 57, fielding: 57, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 64, grit: 72, stealing: 47, running: 52, throwing: 80, recovery: 56, wRISP: 72, vsLefty: 66, poise: 72, heater: 0, agile: 60,
       abilities: ["Good Infield Hit", "Defensive Artisan", "Power Hitter", "Consigliere"], potential: "A", catcherAbility: null,
+      protectedAttrs: ["hitForAvg"],
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },

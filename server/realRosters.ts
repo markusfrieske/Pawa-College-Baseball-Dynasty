@@ -71,6 +71,7 @@ export interface RealPlayer {
   throwHand?: string;
   batHand?: string;
   generational?: boolean;
+  protectedAttrs?: (keyof RealPlayer)[];
 }
 
 const SCALE_ATTRS: (keyof RealPlayer)[] = [
@@ -112,6 +113,8 @@ function scalePlayer(player: RealPlayer, factor: number, pitcherMult = 1, hitter
   for (const attr of SCALE_ATTRS) {
     const val = result[attr];
     if (typeof val === "number") {
+      // Protected attrs bypass scaling entirely — raw value is the exact in-game value.
+      if (player.protectedAttrs?.includes(attr)) continue;
       const minV = COMMON_ATTRS_FOR_CLAMP.has(attr as string) ? 10 : 20;
       // Apply position-specific multiplier on top of base factor
       let effectiveFactor = factor;
@@ -259,6 +262,17 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
         confName,
       );
       calibrated = { ...calibrated, ...normalized };
+
+      // Restore any protected attrs that normalizeCommonAbilities may have overwritten
+      // (e.g. "stealing" is a fielder common field and can be reassigned by the normalizer).
+      if (p.protectedAttrs) {
+        for (const attr of p.protectedAttrs) {
+          const rawVal = (p as Record<string, unknown>)[attr as string];
+          if (typeof rawVal === "number") {
+            (calibrated as Record<string, unknown>)[attr as string] = rawVal;
+          }
+        }
+      }
 
       // 2. Gate gold abilities: strip gold if OVR (with abilities) < 500.
       const ovrForGating = calculateOVR({ ...calibrated });

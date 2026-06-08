@@ -465,9 +465,10 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Owen Hull — JR CF transfer from George Mason (.367/8HR/63RBI/42SB last year), .379/4HR/57RBI/16SB at UNC, "fastest player on team", big draft prospect
     { firstName: "Owen", lastName: "Hull", position: "OF", eligibility: "JR", homeState: "VA", hometown: "Fairfax", jerseyNumber: 8,
-      hitForAvg: 60, power: 58, speed: 51, arm: 44, fielding: 63, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 91, power: 58, speed: 51, arm: 44, fielding: 63, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 59, vsLHP: 57, grit: 76, stealing: 64, running: 66, throwing: 58, recovery: 56, wRISP: 80, vsLefty: 72, poise: 76, heater: 0, agile: 80,
       abilities: ["Walkoff Hitter", "Chance Maker", "Push", "Consigliere"], potential: "A", catcherAbility: null,
+      protectedAttrs: ["hitForAvg"],
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
