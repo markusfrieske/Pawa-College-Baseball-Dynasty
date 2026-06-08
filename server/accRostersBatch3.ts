@@ -76,7 +76,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     // Tyler Leroy — GR C #26 (fixed: JR OF → GR C); .190 AVG, 2 HR, SBA 4-2 caught
-    { firstName: "Tyler", lastName: "Leroy", position: "C", eligibility: "GR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 26,
+    { firstName: "Tyler", lastName: "Leroy", position: "C", eligibility: "SR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 26,
       hitForAvg: 48, power: 40, speed: 40, arm: 46, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 44, vsLHP: 40, grit: 42, stealing: 30, running: 34, throwing: 48, recovery: 35, wRISP: 42, vsLefty: 38, poise: 38, heater: 0, agile: 36,
       abilities: ["Consigliere"], potential: "B", catcherAbility: 42,
@@ -105,7 +105,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     // Daniel Murillo — GR 1B #21 (fixed: SO → GR); .317 AVG, 11 HR
-    { firstName: "Daniel", lastName: "Murillo", position: "1B", eligibility: "GR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 21,
+    { firstName: "Daniel", lastName: "Murillo", position: "1B", eligibility: "SR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 21,
       hitForAvg: 60, power: 58, speed: 40, arm: 36, fielding: 52, errorResistance: 46, velocity: 0, control: 0, stamina: 24, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 50, stealing: 34, running: 34, throwing: 48, recovery: 42, wRISP: 49, vsLefty: 46, poise: 45, heater: 0, agile: 36,
       abilities: ["Power Hitter", "Consigliere"], potential: "B+", catcherAbility: null,
@@ -119,7 +119,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     // Taichi Nakao — GR 2B #55 (fixed: FR → GR); utility infielder
-    { firstName: "Taichi", lastName: "Nakao", position: "2B", eligibility: "GR", homeState: "CA", hometown: "Torrance", jerseyNumber: 55,
+    { firstName: "Taichi", lastName: "Nakao", position: "2B", eligibility: "SR", homeState: "CA", hometown: "Torrance", jerseyNumber: 55,
       hitForAvg: 36, power: 28, speed: 44, arm: 34, fielding: 42, errorResistance: 36, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 36, vsLHP: 30, grit: 34, stealing: 30, running: 34, throwing: 40, recovery: 29, wRISP: 34, vsLefty: 29, poise: 31, heater: 0, agile: 40,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
