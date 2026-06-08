@@ -3,7 +3,7 @@ import { pitchMix, noPitches } from "./pitchMixHelpers";
 
 export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "California": [
-    // PITCHERS (9) — Foley/Kreis/Larson/Mackowiak/Lopez out; Wright in; Grove/Colombara/Spalliero restored
+    // PITCHERS (9) — Kreis/Larson/Mackowiak/Lopez out; Wright in; Grove/Colombara/Foley restored
     // Gavin Eddy — SO RHP #46, ace; 2.87 ERA / 84.2 IP, 94 K
     { firstName: "Gavin", lastName: "Eddy", position: "P", eligibility: "SO", homeState: "CA", hometown: "Claremont", jerseyNumber: 46,
       hitForAvg: 20, power: 16, speed: 33, arm: 58, fielding: 35, errorResistance: 48, velocity: 66, control: 60, stamina: 72, stuff: 62,
@@ -53,13 +53,13 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Poker Face"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 3, 0, 0, 0, 0, 0, 0, 0]) },
-    // Ryan Spalliero — SR RHP #19 (fixed: SO→SR); 4.26 ERA / 19 IP, 20 APP
-    { firstName: "Ryan", lastName: "Spalliero", position: "P", eligibility: "SR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 19,
-      hitForAvg: 12, power: 10, speed: 30, arm: 50, fielding: 28, errorResistance: 40, velocity: 48, control: 43, stamina: 38, stuff: 42,
-      clutch: 52, vsLHP: 48, grit: 52, stealing: 12, running: 34, throwing: 60, recovery: 42, wRISP: 42, vsLefty: 40, poise: 44, heater: 46, agile: 38,
-      abilities: ["Heavy Ball"], potential: "B", catcherAbility: null,
+    // Ethan Foley — SR RHP #48; 5.53 ERA / 1.63 WHIP, 18 APP / 10 GS, 4 SV, 55.1 IP, 44 K, 18 BB
+    { firstName: "Ethan", lastName: "Foley", position: "P", eligibility: "SR", homeState: "CA", hometown: "Lancaster", jerseyNumber: 48,
+      hitForAvg: 12, power: 10, speed: 28, arm: 48, fielding: 26, errorResistance: 38, velocity: 41, control: 36, stamina: 52, stuff: 38,
+      clutch: 46, vsLHP: 44, grit: 50, stealing: 10, running: 30, throwing: 56, recovery: 44, wRISP: 38, vsLefty: 36, poise: 40, heater: 42, agile: 36,
+      abilities: ["Heavy Ball"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 0, 0, 3, 2, 0, 0, 0]) },
+      ...pitchMix(1, [0, 4, 0, 0, 0, 3, 0, 0, 0, 0]) },
     // Jett Wright — SO RHP #38 (NEW); 5.82 ERA / 17 IP, 14 APP, 19 BB / 17 K
     { firstName: "Jett", lastName: "Wright", position: "P", eligibility: "SO", homeState: "CA", hometown: "Berkeley", jerseyNumber: 38,
       hitForAvg: 12, power: 9, speed: 30, arm: 44, fielding: 24, errorResistance: 36, velocity: 50, control: 26, stamina: 34, stuff: 48,
