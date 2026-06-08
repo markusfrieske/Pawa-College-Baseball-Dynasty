@@ -184,7 +184,7 @@ export const ROSTER_SCALE_FACTORS: Record<string, number> = {
   "Oklahoma": 1.202586,
   "Troy": 1.531175,
   "Florida State": 1.243013,
-  "Wake Forest": 1.532454,
+  "Wake Forest": 1.532155,
   "Tennessee": 1.519418,
   "Cincinnati": 1.329812,
   "Virginia": 1.286256,
@@ -321,28 +321,43 @@ export const ROSTER_SCALE_FACTORS: Record<string, number> = {
  * hitters are over-powered relative to their pitching staff.
  */
 export const PITCHER_SCALE_OVERRIDES: Record<string, number> = {
-  // These teams' hitters are pulling the team avg well above their pitching.
-  // Boost pitchers slightly so the H-P gap narrows and OVR rank drops closer to intent.
+  // H-P balance fixes: boost pitchers so the gap narrows and rank aligns to intent.
   "Louisiana":       1.08,
   "Clemson":         1.05,
   "Virginia Tech":   1.06,
   "Southern Miss":   1.05,
   "Georgia":         1.04,
   "Georgia Tech":    1.03,
+  // Rank-correction overrides: both P+H reduced for teams computing too high
+  "Nebraska":        0.97,
+  "Cal Poly":        0.96,
+  "Troy":            0.96,
+  "Wake Forest":     0.95,
+  // Rank-correction overrides: both P+H boosted for teams computing too low
+  "Texas A&M":       1.04,
+  "Auburn":          1.02,
+  "Mississippi State": 1.04,
 };
 
 /**
  * Per-team hitter attribute multiplier applied ON TOP of the base ROSTER_SCALE_FACTORS entry.
- * Default = 1.0 (no override). Values < 1 reduce hitter attrs to close inflated H-P gaps.
- * Only used for teams that are ranked too high due to over-powered hitters — NOT used to
- * boost under-performing teams (that's handled via ROSTER_SCALE_FACTORS instead).
+ * Default = 1.0 (no override). Values < 1 reduce hitter attrs; values > 1 boost them.
  */
 export const HITTER_SCALE_OVERRIDES: Record<string, number> = {
-  // Reduce hitters to narrow inflated H-P gap (ranks these teams lower)
+  // H-P balance fixes: reduce hitters to narrow inflated gap
   "Louisiana":       0.92,
   "Clemson":         0.95,
   "Virginia Tech":   0.94,
   "Southern Miss":   0.94,
   "Georgia":         0.96,
   "Georgia Tech":    0.96,
+  // Rank-correction overrides: both P+H reduced for teams computing too high
+  "Nebraska":        0.97,
+  "Cal Poly":        0.95,
+  "Troy":            0.94,
+  "Wake Forest":     0.94,
+  // Rank-correction overrides: both P+H boosted for teams computing too low
+  "Texas A&M":       1.05,
+  "Auburn":          1.03,
+  "Mississippi State": 1.04,
 };
