@@ -1110,7 +1110,7 @@ function StandaloneGameRow({
   return (
     <div className="space-y-1.5" data-testid={`card-game-${game.id}`}>
       <div
-        className={`flex items-center gap-3 p-3 rounded ${
+        className={`flex items-center gap-2 p-3 rounded ${
           game.isComplete && isUserGame
             ? userWon ? "bg-green-900/20 border border-green-800/30" : "bg-red-900/20 border border-red-800/30"
             : "bg-muted/30"
@@ -1118,7 +1118,7 @@ function StandaloneGameRow({
         style={{ borderLeft: `3px solid ${confColor}50` }}
         onClick={isHumanVsHuman && !game.isComplete ? () => callbacks.onMatchupPreview(game.id) : undefined}
       >
-        <div className="flex-1 flex items-center gap-2 min-w-0">
+        <div className="flex-1 flex items-center gap-2 min-w-0 overflow-hidden">
           <TeamBadge
             abbreviation={game.awayTeam.abbreviation}
             primaryColor={game.awayTeam.primaryColor}
@@ -1168,7 +1168,7 @@ function StandaloneGameRow({
         {game.isComplete ? (
           <button
             onClick={e => { e.stopPropagation(); callbacks.onViewBoxScore(game); }}
-            className="flex flex-nowrap items-center gap-3 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             data-testid={`button-box-score-${game.id}`}
           >
             <span className={`text-lg font-bold ${(game.awayScore ?? 0) > (game.homeScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
