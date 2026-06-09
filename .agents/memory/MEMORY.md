@@ -1,3 +1,4 @@
 - [S-grade cap quirk](s-grade-cap.md) — raw attr > 90 bypasses the 89-cap in scalePlayer; set raw common attrs to ≤ 90 when OVR < 550 to avoid validator failures.
 - [Scale factor OVR inflation](scale-factor-inflation.md) — large team scale factor boosts inflate all players on that team; must reduce raw attrs in roster files for any individual player that exceeds the 545 hard ceiling after scaling.
 - [Iterative rank calibration](iterative-rank-calibration.md) — binary-search scale factor calibration must simulate H-P balance overrides to avoid rank gaps; linear targetOVR/rawOVR formula causes non-linear drift.
+- [Pitcher gem/bust/blueChip OVR convergence](pitcher-gem-bust-ovr.md) — stamina, ability tier selection, and fallback order all interact with calculateOVR; retry loops alone can't converge without correct stam/ability constraints.

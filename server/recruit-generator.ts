@@ -1,8 +1,8 @@
-import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
+import { getRandomAbilities, getAbilitiesForPosition, getAbilityByName, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate, pitcherCommonGrade } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
-import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, noPitches } from "./pitchMixHelpers";
+import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, qualityTierFromOvr, noPitches } from "./pitchMixHelpers";
 
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
   Speed:    ["running", "stealing"],
@@ -891,6 +891,14 @@ export function generateRecruitClass(
     if (isPitcher) {
       if (isGenerationalGem) {
         pitcherStaminaBand = [80, 99];
+      } else if (isBust && !isGenerationalBust) {
+        // Bust pitchers need low stamina so the retry can converge downward to the
+        // bust OVR band. High stamina (80+ pts for starters) contributes ~82 pts that
+        // can't be cancelled by vel=1, ctrl=1, and G-grade common attrs alone.
+        // Use reliever/closer ranges keyed by bust star rank.
+        if (starRank <= 3) pitcherStaminaBand = [1, 29];            // bust 3★: closer only
+        else if (starRank === 4) pitcherStaminaBand = [1, 49];      // bust 4★: reliever
+        else pitcherStaminaBand = [30, 79];                          // bust 5★: long/mid relief
       } else if (!isGenerationalBust) {
         const roleRoll = Math.random();
         if (roleRoll < 0.40) pitcherStaminaBand = [80, 99];        // starter
@@ -922,8 +930,34 @@ export function generateRecruitClass(
       const redAbilities = availableAbilities.filter(a => a.tier === "red");
       const shuffledRed = [...redAbilities].sort(() => Math.random() - 0.5);
       abilities = shuffledRed.slice(0, 2).map(a => a.name);
+    } else if (isBust && isPitcher) {
+      // Pitcher busts need negative or zero ability OVR contribution so the retry can converge
+      // downward to the bust band. Blue/gold abilities add positive pts and push OVR above
+      // the bust ceiling even with vel/ctrl at minimum and G-grade common attrs.
+      // Assign 0-2 red abilities only (matching the generational-bust flavor).
+      const availableAbilities = getAbilitiesForPosition(position);
+      const staminaOk = (a: { staminaMax?: number }) =>
+        pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
+      const redAbilities = availableAbilities.filter(a => a.tier === "red" && staminaOk(a));
+      const shuffledRed = [...redAbilities].sort(() => Math.random() - 0.5);
+      abilities = shuffledRed.slice(0, Math.min(2, abilityCount)).map(a => a.name);
+    } else if (isGem && isPitcher && starRank <= 2) {
+      // Gem pitchers with sub-500 target bands (1★ → [300,399] / 2★ → [400,499]):
+      // avoid gold abilities because the gold gate (fires when OVR < 500) would strip
+      // them and drop OVR below the target floor. Blue-only abilities give positive OVR
+      // contribution without triggering the gate.
+      const availableAbilities = getAbilitiesForPosition(position);
+      const staminaOk = (a: { staminaMax?: number }) =>
+        pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
+      const blueAbilities = availableAbilities.filter(a => a.tier === "blue" && staminaOk(a));
+      const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
+      abilities = shuffledBlue.slice(0, abilityCount).map(a => a.name);
     } else {
-      abilities = getRandomAbilities(position, abilityCount, starRank >= 4, pitcherStaminaForAbilities);
+      // Pitcher gems 3★+ and blueChips target OVR ≥ 500 so the gold gate won't fire.
+      // Use preferGold so the retry has enough upward headroom to reach 500/540.
+      // Gem 3★ without preferGold can get red abilities that make convergence impossible.
+      const preferGold = (isGem && isPitcher && starRank >= 3) || isBlueChip || starRank >= 4;
+      abilities = getRandomAbilities(position, abilityCount, preferGold, pitcherStaminaForAbilities);
     }
 
     const appearance = getRandomAppearance();
@@ -955,8 +989,8 @@ export function generateRecruitClass(
 
     if (isGenerationalGem) {
       // Hitter attrs: starting point for OVR retry (targets [540,599] for 3★, lower for 1-2★).
-      // Retry fine-tunes attrs to hit the correct band. Pitcher genGem OVR is post-hoc clamped
-      // to [600,650] (high raw attrs already put OVR near that range; no retry needed).
+      // Retry fine-tunes attrs to hit the correct band. Pitcher genGem OVR is naturally
+      // in [600,650] because S-grade common + gold abilities + max attrs place it there.
       hitForAvg = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
       power     = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
       speed = sampleNormalSpeed(82, 6, 75, 95);
@@ -970,7 +1004,8 @@ export function generateRecruitClass(
     } else if (isGenerationalBust) {
       // Hitter attrs calibrated so calculateOVR (with all-G/F common + 2 red specials) lands ~150-199.
       // Low speed (10-28) is the key OVR depressant alongside poor common/special abilities.
-      // Pitcher genBust OVR is post-hoc clamped to [150,199] (low raw attrs already put OVR near band).
+      // Pitcher genBust OVR converges to [150,199] via the same vel/ctrl/common retry used for
+      // non-generational busts (G-grade common + low attrs + red abilities hold OVR in range).
       hitForAvg = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
       power     = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
       speed = sampleNormalSpeed(18, 5, 10, 28);
@@ -1020,7 +1055,8 @@ export function generateRecruitClass(
     // ─── OVR calibration retry loop — hitters (all archetypes) ─────────────
     // Uses full calculateOVR (attrs + trial common + existing specials) so the
     // settled OVR matches the final stored value. Pitchers use a separate retry
-    // loop below (normal pitchers only; gem/bust/blueChip retain post-hoc clamps).
+    // loop below. Normal pitchers, gems, busts, and blueChips all use formula-derived OVR
+    // with no post-hoc clamps; the pitcher retry block handles all pitcher archetypes.
     // GenGem/GenBust are included with their own fixed-style common ability generation
     // and direct attr adjustment (speed is never touched — it's fixed for all three).
     // Hitter themeBoosts applied BEFORE the retry loop so convergence targets the
@@ -1168,7 +1204,7 @@ export function generateRecruitClass(
     }
 
     const recruitThrowHand = isPitcher ? (Math.random() < 0.28 ? "L" : "R") : "R";
-    const pitchMix = isPitcher
+    let pitchMix = isPitcher
       ? generateArchetypePitchMix(
           assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
           qualityTierFromStars(starRank),
@@ -1211,14 +1247,14 @@ export function generateRecruitClass(
       ));
     }
 
-    // ─── OVR calibration retry loop — normal pitchers only ──────────────────────
-    // Adjusts velocity and control until calculateOVR() naturally lands inside the
-    // correct star band — the same way hitter attrs are converged above.
-    // Scoped to normal pitchers only (not gem/bust/blueChip): those archetypes retain
-    // their intentional post-hoc OVR clamps (same as genGem/genBust for hitters),
-    // because the pitcher OVR formula's headroom (~53 pts from vel+ctrl) cannot
-    // reliably bridge the 70-100 pt gap needed for gem (500-539+) and bust (150-199)
-    // bands from a typical starting OVR of 380-460.
+    // ─── OVR calibration retry loop — all pitchers (normal + gem/bust/blueChip) ────
+    // Adjusts velocity, control, and common-grade level until calculateOVR() naturally
+    // lands inside the correct star band — eliminating all post-hoc OVR clamps.
+    // Normal pitchers converge via vel/ctrl only (common grade starts at mid-band).
+    // Gems/blueChips (target 500+): preferGold abilities ensure upward headroom;
+    //   pitch-mix rerolls + ability injection/upgrade fallbacks bridge any remaining gap.
+    // Busts (target 150-399): red-only abilities + low stam bands (keyed to star rank)
+    //   ensure the downward retry has enough headroom to converge to the bust ceiling.
     // Pitch mix and common abilities are fixed before this loop so OVR is a
     // monotonic function of velocity/control, guaranteeing convergence.
     // Stamina is excluded: it is set by pitcherStaminaBand and must stay independent.
@@ -1246,6 +1282,190 @@ export function generateRecruitClass(
       }
     }
 
+    // ─── OVR calibration retry loop — pitcher gems/busts/blueChips ─────────
+    // Adjusts velocity+control AND pitcher common ability grades so calculateOVR()
+    // naturally lands inside the archetype band — eliminating post-hoc OVR clamps.
+    //
+    // Why common abilities: velocity+control headroom alone (~53 pts) cannot bridge
+    // the 70-100 pt gap needed for gem (500-539+) and bust (150-199) bands.
+    // Including common grade adjustments adds up to ~90 pts of additional headroom.
+    //
+    // Approach: use grade-midpoint values during retry (deterministic OVR per step),
+    // then randomize each attr within its converged grade range after the loop.
+    // OVR is preserved across randomization because PITCHER_COMMON_RAW maps grades
+    // (not raw values) to OVR points — all values within a grade contribute the same pts.
+    if (isPitcher && (isGem || isBust || isBlueChip) && !isGenerationalGem && !isGenerationalBust) {
+      const [retryLo, retryHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+
+      // Regenerate the pitch mix using an OVR-based quality tier rather than the
+      // star-based tier used above. For high-OVR gem/blueChip targets (500+), this
+      // gives "elite" quality (5-6 pitches, one at 5-7), providing 30-50 pts more
+      // pitch diversity+level OVR than a star-based "solid" mix. For bust targets
+      // (150-299), it gives "average" quality (2-3 pitches) — fewer pts, making
+      // sub-200 OVR reachable even without vel/ctrl bottoming out.
+      pitchMix = generateArchetypePitchMix(
+        assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
+        qualityTierFromOvr(retryLo),
+      );
+
+      // Grade midpoints for pitcher common attrs (used during retry for determinism)
+      const GRADE_MIDPOINTS: Record<string, number> = {
+        S: 94, A: 84, B: 74, C: 64, D: 54, E: 44, F: 34, G: 20,
+      };
+      // Raw ranges for each grade (used for post-convergence randomization)
+      const GRADE_RANGES: Record<string, [number, number]> = {
+        S: [90, 99], A: [80, 89], B: [70, 79], C: [60, 69],
+        D: [50, 59], E: [40, 49], F: [30, 39], G: [10, 29],
+      };
+
+      // Initialize commonLevel based on target band center
+      const bandCenter = Math.round((retryLo + retryHi) / 2);
+      let commonLevel = bandCenter >= 500 ? 84  // start at A grade for high-band targets
+                      : bandCenter >= 350 ? 64  // C grade for mid-band
+                      : bandCenter >= 250 ? 44  // E grade for low-band
+                      : 20;                     // G grade for bust targets
+
+      // Apply grade-midpoint values to all pitcher common attrs (heater/wRISP/vsLefty/agile/recovery/poise)
+      const applyCommonLevel = (level: number) => {
+        const grade = pitcherCommonGrade(level);
+        const mid = GRADE_MIDPOINTS[grade];
+        commonAbilities.heater   = mid;
+        commonAbilities.wRISP    = mid;
+        commonAbilities.vsLefty  = mid;
+        commonAbilities.agile    = mid;
+        commonAbilities.recovery = mid;
+        commonAbilities.poise    = mid;
+      };
+
+      for (let retry = 0; retry <= 40; retry++) {
+        applyCommonLevel(commonLevel);
+        const trialOvr = calculateOVR({
+          position, hitForAvg, power, speed, arm, fielding, errorResistance,
+          velocity, control, stamina, stuff, ...commonAbilities, abilities,
+          ...pitchMix, trajectory,
+        });
+        if (trialOvr >= retryLo && trialOvr <= retryHi) break;
+        if (retry === 40) break;
+        const distToLo = Math.max(0, retryLo - trialOvr);
+        const distToHi = Math.max(0, trialOvr - retryHi);
+        const dist = Math.max(distToLo, distToHi);
+        const step = dist > 100 ? 5 : dist > 40 ? 3 : dist > 10 ? 2 : 1;
+        const adjust = trialOvr < retryLo ? step : -step;
+
+        // Adjust velocity and control first
+        const prevVel  = velocity;
+        const prevCtrl = control;
+        velocity = Math.max(1, Math.min(99, velocity + adjust));
+        control  = Math.max(1, Math.min(99, control  + adjust));
+
+        // When vel/ctrl hit their boundary, also shift commonLevel for additional headroom
+        if (velocity === prevVel || control === prevCtrl) {
+          commonLevel = Math.max(10, Math.min(89, commonLevel + adjust));
+        }
+      }
+
+      // Pitch mix reroll phase: if the main retry exhausted without converging,
+      // try alternative pitch mixes. Each reroll is a fresh random draw at the same
+      // quality tier — some draws produce more (or fewer) diversity+level pts than
+      // the initial draw, which may close the remaining gap.
+      // We keep whichever reroll is closest to the target band (and stop as soon as
+      // one lands inside it).
+      {
+        applyCommonLevel(commonLevel);
+        let currentOvr = calculateOVR({
+          position, hitForAvg, power, speed, arm, fielding, errorResistance,
+          velocity, control, stamina, stuff, ...commonAbilities, abilities,
+          ...pitchMix, trajectory,
+        });
+        const pitcherArchForReroll = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
+        const qualityForReroll = qualityTierFromOvr(retryLo);
+        const bandMid = (retryLo + retryHi) / 2;
+        for (let pm = 0; pm < 15 && (currentOvr < retryLo || currentOvr > retryHi); pm++) {
+          const altMix = generateArchetypePitchMix(pitcherArchForReroll, qualityForReroll);
+          const altOvr = calculateOVR({
+            position, hitForAvg, power, speed, arm, fielding, errorResistance,
+            velocity, control, stamina, stuff, ...commonAbilities, abilities,
+            ...altMix, trajectory,
+          });
+          // Accept this reroll if it is closer to the band mid than the current mix
+          if (Math.abs(bandMid - altOvr) < Math.abs(bandMid - currentOvr)) {
+            pitchMix = altMix;
+            currentOvr = altOvr;
+          }
+        }
+
+        // Ability injection fallback (gem/blueChip only):
+        // If pitch mix rerolls still leave OVR below target, add blue abilities one at a
+        // time (up to the 7-ability cap). Each blue contributes ~6.96 pts. This handles
+        // archetypes with limited pitch diversity (e.g. strikethrowerset: SL/CU/SFB only)
+        // where even the best "elite" reroll can't reach 500/540 without extra ability pts.
+        if (currentOvr < retryLo && (isGem || isBlueChip)) {
+          const staminaOkAb = (a: { staminaMax?: number }) =>
+            pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
+          const bluePool = getAbilitiesForPosition(position)
+            .filter(a => a.tier === "blue" && staminaOkAb(a) && !abilities.includes(a.name));
+          const shuffledBlue = [...bluePool].sort(() => Math.random() - 0.5);
+          for (const ab of shuffledBlue) {
+            if (currentOvr >= retryLo || abilities.length >= 7) break;
+            abilities = [...abilities, ab.name];
+            currentOvr = calculateOVR({
+              position, hitForAvg, power, speed, arm, fielding, errorResistance,
+              velocity, control, stamina, stuff, ...commonAbilities, abilities,
+              ...pitchMix, trajectory,
+            });
+          }
+        }
+
+        // Ability upgrade fallback (gem/blueChip only):
+        // If still below target after injection (ability list full or no blues left to add),
+        // try swapping an existing blue ability for a gold one. Each blue→gold swap adds
+        // ~33 pts (gold ~40, blue ~7). Only accept swaps that land within [retryLo, retryHi].
+        if (currentOvr < retryLo && (isGem || isBlueChip)) {
+          const staminaOkAb = (a: { staminaMax?: number }) =>
+            pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
+          const goldPool = getAbilitiesForPosition(position)
+            .filter(a => a.tier === "gold" && staminaOkAb(a) && !abilities.includes(a.name))
+            .sort(() => Math.random() - 0.5);
+          outer: for (let ai = 0; ai < abilities.length; ai++) {
+            const existing = getAbilityByName(abilities[ai]);
+            if (existing?.tier !== "blue") continue;
+            for (const goldAb of goldPool) {
+              const candidate = [...abilities];
+              candidate[ai] = goldAb.name;
+              const candidateOvr = calculateOVR({
+                position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                velocity, control, stamina, stuff, ...commonAbilities,
+                abilities: candidate, ...pitchMix, trajectory,
+              });
+              if (candidateOvr >= retryLo && candidateOvr <= retryHi) {
+                abilities = candidate;
+                currentOvr = candidateOvr;
+                break outer;
+              }
+              // Accept if closer to band even if not yet in range
+              if (Math.abs(bandMid - candidateOvr) < Math.abs(bandMid - currentOvr)) {
+                abilities = candidate;
+                currentOvr = candidateOvr;
+              }
+            }
+          }
+        }
+      }
+
+      // Post-convergence: randomize each common attr within its converged grade range.
+      // This adds natural variation without changing OVR, because all values within a
+      // grade contribute the same pts in PITCHER_COMMON_RAW.
+      const finalGrade = pitcherCommonGrade(commonLevel);
+      const [gLo, gHi] = GRADE_RANGES[finalGrade];
+      const randInGrade = () => gLo + Math.floor(Math.random() * (gHi - gLo + 1));
+      commonAbilities.heater   = randInGrade();
+      commonAbilities.wRISP    = randInGrade();
+      commonAbilities.vsLefty  = randInGrade();
+      commonAbilities.agile    = randInGrade();
+      commonAbilities.recovery = randInGrade();
+      commonAbilities.poise    = randInGrade();
+    }
+
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
     const recruitOvrData = {
@@ -1255,32 +1475,16 @@ export function generateRecruitClass(
     };
     let overall = calculateOVR(recruitOvrData);
 
-    // ─── OVR adjustments — generational extremes, pitcher archetype clamps, and intentional distortions ──
+    // ─── OVR adjustments — generational extremes and intentional distortions ──
     // Normal hitters: retry loop has already landed calculateOVR() in the correct band. No post-hoc clamp.
-    // Normal pitchers: retry loop convergences velocity/control to band. No post-hoc clamp.
+    // Normal pitchers: retry loop converges velocity/control to band. No post-hoc clamp.
+    // Pitcher gems/busts/blueChips: retry loop (velocity+control+common grade) converges to band. No post-hoc clamp.
     // Generational gems/busts (all positions): fixed attr ranges + intentional extreme clamp retained.
-    // Pitcher gems/busts/blueChips: retain intentional post-hoc OVR clamps — the pitcher OVR
-    //   formula's ~53-pt velocity+control headroom cannot reliably bridge the gem/bust band gap.
-    //   These clamps make pitcher gem/bust/blueChip OVRs match their archetype bands.
     // late_bloomer and overdraft: intentional OVR distortion applied to non-gem/bust hitters.
     if (isGenerationalGem && isPitcher) {
       overall = Math.max(600, Math.min(650, overall));
     } else if (isGenerationalBust && isPitcher) {
       overall = Math.max(150, Math.min(199, overall));
-    } else if (isBlueChip && isPitcher) {
-      overall = Math.max(540, Math.min(599, overall));
-    } else if (isGem && isPitcher) {
-      const gemPitcherRanges: Record<number, [number, number]> = {
-        4: [540, 599], 3: [500, 539], 2: [400, 499], 1: [300, 399],
-      };
-      const [gLo, gHi] = gemPitcherRanges[starRank] ?? [500, 539];
-      overall = Math.max(gLo, Math.min(gHi, overall));
-    } else if (isBust && isPitcher) {
-      const bustPitcherRanges: Record<number, [number, number]> = {
-        5: [300, 399], 4: [200, 299], 3: [150, 199],
-      };
-      const [bLo, bHi] = bustPitcherRanges[starRank] ?? [200, 299];
-      overall = Math.max(bLo, Math.min(bHi, overall));
     } else if (playerArchetype === "late_bloomer" && !isGem && !isBust) {
       // Late bloomer: OVR depressed below their star tier — intentional archetype distortion.
       // Hitters: retry calibrated attrs to star band; clamp then depresses OVR one tier lower.
@@ -1336,28 +1540,6 @@ export function generateRecruitClass(
             }
           }
         }
-      }
-    }
-    // Re-apply pitcher gem/bust/blueChip OVR clamps after gold gate.
-    // The gold gate recalculates OVR directly from attrs (which may be above/below
-    // the clamp band), and the 5-step post-gate re-retry is insufficient to fully
-    // converge in all cases. Re-clamping here ensures the final stored OVR is in band.
-    // Generational gems/busts are exempt — their earlier clamp already handles them.
-    if (isPitcher && !isGenerationalGem && !isGenerationalBust) {
-      if (isBlueChip) {
-        overall = Math.max(540, Math.min(599, overall));
-      } else if (isGem) {
-        const gemPRanges: Record<number, [number, number]> = {
-          4: [540, 599], 3: [500, 539], 2: [400, 499], 1: [300, 399],
-        };
-        const [gpLo, gpHi] = gemPRanges[starRank] ?? [500, 539];
-        overall = Math.max(gpLo, Math.min(gpHi, overall));
-      } else if (isBust) {
-        const bustPRanges: Record<number, [number, number]> = {
-          5: [300, 399], 4: [200, 299], 3: [150, 199],
-        };
-        const [bpLo, bpHi] = bustPRanges[starRank] ?? [200, 299];
-        overall = Math.max(bpLo, Math.min(bpHi, overall));
       }
     }
     // ─── Wizard OVR hard clamp (post all star/archetype/gate adjustments) ────
