@@ -883,7 +883,8 @@ export function generateRecruitClass(
 
     // Pre-roll pitcher stamina band so we can gate Intimidator before abilities are assigned.
     // Generational gems always use the starter band (80–99); busts are always low stamina.
-    // Regular pitchers follow the 40/10/40/10 role distribution.
+    // Regular pitchers follow the 5-role distribution: 25% Weekend Starter / 15% Midweek Starter /
+    // 40% Middle Reliever / 10% Setup / 10% Closer.
     let pitcherStaminaBand: [number, number] | null = null;
     if (isPitcher) {
       if (isGenerationalGem) {
@@ -892,16 +893,17 @@ export function generateRecruitClass(
         // Bust pitchers need low stamina so the retry can converge downward to the
         // bust OVR band. High stamina (80+ pts for starters) contributes ~82 pts that
         // can't be cancelled by vel=1, ctrl=1, and G-grade common attrs alone.
-        // Use reliever/closer ranges keyed by bust star rank.
-        if (starRank <= 3) pitcherStaminaBand = [1, 29];            // bust 3★: closer only
-        else if (starRank === 4) pitcherStaminaBand = [1, 49];      // bust 4★: reliever
-        else pitcherStaminaBand = [30, 79];                          // bust 5★: long/mid relief
+        // Mapped to the new 5-band ranges — busts gravitate toward closer/setup.
+        if (starRank <= 3) pitcherStaminaBand = [1, 19];            // bust 3★: closer only
+        else if (starRank === 4) pitcherStaminaBand = [1, 34];      // bust 4★: closer/setup
+        else pitcherStaminaBand = [20, 54];                          // bust 5★: setup/middle relief
       } else if (!isGenerationalBust) {
         const roleRoll = Math.random();
-        if (roleRoll < 0.40) pitcherStaminaBand = [80, 99];        // starter
-        else if (roleRoll < 0.50) pitcherStaminaBand = [50, 79];   // long relief
-        else if (roleRoll < 0.90) pitcherStaminaBand = [30, 49];   // mid relief
-        else pitcherStaminaBand = [1, 29];                          // closer
+        if (roleRoll < 0.25) pitcherStaminaBand = [80, 99];        // weekend starter
+        else if (roleRoll < 0.40) pitcherStaminaBand = [55, 79];   // midweek starter
+        else if (roleRoll < 0.80) pitcherStaminaBand = [35, 54];   // middle reliever
+        else if (roleRoll < 0.90) pitcherStaminaBand = [20, 34];   // setup
+        else pitcherStaminaBand = [1, 19];                          // closer
       }
     }
     // Lower bound of the band is passed to ability generators so staminaMax gates work correctly.
@@ -1681,7 +1683,19 @@ export function generateRecruitClass(
         });
         for (const goldName of goldNames) {
           if (totalGold <= goldCap) break;
-          r.abilities = (r.abilities ?? []).filter(n => n !== goldName);
+          // Replace gold with a blue ability instead of simply removing it,
+          // so the recruit keeps the same ability count.
+          const rStam = r.stamina ?? 50;
+          const bluePool = getAbilitiesForPosition(r.position ?? "C")
+            .filter(a => a.tier === "blue"
+              && (a.staminaMax == null || rStam <= a.staminaMax)
+              && !(r.abilities ?? []).includes(a.name));
+          if (bluePool.length > 0) {
+            const replacement = bluePool[Math.floor(Math.random() * bluePool.length)];
+            r.abilities = (r.abilities ?? []).map(n => n === goldName ? replacement.name : n);
+          } else {
+            r.abilities = (r.abilities ?? []).filter(n => n !== goldName);
+          }
           totalGold--;
           r.overall = calculateOVR({
             position: r.position ?? "C",

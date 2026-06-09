@@ -12,6 +12,7 @@ import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { calculateOVR } from "@shared/abilities";
+import { getPitcherRoleLabel } from "@shared/positions";
 import { velocityToKMH } from "@/lib/playerUtils";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { TeamBadge } from "@/components/ui/team-badge";
@@ -995,6 +996,9 @@ export default function RosterViewerPage() {
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <Badge variant="outline" className="text-[8px] px-1 py-0">{player.position}</Badge>
+                    {isPitcher(player.position) && (
+                      <span className="text-[9px] text-muted-foreground">{getPitcherRoleLabel(player.stamina)}</span>
+                    )}
                     <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
                     <StarRating stars={stars} />
                   </div>
@@ -1405,7 +1409,12 @@ export default function RosterViewerPage() {
                             </div>
                           </td>
                           <td className="px-2 py-1.5">
-                            <Badge variant="outline" className="text-[9px] px-1">{player.position}</Badge>
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <Badge variant="outline" className="text-[9px] px-1">{player.position}</Badge>
+                              {isPitcher(player.position) && (
+                                <span className="text-[9px] text-muted-foreground whitespace-nowrap">{getPitcherRoleLabel(player.stamina)}</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.eligibility}</td>
                           <td className="px-2 py-1.5"><StarRating stars={stars} /></td>
