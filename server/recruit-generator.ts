@@ -360,9 +360,9 @@ export function generateRecruitClass(
     }
     if (pct < 0.08) return 5;
     if (pct < 0.20) return 4;
-    if (pct < 0.70) return 3;
-    if (pct < 0.90) return 2;
-    return 1;
+    if (pct < 0.80) return 3;  // 60% three-star (spec: ~60%)
+    if (pct < 0.95) return 2;  // 15% two-star   (spec: ~15%)
+    return 1;                  //  5% one-star    (spec:  ~5%)
   };
 
   let numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
@@ -848,7 +848,7 @@ export function generateRecruitClass(
     if (isGenerationalGem) {
       isGem = true;
       targetAttrAvg = -1;
-      abilityCount = 4;
+      abilityCount = 5 + Math.floor(Math.random() * 3); // 5-7 per spec
     } else if (isGenerationalBust) {
       isBust = true;
       targetAttrAvg = -1;
@@ -1428,7 +1428,7 @@ export function generateRecruitClass(
             .filter(a => a.tier === "blue" && staminaOkAb(a) && !abilities.includes(a.name));
           const shuffledBlue = [...bluePool].sort(() => Math.random() - 0.5);
           for (const ab of shuffledBlue) {
-            if (currentOvr >= retryLo || abilities.length >= 4) break;
+            if (currentOvr >= retryLo || abilities.length >= (isGenerationalGem ? 7 : 4)) break;
             abilities = [...abilities, ab.name];
             currentOvr = calculateOVR({
               position, hitForAvg, power, speed, arm, fielding, errorResistance,
@@ -1634,7 +1634,7 @@ export function generateRecruitClass(
               const bluePoolRr = getAbilitiesForPosition(position)
                 .filter(a => a.tier === "blue" && staminaOkRr(a) && !abilities.includes(a.name));
               for (const ab of [...bluePoolRr].sort(() => Math.random() - 0.5)) {
-                if (overall >= rrLo || abilities.length >= 4) break;
+                if (overall >= rrLo || abilities.length >= (isGenerationalGem ? 7 : 4)) break;
                 abilities = [...abilities, ab.name];
                 overall = calculateOVR({
                   position, hitForAvg, power, speed, arm, fielding, errorResistance,
@@ -1665,10 +1665,12 @@ export function generateRecruitClass(
         }
       }
       // Hard cap: no recruit may carry more than 4 special abilities.
+      // Exception: generational gems are spec'd at 5-7 abilities.
       // All retry/injection paths above already respect this ceiling, but this
       // safety slice catches any edge case that slips through (e.g. initial
       // getAbilityCount() randomness combined with injection in the same pass).
-      if (abilities.length > 4) abilities = abilities.slice(0, 4);
+      const abilityCap = isGenerationalGem ? 7 : 4;
+      if (abilities.length > abilityCap) abilities = abilities.slice(0, abilityCap);
 
       classGoldCount += abilities.filter(n => getAbilityByName(n)?.tier === "gold").length;
     }

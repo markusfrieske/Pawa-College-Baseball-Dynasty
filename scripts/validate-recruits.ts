@@ -123,14 +123,15 @@ for (let c = 0; c < SAMPLE_CLASSES; c++) {
       getAbilitiesForPosition(pos).map(a => a.name)
     );
 
-    // ── Special ability count cap (max 4 per recruit) ─────────────────────
-    if (abilities.length > 4) {
+    // ── Special ability count cap (max 7 for gen gems, max 4 for all others) ──
+    const abilityCap = isGenGem ? 7 : 4;
+    if (abilities.length > abilityCap) {
       violations.push({
         kind: "ability-cap",
         recruitName: playerName,
         position: pos,
         ability: "",
-        detail: `${abilities.length} special abilities (max 4)`,
+        detail: `${abilities.length} special abilities (max ${abilityCap})`,
       });
     }
 
@@ -167,7 +168,7 @@ console.log(`Scanned ${totalRecruits} generated recruits (${SAMPLE_CLASSES} clas
 
 if (violations.length === 0) {
   console.log(
-    "✓ All generated recruit abilities are valid, position-appropriate, deduplicated, ability-capped (≤4/recruit), and gold-capped (≤10/class)."
+    "✓ All generated recruit abilities are valid, position-appropriate, deduplicated, ability-capped (≤4/recruit, ≤7 for gen gems), and gold-capped (≤10/class)."
   );
   process.exit(0);
 }
