@@ -1425,7 +1425,7 @@ export function generateRecruitClass(
             .filter(a => a.tier === "blue" && staminaOkAb(a) && !abilities.includes(a.name));
           const shuffledBlue = [...bluePool].sort(() => Math.random() - 0.5);
           for (const ab of shuffledBlue) {
-            if (currentOvr >= retryLo || abilities.length >= 7) break;
+            if (currentOvr >= retryLo || abilities.length >= 4) break;
             abilities = [...abilities, ab.name];
             currentOvr = calculateOVR({
               position, hitForAvg, power, speed, arm, fielding, errorResistance,
@@ -1617,7 +1617,7 @@ export function generateRecruitClass(
               const bluePoolRr = getAbilitiesForPosition(position)
                 .filter(a => a.tier === "blue" && staminaOkRr(a) && !abilities.includes(a.name));
               for (const ab of [...bluePoolRr].sort(() => Math.random() - 0.5)) {
-                if (overall >= rrLo || abilities.length >= 7) break;
+                if (overall >= rrLo || abilities.length >= 4) break;
                 abilities = [...abilities, ab.name];
                 overall = calculateOVR({
                   position, hitForAvg, power, speed, arm, fielding, errorResistance,
@@ -1647,6 +1647,12 @@ export function generateRecruitClass(
           }
         }
       }
+      // Hard cap: no recruit may carry more than 4 special abilities.
+      // All retry/injection paths above already respect this ceiling, but this
+      // safety slice catches any edge case that slips through (e.g. initial
+      // getAbilityCount() randomness combined with injection in the same pass).
+      if (abilities.length > 4) abilities = abilities.slice(0, 4);
+
       classGoldCount += abilities.filter(n => getAbilityByName(n)?.tier === "gold").length;
     }
 
