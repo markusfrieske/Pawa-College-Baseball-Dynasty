@@ -92,6 +92,19 @@ import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { velocityToKMH } from "@/lib/playerUtils";
 
+const NIL_SCOUT_THRESHOLD = 50;
+
+function formatNilRange(nilCost: number): string {
+  const lo = Math.floor(nilCost * 0.75);
+  const hi = Math.ceil(nilCost * 1.25);
+  function fmt(n: number): string {
+    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `$${Math.round(n / 1_000)}K`;
+    return `$${n}`;
+  }
+  return `${fmt(lo)}–${fmt(hi)}`;
+}
+
 function getInterestLabel(level: number): { label: string; color: string } {
   if (level >= 90) return { label: "On Fire", color: "text-red-400" };
   if (level >= 70) return { label: "Very Hot", color: "text-orange-400" };
@@ -2513,7 +2526,7 @@ function RecruitRow({
   });
   const [showMobileMore, setShowMobileMore] = useState(false);
 
-  const isOverNilBudget = nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer;
+  const isOverNilBudget = nilRemaining != null && Math.ceil((recruit.nilCost || 0) * 1.25) > nilRemaining && !recruit.interest?.hasOffer && (recruit.interest?.scoutPercentage || 0) >= NIL_SCOUT_THRESHOLD;
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
@@ -2935,15 +2948,15 @@ function RecruitRow({
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="text-center min-w-[40px] cursor-default">
-                  <p className="font-bold text-sm text-gold/80">
-                    {recruit.nilCost >= 1000000
-                      ? `$${(recruit.nilCost / 1000000).toFixed(1)}M`
-                      : `$${Math.round(recruit.nilCost / 1000)}K`}
-                  </p>
+                  {(scoutPct >= NIL_SCOUT_THRESHOLD) ? (
+                    <p className="font-bold text-sm text-gold/80">{formatNilRange(recruit.nilCost)}</p>
+                  ) : (
+                    <p className="font-bold text-xs text-muted-foreground/50 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />NIL</p>
+                  )}
                   <p className="text-[10px] text-muted-foreground">NIL</p>
                 </div>
               </TooltipTrigger>
-              <TooltipContent>NIL cost to sign this recruit</TooltipContent>
+              <TooltipContent>{scoutPct >= NIL_SCOUT_THRESHOLD ? "Estimated NIL range to sign this recruit (±25%)" : "Scout to 50% to reveal NIL estimate"}</TooltipContent>
             </Tooltip>
           )}
           <div className="text-center min-w-[40px]">
@@ -3161,7 +3174,7 @@ function RecruitRow({
                       onClick={() => { if (!isOverNilBudget) { onOffer(); setShowMobileMore(false); } }}
                       disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget}
                       data-testid={`button-offer-mobile-${recruit.id}`}
-                      title={isOverNilBudget ? `Over NIL budget — need $${Math.round((recruit.nilCost || 0) / 1000)}K` : undefined}
+                      title={isOverNilBudget ? `Over NIL budget — need ~${formatNilRange(recruit.nilCost || 0)} to sign` : undefined}
                     >
                       {isOverNilBudget ? <Lock className="w-3 h-3 flex-shrink-0" /> : <Gift className="w-3 h-3 flex-shrink-0" />}
                       {isOverNilBudget ? "Over NIL Budget" : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
@@ -3347,7 +3360,7 @@ function RecruitRow({
                     {recruit.interest?.hasOffer
                       ? "Scholarship Offered"
                       : isOverNilBudget
-                      ? `Over NIL budget — need $${(recruit.nilCost || 0) >= 1000000 ? `${((recruit.nilCost || 0) / 1000000).toFixed(1)}M` : `${Math.round((recruit.nilCost || 0) / 1000)}K`} to sign`
+                      ? `Over NIL budget — need ~${formatNilRange(recruit.nilCost || 0)} to sign`
                       : "Offer Scholarship (1 recruiting point)"}
                   </TooltipContent>
                 </Tooltip>
@@ -4480,25 +4493,21 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && (
+          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && scoutPct >= NIL_SCOUT_THRESHOLD && (
             <div className={`flex items-center justify-between px-3 py-2 rounded border ${
-              nilRemaining != null && recruit.nilCost > nilRemaining
+              nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining
                 ? "bg-red-500/10 border-red-500/30"
                 : "bg-gold/5 border-gold/20"
             }`} data-testid="nil-cost-banner">
               <div className="flex items-center gap-2">
-                <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`} />
-                <span className="text-[10px] text-muted-foreground">NIL Cost to Sign</span>
+                <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`} />
+                <span className="text-[10px] text-muted-foreground">NIL Est. to Sign</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`font-pixel text-xs font-bold ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`}>
-                  {recruit.nilCost >= 1000000
-                    ? `$${(recruit.nilCost / 1000000).toFixed(2)}M`
-                    : recruit.nilCost >= 1000
-                    ? `$${Math.round(recruit.nilCost / 1000)}K`
-                    : `$${recruit.nilCost}`}
+                <span className={`font-pixel text-xs font-bold ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`}>
+                  {formatNilRange(recruit.nilCost)}
                 </span>
-                {nilRemaining != null && recruit.nilCost > nilRemaining && (
+                {nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining && (
                   <span className="flex items-center gap-1 text-[9px] text-red-400">
                     <Lock className="w-2.5 h-2.5" />
                     Over budget
@@ -4577,7 +4586,7 @@ function RecruitDetailModal({
                 </TooltipTrigger>
                 <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
               </Tooltip>
-              {nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer ? (
+              {nilRemaining != null && Math.ceil((recruit.nilCost || 0) * 1.25) > nilRemaining && !recruit.interest?.hasOffer && scoutPct >= NIL_SCOUT_THRESHOLD ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="col-span-1">
@@ -4593,11 +4602,8 @@ function RecruitDetailModal({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Not enough NIL budget to sign this recruit ($
-                    {(recruit.nilCost || 0) >= 1000000
-                      ? `${((recruit.nilCost || 0) / 1000000).toFixed(2)}M`
-                      : `${Math.round((recruit.nilCost || 0) / 1000)}K`}
-                    {" needed, "}$
+                    Not enough NIL budget to sign this recruit (est. {formatNilRange(recruit.nilCost || 0)}
+                    {", "}$
                     {nilRemaining >= 1000000
                       ? `${(nilRemaining / 1000000).toFixed(2)}M`
                       : `${Math.round(nilRemaining / 1000)}K`}
@@ -5083,25 +5089,21 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && (
+          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && scoutPct >= NIL_SCOUT_THRESHOLD && (
             <div className={`flex items-center justify-between px-3 py-2 rounded border ${
-              nilRemaining != null && recruit.nilCost > nilRemaining
+              nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining
                 ? "bg-red-500/10 border-red-500/30"
                 : "bg-gold/5 border-gold/20"
             }`} data-testid="nil-cost-banner">
               <div className="flex items-center gap-2">
-                <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`} />
-                <span className="text-[10px] text-muted-foreground">NIL Cost to Sign</span>
+                <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`} />
+                <span className="text-[10px] text-muted-foreground">NIL Est. to Sign</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`font-pixel text-xs font-bold ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`}>
-                  {recruit.nilCost >= 1000000
-                    ? `$${(recruit.nilCost / 1000000).toFixed(2)}M`
-                    : recruit.nilCost >= 1000
-                    ? `$${Math.round(recruit.nilCost / 1000)}K`
-                    : `$${recruit.nilCost}`}
+                <span className={`font-pixel text-xs font-bold ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`}>
+                  {formatNilRange(recruit.nilCost)}
                 </span>
-                {nilRemaining != null && recruit.nilCost > nilRemaining && (
+                {nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining && (
                   <span className="flex items-center gap-1 text-[9px] text-red-400">
                     <Lock className="w-2.5 h-2.5" />
                     Over budget
@@ -5180,7 +5182,7 @@ function RecruitDetailModal({
                 </TooltipTrigger>
                 <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
               </Tooltip>
-              {nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer ? (
+              {nilRemaining != null && Math.ceil((recruit.nilCost || 0) * 1.25) > nilRemaining && !recruit.interest?.hasOffer && scoutPct >= NIL_SCOUT_THRESHOLD ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span className="col-span-1">
@@ -5196,11 +5198,8 @@ function RecruitDetailModal({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Not enough NIL budget to sign this recruit ($
-                    {(recruit.nilCost || 0) >= 1000000
-                      ? `${((recruit.nilCost || 0) / 1000000).toFixed(2)}M`
-                      : `${Math.round((recruit.nilCost || 0) / 1000)}K`}
-                    {" needed, "}$
+                    Not enough NIL budget to sign this recruit (est. {formatNilRange(recruit.nilCost || 0)}
+                    {", "}$
                     {nilRemaining >= 1000000
                       ? `${(nilRemaining / 1000000).toFixed(2)}M`
                       : `${Math.round(nilRemaining / 1000)}K`}

@@ -188,7 +188,6 @@ function getGeoMultiplier(homeState: string): number {
 
 function generateNilCost(
   displayedStar: number,
-  isBlueChip: boolean,
   position: string = "SP",
   homeState: string = "",
 ): number {
@@ -221,8 +220,6 @@ function generateNilCost(
 
   const geoMultiplier = getGeoMultiplier(homeState);
   const adjusted = Math.floor(baseCost * posMultiplier * geoMultiplier);
-
-  if (isBlueChip) return Math.floor(adjusted * (1.2 + Math.random() * 0.6));
   return adjusted;
 }
 
@@ -1649,7 +1646,6 @@ export function generateRecruitClass(
       coachability,
       nilCost: generateNilCost(
         (isBlueChip || isGem || isBust || isGenerationalGem || isGenerationalBust) ? starRating : computedStarRating,
-        isBlueChip,
         position,
         recruitState.state,
       ),
