@@ -401,6 +401,9 @@ export function generateRecruitClass(
     if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 82 + Math.floor(Math.random() * 6);
     if (isGem) {
       if (isPitcher) {
+        // Pitcher gem targetAttrAvg — calibrated for the original clamp+OVR system.
+        // Gem/bust/blueChip pitcher OVRs are still clamped to their archetype bands;
+        // the retry loop is scoped to normal pitchers only where it reliably converges.
         switch (starRank) {
           case 4: return 80 + Math.floor(Math.random() * 8);
           case 3: return 65 + Math.floor(Math.random() * 8);
@@ -420,6 +423,7 @@ export function generateRecruitClass(
     }
     if (isBust) {
       if (isPitcher) {
+        // Pitcher bust targetAttrAvg — calibrated for the original clamp+OVR system.
         switch (starRank) {
           case 5: return 43 + Math.floor(Math.random() * 8);
           case 4: return 31 + Math.floor(Math.random() * 8);
@@ -1117,8 +1121,8 @@ export function generateRecruitClass(
     }
 
     // ─── Wizard OVR correction retry loop — pitchers only ────────────────────
-    // Preserved for pitchers in wizard mode. Uses preliminary attr-only OVR.
-    // Pitcher calibration is handled by Task #191.
+    // Preserved for pitchers in wizard mode to honor user-specified OVR ranges.
+    // Uses preliminary attr-only OVR (pitch mix not yet generated here).
     if (isPitcher && wizardTargetOvrs && !isGenerationalGem && !isGenerationalBust && !isBlueChip) {
       const pitchPenaltyR = 3;
       for (let retry = 0; retry < 5; retry++) {
@@ -1205,6 +1209,41 @@ export function generateRecruitClass(
       ));
     }
 
+    // ─── OVR calibration retry loop — normal pitchers only ──────────────────────
+    // Adjusts velocity and control until calculateOVR() naturally lands inside the
+    // correct star band — the same way hitter attrs are converged above.
+    // Scoped to normal pitchers only (not gem/bust/blueChip): those archetypes retain
+    // their intentional post-hoc OVR clamps (same as genGem/genBust for hitters),
+    // because the pitcher OVR formula's headroom (~53 pts from vel+ctrl) cannot
+    // reliably bridge the 70-100 pt gap needed for gem (500-539+) and bust (150-199)
+    // bands from a typical starting OVR of 380-460.
+    // Pitch mix and common abilities are fixed before this loop so OVR is a
+    // monotonic function of velocity/control, guaranteeing convergence.
+    // Stamina is excluded: it is set by pitcherStaminaBand and must stay independent.
+    // Stuff is excluded: it has no effect on OVR when pitch field data is present
+    // (pitch data takes over from the stuff-based fallback in calculateOVR).
+    if (isPitcher && !isGenerationalGem && !isGenerationalBust && !isGem && !isBust && !isBlueChip) {
+      const [retryLo, retryHi] = getRecruitOvrBand(
+        starRank, false, false, false, false, false,
+      );
+      for (let retry = 0; retry <= 25; retry++) {
+        const trialOvr = calculateOVR({
+          position, hitForAvg, power, speed, arm, fielding, errorResistance,
+          velocity, control, stamina, stuff, ...commonAbilities, abilities,
+          ...pitchMix, trajectory,
+        });
+        if (trialOvr >= retryLo && trialOvr <= retryHi) break;
+        if (retry === 25) break;
+        const distToLo = Math.max(0, retryLo - trialOvr);
+        const distToHi = Math.max(0, trialOvr - retryHi);
+        const dist = Math.max(distToLo, distToHi);
+        const step = dist > 100 ? 5 : dist > 40 ? 3 : dist > 10 ? 2 : 1;
+        const adjust = trialOvr < retryLo ? step : -step;
+        velocity = Math.max(1, Math.min(99, velocity + adjust));
+        control  = Math.max(1, Math.min(99, control  + adjust));
+      }
+    }
+
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
     const recruitOvrData = {
@@ -1214,11 +1253,14 @@ export function generateRecruitClass(
     };
     let overall = calculateOVR(recruitOvrData);
 
-    // ─── OVR band clamps — PITCHERS ONLY ─────────────────────────────────────
-    // Hitters: the retry loop already landed calculateOVR() in the correct band.
-    //          No post-hoc clamp is applied — formula result is used directly.
-    // Pitchers: band clamps preserved; pitcher recalibration handled by Task #191.
-    // late_bloomer and overdraft: intentional OVR distortion retained for both.
+    // ─── OVR adjustments — generational extremes, pitcher archetype clamps, and intentional distortions ──
+    // Normal hitters: retry loop has already landed calculateOVR() in the correct band. No post-hoc clamp.
+    // Normal pitchers: retry loop convergences velocity/control to band. No post-hoc clamp.
+    // Generational gems/busts (all positions): fixed attr ranges + intentional extreme clamp retained.
+    // Pitcher gems/busts/blueChips: retain intentional post-hoc OVR clamps — the pitcher OVR
+    //   formula's ~53-pt velocity+control headroom cannot reliably bridge the gem/bust band gap.
+    //   These clamps make pitcher gem/bust/blueChip OVRs match their archetype bands.
+    // late_bloomer and overdraft: intentional OVR distortion applied to non-gem/bust hitters.
     if (isGenerationalGem && isPitcher) {
       overall = Math.max(600, Math.min(650, overall));
     } else if (isGenerationalBust && isPitcher) {
@@ -1226,12 +1268,16 @@ export function generateRecruitClass(
     } else if (isBlueChip && isPitcher) {
       overall = Math.max(540, Math.min(599, overall));
     } else if (isGem && isPitcher) {
-      const gemRanges: Record<number, [number, number]> = { 1: [300, 399], 2: [400, 499], 3: [500, 539], 4: [540, 599] };
-      const [gLo, gHi] = gemRanges[starRank] ?? [500, 539];
+      const gemPitcherRanges: Record<number, [number, number]> = {
+        4: [540, 599], 3: [500, 539], 2: [400, 499], 1: [300, 399],
+      };
+      const [gLo, gHi] = gemPitcherRanges[starRank] ?? [500, 539];
       overall = Math.max(gLo, Math.min(gHi, overall));
     } else if (isBust && isPitcher) {
-      const bustRanges: Record<number, [number, number]> = { 3: [150, 199], 4: [200, 299], 5: [300, 399] };
-      const [bLo, bHi] = bustRanges[starRank] ?? [200, 299];
+      const bustPitcherRanges: Record<number, [number, number]> = {
+        5: [300, 399], 4: [200, 299], 3: [150, 199],
+      };
+      const [bLo, bHi] = bustPitcherRanges[starRank] ?? [200, 299];
       overall = Math.max(bLo, Math.min(bHi, overall));
     } else if (playerArchetype === "late_bloomer" && !isGem && !isBust) {
       // Late bloomer: OVR depressed below their star tier — intentional archetype distortion.
@@ -1251,17 +1297,6 @@ export function generateRecruitClass(
       const cap   = nextTierCap[starRank] ?? 499;
       const inflation = 40 + Math.floor(Math.random() * 40);
       overall = Math.max(floor, Math.min(cap, overall + inflation));
-    } else if (isPitcher) {
-      // Normal pitcher: wide band clamp (Task #191 handles recalibration)
-      const normalRanges: Record<number, [number, number]> = {
-        1: [150, 299], 2: [150, 399], 3: [200, 499], 4: [300, 539], 5: [400, 539],
-      };
-      const [nLo, nHi] = normalRanges[starRank] ?? [200, 399];
-      if (!isRawArchetype) {
-        overall = Math.max(nLo, Math.min(nHi, overall));
-      } else {
-        overall = Math.max(150, Math.min(nHi, overall));
-      }
     }
 
     // Enforce gold OVR gate: generational gems/busts are exempt (extreme archetypes).
@@ -1269,28 +1304,28 @@ export function generateRecruitClass(
       const gated = enforceGoldOvrGate(abilities, position, overall, pitcherStaminaForAbilities);
       if (gated !== abilities) {
         abilities = gated;
-        if (isPitcher) {
-          // Pitcher: approximate the gold→blue swap as -5 OVR (Task #191 scope).
-          overall = Math.max(150, overall - 5);
-        } else {
-          // Hitter: recalculate precisely so stored OVR = formula OVR (no hardcoded delta).
-          overall = calculateOVR({ ...recruitOvrData, abilities: gated });
-          // Post-gate re-retry for gem/bust/blueChip hitters: the gold→blue swap shifts
-          // specialTotal (via HITTER_NAMED_PTS) and can push OVR outside the retry-targeted
-          // band. Re-converge attrs (≤5 iterations) using the gated abilities rather than
-          // clamping, so stored OVR stays formula-derived. Normal hitters are unaffected.
-          if (isGem || isBust || isBlueChip) {
-            const [rrLo, rrHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
-            for (let rr = 0; rr <= 5; rr++) {
-              overall = calculateOVR({
-                position, hitForAvg, power, speed, arm, fielding, errorResistance,
-                velocity, control, stamina, stuff,
-                ...commonAbilities, abilities, ...pitchMix, trajectory,
-              });
-              if (overall >= rrLo && overall <= rrHi) break;
-              if (rr === 5) break;
-              const dist = Math.max(Math.max(0, rrLo - overall), Math.max(0, overall - rrHi));
-              const adj = overall < rrLo ? (dist > 10 ? 2 : 1) : -(dist > 10 ? 2 : 1);
+        // Precise recalculate for both pitchers and hitters so stored OVR = formula OVR.
+        overall = calculateOVR({ ...recruitOvrData, abilities: gated });
+        // Post-gate re-retry for gem/bust/blueChip: the gold→blue swap shifts specialTotal
+        // and can push OVR outside the retry-targeted band. Re-converge attrs (≤5 iterations)
+        // for pitchers (velocity/control/stuff) and hitters (batting attrs).
+        if (isGem || isBust || isBlueChip) {
+          const [rrLo, rrHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+          for (let rr = 0; rr <= 5; rr++) {
+            overall = calculateOVR({
+              position, hitForAvg, power, speed, arm, fielding, errorResistance,
+              velocity, control, stamina, stuff,
+              ...commonAbilities, abilities, ...pitchMix, trajectory,
+            });
+            if (overall >= rrLo && overall <= rrHi) break;
+            if (rr === 5) break;
+            const dist = Math.max(Math.max(0, rrLo - overall), Math.max(0, overall - rrHi));
+            const adj = overall < rrLo ? (dist > 10 ? 2 : 1) : -(dist > 10 ? 2 : 1);
+            if (isPitcher) {
+              velocity = Math.max(1, Math.min(99, velocity + adj));
+              control  = Math.max(1, Math.min(99, control  + adj));
+              stuff    = Math.max(1, Math.min(99, stuff    + adj));
+            } else {
               hitForAvg       = Math.max(1, Math.min(99, hitForAvg       + adj));
               power           = Math.max(1, Math.min(99, power           + adj));
               arm             = Math.max(1, Math.min(99, arm             + adj));
@@ -1301,12 +1336,27 @@ export function generateRecruitClass(
         }
       }
     }
-    // Re-apply pitcher bust floor after gold gate (the -5 penalty can drop below band floor).
-    // Exclude genBusts: their clamp already set the OVR; isBust=true for genBusts but
-    // bustFloors[4]=200 and bustFloors[5]=300 would overwrite the genBust pitcher clamp.
-    if (isBust && !isGenerationalBust && isPitcher) {
-      const bustFloors: Record<number, number> = { 3: 150, 4: 200, 5: 300 };
-      overall = Math.max(bustFloors[starRank] ?? 200, overall);
+    // Re-apply pitcher gem/bust/blueChip OVR clamps after gold gate.
+    // The gold gate recalculates OVR directly from attrs (which may be above/below
+    // the clamp band), and the 5-step post-gate re-retry is insufficient to fully
+    // converge in all cases. Re-clamping here ensures the final stored OVR is in band.
+    // Generational gems/busts are exempt — their earlier clamp already handles them.
+    if (isPitcher && !isGenerationalGem && !isGenerationalBust) {
+      if (isBlueChip) {
+        overall = Math.max(540, Math.min(599, overall));
+      } else if (isGem) {
+        const gemPRanges: Record<number, [number, number]> = {
+          4: [540, 599], 3: [500, 539], 2: [400, 499], 1: [300, 399],
+        };
+        const [gpLo, gpHi] = gemPRanges[starRank] ?? [500, 539];
+        overall = Math.max(gpLo, Math.min(gpHi, overall));
+      } else if (isBust) {
+        const bustPRanges: Record<number, [number, number]> = {
+          5: [300, 399], 4: [200, 299], 3: [150, 199],
+        };
+        const [bpLo, bpHi] = bustPRanges[starRank] ?? [200, 299];
+        overall = Math.max(bpLo, Math.min(bpHi, overall));
+      }
     }
     // ─── Wizard OVR hard clamp (post all star/archetype/gate adjustments) ────
     // Exempt: generational gems, generational busts, blue chips (fixed OVR bands).
