@@ -915,6 +915,7 @@ export const recruitTopSchools = pgTable("recruit_top_schools", {
   rank: integer("rank"), // Position in top schools list (1-8 during Open, 1-5 during Top 5, 1-3 during Top 3)
   isActive: boolean("is_active").notNull().default(true), // Whether still in consideration
   accumulatedInterest: integer("accumulated_interest").notNull().default(0), // Total interest accumulated from recruiting actions
+  previousInterestLevel: integer("previous_interest_level"), // Snapshot of combined interest before last week advance (for gain highlight)
 }, (t) => [
   index("idx_recruit_top_schools_recruit_team").on(t.recruitId, t.teamId),
   index("idx_recruit_top_schools_team_id").on(t.teamId),

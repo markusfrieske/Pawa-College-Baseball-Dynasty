@@ -1282,11 +1282,23 @@ export default function RecruitProfilePage() {
                           size="sm"
                         />
                         <span className="text-xs flex-1">{school.abbreviation}</span>
-                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gold/70 rounded-full"
-                            style={{ width: `${Math.min(100, Math.max(5, school.interestLevel + ((school.teamId.charCodeAt(0) % 11) - 5)))}%` }}
-                          />
+                        <div className="relative flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                          {(() => {
+                            const current = Math.min(100, Math.max(5, school.interestLevel + ((school.teamId.charCodeAt(0) % 11) - 5)));
+                            const prev = school.previousInterestLevel != null
+                              ? Math.min(100, Math.max(5, school.previousInterestLevel + ((school.teamId.charCodeAt(0) % 11) - 5)))
+                              : null;
+                            const base = prev !== null ? Math.min(prev, current) : current;
+                            const gain = prev !== null ? Math.max(0, current - base) : 0;
+                            return (
+                              <>
+                                <div className="absolute inset-y-0 left-0 rounded-full bg-gold/60" style={{ width: `${base}%` }} />
+                                {gain > 0 && (
+                                  <div className="absolute inset-y-0 rounded-full bg-gold" style={{ left: `${base}%`, width: `${gain}%` }} />
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                         <span className={`text-xs font-bold w-16 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                       </div>

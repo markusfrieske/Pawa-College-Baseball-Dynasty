@@ -1462,12 +1462,14 @@ export async function registerRoutes(
           .slice(0, topSchoolsCount)
           .map(ts => {
             const team = teamMap.get(ts.teamId)!;
+            const combined = Math.min(100, ts.interestLevel + ts.accumulatedInterest);
             return {
               teamId: ts.teamId,
               teamName: team.name,
               abbreviation: team.abbreviation,
               primaryColor: team.primaryColor,
-              interestLevel: ts.interestLevel + ts.accumulatedInterest,
+              interestLevel: combined,
+              previousInterestLevel: ts.previousInterestLevel ?? null,
             };
           });
         
@@ -9309,6 +9311,18 @@ export async function registerRoutes(
         await storage.updateLeague(leagueId, { prevPowerRankings: snapshot } as any);
       } catch (snapErr) {
         console.error("[power-rankings-snapshot] Failed to snapshot rankings:", snapErr);
+      }
+
+      // ============ TOP SCHOOLS INTEREST SNAPSHOT ============
+      // Snapshot current combined interest (interestLevel + accumulatedInterest) into previousInterestLevel
+      // before any CPU or deadline-forced recruiting runs this week, so the gain tip is accurate.
+      const recruitingActivePhases = ["recruiting", "preseason", "spring_training", "regular_season"];
+      if (recruitingActivePhases.includes(league.currentPhase)) {
+        try {
+          await storage.snapshotTopSchoolsInterestForLeague(leagueId);
+        } catch (snapErr) {
+          console.error("[top-schools-snapshot] Failed to snapshot interest:", snapErr);
+        }
       }
 
       // ============ DEADLINE AUTO-READY ============
@@ -20081,12 +20095,14 @@ export async function registerRoutes(
         .slice(0, topSchoolsCount)
         .map(ts => {
           const team = teamMap.get(ts.teamId)!;
+          const combined = Math.min(100, ts.interestLevel + ts.accumulatedInterest);
           return {
             teamId: ts.teamId,
             teamName: team.name,
             abbreviation: team.abbreviation,
             primaryColor: team.primaryColor,
-            interestLevel: ts.interestLevel + ts.accumulatedInterest,
+            interestLevel: combined,
+            previousInterestLevel: ts.previousInterestLevel ?? null,
           };
         });
       

@@ -3806,14 +3806,30 @@ function RecruitRow({
                       size="sm"
                     />
                     <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
-                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full transition-all"
-                        style={{ 
-                          width: `${Math.min(100, Math.round(school.interestLevel / 20) * 20)}%`,
-                          backgroundColor: isUserSchool ? school.primaryColor : school.primaryColor
-                        }}
-                      />
+                    <div className="relative flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      {(() => {
+                        const current = Math.min(100, Math.round(school.interestLevel / 20) * 20);
+                        const prev = school.previousInterestLevel != null
+                          ? Math.min(100, Math.round(school.previousInterestLevel / 20) * 20)
+                          : null;
+                        const base = prev !== null ? Math.min(prev, current) : current;
+                        const gain = prev !== null ? Math.max(0, current - base) : 0;
+                        const color = school.primaryColor;
+                        return (
+                          <>
+                            <div
+                              className="absolute inset-y-0 left-0 rounded-full transition-all"
+                              style={{ width: `${base}%`, backgroundColor: color, opacity: 0.65 }}
+                            />
+                            {gain > 0 && (
+                              <div
+                                className="absolute inset-y-0 rounded-full transition-all"
+                                style={{ left: `${base}%`, width: `${gain}%`, backgroundColor: color, filter: "brightness(1.4)" }}
+                              />
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     {schoolTrend && schoolTrend.trend !== "flat" && (
                       <div className={`flex items-center gap-0.5 text-[10px] min-w-[40px] ${schoolTrend.trend === "up" ? "text-green-400" : "text-red-400"}`}>

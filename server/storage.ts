@@ -158,6 +158,7 @@ export interface IStorage {
   createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools>;
   batchCreateRecruitTopSchools(topSchools: InsertRecruitTopSchools[]): Promise<void>;
   updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined>;
+  snapshotTopSchoolsInterestForLeague(leagueId: string): Promise<void>;
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
   bulkUpdatePlayerRest(updates: Array<{id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string}>): Promise<void>;
@@ -855,6 +856,15 @@ export class DatabaseStorage implements IStorage {
   async updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined> {
     const [updated] = await db.update(recruitTopSchools).set(data).where(eq(recruitTopSchools.id, id)).returning();
     return updated || undefined;
+  }
+
+  async snapshotTopSchoolsInterestForLeague(leagueId: string): Promise<void> {
+    await db.execute(
+      sql`UPDATE recruit_top_schools rts
+          SET previous_interest_level = LEAST(100, rts.interest_level + rts.accumulated_interest)
+          FROM recruits r
+          WHERE rts.recruit_id = r.id AND r.league_id = ${leagueId}`
+    );
   }
 
   async getPlayer(id: string): Promise<Player | undefined> {
