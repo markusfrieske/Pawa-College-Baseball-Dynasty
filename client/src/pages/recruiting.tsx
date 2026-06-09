@@ -84,7 +84,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team, LastSeasonStats } from "@shared/schema";
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
-import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD } from "@shared/recruitThresholds";
+import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD, computeRevealedPitchFields } from "@shared/recruitThresholds";
 import { TrajectoryIcon } from "@/components/ui/trajectory-icon";
 import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
@@ -3507,11 +3507,7 @@ function RecruitRow({
               ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
               ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
             ] as const;
-            const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
-            const scoutOrder = (recruit.scoutingOrder as string[]) || [];
-            const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
-            const pitchRevealCount = Math.ceil((scoutPct / 100) * effectivePitchOrder.length);
-            const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
+            const revealedPitchFields = computeRevealedPitchFields(recruit.scoutingOrder as string[], scoutPct);
             const active = pitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
               return v != null && v > 0 && (isFullyRevealed || revealedPitchFields.has(k));
@@ -4197,11 +4193,7 @@ function RecruitDetailModal({
               ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
               ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
             ] as const;
-            const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
-            const scoutOrder = (recruit.scoutingOrder as string[]) || [];
-            const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
-            const pitchRevealCount = Math.ceil((scoutPct / 100) * effectivePitchOrder.length);
-            const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
+            const revealedPitchFields = computeRevealedPitchFields(recruit.scoutingOrder as string[], scoutPct);
             const active = modalPitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
               return v != null && v > 0 && (isFullyRevealed || revealedPitchFields.has(k));
@@ -4804,11 +4796,7 @@ function RecruitDetailModal({
               ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
               ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
             ] as const;
-            const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
-            const scoutOrder = (recruit.scoutingOrder as string[]) || [];
-            const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
-            const pitchRevealCount = Math.ceil((scoutPct / 100) * effectivePitchOrder.length);
-            const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
+            const revealedPitchFields = computeRevealedPitchFields(recruit.scoutingOrder as string[], scoutPct);
             const active = modalPitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
               return v != null && v > 0 && (isFullyRevealed || revealedPitchFields.has(k));
