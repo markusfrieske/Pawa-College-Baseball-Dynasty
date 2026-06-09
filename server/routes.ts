@@ -10346,10 +10346,13 @@ export async function registerRoutes(
         return res.json({ ...updatedLeague, userTeamGame });
       }
 
-      const newPhase = league.currentPhase === "preseason" && nextWeek >= 2 ? "regular_season" : league.currentPhase;
-      if (newPhase === "regular_season" && league.currentPhase === "preseason") {
+      const newPhase =
+        (league.currentPhase === "preseason" || league.currentPhase === "spring_training") && nextWeek >= 2
+          ? "regular_season"
+          : league.currentPhase;
+      if (newPhase === "regular_season" && (league.currentPhase === "preseason" || league.currentPhase === "spring_training")) {
         await storage.clearProgressionDeltasForLeague(leagueId);
-        console.log(`[Progression] Cleared progression deltas for league ${leagueId} (preseason -> regular_season)`);
+        console.log(`[Progression] Cleared progression deltas for league ${leagueId} (${league.currentPhase} -> regular_season)`);
         try {
           await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season underway — Season ${league.currentSeason} begins!`, season: league.currentSeason, week: nextWeek });
         } catch (e) { console.error("League event error:", e); }
