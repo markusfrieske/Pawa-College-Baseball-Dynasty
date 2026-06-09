@@ -3264,7 +3264,7 @@ function RecruitRow({
                       data-testid={`button-target-${recruit.id}`}
                     >
                       <Target className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">Target</span>
+                      <span className="text-[9px]">{recruit.interest?.isTargeted ? "Targeted" : "Target"}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{recruit.interest?.isTargeted ? "Untarget" : "Target"}</TooltipContent>
