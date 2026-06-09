@@ -3794,9 +3794,17 @@ function RecruitRow({
           </button>
           {showTopSchools && (
             <div className="space-y-1.5">
-              {recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => {
+              {(() => {
+                const visibleSchools = recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8);
+                const gains = visibleSchools.map(s =>
+                  s.previousInterestLevel != null ? Math.round(s.interestLevel - s.previousInterestLevel) : 0
+                );
+                return visibleSchools.map((school, i) => {
                 const isUserSchool = userTeamId && school.teamId === userTeamId;
                 const schoolTrend = isUserSchool ? trend : undefined;
+                const weekGain = gains[i];
+                const isTopGainer = i === 0 && weekGain > 0;
+                const showGainBadge = weekGain >= 5;
                 return (
                   <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/5 -mx-1 px-1 rounded" : ""}`}>
                     <TeamBadge
@@ -3837,10 +3845,22 @@ function RecruitRow({
                         <span>{qualifyTrend(schoolTrend.recentGain).split(" ").pop()}</span>
                       </div>
                     )}
+                    {showGainBadge && (
+                      <span
+                        className={`text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0 ${
+                          isTopGainer
+                            ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
+                            : "bg-green-900/30 text-green-400 border border-green-700/30"
+                        }`}
+                      >
+                        +{weekGain}%
+                      </span>
+                    )}
                     <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                   </div>
                 );
-              })}
+              });
+              })()}
             </div>
           )}
         </div>
