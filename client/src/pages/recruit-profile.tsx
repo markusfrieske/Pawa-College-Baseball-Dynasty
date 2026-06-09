@@ -70,7 +70,7 @@ function getInterestChangeLabel(change: number): { label: string; color: string 
   return { label: "Slight Interest", color: "text-blue-400" };
 }
 import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@shared/positions";
-import { getAbilityByName } from "@shared/abilities";
+import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
 import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD } from "@shared/recruitThresholds";
@@ -505,6 +505,52 @@ export default function RecruitProfilePage() {
   const signingDayLockedAbilityCount = (!isFullyRevealed && sdLockedFields.length > 0)
     ? Math.floor(abilities.length / 2) : 0;
   const effectiveRevealedAbilitiesCount = Math.min(revealedAbilitiesCount, abilities.length - signingDayLockedAbilityCount);
+
+  // Gold ability names surfaced inline in Common Abilities — suppressed from Special Abilities list.
+  // A gold is only suppressed when its linked common-ability row is actually revealed (fog-of-war safe).
+  const _recruitAbilitySet = new Set(abilities);
+  const _isPitcherForGolds = checkIsPitcher(recruit.position);
+  // Replicate the reveal logic from RecruitCommonAbilitiesSection to check row visibility.
+  const _scoutingOrder = (recruit.scoutingOrder as string[]) || [];
+  const _defaultFielderCommonOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
+  const _defaultPitcherCommonOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const _effectiveCommonOrder = _scoutingOrder.length > 0 ? _scoutingOrder : (_isPitcherForGolds ? _defaultPitcherCommonOrder : _defaultFielderCommonOrder);
+  const _commonRevealCount = Math.ceil((scoutPct / 100) * _effectiveCommonOrder.length);
+  const _revealedCommonFields = new Set(_effectiveCommonOrder.slice(0, _commonRevealCount));
+  const _isCommonFieldShown = (fieldName: string) => {
+    if (!isFullyRevealed && sdLockedFields.includes(fieldName)) return false;
+    return isFullyRevealed || _revealedCommonFields.has(fieldName);
+  };
+  const commonLinkedGoldShown = new Set<string>();
+  if (_isPitcherForGolds) {
+    for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+      if (!_isCommonFieldShown(linkedKey)) continue;
+      const attrVal = (recruit as any)[linkedKey] as number | null | undefined;
+      if (_recruitAbilitySet.has(goldName) || (attrVal ?? 0) >= 90) {
+        commonLinkedGoldShown.add(goldName);
+      }
+    }
+  } else {
+    const _keyToGoldList: Record<string, string[]> = {};
+    for (const [gold, key] of Object.entries(S_GOLD_COMMON_KEY)) {
+      if (!_keyToGoldList[key]) _keyToGoldList[key] = [];
+      _keyToGoldList[key].push(gold);
+    }
+    for (const [key, goldList] of Object.entries(_keyToGoldList)) {
+      if (!_isCommonFieldShown(key)) continue;
+      const fromAbilities = goldList.find(g => _recruitAbilitySet.has(g));
+      if (fromAbilities) {
+        commonLinkedGoldShown.add(fromAbilities);
+      } else {
+        const attrVal = (recruit as any)[key] as number | null | undefined;
+        if ((attrVal ?? 0) >= 90) {
+          commonLinkedGoldShown.add(goldList[0]);
+        }
+      }
+    }
+  }
+  // Pre-compute filtered abilities list for Special Abilities section.
+  const displayedAbilities = abilities.filter(name => !commonLinkedGoldShown.has(name));
 
   const actionIcons: Record<string, any> = {
     scout: <Eye className="w-3 h-3" />,
@@ -992,18 +1038,19 @@ export default function RecruitProfilePage() {
             {/* Abilities Section */}
             <RetroCard>
               <RetroCardHeader>
-                Special Abilities ({isFullyRevealed ? abilities.length : `${effectiveRevealedAbilitiesCount}/${abilities.length || "?"}`})
+                Special Abilities ({isFullyRevealed ? displayedAbilities.length : `${Math.min(effectiveRevealedAbilitiesCount, displayedAbilities.length)}/${displayedAbilities.length || "?"}`})
               </RetroCardHeader>
               <RetroCardContent>
-                {abilities.length > 0 ? (
+                {displayedAbilities.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {abilities.map((abilityName, idx) => {
+                    {displayedAbilities.map((abilityName) => {
                       const ability = getAbilityByName(abilityName);
-                      const isAbilityRevealed = isFullyRevealed || effectiveRevealedAbilitiesCount > idx;
+                      const originalIdx = abilities.indexOf(abilityName);
+                      const isAbilityRevealed = isFullyRevealed || effectiveRevealedAbilitiesCount > originalIdx;
                       
                       if (!isAbilityRevealed) {
                         return (
-                          <Tooltip key={idx}>
+                          <Tooltip key={originalIdx}>
                             <TooltipTrigger asChild>
                               <Badge variant="outline" className="text-xs border-yellow-600/50 text-yellow-500/60 cursor-default flex items-center gap-1 px-1.5">
                                 <Lock className="w-2.5 h-2.5" />
@@ -1021,7 +1068,7 @@ export default function RecruitProfilePage() {
                       };
                       
                       return (
-                        <Tooltip key={idx}>
+                        <Tooltip key={originalIdx}>
                           <TooltipTrigger>
                             <Badge 
                               variant="outline"
@@ -2127,8 +2174,57 @@ function RecruitCommonAbilitiesSection({
   const shouldRevealField = (fieldName: string) => {
     return isFullyRevealed || revealedFields.has(fieldName);
   };
+
+  // Gold badge helpers — mirror logic from player-profile-card.tsx
+  const recruitAbilitySet = new Set(recruit.abilities as string[] || []);
+
+  // Fielder: multi-map common-ability key → all gold ability names
+  const COMMON_KEY_TO_GOLD_LIST: Record<string, string[]> = {};
+  for (const [gold, key] of Object.entries(S_GOLD_COMMON_KEY)) {
+    if (!COMMON_KEY_TO_GOLD_LIST[key]) COMMON_KEY_TO_GOLD_LIST[key] = [];
+    COMMON_KEY_TO_GOLD_LIST[key].push(gold);
+  }
+
+  // Priority 1: recruit already has a mapped gold ability → show it.
+  // Priority 2: attr is S-grade (≥90) → show the first mapped gold as grade indicator.
+  const sGoldBadge = (attrVal: number | null | undefined, commonKey: string): string | undefined => {
+    const goldList = COMMON_KEY_TO_GOLD_LIST[commonKey];
+    if (!goldList) return undefined;
+    const fromAbilities = goldList.find(g => recruitAbilitySet.has(g));
+    if (fromAbilities) return fromAbilities;
+    if ((attrVal ?? 0) >= 90) return goldList[0];
+    return undefined;
+  };
+
+  // If recruit has the gold ability, override display value to 90 so the chip renders as "S".
+  const sGoldDisplayValue = (attrVal: number | null | undefined, commonKey: string): number | null | undefined => {
+    const goldList = COMMON_KEY_TO_GOLD_LIST[commonKey];
+    if (!goldList) return attrVal;
+    if (goldList.some(g => recruitAbilitySet.has(g))) return 90;
+    return attrVal;
+  };
+
+  // Pitcher variants
+  const sPitcherGoldBadge = (attrKey: string, attrVal?: number | null): string | undefined => {
+    for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+      if (linkedKey === attrKey && recruitAbilitySet.has(goldName)) return goldName;
+    }
+    if ((attrVal ?? 0) >= 90) {
+      for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+        if (linkedKey === attrKey) return goldName;
+      }
+    }
+    return undefined;
+  };
+
+  const sPitcherGoldDisplayValue = (attrVal: number | null | undefined, attrKey: string): number | null | undefined => {
+    for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+      if (linkedKey === attrKey && recruitAbilitySet.has(goldName)) return 90;
+    }
+    return attrVal;
+  };
   
-  const renderAbility = (label: string, fieldName: string, value: number | null | undefined) => {
+  const renderAbility = (label: string, fieldName: string, value: number | null | undefined, goldAbilityName?: string) => {
     const isLocked = !isFullyRevealed && lockedSet.has(fieldName);
     // Treat null as unrevealed — server already nulls signing-day-locked fields
     const isRevealed = !isLocked && shouldRevealField(fieldName) && value !== null && value !== undefined;
@@ -2138,7 +2234,18 @@ function RecruitCommonAbilitiesSection({
       <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
         <span className="text-sm text-muted-foreground">{label}</span>
         {isRevealed ? (
-          <LetterGrade value={displayValue!} size="sm" isCommonAbility={true} />
+          <div className="flex items-center gap-1">
+            {goldAbilityName && (
+              <span
+                className="text-[8px] font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
+                style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
+                title={goldAbilityName}
+              >
+                {goldAbilityName}
+              </span>
+            )}
+            <LetterGrade value={displayValue!} size="sm" isCommonAbility={true} />
+          </div>
         ) : (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -2155,24 +2262,24 @@ function RecruitCommonAbilitiesSection({
     <div className="grid grid-cols-2 gap-2">
       {isPitcher ? (
         <>
-          {renderAbility("W/RISP", "wRISP", recruit.wRISP)}
-          {renderAbility("vs Lefty", "vsLefty", recruit.vsLefty)}
-          {renderAbility("Poise", "poise", recruit.poise)}
-          {renderAbility("Grit", "grit", recruit.grit)}
-          {renderAbility("Heater", "heater", recruit.heater)}
-          {renderAbility("Agile", "agile", recruit.agile)}
-          {renderAbility("Recovery", "recovery", recruit.recovery)}
+          {renderAbility("W/RISP", "wRISP", sPitcherGoldDisplayValue(recruit.wRISP, "wRISP"), sPitcherGoldBadge("wRISP", recruit.wRISP))}
+          {renderAbility("vs Lefty", "vsLefty", sPitcherGoldDisplayValue(recruit.vsLefty, "vsLefty"), sPitcherGoldBadge("vsLefty", recruit.vsLefty))}
+          {renderAbility("Poise", "poise", sPitcherGoldDisplayValue(recruit.poise, "poise"), sPitcherGoldBadge("poise", recruit.poise))}
+          {renderAbility("Grit", "grit", sPitcherGoldDisplayValue(recruit.grit, "grit"), sPitcherGoldBadge("grit", recruit.grit))}
+          {renderAbility("Heater", "heater", sPitcherGoldDisplayValue(recruit.heater, "heater"), sPitcherGoldBadge("heater", recruit.heater))}
+          {renderAbility("Agile", "agile", sPitcherGoldDisplayValue(recruit.agile, "agile"), sPitcherGoldBadge("agile", recruit.agile))}
+          {renderAbility("Recovery", "recovery", sPitcherGoldDisplayValue(recruit.recovery, "recovery"), sPitcherGoldBadge("recovery", recruit.recovery))}
         </>
       ) : (
         <>
-          {renderAbility("Clutch", "clutch", recruit.clutch)}
-          {renderAbility("vs LHP", "vsLHP", recruit.vsLHP)}
-          {renderAbility("Grit", "grit", recruit.grit)}
-          {renderAbility("Stealing", "stealing", recruit.stealing)}
-          {renderAbility("Running", "running", recruit.running)}
-          {renderAbility("Throwing", "throwing", recruit.throwing)}
+          {renderAbility("Clutch", "clutch", sGoldDisplayValue(recruit.clutch, "clutch"), sGoldBadge(recruit.clutch, "clutch"))}
+          {renderAbility("vs LHP", "vsLHP", sGoldDisplayValue(recruit.vsLHP, "vsLHP"), sGoldBadge(recruit.vsLHP, "vsLHP"))}
+          {renderAbility("Grit", "grit", sGoldDisplayValue(recruit.grit, "grit"), sGoldBadge(recruit.grit, "grit"))}
+          {renderAbility("Stealing", "stealing", sGoldDisplayValue(recruit.stealing, "stealing"), sGoldBadge(recruit.stealing, "stealing"))}
+          {renderAbility("Running", "running", sGoldDisplayValue(recruit.running, "running"), sGoldBadge(recruit.running, "running"))}
+          {renderAbility("Throwing", "throwing", sGoldDisplayValue(recruit.throwing, "throwing"), sGoldBadge(recruit.throwing, "throwing"))}
           {renderAbility("Recovery", "recovery", recruit.recovery)}
-          {isCatcher && renderAbility("Catcher", "catcherAbility", recruit.catcherAbility)}
+          {isCatcher && renderAbility("Catcher", "catcherAbility", sGoldDisplayValue(recruit.catcherAbility, "catcherAbility"), sGoldBadge(recruit.catcherAbility, "catcherAbility"))}
         </>
       )}
     </div>
