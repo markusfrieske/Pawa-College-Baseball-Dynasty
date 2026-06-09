@@ -371,6 +371,21 @@ export function getAbilityByName(name: string): Ability | undefined {
   return ALL_ABILITIES.find(a => a.name === name);
 }
 
+/**
+ * Returns the OVR pts contribution for a named pitcher ability.
+ * Uses the same lookup as calculateOVR's specialTotal for pitchers.
+ * Useful for sorting blue pool by value when replacing capped gold abilities.
+ */
+export function getPitcherAbilityOvrPts(name: string): number {
+  if (PITCHER_NAMED_PTS[name] !== undefined) return PITCHER_NAMED_PTS[name];
+  const ability = getAbilityByName(name);
+  if (!ability) return 0;
+  if (ability.tier === "gold") return P_GOLD_DEFAULT;
+  if (ability.tier === "blue") return P_BLUE_DEFAULT;
+  if (ability.tier === "red")  return P_RED_DEFAULT;
+  return 0;
+}
+
 // ---------------------------------------------------------------------------
 // Hitter OVR: lookup-table system with linear interpolation
 // ---------------------------------------------------------------------------

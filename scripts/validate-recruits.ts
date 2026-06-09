@@ -15,7 +15,7 @@
  */
 
 import { generateRecruitClass } from "../server/recruit-generator";
-import { ALL_ABILITIES, getAbilitiesForPosition } from "../shared/abilities";
+import { ALL_ABILITIES, getAbilitiesForPosition, getAbilityByName } from "../shared/abilities";
 
 const SAMPLE_CLASSES = 10;
 const CLASS_SIZE = 75;
@@ -43,7 +43,7 @@ const NORMAL_OVR_BANDS: Record<number, [number, number]> = {
 };
 
 interface Violation {
-  kind: "position-mismatch" | "unknown-ability" | "duplicate-ability" | "ovr-band";
+  kind: "position-mismatch" | "unknown-ability" | "duplicate-ability" | "ovr-band" | "gold-cap";
   recruitName: string;
   position: string;
   ability: string;
@@ -55,6 +55,21 @@ let totalRecruits = 0;
 
 for (let c = 0; c < SAMPLE_CLASSES; c++) {
   const recruits = generateRecruitClass(CLASS_SIZE);
+
+  // ── Class-wide gold cap assertion (max 10 gold abilities per class) ────────
+  const classGoldTotal = recruits.reduce((sum, r) => {
+    const abs: string[] = (r as any).abilities ?? [];
+    return sum + abs.filter(n => getAbilityByName(n)?.tier === "gold").length;
+  }, 0);
+  if (classGoldTotal > 10) {
+    violations.push({
+      kind: "gold-cap",
+      recruitName: `Class ${c + 1}`,
+      position: "",
+      ability: "",
+      detail: `${classGoldTotal} gold abilities in class (max 10)`,
+    });
+  }
 
   for (const recruit of recruits) {
     totalRecruits++;
@@ -129,6 +144,7 @@ const mismatchViolations = violations.filter(v => v.kind === "position-mismatch"
 const unknownViolations = violations.filter(v => v.kind === "unknown-ability");
 const duplicateViolations = violations.filter(v => v.kind === "duplicate-ability");
 const ovrBandViolations = violations.filter(v => v.kind === "ovr-band");
+const goldCapViolations = violations.filter(v => v.kind === "gold-cap");
 
 // Laser Beam non-outfield violations (subset of mismatch — explicit call-out)
 const laserBeamViolations = mismatchViolations.filter(
@@ -139,9 +155,16 @@ console.log(`Scanned ${totalRecruits} generated recruits (${SAMPLE_CLASSES} clas
 
 if (violations.length === 0) {
   console.log(
-    "✓ All generated recruit abilities are valid, position-appropriate, and deduplicated."
+    "✓ All generated recruit abilities are valid, position-appropriate, deduplicated, and gold-capped (≤10/class)."
   );
   process.exit(0);
+}
+
+if (goldCapViolations.length > 0) {
+  console.error(`\n✗ Found ${goldCapViolations.length} class(es) exceeding the 10 gold ability cap:`);
+  for (const v of goldCapViolations) {
+    console.error(`  ${v.recruitName}: ${v.detail}`);
+  }
 }
 
 if (ovrBandViolations.length > 0) {

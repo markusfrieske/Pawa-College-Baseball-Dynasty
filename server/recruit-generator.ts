@@ -1,4 +1,4 @@
-import { getRandomAbilities, getAbilitiesForPosition, getAbilityByName, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate, pitcherCommonGrade } from "@shared/abilities";
+import { getRandomAbilities, getAbilitiesForPosition, getAbilityByName, getPitcherAbilityOvrPts, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate, pitcherCommonGrade } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
@@ -819,6 +819,10 @@ export function generateRecruitClass(
     return "P";
   };
 
+  // Tracks total gold special abilities assigned so far in this class.
+  // Used to enforce the 10-gold-per-class hard cap during generation (no exemptions).
+  let classGoldCount = 0;
+
   for (let i = 0; i < count; i++) {
     const isPitcher = Math.random() < pitcherRatio;
     const position = isPitcher ? pickPitcherPosition() : pickFieldPosition();
@@ -1155,6 +1159,22 @@ export function generateRecruitClass(
           errorResistance = Math.max(1, Math.min(99, errorResistance + adjust));
         }
       }
+      // Post-retry safety clamp: the retry uses step≥1 adjustments, which can leave OVR
+      // 1–4 pts above retryHi due to integer-boundary oscillation near the band edge
+      // (e.g. attrs oscillate between OVR=538 and OVR=543 when step=1 swings ≈5 pts).
+      // Nudge attrs down up to 5 steps to bring OVR back within band.
+      for (let ci = 0; ci < 5; ci++) {
+        const clampOvr = calculateOVR({
+          position, hitForAvg, power, speed, arm, fielding, errorResistance,
+          velocity, control, stamina, stuff, ...trialCommon, abilities,
+        });
+        if (clampOvr <= retryHi) break;
+        hitForAvg       = Math.max(1, hitForAvg       - 1);
+        power           = Math.max(1, power           - 1);
+        arm             = Math.max(1, arm             - 1);
+        fielding        = Math.max(1, fielding        - 1);
+        errorResistance = Math.max(1, errorResistance - 1);
+      }
     }
 
     // ─── Wizard OVR correction retry loop — pitchers only ────────────────────
@@ -1474,13 +1494,169 @@ export function generateRecruitClass(
     };
     let overall = calculateOVR(recruitOvrData);
 
+    // ─── Class-wide gold cap: enforce in-generation (max 10 gold per class) ──────
+    // No exemptions — gen gems, blue chips, and gems are all subject.
+    // Applied BEFORE archetype clamps so that the recalculated OVR drives the clamp.
+    {
+      let recruitGold = abilities.filter(n => getAbilityByName(n)?.tier === "gold");
+      const excess = (classGoldCount + recruitGold.length) - 10;
+      if (excess > 0) {
+        const toReplace = [...recruitGold].sort(() => Math.random() - 0.5).slice(0, excess);
+        for (const goldName of toReplace) {
+          const bluePool = getAbilitiesForPosition(position)
+            .filter(a => a.tier === "blue"
+              && (pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax)
+              && !abilities.includes(a.name));
+          if (bluePool.length > 0) {
+            // For gem/bust/blueChip pitchers: pick the highest-OVR-value blue to minimize the
+            // OVR drop from the gold→blue swap. Named gold abilities like "Dominant Force"
+            // contribute up to 52 pts; the best blue (Sharpness = 13.92 pts) maximizes recovery.
+            let replacement: typeof bluePool[0];
+            if (isPitcher && (isGem || isBust || isBlueChip)) {
+              replacement = bluePool.reduce((best, a) =>
+                getPitcherAbilityOvrPts(a.name) > getPitcherAbilityOvrPts(best.name) ? a : best
+              );
+            } else {
+              replacement = bluePool[Math.floor(Math.random() * bluePool.length)];
+            }
+            abilities = abilities.map(n => n === goldName ? replacement.name : n);
+          } else {
+            abilities = abilities.filter(n => n !== goldName);
+          }
+        }
+        // Recalculate OVR with updated abilities so archetype clamps use the correct value
+        overall = calculateOVR({ ...recruitOvrData, abilities });
+        // Post-cap re-retry for gem/bust/blueChip: gold→blue swap can push OVR outside the
+        // retry-targeted band. Two-phase re-convergence:
+        //   Phase 1: adjust attrs (velocity+control for pitchers; hitter attrs for hitters) ≤20 iters.
+        //   Phase 2 (pitchers only): if velocity/control hit ceiling and OVR still below band,
+        //     upgrade common ability grades (heater→A, wRISP→A, vsLefty→A). Named gold abilities
+        //     like "Dominant Force" contribute up to 52 pts — replacing with blue (-45 pts net) can
+        //     exceed what velocity/control maxing alone (~31 pts) can recover. Common grade upgrades
+        //     fill the gap (heater A=27.84 pts, wRISP A=27.84 pts).
+        //     NOTE: stuff does NOT contribute to pitcher OVR when pitchMix is provided (pitch levels
+        //     are fixed); only velocity and control drive velRaw/ctrlRaw in the coreTotal.
+        if (isGem || isBust || isBlueChip) {
+          const [rrLo, rrHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+          if (isPitcher) {
+            // Full re-retry for gem/bust/blueChip pitchers after gold→blue swap ─────────
+            // Named gold abilities (Dominant Force=52.20 pts, Miracle Sharpness=48.72 pts)
+            // can drop OVR by 35–50 pts when replaced by best-value blue (~14 pts). The
+            // simple attr/grade bumps in Phase 1+2 are not always sufficient because:
+            //   (a) velocity+control may already be near max from the initial retry, and
+            //   (b) all common grades may already be at A from the initial retry.
+            // Re-running the full retry with the updated (no-gold) ability set also
+            // recomputes pitchMix — pitch levels are capped by velocity, so higher velocity
+            // from the new retry produces higher levelPts and diversityPts, providing
+            // the extra headroom needed to close the gap.
+            pitchMix = generateArchetypePitchMix(
+              assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
+              qualityTierFromOvr(rrLo),
+            );
+            const pcGradeMidpoints: Record<string, number> = {
+              S: 94, A: 84, B: 74, C: 64, D: 54, E: 44, F: 34, G: 20,
+            };
+            const bandCenter2 = Math.round((rrLo + rrHi) / 2);
+            let pcCommonLevel = bandCenter2 >= 500 ? 84
+                              : bandCenter2 >= 350 ? 64
+                              : bandCenter2 >= 250 ? 44 : 20;
+            const applyPcLevel = (lvl: number) => {
+              const g = pitcherCommonGrade(lvl);
+              const m = pcGradeMidpoints[g];
+              commonAbilities.heater = commonAbilities.wRISP = commonAbilities.vsLefty =
+              commonAbilities.agile  = commonAbilities.recovery = commonAbilities.poise = m;
+            };
+            for (let rr = 0; rr <= 40; rr++) {
+              applyPcLevel(pcCommonLevel);
+              overall = calculateOVR({
+                position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                velocity, control, stamina, stuff,
+                ...commonAbilities, abilities, ...pitchMix, trajectory,
+              });
+              if (overall >= rrLo && overall <= rrHi) break;
+              if (rr === 40) break;
+              const dist = Math.max(Math.max(0, rrLo - overall), Math.max(0, overall - rrHi));
+              const step = dist > 100 ? 5 : dist > 40 ? 3 : dist > 10 ? 2 : 1;
+              const adj2 = overall < rrLo ? step : -step;
+              const prevVel2 = velocity;
+              const prevCtrl2 = control;
+              velocity = Math.max(1, Math.min(99, velocity + adj2));
+              control  = Math.max(1, Math.min(99, control  + adj2));
+              if (velocity === prevVel2 || control === prevCtrl2) {
+                pcCommonLevel = Math.max(10, Math.min(89, pcCommonLevel + adj2));
+              }
+            }
+            // Pitch mix rerolls — some archetypes have more diversity variance than others
+            applyPcLevel(pcCommonLevel);
+            overall = calculateOVR({
+              position, hitForAvg, power, speed, arm, fielding, errorResistance,
+              velocity, control, stamina, stuff,
+              ...commonAbilities, abilities, ...pitchMix, trajectory,
+            });
+            const pcArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
+            const pcQuality = qualityTierFromOvr(rrLo);
+            const pcBandMid = (rrLo + rrHi) / 2;
+            for (let pm = 0; pm < 15 && (overall < rrLo || overall > rrHi); pm++) {
+              const altMix = generateArchetypePitchMix(pcArch, pcQuality);
+              const altOvr = calculateOVR({
+                position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                velocity, control, stamina, stuff,
+                ...commonAbilities, abilities, ...altMix, trajectory,
+              });
+              if (Math.abs(pcBandMid - altOvr) < Math.abs(pcBandMid - overall)) {
+                pitchMix = altMix;
+                overall = altOvr;
+              }
+            }
+            // Ability injection fallback: if pitch mix rerolls still leave OVR below target,
+            // add blue abilities one at a time (up to 7-ability cap). Each blue = ~6.96 pts.
+            // Mirrors the same fallback in the initial main retry (lines 1400-1419).
+            if (overall < rrLo && (isGem || isBlueChip)) {
+              const staminaOkRr = (a: { staminaMax?: number }) =>
+                pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
+              const bluePoolRr = getAbilitiesForPosition(position)
+                .filter(a => a.tier === "blue" && staminaOkRr(a) && !abilities.includes(a.name));
+              for (const ab of [...bluePoolRr].sort(() => Math.random() - 0.5)) {
+                if (overall >= rrLo || abilities.length >= 7) break;
+                abilities = [...abilities, ab.name];
+                overall = calculateOVR({
+                  position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                  velocity, control, stamina, stuff,
+                  ...commonAbilities, abilities, ...pitchMix, trajectory,
+                });
+              }
+            }
+          } else {
+            // Non-pitcher gem/bust/blueChip: simple attr re-convergence ────────────────
+            for (let rr = 0; rr <= 20; rr++) {
+              overall = calculateOVR({
+                position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                velocity, control, stamina, stuff,
+                ...commonAbilities, abilities, ...pitchMix, trajectory,
+              });
+              if (overall >= rrLo && overall <= rrHi) break;
+              if (rr === 20) break;
+              const dist = Math.max(Math.max(0, rrLo - overall), Math.max(0, overall - rrHi));
+              const adj = overall < rrLo ? (dist > 10 ? 2 : 1) : -(dist > 10 ? 2 : 1);
+              hitForAvg       = Math.max(1, Math.min(99, hitForAvg       + adj));
+              power           = Math.max(1, Math.min(99, power           + adj));
+              arm             = Math.max(1, Math.min(99, arm             + adj));
+              fielding        = Math.max(1, Math.min(99, fielding        + adj));
+              errorResistance = Math.max(1, Math.min(99, errorResistance + adj));
+            }
+          }
+        }
+      }
+      classGoldCount += abilities.filter(n => getAbilityByName(n)?.tier === "gold").length;
+    }
+
     // ─── OVR adjustments — generational extremes and intentional distortions ──
     // Normal hitters: retry loop has already landed calculateOVR() in the correct band. No post-hoc clamp.
     // Normal pitchers: retry loop converges velocity/control to band. No post-hoc clamp.
     // Pitcher gems/busts/blueChips: retry loop (velocity+control+common grade) converges to band. No post-hoc clamp.
     // Generational gems/busts (all positions): fixed attr ranges + intentional extreme clamp retained.
     // late_bloomer and overdraft: intentional OVR distortion applied to non-gem/bust hitters.
-    if (isGenerationalGem && isPitcher) {
+    if (isGenerationalGem) {
       overall = Math.max(600, Math.min(650, overall));
     } else if (isGenerationalBust && isPitcher) {
       overall = Math.max(150, Math.min(199, overall));
@@ -1652,70 +1828,6 @@ export function generateRecruitClass(
         recruitState.state,
       ),
     });
-  }
-
-  // ─── Post-processing: class-wide gold special ability cap ────────────────
-  // Max 10 gold special abilities across the whole class.
-  // S-grade common abilities are not counted (they live in common attr fields, not `abilities`).
-  // Strip gold from lowest-priority recruits first (gems, blue chips, and high-star recruits keep gold).
-  {
-    const goldCap = 10;
-    let totalGold = out.reduce((sum, r) =>
-      sum + (r.abilities ?? []).filter(name => {
-        const ab = getAbilityByName(name);
-        return ab?.tier === "gold";
-      }).length, 0);
-
-    if (totalGold > goldCap) {
-      // Never strip gold from gems, blue chips, or generational gems — they need gold for OVR convergence.
-      // Only strip from regular recruits (sorted by star rating ascending = lowest priority first).
-      const sorted = out
-        .filter(r => !r.isGenerationalGem && !r.isBlueChip && !r.isGem)
-        .sort((a, b) => {
-          const score = (r: typeof a) => (r.starRating ?? 0) * 10 - (r.classRank ?? 0) * 0.01;
-          return score(a) - score(b);
-        });
-      for (const r of sorted) {
-        if (totalGold <= goldCap) break;
-        const goldNames = (r.abilities ?? []).filter(name => {
-          const ab = getAbilityByName(name);
-          return ab?.tier === "gold";
-        });
-        for (const goldName of goldNames) {
-          if (totalGold <= goldCap) break;
-          // Replace gold with a blue ability instead of simply removing it,
-          // so the recruit keeps the same ability count.
-          const rStam = r.stamina ?? 50;
-          const bluePool = getAbilitiesForPosition(r.position ?? "C")
-            .filter(a => a.tier === "blue"
-              && (a.staminaMax == null || rStam <= a.staminaMax)
-              && !(r.abilities ?? []).includes(a.name));
-          if (bluePool.length > 0) {
-            const replacement = bluePool[Math.floor(Math.random() * bluePool.length)];
-            r.abilities = (r.abilities ?? []).map(n => n === goldName ? replacement.name : n);
-          } else {
-            r.abilities = (r.abilities ?? []).filter(n => n !== goldName);
-          }
-          totalGold--;
-          r.overall = calculateOVR({
-            position: r.position ?? "C",
-            hitForAvg: r.hitForAvg ?? 50, power: r.power ?? 50, speed: r.speed ?? 50,
-            arm: r.arm ?? 50, fielding: r.fielding ?? 50, errorResistance: r.errorResistance ?? 50,
-            velocity: r.velocity ?? 50, control: r.control ?? 50, stamina: r.stamina ?? 50, stuff: r.stuff ?? 50,
-            clutch: r.clutch ?? 50, vsLHP: r.vsLHP ?? 50, grit: r.grit ?? 50, stealing: r.stealing ?? 50,
-            running: r.running ?? 50, throwing: r.throwing ?? 50, recovery: r.recovery ?? 50,
-            catcherAbility: r.catcherAbility ?? 50,
-            wRISP: r.wRISP ?? 50, vsLefty: r.vsLefty ?? 50, poise: r.poise ?? 50,
-            heater: r.heater ?? 50, agile: r.agile ?? 50,
-            abilities: r.abilities ?? [],
-            trajectory: r.trajectory ?? 2,
-            pitchFB: r.pitchFB ?? 0, pitch2S: r.pitch2S ?? 0, pitchSL: r.pitchSL ?? 0,
-            pitchCB: r.pitchCB ?? 0, pitchCH: r.pitchCH ?? 0, pitchCT: r.pitchCT ?? 0,
-            pitchSNK: r.pitchSNK ?? 0, pitchSPL: r.pitchSPL ?? 0,
-          });
-        }
-      }
-    }
   }
 
   // ─── Class composition summary log ──────────────────────────────────────
