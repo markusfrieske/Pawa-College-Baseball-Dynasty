@@ -18,7 +18,7 @@ import { generateRecruitClass } from "../server/recruit-generator";
 import { ALL_ABILITIES, getAbilitiesForPosition } from "../shared/abilities";
 
 const SAMPLE_CLASSES = 10;
-const CLASS_SIZE = 80;
+const CLASS_SIZE = 75;
 
 const CANONICAL_NAMES = new Set(ALL_ABILITIES.map(a => a.name));
 const OUTFIELD_POSITIONS = new Set(["OF", "LF", "CF", "RF"]);

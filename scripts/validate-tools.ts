@@ -15,7 +15,7 @@ import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PIT
 import type { GeneratedRecruit } from "../server/recruit-generator";
 
 const SAMPLE_CLASSES = 10;
-const RECRUITS_PER_CLASS = 80;
+const RECRUITS_PER_CLASS = 75;
 const CPU_ROSTER_SAMPLES = 5;   // simulated teams × 25 players each
 const CPU_PLAYERS_PER_TEAM = 25;
 
