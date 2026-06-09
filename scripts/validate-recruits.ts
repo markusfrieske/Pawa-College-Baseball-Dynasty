@@ -39,7 +39,7 @@ const GEN_BUST_OVR_BANDS: Record<number, [number, number]> = {
   3: [150, 199], 4: [150, 199], 5: [150, 199],
 };
 const NORMAL_OVR_BANDS: Record<number, [number, number]> = {
-  1: [150, 299], 2: [150, 399], 3: [200, 499], 4: [300, 539], 5: [400, 539],
+  1: [150, 250], 2: [150, 399], 3: [200, 499], 4: [300, 515], 5: [400, 539],
 };
 
 interface Violation {

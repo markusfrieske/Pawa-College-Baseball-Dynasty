@@ -445,13 +445,13 @@ export function generateRecruitClass(
         default: return 19 + Math.floor(Math.random() * 6);
       }
     }
-    // Hitter normal: starting targetAttrAvg calibrated to produce the correct OVR band via formula + retry
+    // Hitter normal: starting targetAttrAvg calibrated to target band midpoints; retry loop converges
     switch (starRank) {
-      case 5: return 75 + Math.floor(Math.random() * 8);   // targets 500-539
-      case 4: return 68 + Math.floor(Math.random() * 10);  // targets 400-499
-      case 3: return 58 + Math.floor(Math.random() * 10);  // targets 300-399
-      case 2: return 52 + Math.floor(Math.random() * 10);  // targets 200-299
-      default: return 47 + Math.floor(Math.random() * 6);  // targets 150-199
+      case 5: return 75 + Math.floor(Math.random() * 8);   // targets 400-539 (mid ~470)
+      case 4: return 65 + Math.floor(Math.random() * 10);  // targets 300-515 (mid ~408)
+      case 3: return 58 + Math.floor(Math.random() * 10);  // targets 200-499 (mid ~350)
+      case 2: return 52 + Math.floor(Math.random() * 10);  // targets 150-399 (mid ~275)
+      default: return 48 + Math.floor(Math.random() * 6);  // targets 150-250 (mid ~200)
     }
   };
 
@@ -474,8 +474,8 @@ export function generateRecruitClass(
       const bands: Record<number, [number, number]> = { 3: [150, 199], 4: [200, 299], 5: [300, 399] };
       return bands[starRank] ?? [200, 299];
     }
-    // Normal: ±1 tier variance (matches NORMAL_OVR_BANDS in validate-recruits.ts)
-    const normalBands: Record<number, [number, number]> = { 1: [150, 299], 2: [150, 399], 3: [200, 499], 4: [300, 539], 5: [400, 539] };
+    // Normal: wider overlapping bands (matches NORMAL_OVR_BANDS in validate-recruits.ts)
+    const normalBands: Record<number, [number, number]> = { 1: [150, 250], 2: [150, 399], 3: [200, 499], 4: [300, 515], 5: [400, 539] };
     return normalBands[starRank] ?? [300, 399];
   };
 
@@ -872,8 +872,8 @@ export function generateRecruitClass(
       // Apply wizard OVR distribution delta for non-special recruits
       if (wizardTargetOvrs && !isBlueChip && !isGem && !isBust) {
         const targetOvr = wizardTargetOvrs[i];
-        // Estimated default mid-OVR per star rank (midpoint of each band)
-        const defaultMidOvrs: Record<number, number> = { 1: 174, 2: 249, 3: 349, 4: 449, 5: 519 };
+        // Estimated default mid-OVR per star rank (midpoint of each normal band)
+        const defaultMidOvrs: Record<number, number> = { 1: 200, 2: 275, 3: 350, 4: 408, 5: 470 };
         const defaultMidOvr = (defaultMidOvrs[starRank] ?? 349) + (isPitcher ? 15 : 0);
         const deltaOvr = targetOvr - defaultMidOvr;
         // Rough linear scale: ~10 OVR per attr point for hitters, ~8 for pitchers
