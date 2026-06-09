@@ -69,7 +69,7 @@ function getInterestChangeLabel(change: number): { label: string; color: string 
   if (change >= 3) return { label: "Some Interest", color: "text-yellow-400" };
   return { label: "Slight Interest", color: "text-blue-400" };
 }
-import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@shared/positions";
+import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher, getPitcherRoleLabel } from "@shared/positions";
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
@@ -612,6 +612,11 @@ export default function RecruitProfilePage() {
                   {recruit.hometown}, {recruit.homeState}
                 </span>
                 <PositionBadge position={recruit.position} size="md" />
+                {checkIsPitcher(recruit.position) && (
+                  <Badge variant="outline" className="text-xs text-muted-foreground">
+                    {getPitcherRoleLabel(recruit.stamina ?? 50)}
+                  </Badge>
+                )}
                 <Badge variant="outline">
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>

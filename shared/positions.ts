@@ -22,3 +22,11 @@ export function isOutfielder(position: string): boolean {
 export function isHitter(position: string): boolean {
   return !isPitcher(position);
 }
+
+export function getPitcherRoleLabel(stamina: number): string {
+  if (stamina >= 80) return "Weekend Starter";
+  if (stamina >= 55) return "Midweek Starter";
+  if (stamina >= 35) return "Middle Reliever";
+  if (stamina >= 20) return "Setup";
+  return "Closer";
+}

@@ -164,11 +164,11 @@ export interface GenerateRecruitClassOptions {
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
 
-// SP/C/SS/OF command premium NIL (SP = starting pitcher; OF approximates CF
+// P/C/SS/OF command premium NIL (P = all pitchers as unified position; OF approximates CF
 // since the game uses a single OF bucket rather than CF/LF/RF).
-const NIL_PREMIUM_POSITIONS = new Set(["SP", "C", "SS", "OF"]);
-// RP/CP and 1B are utility/bench positions that command below-average NIL.
-const NIL_UTILITY_POSITIONS = new Set(["RP", "CP", "1B"]);
+const NIL_PREMIUM_POSITIONS = new Set(["P", "SP", "C", "SS", "OF"]);
+// 1B is a utility/bench position that commands below-average NIL.
+const NIL_UTILITY_POSITIONS = new Set(["1B"]);
 
 // Geographic NIL market tiers — high-supply/high-demand states command a
 // premium because scouts compete more intensely for their talent.
@@ -235,12 +235,12 @@ export function generateRecruitClass(
     { state: "AK", cities: ["Anchorage", "Fairbanks", "Juneau"], pct: 0.1 },
     { state: "AZ", cities: ["Phoenix", "Tucson", "Scottsdale", "Mesa"], pct: 3.0 },
     { state: "AR", cities: ["Little Rock", "Fayetteville", "Fort Smith"], pct: 1.0 },
-    { state: "CA", cities: ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "Fresno", "Long Beach"], pct: 24.0 },
+    { state: "CA", cities: ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "Fresno", "Long Beach"], pct: 16.4 },
     { state: "CO", cities: ["Denver", "Colorado Springs", "Boulder"], pct: 0.8 },
     { state: "CT", cities: ["Hartford", "New Haven", "Stamford"], pct: 0.6 },
     { state: "DE", cities: ["Wilmington", "Dover", "Newark"], pct: 0.2 },
-    { state: "FL", cities: ["Miami", "Tampa", "Orlando", "Jacksonville", "Fort Lauderdale", "Gainesville"], pct: 16.0 },
-    { state: "GA", cities: ["Atlanta", "Savannah", "Augusta", "Marietta", "Athens", "Macon"], pct: 6.5 },
+    { state: "FL", cities: ["Miami", "Tampa", "Orlando", "Jacksonville", "Fort Lauderdale", "Gainesville"], pct: 16.4 },
+    { state: "GA", cities: ["Atlanta", "Savannah", "Augusta", "Marietta", "Athens", "Macon"], pct: 16.4 },
     { state: "HI", cities: ["Honolulu", "Hilo", "Pearl City"], pct: 0.3 },
     { state: "ID", cities: ["Boise", "Nampa", "Idaho Falls"], pct: 0.2 },
     { state: "IL", cities: ["Chicago", "Springfield", "Champaign", "Peoria"], pct: 2.5 },
@@ -273,7 +273,7 @@ export function generateRecruitClass(
     { state: "SC", cities: ["Charleston", "Columbia", "Greenville", "Myrtle Beach"], pct: 2.0 },
     { state: "SD", cities: ["Sioux Falls", "Rapid City", "Brookings"], pct: 0.1 },
     { state: "TN", cities: ["Nashville", "Memphis", "Knoxville", "Chattanooga"], pct: 2.0 },
-    { state: "TX", cities: ["Houston", "Dallas", "Austin", "San Antonio", "Arlington", "Lubbock"], pct: 19.0 },
+    { state: "TX", cities: ["Houston", "Dallas", "Austin", "San Antonio", "Arlington", "Lubbock"], pct: 16.4 },
     { state: "UT", cities: ["Salt Lake City", "Provo", "Ogden"], pct: 0.8 },
     { state: "VT", cities: ["Burlington", "Montpelier", "Rutland"], pct: 0.1 },
     { state: "VA", cities: ["Richmond", "Virginia Beach", "Charlottesville", "Norfolk"], pct: 2.0 },
@@ -360,8 +360,8 @@ export function generateRecruitClass(
     }
     if (pct < 0.08) return 5;
     if (pct < 0.20) return 4;
-    if (pct < 0.80) return 3;
-    if (pct < 0.95) return 2;
+    if (pct < 0.70) return 3;
+    if (pct < 0.90) return 2;
     return 1;
   };
 
@@ -388,7 +388,7 @@ export function generateRecruitClass(
     let bustChance: number;
     if (t === "hidden_gems") { gemChance = 0.24; bustChance = 0.06; }
     else if (t === "bust_heavy") { gemChance = 0.05; bustChance = 0.18; }
-    else { gemChance = 0.14; bustChance = 0.12; }
+    else { gemChance = 0.14; bustChance = 0.16; }
     if (starRank >= 1 && starRank <= 4 && roll < gemChance) return { isGem: true, isBust: false };
     if (starRank >= 3 && starRank <= 5 && roll < bustChance) return { isGem: false, isBust: true };
     return { isGem: false, isBust: false };
@@ -480,12 +480,12 @@ export function generateRecruitClass(
   };
 
   const getAbilityCount = (starRank: number, isBlueChip: boolean = false): number => {
-    if (isBlueChip) return 4 + Math.floor(Math.random() * 4);
+    if (isBlueChip) return 4;
     switch (starRank) {
-      case 5: return 3 + Math.floor(Math.random() * 3);
-      case 4: return 2 + Math.floor(Math.random() * 3);
-      case 3: return 1 + Math.floor(Math.random() * 3);
-      case 2: return Math.floor(Math.random() * 3);
+      case 5: return 3 + Math.floor(Math.random() * 2);  // 3–4
+      case 4: return 2 + Math.floor(Math.random() * 3);  // 2–4
+      case 3: return 1 + Math.floor(Math.random() * 3);  // 1–3
+      case 2: return Math.floor(Math.random() * 3);       // 0–2
       default: return Math.random() < 0.5 ? 1 : 0;
     }
   };
@@ -844,7 +844,7 @@ export function generateRecruitClass(
     if (isGenerationalGem) {
       isGem = true;
       targetAttrAvg = -1;
-      abilityCount = 5 + Math.floor(Math.random() * 3);
+      abilityCount = 4;
     } else if (isGenerationalBust) {
       isBust = true;
       targetAttrAvg = -1;
@@ -1650,6 +1650,58 @@ export function generateRecruitClass(
         recruitState.state,
       ),
     });
+  }
+
+  // ─── Post-processing: class-wide gold special ability cap ────────────────
+  // Max 10 gold special abilities across the whole class.
+  // S-grade common abilities are not counted (they live in common attr fields, not `abilities`).
+  // Strip gold from lowest-priority recruits first (gems, blue chips, and high-star recruits keep gold).
+  {
+    const goldCap = 10;
+    let totalGold = out.reduce((sum, r) =>
+      sum + (r.abilities ?? []).filter(name => {
+        const ab = getAbilityByName(name);
+        return ab?.tier === "gold";
+      }).length, 0);
+
+    if (totalGold > goldCap) {
+      // Never strip gold from gems, blue chips, or generational gems — they need gold for OVR convergence.
+      // Only strip from regular recruits (sorted by star rating ascending = lowest priority first).
+      const sorted = out
+        .filter(r => !r.isGenerationalGem && !r.isBlueChip && !r.isGem)
+        .sort((a, b) => {
+          const score = (r: typeof a) => (r.starRating ?? 0) * 10 - (r.classRank ?? 0) * 0.01;
+          return score(a) - score(b);
+        });
+      for (const r of sorted) {
+        if (totalGold <= goldCap) break;
+        const goldNames = (r.abilities ?? []).filter(name => {
+          const ab = getAbilityByName(name);
+          return ab?.tier === "gold";
+        });
+        for (const goldName of goldNames) {
+          if (totalGold <= goldCap) break;
+          r.abilities = (r.abilities ?? []).filter(n => n !== goldName);
+          totalGold--;
+          r.overall = calculateOVR({
+            position: r.position ?? "C",
+            hitForAvg: r.hitForAvg ?? 50, power: r.power ?? 50, speed: r.speed ?? 50,
+            arm: r.arm ?? 50, fielding: r.fielding ?? 50, errorResistance: r.errorResistance ?? 50,
+            velocity: r.velocity ?? 50, control: r.control ?? 50, stamina: r.stamina ?? 50, stuff: r.stuff ?? 50,
+            clutch: r.clutch ?? 50, vsLHP: r.vsLHP ?? 50, grit: r.grit ?? 50, stealing: r.stealing ?? 50,
+            running: r.running ?? 50, throwing: r.throwing ?? 50, recovery: r.recovery ?? 50,
+            catcherAbility: r.catcherAbility ?? 50,
+            wRISP: r.wRISP ?? 50, vsLefty: r.vsLefty ?? 50, poise: r.poise ?? 50,
+            heater: r.heater ?? 50, agile: r.agile ?? 50,
+            abilities: r.abilities ?? [],
+            trajectory: r.trajectory ?? 2,
+            pitchFB: r.pitchFB ?? 0, pitch2S: r.pitch2S ?? 0, pitchSL: r.pitchSL ?? 0,
+            pitchCB: r.pitchCB ?? 0, pitchCH: r.pitchCH ?? 0, pitchCT: r.pitchCT ?? 0,
+            pitchSNK: r.pitchSNK ?? 0, pitchSPL: r.pitchSPL ?? 0,
+          });
+        }
+      }
+    }
   }
 
   // ─── Class composition summary log ──────────────────────────────────────

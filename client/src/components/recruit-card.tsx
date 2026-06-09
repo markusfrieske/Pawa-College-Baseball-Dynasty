@@ -2,7 +2,7 @@ import { useState } from "react";
 import { StarRating } from "@/components/ui/star-rating";
 import { getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerAvatar } from "@/components/player-avatar";
-import { isPitcher, isCatcher } from "@shared/positions";
+import { isPitcher, isCatcher, getPitcherRoleLabel } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
 import { Crown, Zap } from "lucide-react";
@@ -334,7 +334,11 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
           <div className="font-pixel text-[6.5px] text-[#C4A35A] truncate leading-tight">
             {recruit.firstName} {recruit.lastName}
           </div>
-          <div className="text-[6px] text-gray-500 leading-tight">{recruit.position} · {recruit.overall} OVR</div>
+          <div className="text-[6px] text-gray-500 leading-tight">
+            {pitcher
+              ? `P · ${getPitcherRoleLabel(recruit.stamina ?? 50)} · ${recruit.overall} OVR`
+              : `${recruit.position} · ${recruit.overall} OVR`}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0">
           <StarRating rating={recruit.starRating} size="sm" />
