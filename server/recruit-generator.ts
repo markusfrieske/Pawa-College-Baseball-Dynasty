@@ -955,7 +955,8 @@ export function generateRecruitClass(
 
     if (isGenerationalGem) {
       // Hitter attrs: starting point for OVR retry (targets [540,599] for 3★, lower for 1-2★).
-      // Retry fine-tunes attrs to hit the correct band. Pitcher attrs unchanged (Task #191).
+      // Retry fine-tunes attrs to hit the correct band. Pitcher genGem OVR is post-hoc clamped
+      // to [600,650] (high raw attrs already put OVR near that range; no retry needed).
       hitForAvg = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
       power     = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
       speed = sampleNormalSpeed(82, 6, 75, 95);
@@ -969,7 +970,7 @@ export function generateRecruitClass(
     } else if (isGenerationalBust) {
       // Hitter attrs calibrated so calculateOVR (with all-G/F common + 2 red specials) lands ~150-199.
       // Low speed (10-28) is the key OVR depressant alongside poor common/special abilities.
-      // Pitcher attrs unchanged (Task #191 covers pitcher calibration).
+      // Pitcher genBust OVR is post-hoc clamped to [150,199] (low raw attrs already put OVR near band).
       hitForAvg = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
       power     = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
       speed = sampleNormalSpeed(18, 5, 10, 28);
@@ -1016,14 +1017,15 @@ export function generateRecruitClass(
       stuff     = genT(targetAttrAvg - pitchPenalty, "stuff");
     }
 
-    // ─── OVR calibration retry loop — all non-pitcher hitters ──────────────
+    // ─── OVR calibration retry loop — hitters (all archetypes) ─────────────
     // Uses full calculateOVR (attrs + trial common + existing specials) so the
-    // settled OVR matches the final stored value. Pitchers are skipped (Task #191).
+    // settled OVR matches the final stored value. Pitchers use a separate retry
+    // loop below (normal pitchers only; gem/bust/blueChip retain post-hoc clamps).
     // GenGem/GenBust are included with their own fixed-style common ability generation
     // and direct attr adjustment (speed is never touched — it's fixed for all three).
     // Hitter themeBoosts applied BEFORE the retry loop so convergence targets the
-    // final boosted attr values (power/speed/fielding only — velocity/stuff are pitcher attrs
-    // applied after the pitcher wizard retry loop to avoid being overwritten by it).
+    // final boosted attr values (power/speed/fielding only — velocity/stuff are pitcher
+    // attrs applied after, so they don't interfere with hitter convergence).
     if (themeBoost.attr === "power")    power    = Math.min(99, power    + themeBoost.boost);
     if (themeBoost.attr === "speed")    speed    = Math.min(99, speed    + themeBoost.boost);
     if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
