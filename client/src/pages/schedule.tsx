@@ -1126,9 +1126,9 @@ function StandaloneGameRow({
             name={game.awayTeam.name}
             size="sm"
           />
-          <div className="min-w-0">
+          <div className="min-w-0 overflow-hidden">
             <div className="flex items-center gap-1.5 min-w-0">
-              <Link href={`/league/${callbacks.leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()}>
+              <Link href={`/league/${callbacks.leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()} className="min-w-0 overflow-hidden">
                 <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-away-${game.id}`}>
                   {game.awayTeam.name}
                 </span>
@@ -1203,7 +1203,7 @@ function StandaloneGameRow({
         )}
 
         <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-          <div className="min-w-0 text-right">
+          <div className="min-w-0 overflow-hidden text-right">
             <div className="flex items-center justify-end gap-1.5 min-w-0">
               {badge && (
                 <span
@@ -1220,7 +1220,7 @@ function StandaloneGameRow({
                   </span>
                 ) : null;
               })()}
-              <Link href={`/league/${callbacks.leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
+              <Link href={`/league/${callbacks.leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()} className="min-w-0 overflow-hidden">
                 <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>
                   {game.homeTeam.name}
                 </span>

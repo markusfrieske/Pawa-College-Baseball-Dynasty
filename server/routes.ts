@@ -1458,7 +1458,14 @@ export async function registerRoutes(
           }
         }
         let topSchools = Array.from(deduped.values())
-          .sort((a, b) => (b.interestLevel + b.accumulatedInterest) - (a.interestLevel + a.accumulatedInterest))
+          .sort((a, b) => {
+            const aTotal = a.interestLevel + a.accumulatedInterest;
+            const bTotal = b.interestLevel + b.accumulatedInterest;
+            const aGain = a.previousInterestLevel != null ? aTotal - a.previousInterestLevel : 0;
+            const bGain = b.previousInterestLevel != null ? bTotal - b.previousInterestLevel : 0;
+            if (bGain !== aGain) return bGain - aGain;
+            return bTotal - aTotal;
+          })
           .slice(0, topSchoolsCount)
           .map(ts => {
             const team = teamMap.get(ts.teamId)!;
