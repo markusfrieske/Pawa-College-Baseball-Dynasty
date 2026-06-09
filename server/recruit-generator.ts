@@ -1163,10 +1163,13 @@ export function generateRecruitClass(
       // 1–4 pts above retryHi due to integer-boundary oscillation near the band edge
       // (e.g. attrs oscillate between OVR=538 and OVR=543 when step=1 swings ≈5 pts).
       // Nudge attrs down up to 5 steps to bring OVR back within band.
+      // IMPORTANT: must include `trajectory` here — the retry loop uses it, so omitting it
+      // causes the clamp OVR to differ from the retry OVR (trajectory can add 3–8 pts) and
+      // the clamp falsely exits early leaving OVR above retryHi.
       for (let ci = 0; ci < 5; ci++) {
         const clampOvr = calculateOVR({
           position, hitForAvg, power, speed, arm, fielding, errorResistance,
-          velocity, control, stamina, stuff, ...trialCommon, abilities,
+          velocity, control, stamina, stuff, ...trialCommon, abilities, trajectory,
         });
         if (clampOvr <= retryHi) break;
         hitForAvg       = Math.max(1, hitForAvg       - 1);
@@ -1580,21 +1583,34 @@ export function generateRecruitClass(
               const adj2 = overall < rrLo ? step : -step;
               const prevVel2 = velocity;
               const prevCtrl2 = control;
+              const prevStam2 = stamina;
               velocity = Math.max(1, Math.min(99, velocity + adj2));
               control  = Math.max(1, Math.min(99, control  + adj2));
-              if (velocity === prevVel2 || control === prevCtrl2) {
+              // Also bump stamina: with vel=99+ctrl=99, A-grade commons, 4 blues,
+              // OVR ceiling without stamina is ~535; stam=99 adds +5.22 pts, giving
+              // pitch mixes with 5 diverse directions a reliable path to 540+.
+              stamina  = Math.max(1, Math.min(99, stamina  + adj2));
+              if (velocity === prevVel2 && control === prevCtrl2 && stamina === prevStam2) {
                 pcCommonLevel = Math.max(10, Math.min(89, pcCommonLevel + adj2));
               }
             }
-            // Pitch mix rerolls — some archetypes have more diversity variance than others
+            // Regenerate pitch mix with the final velocity from the 40-iter loop above.
+            // The initial pitchMix was generated with the pre-retry velocity; as velocity
+            // is bumped toward 99, pitch LEVELS don't update automatically — they stay at
+            // their original values. Re-generating here upgrades pitch levels to match the
+            // new (higher) velocity, providing the additional OVR headroom to reach 540+.
             applyPcLevel(pcCommonLevel);
+            const pcArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
+            const pcQuality = qualityTierFromOvr(rrLo);
+            pitchMix = generateArchetypePitchMix(pcArch, pcQuality);
             overall = calculateOVR({
               position, hitForAvg, power, speed, arm, fielding, errorResistance,
               velocity, control, stamina, stuff,
               ...commonAbilities, abilities, ...pitchMix, trajectory,
             });
-            const pcArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
-            const pcQuality = qualityTierFromOvr(rrLo);
+            // Pitch mix rerolls — some archetypes have more diversity variance than others.
+            // Selection rule: prefer any in-band mix over an out-of-band current; among
+            // two options in the same category, prefer the one closer to band center.
             const pcBandMid = (rrLo + rrHi) / 2;
             for (let pm = 0; pm < 15 && (overall < rrLo || overall > rrHi); pm++) {
               const altMix = generateArchetypePitchMix(pcArch, pcQuality);
@@ -1603,10 +1619,11 @@ export function generateRecruitClass(
                 velocity, control, stamina, stuff,
                 ...commonAbilities, abilities, ...altMix, trajectory,
               });
-              if (Math.abs(pcBandMid - altOvr) < Math.abs(pcBandMid - overall)) {
-                pitchMix = altMix;
-                overall = altOvr;
-              }
+              const curInBand = overall >= rrLo && overall <= rrHi;
+              const altInBand = altOvr >= rrLo && altOvr <= rrHi;
+              const preferAlt = (!curInBand && altInBand) ||
+                (curInBand === altInBand && Math.abs(pcBandMid - altOvr) < Math.abs(pcBandMid - overall));
+              if (preferAlt) { pitchMix = altMix; overall = altOvr; }
             }
             // Ability injection fallback: if pitch mix rerolls still leave OVR below target,
             // add blue abilities one at a time (up to 7-ability cap). Each blue = ~6.96 pts.

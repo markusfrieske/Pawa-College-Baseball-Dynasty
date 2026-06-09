@@ -19139,7 +19139,7 @@ export async function registerRoutes(
       const { config } = req.body as { config: any };
       if (!config) return res.status(400).json({ message: "config required" });
       const theme = (config.theme as RecruitingTheme) || "balanced";
-      const count = Math.min(Math.max(Number(config.count) || 75, 20), 75);
+      const count = Math.min(Math.max(Number(config.count) || 75, 20), 80);
       const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
       // Forward OVR controls as a unit: if any field differs from defaults, send all four
       // so the generator receives the correct average even when only distribution or range changes.
@@ -19197,7 +19197,7 @@ export async function registerRoutes(
       if (!config) return res.status(400).json({ message: "config required" });
 
       const theme = (config.theme as RecruitingTheme) || "balanced";
-      const count = Math.min(Math.max(Number(config.count) || 75, 20), 75);
+      const count = Math.min(Math.max(Number(config.count) || 75, 20), 80);
       const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
 
       // Forward OVR controls as a unit: if any field differs from defaults, send all four
