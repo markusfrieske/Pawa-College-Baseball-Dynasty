@@ -3507,19 +3507,20 @@ function RecruitRow({
               ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
               ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
             ] as const;
+            const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
+            const scoutOrder = (recruit.scoutingOrder as string[]) || [];
+            const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
+            const pitchRevealCount = Math.ceil((scoutPct / 100) * effectivePitchOrder.length);
+            const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
             const active = pitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
-              return v != null && v > 0;
+              return v != null && v > 0 && (isFullyRevealed || revealedPitchFields.has(k));
             });
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
-                {scoutPct === 0 && !isFullyRevealed ? (
-                  active.map(([k], i) => (
-                    <span key={i} className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/50 leading-tight">●</span>
-                  ))
-                ) : scoutPct < 50 && !isFullyRevealed ? (
+                {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
                     <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
                   ))
@@ -4196,19 +4197,20 @@ function RecruitDetailModal({
               ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
               ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
             ] as const;
+            const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
+            const scoutOrder = (recruit.scoutingOrder as string[]) || [];
+            const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
+            const pitchRevealCount = Math.ceil((scoutPct / 100) * effectivePitchOrder.length);
+            const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
             const active = modalPitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
-              return v != null && v > 0;
+              return v != null && v > 0 && (isFullyRevealed || revealedPitchFields.has(k));
             });
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
-                {scoutPct === 0 && !isFullyRevealed ? (
-                  active.map(([k], i) => (
-                    <span key={i} className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/50 leading-tight">●</span>
-                  ))
-                ) : scoutPct < 50 && !isFullyRevealed ? (
+                {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
                     <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
                   ))
@@ -4802,19 +4804,20 @@ function RecruitDetailModal({
               ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
               ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
             ] as const;
+            const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
+            const scoutOrder = (recruit.scoutingOrder as string[]) || [];
+            const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
+            const pitchRevealCount = Math.ceil((scoutPct / 100) * effectivePitchOrder.length);
+            const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
             const active = modalPitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
-              return v != null && v > 0;
+              return v != null && v > 0 && (isFullyRevealed || revealedPitchFields.has(k));
             });
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
-                {scoutPct === 0 && !isFullyRevealed ? (
-                  active.map(([k], i) => (
-                    <span key={i} className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/50 leading-tight">●</span>
-                  ))
-                ) : scoutPct < 50 && !isFullyRevealed ? (
+                {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
                     <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
                   ))

@@ -67,6 +67,9 @@ export interface RevealRecruit {
   pitchSHU?: number | null;
   pitchSWP?: number | null;
   pitchKN?: number | null;
+  scoutingOrder?: string[];
+  scoutPct?: number;
+  isFullyRevealed?: boolean;
   skinTone?: string;
 }
 
@@ -382,9 +385,16 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             ["pitchCH","CH"],["pitchCT","CT"],["pitchSNK","SNK"],["pitchSPL","SPL"],
             ["pitchSHU","SHU"],["pitchSWP","SWP"],["pitchKN","KN"],
           ] as const;
+          const cardFullyRevealed = recruit.isFullyRevealed ?? recruit.isBlueChip ?? false;
+          const cardScoutPct = recruit.scoutPct ?? 0;
+          const defaultPitcherOrder = ['velocity','control','stamina','pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT','pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU','wRISP','vsLefty','poise','grit','heater','agile','recovery'];
+          const scoutOrder = recruit.scoutingOrder || [];
+          const effectivePitchOrder = scoutOrder.length > 0 ? scoutOrder : defaultPitcherOrder;
+          const pitchRevealCount = Math.ceil((cardScoutPct / 100) * effectivePitchOrder.length);
+          const revealedPitchFields = new Set(effectivePitchOrder.slice(0, pitchRevealCount));
           const active = pitchFields.filter(([k]) => {
             const v = (recruit as any)[k];
-            return v != null && v > 0;
+            return v != null && v > 0 && (cardFullyRevealed || revealedPitchFields.has(k));
           });
           if (!active.length) return null;
           return (
