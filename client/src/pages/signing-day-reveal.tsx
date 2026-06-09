@@ -785,6 +785,8 @@ function RevealPortraitCard({
   disableAnimation = false,
   signingTeamAbbrev,
   signingTeamColor,
+  cardWidth = 210,
+  cardHeight = 290,
 }: {
   recruit: RevealRecruit;
   primaryColor: string;
@@ -792,6 +794,8 @@ function RevealPortraitCard({
   disableAnimation?: boolean;
   signingTeamAbbrev?: string;
   signingTeamColor?: string;
+  cardWidth?: number;
+  cardHeight?: number;
 }) {
   const [flipped, setFlipped] = useState(false);
 
@@ -821,8 +825,8 @@ function RevealPortraitCard({
     <div
       className="recruit-card-wrapper"
       style={{
-        width: "210px",
-        height: "290px",
+        width: `${cardWidth}px`,
+        height: `${cardHeight}px`,
         perspective: "1000px",
         flexShrink: 0,
         animation: disableAnimation ? "none" : `cardSlideIn 0.5s ease-out ${animationDelay}s both`,
@@ -1055,15 +1059,17 @@ function _LetterOfIntentCard_UNUSED({
 // ── SigningDayRevealPage ───────────────────────────────────────
 type CinemaPhase = "idle" | "buildup" | "burst" | "cards";
 type GemPhase = "waiting" | "spotlight" | "burst" | "revealed";
+type SigningTab = "my-class" | "all-teams" | "all-recruits";
 
 export default function SigningDayRevealPage() {
   const { id: leagueId } = useParams<{ id: string }>();
   const [isDownloading, setIsDownloading] = useState(false);
   const cardGridRef = useRef<HTMLDivElement>(null);
+  const myClassRef  = useRef<HTMLDivElement>(null);
 
   const reducedMotion = useReducedMotion();
   const [cinemaPhase, setCinemaPhase] = useState<CinemaPhase>("idle");
-  const [sequenceComplete, setSequenceComplete] = useState(false);
+  const [signingTab, setSigningTab] = useState<SigningTab>("my-class");
 
   // ── Gem ceremony state ──────────────────────────────────────
   const [gemPhase, setGemPhase] = useState<GemPhase>("waiting");
@@ -1087,9 +1093,21 @@ export default function SigningDayRevealPage() {
   );
   const teamColor = myTeamEntry?.team.primaryColor ?? "#C4A35A";
 
+  // Sorted recruits for the user's own team
+  const myTeamRecruits = useMemo(
+    () => [...(myTeamEntry?.recruits ?? [])].sort((a, b) => b.overall - a.overall),
+    [myTeamEntry]
+  );
+  const hasMyClass = myTeamRecruits.length > 0;
+
+  // Default to "all-teams" when the user has no commits (guest / CPU-only)
+  useEffect(() => {
+    if (data && !hasMyClass) setSigningTab("all-teams");
+  }, [data, hasMyClass]);
+
   const revealedTeams = useRef<Set<string>>(new Set());
 
-  // ── Build flat league-wide recruit list sorted ascending OVR ──
+  // ── Build flat league-wide recruit list sorted descending OVR ──
   const allLeagueRecruits = useMemo<LeagueRevealItem[]>(() => {
     if (!data?.teamData) return [];
     const items: LeagueRevealItem[] = data.teamData.flatMap(entry =>
@@ -1102,9 +1120,18 @@ export default function SigningDayRevealPage() {
         signingTeamSecondaryColor: entry.team.secondaryColor,
       }))
     );
-    // Descending by OVR — highest first so the best players appear at the top
     return items.sort((a, b) => b.overall - a.overall);
   }, [data?.teamData]);
+
+  // Class rank + team count for the My Class summary header
+  const classRank = useMemo(
+    () => (data?.myTeamId ? getClassRank(data.teamData, data.myTeamId) : 0),
+    [data]
+  );
+  const totalTeamsWithCommits = useMemo(
+    () => data?.teamData.filter(t => t.recruits.length > 0).length ?? 0,
+    [data]
+  );
 
   // ── Cinematic phase state machine — fires once when data loads ──
   useEffect(() => {
@@ -1129,16 +1156,6 @@ export default function SigningDayRevealPage() {
     apiRequest("POST", `/api/leagues/${leagueId}/signing-day-reveal/complete?teamId=${teamId}`)
       .catch((err) => console.error("[reveal-complete] failed:", err));
   }, [cinemaPhase, data?.myTeamId, leagueId]);
-
-  // ── Sequence complete — fires after the last card animation settles ──
-  // Each card has animationDelay = idx * 0.035s + 0.5s animation duration + 0.5s buffer
-  useEffect(() => {
-    if (cinemaPhase !== "cards" || allLeagueRecruits.length === 0) return;
-    const lastCardDelay = (allLeagueRecruits.length - 1) * 0.035;
-    const totalMs = Math.round((lastCardDelay + 1.0) * 1000);
-    const t = setTimeout(() => setSequenceComplete(true), reducedMotion ? 100 : totalMs);
-    return () => clearTimeout(t);
-  }, [cinemaPhase, allLeagueRecruits.length, reducedMotion]);
 
   // ── Gem ceremony: user's own team only ───────────────────────
   const myTeamSortedRecruits = useMemo(
@@ -1174,20 +1191,19 @@ export default function SigningDayRevealPage() {
     };
   }, [cinemaPhase, gemRecruit]);
 
+  // Download captures the My Class view container
   const handleDownload = async () => {
-    if (!cardGridRef.current) return;
+    const target = myClassRef.current;
+    if (!target) return;
     setIsDownloading(true);
     try {
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(cardGridRef.current, {
+      const canvas = await html2canvas(target, {
         backgroundColor: "#0d1f0d",
         scale: 2,
         logging: false,
         useCORS: true,
         onclone: (_doc, clonedEl) => {
-          // html2canvas cannot render CSS 3D flip transforms (preserve-3d + rotateY).
-          // Flatten all 3D containers and hide the invisible back faces so only the
-          // front of each card is captured.
           clonedEl.querySelectorAll<HTMLElement>("[style]").forEach(el => {
             if (el.style.transformStyle === "preserve-3d") {
               el.style.transformStyle = "flat";
@@ -1200,7 +1216,7 @@ export default function SigningDayRevealPage() {
         },
       });
       const link = document.createElement("a");
-      link.download = `league-class-season-${data?.league.currentSeason ?? "unknown"}.png`;
+      link.download = `my-class-season-${data?.league.currentSeason ?? "unknown"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -1225,10 +1241,17 @@ export default function SigningDayRevealPage() {
 
   const showCards = cinemaPhase === "cards";
 
+  // My Class summary stats
+  const myAvgOvr    = myTeamRecruits.length > 0 ? Math.round(myTeamRecruits.reduce((s, r) => s + r.overall, 0) / myTeamRecruits.length) : 0;
+  const myFiveStars = myTeamRecruits.filter(r => r.starRating >= 5).length;
+  const myFourStars = myTeamRecruits.filter(r => r.starRating >= 4 && r.starRating < 5).length;
+  const myBlueChips = myTeamRecruits.filter(r => r.isBlueChip).length;
+  const myClassPts  = Math.round(getClassScore(myTeamRecruits));
+
   return (
     <div className="relative min-h-screen bg-background">
 
-      {/* ── Cinematic effect layers (fixed, not in html2canvas) ── */}
+      {/* ── Cinematic effect layers (fixed, not captured by html2canvas) ── */}
       {!reducedMotion && (
         <>
           <FireworksCanvas
@@ -1248,7 +1271,7 @@ export default function SigningDayRevealPage() {
       <div className="relative z-10 p-4 max-w-7xl mx-auto">
 
         {/* Page header */}
-        <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
           <Link href={`/league/${leagueId}/commits`}>
             <RetroButton variant="outline" size="sm" data-testid="button-back-to-commits">
               <ArrowLeft className="w-4 h-4 mr-1" />
@@ -1261,7 +1284,8 @@ export default function SigningDayRevealPage() {
               Season {data?.league.currentSeason} · {allLeagueRecruits.length} total commits · Click any card to flip
             </p>
           </div>
-          {showCards && allLeagueRecruits.length > 0 && (
+          {/* Download only visible on My Class tab */}
+          {showCards && signingTab === "my-class" && hasMyClass && (
             <RetroButton
               variant="primary"
               size="sm"
@@ -1275,120 +1299,288 @@ export default function SigningDayRevealPage() {
           )}
         </div>
 
-        {/* ── League-wide card cinematic ── */}
-        {showCards && allLeagueRecruits.length > 0 ? (
-          <div>
-            {/* Card grid — captured by html2canvas */}
-            <div
-              ref={cardGridRef}
-              className="rounded-lg p-4"
-              style={{ background: "#0d1f0d" }}
-            >
-              {/* League header */}
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1a3a1a]">
-                <Trophy className="w-6 h-6 text-[#C4A35A] shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-pixel text-sm text-[#C4A35A]">{data?.league.name ?? "LEAGUE"} SIGNING CLASS</div>
-                  <div className="text-xs text-gray-400">
-                    Season {data?.league.currentSeason} · {allLeagueRecruits.length} commits across {data?.teamData?.filter(t => t.recruits.length > 0).length ?? 0} teams
-                  </div>
+        {/* ── Tab switcher — appears once cinematic transitions to cards phase ── */}
+        {showCards && (
+          <div className="flex border-b border-[#1a3a1a] mb-6" data-testid="signing-tab-bar">
+            {([
+              { key: "my-class",     label: "My Class",     sub: `${myTeamRecruits.length} commit${myTeamRecruits.length !== 1 ? "s" : ""}` },
+              { key: "all-teams",    label: "All Teams",    sub: `${totalTeamsWithCommits} team${totalTeamsWithCommits !== 1 ? "s" : ""}` },
+              { key: "all-recruits", label: "All Recruits", sub: `${allLeagueRecruits.length} total` },
+            ] as { key: SigningTab; label: string; sub: string }[]).map(({ key, label, sub }) => (
+              <button
+                key={key}
+                onClick={() => setSigningTab(key)}
+                className="px-4 py-2.5 relative text-left"
+                data-testid={`tab-${key}`}
+              >
+                <div className={`font-pixel text-[11px] leading-tight transition-colors ${signingTab === key ? "text-[#C4A35A]" : "text-gray-500 hover:text-gray-300"}`}>
+                  {label}
                 </div>
-                <div className="shrink-0 text-right">
-                  <div className="font-pixel text-[10px] text-gray-500">SORTED HIGHEST → LOWEST OVR</div>
-                </div>
-              </div>
+                <div className="text-[9px] text-gray-600 mt-0.5">{sub}</div>
+                {signingTab === key && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C4A35A]" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
-              {/* All recruits — descending OVR, wrapped rows, each card shows team badge strip */}
-              <div className="flex flex-wrap gap-2">
-                {allLeagueRecruits.map((item, idx) => {
-                  const animDelay = idx * 0.035;
-                  const isSpecial = item.isBlueChip && !item.isGenerationalBust && !item.isGenerationalGem;
-                  const isThisGem = !!(item.isGenerationalGem && item.gemBustRevealed && item.signingTeamId === data?.myTeamId);
-                  return (
-                    <div
-                      key={item.id}
-                      className="relative"
-                      style={{
-                        flexShrink: 0,
-                        animation: isThisGem ? "sdGemSlideIn 0.7s ease-out both" : undefined,
-                      }}
-                      data-testid={isThisGem ? "gem-card-wrapper" : `card-wrapper-${item.id}`}
-                    >
-                      {!reducedMotion && (
-                        <div
-                          className="absolute pointer-events-none"
-                          style={{
-                            inset: -4, borderRadius: "10px", zIndex: 10,
-                            animation: isSpecial || isThisGem
-                              ? `sdShockwave 0.85s ease-out ${isThisGem ? 0.25 : animDelay + 0.55}s both`
-                              : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
-                          }}
-                          aria-hidden
-                        />
-                      )}
-                      {isThisGem && (
-                        <div
-                          className="absolute pointer-events-none"
-                          style={{
-                            inset: -3, borderRadius: "11px", zIndex: 8,
-                            boxShadow: "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18)",
-                          }}
-                          aria-hidden
-                        />
-                      )}
-                      <RevealPortraitCard
-                        recruit={item}
-                        primaryColor={item.signingTeamPrimaryColor}
-                        animationDelay={isThisGem ? 0 : animDelay}
-                        disableAnimation={reducedMotion && !isThisGem}
-                        signingTeamAbbrev={item.signingTeamAbbreviation}
-                        signingTeamColor={item.signingTeamPrimaryColor}
-                      />
+        {showCards ? (
+          <>
+            {/* ══════════════════════════════════════════════════════
+                MY RECRUITING CLASS TAB
+            ══════════════════════════════════════════════════════ */}
+            {signingTab === "my-class" && (
+              <div
+                ref={myClassRef}
+                className="rounded-lg p-4"
+                style={{ background: "#0d1f0d" }}
+                data-testid="my-class-view"
+              >
+                {/* Shareable title strip */}
+                <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1a3a1a]">
+                  {myTeamEntry && (
+                    <TeamBadge
+                      abbreviation={myTeamEntry.team.abbreviation}
+                      primaryColor={myTeamEntry.team.primaryColor}
+                      secondaryColor={myTeamEntry.team.secondaryColor}
+                      size="lg"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-pixel text-base text-[#C4A35A] leading-tight truncate">
+                      {myTeamEntry?.team.name ?? "MY TEAM"}
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Gem ceremony label */}
-              {gemRecruit && gemPhase === "revealed" && (
-                <div className="flex justify-center mt-3" data-testid="gem-card-section">
-                  <div
-                    className="font-pixel text-amber-400 text-[9px] tracking-widest"
-                    style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
-                    data-testid="gem-label"
-                  >
-                    ✦ GENERATIONAL TALENT ✦
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      Season {data?.league.currentSeason} Recruiting Class
+                      {classRank > 0 && ` · National Rank #${classRank} of ${totalTeamsWithCommits}`}
+                    </div>
                   </div>
+                  <Trophy className="w-5 h-5 text-[#C4A35A] shrink-0" />
                 </div>
-              )}
-            </div>
 
-            {/* League-wide stats bar */}
-            <RetroCard className="mt-4">
-              <RetroCardContent className="py-3">
-                <div className="flex flex-wrap gap-4 text-sm">
+                {/* Class summary stat bar */}
+                <div className="flex flex-wrap gap-x-6 gap-y-2 mb-5 px-1 pb-4 border-b border-[#1a3a1a]">
                   {[
-                    { label: "Total",      value: allLeagueRecruits.length },
-                    { label: "5-Star",     value: allLeagueRecruits.filter(r => r.starRating === 5).length },
-                    { label: "4-Star",     value: allLeagueRecruits.filter(r => r.starRating === 4).length },
-                    { label: "3-Star",     value: allLeagueRecruits.filter(r => r.starRating === 3).length },
-                    { label: "Blue Chips", value: allLeagueRecruits.filter(r => r.isBlueChip).length },
-                    { label: "Transfers",  value: allLeagueRecruits.filter(r => r.recruitType === "TRANSFER").length },
-                    { label: "JUCO",       value: allLeagueRecruits.filter(r => r.recruitType === "JUCO").length },
-                    { label: "Avg OVR",    value: allLeagueRecruits.length > 0 ? Math.round(allLeagueRecruits.reduce((s, r) => s + r.overall, 0) / allLeagueRecruits.length) : 0 },
+                    { label: "Commits",    value: myTeamRecruits.length },
+                    { label: "Avg OVR",    value: myAvgOvr },
+                    { label: "5★",         value: myFiveStars },
+                    { label: "4★",         value: myFourStars },
+                    { label: "Blue Chips", value: myBlueChips },
+                    { label: "Class Pts",  value: myClassPts },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex flex-col items-center min-w-[52px]">
-                      <span className="font-pixel text-lg text-white">{value}</span>
+                      <span className="font-pixel text-xl text-white">{value}</span>
                       <span className="text-[10px] text-gray-500">{label}</span>
                     </div>
                   ))}
                 </div>
-              </RetroCardContent>
-            </RetroCard>
 
-            {/* Post-reveal team class rankings — shown after full sequence completes */}
-            {sequenceComplete && data && <PostRevealSummary teamData={data.teamData} myTeamId={data.myTeamId} currentSeason={data.league.currentSeason} />}
-          </div>
+                {/* 4-across wider card grid (cards ~20% larger: 252×348) */}
+                {hasMyClass ? (
+                  <div
+                    style={{ display: "grid", gridTemplateColumns: "repeat(4, 252px)", gap: "12px" }}
+                    className="overflow-x-auto"
+                    data-testid="my-class-grid"
+                  >
+                    {myTeamRecruits.map((r, idx) => {
+                      const isThisGem = !!(r.isGenerationalGem && r.gemBustRevealed);
+                      return (
+                        <div
+                          key={r.id}
+                          className="relative"
+                          style={{ animation: isThisGem ? "sdGemSlideIn 0.7s ease-out both" : undefined }}
+                          data-testid={isThisGem ? "gem-card-wrapper" : `my-card-wrapper-${r.id}`}
+                        >
+                          {!reducedMotion && (
+                            <div
+                              className="absolute pointer-events-none"
+                              style={{
+                                inset: -4, borderRadius: "10px", zIndex: 10,
+                                animation: isThisGem
+                                  ? "sdShockwave 0.85s ease-out 0.25s both"
+                                  : `sdSparkRing 0.5s ease-out ${idx * 0.05 + 0.45}s both`,
+                              }}
+                              aria-hidden
+                            />
+                          )}
+                          {isThisGem && (
+                            <div
+                              className="absolute pointer-events-none"
+                              style={{
+                                inset: -3, borderRadius: "11px", zIndex: 8,
+                                boxShadow: "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18)",
+                              }}
+                              aria-hidden
+                            />
+                          )}
+                          <RevealPortraitCard
+                            recruit={r}
+                            primaryColor={myTeamEntry?.team.primaryColor ?? "#C4A35A"}
+                            animationDelay={isThisGem ? 0 : idx * 0.05}
+                            disableAnimation={reducedMotion && !isThisGem}
+                            cardWidth={252}
+                            cardHeight={348}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="font-pixel text-sm text-gray-500">No commits this season</p>
+                    <p className="text-xs text-gray-600 mt-2">Switch to All Teams or All Recruits to see the full class</p>
+                  </div>
+                )}
+
+                {/* Gem ceremony label */}
+                {gemRecruit && gemPhase === "revealed" && (
+                  <div className="flex justify-center mt-3" data-testid="gem-card-section">
+                    <div
+                      className="font-pixel text-amber-400 text-[9px] tracking-widest"
+                      style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
+                      data-testid="gem-label"
+                    >
+                      ✦ GENERATIONAL TALENT ✦
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════
+                ALL RECRUITS TAB
+            ══════════════════════════════════════════════════════ */}
+            {signingTab === "all-recruits" && (
+              <div>
+                {allLeagueRecruits.length > 0 ? (
+                  <>
+                    <div
+                      ref={cardGridRef}
+                      className="rounded-lg p-4"
+                      style={{ background: "#0d1f0d" }}
+                    >
+                      {/* League header */}
+                      <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1a3a1a]">
+                        <Trophy className="w-6 h-6 text-[#C4A35A] shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-pixel text-sm text-[#C4A35A]">{data?.league.name ?? "LEAGUE"} SIGNING CLASS</div>
+                          <div className="text-xs text-gray-400">
+                            Season {data?.league.currentSeason} · {allLeagueRecruits.length} commits across {data?.teamData?.filter(t => t.recruits.length > 0).length ?? 0} teams
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <div className="font-pixel text-[10px] text-gray-500">SORTED HIGHEST → LOWEST OVR</div>
+                        </div>
+                      </div>
+
+                      {/* All recruits — descending OVR, each card shows team strip */}
+                      <div className="flex flex-wrap gap-2">
+                        {allLeagueRecruits.map((item, idx) => {
+                          const animDelay = idx * 0.035;
+                          const isSpecial = item.isBlueChip && !item.isGenerationalBust && !item.isGenerationalGem;
+                          const isThisGem = !!(item.isGenerationalGem && item.gemBustRevealed && item.signingTeamId === data?.myTeamId);
+                          return (
+                            <div
+                              key={item.id}
+                              className="relative"
+                              style={{
+                                flexShrink: 0,
+                                animation: isThisGem ? "sdGemSlideIn 0.7s ease-out both" : undefined,
+                              }}
+                              data-testid={isThisGem ? "gem-card-wrapper" : `card-wrapper-${item.id}`}
+                            >
+                              {!reducedMotion && (
+                                <div
+                                  className="absolute pointer-events-none"
+                                  style={{
+                                    inset: -4, borderRadius: "10px", zIndex: 10,
+                                    animation: isSpecial || isThisGem
+                                      ? `sdShockwave 0.85s ease-out ${isThisGem ? 0.25 : animDelay + 0.55}s both`
+                                      : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
+                                  }}
+                                  aria-hidden
+                                />
+                              )}
+                              {isThisGem && (
+                                <div
+                                  className="absolute pointer-events-none"
+                                  style={{
+                                    inset: -3, borderRadius: "11px", zIndex: 8,
+                                    boxShadow: "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18)",
+                                  }}
+                                  aria-hidden
+                                />
+                              )}
+                              <RevealPortraitCard
+                                recruit={item}
+                                primaryColor={item.signingTeamPrimaryColor}
+                                animationDelay={isThisGem ? 0 : animDelay}
+                                disableAnimation={reducedMotion && !isThisGem}
+                                signingTeamAbbrev={item.signingTeamAbbreviation}
+                                signingTeamColor={item.signingTeamPrimaryColor}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Gem ceremony label */}
+                      {gemRecruit && gemPhase === "revealed" && (
+                        <div className="flex justify-center mt-3" data-testid="gem-card-section">
+                          <div
+                            className="font-pixel text-amber-400 text-[9px] tracking-widest"
+                            style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
+                            data-testid="gem-label"
+                          >
+                            ✦ GENERATIONAL TALENT ✦
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* League-wide stats bar */}
+                    <RetroCard className="mt-4">
+                      <RetroCardContent className="py-3">
+                        <div className="flex flex-wrap gap-4 text-sm">
+                          {[
+                            { label: "Total",      value: allLeagueRecruits.length },
+                            { label: "5-Star",     value: allLeagueRecruits.filter(r => r.starRating === 5).length },
+                            { label: "4-Star",     value: allLeagueRecruits.filter(r => r.starRating === 4).length },
+                            { label: "3-Star",     value: allLeagueRecruits.filter(r => r.starRating === 3).length },
+                            { label: "Blue Chips", value: allLeagueRecruits.filter(r => r.isBlueChip).length },
+                            { label: "Transfers",  value: allLeagueRecruits.filter(r => r.recruitType === "TRANSFER").length },
+                            { label: "JUCO",       value: allLeagueRecruits.filter(r => r.recruitType === "JUCO").length },
+                            { label: "Avg OVR",    value: allLeagueRecruits.length > 0 ? Math.round(allLeagueRecruits.reduce((s, r) => s + r.overall, 0) / allLeagueRecruits.length) : 0 },
+                          ].map(({ label, value }) => (
+                            <div key={label} className="flex flex-col items-center min-w-[52px]">
+                              <span className="font-pixel text-lg text-white">{value}</span>
+                              <span className="text-[10px] text-gray-500">{label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </RetroCardContent>
+                    </RetroCard>
+                  </>
+                ) : (
+                  <div className="text-center text-gray-500 py-16">
+                    <p className="font-pixel text-sm">No commits in this league</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════
+                ALL TEAMS TAB
+            ══════════════════════════════════════════════════════ */}
+            {signingTab === "all-teams" && data && (
+              <PostRevealSummary
+                teamData={data.teamData}
+                myTeamId={data.myTeamId}
+                currentSeason={data.league.currentSeason}
+              />
+            )}
+          </>
         ) : !showCards && data ? (
           /* Cinematic intro playing */
           <div className="flex flex-col items-center justify-center py-24 gap-6">
@@ -1415,6 +1607,7 @@ export default function SigningDayRevealPage() {
     </div>
   );
 }
+
 
 // ── PostRevealSummary ──────────────────────────────────────────
 // Shown after the full cinematic sequence — always-visible grouped grid, one section per team.
