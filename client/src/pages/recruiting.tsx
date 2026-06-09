@@ -3451,11 +3451,11 @@ function RecruitRow({
             </div>
           )}
 
-          {/* Trajectory row — hitters only; always shown, revealed after 50% scouted */}
+          {/* Trajectory row — hitters only; always shown, revealed after 50% scouted (blue chips always revealed) */}
           {!isPitcherRecruit && (
             <div className="flex items-center gap-1" data-testid={`traj-row-${recruit.id}`}>
               <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
-              {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null ? (
+              {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null ? (
                 <>
                   <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
                   <span className={`text-[9px] font-mono ${
@@ -4156,7 +4156,7 @@ function RecruitDetailModal({
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
-              {recruit.position !== "P" && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+              {recruit.position !== "P" && (scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null && (
                 <Badge variant="outline" className={`flex items-center gap-0.5 text-[9px] no-default-hover-elevate no-default-active-elevate ${
                   recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
                   recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
@@ -4323,7 +4323,7 @@ function RecruitDetailModal({
                 return (
                   <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <span className="text-sm text-muted-foreground">{p.label}</span>
-                    {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
+                    {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) ? (
                       <Badge variant="outline" className="text-xs whitespace-nowrap">
                         {priorityLabels[p.value as string] || p.value}
                       </Badge>
@@ -4336,7 +4336,7 @@ function RecruitDetailModal({
                 );
               })}
             </div>
-            {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && (
+            {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !recruit.isBlueChip && (
               <p className="text-xs text-muted-foreground text-center mt-2">
                 Scout to 50% to unlock priorities
               </p>
@@ -4762,7 +4762,7 @@ function RecruitDetailModal({
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
-              {recruit.position !== "P" && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+              {recruit.position !== "P" && (scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null && (
                 <Badge variant="outline" className={`flex items-center gap-0.5 text-[9px] no-default-hover-elevate no-default-active-elevate ${
                   recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
                   recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
@@ -4929,7 +4929,7 @@ function RecruitDetailModal({
                 return (
                   <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <span className="text-sm text-muted-foreground">{p.label}</span>
-                    {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
+                    {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) ? (
                       <Badge variant="outline" className="text-xs whitespace-nowrap">
                         {priorityLabels[p.value as string] || p.value}
                       </Badge>
@@ -4942,7 +4942,7 @@ function RecruitDetailModal({
                 );
               })}
             </div>
-            {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && (
+            {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !recruit.isBlueChip && (
               <p className="text-xs text-muted-foreground text-center mt-2">
                 Scout to 50% to unlock priorities
               </p>
@@ -5440,7 +5440,7 @@ function CompareModal({
                       <span>#{recruit.positionRank || "—"}</span>
                     </div>
                   </div>
-                  {recruit.position !== "P" && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+                  {recruit.position !== "P" && (scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null && (
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Trajectory</span>
