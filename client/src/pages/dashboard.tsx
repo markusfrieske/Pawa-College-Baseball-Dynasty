@@ -428,8 +428,8 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
 
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
-    preseason: "Spring",
-    spring_training: "Spring",
+    preseason: "Spring Training",
+    spring_training: "Spring Training",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",

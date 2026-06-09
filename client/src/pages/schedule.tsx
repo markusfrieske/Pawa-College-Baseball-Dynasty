@@ -39,6 +39,7 @@ interface ScheduleData {
   games: GameWithTeams[];
   currentWeek: number;
   currentSeason: number;
+  currentPhase: string;
   userTeamId: string | null;
   humanTeamIds: string[];
   humanCoachNames: Record<string, string>;
@@ -339,11 +340,12 @@ export default function SchedulePage() {
   const postseasonWeeks = weeks.filter(w => w.isPostseason);
 
   const currentWeekKey = useMemo(() => {
-    const inSpringTraining = exhibitionGames.length > 0 && !regularWeeks.find(w => w.isCurrentWeek) && (data?.currentWeek ?? 0) === 0;
+    // Auto-select spring training tab when the league is in preseason/spring_training and exhibition games exist
+    const inSpringTraining = (data?.currentPhase === "preseason" || data?.currentPhase === "spring_training") && exhibitionGames.length > 0;
     if (inSpringTraining) return "spring_training";
     const cur = regularWeeks.find(w => w.isCurrentWeek);
     return cur ? `week_${cur.weekNum}` : (regularWeeks[0] ? `week_${regularWeeks[0].weekNum}` : null);
-  }, [regularWeeks, exhibitionGames, data?.currentWeek]);
+  }, [regularWeeks, exhibitionGames, data?.currentWeek, data?.currentPhase]);
 
   const activeKey = selectedWeekKey ?? currentWeekKey;
 
@@ -417,7 +419,7 @@ export default function SchedulePage() {
               )}
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="w-4 h-4" />
-                <span>S{data?.currentSeason} · Wk {data?.currentWeek}</span>
+                <span>S{data?.currentSeason} · {data?.currentPhase === "preseason" || data?.currentPhase === "spring_training" ? "Spring Training" : `Wk ${data?.currentWeek}`}</span>
               </div>
             </div>
           </div>

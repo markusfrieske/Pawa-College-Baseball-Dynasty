@@ -126,6 +126,7 @@ export interface IStorage {
   getStandingsByTeam(teamId: string): Promise<Standings[]>;
   createStandings(standings: InsertStandings): Promise<Standings>;
   updateStandings(id: string, data: Partial<Standings>): Promise<Standings | undefined>;
+  incrementStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number, isConference?: boolean): Promise<void>;
 
   getAuditLogsByLeague(leagueId: string): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
@@ -681,6 +682,32 @@ export class DatabaseStorage implements IStorage {
   async updateStandings(id: string, data: Partial<Standings>): Promise<Standings | undefined> {
     const [standing] = await db.update(standings).set(data).where(eq(standings.id, id)).returning();
     return standing || undefined;
+  }
+
+  async incrementStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number, isConference: boolean = false): Promise<void> {
+    const homeWon = homeScore > awayScore;
+    // Ensure rows exist (defensive: should be pre-created at season start)
+    let [homeRow] = await db.select().from(standings).where(and(eq(standings.leagueId, leagueId), eq(standings.teamId, homeTeamId), eq(standings.season, season)));
+    if (!homeRow) homeRow = await this.createStandings({ leagueId, teamId: homeTeamId, season });
+    let [awayRow] = await db.select().from(standings).where(and(eq(standings.leagueId, leagueId), eq(standings.teamId, awayTeamId), eq(standings.season, season)));
+    if (!awayRow) awayRow = await this.createStandings({ leagueId, teamId: awayTeamId, season });
+    // Atomic SQL-level increments — safe when multiple games update the same team concurrently
+    await db.update(standings).set({
+      wins: sql`${standings.wins} + ${homeWon ? 1 : 0}`,
+      losses: sql`${standings.losses} + ${homeWon ? 0 : 1}`,
+      conferenceWins: sql`${standings.conferenceWins} + ${isConference && homeWon ? 1 : 0}`,
+      conferenceLosses: sql`${standings.conferenceLosses} + ${isConference && !homeWon ? 1 : 0}`,
+      runsScored: sql`${standings.runsScored} + ${homeScore}`,
+      runsAllowed: sql`${standings.runsAllowed} + ${awayScore}`,
+    }).where(eq(standings.id, homeRow.id));
+    await db.update(standings).set({
+      wins: sql`${standings.wins} + ${homeWon ? 0 : 1}`,
+      losses: sql`${standings.losses} + ${homeWon ? 1 : 0}`,
+      conferenceWins: sql`${standings.conferenceWins} + ${isConference && !homeWon ? 1 : 0}`,
+      conferenceLosses: sql`${standings.conferenceLosses} + ${isConference && homeWon ? 1 : 0}`,
+      runsScored: sql`${standings.runsScored} + ${awayScore}`,
+      runsAllowed: sql`${standings.runsAllowed} + ${homeScore}`,
+    }).where(eq(standings.id, awayRow.id));
   }
 
   async getAuditLogsByLeague(leagueId: string): Promise<AuditLog[]> {

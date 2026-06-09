@@ -6647,6 +6647,7 @@ export async function registerRoutes(
         games: gamesWithTeams,
         currentWeek: league.currentWeek,
         currentSeason: league.currentSeason,
+        currentPhase: league.currentPhase,
         userTeamId: userTeam?.id || null,
         humanTeamIds,
         humanCoachNames,
@@ -9463,7 +9464,10 @@ export async function registerRoutes(
       // ============ AUTO-SIMULATE REGULAR SEASON GAMES ============
       setAdvanceProgress(leagueId, "game_sim", 60);
       const seasonGames = await storage.getGamesByLeagueSeason(leagueId, league.currentSeason);
-      const incompleteGames = seasonGames.filter(g => 
+      // During preseason, skip regular season games — only exhibition games run below.
+      // Regular Season Week 1 games exist in the schedule from dynasty start and must NOT
+      // be simulated during the preseason advance tick.
+      const incompleteGames = league.currentPhase === "preseason" ? [] : seasonGames.filter(g => 
         g.week === currentWeek && 
         g.phase === "regular" && 
         !g.isComplete
@@ -10379,8 +10383,11 @@ export async function registerRoutes(
         console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr);
       }
 
+      // When transitioning from preseason to regular_season, always start at week 1
+      // (nextWeek would be 2, which skips week 1 entirely).
+      const newPhaseWeek = (newPhase === "regular_season" && (league.currentPhase === "preseason" || league.currentPhase === "spring_training")) ? 1 : nextWeek;
       const updatedLeague = await storage.updateLeague(league.id, {
-        currentWeek: nextWeek,
+        currentWeek: newPhaseWeek,
         currentPhase: newPhase,
         phaseDeadline: null,
       });
@@ -10548,7 +10555,8 @@ export async function registerRoutes(
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
           const allSeasonGames = await getSeasonGames();
-          const weekGames = allSeasonGames.filter(g => g.week === currentLeague.currentWeek && !g.isComplete);
+          // During preseason, skip regular season games — exhibition games are handled separately below.
+          const weekGames = allSeasonGames.filter(g => g.week === currentLeague.currentWeek && !g.isComplete && !(phase === "preseason" && g.phase === "regular"));
 
           // Sort within week by day order so fatigue carries Fri → Sat → Sun
         const dayOrder: Record<string, number> = { friday: 0, saturday: 1, sunday: 2, midweek: 3 };
@@ -10673,7 +10681,9 @@ export async function registerRoutes(
               await storage.clearProgressionDeltasForLeague(leagueId);
               console.log(`[Progression] Cleared progression deltas for league ${leagueId} (preseason -> regular_season)`);
             }
-            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+            // When transitioning from preseason to regular_season, always start at week 1
+            const newWeek = newPhase === "regular_season" && phase === "preseason" ? 1 : nextWeek;
+            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: newWeek, currentPhase: newPhase })) as any;
           }
           continue;
         }
@@ -11007,8 +11017,9 @@ export async function registerRoutes(
           const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
           if (["preseason", "spring_training", "regular_season"].includes(phase)) {
+            // During preseason, skip regular season games — exhibition games still need standings but aren't stored separately here
             const weekGames = (await storage.getGamesByLeague(leagueId))
-              .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+              .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete && !(phase === "preseason" && g.phase === "regular"));
             for (const game of weekGames) {
               const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId), game.week);
               await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
@@ -11023,7 +11034,9 @@ export async function registerRoutes(
             } else {
               const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
               if (newPhase === "regular_season" && phase === "preseason") await storage.clearProgressionDeltasForLeague(leagueId);
-              currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+              // When transitioning from preseason to regular_season, always start at week 1
+              const newWeek = newPhase === "regular_season" && phase === "preseason" ? 1 : nextWeek;
+              currentLeague = (await storage.updateLeague(leagueId, { currentWeek: newWeek, currentPhase: newPhase })) as any;
             }
             continue;
           }
@@ -11214,8 +11227,9 @@ export async function registerRoutes(
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (preseasonPhases.includes(phase)) {
+          // During preseason, skip regular season games — exhibition games are simulated for standings
           const weekGames = (await storage.getGamesByLeague(leagueId))
-            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete && !(phase === "preseason" && g.phase === "regular"));
           const weekSimResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, psPhilosophyMap.get(game.homeTeamId), psPhilosophyMap.get(game.awayTeamId), game.week);
@@ -11247,7 +11261,9 @@ export async function registerRoutes(
             if (newPhase === "regular_season" && phase === "preseason") {
               await storage.clearProgressionDeltasForLeague(leagueId);
             }
-            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+            // When transitioning from preseason to regular_season, always start at week 1
+            const newWeek = newPhase === "regular_season" && phase === "preseason" ? 1 : nextWeek;
+            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: newWeek, currentPhase: newPhase })) as any;
           }
           continue;
         }
@@ -11307,8 +11323,9 @@ export async function registerRoutes(
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (["preseason", "spring_training", "regular_season"].includes(phase)) {
+          // During preseason, skip regular season games — exhibition games are simulated for standings
           const weekGames = (await storage.getGamesByLeague(leagueId))
-            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete && !(phase === "preseason" && g.phase === "regular"));
           const cwsWeekResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
@@ -11340,7 +11357,9 @@ export async function registerRoutes(
             if (newPhase === "regular_season" && phase === "preseason") {
               await storage.clearProgressionDeltasForLeague(leagueId);
             }
-            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+            // When transitioning from preseason to regular_season, always start at week 1
+            const newWeek = newPhase === "regular_season" && phase === "preseason" ? 1 : nextWeek;
+            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: newWeek, currentPhase: newPhase })) as any;
           }
           continue;
         }
@@ -12293,38 +12312,9 @@ export async function registerRoutes(
   }
 
   // ============ STANDINGS UPDATE HELPER ============
+  // Delegates to atomic SQL increments to avoid race conditions when called concurrently (Promise.all).
   async function updateStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number, isConference: boolean = false) {
-    let standingsList = await storage.getStandingsByLeague(leagueId, season);
-    
-    let homeStanding = standingsList.find(s => s.teamId === homeTeamId);
-    let awayStanding = standingsList.find(s => s.teamId === awayTeamId);
-    
-    if (!homeStanding) {
-      homeStanding = await storage.createStandings({ leagueId, teamId: homeTeamId, season });
-    }
-    if (!awayStanding) {
-      awayStanding = await storage.createStandings({ leagueId, teamId: awayTeamId, season });
-    }
-    
-    const homeWon = homeScore > awayScore;
-    
-    await storage.updateStandings(homeStanding.id, {
-      wins: (homeStanding.wins || 0) + (homeWon ? 1 : 0),
-      losses: (homeStanding.losses || 0) + (homeWon ? 0 : 1),
-      conferenceWins: (homeStanding.conferenceWins || 0) + (isConference && homeWon ? 1 : 0),
-      conferenceLosses: (homeStanding.conferenceLosses || 0) + (isConference && !homeWon ? 1 : 0),
-      runsScored: (homeStanding.runsScored || 0) + homeScore,
-      runsAllowed: (homeStanding.runsAllowed || 0) + awayScore,
-    });
-    
-    await storage.updateStandings(awayStanding.id, {
-      wins: (awayStanding.wins || 0) + (homeWon ? 0 : 1),
-      losses: (awayStanding.losses || 0) + (homeWon ? 1 : 0),
-      conferenceWins: (awayStanding.conferenceWins || 0) + (isConference && !homeWon ? 1 : 0),
-      conferenceLosses: (awayStanding.conferenceLosses || 0) + (isConference && homeWon ? 1 : 0),
-      runsScored: (awayStanding.runsScored || 0) + awayScore,
-      runsAllowed: (awayStanding.runsAllowed || 0) + homeScore,
-    });
+    await storage.incrementStandingsForGame(leagueId, season, homeTeamId, awayTeamId, homeScore, awayScore, isConference);
   }
 
   // ============ CONFERENCE CHAMPIONSHIP GENERATION ============
