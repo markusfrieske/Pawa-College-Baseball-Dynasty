@@ -504,12 +504,11 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       </div>
 
       {/* Avatar */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)", padding: "4px" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)", padding: "4px", overflow: "hidden" }}>
         <PlayerAvatar
           skinTone={(recruit as unknown as Record<string, string>).skinTone ?? "medium"}
           playerId={recruit.id}
           size="lg"
-          className="w-full h-full"
           jerseyColor={primaryColor}
           isRecruit={false}
         />
@@ -674,13 +673,16 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
       className="w-full h-full flex flex-col overflow-hidden"
       style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
     >
-      {/* Header: name / pos·ovr | stars + potential */}
+      {/* Header: name / pos·rank | stars + potential */}
       <div className="px-2.5 py-1.5 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
         <div className="min-w-0">
           <div className="font-pixel text-[9px] text-[#C4A35A] truncate leading-tight">
             {recruit.firstName} {recruit.lastName}
           </div>
-          <div className="text-[9px] text-gray-500 leading-tight">{recruit.position} · {recruit.overall} OVR</div>
+          <div className="text-[9px] text-gray-500 leading-tight">
+            {recruit.position}
+            {recruit.positionRank > 0 && <span className="text-[#C4A35A]"> · #{recruit.positionRank} {recruit.position}</span>}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0">
           <StarRating rating={recruit.starRating} size="sm" />
@@ -1085,9 +1087,11 @@ export default function SigningDayRevealPage() {
     enabled: !!leagueId,
   });
 
-  // User's own team entry — drives fireworks color + gem ceremony
+  // User's own team entry — drives fireworks color + gem ceremony.
+  // Only resolve when myTeamId is set; never fall back to teamData[0]
+  // (that would show a CPU team's class as "My Class" for guests).
   const myTeamEntry = useMemo(
-    () => data?.teamData?.find(t => t.team.id === data?.myTeamId) ?? data?.teamData?.[0] ?? null,
+    () => (data?.myTeamId ? (data?.teamData?.find(t => t.team.id === data?.myTeamId) ?? null) : null),
     [data?.teamData, data?.myTeamId]
   );
   const teamColor = myTeamEntry?.team.primaryColor ?? "#C4A35A";
