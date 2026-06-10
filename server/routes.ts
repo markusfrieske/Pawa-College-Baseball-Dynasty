@@ -12598,60 +12598,23 @@ export async function registerRoutes(
       return { done: false };
     }
 
-    // ── Grand Final setup: WB champ vs LB champ ──────────────────────────────
-    // Works for any bracket size: find the WBChamp from the highest-round WBR game,
-    // and LBChamp from the highest-round LBR game.
-    const gf  = srGames.filter(g => g.bracketType === "grand_final");
-    if (!exists(gf)) {
-      const allWbGames = srGames.filter(g => g.bracketType === "winners");
-      const allLbGames = srGames.filter(g => g.bracketType === "losers");
-      if (exists(allWbGames) && exists(allLbGames) && allDone(allWbGames) && allDone(allLbGames)) {
-        const wbLastRound = Math.max(...allWbGames.map(g => g.bracketRound ?? 0));
-        const lbLastRound = Math.max(...allLbGames.map(g => g.bracketRound ?? 0));
-        const wbFinalGame = allWbGames.find(g => (g.bracketRound ?? 0) === wbLastRound);
-        const lbFinalGame = allLbGames.find(g => (g.bracketRound ?? 0) === lbLastRound);
-        if (wbFinalGame && lbFinalGame) {
-          // Determine WBChamp: winner of WB final, or if WB final only had 1 game and
-          // that's the last WBR stage, its winner is WBChamp
-          const wbChamp = getGameWinner(wbFinalGame);
-          const lbChamp = getGameWinner(lbFinalGame);
-          if (wbChamp && lbChamp) {
-            await storage.createGame({
-              leagueId, season, week: 0, homeTeamId: wbChamp, awayTeamId: lbChamp,
-              phase: "super_regionals", bracketType: "grand_final", bracketRound: 8,
-            });
-            return { done: false };
-          }
+    // ── Both WB and LB complete → advance to CWS directly ───────────────────
+    // No SR grand-final game is created.  WBChamp and LBChamp meet in the
+    // CWS best-of-3 — that IS the grand final.
+    const allWbGames = srGames.filter(g => g.bracketType === "winners");
+    const allLbGames = srGames.filter(g => g.bracketType === "losers");
+    if (exists(allWbGames) && exists(allLbGames) && allDone(allWbGames) && allDone(allLbGames)) {
+      const wbLastRound = Math.max(...allWbGames.map(g => g.bracketRound ?? 0));
+      const lbLastRound = Math.max(...allLbGames.map(g => g.bracketRound ?? 0));
+      const wbFinalGame = allWbGames.find(g => (g.bracketRound ?? 0) === wbLastRound);
+      const lbFinalGame = allLbGames.find(g => (g.bracketRound ?? 0) === lbLastRound);
+      if (wbFinalGame && lbFinalGame) {
+        const wbChamp = getGameWinner(wbFinalGame);
+        const lbChamp = getGameWinner(lbFinalGame);
+        if (wbChamp && lbChamp) {
+          return { done: true, champion1: wbChamp, champion2: lbChamp };
         }
       }
-    }
-
-    // ── Grand Final complete → check if reset needed ───────────────────────────
-    const gfReset = srGames.filter(g => g.bracketType === "grand_final_reset");
-    if (exists(gf) && allDone(gf) && !exists(gfReset)) {
-      const gfGame = gf[0];
-      // WBChamp is winner of the highest-round WBR game
-      const allWbGames = srGames.filter(g => g.bracketType === "winners");
-      const wbLastRound = allWbGames.length > 0 ? Math.max(...allWbGames.map(g => g.bracketRound ?? 0)) : 0;
-      const wbFinalGame = allWbGames.find(g => (g.bracketRound ?? 0) === wbLastRound);
-      const wbChamp  = wbFinalGame ? getGameWinner(wbFinalGame) : gfGame.homeTeamId;
-      const gfWinner = getGameWinner(gfGame);
-      // If LB champ wins grand final, both have 1 loss → reset game needed
-      if (gfWinner !== wbChamp) {
-        const gfLoser = getGameLoser(gfGame);
-        await storage.createGame({
-          leagueId, season, week: 0, homeTeamId: gfWinner, awayTeamId: gfLoser,
-          phase: "super_regionals", bracketType: "grand_final_reset", bracketRound: 9,
-        });
-        return { done: false };
-      }
-      // WB champ won the grand final → WB champ is SR champion, LB champ is runner-up
-      return { done: true, champion1: gfWinner, champion2: getGameLoser(gfGame) };
-    }
-
-    // ── Grand Final Reset complete → winner is SR champion ────────────────────
-    if (exists(gfReset) && allDone(gfReset)) {
-      return { done: true, champion1: getGameWinner(gfReset[0]), champion2: getGameLoser(gfReset[0]) };
     }
 
     return { done: false };
@@ -12674,8 +12637,13 @@ export async function registerRoutes(
       return idx >= 0 ? idx + 1 : 999;
     };
 
+    // Strip stale grand_final / grand_final_reset rows produced by old code paths.
+    // WBChamp and LBChamp are now derived directly from the winners/losers bracket.
+    const isBracketGame = (g: { bracketType?: string | null }) =>
+      g.bracketType !== "grand_final" && g.bracketType !== "grand_final_reset";
+
     // Simulate the current stage (all incomplete games at the earliest bracketRound)
-    const incompleteGames = srGames.filter(g => !g.isComplete);
+    const incompleteGames = srGames.filter(g => !g.isComplete && isBracketGame(g));
     if (incompleteGames.length > 0) {
       const minRound = Math.min(...incompleteGames.map(g => g.bracketRound ?? 0));
       const gamesToSimulate = incompleteGames.filter(g => (g.bracketRound ?? 0) === minRound);
@@ -12712,11 +12680,12 @@ export async function registerRoutes(
       console.log(`[advance-perf] super-regionals-sim: ${Date.now() - _srSimStart}ms`);
     }
 
-    // Re-fetch after simulation, then advance the double-elim state machine
+    // Re-fetch after simulation, then advance the double-elim state machine.
+    // Filter out any stale grand_final/grand_final_reset rows before passing in.
     srGames = (await storage.getGamesByLeague(leagueId))
       .filter(g => g.phase === "super_regionals" && g.season === season);
 
-    return processDoubleElim(leagueId, season, srGames, seededTeams, getTeamSeed);
+    return processDoubleElim(leagueId, season, srGames.filter(isBracketGame), seededTeams, getTeamSeed);
   }
 
   function getGameWinner(game: Game): string {

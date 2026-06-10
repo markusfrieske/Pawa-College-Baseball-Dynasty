@@ -267,33 +267,27 @@ function BracketSideView({
   sideLabel: string;
   seeds: SeedEntry[];
 }) {
-  const sideGames = games.filter(g => g.bracketSide === side);
+  // Filter by bracketType ("winners" or "losers") — bracketType is reliably written
+  // to the DB; bracketSide was not, so we no longer rely on it.
+  const sideGames = games.filter(g => g.bracketType === side);
   if (sideGames.length === 0) return null;
 
+  const minRound = Math.min(...sideGames.map(g => g.bracketRound ?? 1));
   const maxRound = Math.max(...sideGames.map(g => g.bracketRound ?? 1));
   const rounds: PostseasonGame[][] = [];
-  for (let r = 1; r <= maxRound; r++) {
-    rounds.push(sideGames.filter(g => (g.bracketRound ?? 1) === r));
+  for (let r = minRound; r <= maxRound; r++) {
+    const rg = sideGames.filter(g => (g.bracketRound ?? 1) === r);
+    if (rg.length > 0) rounds.push(rg);
   }
 
-  // Detect bye teams (in seeding for this side but not in any R1 game)
+  // Detect bye teams: seeded teams that appear in round 2+ but not round 1.
+  // This handles the #1 seed WBR1 bye and any LBR1 bye.
   const r1TeamIds = new Set<string>();
   rounds[0]?.forEach(g => { r1TeamIds.add(g.homeTeamId); r1TeamIds.add(g.awayTeamId); });
 
-  const N = seeds.length;
   const byeSeeds = seeds.filter(s => {
-    const assignedToSide = (() => {
-      if (N === 0) return false;
-      const idx = seeds.findIndex(x => x.teamId === s.teamId);
-      if (idx < 0) return false;
-      const seed = idx + 1;
-      const group = Math.ceil(seed / 2);
-      const posInGroup = (seed - 1) % 2;
-      const inA = (group % 2 === 1 && posInGroup === 0) || (group % 2 === 0 && posInGroup === 1);
-      return side === "A" ? inA : !inA;
-    })();
-    if (!assignedToSide) return false;
-    return !r1TeamIds.has(s.teamId) && !sideGames.some(g => g.homeTeamId === s.teamId || g.awayTeamId === s.teamId);
+    if (r1TeamIds.has(s.teamId)) return false;
+    return sideGames.some(g => g.homeTeamId === s.teamId || g.awayTeamId === s.teamId);
   });
 
   // CWS bound box
@@ -735,8 +729,6 @@ export default function PostseasonHubPage() {
     data.cws.length > 0
   );
 
-  const sides = ["A", "B"];
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
@@ -841,21 +833,21 @@ export default function PostseasonHubPage() {
                 <RetroCard>
                   <RetroCardContent>
                     <div className="space-y-6">
-                      {sides.map(side => {
-                        const sideGames = data.superRegionals.filter(g => g.bracketSide === side);
-                        if (sideGames.length === 0) return null;
+                      {(["winners", "losers"] as const).map(bracketType => {
+                        const typeGames = data.superRegionals.filter(g => g.bracketType === bracketType);
+                        if (typeGames.length === 0) return null;
                         return (
                           <BracketSideView
-                            key={side}
+                            key={bracketType}
                             games={data.superRegionals}
-                            side={side}
-                            sideLabel={`Bracket ${side}`}
+                            side={bracketType}
+                            sideLabel={bracketType === "winners" ? "Winners Bracket" : "Losers Bracket"}
                             seeds={data.seeds || []}
                           />
                         );
                       })}
-                      {/* Fallback: no bracketSide */}
-                      {data.superRegionals.every(g => !g.bracketSide) && (
+                      {/* Fallback: no bracketType set on any game */}
+                      {data.superRegionals.every(g => !g.bracketType) && (
                         <div className="grid sm:grid-cols-2 gap-3">
                           {data.superRegionals.map(g => (
                             <BracketNode key={g.id} game={g} seeds={data.seeds || []} />
