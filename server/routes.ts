@@ -17019,7 +17019,7 @@ export async function registerRoutes(
 
       const cwsGames = allGames
         .filter(g => g.phase === "cws" && g.season === season && g.isComplete)
-        .sort((a, b) => a.id.localeCompare(b.id));
+        .sort((a, b) => a.week - b.week || a.id.localeCompare(b.id));
 
       const teamCwsWins: Record<string, number> = {};
       const cwsTeamIds = new Set<string>();

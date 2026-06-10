@@ -451,9 +451,12 @@ export default function ChampionshipScreenPage() {
                     <span className="font-pixel text-[8px] text-muted-foreground w-4 flex-shrink-0 text-right">
                       {i + 1}
                     </span>
-                    <div
-                      className="w-1.5 h-full min-h-[12px] rounded-full flex-shrink-0"
-                      style={{ backgroundColor: team.primaryColor }}
+                    <TeamBadge
+                      abbreviation={team.abbreviation}
+                      primaryColor={team.primaryColor}
+                      size="xs"
+                      name={team.name}
+                      className="flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <p className={`text-[10px] font-medium truncate ${team.postseasonFinish === "champion" ? "text-yellow-300" : ""}`}>
@@ -550,12 +553,13 @@ export default function ChampionshipScreenPage() {
                           <p className="text-[10px] font-medium truncate">
                             {player.firstName[0]}. {player.lastName}
                           </p>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 flex-wrap">
                             <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
                             <span className="text-[7px] text-muted-foreground/60">
                               {ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}
                             </span>
                           </div>
+                          <StarDisplay stars={player.starRating} />
                         </div>
                       </div>
                     ))}
@@ -594,12 +598,13 @@ export default function ChampionshipScreenPage() {
                             <p className="text-[10px] font-medium truncate">
                               {player.firstName[0]}. {player.lastName}
                             </p>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 flex-wrap">
                               <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
                               <span className="text-[7px] text-muted-foreground/60">
                                 {ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}
                               </span>
                             </div>
+                            <StarDisplay stars={player.starRating} />
                           </div>
                         </div>
                       );
