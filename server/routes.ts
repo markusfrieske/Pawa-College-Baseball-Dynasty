@@ -17036,11 +17036,16 @@ export async function registerRoutes(
       const srTeamIds = new Set<string>();
       for (const g of srGames) { srTeamIds.add(g.homeTeamId); srTeamIds.add(g.awayTeamId); }
 
+      const ccGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season);
+      const ccTeamIds = new Set<string>();
+      for (const g of ccGames) { ccTeamIds.add(g.homeTeamId); ccTeamIds.add(g.awayTeamId); }
+
       const getPostseasonFinish = (teamId: string): string => {
         if (teamId === champId) return "champion";
         if (teamId === runnerUpId) return "runner_up";
         if (cwsTeamIds.has(teamId)) return "cws";
         if (srTeamIds.has(teamId)) return "super_regionals";
+        if (ccTeamIds.has(teamId)) return "conf_champ";
         return "regular_season";
       };
 

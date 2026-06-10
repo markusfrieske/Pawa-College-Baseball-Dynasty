@@ -105,6 +105,75 @@ const STAR_COLORS: Record<number, string> = {
   4: "text-yellow-400", 5: "text-orange-400",
 };
 
+function PlayerSilhouette({
+  primaryColor,
+  isPitcher = false,
+  size = 32,
+}: {
+  primaryColor: string;
+  isPitcher?: boolean;
+  size?: number;
+}) {
+  const jersey = primaryColor;
+  const skin = "#d4a574";
+  const pants = "#e8e8e8";
+
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={size}
+      height={size}
+      style={{ imageRendering: "pixelated" }}
+      shapeRendering="crispEdges"
+    >
+      {/* Head */}
+      <rect x="12" y="2" width="8" height="8" fill={skin} />
+      <rect x="11" y="3" width="1" height="6" fill={skin} />
+      <rect x="20" y="3" width="1" height="6" fill={skin} />
+      {/* Cap */}
+      <rect x="11" y="2" width="10" height="2" fill="#1a1a1a" />
+      <rect x="10" y="3" width="13" height="1" fill="#1a1a1a" />
+      {/* Eyes */}
+      <rect x="13" y="6" width="2" height="1" fill="#1a1a1a" />
+      <rect x="17" y="6" width="2" height="1" fill="#1a1a1a" />
+      {/* Jersey body */}
+      <rect x="10" y="10" width="12" height="9" fill={jersey} />
+      <rect x="9" y="11" width="1" height="7" fill={jersey} />
+      <rect x="22" y="11" width="1" height="7" fill={jersey} />
+      {/* Jersey number area */}
+      <rect x="13" y="12" width="6" height="5" fill={jersey} rx="0" />
+      {/* Arms */}
+      {isPitcher ? (
+        <>
+          {/* Pitching arm raised */}
+          <rect x="6" y="8" width="3" height="6" fill={jersey} />
+          <rect x="23" y="11" width="3" height="5" fill={jersey} />
+          <rect x="5" y="7" width="3" height="2" fill={skin} />
+        </>
+      ) : (
+        <>
+          {/* Batting stance — arms out */}
+          <rect x="6" y="11" width="3" height="4" fill={jersey} />
+          <rect x="23" y="10" width="4" height="3" fill={jersey} />
+          {/* Bat */}
+          <rect x="25" y="7" width="2" height="5" fill="#8B6914" />
+          <rect x="26" y="6" width="1" height="2" fill="#6B4F10" />
+        </>
+      )}
+      {/* Pants */}
+      <rect x="11" y="19" width="4" height="9" fill={pants} />
+      <rect x="17" y="19" width="4" height="9" fill={pants} />
+      {/* Belt */}
+      <rect x="10" y="18" width="12" height="2" fill={jersey} />
+      {/* Cleats */}
+      <rect x="10" y="28" width="5" height="2" fill="#1a1a1a" />
+      <rect x="9" y="29" width="5" height="1" fill="#1a1a1a" />
+      <rect x="17" y="28" width="5" height="2" fill="#1a1a1a" />
+      <rect x="18" y="29" width="5" height="1" fill="#1a1a1a" />
+    </svg>
+  );
+}
+
 function StarDisplay({ stars }: { stars: number }) {
   return (
     <span className={`font-pixel text-[7px] ${STAR_COLORS[stars] ?? "text-muted-foreground"}`}>
@@ -544,10 +613,10 @@ export default function ChampionshipScreenPage() {
                         data-testid={`card-lineup-player-${player.id}`}
                       >
                         <div
-                          className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold"
-                          style={{ backgroundColor: `rgba(${primaryRgb}, 0.2)`, color: champion.primaryColor }}
+                          className="w-8 h-8 rounded overflow-hidden flex-shrink-0 bg-muted/20"
+                          style={{ backgroundColor: `rgba(${primaryRgb}, 0.15)` }}
                         >
-                          {player.position.substring(0, 2)}
+                          <PlayerSilhouette primaryColor={champion.primaryColor} isPitcher={false} size={32} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-[10px] font-medium truncate">
@@ -579,8 +648,8 @@ export default function ChampionshipScreenPage() {
                           className="flex items-center gap-2 px-2 py-2 rounded bg-purple-500/10 border border-purple-500/20"
                           data-testid={`card-lineup-pitcher-${player.id}`}
                         >
-                          <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold bg-purple-500/20 text-purple-300">
-                            {player.position.substring(0, 2)}
+                          <div className="w-8 h-8 rounded overflow-hidden flex-shrink-0 bg-purple-500/20">
+                            <PlayerSilhouette primaryColor={champion.primaryColor} isPitcher={true} size={32} />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1 mb-0.5">
