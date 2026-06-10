@@ -1843,6 +1843,15 @@ export function generateRecruitClass(
     } else if (isGenerationalBust) {
       // Clamp both pitcher and hitter generational busts to [150, 199].
       overall = Math.max(150, Math.min(199, overall));
+    } else if (isGem && !isGenerationalGem) {
+      // Regular gems: convergence can miss the band by 1-3 pts due to step sizes + pitch-mix
+      // stochasticity. Hard-clamp to [gemLo, gemHi] so stored OVR always matches the band.
+      const [gemLo, gemHi] = getRecruitOvrBand(starRank, true, false, false, false, false);
+      overall = Math.max(gemLo, Math.min(gemHi, overall));
+    } else if (isBlueChip && !isGem) {
+      // Blue chips: same edge case — hard-clamp stored OVR to the blue chip band.
+      const [bcLo, bcHi] = getRecruitOvrBand(starRank, false, false, true, false, false);
+      overall = Math.max(bcLo, Math.min(bcHi, overall));
     } else if (isBust && !isGenerationalGem) {
       // Regular busts: convergence can miss the band by 1-2 pts due to step sizes.
       const [bustLo, bustHi] = getRecruitOvrBand(starRank, false, true, false, false, false);

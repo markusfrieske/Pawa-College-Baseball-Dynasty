@@ -39,13 +39,16 @@ After vel=ctrl=stam=99 + pitch rerolls still leave OVR < retryLo with 0 gold:
 Raised from 10 → 20 per class. Pitcher gems legitimately add 1-2 extra gold per
 class when protected; 20 catches genuine bugs without false-positives.
 
-## Bust Band Clamps (post-hoc safety nets)
-Regular busts: use full `[bustLo, bustHi]` clamp from `getRecruitOvrBand`
-(floor AND ceiling). Floor-only caused Bust 3★ hitter OVR=202 > 199 ceiling.
+## Band Clamps (post-hoc safety nets)
+These clamps live just after the `isGenerationalBust` clamp block in recruit-generator.ts:
+
+- **Gem clamp** (`isGem && !isGenerationalGem`): hard-clamps stored OVR to `[gemLo, gemHi]`. Without it, a 3★ gem pitcher can land OVR=497 (just under the 500 floor) due to pitch-mix stochasticity after retry loops exhaust. Added to match the bust clamp.
+- **BlueChip clamp** (`isBlueChip && !isGem`): same edge case — hard-clamps to blue chip band.
+- **Bust clamp** (`isBust && !isGenerationalGem`): full `[bustLo, bustHi]` clamp. Floor-only caused Bust 3★ hitter OVR=202 > 199 ceiling.
 
 GenBust clamp extended to hitter genBusts (was pitcher-only previously).
 
-**Why:** Step-size convergence misses band by 1-2 pts in either direction; clamps handle edge cases without forcing extra retry complexity.
+**Why:** Step-size convergence misses band by 1-3 pts in either direction; clamps handle edge cases without forcing extra retry complexity.
 
 ## Stamina bands for bust pitchers
 - Bust 3★ (target 150–199): stam band [1, 19]. Starter stam (80+) contributes ~82 pts alone.
