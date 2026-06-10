@@ -203,8 +203,8 @@ export function qualityTierFromStars(stars: number): QualityTier {
 
 function pitchCountForTier(tier: QualityTier): number {
   switch (tier) {
-    case "elite":   return 5 + Math.floor(Math.random() * 2); // 5–6
-    case "great":   return 4 + Math.floor(Math.random() * 2); // 4–5
+    case "elite":   return 5; // exactly 5
+    case "great":   return 4; // exactly 4
     case "solid":   return 3 + Math.floor(Math.random() * 2); // 3–4
     case "average": return 2 + Math.floor(Math.random() * 2); // 2–3
   }
