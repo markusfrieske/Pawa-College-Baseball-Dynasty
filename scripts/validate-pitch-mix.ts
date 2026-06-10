@@ -44,6 +44,7 @@ import type { RealPlayer } from "../server/realRosters";
 import {
   assignPitcherArchetype,
   generateArchetypePitchMix,
+  pitchCountForTier,
   qualityTierFromOvr,
   type PitcherArchetype,
   type QualityTier,
@@ -247,7 +248,81 @@ if (archetypeErrors > 0) {
 console.log(`  ✓ ${archetypes.length * tiers.length} archetype/tier combos × ${SAMPLE_SIZE} samples: all pitch counts, level caps, and binary rules correct`);
 console.log(`  ✓ Archetype routing checks: ${archetypeRoutingChecks.length}/${archetypeRoutingChecks.length} passed`);
 
-// ─── Section 3: Distribution report ──────────────────────────────────────────
+// ─── Section 3: Per-tier pitch count cap assertions ───────────────────────────
+//
+// pitchCountForTier defines the authoritative caps:
+//   elite   → exactly 5   (cap ≤ 5)
+//   great   → exactly 4   (cap ≤ 4)
+//   solid   → 3–4         (cap ≤ 4)
+//   average → 2–3         (cap ≤ 3)
+//
+// Two sub-checks:
+//   3a. pitchCountForTier itself never returns above cap.
+//   3b. generateArchetypePitchMix never produces more active pitches than cap.
+//       (FB counts as one active pitch, so elite cap=5 means at most 5 total.)
+
+const TIER_CAPS: Record<QualityTier, number> = {
+  elite:   5,
+  great:   4,
+  solid:   4,
+  average: 3,
+};
+
+const TIER_FLOORS: Record<QualityTier, number> = {
+  elite:   5,
+  great:   4,
+  solid:   3,
+  average: 2,
+};
+
+const CAP_SAMPLE = 2000;
+let capErrors = 0;
+
+console.log("\n── Per-tier pitch count cap assertions ──");
+
+// 3a: pitchCountForTier never returns above cap or below floor
+for (const tier of tiers) {
+  const cap   = TIER_CAPS[tier];
+  const floor = TIER_FLOORS[tier];
+  let aboveCap  = 0;
+  let belowFloor = 0;
+  for (let n = 0; n < CAP_SAMPLE; n++) {
+    const count = pitchCountForTier(tier);
+    if (count > cap)   aboveCap++;
+    if (count < floor) belowFloor++;
+  }
+  if (aboveCap > 0 || belowFloor > 0) {
+    capErrors++;
+    console.error(`  ✗ pitchCountForTier("${tier}"): aboveCap(>${cap})=${aboveCap} belowFloor(<${floor})=${belowFloor} / ${CAP_SAMPLE} samples`);
+  }
+}
+
+// 3b: generateArchetypePitchMix never produces more active pitches than cap
+for (const archetype of archetypes) {
+  for (const tier of tiers) {
+    const cap = TIER_CAPS[tier];
+    let exceeded = 0;
+    for (let n = 0; n < CAP_SAMPLE; n++) {
+      const mix = generateArchetypePitchMix(archetype, tier);
+      const active = (Object.keys(mix) as (keyof typeof mix)[]).filter(k => mix[k] > 0).length;
+      if (active > cap) exceeded++;
+    }
+    if (exceeded > 0) {
+      capErrors++;
+      console.error(`  ✗ generateArchetypePitchMix("${archetype}", "${tier}"): ${exceeded}/${CAP_SAMPLE} mixes exceeded cap of ${cap} active pitches`);
+    }
+  }
+}
+
+if (capErrors > 0) {
+  console.error(`\n✗ ${capErrors} pitch count cap violation(s). pitchCountForTier or generateArchetypePitchMix is producing arsenals above the tier cap.\n`);
+  process.exit(1);
+}
+
+console.log(`  ✓ pitchCountForTier: all ${tiers.length} tiers × ${CAP_SAMPLE} samples within [floor, cap]`);
+console.log(`  ✓ generateArchetypePitchMix: all ${archetypes.length * tiers.length} archetype/tier combos × ${CAP_SAMPLE} samples at or below cap`);
+
+// ─── Section 4: Distribution report ──────────────────────────────────────────
 console.log("\n── Pitch distribution across all real pitchers ──");
 
 const counts: Record<string, number> = {

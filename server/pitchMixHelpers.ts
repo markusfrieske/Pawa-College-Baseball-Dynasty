@@ -201,7 +201,7 @@ export function qualityTierFromStars(stars: number): QualityTier {
   return "average";
 }
 
-function pitchCountForTier(tier: QualityTier): number {
+export function pitchCountForTier(tier: QualityTier): number {
   switch (tier) {
     case "elite":   return 5; // exactly 5
     case "great":   return 4; // exactly 4
