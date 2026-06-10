@@ -1486,6 +1486,9 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                               ) : (
                                 <span className="text-xs text-orange-400 ml-1">(CPU)</span>
                               )}
+                              {(team.coach as any).archetype && (
+                                <div className="text-[10px] text-muted-foreground/60 mt-0.5">{(team.coach as any).archetype}</div>
+                              )}
                             </div>
                           </div>
                         </Link>
@@ -1669,10 +1672,17 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
                     {team.coach ? (
                       <>
                         <User className="w-3 h-3 text-gold" />
-                        <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
-                        {team.user && (
-                          <span className="text-muted-foreground">({team.user.email.split("@")[0]})</span>
-                        )}
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
+                            {team.user && (
+                              <span className="text-muted-foreground">({team.user.email.split("@")[0]})</span>
+                            )}
+                          </div>
+                          {(team.coach as any).archetype && (
+                            <div className="text-[10px] text-muted-foreground/60">{(team.coach as any).archetype}</div>
+                          )}
+                        </div>
                       </>
                     ) : (
                       <>

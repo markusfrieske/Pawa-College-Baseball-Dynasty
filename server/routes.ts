@@ -772,6 +772,7 @@ export async function registerRoutes(
             firstName: coach.firstName,
             lastName: coach.lastName,
             userId: coach.userId,
+            archetype: coach.archetype,
           } : null,
           user,
         };
@@ -9058,6 +9059,7 @@ export async function registerRoutes(
           teamName: coachTeam?.name ?? null,
           abbreviation: coachTeam?.abbreviation ?? null,
           isAutoPilot: coachTeam?.isAutoPilot ?? false,
+          archetype: c.archetype,
         };
       });
 

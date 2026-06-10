@@ -73,6 +73,7 @@ interface HumanCoach {
   teamName: string | null;
   abbreviation: string | null;
   isAutoPilot: boolean;
+  archetype?: string;
 }
 
 interface CommissionerData {
@@ -2610,6 +2611,9 @@ function SettingsTab({
                           <Badge className="text-[8px] bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0 px-1">AUTO-PILOT</Badge>
                         )}
                       </div>
+                      {coach.archetype && (
+                        <p className="text-[10px] text-muted-foreground/70 truncate">{coach.archetype}</p>
+                      )}
                       {coach.teamName && (
                         <p className="text-xs text-muted-foreground truncate">{coach.teamName}</p>
                       )}
@@ -2693,6 +2697,9 @@ function SettingsTab({
                       <p className="text-sm font-medium truncate">
                         {coach.firstName} {coach.lastName}
                       </p>
+                      {coach.archetype && (
+                        <p className="text-[10px] text-muted-foreground/70 truncate">{coach.archetype}</p>
+                      )}
                       <p className="text-xs text-muted-foreground truncate">{coach.email}</p>
                     </div>
                     {isPrimary && (
