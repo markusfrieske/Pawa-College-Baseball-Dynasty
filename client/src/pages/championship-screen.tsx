@@ -1,0 +1,539 @@
+import { useQuery } from "@tanstack/react-query";
+import { useParams, Link, useLocation } from "wouter";
+import { RetroButton } from "@/components/ui/retro-button";
+import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Trophy, ArrowLeft, Crown, Printer, Award, Star, Users, Medal } from "lucide-react";
+
+interface ChampionInfo {
+  id: string;
+  name: string;
+  mascot: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  wins: number;
+  losses: number;
+  conferenceName: string;
+}
+
+interface RunnerUpInfo {
+  id: string;
+  name: string;
+  abbreviation: string;
+  primaryColor: string;
+  wins: number;
+  losses: number;
+}
+
+interface CWSGame {
+  gameNumber: number;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeTeamAbbr: string;
+  awayTeamAbbr: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeScore: number;
+  awayScore: number;
+  winnerId: string;
+}
+
+interface StandingEntry {
+  teamId: string;
+  name: string;
+  abbreviation: string;
+  primaryColor: string;
+  wins: number;
+  losses: number;
+  conferenceName: string;
+  postseasonFinish: string;
+}
+
+interface AwardEntry {
+  playerName: string;
+  position: string;
+  teamName: string;
+  teamAbbr: string;
+  overall: number;
+  starRating: number;
+}
+
+interface LineupPlayer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  eligibility: string;
+  overall: number;
+  starRating: number;
+  isPitcher: boolean;
+}
+
+interface ChampionshipData {
+  leagueName: string;
+  season: number;
+  champion: ChampionInfo | null;
+  runnerUp: RunnerUpInfo | null;
+  cwsGames: CWSGame[];
+  cwsSeries: { championWins: number; runnerUpWins: number };
+  standings: StandingEntry[];
+  awards: {
+    mvp: AwardEntry | null;
+    pitcherOfYear: AwardEntry | null;
+    freshmanOfYear: AwardEntry | null;
+  };
+  startingLineup: LineupPlayer[];
+}
+
+function hexToRgb(hex: string): string {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+const ELIGIBILITY_LABELS: Record<string, string> = {
+  FR: "FR",
+  SO: "SO",
+  JR: "JR",
+  SR: "SR",
+};
+
+const STAR_COLORS: Record<number, string> = {
+  1: "text-gray-400",
+  2: "text-blue-400",
+  3: "text-green-400",
+  4: "text-yellow-400",
+  5: "text-orange-400",
+};
+
+function StarDisplay({ stars }: { stars: number }) {
+  return (
+    <span className={`font-pixel text-[7px] ${STAR_COLORS[stars] ?? "text-muted-foreground"}`}>
+      {"★".repeat(stars)}
+    </span>
+  );
+}
+
+const FINISH_CONFIG: Record<string, { label: string; className: string }> = {
+  champion: { label: "CHAMPION", className: "bg-yellow-500/20 text-yellow-300 border-yellow-500/40" },
+  runner_up: { label: "RUNNER-UP", className: "bg-gray-400/20 text-gray-300 border-gray-400/40" },
+  cws: { label: "CWS", className: "bg-blue-500/20 text-blue-300 border-blue-500/40" },
+  super_regionals: { label: "SUPER REG", className: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+  conf_champ: { label: "CONF CHAMP", className: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" },
+  regular_season: { label: "", className: "" },
+};
+
+function PostseasonBadge({ finish }: { finish: string }) {
+  const cfg = FINISH_CONFIG[finish];
+  if (!cfg || !cfg.label) return null;
+  return (
+    <Badge variant="outline" className={`font-pixel text-[6px] px-1 py-0 h-auto ${cfg.className}`}>
+      {cfg.label}
+    </Badge>
+  );
+}
+
+export default function ChampionshipScreenPage() {
+  const { id, season: seasonParam } = useParams<{ id: string; season: string }>();
+  const season = parseInt(seasonParam ?? "1");
+  const [, navigate] = useLocation();
+
+  const { data, isLoading, isError } = useQuery<ChampionshipData>({
+    queryKey: ["/api/leagues", id, "championship-screen", season],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/championship-screen/${season}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load championship data");
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="space-y-4 w-full max-w-2xl px-4">
+          <Skeleton className="h-48 w-full rounded-lg" />
+          <Skeleton className="h-32 w-full rounded-lg" />
+          <Skeleton className="h-64 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RetroCard variant="bordered" className="text-center p-8 max-w-sm">
+          <Trophy className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <h2 className="font-pixel text-gold text-sm mb-4">Championship data not available</h2>
+          <Link href={`/league/${id}`}>
+            <RetroButton variant="outline">Back to League</RetroButton>
+          </Link>
+        </RetroCard>
+      </div>
+    );
+  }
+
+  const { champion, runnerUp, cwsGames, cwsSeries, standings, awards, startingLineup } = data;
+  const primaryRgb = champion?.primaryColor ? hexToRgb(champion.primaryColor) : "212, 175, 55";
+  const secondaryRgb = champion?.secondaryColor ? hexToRgb(champion.secondaryColor) : "0, 0, 0";
+
+  const positionPlayers = startingLineup.filter(p => !p.isPitcher);
+  const pitcherPlayers = startingLineup.filter(p => p.isPitcher);
+
+  return (
+    <div className="min-h-screen bg-background print:bg-white" data-testid="page-championship-screen">
+
+      {/* ── Hero Section ──────────────────────────────────────────── */}
+      <div
+        className="relative overflow-hidden"
+        style={{
+          background: `radial-gradient(ellipse at center, rgba(${primaryRgb}, 0.25) 0%, rgba(${primaryRgb}, 0.08) 50%, transparent 100%)`,
+          borderBottom: `1px solid rgba(${primaryRgb}, 0.3)`,
+        }}
+      >
+        {/* Subtle secondary color accent */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `linear-gradient(135deg, transparent 60%, rgba(${secondaryRgb}, 0.06) 100%)`,
+          }}
+        />
+
+        {/* Nav row */}
+        <div className="relative z-10 container mx-auto px-4 pt-4 pb-2">
+          <Link href={`/league/${id}`}>
+            <button className="flex items-center gap-1.5 text-muted-foreground hover:text-gold transition-colors text-xs print:hidden">
+              <ArrowLeft className="w-4 h-4" />
+              Back to League
+            </button>
+          </Link>
+        </div>
+
+        {/* Main hero content */}
+        <div className="relative z-10 container mx-auto px-4 py-10 text-center">
+          {/* Season label */}
+          <p className="font-pixel text-[8px] text-muted-foreground tracking-widest uppercase mb-3">
+            {data.leagueName} &bull; Season {data.season}
+          </p>
+
+          {/* Trophy icon */}
+          <div
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 border-2"
+            style={{
+              backgroundColor: `rgba(${primaryRgb}, 0.15)`,
+              borderColor: `rgba(${primaryRgb}, 0.4)`,
+            }}
+          >
+            <Trophy
+              className="w-10 h-10"
+              style={{ color: champion?.primaryColor ?? "#D4AF37" }}
+            />
+          </div>
+
+          {/* NATIONAL CHAMPIONS headline */}
+          <h1 className="font-pixel text-[11px] sm:text-[13px] tracking-wide mb-2" style={{ color: champion?.primaryColor ?? "#D4AF37" }}>
+            NATIONAL CHAMPIONS
+          </h1>
+
+          {/* Team name */}
+          {champion && (
+            <>
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-1 tracking-tight">
+                {champion.name}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-2">
+                {champion.mascot}
+                {champion.conferenceName && (
+                  <span className="ml-2 text-muted-foreground/60">&bull; {champion.conferenceName}</span>
+                )}
+              </p>
+              <p className="font-pixel text-[10px] text-muted-foreground">
+                Season Record: <span className="text-foreground">{champion.wins}–{champion.losses}</span>
+              </p>
+            </>
+          )}
+
+          {/* Series result */}
+          {champion && runnerUp && (
+            <div className="mt-6 inline-flex items-center gap-4 px-6 py-3 rounded-lg border"
+              style={{ borderColor: `rgba(${primaryRgb}, 0.3)`, backgroundColor: `rgba(${primaryRgb}, 0.08)` }}>
+              <div className="text-center">
+                <p className="font-pixel text-[8px] text-muted-foreground mb-0.5">CHAMPIONS</p>
+                <p className="font-medium text-sm" style={{ color: champion.primaryColor }}>{champion.abbreviation}</p>
+                <p className="font-pixel text-xl" style={{ color: champion.primaryColor }}>{cwsSeries.championWins}</p>
+              </div>
+              <div className="text-center">
+                <Crown className="w-5 h-5 mx-auto mb-1" style={{ color: champion.primaryColor }} />
+                <p className="font-pixel text-[7px] text-muted-foreground">CWS FINAL</p>
+              </div>
+              <div className="text-center">
+                <p className="font-pixel text-[8px] text-muted-foreground mb-0.5">RUNNER-UP</p>
+                <p className="font-medium text-sm text-muted-foreground">{runnerUp.abbreviation}</p>
+                <p className="font-pixel text-xl text-muted-foreground">{cwsSeries.runnerUpWins}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Print button */}
+        <div className="relative z-10 container mx-auto px-4 pb-4 flex justify-end print:hidden">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-xs"
+            data-testid="button-print-championship"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            Print / Save
+          </button>
+        </div>
+      </div>
+
+      {/* ── Body ─────────────────────────────────────────────────── */}
+      <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
+
+        {/* CWS Game-by-Game */}
+        {cwsGames.length > 0 && (
+          <RetroCard data-testid="card-cws-games">
+            <RetroCardHeader>
+              <div className="flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-gold" />
+                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">COLLEGE WORLD SERIES — GAME LOG</h3>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent>
+              <div className="space-y-2">
+                {cwsGames.map(game => {
+                  const homeWon = game.homeScore > game.awayScore;
+                  const awayWon = game.awayScore > game.homeScore;
+                  return (
+                    <div
+                      key={game.gameNumber}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded bg-muted/20 border border-border/30"
+                      data-testid={`row-cws-game-${game.gameNumber}`}
+                    >
+                      <span className="font-pixel text-[7px] text-muted-foreground w-10 flex-shrink-0">
+                        GAME {game.gameNumber}
+                      </span>
+
+                      {/* Away team */}
+                      <div className={`flex items-center gap-2 flex-1 ${awayWon ? "" : "opacity-60"}`}>
+                        <span className={`text-[10px] font-medium truncate ${awayWon ? "text-foreground" : "text-muted-foreground"}`}>
+                          {game.awayTeamName}
+                        </span>
+                        <span className={`font-pixel text-sm flex-shrink-0 ml-auto ${awayWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
+                          {game.awayScore}
+                        </span>
+                      </div>
+
+                      <span className="font-pixel text-[8px] text-muted-foreground/40 flex-shrink-0 px-1">@</span>
+
+                      {/* Home team */}
+                      <div className={`flex items-center gap-2 flex-1 ${homeWon ? "" : "opacity-60"}`}>
+                        <span className={`font-pixel text-sm flex-shrink-0 ${homeWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
+                          {game.homeScore}
+                        </span>
+                        <span className={`text-[10px] font-medium truncate ${homeWon ? "text-foreground" : "text-muted-foreground"}`}>
+                          {game.homeTeamName}
+                        </span>
+                      </div>
+
+                      {game.winnerId === champion?.id && (
+                        <Crown className="w-3 h-3 flex-shrink-0" style={{ color: champion?.primaryColor ?? "#D4AF37" }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+        )}
+
+        {/* Final Rankings + Awards (two-column on desktop) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Final Rankings */}
+          <RetroCard data-testid="card-final-rankings">
+            <RetroCardHeader>
+              <div className="flex items-center gap-2">
+                <Medal className="w-4 h-4 text-gold" />
+                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">FINAL RANKINGS</h3>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent>
+              <div className="space-y-1.5">
+                {standings.map((team, i) => (
+                  <div
+                    key={team.teamId}
+                    className={`flex items-center gap-2 px-2 py-2 rounded border transition-colors
+                      ${team.postseasonFinish === "champion"
+                        ? "bg-yellow-500/10 border-yellow-500/30"
+                        : team.postseasonFinish === "runner_up"
+                        ? "bg-gray-500/10 border-gray-500/20"
+                        : "bg-muted/20 border-border/20"
+                      }`}
+                    data-testid={`row-ranking-${i + 1}`}
+                  >
+                    <span className="font-pixel text-[8px] text-muted-foreground w-4 flex-shrink-0 text-right">
+                      {i + 1}
+                    </span>
+                    <div
+                      className="w-1.5 h-full min-h-[12px] rounded-full flex-shrink-0"
+                      style={{ backgroundColor: team.primaryColor }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[10px] font-medium truncate ${team.postseasonFinish === "champion" ? "text-yellow-300" : ""}`}>
+                        {team.name}
+                      </p>
+                      {team.conferenceName && (
+                        <p className="text-[8px] text-muted-foreground/60 truncate">{team.conferenceName}</p>
+                      )}
+                    </div>
+                    <PostseasonBadge finish={team.postseasonFinish} />
+                    <span className="font-pixel text-[8px] text-muted-foreground flex-shrink-0 ml-1">
+                      {team.wins}–{team.losses}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+
+          {/* Season Awards */}
+          <RetroCard data-testid="card-season-awards">
+            <RetroCardHeader>
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-gold" />
+                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">SEASON AWARDS</h3>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent>
+              <div className="space-y-3">
+                {[
+                  { label: "PLAYER OF THE YEAR", award: awards.mvp },
+                  { label: "PITCHER OF THE YEAR", award: awards.pitcherOfYear },
+                  { label: "FRESHMAN OF THE YEAR", award: awards.freshmanOfYear },
+                ].map(({ label, award }) =>
+                  award ? (
+                    <div
+                      key={label}
+                      className="px-3 py-3 rounded bg-muted/20 border border-border/30"
+                      data-testid={`card-award-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                    >
+                      <p className="font-pixel text-[6px] text-gold/70 tracking-widest mb-1.5">{label}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{award.playerName}</p>
+                          <p className="text-[9px] text-muted-foreground">
+                            {award.position} &bull; {award.teamName}
+                          </p>
+                          <div className="mt-0.5">
+                            <StarDisplay stars={award.starRating} />
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-pixel text-lg text-gold">{award.overall}</p>
+                          <p className="font-pixel text-[6px] text-muted-foreground">OVR</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+        </div>
+
+        {/* Champion Starting Lineup */}
+        {startingLineup.length > 0 && champion && (
+          <RetroCard data-testid="card-starting-lineup">
+            <RetroCardHeader>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-gold" />
+                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">
+                  {champion.abbreviation} CHAMPION ROSTER HIGHLIGHTS
+                </h3>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent>
+              <div className="mb-3">
+                <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Position Players</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {positionPlayers.map(player => (
+                    <div
+                      key={player.id}
+                      className="flex items-center gap-2 px-2 py-2 rounded bg-muted/20 border border-border/30"
+                      data-testid={`card-lineup-player-${player.id}`}
+                    >
+                      <div
+                        className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold"
+                        style={{ backgroundColor: `rgba(${primaryRgb}, 0.2)`, color: champion.primaryColor }}
+                      >
+                        {player.position.substring(0, 2)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-medium truncate">
+                          {player.firstName[0]}. {player.lastName}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
+                          <span className="text-[7px] text-muted-foreground/60">{ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {pitcherPlayers.length > 0 && (
+                <div>
+                  <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Key Pitchers</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {pitcherPlayers.map(player => (
+                      <div
+                        key={player.id}
+                        className="flex items-center gap-2 px-2 py-2 rounded bg-purple-500/10 border border-purple-500/20"
+                        data-testid={`card-lineup-pitcher-${player.id}`}
+                      >
+                        <div className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold bg-purple-500/20 text-purple-300">
+                          {player.position.substring(0, 2)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-medium truncate">
+                            {player.firstName[0]}. {player.lastName}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
+                            <span className="text-[7px] text-muted-foreground/60">{ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </RetroCardContent>
+          </RetroCard>
+        )}
+
+        {/* Footer actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-8 print:hidden">
+          <Link href={`/league/${id}`}>
+            <RetroButton variant="outline" data-testid="button-back-to-league">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+              Back to League
+            </RetroButton>
+          </Link>
+          <Link href={`/league/${id}/commissioner`}>
+            <RetroButton data-testid="button-continue-commissioner">
+              Continue to Offseason
+            </RetroButton>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

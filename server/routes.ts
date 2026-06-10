@@ -16998,6 +16998,167 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/leagues/:id/championship-screen/:season", async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const season = parseInt(req.params.season);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const conferences = await storage.getConferencesByLeague(leagueId);
+      const confMap: Record<string, string> = Object.fromEntries(conferences.map(c => [c.id, c.name]));
+      const teamMap: Record<string, (typeof leagueTeams)[0]> = {};
+      for (const t of leagueTeams) teamMap[t.id] = t;
+
+      const seasonStandings = await storage.getStandingsByLeague(leagueId, season);
+      const standingsMap: Record<string, (typeof seasonStandings)[0]> = {};
+      for (const s of seasonStandings) standingsMap[s.teamId] = s;
+
+      const allGames = await storage.getGamesByLeague(leagueId);
+
+      const cwsGames = allGames
+        .filter(g => g.phase === "cws" && g.season === season && g.isComplete)
+        .sort((a, b) => a.id.localeCompare(b.id));
+
+      const teamCwsWins: Record<string, number> = {};
+      const cwsTeamIds = new Set<string>();
+      for (const g of cwsGames) {
+        cwsTeamIds.add(g.homeTeamId);
+        cwsTeamIds.add(g.awayTeamId);
+        const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+        teamCwsWins[winnerId] = (teamCwsWins[winnerId] || 0) + 1;
+      }
+      const champId = Object.entries(teamCwsWins).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const runnerUpId = [...cwsTeamIds].find(id => id !== champId) ?? null;
+
+      const srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
+      const srTeamIds = new Set<string>();
+      for (const g of srGames) { srTeamIds.add(g.homeTeamId); srTeamIds.add(g.awayTeamId); }
+
+      const getPostseasonFinish = (teamId: string): string => {
+        if (teamId === champId) return "champion";
+        if (teamId === runnerUpId) return "runner_up";
+        if (cwsTeamIds.has(teamId)) return "cws";
+        if (srTeamIds.has(teamId)) return "super_regionals";
+        return "regular_season";
+      };
+
+      const standingsList = leagueTeams.map(t => ({
+        teamId: t.id,
+        name: t.name,
+        abbreviation: t.abbreviation,
+        primaryColor: t.primaryColor,
+        wins: standingsMap[t.id]?.wins ?? 0,
+        losses: standingsMap[t.id]?.losses ?? 0,
+        conferenceName: t.conferenceId ? confMap[t.conferenceId] ?? "" : "",
+        postseasonFinish: getPostseasonFinish(t.id),
+      })).sort((a, b) => b.wins - a.wins || a.losses - b.losses).slice(0, 8);
+
+      const champTeam = champId ? teamMap[champId] : null;
+      const runnerUpTeam = runnerUpId ? teamMap[runnerUpId] : null;
+
+      const champion = champTeam ? {
+        id: champTeam.id,
+        name: champTeam.name,
+        mascot: champTeam.mascot,
+        abbreviation: champTeam.abbreviation,
+        primaryColor: champTeam.primaryColor,
+        secondaryColor: champTeam.secondaryColor,
+        wins: standingsMap[champTeam.id]?.wins ?? 0,
+        losses: standingsMap[champTeam.id]?.losses ?? 0,
+        conferenceName: champTeam.conferenceId ? confMap[champTeam.conferenceId] ?? "" : "",
+      } : null;
+
+      const runnerUp = runnerUpTeam ? {
+        id: runnerUpTeam.id,
+        name: runnerUpTeam.name,
+        abbreviation: runnerUpTeam.abbreviation,
+        primaryColor: runnerUpTeam.primaryColor,
+        wins: standingsMap[runnerUpTeam.id]?.wins ?? 0,
+        losses: standingsMap[runnerUpTeam.id]?.losses ?? 0,
+      } : null;
+
+      const cwsGamesList = cwsGames.map((g, i) => ({
+        gameNumber: i + 1,
+        homeTeamId: g.homeTeamId,
+        awayTeamId: g.awayTeamId,
+        homeTeamAbbr: teamMap[g.homeTeamId]?.abbreviation ?? "?",
+        awayTeamAbbr: teamMap[g.awayTeamId]?.abbreviation ?? "?",
+        homeTeamName: teamMap[g.homeTeamId]?.name ?? "?",
+        awayTeamName: teamMap[g.awayTeamId]?.name ?? "?",
+        homeScore: g.homeScore ?? 0,
+        awayScore: g.awayScore ?? 0,
+        winnerId: (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId,
+      }));
+
+      const cwsChampWins = champId ? (teamCwsWins[champId] ?? 0) : 0;
+      const cwsRunnerUpWins = runnerUpId ? (teamCwsWins[runnerUpId] ?? 0) : 0;
+
+      const PITCHER_POS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+      const allPlayers: { player: any; team: any }[] = [];
+      for (const team of leagueTeams) {
+        const roster = await storage.getPlayersByTeam(team.id);
+        for (const p of roster) allPlayers.push({ player: p, team });
+      }
+
+      const nonPitchers = allPlayers.filter(x => !PITCHER_POS.includes(x.player.position))
+        .sort((a, b) => b.player.overall - a.player.overall);
+      const pitchersAll = allPlayers.filter(x => PITCHER_POS.includes(x.player.position))
+        .sort((a, b) => b.player.overall - a.player.overall);
+      const freshmen = allPlayers.filter(x => x.player.eligibility === "FR")
+        .sort((a, b) => b.player.overall - a.player.overall);
+
+      const formatAward = (x: { player: any; team: any } | undefined) => x ? {
+        playerName: `${x.player.firstName} ${x.player.lastName}`,
+        position: x.player.position,
+        teamName: x.team.name,
+        teamAbbr: x.team.abbreviation,
+        overall: x.player.overall,
+        starRating: x.player.starRating,
+      } : null;
+
+      const awards = {
+        mvp: formatAward(nonPitchers[0]),
+        pitcherOfYear: formatAward(pitchersAll[0]),
+        freshmanOfYear: formatAward(freshmen[0]),
+      };
+
+      let startingLineup: any[] = [];
+      if (champTeam) {
+        const champRoster = (await storage.getPlayersByTeam(champTeam.id))
+          .sort((a, b) => b.overall - a.overall);
+        const posPlayers = champRoster.filter(p => !PITCHER_POS.includes(p.position)).slice(0, 9);
+        const topPitchers = champRoster.filter(p => PITCHER_POS.includes(p.position)).slice(0, 2);
+        startingLineup = [
+          ...posPlayers.map(p => ({
+            id: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+            eligibility: p.eligibility, overall: p.overall, starRating: p.starRating, isPitcher: false,
+          })),
+          ...topPitchers.map(p => ({
+            id: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+            eligibility: p.eligibility, overall: p.overall, starRating: p.starRating, isPitcher: true,
+          })),
+        ];
+      }
+
+      res.json({
+        leagueName: league.name,
+        season,
+        champion,
+        runnerUp,
+        cwsGames: cwsGamesList,
+        cwsSeries: { championWins: cwsChampWins, runnerUpWins: cwsRunnerUpWins },
+        standings: standingsList,
+        awards,
+        startingLineup,
+      });
+    } catch (error) {
+      console.error("Failed to get championship screen data:", error);
+      res.status(500).json({ message: "Failed to get championship screen data" });
+    }
+  });
+
   app.get("/api/leagues/:id/season-recap/:season", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;

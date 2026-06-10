@@ -88,6 +88,7 @@ interface CommissionerData {
 
 export default function CommissionerPage() {
   const { id } = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [autoAdvance, setAutoAdvance] = useState(() => {
@@ -152,7 +153,9 @@ export default function CommissionerPage() {
           description: `${t.graduated} graduated, ${t.recruitsAdded} recruits joined rosters, ${t.newRecruits} new recruits generated. Welcome to Season ${response.currentSeason}!`,
         });
       } else if (response?.cwsChampion) {
-        toast({ title: "CWS Champion Crowned!", description: "A champion has been decided in the College World Series!" });
+        const champSeason = response?.currentSeason ?? 1;
+        navigate(`/league/${id}/championship/${champSeason}`);
+        return;
       } else {
         const phase = response?.currentPhase;
         const phaseMessages: Record<string, string> = {
