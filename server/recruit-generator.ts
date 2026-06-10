@@ -1472,6 +1472,75 @@ export function generateRecruitClass(
             }
           }
         }
+
+        // Final deterministic floor clamp for gem/blueChip pitchers:
+        // If all retry/injection/upgrade paths still leave OVR below retryLo, bump
+        // velocity → control → stamina by 1 per step. When attrs are capped, try
+        // pitch mix rerolls — different mixes have different diversity+level pts.
+        // NOTE: S-grade pitcher common attrs score 0 OVR (grade table heater S=0),
+        // so escalating commonLevel past A-grade would REDUCE OVR. Stay at A.
+        if (currentOvr < retryLo && (isGem || isBlueChip)) {
+          const preClampArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
+          const preClampQuality = qualityTierFromOvr(retryLo);
+          for (let bump = 0; bump < 40 && currentOvr < retryLo; bump++) {
+            if (velocity < 99) {
+              velocity = velocity + 1;
+            } else if (control < 99) {
+              control = control + 1;
+            } else if (stamina < 99) {
+              stamina = stamina + 1;
+            } else {
+              // All attrs maxed — try a fresh pitch mix reroll for more diversity/level pts.
+              const altMix = generateArchetypePitchMix(preClampArch, preClampQuality);
+              const altOvr = calculateOVR({
+                position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                velocity, control, stamina, stuff, ...commonAbilities, abilities,
+                ...altMix, trajectory,
+              });
+              if (altOvr > currentOvr) { pitchMix = altMix; currentOvr = altOvr; }
+              if (currentOvr >= retryLo) break;
+              // If reroll didn't help, nothing more can be done — accept best effort.
+              break;
+            }
+            currentOvr = calculateOVR({
+              position, hitForAvg, power, speed, arm, fielding, errorResistance,
+              velocity, control, stamina, stuff, ...commonAbilities, abilities,
+              ...pitchMix, trajectory,
+            });
+          }
+          // Last-resort gold injection: vel=ctrl=stam=99 + best pitch mix still ceiling < 540.
+          // Some archetypes with narrow pitch types top out at 535–538 with all-blue abilities.
+          // Force-inject the highest-OVR-value gold by replacing the worst blue. Gold
+          // contributes 40–52 pts, reliably bridging the gap to 540+. The gold cap OVR-aware
+          // filter below will protect this gold since removing it would drop OVR below floor.
+          if (currentOvr < retryLo) {
+            const hasGold = abilities.some(n => getAbilityByName(n)?.tier === "gold");
+            if (!hasGold) {
+              const staminaOkLR = (a: { staminaMax?: number }) =>
+                pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
+              const goldPoolLR = getAbilitiesForPosition(position)
+                .filter(a => a.tier === "gold" && staminaOkLR(a) && !abilities.includes(a.name))
+                .sort((a, b) => getPitcherAbilityOvrPts(b.name) - getPitcherAbilityOvrPts(a.name));
+              if (goldPoolLR.length > 0) {
+                const bestGoldLR = goldPoolLR[0];
+                const bluesSorted = abilities
+                  .map((n, idx) => ({ n, idx, pts: getPitcherAbilityOvrPts(n) }))
+                  .filter(x => getAbilityByName(x.n)?.tier === "blue")
+                  .sort((a, b) => a.pts - b.pts);
+                if (bluesSorted.length > 0) {
+                  abilities = abilities.map((n, idx) => idx === bluesSorted[0].idx ? bestGoldLR.name : n);
+                } else {
+                  abilities = [...abilities, bestGoldLR.name];
+                }
+                currentOvr = calculateOVR({
+                  position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                  velocity, control, stamina, stuff, ...commonAbilities, abilities,
+                  ...pitchMix, trajectory,
+                });
+              }
+            }
+          }
+        }
       }
 
       // Post-convergence: randomize each common attr within its converged grade range.
@@ -1498,13 +1567,24 @@ export function generateRecruitClass(
     let overall = calculateOVR(recruitOvrData);
 
     // ─── Class-wide gold cap: enforce in-generation (max 10 gold per class) ──────
-    // No exemptions — gen gems, blue chips, and gems are all subject.
-    // Applied BEFORE archetype clamps so that the recalculated OVR drives the clamp.
+    // For pitcher gems/blueChips: only remove a gold ability if doing so won't push
+    // OVR below the band floor. Pitcher common attrs at S-grade score 0 OVR
+    // (PITCHER_COMMON_RAW heater S=0), making gold the primary OVR driver for high
+    // targets. An OVR-aware filter on toReplace ensures critical gold is preserved;
+    // the class may carry 1–2 extra gold when all removable gold would break the floor.
+    // All other recruits (hitters, gen gems, busts) remain fully subject to the cap.
     {
       let recruitGold = abilities.filter(n => getAbilityByName(n)?.tier === "gold");
       const excess = (classGoldCount + recruitGold.length) - 10;
       if (excess > 0) {
-        const toReplace = [...recruitGold].sort(() => Math.random() - 0.5).slice(0, excess);
+        let toReplace = [...recruitGold].sort(() => Math.random() - 0.5).slice(0, excess);
+        if (isPitcher && (isGem || isBlueChip) && toReplace.length > 0) {
+          const [gemFloor] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+          toReplace = toReplace.filter(goldName => {
+            const testAbilities = abilities.filter(n => n !== goldName);
+            return calculateOVR({ ...recruitOvrData, abilities: testAbilities }) >= gemFloor;
+          });
+        }
         for (const goldName of toReplace) {
           const bluePool = getAbilitiesForPosition(position)
             .filter(a => a.tier === "blue"
@@ -1643,6 +1723,41 @@ export function generateRecruitClass(
                 });
               }
             }
+            // Post-cap final floor clamp (gem/blueChip pitchers):
+            // All prior retry/injection paths exhausted — bump velocity → control →
+            // stamina, then try pitch mix rerolls for more diversity/level pts.
+            // NOTE: S-grade pitcher common attrs score 0 OVR (heater S=0 in
+            // PITCHER_COMMON_RAW), so never escalate commonLevel past A-grade.
+            if (overall < rrLo && (isGem || isBlueChip)) {
+              const pcFinalArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
+              const pcFinalQuality = qualityTierFromOvr(rrLo);
+              for (let bump = 0; bump < 40 && overall < rrLo; bump++) {
+                if (velocity < 99) {
+                  velocity = velocity + 1;
+                } else if (control < 99) {
+                  control = control + 1;
+                } else if (stamina < 99) {
+                  stamina = stamina + 1;
+                } else {
+                  // All attrs maxed — try a fresh pitch mix reroll.
+                  const altMix2 = generateArchetypePitchMix(pcFinalArch, pcFinalQuality);
+                  const altOvr2 = calculateOVR({
+                    position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                    velocity, control, stamina, stuff,
+                    ...commonAbilities, abilities, ...altMix2, trajectory,
+                  });
+                  if (altOvr2 > overall) { pitchMix = altMix2; overall = altOvr2; }
+                  if (overall >= rrLo) break;
+                  // Accept best effort — pitch diversity ceiling reached.
+                  break;
+                }
+                overall = calculateOVR({
+                  position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                  velocity, control, stamina, stuff,
+                  ...commonAbilities, abilities, ...pitchMix, trajectory,
+                });
+              }
+            }
           } else {
             // Non-pitcher gem/bust/blueChip: simple attr re-convergence ────────────────
             for (let rr = 0; rr <= 20; rr++) {
@@ -1683,8 +1798,13 @@ export function generateRecruitClass(
     // late_bloomer and overdraft: intentional OVR distortion applied to non-gem/bust hitters.
     if (isGenerationalGem) {
       overall = Math.max(600, Math.min(650, overall));
-    } else if (isGenerationalBust && isPitcher) {
+    } else if (isGenerationalBust) {
+      // Clamp both pitcher and hitter generational busts to [150, 199].
       overall = Math.max(150, Math.min(199, overall));
+    } else if (isBust && !isGenerationalGem) {
+      // Regular busts: convergence can miss the band by 1-2 pts due to step sizes.
+      const [bustLo, bustHi] = getRecruitOvrBand(starRank, false, true, false, false, false);
+      overall = Math.max(bustLo, Math.min(bustHi, overall));
     } else if (playerArchetype === "late_bloomer" && !isGem && !isBust) {
       // Late bloomer: OVR depressed below their star tier — intentional archetype distortion.
       // Hitters: retry calibrated attrs to star band; clamp then depresses OVR one tier lower.

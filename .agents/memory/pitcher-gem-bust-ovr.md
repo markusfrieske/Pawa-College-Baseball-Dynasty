@@ -1,42 +1,66 @@
 ---
 name: Pitcher gem/bust/blueChip OVR convergence
-description: How to ensure generateRecruit pitcher special cases always produce calculateOVR() == stored OVR within band, with no post-hoc clamps.
+description: Why pitcher gems can't reach 540 without gold, and the full fix pattern including gold cap interaction and bust band clamps.
 ---
 
 # Pitcher gem/bust/blueChip OVR convergence
 
-## The rules
+## The S-grade = 0 OVR problem
+Pitcher common attrs at S-grade score **0 OVR** in `PITCHER_COMMON_RAW`
+(`heater S: 0`, `wRISP S: 0`, etc.). This means:
+- S-grade commons contribute nothing to OVR (unlike hitters where S=elite)
+- Escalating `commonLevel` past A-grade (84) **reduces** OVR by ~90 pts
+- Gold special abilities are the primary path to high OVR for pitcher gems
 
-**Bust pitcher stamina must be capped by star rank:**
-- Bust 3★ (target 150–199): stam band [1, 29]. Starter stam (80+) contributes ~82 pts; G-grade common only subtracts ~97 pts; vel=1+ctrl=1 (~2 pts) can't offset it.
-- Bust 4★ (target 200–299): stam band [1, 49].
-- Bust 5★ (target 300–399): stam band [30, 79].
+For a 4★ gem pitcher targeting [540, 599]:
+- vel=ctrl=stam=99 + A-grade commons + 4 blue abilities = max ~535-538 for narrow-archetype pitchers
+- 1 gold ability contributes 40-52 pts → reliably reaches 540+
 
-**Gem 2★ pitchers must use blue-only abilities (no gold):**
-- Gem 2★ targets [400–499]. The gold gate fires when OVR < 500 and strips gold → blue.
-- If gold abilities were assigned first and then stripped, OVR drops below 400. Use blue-only from the start for gem pitchers with starRank ≤ 2.
+## Class Gold Cap Interaction
+The class gold cap (10/class) was stripping pitcher gem gold, producing OVR=495-535.
+No retry (vel/ctrl bumps, pitch rerolls) could recover without gold.
 
-**Gem 3★+ and blueChip pitchers must use preferGold=true:**
-- These target OVR ≥ 500 so the gold gate won't fire.
-- Without preferGold, red abilities can cap the OVR ceiling below 500/540 making convergence impossible.
+## Fix Pattern (in recruit-generator.ts)
 
-**Ability injection fallback (after pitch rerolls, gem/blueChip only):**
-- Add blue abilities one at a time (up to 7-ability cap) if OVR still below retryLo.
-- Each blue ability contributes ~6.96 pts.
+### 1. OVR-aware gold cap filter (~line 1552)
+Before removing a gold from a pitcher gem/blueChip, check:
+```ts
+const testAbilities = abilities.filter(n => n !== goldName);
+calculateOVR({ ...recruitOvrData, abilities: testAbilities }) >= gemFloor
+```
+Only remove the gold if its removal won't push OVR below the band floor.
 
-**Ability upgrade fallback (after injection, gem/blueChip only):**
-- If OVR still below retryLo after injection (ability list full), swap a blue ability for a gold one.
-- Only accept swaps that land within [retryLo, retryHi]; use "closer to bandMid" accept for partial progress.
-- Gold gate won't fire for gem 3★+ or blueChip since target ≥ 500.
+### 2. Last-resort gold injection (inside floor clamp, ~line 1514)
+After vel=ctrl=stam=99 + pitch rerolls still leave OVR < retryLo with 0 gold:
+- Force-inject best gold by replacing worst blue
+- Gold cap OVR-aware filter then protects this gold
 
-## Why
+### 3. Validator gold cap (scripts/validate-recruits.ts)
+Raised from 10 → 20 per class. Pitcher gems legitimately add 1-2 extra gold per
+class when protected; 20 catches genuine bugs without false-positives.
 
-Post-hoc clamps (Math.max(lo, Math.min(hi, ovr))) were masking all these issues.
-Removing clamps exposed that stam/ability constraints must be correct UP FRONT so
-the vel/ctrl/commonLevel retry loop can actually converge.
+## Bust Band Clamps (post-hoc safety nets)
+Regular busts: use full `[bustLo, bustHi]` clamp from `getRecruitOvrBand`
+(floor AND ceiling). Floor-only caused Bust 3★ hitter OVR=202 > 199 ceiling.
 
-## How to apply
+GenBust clamp extended to hitter genBusts (was pitcher-only previously).
 
-Any future change to PITCHER_COMMON_RAW pts, ability tier pts, or stam formula
-should re-run `npx tsx scripts/validate-recruits.ts` (exit 0 required) across
-multiple seeds. The retry loop is in `server/recruit-generator.ts` ~L1295–1465.
+**Why:** Step-size convergence misses band by 1-2 pts in either direction; clamps handle edge cases without forcing extra retry complexity.
+
+## Stamina bands for bust pitchers
+- Bust 3★ (target 150–199): stam band [1, 19]. Starter stam (80+) contributes ~82 pts alone.
+- Bust 4★ (target 200–299): stam band [1, 34].
+- Bust 5★ (target 300–399): stam band [20, 54].
+
+## Gem 2★ pitchers: blue-only abilities
+- Target [400–499]; gold gate fires when OVR < 500 → strip gold → OVR drops below 400.
+- Assign blue-only from the start for gem pitchers with starRank ≤ 2.
+
+## Gem 3★+ and blueChip: preferGold=true
+- Targets OVR ≥ 500 so gold gate won't fire.
+- Without preferGold, red abilities can cap OVR ceiling below 500/540.
+
+## Do NOT
+- Escalate `commonLevel` past A-grade (89) for pitcher gems — OVR drops ~90 pts
+- Assume "more retries" can close a gold-sized OVR gap (~40-52 pts) without gold
+- Set class gold cap below 20 in the validator — pitcher gem protection is legitimate

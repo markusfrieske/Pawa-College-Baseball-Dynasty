@@ -2137,6 +2137,7 @@ export default function RecruitingPage() {
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
         nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
         seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
+        userTeamId={data?.team?.id}
       />
 
       <Dialog open={showSaveClassDialog} onOpenChange={(open) => { if (!open) setShowSaveClassDialog(false); }}>
@@ -3893,6 +3894,7 @@ function RecruitDetailModal({
   hasHeadCoachVisited,
   nilRemaining,
   seasonVisitCapReached,
+  userTeamId,
 }: {
   recruit: RecruitWithInterest | null;
   onClose: () => void;
@@ -3917,6 +3919,7 @@ function RecruitDetailModal({
   hasHeadCoachVisited?: boolean;
   nilRemaining?: number;
   seasonVisitCapReached?: boolean;
+  userTeamId?: string;
 }) {
   const isMobile = useIsMobile();
   const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
@@ -4741,6 +4744,64 @@ function RecruitDetailModal({
             </div>
           )}
 
+          {/* Competing Schools */}
+          {recruit.topSchools && recruit.topSchools.length > 0 && (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">
+                {recruit.stage === "top3" ? "Top 3 Schools" : recruit.stage === "top5" ? "Top 5 Schools" : recruit.stage === "top8" ? "Top 8 Schools" : "Competing Schools"}
+              </h4>
+              <div className="space-y-1.5">
+                {(() => {
+                  const visibleSchools = recruit.topSchools!.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8);
+                  const gains = visibleSchools.map(s =>
+                    (s as any).previousInterestLevel != null ? Math.round(s.interestLevel - (s as any).previousInterestLevel) : 0
+                  );
+                  return visibleSchools.map((school, i) => {
+                    const isUserSchool = userTeamId && school.teamId === userTeamId;
+                    const weekGain = gains[i];
+                    const isTopGainer = i === 0 && weekGain > 0;
+                    const showGainBadge = weekGain >= 5;
+                    return (
+                      <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/5 -mx-1 px-1 rounded" : ""}`}>
+                        <TeamBadge abbreviation={school.abbreviation} primaryColor={school.primaryColor} name={school.teamName} size="sm" />
+                        <span className="text-[10px] text-muted-foreground w-8 shrink-0">{school.abbreviation}</span>
+                        <div className="relative flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          {(() => {
+                            const current = Math.min(100, Math.round(school.interestLevel / 20) * 20);
+                            const prev = (school as any).previousInterestLevel != null
+                              ? Math.min(100, Math.round((school as any).previousInterestLevel / 20) * 20)
+                              : null;
+                            const base = prev !== null ? Math.min(prev, current) : current;
+                            const gainPx = prev !== null ? Math.max(0, current - base) : 0;
+                            const color = school.primaryColor;
+                            return (
+                              <>
+                                <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${base}%`, backgroundColor: color, opacity: 0.65 }} />
+                                {gainPx > 0 && (
+                                  <div className="absolute inset-y-0 rounded-full transition-all" style={{ left: `${base}%`, width: `${gainPx}%`, backgroundColor: color, filter: "brightness(1.4)" }} />
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                        {showGainBadge && (
+                          <span className={`text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0 ${
+                            isTopGainer
+                              ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
+                              : "bg-green-900/30 text-green-400 border border-green-700/30"
+                          }`} data-testid={`badge-modal-weekly-gain-${school.teamId}`}>
+                            +{weekGain}%
+                          </span>
+                        )}
+                        <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+
           {/* Actions Log */}
           <RecruitActionsLog recruitId={recruit.id} leagueId={leagueId} />
         </div>
@@ -5333,6 +5394,64 @@ function RecruitDetailModal({
                 <RetroButton variant="outline" size="sm" onClick={() => { setShowModalEmailPicker(false); setModalEmailPitch(null); }}>
                   Cancel
                 </RetroButton>
+              </div>
+            </div>
+          )}
+
+          {/* Competing Schools */}
+          {recruit.topSchools && recruit.topSchools.length > 0 && (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">
+                {recruit.stage === "top3" ? "Top 3 Schools" : recruit.stage === "top5" ? "Top 5 Schools" : recruit.stage === "top8" ? "Top 8 Schools" : "Competing Schools"}
+              </h4>
+              <div className="space-y-1.5">
+                {(() => {
+                  const visibleSchools = recruit.topSchools!.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8);
+                  const gains = visibleSchools.map(s =>
+                    (s as any).previousInterestLevel != null ? Math.round(s.interestLevel - (s as any).previousInterestLevel) : 0
+                  );
+                  return visibleSchools.map((school, i) => {
+                    const isUserSchool = userTeamId && school.teamId === userTeamId;
+                    const weekGain = gains[i];
+                    const isTopGainer = i === 0 && weekGain > 0;
+                    const showGainBadge = weekGain >= 5;
+                    return (
+                      <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/5 -mx-1 px-1 rounded" : ""}`}>
+                        <TeamBadge abbreviation={school.abbreviation} primaryColor={school.primaryColor} name={school.teamName} size="sm" />
+                        <span className="text-[10px] text-muted-foreground w-8 shrink-0">{school.abbreviation}</span>
+                        <div className="relative flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                          {(() => {
+                            const current = Math.min(100, Math.round(school.interestLevel / 20) * 20);
+                            const prev = (school as any).previousInterestLevel != null
+                              ? Math.min(100, Math.round((school as any).previousInterestLevel / 20) * 20)
+                              : null;
+                            const base = prev !== null ? Math.min(prev, current) : current;
+                            const gainPx = prev !== null ? Math.max(0, current - base) : 0;
+                            const color = school.primaryColor;
+                            return (
+                              <>
+                                <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${base}%`, backgroundColor: color, opacity: 0.65 }} />
+                                {gainPx > 0 && (
+                                  <div className="absolute inset-y-0 rounded-full transition-all" style={{ left: `${base}%`, width: `${gainPx}%`, backgroundColor: color, filter: "brightness(1.4)" }} />
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                        {showGainBadge && (
+                          <span className={`text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0 ${
+                            isTopGainer
+                              ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40"
+                              : "bg-green-900/30 text-green-400 border border-green-700/30"
+                          }`} data-testid={`badge-modal-weekly-gain-${school.teamId}`}>
+                            +{weekGain}%
+                          </span>
+                        )}
+                        <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
