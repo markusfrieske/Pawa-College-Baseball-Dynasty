@@ -9,7 +9,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import type { RevealRecruit } from "@/components/recruit-card";
 import { StarRating } from "@/components/ui/star-rating";
 import { PlayerAvatar } from "@/components/player-avatar";
-import { ArrowLeft, Crown, Download, Trophy, Zap } from "lucide-react";
+import { ArrowLeft, Crown, Download, Trophy } from "lucide-react";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
@@ -615,42 +615,42 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
     if (k && !attrToAbility[k]) attrToAbility[k] = name;
   }
 
-  // Primary numeric attributes
+  // Primary numeric attributes — full labels matching player-profile-card
   const primaryAttrs: { label: string; val: number }[] = pitcher ? [
-    { label: "VEL", val: recruit.velocity ?? 50 },
-    { label: "CTL", val: recruit.control ?? 50 },
-    { label: "STM", val: recruit.stamina ?? 50 },
-    { label: "STF", val: recruit.stuff ?? 50 },
-    { label: "ARM", val: recruit.arm ?? 50 },
-    { label: "ERR", val: recruit.errorResistance ?? 50 },
+    { label: "Velocity", val: recruit.velocity ?? 50 },
+    { label: "Control",  val: recruit.control ?? 50 },
+    { label: "Stamina",  val: recruit.stamina ?? 50 },
+    { label: "Stuff",    val: recruit.stuff ?? 50 },
+    { label: "Arm",      val: recruit.arm ?? 50 },
+    { label: "Error",    val: recruit.errorResistance ?? 50 },
   ] : [
-    { label: "HIT", val: recruit.hitForAvg ?? 50 },
-    { label: "PWR", val: recruit.power ?? 50 },
-    { label: "SPD", val: recruit.speed ?? 50 },
-    { label: "FLD", val: recruit.fielding ?? 50 },
-    { label: "ARM", val: recruit.arm ?? 50 },
-    { label: "ERR", val: recruit.errorResistance ?? 50 },
+    { label: "Contact",  val: recruit.hitForAvg ?? 50 },
+    { label: "Power",    val: recruit.power ?? 50 },
+    { label: "Speed",    val: recruit.speed ?? 50 },
+    { label: "Fielding", val: recruit.fielding ?? 50 },
+    { label: "Arm",      val: recruit.arm ?? 50 },
+    { label: "Error",    val: recruit.errorResistance ?? 50 },
   ];
 
-  // Common ability attrs
+  // Common ability attrs — full labels matching player-profile-card
   type CA = { label: string; val: number; key: string };
   const commonAbils: CA[] = pitcher ? [
-    { label: "RISP", val: recruit.wRISP ?? 50,   key: "wRISP" },
-    { label: "LFT",  val: recruit.vsLefty ?? 50, key: "vsLefty" },
-    { label: "PSE",  val: recruit.poise ?? 50,   key: "poise" },
-    { label: "GRIT", val: recruit.grit ?? 50,    key: "grit" },
-    { label: "HTR",  val: recruit.heater ?? 50,  key: "heater" },
-    { label: "AGL",  val: recruit.agile ?? 50,   key: "agile" },
-    { label: "RCV",  val: recruit.recovery ?? 50, key: "recovery" },
+    { label: "W/RISP",   val: recruit.wRISP ?? 50,    key: "wRISP" },
+    { label: "vs Lefty", val: recruit.vsLefty ?? 50,  key: "vsLefty" },
+    { label: "Poise",    val: recruit.poise ?? 50,    key: "poise" },
+    { label: "Grit",     val: recruit.grit ?? 50,     key: "grit" },
+    { label: "Heater",   val: recruit.heater ?? 50,   key: "heater" },
+    { label: "Agile",    val: recruit.agile ?? 50,    key: "agile" },
+    { label: "Recovery", val: recruit.recovery ?? 50, key: "recovery" },
   ] : [
-    { label: "CLT",  val: recruit.clutch ?? 50,   key: "clutch" },
-    { label: "LHP",  val: recruit.vsLHP ?? 50,    key: "vsLHP" },
-    { label: "GRIT", val: recruit.grit ?? 50,     key: "grit" },
-    { label: "STL",  val: recruit.stealing ?? 50, key: "stealing" },
-    { label: "RUN",  val: recruit.running ?? 50,  key: "running" },
-    { label: "THW",  val: recruit.throwing ?? 50, key: "throwing" },
-    { label: "RCV",  val: recruit.recovery ?? 50, key: "recovery" },
-    ...(catcher ? [{ label: "CAT", val: recruit.catcherAbility ?? 50, key: "catcherAbility" }] : []),
+    { label: "Clutch",   val: recruit.clutch ?? 50,    key: "clutch" },
+    { label: "vs LHP",   val: recruit.vsLHP ?? 50,     key: "vsLHP" },
+    { label: "Grit",     val: recruit.grit ?? 50,      key: "grit" },
+    { label: "Stealing", val: recruit.stealing ?? 50,  key: "stealing" },
+    { label: "Running",  val: recruit.running ?? 50,   key: "running" },
+    { label: "Throwing", val: recruit.throwing ?? 50,  key: "throwing" },
+    { label: "Recovery", val: recruit.recovery ?? 50,  key: "recovery" },
+    ...(catcher ? [{ label: "Catcher", val: recruit.catcherAbility ?? 50, key: "catcherAbility" }] : []),
   ];
 
   // Special abilities (gold/blue/red named badges)
@@ -691,66 +691,76 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
       className="w-full h-full flex flex-col overflow-hidden"
       style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
     >
-      {/* Header: name / pos·rank | stars + potential */}
-      <div className="px-2.5 py-1.5 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
-        <div className="min-w-0">
-          <div className="font-pixel text-[9px] text-[#C4A35A] truncate leading-tight">
-            {recruit.firstName} {recruit.lastName}
+      {/* Header: name · position/handedness · OVR + POT + stars */}
+      <div className="px-2.5 py-1.5 border-b border-[#2d3d2d] shrink-0">
+        <div className="flex items-start justify-between gap-1 mb-1">
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold text-[#C4A35A] truncate leading-tight">
+              {recruit.firstName} {recruit.lastName}
+            </div>
+            <div className="text-[9px] text-gray-500 leading-tight mt-0.5">
+              {recruit.position} · T:{recruit.throwHand} · B:{recruit.batHand}
+            </div>
           </div>
-          <div className="text-[9px] text-gray-500 leading-tight">
-            {recruit.position}
-            {recruit.positionRank > 0 && <span className="text-[#C4A35A]"> · #{recruit.positionRank} {recruit.position}</span>}
-          </div>
+          <StarRating rating={recruit.starRating} size="sm" className="shrink-0 mt-0.5" />
         </div>
-        <div className="flex flex-col items-end gap-0.5 shrink-0">
-          <StarRating rating={recruit.starRating} size="sm" />
-          <span className="font-pixel text-[9px] text-[#C4A35A] leading-none">POT {potGrade}</span>
+        <div className="flex items-baseline gap-3">
+          <div className="flex items-baseline gap-1">
+            <span className="text-[18px] font-bold text-[#C4A35A] leading-none tabular-nums">{recruit.overall}</span>
+            <span className="text-[9px] text-gray-500 leading-none">OVR</span>
+          </div>
+          {potGrade && (
+            <div className="flex items-baseline gap-1">
+              <span className="text-[13px] font-bold text-purple-400 leading-none">{potGrade}</span>
+              <span className="text-[9px] text-gray-500 leading-none">POT</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Type badge + blue chip */}
       <div className="px-2.5 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
         <span
-          className={`font-pixel text-[8px] px-1.5 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
+          className={`text-[8px] px-1.5 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
           style={{ background: badgeBg, color: badgeColor }}
         >
           {badgeLabel}
         </span>
         {recruit.isBlueChip && !isGen && !isGenBust && (
-          <span className="font-pixel text-[8px] text-blue-400 flex items-center gap-0.5 leading-none">
+          <span className="text-[8px] text-blue-400 flex items-center gap-0.5 leading-none">
             <Crown className="w-3 h-3" />BLUE CHIP
           </span>
         )}
       </div>
 
-      {/* Primary attributes — 2-col grid using LetterGrade component */}
+      {/* ATTRIBUTES — 2-col grid, LetterGrade component, Inter labels */}
       <div className="px-2.5 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
-        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">Attributes</div>
+        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">ATTRIBUTES</div>
         <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5">
           {primaryAttrs.map(({ label, val }) => (
             <div key={label} className="flex items-center justify-between bg-[#0a1a0a] rounded px-1.5 py-0.5 gap-1">
-              <span className="text-[9px] text-gray-500 leading-none font-mono shrink-0">{label}</span>
+              <span className="text-[9px] text-gray-500 leading-none shrink-0">{label}</span>
               <div className="flex items-center gap-1 shrink-0">
                 <LetterGrade value={val} size="sm" />
-                <span className="text-[9px] text-gray-400 leading-none font-mono w-[18px] text-right tabular-nums">{val}</span>
+                <span className="text-[9px] text-gray-400 leading-none w-[18px] text-right tabular-nums">{val}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Common abilities — 2-col grid using LetterGrade isCommonAbility */}
+      {/* COMMON ABILITIES — 2-col grid, LetterGrade isCommonAbility, Inter labels */}
       <div className="px-2.5 pt-1 pb-0.5 border-t border-[#1a2e1a] shrink-0">
-        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">Common</div>
+        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">COMMON ABILITIES</div>
         <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5">
           {commonAbils.map(({ label, val, key }) => {
             const abilName = attrToAbility[key];
             return (
               <div key={label} className="flex items-center justify-between bg-[#0a1a0a] rounded px-1.5 py-0.5 gap-1">
-                <span className="text-[9px] text-gray-500 leading-none font-mono shrink-0">{label}</span>
+                <span className="text-[9px] text-gray-500 leading-none shrink-0">{label}</span>
                 <div className="flex items-center gap-1 shrink-0 min-w-0">
                   {abilName && (
-                    <span className="font-pixel text-[7px] text-amber-400/80 truncate leading-none max-w-[52px]">
+                    <span className="text-[7px] text-amber-400/80 truncate leading-none max-w-[52px]">
                       {abilName.length > 8 ? abilName.slice(0, 8) + "…" : abilName}
                     </span>
                   )}
@@ -762,11 +772,9 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
         </div>
       </div>
 
-      {/* Special abilities: gold/blue/red named badges */}
+      {/* SPECIAL ABILITIES — gold/blue/red named badges */}
       <div className="px-2.5 pt-1 pb-1.5 border-t border-[#1a2e1a] flex-1 min-h-0">
-        <div className="text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide flex items-center gap-0.5">
-          <Zap className="w-2.5 h-2.5" />Special
-        </div>
+        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">SPECIAL ABILITIES</div>
         {specialAbilities.length === 0 ? (
           <div className="text-[9px] text-gray-600 italic">None</div>
         ) : (
@@ -780,7 +788,7 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
                 ? "text-blue-400 border-blue-500/40"
                 : "text-red-400 border-red-500/40";
               return (
-                <span key={name} className={`text-[8px] border rounded px-1 py-0.5 font-pixel leading-tight ${tierColor}`}>
+                <span key={name} className={`text-[8px] border rounded px-1 py-0.5 leading-tight ${tierColor}`}>
                   {name.length > 11 ? name.slice(0, 11) + "…" : name}
                 </span>
               );
