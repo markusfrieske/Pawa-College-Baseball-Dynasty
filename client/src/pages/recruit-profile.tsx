@@ -2370,7 +2370,12 @@ function RecruitPitchMixSection({
       return (
         <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded opacity-50">
           <span className="text-sm text-muted-foreground">{label}</span>
-          <span className="text-sm text-muted-foreground">-</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="text-xs text-muted-foreground/60 italic cursor-default" data-testid={`text-pitch-none-${key}`}>None</span>
+            </TooltipTrigger>
+            <TooltipContent>Pitcher does not throw this pitch</TooltipContent>
+          </Tooltip>
         </div>
       );
     }
