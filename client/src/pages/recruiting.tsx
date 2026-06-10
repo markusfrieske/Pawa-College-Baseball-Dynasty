@@ -3582,15 +3582,15 @@ function RecruitRow({
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
               const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
-              const isMphVel = key === "velocity" && revealed && val != null;
+              const isVelRevealed = key === "velocity" && revealed && val != null;
               return (
                 <div key={key} className="flex items-center gap-0.5">
                   <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
                   {isSigningDayLocked ? (
                     <Lock className="w-2.5 h-2.5 text-gold/50" />
-                  ) : isMphVel ? (
+                  ) : isVelRevealed ? (
                     <span className="font-pixel text-[9px] font-bold text-sky-300/90">
-                      {Math.round(60 + (val / 100) * 45)}
+                      {velocityToKMH(val)}
                     </span>
                   ) : (
                     <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
