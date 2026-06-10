@@ -9839,7 +9839,7 @@ export async function registerRoutes(
               const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
               if (swept > 0) console.log(`[storylines] sr→offseason sweep resolved ${swept} arc events`);
             } catch (e) { console.warn("[storylines] sr→offseason sweep failed:", e); }
-            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek, currentClassVintage: null });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
             try {
               await evaluatePlayerPromises(leagueId, league.currentSeason);
@@ -9965,7 +9965,7 @@ export async function registerRoutes(
               if (swept > 0) console.log(`[storylines] cws→offseason sweep resolved ${swept} arc events`);
             } catch (e) { console.warn("[storylines] cws→offseason sweep failed:", e); }
             
-            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek, currentClassVintage: null });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
             
             if (champTeam && runnerUpTeam) {
@@ -10346,7 +10346,7 @@ export async function registerRoutes(
       
       // Legacy "offseason" phase - treat same as offseason_departures for backwards compatibility
       if (league.currentPhase === "offseason") {
-        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures" });
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentClassVintage: null });
         return res.json(updatedLeague);
       }
 
@@ -10798,7 +10798,7 @@ export async function registerRoutes(
                   await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
                   await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
                 } catch (e) { console.error("SR-skip departure processing error (sim-to-offseason):", e); }
-                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
+                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures", currentClassVintage: null })) as any;
               }
             }
           }
@@ -10856,7 +10856,7 @@ export async function registerRoutes(
             const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, currentLeague.currentWeek ?? 1);
             if (swept > 0) console.log(`[storylines] sim-advance cws sweep resolved ${swept} arc events`);
           } catch (e) { console.warn("[storylines] sim-advance cws sweep failed:", e); }
-          currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
+          currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures", currentClassVintage: null })) as any;
           continue;
         }
 
@@ -11453,7 +11453,7 @@ export async function registerRoutes(
                   await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
                   await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
                 } catch (e) { console.error("SR-skip departure processing error (sim-to-cws):", e); }
-                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
+                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures", currentClassVintage: null })) as any;
               }
             }
           }
@@ -18683,7 +18683,8 @@ export async function registerRoutes(
       // storyline data for this season must be wiped and rebuilt for the new recruits.
       const leagueTeamsForCount = await storage.getTeamsByLeague(req.params.id as string);
       const recruitCount = getRecruitPoolSize(leagueTeamsForCount.length);
-      await generateRecruits(req.params.id as string, recruitCount, true);
+      const generatedVintage = await generateRecruits(req.params.id as string, recruitCount, true);
+      await storage.updateLeague(req.params.id as string, { currentClassVintage: generatedVintage });
 
       await storage.createAuditLog({
         leagueId: league.id,
@@ -19258,7 +19259,8 @@ export async function registerRoutes(
         // for this season is wiped and rebuilt for the newly generated recruits.
         const importTeams = await storage.getTeamsByLeague(req.params.id as string);
         recruitCount = getRecruitPoolSize(importTeams.length);
-        await generateRecruits(req.params.id as string, recruitCount, true);
+        const importGeneratedVintage = await generateRecruits(req.params.id as string, recruitCount, true);
+        await storage.updateLeague(req.params.id as string, { currentClassVintage: importGeneratedVintage });
 
         await storage.createAuditLog({
           leagueId: league.id,
@@ -20680,7 +20682,8 @@ export async function registerRoutes(
         } else {
           const teams = await storage.getTeamsByLeague(leagueId);
           const recruitCount = getRecruitPoolSize(teams.length);
-          await generateRecruits(leagueId, recruitCount);
+          const joinGeneratedVintage = await generateRecruits(leagueId, recruitCount);
+          await storage.updateLeague(leagueId, { currentClassVintage: joinGeneratedVintage });
         }
       }
       
