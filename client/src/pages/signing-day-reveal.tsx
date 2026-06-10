@@ -13,7 +13,7 @@ import { ArrowLeft, Crown, Download, Trophy, Zap } from "lucide-react";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
-import { getLetterGrade } from "@/components/ui/letter-grade";
+import { LetterGrade } from "@/components/ui/letter-grade";
 
 interface TeamEntry {
   team: {
@@ -429,6 +429,8 @@ function getRevealOvrGlow(ovr: number): string {
 }
 
 // ── RevealCardFront ────────────────────────────────────────────
+// MLB The Show-style: fixed avatar slot, prominent OVR reveal block,
+// type badge + stars, name, then B/T handedness + location footer.
 function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeamColor }: {
   recruit: RevealRecruit;
   primaryColor: string;
@@ -466,6 +468,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
   const throwHand = (recruit as unknown as Record<string, string>).throwHand || "R";
   const hometown  = (recruit as unknown as Record<string, string>).hometown;
   const location  = hometown ? `${hometown}, ${recruit.homeState}` : recruit.homeState;
+  const potGrade  = recruit.potential ? getPotentialGrade(recruit.potential) : null;
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#f8f4ec", borderRadius: "6px", overflow: "hidden" }}>
@@ -487,7 +490,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
         </div>
       )}
 
-      {/* Position + Rank */}
+      {/* Position + Class Rank strip */}
       <div style={{ background: posColor, height: "28px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 9px", flexShrink: 0 }}>
         <span className="font-pixel" style={{ fontSize: "11px", color: "#fff", fontWeight: "bold" }} data-testid={`card-position-${recruit.id}`}>
           {recruit.position}
@@ -499,12 +502,12 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       </div>
 
       {/* Stars */}
-      <div style={{ height: "24px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#f0ebe0", borderBottom: "1px solid #ddd8cc" }}>
+      <div style={{ height: "22px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#f0ebe0", borderBottom: "1px solid #ddd8cc" }}>
         <StarRating rating={recruit.starRating} size="sm" />
       </div>
 
-      {/* Avatar */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)", padding: "4px", overflow: "hidden" }}>
+      {/* Avatar — fixed 80px slot, centered, no flex stretching */}
+      <div style={{ height: "80px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)", overflow: "hidden" }}>
         <PlayerAvatar
           skinTone={(recruit as unknown as Record<string, string>).skinTone ?? "medium"}
           playerId={recruit.id}
@@ -532,20 +535,45 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
         </div>
       </div>
 
-      {/* Handedness */}
-      <div style={{ background: "#111", padding: "3px 9px", flexShrink: 0 }}>
-        <span style={{ fontSize: "10px", color: "#6b7280", fontFamily: "monospace" }}>
-          B:{batHand} · T:{throwHand}
-        </span>
+      {/* OVR + POT block — the reveal moment */}
+      <div style={{ flex: 1, background: "#111", padding: "6px 9px 4px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+          <span
+            className="font-pixel"
+            style={{
+              fontSize: "22px",
+              color: "#C4A35A",
+              lineHeight: 1,
+              textShadow: recruit.starRating >= 5
+                ? "0 0 10px rgba(196,163,90,0.9), 0 0 24px rgba(196,163,90,0.5)"
+                : recruit.starRating >= 4
+                ? "0 0 8px rgba(196,163,90,0.65)"
+                : undefined,
+            }}
+            data-testid={`card-ovr-${recruit.id}`}
+          >
+            {recruit.overall}
+          </span>
+          <span style={{ fontSize: "10px", color: "#6b7280", lineHeight: 1 }}>OVR</span>
+        </div>
+        {potGrade && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
+            <span className="font-pixel" style={{ fontSize: "15px", color: "#a78bfa", lineHeight: 1 }}>{potGrade}</span>
+            <span style={{ fontSize: "9px", color: "#6b7280", lineHeight: 1 }}>POT</span>
+          </div>
+        )}
       </div>
 
-      {/* Location + Position Rank */}
-      <div style={{ background: "#0d0d0d", padding: "4px 9px 6px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "120px" }}>
+      {/* Handedness + Location + Position Rank footer */}
+      <div style={{ background: "#0d0d0d", padding: "4px 9px 6px", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2px" }}>
+          <span style={{ fontSize: "9px", color: "#6b7280", fontFamily: "monospace" }}>B:{batHand} · T:{throwHand}</span>
+          <span className="font-pixel" style={{ fontSize: "10px", fontWeight: "bold", color: "#C4A35A" }} data-testid={`card-pos-rank-${recruit.id}`}>
+            #{recruit.positionRank} {recruit.position}
+          </span>
+        </div>
+        <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
           {location}
-        </span>
-        <span className="font-pixel" style={{ fontSize: "11px", fontWeight: "bold", color: "#C4A35A", flexShrink: 0 }} data-testid={`card-pos-rank-${recruit.id}`}>
-          #{recruit.positionRank} {recruit.position}
         </span>
       </div>
     </div>
@@ -658,16 +686,6 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
     badgeBg = "#0e7490"; badgeColor = "#a5f3fc";
   }
 
-  // Grade color palettes (mirroring recruit-card.tsx internals)
-  const tierColors: Record<string, string> = {
-    s: "#fda4d5", a: "#f472b6", b: "#ef4444", c: "#f97316",
-    d: "#eab308", f: "#60a5fa", g: "#9ca3af",
-  };
-  const commonTierColors: Record<string, string> = {
-    s: "#f59e0b", a: "#3b82f6", b: "#3b82f6", c: "#38bdf8",
-    d: "#38bdf8", f: "#ef4444", g: "#ef4444",
-  };
-
   return (
     <div
       className="w-full h-full flex flex-col overflow-hidden"
@@ -705,37 +723,39 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
         )}
       </div>
 
-      {/* Primary attributes: label | grade | numeric value */}
+      {/* Primary attributes — 2-col grid using LetterGrade component */}
       <div className="px-2.5 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
-        <div className="text-[8px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Attributes</div>
-        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
-          {primaryAttrs.map(({ label, val }) => {
-            const { letter, tier } = getLetterGrade(val);
-            return (
-              <div key={label} className="flex items-center gap-1">
-                <span className="text-[9px] text-gray-500 w-[22px] leading-none font-mono shrink-0">{label}</span>
-                <span className="font-pixel text-[10px] font-bold w-[13px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
-                <span className="text-[9px] text-gray-400 leading-none font-mono">{val}</span>
+        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">Attributes</div>
+        <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5">
+          {primaryAttrs.map(({ label, val }) => (
+            <div key={label} className="flex items-center justify-between bg-[#0a1a0a] rounded px-1.5 py-0.5 gap-1">
+              <span className="text-[9px] text-gray-500 leading-none font-mono shrink-0">{label}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <LetterGrade value={val} size="sm" />
+                <span className="text-[9px] text-gray-400 leading-none font-mono w-[18px] text-right tabular-nums">{val}</span>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Common abilities: label | ability name (if applicable) | grade */}
+      {/* Common abilities — 2-col grid using LetterGrade isCommonAbility */}
       <div className="px-2.5 pt-1 pb-0.5 border-t border-[#1a2e1a] shrink-0">
-        <div className="text-[8px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Common</div>
-        <div className="flex flex-col gap-0.5">
+        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">Common</div>
+        <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5">
           {commonAbils.map(({ label, val, key }) => {
-            const { letter, tier } = getLetterGrade(val);
             const abilName = attrToAbility[key];
             return (
-              <div key={label} className="flex items-center gap-1">
-                <span className="text-[9px] text-gray-500 w-[22px] leading-none font-mono shrink-0">{label}</span>
-                <span className="font-pixel text-[8px] text-amber-400/80 flex-1 truncate leading-none min-w-0">
-                  {abilName ? (abilName.length > 11 ? abilName.slice(0, 11) + "…" : abilName) : ""}
-                </span>
-                <span className="font-pixel text-[10px] font-bold leading-none shrink-0 ml-0.5" style={{ color: commonTierColors[tier] }}>{letter}</span>
+              <div key={label} className="flex items-center justify-between bg-[#0a1a0a] rounded px-1.5 py-0.5 gap-1">
+                <span className="text-[9px] text-gray-500 leading-none font-mono shrink-0">{label}</span>
+                <div className="flex items-center gap-1 shrink-0 min-w-0">
+                  {abilName && (
+                    <span className="font-pixel text-[7px] text-amber-400/80 truncate leading-none max-w-[52px]">
+                      {abilName.length > 8 ? abilName.slice(0, 8) + "…" : abilName}
+                    </span>
+                  )}
+                  <LetterGrade value={val} size="sm" isCommonAbility={true} />
+                </div>
               </div>
             );
           })}
@@ -1356,7 +1376,7 @@ export default function SigningDayRevealPage() {
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="font-pixel text-base text-[#C4A35A] leading-tight truncate">
-                      {myTeamEntry?.team.name ?? "MY TEAM"}
+                      {myTeamEntry?.team.name ?? "No Team Assigned"}
                     </div>
                     <div className="text-xs text-gray-400 mt-0.5">
                       Season {data?.league.currentSeason} Recruiting Class
