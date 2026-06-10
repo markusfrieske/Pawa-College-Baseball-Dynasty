@@ -3835,7 +3835,22 @@ function RecruitRow({
         </DialogContent>
       </Dialog>
 
-      {recruit.topSchools && recruit.topSchools.length > 0 && (
+      {isSigned ? (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ backgroundColor: `${recruit.signedTeamPrimaryColor}20` || "rgba(100,100,100,0.1)", border: `1px solid ${recruit.signedTeamPrimaryColor}40` }}>
+            <TeamBadge
+              abbreviation={recruit.signedTeamAbbreviation || "?"}
+              primaryColor={recruit.signedTeamPrimaryColor || "#666"}
+              secondaryColor={recruit.signedTeamSecondaryColor || "#fff"}
+              name={recruit.signedTeamName || ""}
+              size="sm"
+            />
+            <span className="text-xs font-medium" style={{ color: recruit.signedTeamPrimaryColor || "#ccc" }} data-testid={`text-signed-team-${recruit.id}`}>
+              Player signed with {recruit.signedTeamName || "Unknown"}
+            </span>
+          </div>
+        </div>
+      ) : recruit.topSchools && recruit.topSchools.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
           <button
             onClick={() => setShowTopSchools(!showTopSchools)}
