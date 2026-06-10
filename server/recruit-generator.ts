@@ -30,6 +30,34 @@ export const PITCHER_TOOL_GROUPS: Record<string, string[]> = {
   Stamina:  ["stamina"],
 };
 
+// Position-aware handedness probability table.
+// throwL = probability of throwing left-handed.
+// batL   = probability of batting left-handed.
+// batS   = probability of switch-hitting.
+const HANDEDNESS_BY_POS: Record<string, { throwL: number; batL: number; batS: number }> = {
+  P:  { throwL: 0.28, batL: 0.15, batS: 0.02 },
+  SP: { throwL: 0.28, batL: 0.15, batS: 0.02 },
+  RP: { throwL: 0.28, batL: 0.15, batS: 0.02 },
+  CP: { throwL: 0.28, batL: 0.15, batS: 0.02 },
+  C:  { throwL: 0.00, batL: 0.20, batS: 0.04 },
+  "1B": { throwL: 0.15, batL: 0.38, batS: 0.04 },
+  "2B": { throwL: 0.00, batL: 0.28, batS: 0.10 },
+  SS: { throwL: 0.00, batL: 0.28, batS: 0.10 },
+  "3B": { throwL: 0.00, batL: 0.25, batS: 0.06 },
+  LF: { throwL: 0.10, batL: 0.30, batS: 0.06 },
+  CF: { throwL: 0.10, batL: 0.30, batS: 0.06 },
+  RF: { throwL: 0.10, batL: 0.30, batS: 0.06 },
+  DH: { throwL: 0.00, batL: 0.30, batS: 0.06 },
+};
+
+export function pickHandedness(position: string): { throwHand: "L" | "R"; batHand: "L" | "R" | "S" } {
+  const rates = HANDEDNESS_BY_POS[position] ?? { throwL: 0.10, batL: 0.27, batS: 0.06 };
+  const throwHand: "L" | "R" = Math.random() < rates.throwL ? "L" : "R";
+  const r = Math.random();
+  const batHand: "L" | "R" | "S" = r < rates.batL ? "L" : r < rates.batL + rates.batS ? "S" : "R";
+  return { throwHand, batHand };
+}
+
 export function selectTools(starRank: number, isPitcher: boolean): string[] {
   const groups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
   const allToolNames = Object.keys(groups);
@@ -1237,7 +1265,7 @@ export function generateRecruitClass(
       stamina = bandMin + Math.floor(Math.random() * (bandMax - bandMin + 1));
     }
 
-    const recruitThrowHand = isPitcher ? (Math.random() < 0.28 ? "L" : "R") : "R";
+    const { throwHand: recruitThrowHand, batHand: recruitBatHand } = pickHandedness(position);
     let pitchMix = isPitcher
       ? generateArchetypePitchMix(
           assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
@@ -2011,6 +2039,8 @@ export function generateRecruitClass(
         position,
         recruitState.state,
       ),
+      throwHand: recruitThrowHand,
+      batHand: recruitBatHand,
     });
   }
 
@@ -2082,6 +2112,12 @@ export function generateRecruitClass(
       });
     }
   }
+
+  // Log handedness distribution for spot-checking.
+  const lhThrow  = out.filter(r => r.throwHand === "L").length;
+  const lhBat    = out.filter(r => r.batHand   === "L").length;
+  const switchBat = out.filter(r => r.batHand  === "S").length;
+  console.log(`[recruit-handedness] throw LH=${lhThrow}/${out.length} (${Math.round(lhThrow/out.length*100)}%) | bat L=${lhBat} S=${switchBat} R=${out.length-lhBat-switchBat}`);
 
   const gemCount = out.filter(r => r.isGenerationalGem).length;
   const bustCount = out.filter(r => r.isGenerationalBust).length;

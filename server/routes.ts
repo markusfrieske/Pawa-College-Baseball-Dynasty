@@ -27,7 +27,7 @@ import {
 } from "./news-engine";
 import { SEC_REAL_ROSTERS, ALL_REAL_ROSTERS } from "./realRosters";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "./rosterScaleFactors";
-import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
+import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS, pickHandedness } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
@@ -13794,8 +13794,7 @@ export async function registerRoutes(
           firstName,
           lastName,
           position: pos,
-          throwHand: pos === "P" ? (Math.random() < 0.30 ? "L" : "R") : (Math.random() < 0.10 ? "L" : "R"),
-          batHand: pos === "P" ? (Math.random() < 0.15 ? "L" : "R") : (() => { const r = Math.random(); return r < 0.28 ? "L" : r < 0.31 ? "S" : "R"; })(),
+          ...pickHandedness(pos),
           homeState,
           hometown,
           eligibility: "FR",
