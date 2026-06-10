@@ -2,7 +2,19 @@ import { getRandomAbilities, getAbilitiesForPosition, getAbilityByName, getPitch
 import type { InsertRecruit } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
-import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, qualityTierFromOvr, noPitches } from "./pitchMixHelpers";
+import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, qualityTierFromOvr, noPitches, type QualityTier } from "./pitchMixHelpers";
+
+// Tier ordering used to cap OVR-derived pitch tiers to the star-band ceiling.
+const _TIER_ORDER: QualityTier[] = ["average", "solid", "great", "elite"];
+/**
+ * Return the lower of two quality tiers.  Used so that pitch mix rerolls in
+ * retry loops never produce more active pitches than the recruit's star band
+ * allows, even when the target OVR band (gem/bust/blueChip) maps to a higher tier.
+ */
+function capStarTier(ovrTier: QualityTier, starRank: number): QualityTier {
+  const starTier = qualityTierFromStars(starRank);
+  return _TIER_ORDER.indexOf(ovrTier) <= _TIER_ORDER.indexOf(starTier) ? ovrTier : starTier;
+}
 
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
   Speed:    ["running", "stealing"],
@@ -1325,9 +1337,11 @@ export function generateRecruitClass(
       // pitch diversity+level OVR than a star-based "solid" mix. For bust targets
       // (150-299), it gives "average" quality (2-3 pitches) — fewer pts, making
       // sub-200 OVR reachable even without vel/ctrl bottoming out.
+      // The tier is capped to the star-band ceiling so the final arsenal never
+      // exceeds the recruit's per-star pitch count cap.
       pitchMix = generateArchetypePitchMix(
         assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
-        qualityTierFromOvr(retryLo),
+        capStarTier(qualityTierFromOvr(retryLo), starRank),
       );
 
       // Grade midpoints for pitcher common attrs (used during retry for determinism)
@@ -1400,7 +1414,7 @@ export function generateRecruitClass(
           ...pitchMix, trajectory,
         });
         const pitcherArchForReroll = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
-        const qualityForReroll = qualityTierFromOvr(retryLo);
+        const qualityForReroll = capStarTier(qualityTierFromOvr(retryLo), starRank);
         const bandMid = (retryLo + retryHi) / 2;
         for (let pm = 0; pm < 15 && (currentOvr < retryLo || currentOvr > retryHi); pm++) {
           const altMix = generateArchetypePitchMix(pitcherArchForReroll, qualityForReroll);
@@ -1481,7 +1495,7 @@ export function generateRecruitClass(
         // so escalating commonLevel past A-grade would REDUCE OVR. Stay at A.
         if (currentOvr < retryLo && (isGem || isBlueChip)) {
           const preClampArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
-          const preClampQuality = qualityTierFromOvr(retryLo);
+          const preClampQuality = capStarTier(qualityTierFromOvr(retryLo), starRank);
           for (let bump = 0; bump < 40 && currentOvr < retryLo; bump++) {
             if (velocity < 99) {
               velocity = velocity + 1;
@@ -1634,7 +1648,7 @@ export function generateRecruitClass(
             // the extra headroom needed to close the gap.
             pitchMix = generateArchetypePitchMix(
               assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
-              qualityTierFromOvr(rrLo),
+              capStarTier(qualityTierFromOvr(rrLo), starRank),
             );
             const pcGradeMidpoints: Record<string, number> = {
               S: 94, A: 84, B: 74, C: 64, D: 54, E: 44, F: 34, G: 20,
@@ -1681,7 +1695,7 @@ export function generateRecruitClass(
             // new (higher) velocity, providing the additional OVR headroom to reach 540+.
             applyPcLevel(pcCommonLevel);
             const pcArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
-            const pcQuality = qualityTierFromOvr(rrLo);
+            const pcQuality = capStarTier(qualityTierFromOvr(rrLo), starRank);
             pitchMix = generateArchetypePitchMix(pcArch, pcQuality);
             overall = calculateOVR({
               position, hitForAvg, power, speed, arm, fielding, errorResistance,
@@ -1730,7 +1744,7 @@ export function generateRecruitClass(
             // PITCHER_COMMON_RAW), so never escalate commonLevel past A-grade.
             if (overall < rrLo && (isGem || isBlueChip)) {
               const pcFinalArch = assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff);
-              const pcFinalQuality = qualityTierFromOvr(rrLo);
+              const pcFinalQuality = capStarTier(qualityTierFromOvr(rrLo), starRank);
               for (let bump = 0; bump < 40 && overall < rrLo; bump++) {
                 if (velocity < 99) {
                   velocity = velocity + 1;
@@ -1869,6 +1883,31 @@ export function generateRecruitClass(
       overall = Math.max(ovrMin, Math.min(ovrMax, overall));
     }
     const computedStarRating = getStarRatingFromOVR(overall);
+
+    // Enforce pitch arsenal cap against the displayed (computed) star rating.
+    // For late_bloomer pitchers the OVR depression can push computedStarRating
+    // below starRank, meaning the pitch mix was generated for a higher tier than
+    // the recruit appears to be.  Trim excess secondary pitches so that the
+    // active-pitch count never exceeds the displayed tier cap.
+    // Gems / busts / blueChips keep their own star rating (not computedStarRating)
+    // so they are exempt — their pitch mix was already capped during retry.
+    if (isPitcher && !isGem && !isBust && !isBlueChip && !isGenerationalGem && !isGenerationalBust) {
+      const displayTier = qualityTierFromStars(computedStarRating);
+      const tierCapMap: Record<string, number> = { elite: 5, great: 4, solid: 4, average: 3 };
+      const capCount = tierCapMap[displayTier] ?? 3;
+      const secondaryOrder = [
+        "pitch2S", "pitchSL", "pitchCB", "pitchCH", "pitchCT",
+        "pitchSNK", "pitchSPL", "pitchFK", "pitchSFF", "pitchSHU",
+      ] as const;
+      const activeSecondaries = secondaryOrder.filter(k => pitchMix[k] > 0);
+      const totalActive = 1 + activeSecondaries.length;
+      if (totalActive > capCount) {
+        const trimCount = totalActive - capCount;
+        for (let t = 0; t < trimCount; t++) {
+          pitchMix[activeSecondaries[activeSecondaries.length - 1 - t]] = 0;
+        }
+      }
+    }
 
     let potential: number | undefined;
     let potentialFloor: number | undefined;

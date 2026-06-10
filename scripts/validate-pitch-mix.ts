@@ -46,9 +46,11 @@ import {
   generateArchetypePitchMix,
   pitchCountForTier,
   qualityTierFromOvr,
+  qualityTierFromStars,
   type PitcherArchetype,
   type QualityTier,
 } from "../server/pitchMixHelpers";
+import { generateRecruitClass, type GeneratedRecruit } from "../server/recruit-generator";
 
 const ALL_ROSTERS: Record<string, Record<string, RealPlayer[]>> = {
   "SEC Batch 1": SEC_BATCH1_ROSTERS,
@@ -363,6 +365,120 @@ for (const field of PITCH_FIELDS) {
   const pct = ((n / pitcherTotal) * 100).toFixed(1);
   console.log(`  ${labels[field]}  ${String(n).padStart(4)}  (${pct.padStart(5)}%)   target ${targets[field]}`);
 }
+
+// ─── Section 5: Full recruit-class pipeline pitcher arsenal tier-cap check ────
+//
+// Calls generateRecruitClass() the same way the dynasty startup and season-
+// transition code does, then inspects the FINAL stored pitch fields on every
+// pitcher in the class.  This catches any regression introduced between
+// generateArchetypePitchMix and the fully assembled GeneratedRecruit object
+// (e.g. a spread overwrite, a retry loop that bypasses the cap, or a star-band
+// → tier mapping drift).
+//
+// Each run produces 80 recruits.  10 runs × 80 = 800 recruits total, which
+// gives solid stochastic coverage while keeping the script fast (<2 s).
+// Failures report star band, archetype (re-derived from the recruit's own
+// attributes), cap, and observed active pitch count.
+
+console.log("\n── Full recruit-class pipeline pitcher arsenal tier-cap check ──");
+
+const RECRUIT_PITCH_FIELDS = [
+  "pitchFB", "pitch2S", "pitchSL", "pitchCB", "pitchCH",
+  "pitchCT", "pitchSNK", "pitchSPL", "pitchFK", "pitchSFF", "pitchSHU",
+] as const;
+
+const PITCHER_POS = new Set(["P", "SP", "RP", "CP", "CL"]);
+
+const CLASS_RUNS   = 10;   // independent recruit classes
+const CLASS_SIZE   = 80;   // matches the real game default
+let   pipelineErrors = 0;
+
+interface PipelineViolation {
+  run: number;
+  stars: number;
+  tier: QualityTier;
+  cap: number;
+  active: number;
+  archetype: string;
+}
+
+const pipelineViolations: PipelineViolation[] = [];
+
+for (let run = 0; run < CLASS_RUNS; run++) {
+  const recruits: GeneratedRecruit[] = generateRecruitClass(CLASS_SIZE);
+
+  for (const recruit of recruits) {
+    if (!PITCHER_POS.has(recruit.position ?? "")) continue;
+
+    const stars  = recruit.starRating ?? 3;
+    const tier   = qualityTierFromStars(stars);
+    const cap    = TIER_CAPS[tier];
+
+    // Count active pitches in the fully assembled recruit object
+    const raw = recruit as unknown as Record<string, unknown>;
+    const active = RECRUIT_PITCH_FIELDS.filter(f => typeof raw[f] === "number" && (raw[f] as number) > 0).length;
+
+    if (active > cap) {
+      // Re-derive the archetype from the recruit's own attributes for clear attribution
+      const archetype = assignPitcherArchetype(
+        recruit.position ?? "P",
+        recruit.throwHand ?? "R",
+        recruit.velocity ?? 50,
+        recruit.control ?? 50,
+        recruit.stamina ?? 50,
+        recruit.stuff ?? 50,
+      );
+      pipelineViolations.push({ run: run + 1, stars, tier, cap, active, archetype });
+    }
+  }
+}
+
+// Group violations and print them
+if (pipelineViolations.length > 0) {
+  pipelineErrors++;
+  console.error(`  ✗ ${pipelineViolations.length} pitcher(s) exceeded their tier cap in ${CLASS_RUNS} generated classes:\n`);
+  for (const v of pipelineViolations) {
+    console.error(
+      `    run ${v.run}: ${v.stars}★ recruit (tier="${v.tier}", archetype="${v.archetype}")`
+      + ` — ${v.active} active pitches, cap is ${v.cap}`
+    );
+  }
+}
+
+// Also verify qualityTierFromStars produces the expected tier for each band
+const EXPECTED_TIERS: Record<number, QualityTier> = {
+  1: "average",
+  2: "average",
+  3: "solid",
+  4: "great",
+  5: "elite",
+};
+
+for (const [starsStr, want] of Object.entries(EXPECTED_TIERS)) {
+  const stars = Number(starsStr);
+  const got = qualityTierFromStars(stars);
+  if (got !== want) {
+    pipelineErrors++;
+    console.error(`  ✗ qualityTierFromStars(${stars}): expected "${want}", got "${got}"`);
+  }
+}
+
+if (pipelineErrors > 0) {
+  console.error(
+    `\n✗ ${pipelineErrors} recruit-class pitcher arsenal violation(s). ` +
+    `The recruit-generator pipeline is producing arsenals above the tier cap.\n`
+  );
+  process.exit(1);
+}
+
+const totalPitchers = CLASS_RUNS * CLASS_SIZE;  // ≥ actual pitcher count
+console.log(
+  `  ✓ qualityTierFromStars: all 5 star bands map to expected tiers`
+);
+console.log(
+  `  ✓ generateRecruitClass: ${CLASS_RUNS} runs × ${CLASS_SIZE} recruits — `
+  + `all pitcher final objects at or below tier cap`
+);
 
 console.log("\n✓ All pitcher pitch-mix fields are valid.");
 process.exit(0);
