@@ -3590,7 +3590,7 @@ function RecruitRow({
                     <Lock className="w-2.5 h-2.5 text-gold/50" />
                   ) : isVelRevealed ? (
                     <span className="font-pixel text-[9px] font-bold text-sky-300/90">
-                      {velocityToKMH(val)}
+                      {velocityToKMH(val)} KMH
                     </span>
                   ) : (
                     <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
