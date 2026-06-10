@@ -764,7 +764,7 @@ export default function LeagueViewPage() {
                 <p className="font-pixel text-[8px] text-muted-foreground mb-1">RECRUITING</p>
                 <p className="text-xl font-bold">{overview.recruitingSigned}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Signed | {overview.recruitingInterested} interested
+                  Signed{overview.recruitingInterested > 0 ? ` | ${overview.recruitingInterested} interested` : ""}
                 </p>
               </div>
             </RetroCard>
@@ -2774,6 +2774,7 @@ function WaitingOnWidget({
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "walkons"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "postseason"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "dashboard-overview"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
       // After signing day is finalized all recruits have signedTeamId set.
       // Navigate the commissioner directly to the cinematic card-flip reveal.

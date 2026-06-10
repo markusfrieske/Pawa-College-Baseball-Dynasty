@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -1153,6 +1153,10 @@ export default function SigningDayRevealPage() {
     if (revealedTeams.current.has(teamId)) return;
     revealedTeams.current.add(teamId);
     apiRequest("POST", `/api/leagues/${leagueId}/signing-day-reveal/complete?teamId=${teamId}`)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "dashboard-overview"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      })
       .catch((err) => console.error("[reveal-complete] failed:", err));
   }, [cinemaPhase, data?.myTeamId, leagueId]);
 
