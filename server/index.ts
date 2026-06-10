@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
-import { createServer } from "http";
+import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 
@@ -203,6 +203,22 @@ app.use((req, res, next) => {
       console.warn("[startup-migration] pitcher-stamina-bands failed:", e);
     }
   })();
+
+  // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
+  app.use('/__mockup', (req, res) => {
+    const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;
+    const proxyReq = httpRequest(
+      { hostname: 'localhost', port: 23636, path: proxyPath, method: req.method, headers: req.headers },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+        proxyRes.pipe(res, { end: true });
+      }
+    );
+    proxyReq.on('error', () => {
+      if (!res.headersSent) res.status(502).send('Mockup sandbox not available');
+    });
+    req.pipe(proxyReq, { end: true });
+  });
 
   await registerRoutes(httpServer, app);
 
