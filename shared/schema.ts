@@ -42,6 +42,7 @@ export const leagues = pgTable("leagues", {
   emailDigestsEnabled: boolean("email_digests_enabled").notNull().default(true),
   showReadyNamesToAll: boolean("show_ready_names_to_all").notNull().default(false),
   lastWalkonAuction: text("last_walkon_auction"),
+  currentClassVintage: text("current_class_vintage"),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

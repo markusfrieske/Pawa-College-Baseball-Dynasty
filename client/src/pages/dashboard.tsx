@@ -5,7 +5,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot, Share2 } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot, Share2, Gem, TrendingUp, TrendingDown, Scale, Wind, ShieldCheck, Zap, Gauge, Shuffle, AlertOctagon, Sprout } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -541,6 +541,40 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
           </Link>
         </div>
       )}
+      {["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"].includes(league.currentPhase) && league.currentClassVintage && (() => {
+        const vintageConfig: Record<string, { label: string; colors: string; Icon: React.ElementType }> = {
+          elite:            { label: "ELITE CLASS",           colors: "border-amber-500/30 text-amber-400",     Icon: Trophy        },
+          gem_heavy:        { label: "GEM-HEAVY CLASS",       colors: "border-emerald-500/30 text-emerald-400", Icon: Gem           },
+          strong:           { label: "STRONG CLASS",          colors: "border-green-500/30 text-green-400",     Icon: TrendingUp    },
+          balanced:         { label: "BALANCED CLASS",        colors: "border-blue-500/30 text-blue-400",       Icon: Scale         },
+          pitching_rich:    { label: "PITCHING-RICH CLASS",   colors: "border-sky-500/30 text-sky-400",         Icon: Wind          },
+          position_players: { label: "POSITION PLAYER CLASS", colors: "border-cyan-500/30 text-cyan-400",       Icon: Users         },
+          defense_first:    { label: "DEFENSE-FIRST CLASS",   colors: "border-teal-500/30 text-teal-400",       Icon: ShieldCheck   },
+          power_class:      { label: "POWER CLASS",           colors: "border-rose-500/30 text-rose-400",       Icon: Zap           },
+          speed_class:      { label: "SPEED CLASS",           colors: "border-violet-500/30 text-violet-400",   Icon: Gauge         },
+          raw_talent:       { label: "RAW TALENT CLASS",      colors: "border-orange-500/30 text-orange-400",   Icon: Eye           },
+          volatile:         { label: "VOLATILE CLASS",        colors: "border-yellow-500/30 text-yellow-400",   Icon: Shuffle       },
+          bust_year:        { label: "BUST-HEAVY CLASS",      colors: "border-red-500/30 text-red-400",         Icon: AlertOctagon  },
+          weak:             { label: "DOWN YEAR",             colors: "border-border/40 text-muted-foreground", Icon: TrendingDown  },
+          late_bloomer:     { label: "LATE-BLOOMER CLASS",    colors: "border-lime-500/30 text-lime-400",       Icon: Sprout        },
+          legacy:           { label: "LEGACY CLASS",          colors: "border-amber-600/30 text-amber-300",     Icon: Crown         },
+        };
+        const cfg = vintageConfig[league.currentClassVintage];
+        if (!cfg) return null;
+        const { Icon } = cfg;
+        return (
+          <div className="px-4 pb-2 pt-1">
+            <div
+              className={`flex items-center gap-2 px-3 py-2 rounded border text-xs ${cfg.colors}`}
+              data-testid={`banner-class-vintage-${league.id}`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span className="font-pixel text-[8px] uppercase tracking-wider">{cfg.label}</span>
+              <span className="text-[10px] opacity-60 ml-1">· Season {league.currentSeason}</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <Link href={`/league/${league.id}`} className="cursor-pointer">
         <RetroCardContent>

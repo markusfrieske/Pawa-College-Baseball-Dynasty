@@ -1233,7 +1233,10 @@ export async function registerRoutes(
       }
 
       // Generate recruits now that teams exist — scale class size to team count
-      await generateRecruits(league.id, getRecruitPoolSize(totalTeamsCreated));
+      const initClassVintage = await generateRecruits(league.id, getRecruitPoolSize(totalTeamsCreated));
+      if (initClassVintage) {
+        await storage.updateLeague(league.id, { currentClassVintage: initClassVintage });
+      }
 
       await storage.createAuditLog({
         leagueId: league.id,
@@ -15347,7 +15350,10 @@ export async function registerRoutes(
     const recruitCount = getRecruitPoolSize(teams.length);
     // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
     // not the season that just ended (the DB counter is bumped after this function returns).
-    await generateRecruits(leagueId, recruitCount, false, completedSeason + 1);
+    const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1);
+    if (newClassVintage) {
+      await storage.updateLeague(leagueId, { currentClassVintage: newClassVintage });
+    }
 
     let jucoRecruitsCreated = 0;
     for (const walkon of unsignedRealWalkons) {
@@ -22290,6 +22296,8 @@ async function generateRecruits(leagueId: string, count: number, forceStorylineR
     // Run asynchronously — do not await so generateRecruits returns sooner
     doInit().catch(err => console.error("[storylines] generateRecruits background init threw:", err));
   }
+
+  return recruits[0]?.classVintage ?? null;
 }
 
 // Generate top schools for all recruits in a league based on their priorities
