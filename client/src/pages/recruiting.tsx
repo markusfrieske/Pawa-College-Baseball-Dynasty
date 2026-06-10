@@ -4793,6 +4793,11 @@ function RecruitDetailModal({
                             +{weekGain}%
                           </span>
                         )}
+                        {isUserSchool && (
+                          <span className="text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0 bg-gold/20 text-gold border border-gold/40" data-testid={`badge-modal-rank-${school.teamId}`}>
+                            #{i + 1} of {visibleSchools.length}
+                          </span>
+                        )}
                         <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                       </div>
                     );
@@ -5445,6 +5450,11 @@ function RecruitDetailModal({
                               : "bg-green-900/30 text-green-400 border border-green-700/30"
                           }`} data-testid={`badge-modal-weekly-gain-${school.teamId}`}>
                             +{weekGain}%
+                          </span>
+                        )}
+                        {isUserSchool && (
+                          <span className="text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0 bg-gold/20 text-gold border border-gold/40" data-testid={`badge-modal-rank-${school.teamId}`}>
+                            #{i + 1} of {visibleSchools.length}
                           </span>
                         )}
                         <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
