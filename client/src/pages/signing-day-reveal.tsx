@@ -627,8 +627,8 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
     { label: "Contact",  val: recruit.hitForAvg ?? 50 },
     { label: "Power",    val: recruit.power ?? 50 },
     { label: "Speed",    val: recruit.speed ?? 50 },
-    { label: "Fielding", val: recruit.fielding ?? 50 },
     { label: "Arm",      val: recruit.arm ?? 50 },
+    { label: "Fielding", val: recruit.fielding ?? 50 },
     { label: "Error",    val: recruit.errorResistance ?? 50 },
   ];
 
@@ -699,7 +699,7 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
               {recruit.firstName} {recruit.lastName}
             </div>
             <div className="text-[9px] text-gray-500 leading-tight mt-0.5">
-              {recruit.position} · T:{recruit.throwHand} · B:{recruit.batHand}
+              {recruit.position} · T:{recruit.throwHand ?? "R"} · B:{recruit.batHand ?? "R"}
             </div>
           </div>
           <StarRating rating={recruit.starRating} size="sm" className="shrink-0 mt-0.5" />
