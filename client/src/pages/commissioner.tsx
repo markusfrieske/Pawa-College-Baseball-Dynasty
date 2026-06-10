@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { AdvanceProgressBar } from "@/components/advance-progress-bar";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link, useLocation } from "wouter";
+import { useParams, Link, useLocation, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -106,6 +106,17 @@ export default function CommissionerPage() {
   const [classSelectionOptions, setClassSelectionOptions] = useState<Array<{ id: string; name: string; recruitCount: number }>>([]);
   const [selectedClassForAdvance, setSelectedClassForAdvance] = useState<string>("auto");
   const [pendingAdvanceSeason, setPendingAdvanceSeason] = useState<number | null>(null);
+
+  const search = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    if (params.get("showSummary") === "1") {
+      const seasonParam = params.get("season");
+      const s = seasonParam ? parseInt(seasonParam) : 1;
+      setSummaryCompletedSeason(s);
+      setShowSeasonSummary(true);
+    }
+  }, [search]);
 
   const toggleAutoAdvance = (val: boolean) => {
     setAutoAdvance(val);

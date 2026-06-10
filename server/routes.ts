@@ -16998,7 +16998,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/leagues/:id/championship-screen/:season", async (req, res) => {
+  app.get("/api/leagues/:id/championship-screen/:season", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
       const season = parseInt(req.params.season);

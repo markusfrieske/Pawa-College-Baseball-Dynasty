@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
+import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, ArrowLeft, Crown, Printer, Award, Star, Users, Medal } from "lucide-react";
+import { Trophy, ArrowLeft, Crown, Camera, Award, Users, Medal } from "lucide-react";
 
 interface ChampionInfo {
   id: string;
@@ -96,18 +97,12 @@ function hexToRgb(hex: string): string {
 }
 
 const ELIGIBILITY_LABELS: Record<string, string> = {
-  FR: "FR",
-  SO: "SO",
-  JR: "JR",
-  SR: "SR",
+  FR: "FR", SO: "SO", JR: "JR", SR: "SR",
 };
 
 const STAR_COLORS: Record<number, string> = {
-  1: "text-gray-400",
-  2: "text-blue-400",
-  3: "text-green-400",
-  4: "text-yellow-400",
-  5: "text-orange-400",
+  1: "text-gray-400", 2: "text-blue-400", 3: "text-green-400",
+  4: "text-yellow-400", 5: "text-orange-400",
 };
 
 function StarDisplay({ stars }: { stars: number }) {
@@ -184,8 +179,18 @@ export default function ChampionshipScreenPage() {
   const positionPlayers = startingLineup.filter(p => !p.isPitcher);
   const pitcherPlayers = startingLineup.filter(p => p.isPitcher);
 
+  const handleScreenshot = () => window.print();
+
+  const handleContinue = () => {
+    navigate(`/league/${id}/commissioner?showSummary=1&season=${season}`);
+  };
+
   return (
-    <div className="min-h-screen bg-background print:bg-white" data-testid="page-championship-screen">
+    <div
+      className="min-h-screen bg-background print:bg-white"
+      data-testid="page-championship-screen"
+      data-screenshot-region="championship"
+    >
 
       {/* ── Hero Section ──────────────────────────────────────────── */}
       <div
@@ -195,7 +200,6 @@ export default function ChampionshipScreenPage() {
           borderBottom: `1px solid rgba(${primaryRgb}, 0.3)`,
         }}
       >
-        {/* Subtle secondary color accent */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -204,107 +208,180 @@ export default function ChampionshipScreenPage() {
         />
 
         {/* Nav row */}
-        <div className="relative z-10 container mx-auto px-4 pt-4 pb-2">
+        <div className="relative z-10 container mx-auto px-4 pt-4 pb-2 flex items-center justify-between print:hidden">
           <Link href={`/league/${id}`}>
-            <button className="flex items-center gap-1.5 text-muted-foreground hover:text-gold transition-colors text-xs print:hidden">
+            <button className="flex items-center gap-1.5 text-muted-foreground hover:text-gold transition-colors text-xs" data-testid="button-back-to-league">
               <ArrowLeft className="w-4 h-4" />
               Back to League
             </button>
           </Link>
+          <button
+            onClick={handleScreenshot}
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-gold transition-colors text-xs"
+            data-testid="button-screenshot"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            Save Screenshot
+          </button>
         </div>
 
         {/* Main hero content */}
         <div className="relative z-10 container mx-auto px-4 py-10 text-center">
-          {/* Season label */}
+          {/* League + Season label */}
           <p className="font-pixel text-[8px] text-muted-foreground tracking-widest uppercase mb-3">
             {data.leagueName} &bull; Season {data.season}
           </p>
 
-          {/* Trophy icon */}
+          {/* Trophy icon with pulse */}
           <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 border-2"
+            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-5 border-2 animate-pulse"
             style={{
               backgroundColor: `rgba(${primaryRgb}, 0.15)`,
               borderColor: `rgba(${primaryRgb}, 0.4)`,
             }}
           >
-            <Trophy
-              className="w-10 h-10"
-              style={{ color: champion?.primaryColor ?? "#D4AF37" }}
-            />
+            <Trophy className="w-10 h-10" style={{ color: champion?.primaryColor ?? "#D4AF37" }} />
           </div>
 
-          {/* NATIONAL CHAMPIONS headline */}
-          <h1 className="font-pixel text-[11px] sm:text-[13px] tracking-wide mb-2" style={{ color: champion?.primaryColor ?? "#D4AF37" }}>
-            NATIONAL CHAMPIONS
+          {/* "The Deuce 2.0 — Season N Champion" pixel headline */}
+          <h1
+            className="font-pixel text-[10px] sm:text-[12px] tracking-wide mb-5 leading-loose"
+            style={{ color: champion?.primaryColor ?? "#D4AF37" }}
+          >
+            The Deuce 2.0 &mdash; Season {data.season} Champion
           </h1>
 
-          {/* Team name */}
+          {/* TeamBadge + team name */}
           {champion && (
-            <>
-              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-1 tracking-tight">
-                {champion.name}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-2">
-                {champion.mascot}
-                {champion.conferenceName && (
-                  <span className="ml-2 text-muted-foreground/60">&bull; {champion.conferenceName}</span>
-                )}
-              </p>
-              <p className="font-pixel text-[10px] text-muted-foreground">
-                Season Record: <span className="text-foreground">{champion.wins}–{champion.losses}</span>
-              </p>
-            </>
+            <div className="flex flex-col items-center gap-3 mb-4">
+              <TeamBadge
+                abbreviation={champion.abbreviation}
+                primaryColor={champion.primaryColor}
+                secondaryColor={champion.secondaryColor}
+                size="lg"
+                name={champion.name}
+              />
+              <div>
+                <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-1 tracking-tight">
+                  {champion.name}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {champion.mascot}
+                  {champion.conferenceName && (
+                    <span className="ml-2 text-muted-foreground/60">&bull; {champion.conferenceName}</span>
+                  )}
+                </p>
+                <p className="font-pixel text-[10px] text-muted-foreground mt-1">
+                  Season Record: <span className="text-foreground">{champion.wins}–{champion.losses}</span>
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Series result */}
           {champion && runnerUp && (
-            <div className="mt-6 inline-flex items-center gap-4 px-6 py-3 rounded-lg border"
-              style={{ borderColor: `rgba(${primaryRgb}, 0.3)`, backgroundColor: `rgba(${primaryRgb}, 0.08)` }}>
+            <div
+              className="mt-4 inline-flex items-center gap-6 px-8 py-4 rounded-lg border"
+              style={{ borderColor: `rgba(${primaryRgb}, 0.3)`, backgroundColor: `rgba(${primaryRgb}, 0.08)` }}
+            >
               <div className="text-center">
-                <p className="font-pixel text-[8px] text-muted-foreground mb-0.5">CHAMPIONS</p>
-                <p className="font-medium text-sm" style={{ color: champion.primaryColor }}>{champion.abbreviation}</p>
-                <p className="font-pixel text-xl" style={{ color: champion.primaryColor }}>{cwsSeries.championWins}</p>
+                <p className="font-pixel text-[7px] text-muted-foreground mb-1">CHAMPIONS</p>
+                <TeamBadge
+                  abbreviation={champion.abbreviation}
+                  primaryColor={champion.primaryColor}
+                  secondaryColor={champion.secondaryColor}
+                  size="sm"
+                />
+                <p className="font-pixel text-2xl mt-1" style={{ color: champion.primaryColor }}>{cwsSeries.championWins}</p>
               </div>
               <div className="text-center">
                 <Crown className="w-5 h-5 mx-auto mb-1" style={{ color: champion.primaryColor }} />
                 <p className="font-pixel text-[7px] text-muted-foreground">CWS FINAL</p>
               </div>
               <div className="text-center">
-                <p className="font-pixel text-[8px] text-muted-foreground mb-0.5">RUNNER-UP</p>
-                <p className="font-medium text-sm text-muted-foreground">{runnerUp.abbreviation}</p>
-                <p className="font-pixel text-xl text-muted-foreground">{cwsSeries.runnerUpWins}</p>
+                <p className="font-pixel text-[7px] text-muted-foreground mb-1">RUNNER-UP</p>
+                <TeamBadge
+                  abbreviation={runnerUp.abbreviation}
+                  primaryColor={runnerUp.primaryColor}
+                  size="sm"
+                />
+                <p className="font-pixel text-2xl mt-1 text-muted-foreground">{cwsSeries.runnerUpWins}</p>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Print button */}
-        <div className="relative z-10 container mx-auto px-4 pb-4 flex justify-end print:hidden">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors text-xs"
-            data-testid="button-print-championship"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            Print / Save
-          </button>
         </div>
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────── */}
       <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
 
-        {/* CWS Game-by-Game */}
-        {cwsGames.length > 0 && (
-          <RetroCard data-testid="card-cws-games">
+        {/* CWS Bracket + Game Log */}
+        {cwsGames.length > 0 && champion && runnerUp && (
+          <RetroCard data-testid="panel-cws-bracket">
             <RetroCardHeader>
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-gold" />
-                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">COLLEGE WORLD SERIES — GAME LOG</h3>
+                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">CWS CHAMPIONSHIP BRACKET</h3>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
+              {/* Bracket visual */}
+              <div className="flex items-stretch gap-0 mb-5" data-testid="bracket-visual">
+                {/* Champion column */}
+                <div
+                  className="flex-1 rounded-l-lg px-4 py-3 border border-r-0 text-center"
+                  style={{ borderColor: `rgba(${primaryRgb}, 0.3)`, backgroundColor: `rgba(${primaryRgb}, 0.08)` }}
+                >
+                  <TeamBadge
+                    abbreviation={champion.abbreviation}
+                    primaryColor={champion.primaryColor}
+                    secondaryColor={champion.secondaryColor}
+                    size="md"
+                    name={champion.name}
+                    className="mx-auto mb-2"
+                  />
+                  <p className="text-[11px] font-medium text-foreground">{champion.name}</p>
+                  <p className="font-pixel text-3xl mt-1" style={{ color: champion.primaryColor }}>
+                    {cwsSeries.championWins}
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className="font-pixel text-[6px] mt-1 bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
+                  >
+                    CHAMPION
+                  </Badge>
+                </div>
+
+                {/* Center divider */}
+                <div className="flex flex-col items-center justify-center px-3 bg-muted/20 border-y border-border/30">
+                  <Crown className="w-5 h-5 mb-1" style={{ color: champion.primaryColor }} />
+                  <p className="font-pixel text-[7px] text-muted-foreground">VS</p>
+                </div>
+
+                {/* Runner-up column */}
+                <div className="flex-1 rounded-r-lg px-4 py-3 border border-l-0 border-border/30 text-center bg-muted/10">
+                  <TeamBadge
+                    abbreviation={runnerUp.abbreviation}
+                    primaryColor={runnerUp.primaryColor}
+                    size="md"
+                    name={runnerUp.name}
+                    className="mx-auto mb-2"
+                  />
+                  <p className="text-[11px] font-medium text-muted-foreground">{runnerUp.name}</p>
+                  <p className="font-pixel text-3xl mt-1 text-muted-foreground">
+                    {cwsSeries.runnerUpWins}
+                  </p>
+                  <Badge
+                    variant="outline"
+                    className="font-pixel text-[6px] mt-1 bg-gray-400/20 text-gray-300 border-gray-400/40"
+                  >
+                    RUNNER-UP
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Game-by-game scores */}
+              <p className="font-pixel text-[7px] text-muted-foreground uppercase tracking-wide mb-2">Game-by-Game Results</p>
               <div className="space-y-2">
                 {cwsGames.map(game => {
                   const homeWon = game.homeScore > game.awayScore;
@@ -318,8 +395,6 @@ export default function ChampionshipScreenPage() {
                       <span className="font-pixel text-[7px] text-muted-foreground w-10 flex-shrink-0">
                         GAME {game.gameNumber}
                       </span>
-
-                      {/* Away team */}
                       <div className={`flex items-center gap-2 flex-1 ${awayWon ? "" : "opacity-60"}`}>
                         <span className={`text-[10px] font-medium truncate ${awayWon ? "text-foreground" : "text-muted-foreground"}`}>
                           {game.awayTeamName}
@@ -328,10 +403,7 @@ export default function ChampionshipScreenPage() {
                           {game.awayScore}
                         </span>
                       </div>
-
                       <span className="font-pixel text-[8px] text-muted-foreground/40 flex-shrink-0 px-1">@</span>
-
-                      {/* Home team */}
                       <div className={`flex items-center gap-2 flex-1 ${homeWon ? "" : "opacity-60"}`}>
                         <span className={`font-pixel text-sm flex-shrink-0 ${homeWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
                           {game.homeScore}
@@ -340,7 +412,6 @@ export default function ChampionshipScreenPage() {
                           {game.homeTeamName}
                         </span>
                       </div>
-
                       {game.winnerId === champion?.id && (
                         <Crown className="w-3 h-3 flex-shrink-0" style={{ color: champion?.primaryColor ?? "#D4AF37" }} />
                       )}
@@ -454,51 +525,25 @@ export default function ChampionshipScreenPage() {
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-gold" />
                 <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">
-                  {champion.abbreviation} CHAMPION ROSTER HIGHLIGHTS
+                  {champion.abbreviation} — STARTING NINE + KEY STARTERS
                 </h3>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
-              <div className="mb-3">
-                <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Position Players</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {positionPlayers.map(player => (
-                    <div
-                      key={player.id}
-                      className="flex items-center gap-2 px-2 py-2 rounded bg-muted/20 border border-border/30"
-                      data-testid={`card-lineup-player-${player.id}`}
-                    >
-                      <div
-                        className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold"
-                        style={{ backgroundColor: `rgba(${primaryRgb}, 0.2)`, color: champion.primaryColor }}
-                      >
-                        {player.position.substring(0, 2)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-medium truncate">
-                          {player.firstName[0]}. {player.lastName}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
-                          <span className="text-[7px] text-muted-foreground/60">{ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {pitcherPlayers.length > 0 && (
-                <div>
-                  <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Key Pitchers</p>
+              {positionPlayers.length > 0 && (
+                <div className="mb-4">
+                  <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Position Players</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {pitcherPlayers.map(player => (
+                    {positionPlayers.map(player => (
                       <div
                         key={player.id}
-                        className="flex items-center gap-2 px-2 py-2 rounded bg-purple-500/10 border border-purple-500/20"
-                        data-testid={`card-lineup-pitcher-${player.id}`}
+                        className="flex items-center gap-2 px-2 py-2 rounded bg-muted/20 border border-border/30"
+                        data-testid={`card-lineup-player-${player.id}`}
                       >
-                        <div className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold bg-purple-500/20 text-purple-300">
+                        <div
+                          className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold"
+                          style={{ backgroundColor: `rgba(${primaryRgb}, 0.2)`, color: champion.primaryColor }}
+                        >
                           {player.position.substring(0, 2)}
                         </div>
                         <div className="min-w-0">
@@ -507,11 +552,58 @@ export default function ChampionshipScreenPage() {
                           </p>
                           <div className="flex items-center gap-1">
                             <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
-                            <span className="text-[7px] text-muted-foreground/60">{ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}</span>
+                            <span className="text-[7px] text-muted-foreground/60">
+                              {ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}
+                            </span>
                           </div>
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {pitcherPlayers.length > 0 && (
+                <div>
+                  <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Key Pitchers</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {pitcherPlayers.map((player, idx) => {
+                      const pitcherLabel = idx === 0 ? "ACE" : "KEY STARTER";
+                      return (
+                        <div
+                          key={player.id}
+                          className="flex items-center gap-2 px-2 py-2 rounded bg-purple-500/10 border border-purple-500/20"
+                          data-testid={`card-lineup-pitcher-${player.id}`}
+                        >
+                          <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 font-pixel text-[8px] font-bold bg-purple-500/20 text-purple-300">
+                            {player.position.substring(0, 2)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <Badge
+                                variant="outline"
+                                className={`font-pixel text-[5px] px-1 py-0 h-auto ${
+                                  idx === 0
+                                    ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
+                                    : "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                                }`}
+                              >
+                                {pitcherLabel}
+                              </Badge>
+                            </div>
+                            <p className="text-[10px] font-medium truncate">
+                              {player.firstName[0]}. {player.lastName}
+                            </p>
+                            <div className="flex items-center gap-1">
+                              <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
+                              <span className="text-[7px] text-muted-foreground/60">
+                                {ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -522,18 +614,27 @@ export default function ChampionshipScreenPage() {
         {/* Footer actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-8 print:hidden">
           <Link href={`/league/${id}`}>
-            <RetroButton variant="outline" data-testid="button-back-to-league">
+            <RetroButton variant="outline" data-testid="button-back-to-league-footer">
               <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
               Back to League
             </RetroButton>
           </Link>
-          <Link href={`/league/${id}/commissioner`}>
-            <RetroButton data-testid="button-continue-commissioner">
-              Continue to Offseason
-            </RetroButton>
-          </Link>
+          <RetroButton
+            onClick={handleContinue}
+            data-testid="button-continue-offseason"
+          >
+            Continue to Offseason
+          </RetroButton>
         </div>
       </div>
+
+      {/* Print styles */}
+      <style>{`
+        @media print {
+          nav, header, [data-print-hidden] { display: none !important; }
+          [data-screenshot-region="championship"] { background: #fff !important; }
+        }
+      `}</style>
     </div>
   );
 }
