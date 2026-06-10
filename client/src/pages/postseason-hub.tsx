@@ -480,6 +480,70 @@ function ConfChampSection({
   );
 }
 
+// ─── Conference Championship Bracket ───────────────────────────────────────
+
+function ConfChampBracket({
+  games,
+  seeds,
+}: {
+  games: PostseasonGame[];
+  seeds: SeedEntry[];
+}) {
+  if (games.length === 0) return null;
+
+  return (
+    <div className="flex items-start gap-6 overflow-x-auto pb-2 flex-wrap sm:flex-nowrap">
+      {games.map(game => {
+        const winnerId = getWinner(game);
+        const winnerTeam = winnerId
+          ? (winnerId === game.homeTeamId ? game.homeTeam : game.awayTeam)
+          : null;
+        const winnerSeed = winnerId ? seeds.find(s => s.teamId === winnerId) : null;
+        const confName = game.homeTeam?.conferenceName || "Conference";
+
+        return (
+          <div key={game.id} className="flex items-center gap-2 flex-shrink-0">
+            {/* Matchup column */}
+            <div className="flex flex-col gap-1">
+              <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center truncate max-w-[130px]">
+                {confName}
+              </p>
+              <BracketNode game={game} seeds={seeds} />
+            </div>
+
+            {/* Arrow */}
+            <ChevronRight className="w-4 h-4 text-muted-foreground/40 flex-shrink-0 mt-5" />
+
+            {/* SR Bound box */}
+            <div className="flex flex-col flex-shrink-0">
+              <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center">SR Bound</p>
+              {winnerId ? (
+                <div className="border border-gold/30 rounded bg-gold/10 px-2 py-2 min-w-[80px] text-center">
+                  {winnerSeed ? (
+                    <>
+                      <span className="text-[9px] font-pixel text-gold mr-1">{winnerSeed.seed}</span>
+                      <span className="text-[10px] font-pixel text-gold">{winnerSeed.abbreviation}</span>
+                      <p className="text-[8px] text-muted-foreground mt-0.5">{winnerSeed.conferenceName}</p>
+                    </>
+                  ) : (
+                    <span className="text-[10px] font-pixel text-gold">
+                      {winnerTeam?.abbreviation || "—"}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="border border-border/50 rounded bg-muted/20 px-2 py-2 min-w-[80px] text-center">
+                  <p className="text-[10px] font-pixel text-muted-foreground">TBD</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── CWS section ───────────────────────────────────────────────────────────
 
 function CWSSection({ games, seeds }: { games: PostseasonGame[]; seeds: SeedEntry[] }) {
@@ -747,6 +811,22 @@ export default function PostseasonHubPage() {
                       />
                     );
                   })}
+                </div>
+
+                {/* Conference Championship Bracket */}
+                <div className="mt-4">
+                  <h3 className="font-pixel text-[9px] text-gold mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <ChevronRight className="w-3 h-3" />
+                    Conference Championship Bracket
+                  </h3>
+                  <RetroCard>
+                    <RetroCardContent>
+                      <ConfChampBracket
+                        games={data.conferenceChampionships}
+                        seeds={data.seeds || []}
+                      />
+                    </RetroCardContent>
+                  </RetroCard>
                 </div>
               </section>
             )}
