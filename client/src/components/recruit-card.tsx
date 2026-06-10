@@ -8,6 +8,7 @@ import { getPotentialGrade } from "@shared/potential";
 import { Crown, Zap } from "lucide-react";
 import { TrajectoryIcon } from "@/components/ui/trajectory-icon";
 import { computeRevealedPitchFields } from "@shared/recruitThresholds";
+import { velocityToKMH } from "@/lib/playerUtils";
 
 export interface RevealRecruit {
   id: string;
@@ -378,7 +379,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
               <div key={label} className="flex items-center gap-0.5">
                 <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">{label}</span>
                 <span className="font-pixel text-[7px] font-bold w-[10px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
-                <span className="text-[6px] text-gray-400 leading-none font-mono">{val}</span>
+                <span className="text-[6px] text-gray-400 leading-none font-mono">{label === "VEL" ? `${velocityToKMH(val)} KMH` : val}</span>
               </div>
             );
           })}
