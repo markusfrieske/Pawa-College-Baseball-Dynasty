@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
-import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
+import { allPitchKeys, pitchLabels } from "@/components/ui/pitch-mix-dial";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X, Sparkles } from "lucide-react";
 import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -254,8 +255,6 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const posColor = positionColors[player.position] || "#666";
   const bats = player.bats || player.batHand || "R";
   const throws = player.throws || player.throwHand || "R";
-  const pitchMix = generatePitchMixForDial(player);
-
   const eligibilityLabel: Record<string, string> = {
     FR: "Freshman",
     SO: "Sophomore", 
@@ -540,10 +539,34 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           </div>
 
           {/* Pitch Mix for Pitchers */}
-          {isPitcher && pitchMix.length > 0 && (
+          {isPitcher && (
             <div className="mt-4 pt-4 border-t border-border">
               <h4 className="font-pixel text-gold text-xs mb-2">PITCH MIX</h4>
-              <PitchMixDial pitches={pitchMix} />
+              <div className="grid grid-cols-2 gap-1">
+                {allPitchKeys.map(key => {
+                  const val = (player as Record<string, unknown>)[`pitch${key}`] as number | null | undefined;
+                  const rating = val ?? 0;
+                  if (rating > 0) {
+                    return (
+                      <div key={key} className="flex items-center justify-between px-1.5 py-0.5 bg-muted/20 rounded">
+                        <span className="text-xs text-foreground">{pitchLabels[key] || key}</span>
+                        <span className="text-xs font-bold text-gold" data-testid={`pitch-rating-${key}`}>{rating}</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <Tooltip key={key}>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center justify-between px-1.5 py-0.5 rounded opacity-40 cursor-default">
+                          <span className="text-xs text-muted-foreground">{pitchLabels[key] || key}</span>
+                          <span className="text-xs text-muted-foreground/60 italic" data-testid={`text-pitch-none-player-${key}`}>None</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Pitcher does not throw this pitch</TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
