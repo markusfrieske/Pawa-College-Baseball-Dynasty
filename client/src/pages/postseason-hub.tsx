@@ -846,8 +846,9 @@ export default function PostseasonHubPage() {
                           />
                         );
                       })}
-                      {/* Fallback: no bracketType set on any game */}
-                      {data.superRegionals.every(g => !g.bracketType) && (
+                      {/* Fallback: no winners or losers typed games exist (e.g. only legacy
+                          grand_final rows, or bracketType was never written) */}
+                      {!data.superRegionals.some(g => g.bracketType === "winners" || g.bracketType === "losers") && (
                         <div className="grid sm:grid-cols-2 gap-3">
                           {data.superRegionals.map(g => (
                             <BracketNode key={g.id} game={g} seeds={data.seeds || []} />
