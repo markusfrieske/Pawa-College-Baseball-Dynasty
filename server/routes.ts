@@ -6196,7 +6196,7 @@ export async function registerRoutes(
       }
 
       const careerBatting = Array.from(battersByPlayer.values())
-        .filter(b => b.ab >= 30)
+        .filter(b => b.ab >= 10)
         .map(b => {
           const avg = b.ab > 0 ? b.h / b.ab : 0;
           const obp = (b.ab + b.bb + b.hbp) > 0 ? (b.h + b.bb + b.hbp) / (b.ab + b.bb + b.hbp) : 0;
