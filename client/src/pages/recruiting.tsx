@@ -2138,6 +2138,7 @@ export default function RecruitingPage() {
         nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
         seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
         userTeamId={data?.team?.id}
+        trend={selectedRecruit ? (trendsData?.trends?.[selectedRecruit.id] ?? null) : null}
       />
 
       <Dialog open={showSaveClassDialog} onOpenChange={(open) => { if (!open) setShowSaveClassDialog(false); }}>
@@ -3921,6 +3922,7 @@ function RecruitDetailModal({
   nilRemaining,
   seasonVisitCapReached,
   userTeamId,
+  trend,
 }: {
   recruit: RecruitWithInterest | null;
   onClose: () => void;
@@ -3946,6 +3948,7 @@ function RecruitDetailModal({
   nilRemaining?: number;
   seasonVisitCapReached?: boolean;
   userTeamId?: string;
+  trend?: { trend: "up" | "down" | "flat"; recentGain: number } | null;
 }) {
   const isMobile = useIsMobile();
   const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
@@ -4780,6 +4783,7 @@ function RecruitDetailModal({
                 topSchools={recruit.topSchools}
                 stage={recruit.stage}
                 userTeamId={userTeamId}
+                trend={trend}
                 showRowRankBadge
                 testIdPrefix="modal"
               />
@@ -5392,6 +5396,7 @@ function RecruitDetailModal({
                 topSchools={recruit.topSchools}
                 stage={recruit.stage}
                 userTeamId={userTeamId}
+                trend={trend}
                 showRowRankBadge
                 testIdPrefix="modal"
               />
