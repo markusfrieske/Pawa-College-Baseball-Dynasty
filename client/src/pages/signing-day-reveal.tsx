@@ -436,7 +436,6 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
   signingTeamColor?: string;
 }) {
   const posColor = getPositionFamilyColor(recruit.position);
-  const ovrColor = getRevealOvrColor(recruit.overall);
   const isGen    = !!(recruit.isGenerationalGem  && recruit.gemBustRevealed);
   const isGenBust= !!(recruit.isGenerationalBust && recruit.gemBustRevealed);
 
@@ -541,13 +540,13 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
         </span>
       </div>
 
-      {/* Location + OVR */}
+      {/* Location + Position Rank */}
       <div style={{ background: "#0d0d0d", padding: "4px 9px 6px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "120px" }}>
           {location}
         </span>
-        <span className="font-pixel" style={{ fontSize: "13px", fontWeight: "bold", color: ovrColor, flexShrink: 0 }} data-testid={`card-ovr-${recruit.id}`}>
-          {recruit.overall}
+        <span className="font-pixel" style={{ fontSize: "11px", fontWeight: "bold", color: "#C4A35A", flexShrink: 0 }} data-testid={`card-pos-rank-${recruit.id}`}>
+          #{recruit.positionRank} {recruit.position}
         </span>
       </div>
     </div>

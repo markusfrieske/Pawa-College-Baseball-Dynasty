@@ -100,7 +100,7 @@ function CommitMiniCard({ commit }: { commit: CommitInfo }) {
           </Badge>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-400">
-          <span>{commit.overall} OVR</span>
+          <span className="font-mono">#{commit.positionRank} {commit.position}</span>
           <StarRating rating={commit.starRating} size="sm" />
         </div>
       </div>
@@ -116,7 +116,7 @@ function CommitMiniCard({ commit }: { commit: CommitInfo }) {
 }
 
 function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
-  const { team, commits, avgStarRating, avgOverall, fiveStars, fourStars, classRank } = teamData;
+  const { team, commits, avgStarRating, fiveStars, fourStars, classRank } = teamData;
 
   return (
     <RetroCard className="h-fit">
@@ -152,7 +152,6 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
                     <StarRating rating={Math.round(avgStarRating)} size="sm" />
                     {avgStarRating.toFixed(1)} avg
                   </span>
-                  <span>{Math.round(avgOverall)} avg OVR</span>
                   {fiveStars > 0 && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-gold/50 text-gold">{fiveStars}x 5-Star</Badge>}
                   {fourStars > 0 && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-blue-400/50 text-blue-400">{fourStars}x 4+Star</Badge>}
                 </>
@@ -236,7 +235,6 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">5★</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">4★+</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">3★</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Avg OVR</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Avg Stars</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Score</th>
                   </tr>
@@ -265,7 +263,6 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
                       <td className="py-2 px-2 text-center text-xs text-gold">{snap.fiveStars || 0}</td>
                       <td className="py-2 px-2 text-center text-xs">{snap.fourStars || 0}</td>
                       <td className="py-2 px-2 text-center text-xs">{snap.threeStars || 0}</td>
-                      <td className="py-2 px-2 text-center text-xs">{Math.round(snap.avgOverall)}</td>
                       <td className="py-2 px-2 text-center text-xs">{snap.avgStarRating.toFixed(1)}</td>
                       <td className="py-2 px-2 text-center text-xs font-medium text-gold">{snap.classScore.toFixed(1)}</td>
                     </tr>
