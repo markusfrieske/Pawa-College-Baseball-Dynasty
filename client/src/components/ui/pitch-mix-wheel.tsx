@@ -22,7 +22,7 @@ const pitchLabels: Record<string, string> = {
   CH: "Changeup",
   CT: "Cutter",
   SNK: "Sinker",
-  SPL: "Splitter",
+  SPL: "Vertical Slider (VSL)",
   FRK: "Forkball",
   KN: "Knuckleball",
   SC: "Screwball",
