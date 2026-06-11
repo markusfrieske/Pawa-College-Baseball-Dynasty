@@ -12,8 +12,9 @@ export function getLetterGrade(value: number, isCommonAbility: boolean = false):
   if (value >= 80) return { letter: "A", tier: "a" };
   if (value >= 70) return { letter: "B", tier: "b" };
   if (value >= 60) return { letter: "C", tier: "c" };
-  if (value >= 50) return { letter: "D", tier: "d" };
-  if (value >= 30) return { letter: "F", tier: "f" };
+  if (value >= 40) return { letter: "D", tier: "d" };
+  if (value >= 30) return { letter: "E", tier: "e" };
+  if (value >= 20) return { letter: "F", tier: "f" };
   return { letter: "G", tier: "g" };
 }
 
@@ -23,6 +24,7 @@ const tierColors: Record<string, string> = {
   b: "bg-red-500 text-white",
   c: "bg-orange-500 text-white",
   d: "bg-yellow-500 text-black",
+  e: "bg-blue-400 text-white",
   f: "bg-blue-500 text-white",
   g: "bg-gray-400 text-white",
 };
@@ -33,6 +35,7 @@ const commonAbilityColors: Record<string, string> = {
   b: "bg-blue-500 text-white",
   c: "bg-sky-400 text-white",
   d: "bg-sky-400 text-white",
+  e: "bg-sky-300 text-black",
   f: "bg-red-500 text-white",
   g: "bg-red-500 text-white",
 };

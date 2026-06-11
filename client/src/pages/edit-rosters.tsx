@@ -37,8 +37,8 @@ const valueToGrade = (v: number): string => {
   if (v >= 80) return "A";
   if (v >= 70) return "B";
   if (v >= 60) return "C";
-  if (v >= 50) return "D";
-  if (v >= 40) return "E";
+  if (v >= 40) return "D";
+  if (v >= 30) return "E";
   if (v >= 20) return "F";
   return "G";
 };
