@@ -13637,12 +13637,12 @@ export async function registerRoutes(
         positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
       }
       
-      // Find portal players from other teams, sorted by need
+      // Find portal players from other teams, sorted by group need + OVR
       const candidates = allPlayers
         .filter(p => p.currentTeam.id !== team.id && p.inTransferPortal)
         .map(p => ({
           player: p,
-          score: ((positionCounts[p.position] || 0) < 2 ? 20 : 0) + (p.overall || 300) / 100 + Math.random() * 5,
+          score: rosterGroupNeedBonus(p.position, positionCounts) + (p.overall || 300) / 100 + Math.random() * 5,
         }))
         .sort((a, b) => b.score - a.score);
       
@@ -13716,17 +13716,26 @@ export async function registerRoutes(
       });
     }
     
-    const positionsToFill = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+    // Use "OF" for all outfield fillers — it matches the position stored on real roster
+    // players and on CPU-signed recruits.  "LF"/"CF"/"RF" would be invisible to both the
+    // roster validator (OUTFIELD_POSITIONS = {"OF","LF","CF","RF"}) and the bidder which
+    // now looks for "OF".  We generate 3× as many "OF" fillers to match the previous
+    // total pool depth (was 3 separate positions × TARGET_PER_POS each).
+    const positionsToFill = ["P", "C", "1B", "2B", "SS", "3B", "OF"];
     const pool = await storage.getWalkonsByLeague(leagueId);
     const posCounts: Record<string, number> = {};
     for (const p of pool) {
-      posCounts[p.position] = (posCounts[p.position] || 0) + 1;
+      // Count LF/CF/RF under "OF" for compatibility with older pool entries
+      const normPos = ["LF", "CF", "RF"].includes(p.position) ? "OF" : p.position;
+      posCounts[normPos] = (posCounts[normPos] || 0) + 1;
     }
     
     // Scale filler per position to league size. Formula: max(4, round(12 × (recruitCount / 80))).
     const allLeagueTeamsWo = await storage.getTeamsByLeague(leagueId);
     const expectedRecruitCount = getRecruitPoolSize(allLeagueTeamsWo.length);
     const TARGET_PER_POS = Math.max(4, Math.round(12 * (expectedRecruitCount / 80)));
+    // OF gets 3× the base target to compensate for collapsing LF/CF/RF into one slot.
+    const targetForPos = (pos: string) => pos === "OF" ? TARGET_PER_POS * 3 : TARGET_PER_POS;
     const fillerStates = ["TX", "CA", "FL", "GA", "NC", "AL", "SC", "LA", "AZ", "OH"];
     const fillerTowns = ["Springfield", "Franklin", "Clinton", "Madison", "Georgetown", "Salem", "Greenville", "Bristol", "Fairview", "Chester"];
     
@@ -13742,7 +13751,7 @@ export async function registerRoutes(
 
     for (const pos of positionsToFill) {
       const current = posCounts[pos] || 0;
-      const needed = Math.max(0, TARGET_PER_POS - current);
+      const needed = Math.max(0, targetForPos(pos) - current);
       
       for (let i = 0; i < needed; i++) {
         const isPitcher = pos === "P";
@@ -13809,23 +13818,34 @@ export async function registerRoutes(
     if (slotsNeeded === 0) return;
 
     const pool = await storage.getWalkonsByLeague(leagueId);
-    const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-    // Build list of (walkon, positionPriority) sorted by need then OVR
+    // Use "OF" (not LF/CF/RF) — walk-on pool fillers are generated as "OF" and
+    // CPU-signed recruits converted to players also carry "OF" from the recruit generator.
+    const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "OF"];
+    // Build list of (walkon, positionPriority) sorted by group need then OVR
     const desired: (typeof pool)[number][] = [];
     const usedIds = new Set<string>();
 
     for (let pass = 0; pass < slotsNeeded; pass++) {
-      const posNeeds = allPositions.map(pos => ({ pos, count: positionCounts[pos] || 0 }))
-        .sort((a, b) => a.count - b.count);
+      // Sort positions by group need bonus (descending) so the most under-staffed
+      // group is always filled first.  Falls back to raw count as secondary sort.
+      const posNeeds = allPositions
+        .map(pos => ({ pos, need: rosterGroupNeedBonus(pos, positionCounts), count: positionCounts[pos] || 0 }))
+        .sort((a, b) => b.need !== a.need ? b.need - a.need : a.count - b.count);
       let picked = false;
       for (const need of posNeeds) {
         const candidates = pool
-          .filter(w => w.position === need.pos && !usedIds.has(w.id))
+          .filter(w => {
+            // Treat LF/CF/RF walk-ons as "OF" for matching purposes
+            const wp = ["LF", "CF", "RF"].includes(w.position) ? "OF" : w.position;
+            return wp === need.pos && !usedIds.has(w.id);
+          })
           .sort((a, b) => (b.overall || 0) - (a.overall || 0));
         if (candidates.length > 0) {
           desired.push(candidates[0]);
           usedIds.add(candidates[0].id);
-          positionCounts[need.pos] = (positionCounts[need.pos] || 0) + 1;
+          // Track under the canonical position ("OF") so the need score stays accurate
+          const trackPos = ["LF", "CF", "RF"].includes(candidates[0].position) ? "OF" : candidates[0].position;
+          positionCounts[trackPos] = (positionCounts[trackPos] || 0) + 1;
           picked = true;
           break;
         }
@@ -13835,7 +13855,8 @@ export async function registerRoutes(
         if (fallback.length > 0) {
           desired.push(fallback[0]);
           usedIds.add(fallback[0].id);
-          positionCounts[fallback[0].position] = (positionCounts[fallback[0].position] || 0) + 1;
+          const trackPos = ["LF", "CF", "RF"].includes(fallback[0].position) ? "OF" : fallback[0].position;
+          positionCounts[trackPos] = (positionCounts[trackPos] || 0) + 1;
         } else {
           break;
         }
@@ -14128,6 +14149,47 @@ export async function registerRoutes(
   }
   // ────────────────────────────────────────────────────────────────────────────
 
+  // Group-aware position need scoring for CPU roster-fill sweeps.
+  // Returns a bonus that is proportional to how many MORE players the team
+  // needs in the position's group to reach the target roster shape
+  // (10P / 2C / 6 INF / 6 OF).  Replaces the old `< 2 ? 10 : 0` heuristic
+  // that stopped prioritising pitchers once a team had 2.
+  const ROSTER_GROUP_TARGETS = { pitcher: 10, catcher: 2, infield: 6, outfield: 6 };
+  const ROSTER_PITCHER_POS = new Set(["P", "SP", "RP", "CP"]);
+  const ROSTER_CATCHER_POS = new Set(["C"]);
+  const ROSTER_INFIELD_POS = new Set(["1B", "2B", "SS", "3B", "DH", "INF"]);
+  const ROSTER_OUTFIELD_POS = new Set(["OF", "LF", "CF", "RF"]);
+
+  function rosterGroupNeedBonus(
+    position: string,
+    positionCounts: Record<string, number>,
+  ): number {
+    let groupCount = 0;
+    let target = 0;
+    if (ROSTER_PITCHER_POS.has(position)) {
+      target = ROSTER_GROUP_TARGETS.pitcher;
+      for (const [p, cnt] of Object.entries(positionCounts)) {
+        if (ROSTER_PITCHER_POS.has(p)) groupCount += cnt;
+      }
+    } else if (ROSTER_CATCHER_POS.has(position)) {
+      target = ROSTER_GROUP_TARGETS.catcher;
+      for (const [p, cnt] of Object.entries(positionCounts)) {
+        if (ROSTER_CATCHER_POS.has(p)) groupCount += cnt;
+      }
+    } else if (ROSTER_INFIELD_POS.has(position)) {
+      target = ROSTER_GROUP_TARGETS.infield;
+      for (const [p, cnt] of Object.entries(positionCounts)) {
+        if (ROSTER_INFIELD_POS.has(p)) groupCount += cnt;
+      }
+    } else if (ROSTER_OUTFIELD_POS.has(position)) {
+      target = ROSTER_GROUP_TARGETS.outfield;
+      for (const [p, cnt] of Object.entries(positionCounts)) {
+        if (ROSTER_OUTFIELD_POS.has(p)) groupCount += cnt;
+      }
+    }
+    return Math.max(0, target - groupCount) * 50;
+  }
+
   async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     console.log(`[finalizeSigningDay] Starting for league ${leagueId}, season ${completedSeason}`);
     const progressionResult = await applyPlayerProgression(leagueId);
@@ -14198,6 +14260,10 @@ export async function registerRoutes(
       if (projectedSize <= MIN_ROSTER) {
         const positionCounts: Record<string, number> = {};
         for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        // Include already-signed recruits so the need score reflects the full projected roster
+        for (const r of allRecruitsPreCheck.filter(r2 => r2.signedTeamId === team.id)) {
+          positionCounts[r.position] = (positionCounts[r.position] || 0) + 1;
+        }
         cpuTeamsNeedingRecruits.push({ team, needed: MIN_ROSTER - projectedSize, positionCounts });
       }
     }
@@ -14215,8 +14281,8 @@ export async function registerRoutes(
             .filter(r => sdCanAfford(entry.team.id, r.nilCost || 0));
           if (available.length === 0) continue;
           const best = available.sort((a, b) => {
-            const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
-            const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
+            const aNeed = rosterGroupNeedBonus(a.position, entry.positionCounts);
+            const bNeed = rosterGroupNeedBonus(b.position, entry.positionCounts);
             const primary = (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
             // tiebreak: prefer cheaper recruit (next cheapest option on the board)
             return primary !== 0 ? primary : (a.nilCost || 0) - (b.nilCost || 0);
@@ -14263,13 +14329,19 @@ export async function registerRoutes(
         if (!team.isCpu && !team.isAutoPilot) continue;
         const currentRoster = await storage.getPlayersByTeam(team.id);
         const signedCount = allAfterAutoCommit.filter(r => r.signedTeamId === team.id).length;
-        // Dynamic target: enough new players to approach MAX_ROSTER
-        const classTarget = Math.max(MIN_CLASS_FLOOR, MAX_ROSTER - currentRoster.length);
+        // Dynamic target: fill to MAX_ROSTER — do NOT apply MIN_CLASS_FLOOR here because
+        // it can push the final count above 25 when the existing roster is large.
+        const slotsAvailable = Math.max(0, MAX_ROSTER - currentRoster.length);
+        const classTarget = slotsAvailable;
         if (signedCount >= classTarget) continue;
 
         const needed = classTarget - signedCount;
         const positionCounts: Record<string, number> = {};
         for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        // Include already-signed recruits from steps 1-2 so the need score reflects the full projected roster
+        for (const r of allAfterAutoCommit.filter(r2 => r2.signedTeamId === team.id)) {
+          positionCounts[r.position] = (positionCounts[r.position] || 0) + 1;
+        }
 
         let filled = 0;
         while (filled < needed) {
@@ -14278,8 +14350,8 @@ export async function registerRoutes(
             .filter(r => sdCanAfford(team.id, r.nilCost || 0));
           if (available.length === 0) break;
           const best = available.sort((a, b) => {
-            const aNeed = (positionCounts[a.position] || 0) < 2 ? 10 : 0;
-            const bNeed = (positionCounts[b.position] || 0) < 2 ? 10 : 0;
+            const aNeed = rosterGroupNeedBonus(a.position, positionCounts);
+            const bNeed = rosterGroupNeedBonus(b.position, positionCounts);
             const primary = (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
             // tiebreak: prefer cheaper recruit (next cheapest option on the board)
             return primary !== 0 ? primary : (a.nilCost || 0) - (b.nilCost || 0);
@@ -14335,6 +14407,10 @@ export async function registerRoutes(
           if (slotsLeft <= 0) continue;
           const positionCounts: Record<string, number> = {};
           for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+          // Include already-signed recruits from all prior steps so need score is accurate
+          for (const r of afterDynamic.filter(r2 => r2.signedTeamId === team.id)) {
+            positionCounts[r.position] = (positionCounts[r.position] || 0) + 1;
+          }
           sweepEntries.push({ team, slotsLeft, positionCounts });
         }
 
@@ -14354,8 +14430,8 @@ export async function registerRoutes(
                 .filter(r => sdCanAfford(entry.team.id, r.nilCost || 0));
               if (available.length === 0) continue;
               const best = available.sort((a, b) => {
-                const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
-                const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
+                const aNeed = rosterGroupNeedBonus(a.position, entry.positionCounts);
+                const bNeed = rosterGroupNeedBonus(b.position, entry.positionCounts);
                 const primary = (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
                 // tiebreak: prefer cheaper recruit (next cheapest option on the board)
                 return primary !== 0 ? primary : (a.nilCost || 0) - (b.nilCost || 0);
