@@ -52,7 +52,9 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
     }
   }
 
-  // 3. Freshmen count
+  // 3. Freshmen count — range 2–7 (not 5 exactly) because real rosters
+  //    can have fewer freshmen when fictional placeholder FRs are replaced
+  //    with real players whose actual eligibility is SO/JR/SR.
   const frCount = players.filter(p => p.eligibility === "FR").length;
   if (frCount < 2 || frCount > 7) {
     fail(`has ${frCount} freshmen (expected 2–7)`);
