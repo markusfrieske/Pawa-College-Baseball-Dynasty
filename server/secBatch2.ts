@@ -102,8 +102,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Brendan Kleiman — GR C (was SR), MD/Olney
-      { firstName: "Brendan", lastName: "Kleiman", position: "C", eligibility: "GR", homeState: "MD", hometown: "Olney", jerseyNumber: 55,
+      // Brendan Kleiman — SR C, MD/Olney
+      { firstName: "Brendan", lastName: "Kleiman", position: "C", eligibility: "SR", homeState: "MD", hometown: "Olney", jerseyNumber: 55,
         hitForAvg: 45, power: 41, speed: 59, arm: 53, fielding: 48, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 43, grit: 38, stealing: 32, running: 37, throwing: 56, recovery: 32, wRISP: 38, vsLefty: 34, poise: 38, heater: 0, agile: 28,
         abilities: ["Spray Hitter", "Resilient", "Home Defense"], potential: "B+", catcherAbility: 42,
@@ -237,8 +237,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 0, 0, 0, 4, 0, 1, 0]) },
-      // Bobby Alcock — GR RHP weekend/RP, prior SEC Pitcher of Week
-      { firstName: "Bobby", lastName: "Alcock", position: "P", eligibility: "GR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 42, // corrected: eligibility was SR → GR
+      // Bobby Alcock — SR RHP weekend/RP, prior SEC Pitcher of Week
+      { firstName: "Bobby", lastName: "Alcock", position: "P", eligibility: "SR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 42,
         hitForAvg: 13, power: 10, speed: 32, arm: 50, fielding: 31, errorResistance: 42, velocity: 47, control: 49, stamina: 76, stuff: 47,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 9, running: 30, throwing: 64, recovery: 43, wRISP: 43, vsLefty: 44, poise: 46, heater: 51, agile: 38,
         abilities: ["Fireman", "Quick Hands", "Sharpness"], potential: "B+", catcherAbility: null,
@@ -337,8 +337,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Brennan Holt — 2B GR (S. Alabama transfer), everyday
-      { firstName: "Brennan", lastName: "Holt", position: "2B", eligibility: "GR", homeState: "AL", hometown: "Mobile", jerseyNumber: 3, // corrected: eligibility was SR → GR
+      // Brennan Holt — 2B SR (S. Alabama transfer), everyday
+      { firstName: "Brennan", lastName: "Holt", position: "2B", eligibility: "SR", homeState: "AL", hometown: "Mobile", jerseyNumber: 3,
         hitForAvg: 63, power: 51, speed: 50, arm: 63, fielding: 67, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 54, vsLHP: 50, grit: 54, stealing: 51, running: 51, throwing: 66, recovery: 44, wRISP: 50, vsLefty: 46, poise: 54, heater: 0, agile: 50,
         abilities: ["Chance Maker", "Bad Ball Hitter"], potential: "B+", catcherAbility: null,
@@ -410,8 +410,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Johnny Lemm — OF GR (Grad Transfer from Southern Illinois)
-      { firstName: "Johnny", lastName: "Lemm", position: "OF", eligibility: "GR", homeState: "AL", hometown: "Madison", jerseyNumber: 9,
+      // Johnny Lemm — OF SR (Transfer from Southern Illinois)
+      { firstName: "Johnny", lastName: "Lemm", position: "OF", eligibility: "SR", homeState: "AL", hometown: "Madison", jerseyNumber: 9,
         hitForAvg: 55, power: 49, speed: 56, arm: 41, fielding: 62, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 46, vsLHP: 51, grit: 50, stealing: 52, running: 55, throwing: 66, recovery: 40, wRISP: 46, vsLefty: 42, poise: 48, heater: 0, agile: 48,
         abilities: ["Spray Hitter", "Revenge"], potential: "B+", catcherAbility: null,

@@ -530,8 +530,8 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 4, 0, 4, 4, 0, 0, 1, 0]) },
-    // Mason Patel — closer GR, 4 SV, 13.2 scoreless IP / 1.20 ERA / 18K, All-American 2025 (NCBWA), Stopper of Year finalist
-    { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "GR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 30,
+    // Mason Patel — closer SR, 4 SV, 13.2 scoreless IP / 1.20 ERA / 18K, All-American 2025 (NCBWA), Stopper of Year finalist
+    { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "SR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 30,
       hitForAvg: 10, power: 8, speed: 32, arm: 59, fielding: 34, errorResistance: 50, velocity: 64, control: 56, stamina: 72, stuff: 61,
       clutch: 80, vsLHP: 72, grit: 64, stealing: 7, running: 30, throwing: 74, recovery: 44, wRISP: 59, vsLefty: 56, poise: 63, heater: 55, agile: 42,
       abilities: ["Fireman", "Good Pickoff", "Staredown", "Strikeout", "Inside Pitch"], potential: "A", catcherAbility: null,

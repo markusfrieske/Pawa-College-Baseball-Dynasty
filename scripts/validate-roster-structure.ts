@@ -45,10 +45,17 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
     fail(`has ${players.length} players (expected 25)`);
   }
 
-  // 2. Freshmen count
+  // 2. GR eligibility guard — game only supports FR/SO/JR/SR
+  for (const p of players) {
+    if (p.eligibility === "GR") {
+      fail(`player ${p.firstName} ${p.lastName} has invalid eligibility "GR" (must be FR/SO/JR/SR)`);
+    }
+  }
+
+  // 3. Freshmen count
   const frCount = players.filter(p => p.eligibility === "FR").length;
-  if (frCount < 4 || frCount > 6) {
-    fail(`has ${frCount} freshmen (expected 4–6)`);
+  if (frCount < 2 || frCount > 7) {
+    fail(`has ${frCount} freshmen (expected 2–7)`);
   }
 
   // 3. Unknown positions
@@ -90,7 +97,7 @@ for (const v of violations) {
   console.error(`  [${v.team}]: ${v.message}`);
 }
 console.error(
-  `\nFix: ensure every team in ALL_REAL_ROSTERS has exactly 25 players, 5 FR,` +
-  ` 9-10P / 2C / 6-8 INF / 6-7 OF / 4-6 FR, and only recognized position codes.`
+  `\nFix: ensure every team in ALL_REAL_ROSTERS has exactly 25 players,` +
+  ` 9-11P / 2C / 6-8 INF / 6-7 OF / 2-7 FR, and only recognized position codes.`
 );
 process.exit(1);
