@@ -283,11 +283,17 @@ export default function RosterPage() {
   }) || [];
 
   const groupPlayersByCategory = (players: Player[]) => {
-    const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
-    const catchers = players.filter(p => isCatcher(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
-    const infielders = players.filter(p => isInfielder(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
-    const outfielders = players.filter(p => isOutfielder(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
-    return { pitchers, catchers, infielders, outfielders };
+    const byStarOvr = (a: Player, b: Player) => b.starRating - a.starRating || b.overall - a.overall;
+    const pitchers = players.filter(p => isPitcher(p.position))
+      .sort((a, b) => (b.stamina ?? 0) - (a.stamina ?? 0) || byStarOvr(a, b));
+    const catchers = players.filter(p => isCatcher(p.position)).sort(byStarOvr);
+    const firstBase = players.filter(p => p.position === "1B").sort(byStarOvr);
+    const secondBase = players.filter(p => p.position === "2B").sort(byStarOvr);
+    const thirdBase = players.filter(p => p.position === "3B").sort(byStarOvr);
+    const shortstops = players.filter(p => p.position === "SS").sort(byStarOvr);
+    const otherInfielders = players.filter(p => !isPitcher(p.position) && !isCatcher(p.position) && !isOutfielder(p.position) && !["1B","2B","3B","SS"].includes(p.position)).sort(byStarOvr);
+    const outfielders = players.filter(p => isOutfielder(p.position)).sort(byStarOvr);
+    return { pitchers, catchers, firstBase, secondBase, thirdBase, shortstops, otherInfielders, outfielders };
   };
 
   const grouped = groupPlayersByCategory(filteredPlayers);
@@ -495,15 +501,61 @@ export default function RosterPage() {
               isOwnTeam={!viewingTeamId}
               onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
             />
-            <PositionSection 
-              title="Infielders" 
-              players={grouped.infielders} 
-              onSelectPlayer={setSelectedPlayer}
-              teamPrimaryColor={data?.team?.primaryColor}
-              progressionEnabled={leagueData?.progressionEnabled}
-              isOwnTeam={!viewingTeamId}
-              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-            />
+            {grouped.firstBase.length > 0 && (
+              <PositionSection 
+                title="First Base" 
+                players={grouped.firstBase} 
+                onSelectPlayer={setSelectedPlayer}
+                teamPrimaryColor={data?.team?.primaryColor}
+                progressionEnabled={leagueData?.progressionEnabled}
+                isOwnTeam={!viewingTeamId}
+                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
+              />
+            )}
+            {grouped.secondBase.length > 0 && (
+              <PositionSection 
+                title="Second Base" 
+                players={grouped.secondBase} 
+                onSelectPlayer={setSelectedPlayer}
+                teamPrimaryColor={data?.team?.primaryColor}
+                progressionEnabled={leagueData?.progressionEnabled}
+                isOwnTeam={!viewingTeamId}
+                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
+              />
+            )}
+            {grouped.thirdBase.length > 0 && (
+              <PositionSection 
+                title="Third Base" 
+                players={grouped.thirdBase} 
+                onSelectPlayer={setSelectedPlayer}
+                teamPrimaryColor={data?.team?.primaryColor}
+                progressionEnabled={leagueData?.progressionEnabled}
+                isOwnTeam={!viewingTeamId}
+                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
+              />
+            )}
+            {grouped.shortstops.length > 0 && (
+              <PositionSection 
+                title="Shortstops" 
+                players={grouped.shortstops} 
+                onSelectPlayer={setSelectedPlayer}
+                teamPrimaryColor={data?.team?.primaryColor}
+                progressionEnabled={leagueData?.progressionEnabled}
+                isOwnTeam={!viewingTeamId}
+                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
+              />
+            )}
+            {grouped.otherInfielders.length > 0 && (
+              <PositionSection 
+                title="Infielders" 
+                players={grouped.otherInfielders} 
+                onSelectPlayer={setSelectedPlayer}
+                teamPrimaryColor={data?.team?.primaryColor}
+                progressionEnabled={leagueData?.progressionEnabled}
+                isOwnTeam={!viewingTeamId}
+                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
+              />
+            )}
             <PositionSection 
               title="Outfielders" 
               players={grouped.outfielders} 

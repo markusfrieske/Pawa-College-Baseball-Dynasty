@@ -602,6 +602,32 @@ export default function RosterViewerPage() {
     });
   }, [teamData, editedPlayers]);
 
+  const displayRoster = useMemo(() => {
+    const posRank = (pos: string): number => {
+      if (isPitcher(pos)) return 0;
+      if (pos === "C") return 1;
+      if (pos === "1B") return 2;
+      if (pos === "2B") return 3;
+      if (pos === "3B") return 4;
+      if (pos === "SS") return 5;
+      if (pos === "OF" || pos === "DH") return 7;
+      return 6; // INF and other utility infield
+    };
+    return currentRoster
+      .map((player, idx) => ({ player, idx }))
+      .sort((a, b) => {
+        const rankDiff = posRank(a.player.position) - posRank(b.player.position);
+        if (rankDiff !== 0) return rankDiff;
+        if (isPitcher(a.player.position)) {
+          return (b.player.stamina ?? 0) - (a.player.stamina ?? 0);
+        }
+        const starsA = a.player.starRating ?? ovrToStars(a.player.overall ?? calculateOVR(a.player));
+        const starsB = b.player.starRating ?? ovrToStars(b.player.overall ?? calculateOVR(b.player));
+        if (starsA !== starsB) return starsB - starsA;
+        return (b.player.overall ?? calculateOVR(b.player)) - (a.player.overall ?? calculateOVR(a.player));
+      });
+  }, [currentRoster]);
+
   const filteredConferences = useMemo(() => {
     if (!conferences) return [];
     if (!search) return conferences;
@@ -960,7 +986,7 @@ export default function RosterViewerPage() {
         )}
 
         <div className="divide-y divide-border/50">
-          {currentRoster.map((player, idx) => {
+          {displayRoster.map(({ player, idx }) => {
             const ovr = player.overall ?? calculateOVR(player);
             const stars = player.starRating ?? ovrToStars(ovr);
             const isEdited = !!editedPlayers[idx];
@@ -1385,7 +1411,7 @@ export default function RosterViewerPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentRoster.map((player, idx) => {
+                    {displayRoster.map(({ player, idx }) => {
                       const ovr = player.overall ?? calculateOVR(player);
                       const stars = player.starRating ?? ovrToStars(ovr);
                       const pitching = isPitcher(player.position);

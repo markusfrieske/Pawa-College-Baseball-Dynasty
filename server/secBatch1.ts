@@ -350,8 +350,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "L", // corrected: batHand was S → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Kolt Myers — INF FR
-      { firstName: "Kolt", lastName: "Myers", position: "INF", eligibility: "FR", homeState: "FL", hometown: "St. Augustine", jerseyNumber: 25,
+      // Kolt Myers — 2B FR
+      { firstName: "Kolt", lastName: "Myers", position: "2B", eligibility: "FR", homeState: "FL", hometown: "St. Augustine", jerseyNumber: 25,
         hitForAvg: 47, power: 41, speed: 52, arm: 22, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 49, grit: 44, stealing: 57, running: 50, throwing: 43, recovery: 28, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 32,
         abilities: ["Bunt Artisan", "Double Play"], potential: "B+", catcherAbility: null,
@@ -407,8 +407,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Justin Nadeau — INF SR
-      { firstName: "Justin", lastName: "Nadeau", position: "INF", eligibility: "SR", homeState: "FL", hometown: "St. John's", jerseyNumber: 1,
+      // Justin Nadeau — SS SR
+      { firstName: "Justin", lastName: "Nadeau", position: "SS", eligibility: "SR", homeState: "FL", hometown: "St. John's", jerseyNumber: 1,
         hitForAvg: 61, power: 55, speed: 43, arm: 64, fielding: 58, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 52, vsLHP: 51, grit: 54, stealing: 59, running: 53, throwing: 68, recovery: 44, wRISP: 50, vsLefty: 48, poise: 52, heater: 0, agile: 52,
         abilities: ["Tough Out", "Bases Loaded Slugger", "Spray Hitter"], potential: "B", catcherAbility: null,
