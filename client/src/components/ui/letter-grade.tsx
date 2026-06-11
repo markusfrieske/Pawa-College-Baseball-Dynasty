@@ -31,13 +31,13 @@ const tierColors: Record<string, string> = {
 
 const commonAbilityColors: Record<string, string> = {
   s: "bg-amber-500 text-black",
-  a: "bg-blue-500 text-white",
-  b: "bg-blue-500 text-white",
+  a: "bg-blue-600 text-white",
+  b: "bg-blue-400 text-white",
   c: "bg-sky-400 text-white",
-  d: "bg-sky-400 text-white",
-  e: "bg-sky-300 text-black",
+  d: "bg-sky-300 text-black",
+  e: "bg-red-300 text-black",
   f: "bg-red-500 text-white",
-  g: "bg-red-500 text-white",
+  g: "bg-red-800 text-white",
 };
 
 const sizeClasses: Record<string, string> = {
@@ -58,7 +58,6 @@ export function LetterGrade({ value, size = "md", className, isCommonAbility = f
         sizeClasses[size],
         className
       )}
-      title={`${value}/100`}
     >
       {letter}
     </span>
