@@ -375,8 +375,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Landon Stripling — OF JR, 2 HR / 4 XBH last 3 games
-      { firstName: "Landon", lastName: "Stripling", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 13,
+      // Landon Stripling — 3B JR, 2 HR / 4 XBH last 3 games
+      { firstName: "Landon", lastName: "Stripling", position: "3B", eligibility: "JR", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 13,
         hitForAvg: 64, power: 64, speed: 44, arm: 64, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 51, running: 51, throwing: 66, recovery: 44, wRISP: 60, vsLefty: 56, poise: 60, heater: 0, agile: 46,
         abilities: ["Power Hitter", "Consigliere", "Bad Ball Hitter"], potential: "A-", catcherAbility: null,
