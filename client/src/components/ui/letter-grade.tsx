@@ -12,19 +12,19 @@ export function getLetterGrade(value: number, isCommonAbility: boolean = false):
   if (value >= 80) return { letter: "A", tier: "a" };
   if (value >= 70) return { letter: "B", tier: "b" };
   if (value >= 60) return { letter: "C", tier: "c" };
-  if (value >= 40) return { letter: "D", tier: "d" };
-  if (value >= 30) return { letter: "E", tier: "e" };
+  if (value >= 50) return { letter: "D", tier: "d" };
+  if (value >= 40) return { letter: "E", tier: "e" };
   if (value >= 20) return { letter: "F", tier: "f" };
   return { letter: "G", tier: "g" };
 }
 
 const tierColors: Record<string, string> = {
-  s: "bg-pink-300 text-black",
+  s: "bg-fuchsia-500 text-white",
   a: "bg-pink-500 text-white",
   b: "bg-red-500 text-white",
   c: "bg-orange-500 text-white",
   d: "bg-yellow-500 text-black",
-  e: "bg-blue-400 text-white",
+  e: "bg-green-400 text-black",
   f: "bg-blue-500 text-white",
   g: "bg-gray-400 text-white",
 };
