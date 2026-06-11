@@ -31,7 +31,7 @@ const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"];
 const eligibilities = ["FR", "SO", "JR", "SR", "RS"];
 const hands = ["R", "L", "S"];
 const letterGrades = ["G", "F", "E", "D", "C", "B", "A", "S"];
-const letterGradeValues: Record<string, number> = { G: 9, F: 29, E: 44, D: 55, C: 65, B: 75, A: 85, S: 95 };
+const letterGradeValues: Record<string, number> = { G: 9, F: 24, E: 34, D: 55, C: 65, B: 75, A: 85, S: 95 };
 const valueToGrade = (v: number): string => {
   if (v >= 90) return "S";
   if (v >= 80) return "A";

@@ -19076,7 +19076,7 @@ export async function registerRoutes(
   // Helper function to convert letter grade to numeric value (0-100)
   function letterGradeToNumeric(grade: string): number {
     const gradeMap: Record<string, number> = {
-      'S': 95, 'A': 85, 'B': 75, 'C': 65, 'D': 55, 'E': 44, 'F': 29, 'G': 9
+      'S': 95, 'A': 85, 'B': 75, 'C': 65, 'D': 55, 'E': 34, 'F': 24, 'G': 9
     };
     return gradeMap[grade.toUpperCase()] ?? 50;
   }

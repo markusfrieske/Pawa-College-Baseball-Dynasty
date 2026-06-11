@@ -33,7 +33,7 @@ const recruitTypes = ["HS", "JUCO"];
 const recruitYears = ["FR", "SO", "JR"];
 const priorityOptions = ["Not Important", "Somewhat", "Very", "Extremely"];
 const letterGrades = ["G", "F", "E", "D", "C", "B", "A", "S"];
-const letterGradeValues: Record<string, number> = { G: 9, F: 29, E: 44, D: 55, C: 65, B: 75, A: 85, S: 95 };
+const letterGradeValues: Record<string, number> = { G: 9, F: 24, E: 34, D: 55, C: 65, B: 75, A: 85, S: 95 };
 const valueToGrade = (v: number): string => {
   if (v >= 90) return "S";
   if (v >= 80) return "A";
