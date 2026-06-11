@@ -1494,6 +1494,10 @@ export function generateRecruitClass(
             const existing = getAbilityByName(abilities[ai]);
             if (existing?.tier !== "blue") continue;
             for (const goldAb of goldPool) {
+              // Guard: goldPool was built before this loop; if a prior iteration already
+              // placed this gold ability in abilities via the "closer to band" branch,
+              // skip it to prevent duplicates.
+              if (abilities.includes(goldAb.name)) continue;
               const candidate = [...abilities];
               candidate[ai] = goldAb.name;
               const candidateOvr = calculateOVR({
