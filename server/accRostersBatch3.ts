@@ -680,7 +680,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Willie", lastName: "Hurt", position: "3B", eligibility: "FR", homeState: "VA", hometown: "Woodbridge", jerseyNumber: 16,
       hitForAvg: 46, power: 35, speed: 54, arm: 55, fielding: 40, errorResistance: 18, velocity: 0, control: 0, stamina: 20, stuff: 0,
       clutch: 43, vsLHP: 44, grit: 36, stealing: 48, running: 51, throwing: 46, recovery: 22, wRISP: 24, vsLefty: 22, poise: 26, heater: 0, agile: 32,
-      abilities: ["Opposite Field Hitter", "Home Defense"], potential: "B+", catcherAbility: null,
+      abilities: ["Opposite Field Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Eduardo", lastName: "Malinowski", position: "3B", eligibility: "SO", homeState: "VA", hometown: "Virginia Beach", jerseyNumber: 6,

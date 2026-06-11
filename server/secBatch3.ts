@@ -148,7 +148,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Bryce", lastName: "Watkins", position: "2B", eligibility: "JR", homeState: "NC", hometown: "Wilmington", jerseyNumber: 32,
       hitForAvg: 63, power: 53, speed: 56, arm: 22, fielding: 70, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 48, grit: 51, stealing: 66, running: 58, throwing: 50, recovery: 40, wRISP: 45, vsLefty: 42, poise: 47, heater: 0, agile: 48,
-      abilities: ["Revenge", "Locked and Loaded", "Home Defense"], potential: "B", catcherAbility: null,
+      abilities: ["Revenge", "Locked and Loaded"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Braylen", lastName: "Wimmer", position: "SS", eligibility: "JR", homeState: "SC", hometown: "Columbia", jerseyNumber: 4,

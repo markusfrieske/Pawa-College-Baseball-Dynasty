@@ -1026,7 +1026,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Aidan", lastName: "Teel", position: "OF", eligibility: "JR", homeState: "NJ", hometown: "Mahwah", jerseyNumber: 11,
         hitForAvg: 66, power: 61, speed: 50, arm: 64, fielding: 65, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 58, vsLHP: 54, grit: 58, stealing: 52, running: 52, throwing: 70, recovery: 44, wRISP: 56, vsLefty: 52, poise: 58, heater: 0, agile: 54,
-        abilities: ["Home Defense", "Contact Hitter"], potential: "A-", catcherAbility: null,
+        abilities: ["Contact Hitter"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },

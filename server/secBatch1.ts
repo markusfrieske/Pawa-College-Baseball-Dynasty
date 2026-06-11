@@ -514,7 +514,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Tristan", lastName: "Bristow", position: "SS", eligibility: "SO", homeState: "TX", hometown: "Helotes", jerseyNumber: 70,
       hitForAvg: 31, power: 47, speed: 78, arm: 36, fielding: 36, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 23, vsLHP: 23, grit: 23, stealing: 23, running: 23, throwing: 23, recovery: 25, wRISP: 26, vsLefty: 25, poise: 27, heater: 0, agile: 39,
-      abilities: ["Two-Strike Hitter", "Home Defense"], potential: "A-", catcherAbility: null,
+      abilities: ["Two-Strike Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // OUTFIELDERS (7)
@@ -557,7 +557,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Javier", lastName: "Vaz", position: "3B", eligibility: "SO", homeState: "FL", hometown: "Miami", jerseyNumber: 10,
       hitForAvg: 63, power: 55, speed: 71, arm: 70, fielding: 63, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 55, vsLHP: 52, grit: 56, stealing: 52, running: 45, throwing: 72, recovery: 46, wRISP: 52, vsLefty: 48, poise: 55, heater: 0, agile: 48,
-      abilities: ["Home Defense", "Resilient"], potential: "B+", catcherAbility: null,
+      abilities: ["Resilient"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Rob", lastName: "Dickey", position: "1B", eligibility: "SO", homeState: "TN", hometown: "Nashville", jerseyNumber: 20,
