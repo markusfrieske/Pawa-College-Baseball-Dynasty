@@ -322,7 +322,6 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     { label: "Stealing", value: sGoldDisplayValue(player.stealing, "stealing"), delta: deltas?.stealing, goldAbilityName: sGoldBadge(player.stealing, "stealing") },
     { label: "Running", value: sGoldDisplayValue(player.running, "running"), delta: deltas?.running, goldAbilityName: sGoldBadge(player.running, "running") },
     { label: "Throwing", value: sGoldDisplayValue(player.throwing, "throwing"), delta: deltas?.throwing, goldAbilityName: sGoldBadge(player.throwing, "throwing") },
-    { label: "Recovery", value: player.recovery, delta: deltas?.recovery },
   ];
   
   // Add catcher ability only for catchers

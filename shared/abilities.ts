@@ -832,7 +832,7 @@ export function calculateOVR(attrs: {
 
   const commonFields = [
     attrs.clutch, attrs.vsLHP, attrs.grit, attrs.stealing,
-    attrs.running, attrs.throwing, attrs.recovery,
+    attrs.running, attrs.throwing,
     attrs.wRISP, attrs.vsLefty, attrs.poise, attrs.heater, attrs.agile,
   ];
   let commonSum = 0;

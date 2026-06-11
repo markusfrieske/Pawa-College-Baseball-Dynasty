@@ -649,7 +649,6 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
     { label: "Stealing", val: recruit.stealing ?? 50,  key: "stealing" },
     { label: "Running",  val: recruit.running ?? 50,   key: "running" },
     { label: "Throwing", val: recruit.throwing ?? 50,  key: "throwing" },
-    { label: "Recovery", val: recruit.recovery ?? 50,  key: "recovery" },
     ...(catcher ? [{ label: "Catcher", val: recruit.catcherAbility ?? 50, key: "catcherAbility" }] : []),
   ];
 
