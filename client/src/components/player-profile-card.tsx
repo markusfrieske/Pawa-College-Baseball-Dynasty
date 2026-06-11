@@ -16,7 +16,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { velocityToKMH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_LABELS, TRAJECTORY_FULL_LABELS, assignTrajectory } from "@shared/trajectory";
-import { isPitcher as getIsPitcher, getPitcherRoleLabel } from "@shared/positions";
+import { isPitcher as getIsPitcher } from "@shared/positions";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Player {
@@ -430,11 +430,6 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 >
                   {player.position}
                 </Badge>
-                {isPitcher && (
-                  <Badge variant="outline" className="text-[9px] border-border text-muted-foreground" data-testid="badge-pitcher-role">
-                    {getPitcherRoleLabel(player.stamina ?? 50)}
-                  </Badge>
-                )}
                 {player.originalPosition && player.originalPosition !== player.position && (
                   <Badge
                     variant="outline"

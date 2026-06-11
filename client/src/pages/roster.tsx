@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Player, Team, Coach, League } from "@shared/schema";
-import { isPitcher, isCatcher, isInfielder, isOutfielder, getPitcherRoleLabel } from "@shared/positions";
+import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { computePitcherAvailability, ALL_GAME_DAYS } from "@shared/pitcherRest";
@@ -667,7 +667,6 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                   {isPitcher(player.position) ? (
                     <>
                       <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-mobile-${player.id}`}>{player.throwHand}HP</span>
-                      <span className="font-pixel text-[7px] px-1 py-0.5 rounded border bg-muted/40 text-muted-foreground border-border/60" data-testid={`badge-role-mobile-${player.id}`}>{getPitcherRoleLabel((player as any).stamina ?? 50)}</span>
                     </>
                   ) : (
                     <>
@@ -788,7 +787,6 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                   {isPitcher(player.position) ? (
                     <div className="flex items-center gap-1 justify-center flex-wrap">
                       <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
-                      <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border bg-muted/40 text-muted-foreground border-border/60" data-testid={`badge-role-desktop-${player.id}`}>{getPitcherRoleLabel((player as any).stamina ?? 50)}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 justify-center flex-wrap">
