@@ -9395,8 +9395,11 @@ export async function registerRoutes(
       // coach hasn't marked ready and the phase deadline hasn't yet passed.
       // (Deadline-passed path is already handled above, so if we reach here the deadline is future/unset.)
       // Auto-pilot teams are treated as always ready — skip them in the gate check.
+      // offseason_walkons has its own walkonReady gate (below) — explicitly excluded here
+      // as a defensive guard so a double-click or stale-page re-submit never fires this error.
+      const readinessExcludedPhases = new Set(["offseason_walkons"]);
       const readinessGatedPhases = ["preseason", "spring_training", "regular_season"];
-      if (readinessGatedPhases.includes(league.currentPhase)) {
+      if (readinessGatedPhases.includes(league.currentPhase) && !readinessExcludedPhases.has(league.currentPhase)) {
         const deadlinePassed = league.phaseDeadline && new Date(league.phaseDeadline) <= new Date();
         if (!deadlinePassed) {
           const gateCoaches = await storage.getCoachesByLeague(leagueId);
@@ -10215,7 +10218,11 @@ export async function registerRoutes(
         const allTeams = await storage.getTeamsByLeague(leagueId);
         const allReady = allTeams.every(t => t.walkonReady);
         if (!allReady) {
-          return res.status(400).json({ message: "Not all teams are ready. Each team must mark ready before advancing." });
+          const notReadyWalkonTeams = allTeams.filter(t => !t.walkonReady).map(t => t.name);
+        return res.status(400).json({
+          message: `Not all teams have marked ready in the walk-on phase. Waiting on: ${notReadyWalkonTeams.join(", ")}`,
+          waitingOn: notReadyWalkonTeams,
+        });
         }
 
         const { savedRecruitingClassId: rawClassId } = req.body || {};
@@ -15600,6 +15607,21 @@ export async function registerRoutes(
       console.log(`[attr-evolution] Season ${completedSeason} attribute updates applied for league ${leagueId}`);
     } catch (evoErr) {
       console.error("[attr-evolution] Failed to apply program attribute evolution:", evoErr);
+    }
+
+    // Reset coach isReady for all human coaches now that the phase is preseason.
+    // finalizeWalkonsPhase transitions the league to preseason, so the readiness
+    // gate needs a clean slate — otherwise coaches start the preseason already-ready
+    // or with a stale flag from a prior phase.
+    try {
+      const humanTeams = teams.filter(t => !t.isCpu && !t.isAutoPilot);
+      const humanTeamIds = new Set(humanTeams.map(t => t.id));
+      const allLeagueCoaches = await storage.getCoachesByLeague(leagueId);
+      const humanCoaches = allLeagueCoaches.filter(c => c.teamId && humanTeamIds.has(c.teamId));
+      await Promise.all(humanCoaches.map(c => storage.updateCoach(c.id, { isReady: false })));
+      console.log(`[finalizeWalkonsPhase] Reset isReady=false for ${humanCoaches.length} coach(es) entering preseason`);
+    } catch (readyResetErr) {
+      console.error("[finalizeWalkonsPhase] Failed to reset coach isReady:", readyResetErr);
     }
 
     return {

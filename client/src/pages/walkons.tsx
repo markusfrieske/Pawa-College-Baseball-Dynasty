@@ -172,13 +172,14 @@ export default function WalkonsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons", "auction-results"] });
       const myTeamId = myTeam?.id;
       const teamResults = myTeamId ? data?.seasonTransition?.auctionResultsByTeam?.[myTeamId] : undefined;
+      // Always navigate away so the advance button is no longer reachable on a stale page.
+      // Auction results are also persisted to the league event feed for later review.
       if (teamResults && teamResults.length > 0) {
         setAuctionResults(teamResults);
       } else {
-        // Commissioner may not have bids — show persisted results after invalidation
         toast({ title: "Auction Resolved", description: "Advancing to Spring…" });
-        setLocation(`/league/${id}`);
       }
+      setLocation(`/league/${id}`);
     },
     onError: (err) => {
       toast({ title: "Cannot advance", description: parseErrorMessage(err), variant: "destructive" });
