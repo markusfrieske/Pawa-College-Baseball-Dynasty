@@ -798,7 +798,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Mason", lastName: "Ligenza", position: "OF", eligibility: "FR", homeState: "IL", hometown: "Naperville", jerseyNumber: 21,
       hitForAvg: 59, power: 53, speed: 47, arm: 30, fielding: 59, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 51, grit: 38, stealing: 54, running: 48, throwing: 61, recovery: 34, wRISP: 37, vsLefty: 34, poise: 37, heater: 0, agile: 51,
-      abilities: ["Tough Out"], potential: "A+", catcherAbility: null,
+      abilities: [], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Dom", lastName: "Marrazzo", position: "OF", eligibility: "JR", homeState: "PA", hometown: "Canonsburg", jerseyNumber: 16,
