@@ -14,7 +14,7 @@ export const pitchLabels: Record<string, string> = {
   SL: "Slider",
   SNK: "Sinker",
   CT: "Cutter",
-  SPL: "Vertical Slider (VSL)",
+  SPL: "Splitter",
   SHU: "Shuuto",
   CCH: "Circle Change",
   HSL: "Hard Slider",

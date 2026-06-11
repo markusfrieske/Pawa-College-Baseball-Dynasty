@@ -1917,7 +1917,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                   { key: "pitchCH" as const, label: "Changeup (CH)" },
                   { key: "pitchCT" as const, label: "Cutter (CT)" },
                   { key: "pitchSNK" as const, label: "Sinker (SNK)" },
-                  { key: "pitchSPL" as const, label: "Vertical Slider (VSL)" },
+                  { key: "pitchSPL" as const, label: "Splitter (SPL)" },
                 ].map(({ key, label }) => (
                   <div key={key}>
                     <label className="text-xs text-muted-foreground">{label}</label>
@@ -2339,7 +2339,7 @@ function RecruitPitchMixSection({
     { key: "pitchCH", label: "Changeup (CH)" },
     { key: "pitchCT", label: "Cutter (CT)" },
     { key: "pitchSNK", label: "Sinker (SNK)" },
-    { key: "pitchSPL", label: "Vertical Slider (VSL)" },
+    { key: "pitchSPL", label: "Splitter (SPL)" },
     { key: "pitchFK", label: "Forkball (FK)" },
     { key: "pitchSFF", label: "Split-Finger (SFF)" },
     { key: "pitchSHU", label: "Shuuto (SHU)" },
