@@ -67,7 +67,7 @@ export function getLetterGrade(value: number): { grade: string; color: string } 
   if (value >= 40) {
     return { grade: "E", color: "text-green-500" };
   }
-  if (value >= 30) {
+  if (value >= 20) {
     return { grade: "F", color: "text-blue-500" };
   }
   return { grade: "G", color: "text-gray-400" };
