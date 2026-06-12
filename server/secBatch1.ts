@@ -219,7 +219,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Flyball Pitcher", "vs. Strong Batters", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
+        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
       // Liam Peterson — Saturday RHP JR, top-ranked P in 2026 MLB Draft, 96 K in 69.1 IP last yr
       { firstName: "Liam", lastName: "Peterson", position: "P", eligibility: "JR", homeState: "FL", hometown: "Palm Harbor", jerseyNumber: 12,
         hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 76, stamina: 61, stuff: 97,
