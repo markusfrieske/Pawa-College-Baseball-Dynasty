@@ -11,7 +11,7 @@ export const ALL_PITCH_SCOUTING_KEYS: readonly string[] = [
   'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN',
 ];
 
-const DEFAULT_PITCHER_SCOUTING_ORDER = [
+export const DEFAULT_PITCHER_SCOUTING_ORDER = [
   'velocity','control','stamina',
   ...ALL_PITCH_SCOUTING_KEYS,
   'wRISP','vsLefty','poise','grit','heater','agile','recovery',

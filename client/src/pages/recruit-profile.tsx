@@ -73,7 +73,7 @@ import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@share
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
-import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD, patchScoutingOrder } from "@shared/recruitThresholds";
+import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD, patchScoutingOrder, DEFAULT_PITCHER_SCOUTING_ORDER } from "@shared/recruitThresholds";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { velocityToKMH } from "@/lib/playerUtils";
@@ -513,10 +513,9 @@ export default function RecruitProfilePage() {
   // Replicate the reveal logic from RecruitCommonAbilitiesSection to check row visibility.
   const _scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   const _defaultFielderCommonOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
-  const _defaultPitcherCommonOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   const _effectiveCommonOrder = _scoutingOrder.length > 0
     ? (_isPitcherForGolds ? patchScoutingOrder(_scoutingOrder) : _scoutingOrder)
-    : (_isPitcherForGolds ? _defaultPitcherCommonOrder : _defaultFielderCommonOrder);
+    : (_isPitcherForGolds ? DEFAULT_PITCHER_SCOUTING_ORDER : _defaultFielderCommonOrder);
   const _commonRevealCount = Math.ceil((scoutPct / 100) * _effectiveCommonOrder.length);
   const _revealedCommonFields = new Set(_effectiveCommonOrder.slice(0, _commonRevealCount));
   const _isCommonFieldShown = (fieldName: string) => {
@@ -2049,13 +2048,12 @@ function RecruitAttributesSection({
   
   // Default field orders for legacy recruits without scoutingOrder
   const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery'];
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
-  
+
   // Use stored scouting order or fall back to default order.
   // Patch any missing pitch keys so old recruits still surface new fields.
   const effectiveOrder = scoutingOrder.length > 0 
     ? (isPitcher ? patchScoutingOrder(scoutingOrder) : scoutingOrder)
-    : (isPitcher ? defaultPitcherOrder : defaultFielderOrder);
+    : (isPitcher ? DEFAULT_PITCHER_SCOUTING_ORDER : defaultFielderOrder);
   
   // Calculate how many attributes should be revealed based on scouting progress
   const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
@@ -2174,13 +2172,12 @@ function RecruitCommonAbilitiesSection({
   
   // Default field orders for legacy recruits without scoutingOrder
   const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
-  
+
   // Use stored scouting order or fall back to default order.
   // Patch any missing pitch keys so old recruits still surface new fields.
   const effectiveOrder = scoutingOrder.length > 0 
     ? (isPitcher ? patchScoutingOrder(scoutingOrder) : scoutingOrder)
-    : (isPitcher ? defaultPitcherOrder : defaultFielderOrder);
+    : (isPitcher ? DEFAULT_PITCHER_SCOUTING_ORDER : defaultFielderOrder);
   
   // Calculate how many attributes should be revealed based on scouting progress
   const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
@@ -2315,12 +2312,9 @@ function RecruitPitchMixSection({
 }) {
   const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
-  // Default pitcher order for legacy recruits without scoutingOrder
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
-  
-  // Use stored scouting order or fall back to default order.
+  // Use stored scouting order or fall back to canonical default.
   // Patch any missing pitch keys so old recruits still surface new fields.
-  const effectiveOrder = scoutingOrder.length > 0 ? patchScoutingOrder(scoutingOrder) : defaultPitcherOrder;
+  const effectiveOrder = scoutingOrder.length > 0 ? patchScoutingOrder(scoutingOrder) : DEFAULT_PITCHER_SCOUTING_ORDER;
   
   // Calculate how many attributes should be revealed based on scouting progress
   const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
