@@ -536,7 +536,11 @@ export function generateRecruitClass(
     const fielderAbilities = ['clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery'];
     const pitcherAttributes = ['velocity', 'control', 'stamina'];
     const pitcherAbilities = ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
-    const pitchTypes = ['pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL'];
+    const pitchTypes = [
+      'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT',
+      'pitchSNK', 'pitchVSL', 'pitchSHU', 'pitchCCH', 'pitchHSL',
+      'pitchSWP', 'pitchKN', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF',
+    ];
     const catcherAbility = position === 'C' ? ['catcherAbility'] : [];
 
     let allFields: string[];
@@ -1938,7 +1942,8 @@ export function generateRecruitClass(
       const capCount = tierCapMap[displayTier] ?? 3;
       const secondaryOrder = [
         "pitch2S", "pitchSL", "pitchCB", "pitchCH", "pitchCT",
-        "pitchSNK", "pitchSPL", "pitchFK", "pitchSFF", "pitchSHU",
+        "pitchSNK", "pitchVSL", "pitchSHU", "pitchCCH", "pitchHSL",
+        "pitchSWP", "pitchKN", "pitchSCB", "pitchPCB", "pitchFK", "pitchSFF",
       ] as const;
       const activeSecondaries = secondaryOrder.filter(k => pitchMix[k] > 0);
       const totalActive = 1 + activeSecondaries.length;

@@ -2,9 +2,8 @@
  * Pitch-mix field validator.
  *
  * Schema rules (server/pitchMixHelpers.ts):
- *   - pitchFB, pitch2S, pitchCH, pitchFK, and pitchSFF are binary: 0 or 1.
- *   - pitchSL / pitchCB / pitchCT / pitchSNK / pitchSPL / pitchSHU must be
- *     integers in 0-7.
+ *   - pitchFB, pitch2S, pitchCH, pitchFK, pitchSFF, pitchKN are binary: 0 or 1.
+ *   - All other pitch slots must be integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
  * velocity scale instead of the correct 1-7 bucket scale.  Without this
@@ -89,7 +88,8 @@ const PITCH_FIELDS = [
 ] as const;
 
 // Binary fields: must be 0 or 1
-const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF"]);
+// pitchKN added as binary for generated recruit validation
+const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF", "pitchKN"]);
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
@@ -153,23 +153,51 @@ const SAMPLE_SIZE = 500;
 
 const archetypes: PitcherArchetype[] = [
   "power_starter", "command_lefty", "reliever", "junkball", "sinkerballer",
+  "sweeper_specialist", "cutter_pitcher", "knuckleballer",
 ];
 const tiers: QualityTier[] = ["elite", "great", "solid", "average"];
-const tierOvr: Record<QualityTier, number> = {
-  elite: 550, great: 430, solid: 320, average: 240,
-};
-const tierPitchRange: Record<QualityTier, [number, number]> = {
+
+// Reliever and knuckleballer are capped at 3 total pitches regardless of tier.
+// Knuckleballer average gets only FB + KN = 2 pitches.
+const DEFAULT_TIER_RANGE: Record<QualityTier, [number, number]> = {
   elite:   [5, 6],
   great:   [4, 5],
   solid:   [3, 4],
   average: [2, 3],
 };
 
-// Pitches that must NEVER appear for a given archetype (not in the pool)
-const DISALLOWED_PITCHES: Partial<Record<PitcherArchetype, (keyof ReturnType<typeof generateArchetypePitchMix>)[]>> = {
-  reliever:    ["pitch2S", "pitchCT"],
-  junkball:    ["pitch2S"],
-  sinkerballer: ["pitch2S"],
+const ARCHETYPE_TIER_RANGE: Partial<Record<PitcherArchetype, Record<QualityTier, [number, number]>>> = {
+  reliever: {
+    elite:   [3, 3],
+    great:   [3, 3],
+    solid:   [3, 3],
+    average: [2, 3],
+  },
+  knuckleballer: {
+    elite:   [3, 3],
+    great:   [3, 3],
+    solid:   [3, 3],
+    average: [2, 2],
+  },
+};
+
+// Pitches that must NEVER appear for a given archetype (not in the pool).
+// pitchSPL is globally excluded from all generated recruit pools.
+const DISALLOWED_PITCHES: Partial<Record<PitcherArchetype, string[]>> = {
+  // power_starter pool: SL, CB, VSL, PCB, CH, HSL, CT — no 2S
+  power_starter:     ["pitch2S"],
+  // sweeper_specialist pool: SWP, VSL, CB, CH, SL, HSL — no 2S, SNK, CT
+  sweeper_specialist: ["pitch2S", "pitchSNK", "pitchCT"],
+  // cutter_pitcher pool: CT, HSL, SL, SNK, CH, CB — no 2S, SWP
+  cutter_pitcher:    ["pitch2S", "pitchSWP"],
+  // junkball pool: CB, CH, SCB, CCH, SHU, SL, FK — no 2S, SNK, CT, SWP
+  junkball:          ["pitch2S", "pitchSNK", "pitchCT", "pitchSWP"],
+  // reliever pool: SL, SWP, CB, HSL, VSL — no 2S, CT
+  reliever:          ["pitch2S", "pitchCT"],
+  // knuckleballer: KN always, then CH/SL/CB secondaries — no 2S, CT, SNK, SWP
+  knuckleballer:     ["pitch2S", "pitchCT", "pitchSNK", "pitchSWP"],
+  // sinkerballer pool: SNK, CT, SL, HSL, 2S, SHU — pitch2S IS now in pool
+  // command_lefty pool: CH, CB, SL, 2S, CCH, SCB, SNK — no restrictions needed
 };
 
 let archetypeErrors = 0;
@@ -178,9 +206,8 @@ console.log("\n── Archetype pitch-mix generator checks ──");
 
 for (const archetype of archetypes) {
   for (const tier of tiers) {
-    const [minPitches, maxPitches] = tierPitchRange[tier];
-    const ovr = tierOvr[tier];
-    const resolvedTier = qualityTierFromOvr(ovr);
+    const rangeMap = ARCHETYPE_TIER_RANGE[archetype] ?? DEFAULT_TIER_RANGE;
+    const [minPitches, maxPitches] = rangeMap[tier];
     const disallowed = DISALLOWED_PITCHES[archetype] ?? [];
 
     let tooFew = 0;
@@ -191,7 +218,7 @@ for (const archetype of archetypes) {
     let disallowedViolation = 0;
 
     for (let n = 0; n < SAMPLE_SIZE; n++) {
-      const mix = generateArchetypePitchMix(archetype, resolvedTier);
+      const mix = generateArchetypePitchMix(archetype, tier);
       const pitchKeys = Object.keys(mix) as (keyof typeof mix)[];
       const activePitches = pitchKeys.filter(k => mix[k] > 0);
       const count = activePitches.length;
@@ -203,10 +230,12 @@ for (const archetype of archetypes) {
         const v = mix[k];
         if (BINARY_PITCH_FIELDS.has(k) && v > 1) binaryViolation++;
         if (!BINARY_PITCH_FIELDS.has(k) && k !== "pitchFB" && (v < 2 || v > 7)) levelViolation++;
-        if (disallowed.includes(k as never)) disallowedViolation++;
+        if (disallowed.includes(k as string)) disallowedViolation++;
       }
 
-      if (tier === "elite") {
+      // Elite signature: exactly one non-binary secondary should be 5-7
+      // (knuckleballer KN is binary so its high level is encoded differently)
+      if (tier === "elite" && archetype !== "knuckleballer") {
         const nonBinarySecondary = activePitches.filter(k => !BINARY_PITCH_FIELDS.has(k));
         const signature = nonBinarySecondary.filter(k => mix[k] >= 5);
         if (signature.length > 1) eliteSignatureViolation++;
@@ -224,15 +253,36 @@ for (const archetype of archetypes) {
 }
 
 // Verify assignPitcherArchetype routing
+// Note: SP/P checks are run 200 times to be robust against the 2% knuckleballer roll.
+// RP/CP checks are deterministic (knuckleballer is immune for relievers).
+function routingFreq(
+  position: string, hand: string,
+  vel: number, ctrl: number, stam: number, stuff: number,
+  target: PitcherArchetype | PitcherArchetype[],
+  runs = 200,
+  minPct = 0.90,
+): boolean {
+  const targets = Array.isArray(target) ? target : [target];
+  let hits = 0;
+  for (let i = 0; i < runs; i++) {
+    if (targets.includes(assignPitcherArchetype(position, hand, vel, ctrl, stam, stuff))) hits++;
+  }
+  return hits / runs >= minPct;
+}
+
 const archetypeRoutingChecks: { label: string; pass: boolean }[] = [
-  { label: "RP→reliever",    pass: assignPitcherArchetype("RP", "R", 70, 60, 65, 55) === "reliever" },
-  { label: "CP→reliever",    pass: assignPitcherArchetype("CP", "R", 70, 60, 65, 55) === "reliever" },
-  { label: "SP+L+ctrl≥velo→command_lefty",
-    pass: assignPitcherArchetype("SP", "L", 60, 70, 65, 55) === "command_lefty" },
-  { label: "P+R+ctrl≥velo→NOT command_lefty",
-    pass: assignPitcherArchetype("P", "R", 60, 70, 65, 55) !== "command_lefty" },
-  { label: "P+high velo→power_starter",
-    pass: assignPitcherArchetype("P", "R", 85, 55, 60, 60) === "power_starter" },
+  { label: "RP→reliever (deterministic)",
+    pass: assignPitcherArchetype("RP", "R", 70, 60, 65, 55) === "reliever" },
+  { label: "CP→reliever (deterministic)",
+    pass: assignPitcherArchetype("CP", "R", 70, 60, 65, 55) === "reliever" },
+  { label: "SP+L+ctrl≥velo→command_lefty (≥90% of 200 runs)",
+    pass: routingFreq("SP", "L", 60, 70, 65, 55, "command_lefty") },
+  { label: "P+R+ctrl≥velo→NOT command_lefty (0 of 200 runs should be command_lefty)",
+    pass: Array.from({ length: 200 }, () =>
+      assignPitcherArchetype("P", "R", 60, 70, 65, 55)
+    ).every(r => r !== "command_lefty") },
+  { label: "P+high velo dominant→power_starter/sweeper/cutter (≥90% of 200 runs)",
+    pass: routingFreq("P", "R", 85, 55, 60, 60, ["power_starter", "sweeper_specialist", "cutter_pitcher"]) },
 ];
 
 for (const check of archetypeRoutingChecks) {
@@ -252,11 +302,13 @@ console.log(`  ✓ Archetype routing checks: ${archetypeRoutingChecks.length}/${
 
 // ─── Section 3: Per-tier pitch count cap assertions ───────────────────────────
 //
-// pitchCountForTier defines the authoritative caps:
+// pitchCountForTier defines the authoritative caps for standard archetypes:
 //   elite   → exactly 5   (cap ≤ 5)
 //   great   → exactly 4   (cap ≤ 4)
 //   solid   → 3–4         (cap ≤ 4)
 //   average → 2–3         (cap ≤ 3)
+//
+// Reliever and knuckleballer are capped at 3 regardless of tier.
 //
 // Two sub-checks:
 //   3a. pitchCountForTier itself never returns above cap.
@@ -275,6 +327,12 @@ const TIER_FLOORS: Record<QualityTier, number> = {
   great:   4,
   solid:   3,
   average: 2,
+};
+
+// Per-archetype max pitch caps (overrides TIER_CAPS for cap-limited archetypes)
+const ARCHETYPE_TIER_CAPS: Partial<Record<PitcherArchetype, number>> = {
+  reliever:     3,
+  knuckleballer: 3,
 };
 
 const CAP_SAMPLE = 2000;
@@ -299,10 +357,10 @@ for (const tier of tiers) {
   }
 }
 
-// 3b: generateArchetypePitchMix never produces more active pitches than cap
+// 3b: generateArchetypePitchMix never produces more active pitches than the archetype cap
 for (const archetype of archetypes) {
   for (const tier of tiers) {
-    const cap = TIER_CAPS[tier];
+    const cap = ARCHETYPE_TIER_CAPS[archetype] ?? TIER_CAPS[tier];
     let exceeded = 0;
     for (let n = 0; n < CAP_SAMPLE; n++) {
       const mix = generateArchetypePitchMix(archetype, tier);
@@ -382,9 +440,12 @@ for (const field of PITCH_FIELDS) {
 
 console.log("\n── Full recruit-class pipeline pitcher arsenal tier-cap check ──");
 
+// All 17 pitch types (no pitchSPL for generated recruits)
 const RECRUIT_PITCH_FIELDS = [
   "pitchFB", "pitch2S", "pitchSL", "pitchCB", "pitchCH",
-  "pitchCT", "pitchSNK", "pitchSPL", "pitchFK", "pitchSFF", "pitchSHU",
+  "pitchCT", "pitchSNK", "pitchVSL", "pitchSHU", "pitchCCH",
+  "pitchHSL", "pitchSWP", "pitchKN", "pitchSCB", "pitchPCB",
+  "pitchFK", "pitchSFF",
 ] as const;
 
 const PITCHER_POS = new Set(["P", "SP", "RP", "CP", "CL"]);
@@ -412,14 +473,17 @@ for (let run = 0; run < CLASS_RUNS; run++) {
 
     const stars  = recruit.starRating ?? 3;
     const tier   = qualityTierFromStars(stars);
-    const cap    = TIER_CAPS[tier];
+    // Use tier-based caps here — this matches what the trim code in
+    // recruit-generator.ts enforces. Archetype-specific caps (reliever/knuckleballer=3)
+    // are verified in Section 2. The archetype is NOT stored on the recruit
+    // object, so re-deriving it here would introduce stochastic false positives.
+    const cap = TIER_CAPS[tier];
 
     // Count active pitches in the fully assembled recruit object
     const raw = recruit as unknown as Record<string, unknown>;
     const active = RECRUIT_PITCH_FIELDS.filter(f => typeof raw[f] === "number" && (raw[f] as number) > 0).length;
 
     if (active > cap) {
-      // Re-derive the archetype from the recruit's own attributes for clear attribution
       const archetype = assignPitcherArchetype(
         recruit.position ?? "P",
         recruit.throwHand ?? "R",
