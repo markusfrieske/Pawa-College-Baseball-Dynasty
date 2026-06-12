@@ -540,11 +540,16 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {allPitchKeys.map(key => {
                   const val = (player as Record<string, unknown>)[`pitch${key}`] as number | null | undefined;
                   const rating = val ?? 0;
+                  const isBinary = ["FB", "2S", "CH", "FK", "SFF", "KN"].includes(key);
                   if (rating > 0) {
                     return (
                       <div key={key} className="flex items-center justify-between px-1.5 py-0.5 bg-muted/20 rounded">
                         <span className="text-xs text-foreground">{pitchLabels[key] || key}</span>
-                        <span className="text-xs font-bold text-gold" data-testid={`pitch-rating-${key}`}>{rating}</span>
+                        {isBinary ? (
+                          <span className="text-[10px] font-bold text-gold px-1 py-0.5 bg-gold/10 rounded border border-gold/30" data-testid={`pitch-rating-${key}`}>Yes</span>
+                        ) : (
+                          <span className="text-xs font-bold text-gold" data-testid={`pitch-rating-${key}`}>{rating}</span>
+                        )}
                       </div>
                     );
                   }

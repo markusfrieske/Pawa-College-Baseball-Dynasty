@@ -389,8 +389,11 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
           const pitchFields = [
             ["pitchFB","FB"],["pitch2S","2S"],["pitchSL","SL"],["pitchCB","CB"],
             ["pitchCH","CH"],["pitchCT","CT"],["pitchSNK","SNK"],["pitchVSL","VSL"],
-            ["pitchSHU","SHU"],["pitchSWP","SWP"],["pitchKN","KN"],
+            ["pitchSHU","SHU"],["pitchSWP","SWP"],["pitchCCH","CCH"],["pitchHSL","HSL"],
+            ["pitchSFF","SFF"],["pitchFK","FK"],["pitchSCB","SCB"],["pitchPCB","PCB"],
+            ["pitchKN","KN"],
           ] as const;
+          const BINARY_PITCH_FIELDS = new Set(["pitchFB","pitch2S","pitchCH","pitchFK","pitchSFF","pitchKN"]);
           const cardFullyRevealed = recruit.isFullyRevealed ?? recruit.isBlueChip ?? false;
           const cardScoutPct = recruit.scoutPct ?? 0;
           const revealedPitchFields = computeRevealedPitchFields(recruit.scoutingOrder, cardScoutPct);
@@ -403,7 +406,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             <div className="flex flex-wrap gap-0.5 mt-1">
               {active.map(([k, label]) => (
                 <span key={k} className="text-[5px] font-mono px-0.5 py-0.5 rounded bg-gray-800 text-gray-300 leading-none">
-                  {label}·{(recruit as any)[k]}
+                  {BINARY_PITCH_FIELDS.has(k) ? label : `${label}·${(recruit as any)[k]}`}
                 </span>
               ))}
             </div>

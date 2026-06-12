@@ -4,8 +4,8 @@ export const ARCHETYPE_REVEAL_THRESHOLD = 75;
 const DEFAULT_PITCHER_SCOUTING_ORDER = [
   'velocity','control','stamina',
   'pitchFB','pitch2S','pitchSL','pitchCB','pitchCH','pitchCT',
-  'pitchSNK','pitchSPL','pitchFK','pitchSFF','pitchSHU',
-  'pitchSWP','pitchKN','pitchVSL','pitchSCB','pitchPCB',
+  'pitchSNK','pitchVSL','pitchHSL','pitchSWP','pitchCCH',
+  'pitchSCB','pitchPCB','pitchFK','pitchSFF','pitchSHU','pitchKN',
   'wRISP','vsLefty','poise','grit','heater','agile','recovery',
 ];
 

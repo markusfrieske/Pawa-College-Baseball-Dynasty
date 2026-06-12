@@ -513,7 +513,7 @@ export default function RecruitProfilePage() {
   // Replicate the reveal logic from RecruitCommonAbilitiesSection to check row visibility.
   const _scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   const _defaultFielderCommonOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
-  const _defaultPitcherCommonOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const _defaultPitcherCommonOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   const _effectiveCommonOrder = _scoutingOrder.length > 0 ? _scoutingOrder : (_isPitcherForGolds ? _defaultPitcherCommonOrder : _defaultFielderCommonOrder);
   const _commonRevealCount = Math.ceil((scoutPct / 100) * _effectiveCommonOrder.length);
   const _revealedCommonFields = new Set(_effectiveCommonOrder.slice(0, _commonRevealCount));
@@ -2047,7 +2047,7 @@ function RecruitAttributesSection({
   
   // Default field orders for legacy recruits without scoutingOrder
   const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery'];
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   
   // Use stored scouting order or fall back to default order
   const effectiveOrder = scoutingOrder.length > 0 
@@ -2171,7 +2171,7 @@ function RecruitCommonAbilitiesSection({
   
   // Default field orders for legacy recruits without scoutingOrder
   const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   
   // Use stored scouting order or fall back to default order
   const effectiveOrder = scoutingOrder.length > 0 
@@ -2312,7 +2312,7 @@ function RecruitPitchMixSection({
   const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
   // Default pitcher order for legacy recruits without scoutingOrder
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchHSL', 'pitchSWP', 'pitchCCH', 'pitchSCB', 'pitchPCB', 'pitchFK', 'pitchSFF', 'pitchSHU', 'pitchKN', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   
   // Use stored scouting order or fall back to default order
   const effectiveOrder = scoutingOrder.length > 0 ? scoutingOrder : defaultPitcherOrder;
@@ -2326,6 +2326,8 @@ function RecruitPitchMixSection({
     return isFullyRevealed || revealedFields.has(fieldName);
   };
   
+  const BINARY_PITCH_KEYS = new Set(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF", "pitchKN"]);
+
   const pitchTypes = [
     { key: "pitchFB", label: "Fastball (FB)" },
     { key: "pitch2S", label: "2-Seam (2S)" },
@@ -2334,10 +2336,16 @@ function RecruitPitchMixSection({
     { key: "pitchCH", label: "Changeup (CH)" },
     { key: "pitchCT", label: "Cutter (CT)" },
     { key: "pitchSNK", label: "Sinker (SNK)" },
-    { key: "pitchSPL", label: "Splitter (SPL)" },
+    { key: "pitchVSL", label: "Vert. Slider (VSL)" },
+    { key: "pitchHSL", label: "Hard Slider (HSL)" },
+    { key: "pitchSWP", label: "Sweeper (SWP)" },
+    { key: "pitchCCH", label: "Circle Change (CCH)" },
+    { key: "pitchSCB", label: "Slow Curve (SCB)" },
+    { key: "pitchPCB", label: "Power Curve (PCB)" },
     { key: "pitchFK", label: "Forkball (FK)" },
     { key: "pitchSFF", label: "Split-Finger (SFF)" },
     { key: "pitchSHU", label: "Shuuto (SHU)" },
+    { key: "pitchKN", label: "Knuckleball (KN)" },
   ] as const;
   
   const renderPitch = (key: string, label: string) => {
@@ -2371,6 +2379,15 @@ function RecruitPitchMixSection({
             </TooltipTrigger>
             <TooltipContent>Pitcher does not throw this pitch</TooltipContent>
           </Tooltip>
+        </div>
+      );
+    }
+
+    if (BINARY_PITCH_KEYS.has(key)) {
+      return (
+        <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+          <span className="text-sm text-foreground">{label}</span>
+          <span className="text-xs font-bold text-gold px-1.5 py-0.5 bg-gold/10 rounded border border-gold/30" data-testid={`pitch-badge-${key}`}>Yes</span>
         </div>
       );
     }
