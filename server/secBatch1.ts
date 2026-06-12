@@ -345,7 +345,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // Cash Strayer — OF FR
       { firstName: "Cash", lastName: "Strayer", position: "OF", eligibility: "FR", homeState: "FL", hometown: "Tampa", jerseyNumber: 26,
         hitForAvg: 31, power: 45, speed: 69, arm: 29, fielding: 29, errorResistance: 29, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 54, vsLHP: 54, grit: 54, stealing: 54, running: 54, throwing: 54, recovery: 54, wRISP: 54, vsLefty: 54, poise: 54, heater: 0, agile: 54,
+        clutch: 42, vsLHP: 42, grit: 42, stealing: 42, running: 42, throwing: 42, recovery: 42, wRISP: 42, vsLefty: 42, poise: 42, heater: 0, agile: 42,
         abilities: ["Consigliere", "Final Hit"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L", // corrected: batHand was S → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
