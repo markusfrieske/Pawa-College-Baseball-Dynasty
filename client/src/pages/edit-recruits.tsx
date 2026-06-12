@@ -358,7 +358,16 @@ export default function EditRecruitsPage() {
                     <th className="px-2 py-2 text-xs font-pixel text-gold">CH</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">CT</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">SNK</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SPL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">VSL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">HSL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SWP</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CCH</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SCB</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">PCB</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">FK</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SFF</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SHU</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">KN</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">PROX</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">REP</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">PT</th>
@@ -754,7 +763,7 @@ export default function EditRecruitsPage() {
                         </td>
                         <td className="px-2 py-1">
                           <Select
-                            value={String(getRecruitValue(recruit, "pitchCH") || 0)}
+                            value={String(Math.min(1, getRecruitValue(recruit, "pitchCH") || 0))}
                             onValueChange={(v) => updateRecruit(recruit.id, "pitchCH", parseInt(v))}
                             disabled={!isPitcher}
                           >
@@ -762,8 +771,8 @@ export default function EditRecruitsPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
-                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              {[0, 1].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -800,10 +809,11 @@ export default function EditRecruitsPage() {
                             </SelectContent>
                           </Select>
                         </td>
+                        {/* Pitch Mix - VSL (Vert. Slider, 0-7) */}
                         <td className="px-2 py-1">
                           <Select
-                            value={String(getRecruitValue(recruit, "pitchSPL") || 0)}
-                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSPL", parseInt(v))}
+                            value={String(getRecruitValue(recruit, "pitchVSL") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchVSL", parseInt(v))}
                             disabled={!isPitcher}
                           >
                             <SelectTrigger className="h-7 w-10 text-xs">
@@ -812,6 +822,159 @@ export default function EditRecruitsPage() {
                             <SelectContent>
                               {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
                                 <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - HSL (Hard Slider, 0-7) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchHSL") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchHSL", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - SWP (Sweeper, 0-7) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchSWP") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSWP", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - CCH (Circle Change, 0-7) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchCCH") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchCCH", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - SCB (Slow Curve, 0-7) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchSCB") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSCB", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - PCB (Power Curve, 0-7) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchPCB") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchPCB", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - FK (Forkball, binary) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(Math.min(1, getRecruitValue(recruit, "pitchFK") || 0))}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchFK", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - SFF (Split-Finger, binary) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(Math.min(1, getRecruitValue(recruit, "pitchSFF") || 0))}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSFF", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - SHU (Shuuto, 0-7) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchSHU") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSHU", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Pitch Mix - KN (Knuckleball, binary) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(Math.min(1, getRecruitValue(recruit, "pitchKN") || 0))}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchKN", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

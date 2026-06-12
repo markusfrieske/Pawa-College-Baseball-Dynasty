@@ -338,7 +338,16 @@ export default function EditRostersPage() {
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CH</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CT</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">SNK</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SPL</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">VSL</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">HSL</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">SWP</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">CCH</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">SCB</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">PCB</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">FK</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">SFF</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">SHU</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">KN</th>
                             {/* Common Abilities */}
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CLCH</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">GRIT</th>
@@ -775,10 +784,10 @@ export default function EditRostersPage() {
                                     </SelectContent>
                                   </Select>
                                 </td>
-                                {/* Pitch Mix - CH */}
+                                {/* Pitch Mix - CH (binary) */}
                                 <td className="px-2 py-1">
                                   <Select
-                                    value={String(getPlayerValue(player, "pitchCH") || 0)}
+                                    value={String(Math.min(1, getPlayerValue(player, "pitchCH") || 0))}
                                     onValueChange={(v) => updatePlayer(player.id, "pitchCH", parseInt(v))}
                                     disabled={!isPitcher}
                                   >
@@ -786,8 +795,8 @@ export default function EditRostersPage() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      {[0, 1].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -826,11 +835,11 @@ export default function EditRostersPage() {
                                     </SelectContent>
                                   </Select>
                                 </td>
-                                {/* Pitch Mix - SPL */}
+                                {/* Pitch Mix - VSL (Vert. Slider, 0-7) */}
                                 <td className="px-2 py-1">
                                   <Select
-                                    value={String(getPlayerValue(player, "pitchSPL") || 0)}
-                                    onValueChange={(v) => updatePlayer(player.id, "pitchSPL", parseInt(v))}
+                                    value={String(getPlayerValue(player, "pitchVSL") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchVSL", parseInt(v))}
                                     disabled={!isPitcher}
                                   >
                                     <SelectTrigger className="h-7 w-12 text-xs">
@@ -839,6 +848,159 @@ export default function EditRostersPage() {
                                     <SelectContent>
                                       {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
                                         <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - HSL (Hard Slider, 0-7) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchHSL") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchHSL", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - SWP (Sweeper, 0-7) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchSWP") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchSWP", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - CCH (Circle Change, 0-7) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchCCH") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchCCH", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - SCB (Slow Curve, 0-7) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchSCB") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchSCB", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - PCB (Power Curve, 0-7) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchPCB") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchPCB", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - FK (Forkball, binary) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(Math.min(1, getPlayerValue(player, "pitchFK") || 0))}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchFK", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - SFF (Split-Finger, binary) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(Math.min(1, getPlayerValue(player, "pitchSFF") || 0))}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchSFF", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - SHU (Shuuto, 0-7) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchSHU") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchSHU", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Pitch Mix - KN (Knuckleball, binary) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(Math.min(1, getPlayerValue(player, "pitchKN") || 0))}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchKN", parseInt(v))}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
