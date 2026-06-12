@@ -884,7 +884,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Jax Gimenez — INF/OF SO, #7, .321/.476/.491, switch-hitter, strong walk rate, dual-threat, from Rocklin CA
-      { firstName: "Jax", lastName: "Gimenez", position: "INF", eligibility: "SO", homeState: "CA", hometown: "Rocklin", jerseyNumber: 7,
+      { firstName: "Jax", lastName: "Gimenez", position: "2B", eligibility: "SO", homeState: "CA", hometown: "Rocklin", jerseyNumber: 7,
         hitForAvg: 60, power: 50, speed: 60, arm: 54, fielding: 52, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 58, grit: 57, stealing: 55, running: 56, throwing: 60, recovery: 46, wRISP: 62, vsLefty: 56, poise: 58, heater: 0, agile: 54,
         abilities: ["Contact Hitter", "Push", "Tough Out"], potential: "A-", catcherAbility: null,
