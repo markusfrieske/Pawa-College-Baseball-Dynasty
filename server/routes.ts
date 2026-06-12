@@ -1550,7 +1550,7 @@ export async function registerRoutes(
         const SIGNING_ATTR_KEYS = new Set([
           'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
           'velocity', 'control', 'stamina',
-          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
+          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         ]);
         const SIGNING_COMMON_KEYS = new Set([
           'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
@@ -1560,7 +1560,7 @@ export async function registerRoutes(
         // attribute/common-ability keys were included (prevents empty holdbackFields).
         const isPitcherRecruit = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
         const defaultAttrOrder = isPitcherRecruit
-          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU']
+          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU']
           : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
         const defaultCommonOrder = isPitcherRecruit
           ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
@@ -4956,7 +4956,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         'abilities'
       ];
 
@@ -13273,7 +13273,7 @@ export async function registerRoutes(
             pitchCH: player.pitchCH ?? 0,
             pitchCT: player.pitchCT ?? 0,
             pitchSNK: player.pitchSNK ?? 0,
-            pitchSPL: player.pitchSPL ?? 0,
+            pitchVSL: player.pitchVSL ?? 0,
             abilities: playerAbilities,
             potential: player.potential ?? rollWeightedPotential(),
             nilCost: (function() {
@@ -15015,7 +15015,7 @@ export async function registerRoutes(
           pitchCH: recruit.pitchCH ?? 0,
           pitchCT: recruit.pitchCT ?? 0,
           pitchSNK: recruit.pitchSNK ?? 0,
-          pitchSPL: recruit.pitchSPL ?? 0,
+          pitchVSL: recruit.pitchVSL ?? 0,
           abilities: recruit.abilities || [],
           skinTone: recruit.skinTone || "light",
           hairColor: recruit.hairColor || "brown",
@@ -20399,7 +20399,7 @@ export async function registerRoutes(
       const SD_ATTR_KEYS = new Set([
         'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
         'velocity', 'control', 'stamina',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
       ]);
       const SD_COMMON_KEYS = new Set([
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
@@ -20407,7 +20407,7 @@ export async function registerRoutes(
       ]);
       const sdIsPitcher = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
       const sdDefaultAttr = sdIsPitcher
-        ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU']
+        ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU']
         : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
       const sdDefaultCommon = sdIsPitcher
         ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
@@ -20482,7 +20482,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         'abilities',
         'proximityPriority', 'reputationPriority', 'playingTimePriority',
         'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'
@@ -20543,7 +20543,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         'abilities',
         'proximityPriority', 'reputationPriority', 'playingTimePriority',
         'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'

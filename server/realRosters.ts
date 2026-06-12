@@ -61,7 +61,8 @@ export interface RealPlayer {
   pitchCH: number;
   pitchCT: number;
   pitchSNK: number;
-  pitchSPL: number;
+  pitchSPL?: number;
+  pitchVSL?: number;
   pitchFK?: number;
   pitchSFF?: number;
   pitchSHU?: number;

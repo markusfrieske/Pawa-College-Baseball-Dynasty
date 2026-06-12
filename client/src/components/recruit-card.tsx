@@ -65,7 +65,7 @@ export interface RevealRecruit {
   pitchCH?: number | null;
   pitchCT?: number | null;
   pitchSNK?: number | null;
-  pitchSPL?: number | null;
+  pitchVSL?: number | null;
   pitchSHU?: number | null;
   pitchSWP?: number | null;
   pitchKN?: number | null;
@@ -388,7 +388,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
         {pitcher && (() => {
           const pitchFields = [
             ["pitchFB","FB"],["pitch2S","2S"],["pitchSL","SL"],["pitchCB","CB"],
-            ["pitchCH","CH"],["pitchCT","CT"],["pitchSNK","SNK"],["pitchSPL","SPL"],
+            ["pitchCH","CH"],["pitchCT","CT"],["pitchSNK","SNK"],["pitchVSL","VSL"],
             ["pitchSHU","SHU"],["pitchSWP","SWP"],["pitchKN","KN"],
           ] as const;
           const cardFullyRevealed = recruit.isFullyRevealed ?? recruit.isBlueChip ?? false;

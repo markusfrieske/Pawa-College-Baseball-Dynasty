@@ -8,6 +8,7 @@ College Baseball Dynasty is a league-first, story-driven simulator where users m
 - Retro pixel aesthetic throughout
 - Gold accent color for interactive elements
 - Minimal use of emojis
+- When requesting rating changes, they mean the post-scaling display value (after team scale factor is applied), not raw file values
 
 ## System Architecture
 The application is built with a modern web stack: React, TypeScript, Vite, Tailwind CSS, and shadcn/ui for the frontend; Express.js and TypeScript for the backend; and PostgreSQL with Drizzle ORM for the database. State management utilizes TanStack Query, and Wouter handles frontend routing.

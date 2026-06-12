@@ -35,6 +35,7 @@ export interface PitchMix {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  pitchVSL: number;
   pitchFK: number;
   pitchSFF: number;
   pitchSHU: number;
@@ -42,12 +43,12 @@ export interface PitchMix {
 
 export const noPitches: PitchMix = {
   pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0,
-  pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0,
+  pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchVSL: 0,
   pitchFK: 0, pitchSFF: 0, pitchSHU: 0,
 };
 
 const SECONDARY_KEYS = [
-  "pitchSL", "pitchCB", "pitchCH", "pitchCT", "pitchSNK", "pitchSPL",
+  "pitchSL", "pitchCB", "pitchCH", "pitchCT", "pitchSNK", "pitchSPL", "pitchVSL",
   "pitchFK", "pitchSFF", "pitchSHU",
 ] as const;
 
@@ -135,6 +136,7 @@ export function pitchMix(primary: number, secondary: number[], context: string =
     pitchCT: coerceSecondary(safeSec[4] ?? 0, useBucket),
     pitchSNK: coerceSecondary(safeSec[5] ?? 0, useBucket),
     pitchSPL: coerceSecondary(safeSec[6] ?? 0, useBucket),
+    pitchVSL: 0,
     pitchFK,
     pitchSFF,
     pitchSHU: coerceSecondary(safeSec[9] ?? 0, useBucket),
@@ -216,31 +218,31 @@ type PoolEntry = [keyof PitchMix, number];
 // Higher weight = more likely to appear in the arsenal.
 // FK and SFF remain real-roster-only; SHU is now included in all pools.
 const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
-  // Power starter: heavy SL/CB, moderate 2S/CH/SNK, light SPL/CT/SHU
+  // Power starter: heavy SL/CB, moderate 2S/CH/SNK, light VSL/CT/SHU
   power_starter: [
     ["pitchSL",  80], ["pitchCB",  60], ["pitch2S",  45],
-    ["pitchCH",  20], ["pitchSNK", 15], ["pitchSPL", 12],
+    ["pitchCH",  20], ["pitchSNK", 15], ["pitchVSL", 12],
     ["pitchCT",  10], ["pitchSHU",  8],
   ],
   // Command lefty: CH + SL/CB core, light SNK/SHU
   command_lefty: [
     ["pitchCH",  55], ["pitchSL",  50], ["pitchCB",  45],
-    ["pitch2S",  35], ["pitchSNK", 12], ["pitchSPL", 10],
+    ["pitch2S",  35], ["pitchSNK", 12], ["pitchVSL", 10],
     ["pitchSHU", 12],
   ],
-  // Reliever: SL/CB dominant, reduced SNK/SPL — NO 2S, NO CT
+  // Reliever: SL/CB dominant, reduced SNK/VSL — NO 2S, NO CT
   reliever: [
     ["pitchSL",  70], ["pitchCB",  55],
-    ["pitchSNK", 20], ["pitchSPL", 18], ["pitchSHU", 15],
+    ["pitchSNK", 20], ["pitchVSL", 18], ["pitchSHU", 15],
   ],
   // Junkball: broad mix with SHU flavor — NO 2S
   junkball: [
     ["pitchCB",  50], ["pitchSL",  45], ["pitchCH",  30],
-    ["pitchSHU", 30], ["pitchSNK", 22], ["pitchSPL", 18],
+    ["pitchSHU", 30], ["pitchSNK", 22], ["pitchVSL", 18],
   ],
-  // Sinkerballer: SNK/SPL core but now balanced with SL/CB and SHU — NO 2S
+  // Sinkerballer: SNK/VSL core but now balanced with SL/CB and SHU — NO 2S
   sinkerballer: [
-    ["pitchSNK", 65], ["pitchSPL", 50], ["pitchSL",  45],
+    ["pitchSNK", 65], ["pitchVSL", 50], ["pitchSL",  45],
     ["pitchCB",  40], ["pitchSHU", 35], ["pitchCT",  20],
   ],
 };

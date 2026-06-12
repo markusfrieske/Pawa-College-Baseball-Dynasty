@@ -14,7 +14,6 @@ export const pitchLabels: Record<string, string> = {
   SL: "Slider",
   SNK: "Sinker",
   CT: "Cutter",
-  SPL: "Splitter",
   SHU: "Shuuto",
   CCH: "Circle Change",
   HSL: "Hard Slider",
@@ -28,8 +27,8 @@ export const pitchLabels: Record<string, string> = {
 };
 
 export const allPitchKeys = [
-  "FB", "2S", "SL", "CB", "CH", "CT", "SNK", "SPL",
-  "SHU", "CCH", "HSL", "SWP", "KN", "VSL", "SFF", "FK", "SCB", "PCB",
+  "FB", "2S", "SL", "CB", "CH", "CT", "SNK", "VSL",
+  "SHU", "CCH", "HSL", "SWP", "KN", "SFF", "FK", "SCB", "PCB",
 ] as const;
 
 const pitchDbFieldMap: Record<string, string> = {
@@ -40,7 +39,6 @@ const pitchDbFieldMap: Record<string, string> = {
   CH: "pitchCH",
   CT: "pitchCT",
   SNK: "pitchSNK",
-  SPL: "pitchSPL",
   SHU: "pitchSHU",
   CCH: "pitchCCH",
   HSL: "pitchHSL",
