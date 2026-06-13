@@ -369,12 +369,14 @@ export default function RecruitingPage() {
     teamCount: number;
   }>({
     queryKey: ["/api/leagues", id, "recruiting", "pipeline"],
+    staleTime: 30_000,
   });
 
   const { data: trendsData } = useQuery<{
     trends: Record<string, { trend: "up" | "down" | "flat"; recentGain: number }>;
   }>({
     queryKey: ["/api/leagues", id, "recruiting", "trends"],
+    staleTime: 30_000,
   });
 
   const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number; currentPhase?: string; progressionEnabled?: boolean }>({
@@ -438,6 +440,7 @@ export default function RecruitingPage() {
     }>;
   }>({
     queryKey: ["/api/leagues", id, "recruiting-history"],
+    staleTime: 60_000,
   });
 
   interface WeekRecapEntry {

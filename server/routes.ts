@@ -2989,6 +2989,7 @@ export async function registerRoutes(
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + phoneCost);
+      invalidateLeague(req.params.id);
       res.json({ 
         interest, 
         interestGain: totalInterestGain, 
@@ -3091,6 +3092,7 @@ export async function registerRoutes(
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      invalidateLeague(req.params.id);
       res.json({ 
         interest, 
         interestGain, 
@@ -3189,6 +3191,7 @@ export async function registerRoutes(
       }
 
       const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
+      invalidateLeague(req.params.id);
       res.json({ 
         interest, 
         interestGain,
@@ -3289,6 +3292,7 @@ export async function registerRoutes(
       }
 
       const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
+      invalidateLeague(req.params.id);
       res.json({ 
         interest, 
         interestGain,
@@ -3383,6 +3387,7 @@ export async function registerRoutes(
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      invalidateLeague(req.params.id);
       res.json({ interest, interestGain, actionsRemaining });
     } catch (error) {
       console.error("Failed to offer scholarship:", error);
@@ -3621,6 +3626,7 @@ export async function registerRoutes(
         console.error("Recruit commit news error:", e);
       }
 
+      invalidateLeague(req.params.id);
       res.json(updatedRecruit);
     } catch (error) {
       console.error("Failed to sign recruit:", error);
@@ -16680,11 +16686,22 @@ export async function registerRoutes(
       if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
       
       const teamId = userCoach.teamId;
-      const team = await storage.getTeam(teamId);
+
+      // Cache check — keyed per-team since pipeline data is coach-specific
+      const pipelineCacheKey = leagueCacheKey(leagueId, `recruiting-pipeline:${teamId}`);
+      const cachedPipeline = cacheGet(pipelineCacheKey);
+      if (cachedPipeline) return res.json(cachedPipeline);
+
+      // Fetch all independent data in parallel
+      const [team, interests, allRecruits, roster, topSchoolEntries, leagueTeams] = await Promise.all([
+        storage.getTeam(teamId),
+        storage.getRecruitingInterestsByTeam(teamId),
+        storage.getRecruitsByLeague(leagueId),
+        storage.getPlayersByTeam(teamId),
+        storage.getTopSchoolsByTeam(teamId),
+        storage.getTeamsByLeague(leagueId),
+      ]);
       const teamState = team?.state || "";
-      const interests = await storage.getRecruitingInterestsByTeam(teamId);
-      const allRecruits = await storage.getRecruitsByLeague(leagueId);
-      const roster = await storage.getPlayersByTeam(teamId);
 
       const adjacentStates: Record<string, string[]> = {
         "AL": ["FL","GA","MS","TN"],
@@ -16747,7 +16764,6 @@ export async function registerRoutes(
         interestMap.set(interest.recruitId, interest.interestLevel);
       }
 
-      const topSchoolEntries = await storage.getTopSchoolsByTeam(teamId);
       const topSchoolInterestMap = new Map<string, number>();
       for (const ts of topSchoolEntries) {
         const combined = ts.interestLevel + (ts.accumulatedInterest || 0);
@@ -16793,8 +16809,9 @@ export async function registerRoutes(
         positionNeeds.push({ position: pos, current, graduating, need: afterGrad < 2 });
       }
       
-      const leagueTeams = await storage.getTeamsByLeague(leagueId);
-      res.json({ pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length, teamState, totalClassSize: allRecruits.length, teamCount: leagueTeams.length });
+      const pipelinePayload = { pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length, teamState, totalClassSize: allRecruits.length, teamCount: leagueTeams.length };
+      cacheSet(pipelineCacheKey, pipelinePayload, 30_000);
+      res.json(pipelinePayload);
     } catch (error) {
       console.error("Failed to fetch pipeline:", error);
       res.status(500).json({ message: "Failed to fetch pipeline data" });
@@ -16812,26 +16829,46 @@ export async function registerRoutes(
       if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
       
       const teamId = userCoach.teamId;
-      const interests = await storage.getRecruitingInterestsByTeam(teamId);
-      
+
+      // Cache check — keyed per-team since trends are coach-specific
+      const trendsCacheKey = leagueCacheKey(leagueId, `recruiting-trends:${teamId}`);
+      const cachedTrends = cacheGet(trendsCacheKey);
+      if (cachedTrends) return res.json(cachedTrends);
+
+      // Fetch interests + all team actions in parallel — eliminates N+1 per-recruit queries
+      const [interests, allActions] = await Promise.all([
+        storage.getRecruitingInterestsByTeam(teamId),
+        storage.getRecruitingActionsLogByTeam(teamId, leagueId),
+      ]);
+
+      // Group actions by recruitId for O(1) lookup
+      const actionsByRecruit = new Map<string, typeof allActions>();
+      for (const action of allActions) {
+        const list = actionsByRecruit.get(action.recruitId) ?? [];
+        list.push(action);
+        actionsByRecruit.set(action.recruitId, list);
+      }
+
       const trends: Record<string, { trend: "up" | "down" | "flat"; recentGain: number }> = {};
-      
+
       for (const interest of interests) {
-        const actions = await storage.getRecruitingActionsLog(interest.recruitId, teamId);
+        const actions = actionsByRecruit.get(interest.recruitId) ?? [];
         const recentActions = actions.filter(a => {
           const weekDiff = league.currentWeek - a.week;
           return a.season === league.currentSeason && weekDiff >= 0 && weekDiff <= 2;
         });
-        
+
         const totalGain = recentActions.reduce((sum, a) => sum + (a.interestChange || 0), 0);
         let trend: "up" | "down" | "flat" = "flat";
         if (totalGain > 5) trend = "up";
         else if (totalGain < -5) trend = "down";
-        
+
         trends[interest.recruitId] = { trend, recentGain: totalGain };
       }
-      
-      res.json({ trends });
+
+      const trendsPayload = { trends };
+      cacheSet(trendsCacheKey, trendsPayload, 30_000);
+      res.json(trendsPayload);
     } catch (error) {
       console.error("Failed to fetch trends:", error);
       res.status(500).json({ message: "Failed to fetch trend data" });
