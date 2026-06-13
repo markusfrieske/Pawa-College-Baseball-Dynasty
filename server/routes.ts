@@ -25,7 +25,7 @@ import {
   generateConferenceUpdateNews,
   generateDeparturesSummaryNews,
 } from "./news-engine";
-import { SEC_REAL_ROSTERS, ALL_REAL_ROSTERS } from "./realRosters";
+import { getRealRosters } from "./realRostersLoader";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "./rosterScaleFactors";
 import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS, pickHandedness } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
@@ -854,6 +854,7 @@ export async function registerRoutes(
       const allHitScores: number[] = [], allFieldScores: number[] = [],
             allSpdScores: number[] = [], allPitchScores: number[] = [];
       const rawAvg = (nums: number[]) => nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length;
+      const { ALL_REAL_ROSTERS } = await getRealRosters();
       for (const rp of Object.values(ALL_REAL_ROSTERS)) {
         const rHitters = rp.filter(p => p.position !== "P");
         const rPitchers = rp.filter(p => p.position === "P");
@@ -1023,7 +1024,8 @@ export async function registerRoutes(
         topFielder: PlayerInfo | null; topPitcher: PlayerInfo | null; topUnderclassman: PlayerInfo | null;
       }> = [];
 
-      for (const [teamName, roster] of Object.entries(ALL_REAL_ROSTERS)) {
+      const { ALL_REAL_ROSTERS: ALL_ROSTERS_FOR_STATS } = await getRealRosters();
+      for (const [teamName, roster] of Object.entries(ALL_ROSTERS_FOR_STATS)) {
         const pitchers = roster.filter(p => p.position === "P");
         const hitters = roster.filter(p => p.position !== "P");
 
@@ -21266,6 +21268,7 @@ export async function registerRoutes(
   app.get("/api/default-roster/:teamName", async (req, res) => {
     try {
       const teamName = decodeURIComponent(req.params.teamName);
+      const { SEC_REAL_ROSTERS } = await getRealRosters();
       const roster = SEC_REAL_ROSTERS[teamName];
       if (!roster) return res.status(404).json({ message: "Team roster not found" });
       res.json(roster);
@@ -21287,6 +21290,7 @@ export async function registerRoutes(
 
   app.get("/api/ncaa-rosters", async (_req, res) => {
     try {
+      const { ALL_REAL_ROSTERS } = await getRealRosters();
       const result = ALL_CONFERENCES_ORDERED.map(conf => {
         const confTeams = getTeamsForConference(conf);
         return {
@@ -21326,6 +21330,7 @@ export async function registerRoutes(
   app.get("/api/ncaa-rosters/:teamName", async (req, res) => {
     try {
       const teamName = decodeURIComponent(req.params.teamName);
+      const { ALL_REAL_ROSTERS } = await getRealRosters();
       const roster = ALL_REAL_ROSTERS[teamName];
       if (!roster) return res.status(404).json({ message: "Team roster not found" });
 
@@ -22774,6 +22779,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
   // the correct inter-conference AND intra-conference attribute spread based on real
   // 2026 RPI data. No additional scaling is applied here — attributes are passed
   // straight through so the in-game OVR matches the scouting/analysis OVR exactly.
+  const { SEC_REAL_ROSTERS } = await getRealRosters();
   const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
 
   if (realRoster && realRoster.length > 0) {

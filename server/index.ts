@@ -4,7 +4,7 @@ import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
-import { ALL_REAL_ROSTERS } from "./realRosters";
+import { getRealRosters } from "./realRostersLoader";
 
 const app = express();
 const httpServer = createServer(app);
@@ -255,6 +255,8 @@ app.use((req, res, next) => {
       `);
       if (check.length > 0) return; // already ran successfully
 
+      const { ALL_REAL_ROSTERS } = await getRealRosters();
+
       const DB_COL: Record<string, string> = {
         pitchFB:  "pitch_fb",  pitch2S:  "pitch_2s",  pitchSL:  "pitch_sl",
         pitchCB:  "pitch_cb",  pitchCH:  "pitch_ch",  pitchCT:  "pitch_ct",
@@ -367,6 +369,8 @@ app.use((req, res, next) => {
         SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v3'
       `);
       if (check.length > 0) return; // already ran successfully
+
+      const { ALL_REAL_ROSTERS } = await getRealRosters();
 
       const DB_COL: Record<string, string> = {
         pitchFB:  "pitch_fb",  pitch2S:  "pitch_2s",  pitchSL:  "pitch_sl",
