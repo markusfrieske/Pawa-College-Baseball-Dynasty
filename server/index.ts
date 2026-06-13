@@ -354,6 +354,107 @@ app.use((req, res, next) => {
     }
   })();
 
+  // v3: same sync logic as v2 — re-runs for environments where v2 already ran
+  // before pitchVSL: 4 was present in secBatch1.ts (e.g. Aidan King, Florida).
+  void (async () => {
+    try {
+      // Skip CREATE TABLE — _startup_migrations is guaranteed to exist by the
+      // time this v3 block runs (created by earlier migrations on first boot).
+      // Skipping the concurrent CREATE TABLE IF NOT EXISTS call avoids the
+      // pg_type duplicate-key race condition (error 23505) that plagued v2.
+
+      const { rows: check } = await pool.query<{ key: string }>(`
+        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v3'
+      `);
+      if (check.length > 0) return; // already ran successfully
+
+      const DB_COL: Record<string, string> = {
+        pitchFB:  "pitch_fb",  pitch2S:  "pitch_2s",  pitchSL:  "pitch_sl",
+        pitchCB:  "pitch_cb",  pitchCH:  "pitch_ch",  pitchCT:  "pitch_ct",
+        pitchSNK: "pitch_snk", pitchSPL: "pitch_spl", pitchVSL: "pitch_vsl",
+        pitchFK:  "pitch_fk",  pitchSFF: "pitch_sff", pitchSHU: "pitch_shu",
+        pitchCCH: "pitch_cch", pitchHSL: "pitch_hsl", pitchSWP: "pitch_swp",
+        pitchKN:  "pitch_kn",  pitchSCB: "pitch_scb", pitchPCB: "pitch_pcb",
+      };
+
+      const pitchMap = new Map<string, Record<string, number>>();
+      for (const [teamName, players] of Object.entries(ALL_REAL_ROSTERS)) {
+        for (const p of players) {
+          const key = `${p.firstName}|${p.lastName}|${p.position}|${teamName}`;
+          const vals: Record<string, number> = {};
+          for (const field of Object.keys(DB_COL)) {
+            vals[field] = ((p as Record<string, unknown>)[field] as number) ?? 0;
+          }
+          if (Object.values(vals).some(v => v > 0)) {
+            pitchMap.set(key, vals);
+          }
+        }
+      }
+
+      const { rows: dbPlayers } = await pool.query<Record<string, unknown>>(`
+        SELECT p.id, p.first_name, p.last_name, p.position,
+          t.name AS team_name,
+          p.pitch_fb, p.pitch_2s, p.pitch_sl, p.pitch_cb, p.pitch_ch, p.pitch_ct,
+          p.pitch_snk, p.pitch_spl, p.pitch_vsl, p.pitch_fk, p.pitch_sff, p.pitch_shu,
+          p.pitch_cch, p.pitch_hsl, p.pitch_swp, p.pitch_kn, p.pitch_scb, p.pitch_pcb
+        FROM players p
+        JOIN teams t ON t.id = p.team_id
+        WHERE p.position IN ('P', 'SP', 'RP', 'CP')
+      `);
+
+      let updated = 0;
+      for (const p of dbPlayers) {
+        const key = `${p.first_name}|${p.last_name}|${p.position}|${p.team_name}`;
+        const canonical = pitchMap.get(key);
+        if (!canonical) continue;
+
+        const sets: string[] = [];
+        const vals: (number | string)[] = [];
+
+        for (const [camelField, dbCol] of Object.entries(DB_COL)) {
+          const dbVal = (p[dbCol] as number) ?? 0;
+          const canonVal = canonical[camelField] ?? 0;
+          if (dbVal !== canonVal) {
+            sets.push(`${dbCol} = $${vals.length + 1}`);
+            vals.push(canonVal);
+          }
+        }
+
+        if (sets.length > 0) {
+          vals.push(p.id as string);
+          await pool.query(
+            `UPDATE players SET ${sets.join(", ")} WHERE id = $${vals.length}`,
+            vals,
+          );
+          updated++;
+        }
+      }
+
+      await pool.query(`
+        INSERT INTO _startup_migrations (key)
+        VALUES ('real-roster-pitch-sync-v3')
+        ON CONFLICT (key) DO NOTHING
+      `);
+
+      console.log(`[startup-migration] real-roster-pitch-sync-v3: synced pitch values for ${updated} player(s)`);
+
+      try {
+        const { rows: spot } = await pool.query<{ first_name: string; last_name: string; team_name: string; pitch_vsl: number }>(`
+          SELECT p.first_name, p.last_name, t.name AS team_name, p.pitch_vsl
+          FROM players p
+          JOIN teams t ON t.id = p.team_id
+          WHERE p.first_name = 'Aidan' AND p.last_name = 'King' AND t.name = 'Florida'
+          LIMIT 1
+        `);
+        if (spot.length > 0) {
+          console.log(`[startup-migration] spot-check Aidan King (Florida): pitch_vsl=${spot[0].pitch_vsl} (expected 4)`);
+        }
+      } catch (_) { /* non-fatal */ }
+    } catch (e) {
+      console.warn("[startup-migration] real-roster-pitch-sync-v3 failed:", e);
+    }
+  })();
+
   // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
   app.use('/__mockup', (req, res) => {
     const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;
