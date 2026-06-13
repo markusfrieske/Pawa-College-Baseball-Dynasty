@@ -177,7 +177,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Joshua Hanson — FR OF #23 (USC transfer/IMG Academy); .202 AVG, 4 HR, 8-9 SB, .988 FLD%, from San Francisco CA
     { firstName: "Joshua", lastName: "Hanson", position: "OF", eligibility: "FR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 23,
-      hitForAvg: 33, power: 30, speed: 35, arm: 37, fielding: 46, errorResistance: 44, velocity: 0, control: 0, stamina: 22, stuff: 0,
+      hitForAvg: 33, power: 30, speed: 50, arm: 37, fielding: 46, errorResistance: 44, velocity: 0, control: 0, stamina: 22, stuff: 0,
       clutch: 30, vsLHP: 27, grit: 30, stealing: 34, running: 32, throwing: 35, recovery: 27, wRISP: 30, vsLefty: 27, poise: 28, heater: 0, agile: 32,
       abilities: ["Defensive Artisan", "Tough Out"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
