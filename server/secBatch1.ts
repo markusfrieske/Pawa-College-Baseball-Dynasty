@@ -19,7 +19,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Inside Pitch", "Strong Starter", "Heavy Ball"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 3, 0, 1, 0]) },
+      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 3 },
     // William Schmidt — Sunday SP, 4.22 ERA / 64 IP / 85 K (11.9 K/9) — stuff raised for K/9
     { firstName: "William", lastName: "Schmidt", position: "P", eligibility: "SO", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 9,
       hitForAvg: 14, power: 11, speed: 32, arm: 57, fielding: 38, errorResistance: 50, velocity: 62, control: 47, stamina: 68, stuff: 65,
@@ -27,7 +27,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Walk", "Natural Shuuto"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     // Zac Cowan — RHP swing role, 5.32 ERA / 11.4 K/9 / 11 HR allowed — control/stuff down from regression
     { firstName: "Zac", lastName: "Cowan", position: "P", eligibility: "SR", homeState: "SC", hometown: "Blythewood", jerseyNumber: 26,
       hitForAvg: 13, power: 10, speed: 32, arm: 48, fielding: 35, errorResistance: 48, velocity: 58, control: 46, stamina: 48, stuff: 58,
@@ -35,7 +35,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Winner's Luck", "Strikeout", "Poker Face"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "S", // LSU RHP — confirmed RHP/Switch bat (LSU Athletics/D1Baseball)
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 3, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 3 },
     // Deven Sheerin — closer-type, 4.78 ERA / 4 SV / 13.8 K/9 / 4.3 BB/9 — control slight correction
     { firstName: "Deven", lastName: "Sheerin", position: "P", eligibility: "SO", homeState: "PA", hometown: "Reading", jerseyNumber: 45,
       hitForAvg: 11, power: 8, speed: 32, arm: 61, fielding: 32, errorResistance: 45, velocity: 74, control: 39, stamina: 32, stuff: 68,
@@ -227,7 +227,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Poker Face", "Natural Shuuto", "vs. Strong Batters", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R", // corrected: batHand was L → R
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 0, 4, 0, 4, 0, 1, 0]) },
+        ...pitchMix(1, [0, 4, 0, 0, 4, 0, 0, 0, 1, 0]), pitchVSL: 4 },
       // Russell Sandefer — Sunday RHP JR (UCF transfer), 2-1/3.00
       { firstName: "Russell", lastName: "Sandefer", position: "P", eligibility: "JR", homeState: "FL", hometown: "Tampa", jerseyNumber: 17,
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 55, control: 57, stamina: 69, stuff: 54,
@@ -243,7 +243,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Full Throttle"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
+        ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
       // Billy Barlow — SR RHP RP
       { firstName: "Billy", lastName: "Barlow", position: "P", eligibility: "SR", homeState: "SC", hometown: "North Myrtle Beach", jerseyNumber: 23,
         hitForAvg: 11, power: 9, speed: 31, arm: 48, fielding: 29, errorResistance: 40, velocity: 48, control: 48, stamina: 54, stuff: 45,
@@ -267,7 +267,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Fireman", "Constant Speed", "Crossfire"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
+        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 1, 0]), pitchVSL: 4 },
       // Cooper Walls — SO RHP (Hawaii transfer, Big West Frosh P of Year)
       { firstName: "Cooper", lastName: "Walls", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 38,
         hitForAvg: 14, power: 11, speed: 32, arm: 52, fielding: 31, errorResistance: 42, velocity: 51, control: 51, stamina: 45, stuff: 49,
@@ -275,7 +275,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Kageura", "Strikeout"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
-        ...pitchMix(1, [0, 3, 0, 0, 0, 4, 4, 0, 0, 3]) },
+        ...pitchMix(1, [0, 3, 0, 0, 0, 4, 0, 0, 0, 3]), pitchVSL: 4 },
       // Blaine Rowland — SO RHP — PG 1st Team / Top-100 national
       { firstName: "Blaine", lastName: "Rowland", position: "P", eligibility: "SO", homeState: "FL", hometown: "Plant City", jerseyNumber: 27,
         hitForAvg: 11, power: 8, speed: 32, arm: 50, fielding: 22, errorResistance: 34, velocity: 59, control: 42, stamina: 34, stuff: 49,
@@ -283,7 +283,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["vs. Strong Batters", "Glass Heart"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 1, 0, 0, 4, 0, 0, 0]) },
+        ...pitchMix(1, [0, 4, 0, 1, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Luke McNeillie — JR RHP
       { firstName: "Luke", lastName: "McNeillie", position: "P", eligibility: "JR", homeState: "GA", hometown: "Milton", jerseyNumber: 9,
         hitForAvg: 8, power: 7, speed: 27, arm: 31, fielding: 19, errorResistance: 29, velocity: 36, control: 26, stamina: 14, stuff: 29,
@@ -430,19 +430,19 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 63, vsLHP: 60, grit: 65, stealing: 12, running: 36, throwing: 69, recovery: 47, wRISP: 48, vsLefty: 49, poise: 51, heater: 53, agile: 41,
       abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 4, 0, 1, 4]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 0, 1, 4]), pitchVSL: 4 },
     { firstName: "Nate", lastName: "Taylor", position: "P", eligibility: "SO", homeState: "GA", hometown: "Marietta", jerseyNumber: 22,
       hitForAvg: 15, power: 12, speed: 32, arm: 49, fielding: 28, errorResistance: 39, velocity: 48, control: 43, stamina: 73, stuff: 48,
       clutch: 54, vsLHP: 50, grit: 53, stealing: 12, running: 32, throwing: 64, recovery: 39, wRISP: 39, vsLefty: 41, poise: 41, heater: 51, agile: 37,
       abilities: ["Tunneling", "Strong Starter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 0, 3]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 3]), pitchVSL: 4 },
     { firstName: "Miller", lastName: "Green", position: "P", eligibility: "JR", homeState: "TN", hometown: "Knoxville", jerseyNumber: 38,
       hitForAvg: 14, power: 11, speed: 31, arm: 44, fielding: 27, errorResistance: 38, velocity: 45, control: 44, stamina: 68, stuff: 41,
       clutch: 56, vsLHP: 52, grit: 57, stealing: 8, running: 28, throwing: 59, recovery: 41, wRISP: 41, vsLefty: 41, poise: 42, heater: 44, agile: 34,
       abilities: ["Fireman", "Escape Pitch"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 4, 0, 1, 0, 0, 4, 0, 0, 0]) },
+      ...pitchMix(1, [0, 4, 0, 1, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     { firstName: "Alex", lastName: "Kranzler", position: "P", eligibility: "JR", homeState: "OH", hometown: "Columbus", jerseyNumber: 40,
       hitForAvg: 15, power: 11, speed: 32, arm: 55, fielding: 33, errorResistance: 45, velocity: 56, control: 52, stamina: 50, stuff: 51,
       clutch: 66, vsLHP: 61, grit: 67, stealing: 10, running: 35, throwing: 70, recovery: 50, wRISP: 50, vsLefty: 51, poise: 52, heater: 53, agile: 40,
@@ -454,7 +454,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 40, vsLHP: 37, grit: 41, stealing: 6, running: 22, throwing: 43, recovery: 25, wRISP: 25, vsLefty: 26, poise: 27, heater: 29, agile: 26,
       abilities: ["Guts"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 3, 0, 0, 4, 4, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 3, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
     { firstName: "Aiden", lastName: "Stillman", position: "P", eligibility: "FR", homeState: "FL", hometown: "Winter Park", jerseyNumber: 30,
       hitForAvg: 9, power: 7, speed: 31, arm: 46, fielding: 27, errorResistance: 38, velocity: 52, control: 43, stamina: 37, stuff: 50,
       clutch: 54, vsLHP: 60, grit: 53, stealing: 9, running: 27, throwing: 56, recovery: 36, wRISP: 40, vsLefty: 50, poise: 42, heater: 48, agile: 36,
@@ -466,13 +466,13 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 52, vsLHP: 50, grit: 53, stealing: 8, running: 26, throwing: 58, recovery: 38, wRISP: 42, vsLefty: 42, poise: 44, heater: 52, agile: 36,
       abilities: ["Strength Distribution", "True Slider"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 3, 0, 0, 4]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 3 },
     { firstName: "Drew", lastName: "Beam", position: "P", eligibility: "JR", homeState: "TN", hometown: "Murfreesboro", jerseyNumber: 32,
       hitForAvg: 10, power: 8, speed: 27, arm: 31, fielding: 19, errorResistance: 28, velocity: 36, control: 29, stamina: 29, stuff: 29,
       clutch: 38, vsLHP: 36, grit: 40, stealing: 6, running: 23, throwing: 42, recovery: 26, wRISP: 26, vsLefty: 27, poise: 28, heater: 31, agile: 26,
       abilities: ["Guts"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 4, 0, 1, 0, 0, 4, 0, 0, 0]) },
+      ...pitchMix(1, [0, 4, 0, 1, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     // CATCHERS (2)
     { firstName: "Mack", lastName: "Whitcomb", position: "C", eligibility: "JR", homeState: "TN", hometown: "Cookeville", jerseyNumber: 12,
       hitForAvg: 61, power: 73, speed: 57, arm: 62, fielding: 63, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -600,7 +600,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "vs. Strong Batters", "Sharpness"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 4, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     // Clayton Freshcorn — Closer RHP JR, K/9 9.63 BB/9 0.94 — ctrl raised to elite closer level
     { firstName: "Clayton", lastName: "Freshcorn", position: "P", eligibility: "JR", homeState: "TX", hometown: "Katy", jerseyNumber: 11,
       hitForAvg: 15, power: 12, speed: 32, arm: 62, fielding: 35, errorResistance: 46, velocity: 62, control: 84, stamina: 30, stuff: 71,
@@ -616,7 +616,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strikeout", "Escape Pitch", "Quick Hands"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 3, 0, 0, 0, 0, 4, 1, 0, 4]) },
+      ...pitchMix(1, [0, 3, 0, 0, 0, 0, 0, 1, 0, 4]), pitchVSL: 4 },
     // Gavin Lyons — SO RHP, 9-0, K/9 7.34 BB/9 2.49 — stuff lowered, ctrl raised for command
     { firstName: "Gavin", lastName: "Lyons", position: "P", eligibility: "SO", homeState: "CT", hometown: "Guilford", jerseyNumber: 27,
       hitForAvg: 13, power: 10, speed: 31, arm: 56, fielding: 32, errorResistance: 46, velocity: 63, control: 71, stamina: 36, stuff: 55,
@@ -640,7 +640,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Inside Pitch", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "medium", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 4, 0, 0, 3]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 3]), pitchVSL: 4 },
     // Grant Cunningham — SR RHP, K/9 7.91 BB/9 2.45 — ctrl raised for solid command
     { firstName: "Grant", lastName: "Cunningham", position: "P", eligibility: "SR", homeState: "WA", hometown: "Seattle", jerseyNumber: 31,
       hitForAvg: 12, power: 9, speed: 30, arm: 48, fielding: 28, errorResistance: 40, velocity: 54, control: 69, stamina: 40, stuff: 53,
@@ -648,7 +648,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Groundball Pitcher"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     // CATCHERS (2)
     // Bear Harrison — C JR, .294/11HR/44% CS — capped at 530 OVR (raw attrs reduced proportionally)
     { firstName: "Bear", lastName: "Harrison", position: "C", eligibility: "JR", homeState: "CA", hometown: "Danville", jerseyNumber: 16,
@@ -789,19 +789,19 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 53, vsLHP: 51, grit: 55, stealing: 8, running: 27, throwing: 57, recovery: 37, wRISP: 37, vsLefty: 39, poise: 40, heater: 43, agile: 33,
       abilities: ["Poker Face", "Strong Starter", "Sharpness"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
     { firstName: "Landon", lastName: "Mack", position: "P", eligibility: "SO", homeState: "NJ", hometown: "Piscataway", jerseyNumber: 29,
       hitForAvg: 16, power: 12, speed: 32, arm: 52, fielding: 32, errorResistance: 42, velocity: 51, control: 49, stamina: 62, stuff: 49,
       clutch: 59, vsLHP: 55, grit: 59, stealing: 11, running: 33, throwing: 67, recovery: 44, wRISP: 44, vsLefty: 44, poise: 48, heater: 52, agile: 38,
       abilities: ["Strong Starter", "Tunneling"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 1, 0]), pitchVSL: 4 },
     { firstName: "Evan", lastName: "Blanco", position: "P", eligibility: "JR", homeState: "VA", hometown: "Charlottesville", jerseyNumber: 22,
       hitForAvg: 17, power: 13, speed: 32, arm: 53, fielding: 32, errorResistance: 44, velocity: 53, control: 49, stamina: 74, stuff: 50,
       clutch: 62, vsLHP: 58, grit: 59, stealing: 10, running: 35, throwing: 67, recovery: 44, wRISP: 44, vsLefty: 48, poise: 50, heater: 53, agile: 40,
       abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L", // Tennessee LHP — confirmed Left/Left (UT Athletics)
-      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
     { firstName: "Blaine", lastName: "Brown", position: "P", eligibility: "JR", homeState: "TX", hometown: "Houston", jerseyNumber: 38,
       hitForAvg: 19, power: 16, speed: 37, arm: 70, fielding: 47, errorResistance: 55, velocity: 90, control: 63, stamina: 61, stuff: 69,
       clutch: 67, vsLHP: 63, grit: 59, stealing: 30, running: 53, throwing: 73, recovery: 52, wRISP: 53, vsLefty: 55, poise: 56, heater: 59, agile: 55,
@@ -813,7 +813,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 66, vsLHP: 62, grit: 59, stealing: 9, running: 33, throwing: 71, recovery: 49, wRISP: 50, vsLefty: 52, poise: 53, heater: 58, agile: 39,
       abilities: ["Groundball Pitcher", "Sharpness", "Heavy Ball"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 3, 4, 1, 0, 0, 4, 0, 0, 0]) },
+      ...pitchMix(1, [0, 3, 4, 1, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     { firstName: "Nate", lastName: "Snead", position: "P", eligibility: "SO", homeState: "TN", hometown: "Chattanooga", jerseyNumber: 44,
       hitForAvg: 9, power: 7, speed: 31, arm: 29, fielding: 18, errorResistance: 29, velocity: 37, control: 29, stamina: 41, stuff: 31,
       clutch: 39, vsLHP: 37, grit: 40, stealing: 8, running: 25, throwing: 44, recovery: 26, wRISP: 24, vsLefty: 26, poise: 26, heater: 29, agile: 29,
@@ -825,7 +825,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 30, vsLHP: 29, grit: 31, stealing: 9, running: 26, throwing: 42, recovery: 18, wRISP: 17, vsLefty: 19, poise: 18, heater: 26, agile: 30,
       abilities: ["Low Ball", "Sharpness", "Glass Heart"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 3, 0, 0, 3]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 3]), pitchVSL: 3 },
     { firstName: "Caden", lastName: "Myers", position: "P", eligibility: "FR", homeState: "GA", hometown: "Alpharetta", jerseyNumber: 48,
       hitForAvg: 8, power: 7, speed: 31, arm: 30, fielding: 18, errorResistance: 28, velocity: 39, control: 25, stamina: 35, stuff: 31,
       clutch: 29, vsLHP: 28, grit: 31, stealing: 8, running: 26, throwing: 43, recovery: 20, wRISP: 19, vsLefty: 21, poise: 20, heater: 30, agile: 31,
@@ -837,7 +837,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 37, vsLHP: 36, grit: 39, stealing: 6, running: 22, throwing: 42, recovery: 23, wRISP: 23, vsLefty: 25, poise: 25, heater: 27, agile: 26,
       abilities: ["Guts"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
     // CATCHERS (1)
     // Stone Lawless — hitForAvg reduced 55→46 (raw) for catcher OVR sweep: OVR 529→491 (target 475-505)
     { firstName: "Stone", lastName: "Lawless", position: "C", eligibility: "JR", homeState: "MS", hometown: "Tupelo", jerseyNumber: 12,
@@ -959,7 +959,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Inside Pitch", "Winner's Luck", "Wild Fastball"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 3, 0, 0, 0, 4, 0, 1, 0]) },
+        ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
       // Taylor Rabe — Sunday JR RHP, 3-3/4.17, 6.67 K/BB SEC (2nd)
       { firstName: "Taylor", lastName: "Rabe", position: "P", eligibility: "JR", homeState: "MS", hometown: "Hattiesburg", jerseyNumber: 40,
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 57, control: 56, stamina: 78, stuff: 54,
@@ -967,7 +967,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Inside Pitch", "Straddle", "Strength Distribution"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+        ...pitchMix(1, [1, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
       // Walker Hooks — closer LHP, 3-1/2.45/5 SV (T-2nd SEC)/.176 BAA, 0.82 WHIP
       { firstName: "Walker", lastName: "Hooks", position: "P", eligibility: "JR", homeState: "MS", hometown: "Oxford", jerseyNumber: 31,
         hitForAvg: 12, power: 10, speed: 32, arm: 60, fielding: 33, errorResistance: 44, velocity: 60, control: 55, stamina: 76, stuff: 59,
@@ -991,7 +991,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Fireman", "Flyball Pitcher"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 4, 1, 0, 0]) },
+        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 1, 0, 0]), pitchVSL: 4 },
       // Wil Libbert — JR RHP rotation depth
       { firstName: "Wil", lastName: "Libbert", position: "P", eligibility: "JR", homeState: "MO", hometown: "Columbia", jerseyNumber: 22,
         hitForAvg: 14, power: 12, speed: 32, arm: 52, fielding: 32, errorResistance: 44, velocity: 53, control: 51, stamina: 36, stuff: 49,
@@ -1007,7 +1007,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Fireman", "Sharpness"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
+        ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
       // Cole Carbone — JR RHP depth
       // Grayson Saunier — FR RHP — PG 2nd Team / Top-200 national
       { firstName: "Grayson", lastName: "Saunier", position: "P", eligibility: "FR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 48,
@@ -1016,7 +1016,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strength Distribution"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+        ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
       // CATCHERS (2)
       // Austin Fawley — JR C, projected starter
       { firstName: "Austin", lastName: "Fawley", position: "C", eligibility: "JR", homeState: "VA", hometown: "Roanoke", jerseyNumber: 12,

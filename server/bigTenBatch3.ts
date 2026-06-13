@@ -15,7 +15,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 59, vsLHP: 56, grit: 61, stealing: 9, running: 31, throwing: 62, recovery: 44, wRISP: 44, vsLefty: 45, poise: 47, heater: 52, agile: 37,
       abilities: ["Strong Starter", "Strength Distribution"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 3, 0, 1, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 1, 0]), pitchVSL: 3 },
     { firstName: "Jarvis", lastName: "Evans", position: "P", eligibility: "JR", homeState: "SC", hometown: "Columbia", jerseyNumber: 27,
       hitForAvg: 15, power: 12, speed: 32, arm: 46, fielding: 30, errorResistance: 41, velocity: 52, control: 44, stamina: 60, stuff: 44,
       clutch: 56, vsLHP: 53, grit: 58, stealing: 8, running: 29, throwing: 59, recovery: 41, wRISP: 41, vsLefty: 42, poise: 44, heater: 48, agile: 36,
@@ -401,7 +401,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Groundball Pitcher"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 1, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 0]), pitchVSL: 1 },
     // CATCHERS (2)
     // Isaac Cadena — JR C, .294/.423 OBP/8 HR/39 BB — jersey #20, Placentia CA, L bat (corrected)
     { firstName: "Isaac", lastName: "Cadena", position: "C", eligibility: "JR", homeState: "CA", hometown: "Placentia", jerseyNumber: 20,
@@ -743,7 +743,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 78, vsLHP: 74, grit: 85, stealing: 10, running: 35, throwing: 80, recovery: 60, wRISP: 62, vsLefty: 63, poise: 63, heater: 69, agile: 43,
       abilities: ["Full Throttle", "Strong Starter", "Escape Pitch", "Gyroball", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 3, 1, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 1, 0, 0]), pitchVSL: 3 },
     { firstName: "Nate", lastName: "Tichy", position: "P", eligibility: "SO", homeState: "CA", hometown: "Malibu", jerseyNumber: 18,
       hitForAvg: 13, power: 10, speed: 33, arm: 49, fielding: 30, errorResistance: 41, velocity: 54, control: 45, stamina: 73, stuff: 47,
       clutch: 56, vsLHP: 52, grit: 57, stealing: 10, running: 33, throwing: 62, recovery: 39, wRISP: 41, vsLefty: 42, poise: 43, heater: 52, agile: 40,

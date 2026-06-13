@@ -149,6 +149,38 @@ app.use((req, res, next) => {
     }
   });
 
+  // One-time pitch_spl → pitch_vsl migration.
+  // When Task #1133 renamed Splitter → Vertical Slider, the pitchMix() helper in
+  // roster files still mapped index-6 to pitch_spl. All 454 pitchers across SEC/ACC/
+  // Big Ten/Big 12/etc. had their Splitter value stored as pitch_spl with no pitch_vsl.
+  // This migrates existing dynasty players in-place.
+  void (async () => {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS _startup_migrations (
+          key text PRIMARY KEY,
+          ran_at timestamp DEFAULT now()
+        )
+      `);
+      const { rows } = await pool.query(`
+        INSERT INTO _startup_migrations (key)
+        VALUES ('pitch-spl-to-vsl-v1')
+        ON CONFLICT (key) DO NOTHING
+        RETURNING key
+      `);
+      if (rows.length === 0) return; // already ran
+
+      const result = await pool.query(`
+        UPDATE players
+        SET pitch_vsl = pitch_spl, pitch_spl = 0
+        WHERE pitch_spl > 0 AND pitch_vsl = 0
+      `);
+      console.log(`[startup-migration] pitch-spl-to-vsl-v1: migrated ${result.rowCount} player(s)`);
+    } catch (e) {
+      console.warn("[startup-migration] pitch-spl-to-vsl-v1 failed:", e);
+    }
+  })();
+
   // One-time pitcher stamina banding migration (role-based bands: starters 80-99,
   // long relief 50-79, mid relief 30-49, closer 1-29).
   // Guarded by a _startup_migrations table so it only runs once per environment.

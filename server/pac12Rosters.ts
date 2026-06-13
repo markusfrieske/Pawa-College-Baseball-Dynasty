@@ -62,7 +62,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "Strong Starter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 3, 0, 1, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 1, 0]), pitchVSL: 3 },
     // Jake Pfennigs — JR RHP RP holdover
     // Sam Keller — SO RHP RP
     // Mason Pike — FR two-way SS/P, top-150 draft, up to 95mph (filed as P)
