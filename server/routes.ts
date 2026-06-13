@@ -3430,6 +3430,7 @@ export async function registerRoutes(
         });
       }
 
+      invalidateLeague(req.params.id);
       res.json(interest);
     } catch (error) {
       console.error("Failed to target recruit:", error);
