@@ -6704,12 +6704,11 @@ export async function registerRoutes(
       const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
       if (!homeTeam || !awayTeam) return res.status(404).json({ message: "Teams not found" });
 
-      const [coaches, allStandings, homePlayers, awayPlayers, allLeaguePlayers] = await Promise.all([
+      const [coaches, allStandings, homePlayers, awayPlayers] = await Promise.all([
         storage.getCoachesByLeague(league.id),
         storage.getStandingsByLeague(league.id, league.currentSeason),
         storage.getPlayersByTeam(homeTeam.id),
         storage.getPlayersByTeam(awayTeam.id),
-        storage.getPlayersByLeague(league.id),
       ]);
 
       const homeCoach = coaches.find(c => c.teamId === homeTeam.id);
@@ -6723,24 +6722,15 @@ export async function registerRoutes(
           .slice(0, 3)
           .map(p => ({ name: `${p.firstName} ${p.lastName}`, position: p.position, overall: p.overall, starRating: p.starRating }));
 
-      // Compute power ranking composite for each team — avg OVR
+      // Compute power ranking composite for each team — avg OVR (two-team fetch only)
       const computeComposite = (playerList: typeof homePlayers): number => {
         if (playerList.length === 0) return 0;
         return Math.round(playerList.reduce((s, p) => s + (p.overall || 0), 0) / playerList.length);
       };
 
-      // Compute league-wide power rank positions
-      const playersByTeamId = new Map<string, typeof allLeaguePlayers>();
-      for (const p of allLeaguePlayers) {
-        if (!playersByTeamId.has(p.teamId)) playersByTeamId.set(p.teamId, []);
-        playersByTeamId.get(p.teamId)!.push(p);
-      }
-      const teamComposites = leagueTeams.map(t => ({
-        teamId: t.id,
-        composite: computeComposite(playersByTeamId.get(t.id) || []),
-      })).sort((a, b) => b.composite - a.composite);
-      const homeRank = teamComposites.findIndex(t => t.teamId === homeTeam.id) + 1;
-      const awayRank = teamComposites.findIndex(t => t.teamId === awayTeam.id) + 1;
+      // Use stored national rank for league-wide rank positions (avoids full-table scan)
+      const homeRank = homeTeam.nationalRank || 0;
+      const awayRank = awayTeam.nationalRank || 0;
       const homeComposite = computeComposite(homePlayers);
       const awayComposite = computeComposite(awayPlayers);
 
@@ -9069,9 +9059,8 @@ export async function registerRoutes(
       // Compute per-team roster sizes and flag any oversized rosters (>35 = catastrophic
       // double-insert threshold set in finalizeWalkonsPhase). Surface to commissioner UI
       // so they can spot and fix duplicate-player issues without digging through logs.
-      const rosterSizes = await Promise.all(
-        leagueTeams.map(async t => ({ id: t.id, name: t.name, count: (await storage.getPlayersByTeam(t.id)).length }))
-      );
+      const playerCountMap = await storage.getPlayerCountsByLeague(league.id);
+      const rosterSizes = leagueTeams.map(t => ({ id: t.id, name: t.name, count: playerCountMap.get(t.id) ?? 0 }));
       const oversizedTeams = rosterSizes
         .filter(r => r.count > 35)
         .map(r => `${r.name} (${r.count} players)`);

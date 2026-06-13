@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 export type TrackId =
   | "game_start"
@@ -510,10 +510,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const contextValue = useMemo(
+    () => ({ currentTrack, setTrack, volume, setVolume, muted, toggleMute, isPlaying }),
+    [currentTrack, setTrack, volume, setVolume, muted, toggleMute, isPlaying],
+  );
+
   return (
-    <MusicContext.Provider
-      value={{ currentTrack, setTrack, volume, setVolume, muted, toggleMute, isPlaying }}
-    >
+    <MusicContext.Provider value={contextValue}>
       {children}
     </MusicContext.Provider>
   );

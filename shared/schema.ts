@@ -374,6 +374,7 @@ export const players = pgTable("players", {
   captainSeason: integer("captain_season"), // season in which captain was designated
 }, (t) => [
   index("idx_players_team_id").on(t.teamId),
+  index("idx_players_team_id_overall").on(t.teamId, t.overall),
 ]);
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
@@ -580,6 +581,7 @@ export const recruits = pgTable("recruits", {
   signingDayRevealed: boolean("signing_day_revealed").notNull().default(false),
 }, (t) => [
   index("idx_recruits_league_id").on(t.leagueId),
+  index("idx_recruits_signed_team_id").on(t.signedTeamId),
 ]);
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -956,6 +958,8 @@ export const games = pgTable("games", {
   reportedByUserId: varchar("reported_by_user_id"),
 }, (t) => [
   index("idx_games_league_season_week").on(t.leagueId, t.season, t.week),
+  index("idx_games_home_team_id").on(t.homeTeamId),
+  index("idx_games_away_team_id").on(t.awayTeamId),
 ]);
 
 export const insertGameSchema = createInsertSchema(games).pick({
@@ -993,7 +997,10 @@ export const standings = pgTable("standings", {
   conferenceLosses: integer("conference_losses").notNull().default(0),
   runsScored: integer("runs_scored").notNull().default(0),
   runsAllowed: integer("runs_allowed").notNull().default(0),
-});
+}, (t) => [
+  index("idx_standings_league_id").on(t.leagueId),
+  index("idx_standings_team_id").on(t.teamId),
+]);
 
 export const insertStandingsSchema = createInsertSchema(standings).pick({
   leagueId: true,
@@ -1685,7 +1692,9 @@ export const leagueEvents = pgTable("league_events", {
   week: integer("week").notNull().default(1),
   metadata: json("metadata").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => [
+  index("idx_league_events_league_id").on(t.leagueId),
+]);
 
 export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ id: true, createdAt: true }).extend({
   eventType: z.enum(LEAGUE_EVENT_TYPES),

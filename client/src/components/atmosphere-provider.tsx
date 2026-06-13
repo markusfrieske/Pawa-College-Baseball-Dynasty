@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation } from "wouter";
 import { getMoodForPhase, type MoodConfig } from "@/lib/atmosphere";
 import { X, Trophy } from "lucide-react";
@@ -20,6 +20,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState("neutral");
   const [burstColor, setBurstColor] = useState("#C4A35A");
   const mood = getMoodForPhase(phase);
+  const atmosphereValue = useMemo(() => ({ phase, mood }), [phase, mood]);
 
   useEffect(() => {
     const el = document.documentElement;
@@ -45,7 +46,7 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
   return (
     <AtmosphereSetBurstColorContext.Provider value={setBurstColor}>
       <AtmosphereSetContext.Provider value={setPhase}>
-        <AtmosphereContext.Provider value={{ phase, mood }}>
+        <AtmosphereContext.Provider value={atmosphereValue}>
           {children}
         </AtmosphereContext.Provider>
       </AtmosphereSetContext.Provider>

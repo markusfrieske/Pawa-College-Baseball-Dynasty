@@ -260,6 +260,8 @@ export interface IStorage {
   getNilEarningsByTeam(leagueId: string, teamId: string, season: number): Promise<NilSeasonEarning[]>;
   getNilEarningsByLeague(leagueId: string, season: number): Promise<NilSeasonEarning[]>;
   hasNilEarningCategory(leagueId: string, teamId: string, category: string): Promise<boolean>;
+
+  getPlayerCountsByLeague(leagueId: string): Promise<Map<string, number>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -468,6 +470,20 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayersByTeam(teamId: string): Promise<Player[]> {
     return await db.select().from(players).where(eq(players.teamId, teamId));
+  }
+
+  async getPlayerCountsByLeague(leagueId: string): Promise<Map<string, number>> {
+    const leagueTeams = await this.getTeamsByLeague(leagueId);
+    if (leagueTeams.length === 0) return new Map();
+    const teamIds = leagueTeams.map((t) => t.id);
+    const rows = await db
+      .select({ teamId: players.teamId, count: sql<number>`cast(count(*) as int)` })
+      .from(players)
+      .where(inArray(players.teamId, teamIds))
+      .groupBy(players.teamId);
+    const map = new Map<string, number>();
+    for (const row of rows) map.set(row.teamId, row.count);
+    return map;
   }
 
   async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
