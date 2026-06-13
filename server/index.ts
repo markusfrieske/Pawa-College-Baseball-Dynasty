@@ -487,6 +487,56 @@ app.use((req, res, next) => {
     }
   })();
 
+  // v5: targeted pitchVSL fix + global pitch_spl retirement.
+  // Uses direct SQL only (no getRealRosters call) to avoid the concurrency issue
+  // where v2/v3 (which used getRealRosters) silently failed under startup DB load.
+  // Fixes pitchers whose pitch_vsl was wrong because they were seeded before the
+  // rp.pitchVSL seeding guard was added, or before pitchVSL was set in their source entry.
+  // Also zeroes out all pitch_spl rows since the splitter pitch was fully retired.
+  void (async () => {
+    try {
+      const { rows: check } = await pool.query<{ key: string }>(`
+        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v5'
+      `);
+      if (check.length > 0) return;
+
+      // Zero out splitter (retired pitch) for every pitcher in every dynasty.
+      const { rowCount: splCleared } = await pool.query(`
+        UPDATE players SET pitch_spl = 0
+        WHERE position IN ('P', 'SP', 'RP', 'CP') AND pitch_spl IS DISTINCT FROM 0
+      `);
+
+      // Fix known pitchVSL values that were dropped for pitchers seeded before the fix.
+      // Values sourced directly from the canonical roster files:
+      //   Aidan King (Florida, secBatch1.ts): pitchVSL: 4
+      //   Caden Glauber (North Carolina, accRostersBatch2.ts): pitchVSL: 4
+      const { rowCount: aidanFix } = await pool.query(`
+        UPDATE players SET pitch_vsl = 4
+        WHERE first_name = 'Aidan' AND last_name = 'King'
+          AND position = 'P' AND (pitch_vsl IS NULL OR pitch_vsl != 4)
+      `);
+      const { rowCount: glauberFix } = await pool.query(`
+        UPDATE players SET pitch_vsl = 4
+        WHERE first_name = 'Caden' AND last_name = 'Glauber'
+          AND position = 'P' AND (pitch_vsl IS NULL OR pitch_vsl != 4)
+      `);
+
+      await pool.query(`
+        INSERT INTO _startup_migrations (key)
+        VALUES ('real-roster-pitch-sync-v5')
+        ON CONFLICT (key) DO NOTHING
+      `);
+
+      console.log(
+        `[startup-migration] real-roster-pitch-sync-v5: ` +
+        `Aidan King fixed=${aidanFix ?? 0}, Glauber fixed=${glauberFix ?? 0}, ` +
+        `pitch_spl cleared=${splCleared ?? 0}`
+      );
+    } catch (e) {
+      console.warn("[startup-migration] real-roster-pitch-sync-v5 failed:", e);
+    }
+  })();
+
   // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
   app.use('/__mockup', (req, res) => {
     const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;
