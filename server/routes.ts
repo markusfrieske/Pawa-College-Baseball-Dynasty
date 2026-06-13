@@ -751,6 +751,7 @@ export async function registerRoutes(
       const leagueId = req.params.id as string;
       const cacheKey = leagueCacheKey(leagueId, "main");
       const cached = cacheGet(cacheKey);
+      res.set("Cache-Control", "private, max-age=30, must-revalidate");
       if (cached) {
         return res.json(cached);
       }
@@ -6717,6 +6718,7 @@ export async function registerRoutes(
       const userTeamId = shared.coachTeamMap[userId] || null;
       const isCommissioner = shared.commissionerUserIds.includes(userId);
 
+      res.set("Cache-Control", "private, max-age=30, must-revalidate");
       res.json({
         games: shared.games,
         currentWeek: shared.currentWeek,
