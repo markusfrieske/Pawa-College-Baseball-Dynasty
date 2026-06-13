@@ -289,6 +289,13 @@ app.use((req, res, next) => {
   // updates pitch_vsl wherever the stored value diverges from the source.
   void (async () => {
     try {
+      // Ensure the table exists regardless of race with the main sequential runner.
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS _startup_migrations (
+          key text PRIMARY KEY,
+          ran_at timestamp DEFAULT now()
+        )
+      `);
       const { rows: check } = await pool.query<{ key: string }>(`
         SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v6'
       `);
