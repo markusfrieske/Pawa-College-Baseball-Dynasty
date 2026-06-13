@@ -8,7 +8,7 @@ export interface PitchDef {
 export const PITCH_DEFS: PitchDef[] = [
   { key: "pitchFB",  label: "FB",  binary: true,  alwaysOn: true  },
   { key: "pitch2S",  label: "2S",  binary: true  },
-  { key: "pitchCH",  label: "CH",  binary: true  },
+  { key: "pitchCH",  label: "CH",  binary: false },
   { key: "pitchFK",  label: "FK",  binary: true  },
   { key: "pitchSFF", label: "SFF", binary: true  },
   { key: "pitchKN",  label: "KN",  binary: true  },

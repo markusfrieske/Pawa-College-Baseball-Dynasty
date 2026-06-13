@@ -2,8 +2,8 @@
  * Unified pitch-mix helper for all roster files.
  *
  * Schema rules (shared/schema.ts):
- *   - pitchFB, pitch2S, pitchCH, pitchFK, pitchSFF, pitchKN are binary: 0 or 1.
- *   - All other pitch slots are integers 0-7.
+ *   - pitchFB, pitch2S, pitchFK, pitchSFF, pitchKN are binary: 0 or 1.
+ *   - pitchCH and all other pitch slots are integers 0-7.
  *
  * Canonical usage — all new roster files should call:
  *   pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU])
@@ -18,7 +18,7 @@
  *      30-39 → 2, 1-29 → 1). The threshold 30 is chosen to distinguish
  *     true 0-100 inputs from a near-schema array that simply has a
  *     stray 8.
- *   - 2S, CH, FK, and SFF secondaries are always re-binarized after any
+ *   - 2S, FK, and SFF secondaries are always re-binarized after any
  *     other coercion.
  *
  * pitchMix() emits a single `[roster-sanity]` console.warn the first
@@ -100,8 +100,8 @@ function coerceSecondary(v: number, useBucket: boolean): number {
  *            If the largest value is >= 30 (VELOCITY_SCALE_THRESHOLD),
  *            the whole array is treated as a 0-100 quality scale and
  *            bucketed to 1-7.
- *            2S, CH, FK, and SFF are then re-binarized (0 or 1).
- *            SHU inherits SNK-level semantics (0-7).
+ *            2S, FK, and SFF are then re-binarized (0 or 1).
+ *            CH and SHU inherit SNK-level semantics (0-7).
  */
 const VELOCITY_SCALE_THRESHOLD = 30;
 
@@ -121,11 +121,7 @@ export function pitchMix(primary: number, secondary: number[], context: string =
   const raw2S = safeSec[0] ?? 0;
   const pitch2S = raw2S >= 1 ? 1 : 0;
 
-  const rawCH = coerceSecondary(safeSec[3] ?? 0, useBucket);
-  if (rawCH > 1) {
-    warnOnce(`${context}:ch`, `pitchMix(${context}): pitchCH quality ${rawCH} collapsed to 1 (CH is binary)`);
-  }
-  const pitchCH = rawCH >= 1 ? 1 : 0;
+  const pitchCH = coerceSecondary(safeSec[3] ?? 0, useBucket);
 
   const rawFK = coerceSecondary(safeSec[7] ?? 0, useBucket);
   if (rawFK > 1) {
@@ -338,7 +334,7 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 // pitchKN added: knuckleball is binary (you either throw it or you don't)
 // pitchFK and pitchSFF remain binary/real-roster-only
 const BINARY_PITCH_KEYS = new Set<keyof PitchMix>([
-  "pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF", "pitchKN",
+  "pitchFB", "pitch2S", "pitchFK", "pitchSFF", "pitchKN",
 ]);
 
 /**
@@ -347,8 +343,8 @@ const BINARY_PITCH_KEYS = new Set<keyof PitchMix>([
  * Rules enforced:
  * - FB is always included (pitchFB = 1).
  * - pitchSPL is always 0 on generated recruits.
- * - pitch2S, pitchCH, pitchFK, pitchSFF, pitchKN are binary (0 or 1).
- * - All other pitches use levels 2–4, except the elite signature pitch (5–7).
+ * - pitch2S, pitchFK, pitchSFF, pitchKN are binary (0 or 1).
+ * - pitchCH and all other non-binary pitches use levels 2–4, except the elite signature pitch (5–7).
  * - Elite pitchers: exactly one non-binary secondary pitch gets level 5–7
  *   (the first drawn from the weighted pool = archetype signature pitch).
  * - Reliever: pitch count capped at 3 (FB + max 2 secondaries) regardless of tier.

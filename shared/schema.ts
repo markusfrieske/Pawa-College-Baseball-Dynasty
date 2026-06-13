@@ -461,7 +461,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   lineupPosition: true,
   tools: true,
 }).extend({
-  pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
+  pitchCH: z.number().int().min(0).max(7).optional(),
 });
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
@@ -683,7 +683,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   nilCost: true,
   originPrestige: true,
 }).extend({
-  pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
+  pitchCH: z.number().int().min(0).max(7).optional(),
 });
 
 export type InsertRecruit = z.infer<typeof insertRecruitSchema>;

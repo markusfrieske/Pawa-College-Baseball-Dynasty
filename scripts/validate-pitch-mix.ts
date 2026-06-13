@@ -2,8 +2,8 @@
  * Pitch-mix field validator.
  *
  * Schema rules (server/pitchMixHelpers.ts):
- *   - pitchFB, pitch2S, pitchCH, pitchFK, pitchSFF, pitchKN are binary: 0 or 1.
- *   - All other pitch slots must be integers in 0-7.
+ *   - pitchFB, pitch2S, pitchFK, pitchSFF, pitchKN are binary: 0 or 1.
+ *   - pitchCH and all other pitch slots must be integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
  * velocity scale instead of the correct 1-7 bucket scale.  Without this
@@ -89,7 +89,7 @@ const PITCH_FIELDS = [
 
 // Binary fields: must be 0 or 1
 // pitchKN added as binary for generated recruit validation
-const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF", "pitchKN"]);
+const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchFK", "pitchSFF", "pitchKN"]);
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
