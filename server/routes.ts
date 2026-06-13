@@ -9067,11 +9067,17 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
       // Only commissioners and co-commissioners can access commissioner data
-      const allCoaches = await storage.getCoachesByLeague(league.id);
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can access this page" });
       }
 
+      const cacheKey = leagueCacheKey(league.id, "commissioner");
+      const cached = cacheGet(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      const allCoaches = await storage.getCoachesByLeague(league.id);
       const [auditLogsData, leagueTeams, invites] = await Promise.all([
         storage.getAuditLogsByLeague(league.id),
         storage.getTeamsByLeague(league.id),
@@ -9124,7 +9130,7 @@ export async function registerRoutes(
         .filter(r => r.count > 35)
         .map(r => `${r.name} (${r.count} players)`);
 
-      res.json({
+      const payload = {
         league,
         auditLogs: auditLogsData,
         readyCoaches,
@@ -9132,7 +9138,10 @@ export async function registerRoutes(
         invites,
         humanCoaches,
         oversizedTeams,
-      });
+      };
+
+      cacheSet(cacheKey, payload, 30_000);
+      res.json(payload);
     } catch (error) {
       console.error("Failed to fetch commissioner data:", error);
       res.status(500).json({ message: "Failed to fetch commissioner data" });
@@ -9174,6 +9183,7 @@ export async function registerRoutes(
         details: `${coachName} (${team.name}) was ${newState ? "placed on" : "removed from"} auto-pilot by the commissioner. ${newState ? "CPU will manage their team until disabled." : "Coach has regained full control."}`,
       });
 
+      invalidateLeague(league.id);
       return res.json({ success: true, isAutoPilot: newState, teamId: team.id });
     } catch (error) {
       console.error("Failed to toggle auto-pilot:", error);
@@ -19824,6 +19834,7 @@ export async function registerRoutes(
         details: `Generated invite link: ${inviteCode}${label ? ` (${label})` : ""}`,
       });
 
+      invalidateLeague(league.id);
       res.json(invite);
     } catch (error) {
       console.error("Failed to create invite:", error);
@@ -20005,6 +20016,7 @@ export async function registerRoutes(
         details: `Revoked invite link: ${invite.inviteCode}`,
       });
 
+      invalidateLeague(invite.leagueId);
       res.json({ success: true });
     } catch (error) {
       console.error("Failed to revoke invite:", error);
