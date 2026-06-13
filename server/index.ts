@@ -4,7 +4,6 @@ import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
-import { getRealRosters } from "./realRostersLoader";
 
 const app = express();
 const httpServer = createServer(app);
@@ -130,28 +129,38 @@ app.use((req, res, next) => {
 
       // once(): insert-first guard — marks the migration done BEFORE running it.
       // Use for idempotent operations where a partial run leaves no harmful state.
+      // Per-step try/catch ensures one failing migration never blocks subsequent ones.
       async function once(key: string, fn: () => Promise<void>): Promise<void> {
-        const { rows } = await pool.query<{ key: string }>(
-          `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING RETURNING key`,
-          [key],
-        );
-        if (rows.length === 0) return; // already ran
-        await fn();
+        try {
+          const { rows } = await pool.query<{ key: string }>(
+            `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING RETURNING key`,
+            [key],
+          );
+          if (rows.length === 0) return; // already ran
+          await fn();
+        } catch (e) {
+          console.error(`[startup-migration] ${key} failed:`, e);
+        }
       }
 
       // onceAfter(): mark-after guard — key inserted only on success.
       // Use for operations that may fail partway through and need to retry.
+      // Per-step try/catch ensures one failing migration never blocks subsequent ones.
       async function onceAfter(key: string, fn: () => Promise<void>): Promise<void> {
-        const { rows } = await pool.query<{ key: string }>(
-          `SELECT key FROM _startup_migrations WHERE key = $1`,
-          [key],
-        );
-        if (rows.length > 0) return; // already ran
-        await fn();
-        await pool.query(
-          `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING`,
-          [key],
-        );
+        try {
+          const { rows } = await pool.query<{ key: string }>(
+            `SELECT key FROM _startup_migrations WHERE key = $1`,
+            [key],
+          );
+          if (rows.length > 0) return; // already ran
+          await fn();
+          await pool.query(
+            `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING`,
+            [key],
+          );
+        } catch (e) {
+          console.error(`[startup-migration] ${key} failed:`, e);
+        }
       }
 
       // ── drop-pitch-ch-binary-v1 ────────────────────────────────────────────
