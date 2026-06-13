@@ -13274,6 +13274,16 @@ export async function registerRoutes(
             pitchCT: player.pitchCT ?? 0,
             pitchSNK: player.pitchSNK ?? 0,
             pitchVSL: player.pitchVSL ?? 0,
+            pitchSPL: (player as any).pitchSPL ?? 0,
+            pitchFK:  (player as any).pitchFK  ?? 0,
+            pitchSFF: (player as any).pitchSFF ?? 0,
+            pitchSHU: (player as any).pitchSHU ?? 0,
+            pitchCCH: (player as any).pitchCCH ?? 0,
+            pitchHSL: (player as any).pitchHSL ?? 0,
+            pitchSWP: (player as any).pitchSWP ?? 0,
+            pitchKN:  (player as any).pitchKN  ?? 0,
+            pitchSCB: (player as any).pitchSCB ?? 0,
+            pitchPCB: (player as any).pitchPCB ?? 0,
             abilities: playerAbilities,
             potential: player.potential ?? rollWeightedPotential(),
             nilCost: (function() {
@@ -15016,6 +15026,16 @@ export async function registerRoutes(
           pitchCT: recruit.pitchCT ?? 0,
           pitchSNK: recruit.pitchSNK ?? 0,
           pitchVSL: recruit.pitchVSL ?? 0,
+          pitchSPL: (recruit as any).pitchSPL ?? 0,
+          pitchFK:  (recruit as any).pitchFK  ?? 0,
+          pitchSFF: (recruit as any).pitchSFF ?? 0,
+          pitchSHU: (recruit as any).pitchSHU ?? 0,
+          pitchCCH: (recruit as any).pitchCCH ?? 0,
+          pitchHSL: (recruit as any).pitchHSL ?? 0,
+          pitchSWP: (recruit as any).pitchSWP ?? 0,
+          pitchKN:  (recruit as any).pitchKN  ?? 0,
+          pitchSCB: (recruit as any).pitchSCB ?? 0,
+          pitchPCB: (recruit as any).pitchPCB ?? 0,
           abilities: recruit.abilities || [],
           skinTone: recruit.skinTone || "light",
           hairColor: recruit.hairColor || "brown",
@@ -22831,10 +22851,31 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         headwear: appearance.headwear,
         potential: typeof rp.potential === 'string' ? potentialGradeToNumber(rp.potential as string) : (rp.potential ?? 71),
         ...(isPitcher
-          ? generateArchetypePitchMix(
-              assignPitcherArchetype(rp.position, rp.throwHand || "R", rp.velocity, rp.control, rp.stamina, rp.stuff),
-              qualityTierFromOvr(rawOverall),
-            )
+          ? (() => {
+              // Generate archetype mix for fields not in RealPlayer interface
+              // (pitchCCH, pitchHSL, pitchSWP, pitchKN, pitchSCB, pitchPCB),
+              // then override with the canonical real-roster pitch values so that
+              // hand-curated data (e.g. pitchVSL for Aidan King) is preserved.
+              const archMix = generateArchetypePitchMix(
+                assignPitcherArchetype(rp.position, rp.throwHand || "R", rp.velocity, rp.control, rp.stamina, rp.stuff),
+                qualityTierFromOvr(rawOverall),
+              );
+              return {
+                ...archMix,
+                pitchFB: rp.pitchFB,
+                pitch2S: rp.pitch2S,
+                pitchSL: rp.pitchSL,
+                pitchCB: rp.pitchCB,
+                pitchCH: rp.pitchCH,
+                pitchCT: rp.pitchCT,
+                pitchSNK: rp.pitchSNK,
+                ...(rp.pitchSPL !== undefined ? { pitchSPL: rp.pitchSPL } : {}),
+                ...(rp.pitchVSL !== undefined ? { pitchVSL: rp.pitchVSL } : {}),
+                ...(rp.pitchFK  !== undefined ? { pitchFK:  rp.pitchFK  } : {}),
+                ...(rp.pitchSFF !== undefined ? { pitchSFF: rp.pitchSFF } : {}),
+                ...(rp.pitchSHU !== undefined ? { pitchSHU: rp.pitchSHU } : {}),
+              };
+            })()
           : noPitches),
       });
     }
