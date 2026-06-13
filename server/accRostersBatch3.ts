@@ -139,7 +139,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // OUTFIELDERS (6) — Hanson out; Schmidt/Snyder moved in; Applefield added
+    // OUTFIELDERS (6) — Hanson back in; Applefield out
     // Carl Schmidt — SO OF #8 (fixed: C → OF); .279 AVG, 9 HR
     { firstName: "Carl", lastName: "Schmidt", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Mateo", jerseyNumber: 8,
       hitForAvg: 42, power: 38, speed: 42, arm: 46, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 22, stuff: 0,
@@ -175,11 +175,11 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Consigliere"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Kalen Applefield — SO OF #31 (NEW); .200 AVG, 0 HR, 38 GS, excellent defense
-    { firstName: "Kalen", lastName: "Applefield", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 31,
-      hitForAvg: 34, power: 22, speed: 48, arm: 40, fielding: 50, errorResistance: 44, velocity: 0, control: 0, stamina: 22, stuff: 0,
-      clutch: 36, vsLHP: 32, grit: 38, stealing: 36, running: 38, throwing: 42, recovery: 30, wRISP: 34, vsLefty: 30, poise: 32, heater: 0, agile: 46,
-      abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
+    // Joshua Hanson — FR OF #23 (USC transfer/IMG Academy); .202 AVG, 4 HR, 8-9 SB, .988 FLD%, from San Francisco CA
+    { firstName: "Joshua", lastName: "Hanson", position: "OF", eligibility: "FR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 23,
+      hitForAvg: 33, power: 30, speed: 35, arm: 37, fielding: 46, errorResistance: 44, velocity: 0, control: 0, stamina: 22, stuff: 0,
+      clutch: 30, vsLHP: 27, grit: 30, stealing: 34, running: 32, throwing: 35, recovery: 27, wRISP: 30, vsLefty: 27, poise: 28, heater: 0, agile: 32,
+      abilities: ["Defensive Artisan", "Tough Out"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
   ],
