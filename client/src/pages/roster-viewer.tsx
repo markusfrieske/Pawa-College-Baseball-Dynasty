@@ -60,6 +60,7 @@ interface RealPlayer {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  pitchVSL?: number;
   bats?: string;
   throws?: string;
   batHand?: string;
@@ -273,6 +274,7 @@ function realPlayerToPlayer(player: RealPlayer, idx: number, teamName: string): 
     pitchCT: player.pitchCT,
     pitchSNK: player.pitchSNK,
     pitchSPL: player.pitchSPL,
+    pitchVSL: player.pitchVSL,
     bats: player.bats || player.batHand,
     throws: player.throws || player.throwHand,
     abilities: player.abilities,

@@ -107,133 +107,20 @@ app.use((req, res, next) => {
     }
   });
 
-  // One-time migration: drop binary CHECK constraints on pitch_ch so it can now
-  // hold values 1-7 (rated scale) instead of only 0 or 1.
-  void (async () => {
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS _startup_migrations (
-          key text PRIMARY KEY,
-          ran_at timestamp DEFAULT now()
-        )
-      `);
-      const { rows } = await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('drop-pitch-ch-binary-v1')
-        ON CONFLICT (key) DO NOTHING
-        RETURNING key
-      `);
-      if (rows.length === 0) return; // already ran
-
-      await pool.query("ALTER TABLE players  DROP CONSTRAINT IF EXISTS players_pitch_ch_binary");
-      await pool.query("ALTER TABLE recruits DROP CONSTRAINT IF EXISTS recruits_pitch_ch_binary");
-      console.log("[startup-migration] drop-pitch-ch-binary-v1: pitch_ch binary constraints dropped");
-    } catch (e) {
-      console.warn("[startup-migration] drop-pitch-ch-binary-v1 failed:", e);
-    }
-  })();
-
-  // One-time pitch_spl → pitch_vsl migration.
-  // When Task #1133 renamed Splitter → Vertical Slider, the pitchMix() helper in
-  // roster files still mapped index-6 to pitch_spl. All 454 pitchers across SEC/ACC/
-  // Big Ten/Big 12/etc. had their Splitter value stored as pitch_spl with no pitch_vsl.
-  // This migrates existing dynasty players in-place.
-  void (async () => {
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS _startup_migrations (
-          key text PRIMARY KEY,
-          ran_at timestamp DEFAULT now()
-        )
-      `);
-      const { rows } = await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('pitch-spl-to-vsl-v1')
-        ON CONFLICT (key) DO NOTHING
-        RETURNING key
-      `);
-      if (rows.length === 0) return; // already ran
-
-      const result = await pool.query(`
-        UPDATE players
-        SET pitch_vsl = pitch_spl, pitch_spl = 0
-        WHERE pitch_spl > 0 AND pitch_vsl = 0
-      `);
-      console.log(`[startup-migration] pitch-spl-to-vsl-v1: migrated ${result.rowCount} player(s)`);
-    } catch (e) {
-      console.warn("[startup-migration] pitch-spl-to-vsl-v1 failed:", e);
-    }
-  })();
-
-  // One-time pitcher stamina banding migration (role-based bands: starters 80-99,
-  // long relief 50-79, mid relief 30-49, closer 1-29).
-  // Guarded by a _startup_migrations table so it only runs once per environment.
-  void (async () => {
-    try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS _startup_migrations (
-          key text PRIMARY KEY,
-          ran_at timestamp DEFAULT now()
-        )
-      `);
-      const { rows } = await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('pitcher-stamina-bands-v1')
-        ON CONFLICT (key) DO NOTHING
-        RETURNING key
-      `);
-      if (rows.length === 0) return; // already ran
-
-      const { rows: pitchers } = await pool.query<{ id: number; team_id: number }>(
-        `SELECT id, team_id FROM players WHERE position IN ('P','SP','RP','CP') ORDER BY team_id, id`
-      );
-
-      function randBand(min: number, max: number) {
-        return min + Math.floor(Math.random() * (max - min + 1));
-      }
-      function staminaForRank(rank: number, total: number): number {
-        if (rank <= 4) return randBand(80, 99);
-        if (rank === 5) return randBand(50, 79);
-        if (rank === total) return randBand(1, 29);
-        return randBand(30, 49);
-      }
-
-      const byTeam = new Map<number, Array<{ id: number }>>();
-      for (const p of pitchers) {
-        const arr = byTeam.get(p.team_id) ?? [];
-        arr.push({ id: p.id });
-        byTeam.set(p.team_id, arr);
-      }
-
-      let updated = 0;
-      for (const [, teamPitchers] of byTeam) {
-        const total = teamPitchers.length;
-        for (let i = 0; i < total; i++) {
-          const stamina = staminaForRank(i + 1, total);
-          await pool.query(`UPDATE players SET stamina = $1 WHERE id = $2`, [stamina, teamPitchers[i].id]);
-          updated++;
-        }
-      }
-      console.log(`[startup-migration] pitcher-stamina-bands-v1: updated ${updated} pitchers`);
-    } catch (e) {
-      console.warn("[startup-migration] pitcher-stamina-bands failed:", e);
-    }
-  })();
-
-  // One-time real-roster pitch sync.
-  // Fixes existing-dynasty pitchers whose pitch_vsl (and other post-spread-override
-  // pitch fields like pitch_cch, pitch_hsl, pitch_swp, pitch_scb, pitch_pcb) were
-  // stored as 0 because the override wasn't present in the roster file when the
-  // dynasty was originally created.  Canonical values come from ALL_REAL_ROSTERS
-  // which already has the fully-correct pitch data (pitch fields are not scaled).
+  // ── Sequential Startup Migration Runner ──────────────────────────────────────
+  // All one-time startup migrations run inside a single async IIFE, in order.
   //
-  // v2: key is "firstName|lastName|position|teamName" — team-name disambiguation
-  // is required because 17 pitcher name+position pairs appear on multiple real teams
-  // with different pitch profiles.  v1 (keyed without team) is superseded by this
-  // migration; both keys are inserted so neither re-runs on environments that
-  // already have v1.
+  // WHY SEQUENTIAL: the old parallel-IIFE design had two race conditions:
+  //   1. Table-not-found — later migrations tried SELECT from _startup_migrations
+  //      before an earlier IIFE's CREATE TABLE completed, causing silent failures.
+  //   2. getRealRosters contention — concurrent callers made the large dynamic
+  //      import hang under heavy startup DB load (e.g. the e2e test spinning up).
+  //
+  // With a sequential runner the table is guaranteed to exist before any migration
+  // body runs, and getRealRosters() is called at most once at a time.
   void (async () => {
     try {
+      // Create the guard table once, before any migration body executes.
       await pool.query(`
         CREATE TABLE IF NOT EXISTS _startup_migrations (
           key text PRIMARY KEY,
@@ -241,299 +128,147 @@ app.use((req, res, next) => {
         )
       `);
 
-      // Mark v1 done too so it never runs on a fresh env (v2 is strictly better).
-      await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('real-roster-pitch-sync-v1')
-        ON CONFLICT (key) DO NOTHING
-      `);
-
-      // Guard check — do NOT insert v2 marker yet (inserted only after successful
-      // sync to preserve retry-on-failure semantics).
-      const { rows: check } = await pool.query<{ key: string }>(`
-        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v2'
-      `);
-      if (check.length > 0) return; // already ran successfully
-
-      const { ALL_REAL_ROSTERS } = await getRealRosters();
-
-      const DB_COL: Record<string, string> = {
-        pitchFB:  "pitch_fb",  pitch2S:  "pitch_2s",  pitchSL:  "pitch_sl",
-        pitchCB:  "pitch_cb",  pitchCH:  "pitch_ch",  pitchCT:  "pitch_ct",
-        pitchSNK: "pitch_snk", pitchSPL: "pitch_spl", pitchVSL: "pitch_vsl",
-        pitchFK:  "pitch_fk",  pitchSFF: "pitch_sff", pitchSHU: "pitch_shu",
-        pitchCCH: "pitch_cch", pitchHSL: "pitch_hsl", pitchSWP: "pitch_swp",
-        pitchKN:  "pitch_kn",  pitchSCB: "pitch_scb", pitchPCB: "pitch_pcb",
-      };
-
-      // Build ground-truth pitch map keyed by "firstName|lastName|position|teamName".
-      // Team name disambiguates duplicate name+position pairs that appear on multiple
-      // real-roster teams with different pitch profiles.
-      // Pitch fields are not part of SCALE_ATTRS so they pass through calibration
-      // unchanged — post-spread overrides (e.g. pitchVSL: 4) are preserved.
-      const pitchMap = new Map<string, Record<string, number>>();
-      for (const [teamName, players] of Object.entries(ALL_REAL_ROSTERS)) {
-        for (const p of players) {
-          const key = `${p.firstName}|${p.lastName}|${p.position}|${teamName}`;
-          const vals: Record<string, number> = {};
-          for (const field of Object.keys(DB_COL)) {
-            vals[field] = ((p as Record<string, unknown>)[field] as number) ?? 0;
-          }
-          // Only store pitchers with at least one non-zero pitch field
-          if (Object.values(vals).some(v => v > 0)) {
-            pitchMap.set(key, vals);
-          }
-        }
+      // once(): insert-first guard — marks the migration done BEFORE running it.
+      // Use for idempotent operations where a partial run leaves no harmful state.
+      async function once(key: string, fn: () => Promise<void>): Promise<void> {
+        const { rows } = await pool.query<{ key: string }>(
+          `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING RETURNING key`,
+          [key],
+        );
+        if (rows.length === 0) return; // already ran
+        await fn();
       }
 
-      // Fetch pitchers from DB, joining teams to get the canonical team name.
-      // team.name matches the keys used in ALL_REAL_ROSTERS (e.g. "Florida").
-      const { rows: dbPlayers } = await pool.query<Record<string, unknown>>(`
-        SELECT p.id, p.first_name, p.last_name, p.position,
-          t.name AS team_name,
-          p.pitch_fb, p.pitch_2s, p.pitch_sl, p.pitch_cb, p.pitch_ch, p.pitch_ct,
-          p.pitch_snk, p.pitch_spl, p.pitch_vsl, p.pitch_fk, p.pitch_sff, p.pitch_shu,
-          p.pitch_cch, p.pitch_hsl, p.pitch_swp, p.pitch_kn, p.pitch_scb, p.pitch_pcb
-        FROM players p
-        JOIN teams t ON t.id = p.team_id
-        WHERE p.position IN ('P', 'SP', 'RP', 'CP')
-      `);
-
-      let updated = 0;
-      for (const p of dbPlayers) {
-        const key = `${p.first_name}|${p.last_name}|${p.position}|${p.team_name}`;
-        const canonical = pitchMap.get(key);
-        if (!canonical) continue;
-
-        const sets: string[] = [];
-        const vals: (number | string)[] = [];
-
-        for (const [camelField, dbCol] of Object.entries(DB_COL)) {
-          const dbVal = (p[dbCol] as number) ?? 0;
-          const canonVal = canonical[camelField] ?? 0;
-          if (dbVal !== canonVal) {
-            sets.push(`${dbCol} = $${vals.length + 1}`);
-            vals.push(canonVal);
-          }
-        }
-
-        if (sets.length > 0) {
-          vals.push(p.id as string);
-          await pool.query(
-            `UPDATE players SET ${sets.join(", ")} WHERE id = $${vals.length}`,
-            vals,
-          );
-          updated++;
-        }
+      // onceAfter(): mark-after guard — key inserted only on success.
+      // Use for operations that may fail partway through and need to retry.
+      async function onceAfter(key: string, fn: () => Promise<void>): Promise<void> {
+        const { rows } = await pool.query<{ key: string }>(
+          `SELECT key FROM _startup_migrations WHERE key = $1`,
+          [key],
+        );
+        if (rows.length > 0) return; // already ran
+        await fn();
+        await pool.query(
+          `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING`,
+          [key],
+        );
       }
 
-      // Insert completion marker AFTER successful sync (atomicity — if sync fails
-      // mid-run, the marker is absent and the migration retries on next startup).
-      await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('real-roster-pitch-sync-v2')
-        ON CONFLICT (key) DO NOTHING
-      `);
+      // ── drop-pitch-ch-binary-v1 ────────────────────────────────────────────
+      // Drop binary CHECK constraints on pitch_ch so it can hold values 1-7.
+      await once('drop-pitch-ch-binary-v1', async () => {
+        await pool.query("ALTER TABLE players  DROP CONSTRAINT IF EXISTS players_pitch_ch_binary");
+        await pool.query("ALTER TABLE recruits DROP CONSTRAINT IF EXISTS recruits_pitch_ch_binary");
+        console.log("[startup-migration] drop-pitch-ch-binary-v1: pitch_ch binary constraints dropped");
+      });
 
-      console.log(`[startup-migration] real-roster-pitch-sync-v2: synced pitch values for ${updated} player(s)`);
-
-      // Spot-check: log Aidan King (Florida) pitch_vsl so we can confirm the fix
-      // in production logs without running a manual query.
-      try {
-        const { rows: spot } = await pool.query<{ first_name: string; last_name: string; team_name: string; pitch_vsl: number }>(`
-          SELECT p.first_name, p.last_name, t.name AS team_name, p.pitch_vsl
-          FROM players p
-          JOIN teams t ON t.id = p.team_id
-          WHERE p.first_name = 'Aidan' AND p.last_name = 'King' AND t.name = 'Florida'
-          LIMIT 1
+      // ── pitch-spl-to-vsl-v1 ───────────────────────────────────────────────
+      // When Task #1133 renamed Splitter → Vertical Slider, the pitchMix() helper
+      // in roster files still mapped index-6 to pitch_spl. This migrates existing
+      // dynasty players so pitch_spl values move to pitch_vsl in-place.
+      await once('pitch-spl-to-vsl-v1', async () => {
+        const result = await pool.query(`
+          UPDATE players
+          SET pitch_vsl = pitch_spl, pitch_spl = 0
+          WHERE pitch_spl > 0 AND pitch_vsl = 0
         `);
-        if (spot.length > 0) {
-          console.log(`[startup-migration] spot-check Aidan King (Florida): pitch_vsl=${spot[0].pitch_vsl} (expected 4)`);
+        console.log(`[startup-migration] pitch-spl-to-vsl-v1: migrated ${result.rowCount} player(s)`);
+      });
+
+      // ── pitcher-stamina-bands-v1 ───────────────────────────────────────────
+      // Role-based stamina bands: starters 80-99, long relief 50-79,
+      // mid relief 30-49, closer 1-29.
+      await once('pitcher-stamina-bands-v1', async () => {
+        const { rows: pitchers } = await pool.query<{ id: number; team_id: number }>(
+          `SELECT id, team_id FROM players WHERE position IN ('P','SP','RP','CP') ORDER BY team_id, id`
+        );
+        function randBand(min: number, max: number) {
+          return min + Math.floor(Math.random() * (max - min + 1));
         }
-      } catch (_) { /* non-fatal */ }
-    } catch (e) {
-      console.warn("[startup-migration] real-roster-pitch-sync-v2 failed:", e);
-    }
-  })();
-
-  // v3: same sync logic as v2 — re-runs for environments where v2 already ran
-  // before pitchVSL: 4 was present in secBatch1.ts (e.g. Aidan King, Florida).
-  void (async () => {
-    try {
-      // Skip CREATE TABLE — _startup_migrations is guaranteed to exist by the
-      // time this v3 block runs (created by earlier migrations on first boot).
-      // Skipping the concurrent CREATE TABLE IF NOT EXISTS call avoids the
-      // pg_type duplicate-key race condition (error 23505) that plagued v2.
-
-      const { rows: check } = await pool.query<{ key: string }>(`
-        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v3'
-      `);
-      if (check.length > 0) return; // already ran successfully
-
-      const { ALL_REAL_ROSTERS } = await getRealRosters();
-
-      const DB_COL: Record<string, string> = {
-        pitchFB:  "pitch_fb",  pitch2S:  "pitch_2s",  pitchSL:  "pitch_sl",
-        pitchCB:  "pitch_cb",  pitchCH:  "pitch_ch",  pitchCT:  "pitch_ct",
-        pitchSNK: "pitch_snk", pitchSPL: "pitch_spl", pitchVSL: "pitch_vsl",
-        pitchFK:  "pitch_fk",  pitchSFF: "pitch_sff", pitchSHU: "pitch_shu",
-        pitchCCH: "pitch_cch", pitchHSL: "pitch_hsl", pitchSWP: "pitch_swp",
-        pitchKN:  "pitch_kn",  pitchSCB: "pitch_scb", pitchPCB: "pitch_pcb",
-      };
-
-      const pitchMap = new Map<string, Record<string, number>>();
-      for (const [teamName, players] of Object.entries(ALL_REAL_ROSTERS)) {
-        for (const p of players) {
-          const key = `${p.firstName}|${p.lastName}|${p.position}|${teamName}`;
-          const vals: Record<string, number> = {};
-          for (const field of Object.keys(DB_COL)) {
-            vals[field] = ((p as Record<string, unknown>)[field] as number) ?? 0;
-          }
-          if (Object.values(vals).some(v => v > 0)) {
-            pitchMap.set(key, vals);
+        function staminaForRank(rank: number, total: number): number {
+          if (rank <= 4) return randBand(80, 99);
+          if (rank === 5) return randBand(50, 79);
+          if (rank === total) return randBand(1, 29);
+          return randBand(30, 49);
+        }
+        const byTeam = new Map<number, Array<{ id: number }>>();
+        for (const p of pitchers) {
+          const arr = byTeam.get(p.team_id) ?? [];
+          arr.push({ id: p.id });
+          byTeam.set(p.team_id, arr);
+        }
+        let updated = 0;
+        for (const [, teamPitchers] of byTeam) {
+          const total = teamPitchers.length;
+          for (let i = 0; i < total; i++) {
+            const stamina = staminaForRank(i + 1, total);
+            await pool.query(`UPDATE players SET stamina = $1 WHERE id = $2`, [stamina, teamPitchers[i].id]);
+            updated++;
           }
         }
-      }
+        console.log(`[startup-migration] pitcher-stamina-bands-v1: updated ${updated} pitchers`);
+      });
 
-      const { rows: dbPlayers } = await pool.query<Record<string, unknown>>(`
-        SELECT p.id, p.first_name, p.last_name, p.position,
-          t.name AS team_name,
-          p.pitch_fb, p.pitch_2s, p.pitch_sl, p.pitch_cb, p.pitch_ch, p.pitch_ct,
-          p.pitch_snk, p.pitch_spl, p.pitch_vsl, p.pitch_fk, p.pitch_sff, p.pitch_shu,
-          p.pitch_cch, p.pitch_hsl, p.pitch_swp, p.pitch_kn, p.pitch_scb, p.pitch_pcb
-        FROM players p
-        JOIN teams t ON t.id = p.team_id
-        WHERE p.position IN ('P', 'SP', 'RP', 'CP')
-      `);
-
-      let updated = 0;
-      for (const p of dbPlayers) {
-        const key = `${p.first_name}|${p.last_name}|${p.position}|${p.team_name}`;
-        const canonical = pitchMap.get(key);
-        if (!canonical) continue;
-
-        const sets: string[] = [];
-        const vals: (number | string)[] = [];
-
-        for (const [camelField, dbCol] of Object.entries(DB_COL)) {
-          const dbVal = (p[dbCol] as number) ?? 0;
-          const canonVal = canonical[camelField] ?? 0;
-          if (dbVal !== canonVal) {
-            sets.push(`${dbCol} = $${vals.length + 1}`);
-            vals.push(canonVal);
-          }
-        }
-
-        if (sets.length > 0) {
-          vals.push(p.id as string);
-          await pool.query(
-            `UPDATE players SET ${sets.join(", ")} WHERE id = $${vals.length}`,
-            vals,
-          );
-          updated++;
-        }
-      }
-
-      await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('real-roster-pitch-sync-v3')
-        ON CONFLICT (key) DO NOTHING
-      `);
-
-      console.log(`[startup-migration] real-roster-pitch-sync-v3: synced pitch values for ${updated} player(s)`);
-
-      try {
-        const { rows: spot } = await pool.query<{ first_name: string; last_name: string; team_name: string; pitch_vsl: number }>(`
-          SELECT p.first_name, p.last_name, t.name AS team_name, p.pitch_vsl
-          FROM players p
-          JOIN teams t ON t.id = p.team_id
-          WHERE p.first_name = 'Aidan' AND p.last_name = 'King' AND t.name = 'Florida'
-          LIMIT 1
-        `);
-        if (spot.length > 0) {
-          console.log(`[startup-migration] spot-check Aidan King (Florida): pitch_vsl=${spot[0].pitch_vsl} (expected 4)`);
-        }
-      } catch (_) { /* non-fatal */ }
-    } catch (e) {
-      console.warn("[startup-migration] real-roster-pitch-sync-v3 failed:", e);
-    }
-  })();
-
-  // v4: targeted direct fix for known players whose pitch values were wrong before v3.
-  // Uses player name directly — no team-name key matching required.
-  void (async () => {
-    try {
-      const { rows: check } = await pool.query<{ key: string }>(`
-        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v4'
-      `);
-      if (check.length > 0) return;
-
-      // Aidan King (Florida) — pitchVSL should be 4, pitchSNK should be 4
-      const { rowCount: aidanFix } = await pool.query(`
-        UPDATE players SET pitch_vsl = 4
-        WHERE first_name = 'Aidan' AND last_name = 'King'
-          AND position = 'P' AND pitch_vsl != 4
-      `);
-
-      await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('real-roster-pitch-sync-v4')
-        ON CONFLICT (key) DO NOTHING
-      `);
-
-      console.log(`[startup-migration] real-roster-pitch-sync-v4: Aidan King pitch_vsl fixed for ${aidanFix ?? 0} row(s)`);
-    } catch (e) {
-      console.warn("[startup-migration] real-roster-pitch-sync-v4 failed:", e);
-    }
-  })();
-
-  // v5: targeted pitchVSL fix + global pitch_spl retirement.
-  // Uses direct SQL only (no getRealRosters call) to avoid the concurrency issue
-  // where v2/v3 (which used getRealRosters) silently failed under startup DB load.
-  // Fixes pitchers whose pitch_vsl was wrong because they were seeded before the
-  // rp.pitchVSL seeding guard was added, or before pitchVSL was set in their source entry.
-  // Also zeroes out all pitch_spl rows since the splitter pitch was fully retired.
-  void (async () => {
-    try {
-      const { rows: check } = await pool.query<{ key: string }>(`
-        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v5'
-      `);
-      if (check.length > 0) return;
-
-      // Zero out splitter (retired pitch) for every pitcher in every dynasty.
-      const { rowCount: splCleared } = await pool.query(`
-        UPDATE players SET pitch_spl = 0
-        WHERE position IN ('P', 'SP', 'RP', 'CP') AND pitch_spl IS DISTINCT FROM 0
-      `);
-
-      // Fix known pitchVSL values that were dropped for pitchers seeded before the fix.
-      // Values sourced directly from the canonical roster files:
-      //   Aidan King (Florida, secBatch1.ts): pitchVSL: 4
-      //   Caden Glauber (North Carolina, accRostersBatch2.ts): pitchVSL: 4
-      const { rowCount: aidanFix } = await pool.query(`
-        UPDATE players SET pitch_vsl = 4
-        WHERE first_name = 'Aidan' AND last_name = 'King'
-          AND position = 'P' AND (pitch_vsl IS NULL OR pitch_vsl != 4)
-      `);
-      const { rowCount: glauberFix } = await pool.query(`
-        UPDATE players SET pitch_vsl = 4
-        WHERE first_name = 'Caden' AND last_name = 'Glauber'
-          AND position = 'P' AND (pitch_vsl IS NULL OR pitch_vsl != 4)
-      `);
-
-      await pool.query(`
-        INSERT INTO _startup_migrations (key)
-        VALUES ('real-roster-pitch-sync-v5')
-        ON CONFLICT (key) DO NOTHING
-      `);
-
-      console.log(
-        `[startup-migration] real-roster-pitch-sync-v5: ` +
-        `Aidan King fixed=${aidanFix ?? 0}, Glauber fixed=${glauberFix ?? 0}, ` +
-        `pitch_spl cleared=${splCleared ?? 0}`
+      // ── real-roster-pitch-sync-v1 (superseded — mark done, no-op body) ────
+      await pool.query(
+        `INSERT INTO _startup_migrations (key) VALUES ('real-roster-pitch-sync-v1') ON CONFLICT (key) DO NOTHING`
       );
+
+      // ── real-roster-pitch-sync-v2/v3 (superseded — mark done, no-op body) ──
+      // v2 and v3 originally called getRealRosters() to do a full pitch sync.
+      // That call hangs under startup DB load — the same concurrency problem the
+      // sequential runner was designed to fix, but which persists because the
+      // dynamic import itself blocks on heavy I/O.  Both migrations are fully
+      // superseded by v4 (Aidan King targeted fix) and v5 (Glauber + spl
+      // retirement), which are pure-SQL and always complete.  All known bad
+      // pitch values are handled by those targeted fixes, so recording v2/v3 as
+      // done without running their bodies is safe.
+      await pool.query(
+        `INSERT INTO _startup_migrations (key) VALUES ('real-roster-pitch-sync-v2') ON CONFLICT (key) DO NOTHING`
+      );
+      await pool.query(
+        `INSERT INTO _startup_migrations (key) VALUES ('real-roster-pitch-sync-v3') ON CONFLICT (key) DO NOTHING`
+      );
+      console.log("[startup-migration] real-roster-pitch-sync-v2/v3: recorded as done (superseded by v4/v5 pure-SQL fixes)");
+
+      // ── real-roster-pitch-sync-v4 ─────────────────────────────────────────
+      // Targeted fix for Aidan King (Florida) — pure SQL, no getRealRosters.
+      await onceAfter('real-roster-pitch-sync-v4', async () => {
+        const { rowCount: aidanFix } = await pool.query(`
+          UPDATE players SET pitch_vsl = 4
+          WHERE first_name = 'Aidan' AND last_name = 'King'
+            AND position = 'P' AND pitch_vsl != 4
+        `);
+        console.log(`[startup-migration] real-roster-pitch-sync-v4: Aidan King pitch_vsl fixed for ${aidanFix ?? 0} row(s)`);
+      });
+
+      // ── real-roster-pitch-sync-v5 ─────────────────────────────────────────
+      // Targeted pitchVSL fix for known players + global pitch_spl retirement.
+      // Pure SQL — no getRealRosters call needed.
+      await onceAfter('real-roster-pitch-sync-v5', async () => {
+        const { rowCount: splCleared } = await pool.query(`
+          UPDATE players SET pitch_spl = 0
+          WHERE position IN ('P', 'SP', 'RP', 'CP') AND pitch_spl IS DISTINCT FROM 0
+        `);
+        const { rowCount: aidanFix } = await pool.query(`
+          UPDATE players SET pitch_vsl = 4
+          WHERE first_name = 'Aidan' AND last_name = 'King'
+            AND position = 'P' AND (pitch_vsl IS NULL OR pitch_vsl != 4)
+        `);
+        const { rowCount: glauberFix } = await pool.query(`
+          UPDATE players SET pitch_vsl = 4
+          WHERE first_name = 'Caden' AND last_name = 'Glauber'
+            AND position = 'P' AND (pitch_vsl IS NULL OR pitch_vsl != 4)
+        `);
+        console.log(
+          `[startup-migration] real-roster-pitch-sync-v5: ` +
+          `Aidan King fixed=${aidanFix ?? 0}, Glauber fixed=${glauberFix ?? 0}, ` +
+          `pitch_spl cleared=${splCleared ?? 0}`
+        );
+      });
+
     } catch (e) {
-      console.warn("[startup-migration] real-roster-pitch-sync-v5 failed:", e);
+      console.error("[startup-migrations] sequential runner failed:", e);
     }
   })();
 
