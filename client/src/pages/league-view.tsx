@@ -301,7 +301,7 @@ export default function LeagueViewPage() {
   const { data: overview } = useQuery<DashboardOverview>({
     queryKey: ["/api/leagues", id, "dashboard-overview"],
     enabled: !!league && league.currentPhase !== "dynasty_setup",
-    staleTime: 0,
+    staleTime: 30_000,
   });
 
   const storylineActivePhase = league ? STORYLINE_VOTE_CALLOUT_PHASES.has(league.currentPhase) : false;

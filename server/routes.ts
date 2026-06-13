@@ -15,6 +15,7 @@ import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport, LastSeasonStats } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "./utils";
+import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "./cache";
 import {
   generateGameNewsArticles,
   generateCWSChampionNewsArticle,
@@ -747,7 +748,14 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id as string);
+      const leagueId = req.params.id as string;
+      const cacheKey = leagueCacheKey(leagueId, "main");
+      const cached = cacheGet(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      const league = await storage.getLeague(leagueId);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
@@ -778,11 +786,13 @@ export async function registerRoutes(
         };
       }));
 
-      res.json({
+      const payload = {
         ...league,
         teams: teamsWithStandingsAndCoach,
         conferences: leagueConferences,
-      });
+      };
+      cacheSet(cacheKey, payload, 45_000);
+      res.json(payload);
     } catch (error) {
       console.error("Failed to fetch league:", error);
       res.status(500).json({ message: "Failed to fetch league" });
@@ -6611,61 +6621,105 @@ export async function registerRoutes(
   // Schedule routes
   app.get("/api/leagues/:id/schedule", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
-      if (!league) {
-        return res.status(404).json({ message: "League not found" });
-      }
+      const leagueId = req.params.id as string;
+      const scheduleCacheKey = leagueCacheKey(leagueId, "schedule");
 
-      const leagueGames = await storage.getGamesByLeague(league.id);
-      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      type ScheduleShared = {
+        games: unknown[];
+        currentWeek: number;
+        currentSeason: number;
+        currentPhase: string;
+        humanTeamIds: string[];
+        humanCoachNames: Record<string, string>;
+        reportsByGameId: Record<string, unknown>;
+        coachTeamMap: Record<string, string>;
+        commissionerUserIds: string[];
+      };
 
-      const gamesWithTeams = leagueGames
-        .map((game) => ({
-          ...game,
-          homeTeam: leagueTeams.find((t) => t.id === game.homeTeamId),
-          awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
-        }))
-        .filter((g) => g.homeTeam != null && g.awayTeam != null);
+      let shared = cacheGet<ScheduleShared>(scheduleCacheKey);
 
-      const coaches = await storage.getCoachesByLeague(league.id);
-      const coach = coaches.find(c => c.userId === req.session.userId);
-      const userTeam = coach ? leagueTeams.find(t => t.id === coach.teamId) : null;
-
-      const humanTeamIds = leagueTeams.filter(t => !t.isCpu).map(t => t.id);
-      // Map human team IDs to their coach last names for H2H badge display
-      const humanCoachNames: Record<string, string> = {};
-      for (const c of coaches) {
-        if (c.teamId && humanTeamIds.includes(c.teamId)) {
-          humanCoachNames[c.teamId] = `${c.firstName} ${c.lastName}`;
+      if (!shared) {
+        const league = await storage.getLeague(leagueId);
+        if (!league) {
+          return res.status(404).json({ message: "League not found" });
         }
+
+        const [leagueGames, leagueTeams, coaches, gameReportsList] = await Promise.all([
+          storage.getGamesByLeague(league.id),
+          storage.getTeamsByLeague(league.id),
+          storage.getCoachesByLeague(league.id),
+          storage.getGameReportsByLeague(league.id),
+        ]);
+
+        const gamesWithTeams = leagueGames
+          .map((game) => ({
+            ...game,
+            homeTeam: leagueTeams.find((t) => t.id === game.homeTeamId),
+            awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
+          }))
+          .filter((g) => g.homeTeam != null && g.awayTeam != null);
+
+        const humanTeamIds = leagueTeams.filter(t => !t.isCpu).map(t => t.id);
+        const humanCoachNames: Record<string, string> = {};
+        const coachTeamMap: Record<string, string> = {};
+        for (const c of coaches) {
+          if (c.teamId) {
+            coachTeamMap[c.userId ?? ""] = c.teamId;
+            if (humanTeamIds.includes(c.teamId)) {
+              humanCoachNames[c.teamId] = `${c.firstName} ${c.lastName}`;
+            }
+          }
+        }
+
+        const reportsByGameId = Object.fromEntries(
+          gameReportsList.map(r => [r.gameId, {
+            id: r.id,
+            gameId: r.gameId,
+            status: r.status,
+            reporterUserId: r.reporterUserId,
+            reporterTeamId: r.reporterTeamId,
+            homeScore: r.homeScore,
+            awayScore: r.awayScore,
+            disputeReason: r.disputeReason,
+            createdAt: r.createdAt,
+          }])
+        );
+
+        const commissionerUserIds: string[] = [];
+        if (league.commissionerId) commissionerUserIds.push(league.commissionerId);
+        const coIds = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+        for (const coId of coIds) {
+          if (coId && !commissionerUserIds.includes(coId)) commissionerUserIds.push(coId);
+        }
+
+        shared = {
+          games: gamesWithTeams,
+          currentWeek: league.currentWeek,
+          currentSeason: league.currentSeason,
+          currentPhase: league.currentPhase,
+          humanTeamIds,
+          humanCoachNames,
+          reportsByGameId,
+          coachTeamMap,
+          commissionerUserIds,
+        };
+        cacheSet(scheduleCacheKey, shared, 30_000);
       }
-      const gameReportsList = await storage.getGameReportsByLeague(league.id);
-      // Narrow report payload: only expose status-level fields needed by schedule UI
-      // (avoid leaking full box score data to all league members)
-      const reportsByGameId = Object.fromEntries(
-        gameReportsList.map(r => [r.gameId, {
-          id: r.id,
-          gameId: r.gameId,
-          status: r.status,
-          reporterUserId: r.reporterUserId,
-          reporterTeamId: r.reporterTeamId,
-          homeScore: r.homeScore,
-          awayScore: r.awayScore,
-          disputeReason: r.disputeReason,
-          createdAt: r.createdAt,
-        }])
-      );
+
+      const userId = req.session.userId ?? "";
+      const userTeamId = shared.coachTeamMap[userId] || null;
+      const isCommissioner = shared.commissionerUserIds.includes(userId);
 
       res.json({
-        games: gamesWithTeams,
-        currentWeek: league.currentWeek,
-        currentSeason: league.currentSeason,
-        currentPhase: league.currentPhase,
-        userTeamId: userTeam?.id || null,
-        humanTeamIds,
-        humanCoachNames,
-        reportsByGameId,
-        isCommissioner: hasCommissionerAccess(league, req.session.userId),
+        games: shared.games,
+        currentWeek: shared.currentWeek,
+        currentSeason: shared.currentSeason,
+        currentPhase: shared.currentPhase,
+        userTeamId,
+        humanTeamIds: shared.humanTeamIds,
+        humanCoachNames: shared.humanCoachNames,
+        reportsByGameId: shared.reportsByGameId,
+        isCommissioner,
       });
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -6906,6 +6960,7 @@ export async function registerRoutes(
         details: `Final: ${awayScore} - ${homeScore}`,
       });
 
+      invalidateLeague(patchLeagueId);
       res.json(game);
     } catch (error) {
       console.error("Failed to update game:", error);
@@ -7305,6 +7360,7 @@ export async function registerRoutes(
         confirmedByUserId: req.session.userId,
       });
 
+      invalidateLeague(leagueId);
       res.json({ message: "Report confirmed and game finalized" });
     } catch (error) {
       console.error("Failed to confirm game report:", error);
@@ -7402,6 +7458,7 @@ export async function registerRoutes(
         details: `Commissioner finalized: ${report.awayScore}-${report.homeScore}`,
       });
 
+      invalidateLeague(leagueId);
       res.json({ message: "Game finalized by commissioner" });
     } catch (error) {
       console.error("Failed to finalize game report:", error);
@@ -9300,6 +9357,8 @@ export async function registerRoutes(
         return res.status(409).json({ message: "League advance already in progress. Please wait." });
       }
       advancingLeagues.add(leagueId);
+      // Invalidate server cache immediately so data doesn't serve stale content after advance
+      invalidateLeague(leagueId);
 
       setAdvanceProgress(leagueId, "initializing", 5);
       // Auto-clear progress and lock once the response is fully sent
@@ -16135,6 +16194,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Season can only be advanced during offseason phase" });
       }
       
+      invalidateLeague(league.id);
       const transitionResult = await performSeasonTransition(league.id, league.currentSeason);
       
       const updatedLeague = await storage.updateLeague(league.id, {
