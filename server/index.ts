@@ -455,6 +455,34 @@ app.use((req, res, next) => {
     }
   })();
 
+  // v4: targeted direct fix for known players whose pitch values were wrong before v3.
+  // Uses player name directly — no team-name key matching required.
+  void (async () => {
+    try {
+      const { rows: check } = await pool.query<{ key: string }>(`
+        SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v4'
+      `);
+      if (check.length > 0) return;
+
+      // Aidan King (Florida) — pitchVSL should be 4, pitchSNK should be 4
+      const { rowCount: aidanFix } = await pool.query(`
+        UPDATE players SET pitch_vsl = 4
+        WHERE first_name = 'Aidan' AND last_name = 'King'
+          AND position = 'P' AND pitch_vsl != 4
+      `);
+
+      await pool.query(`
+        INSERT INTO _startup_migrations (key)
+        VALUES ('real-roster-pitch-sync-v4')
+        ON CONFLICT (key) DO NOTHING
+      `);
+
+      console.log(`[startup-migration] real-roster-pitch-sync-v4: Aidan King pitch_vsl fixed for ${aidanFix ?? 0} row(s)`);
+    } catch (e) {
+      console.warn("[startup-migration] real-roster-pitch-sync-v4 failed:", e);
+    }
+  })();
+
   // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
   app.use('/__mockup', (req, res) => {
     const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;
