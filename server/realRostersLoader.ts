@@ -24,6 +24,9 @@ export async function getRealRosters(): Promise<RosterCache> {
     };
     _loading = null;
     return _cache;
+  }).catch(err => {
+    _loading = null;
+    throw err;
   });
   return _loading;
 }
