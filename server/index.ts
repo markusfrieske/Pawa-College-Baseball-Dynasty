@@ -106,48 +106,31 @@ app.use((req, res, next) => {
     }
   });
 
-  // pitch_ch constraints — clamp first, then add constraint (must be sequential per table)
-  await Promise.allSettled([
-    (async () => {
-      await pool.query("UPDATE players SET pitch_ch = 1 WHERE pitch_ch > 1");
+  // One-time migration: drop binary CHECK constraints on pitch_ch so it can now
+  // hold values 1-7 (rated scale) instead of only 0 or 1.
+  void (async () => {
+    try {
       await pool.query(`
-        DO $$ BEGIN
-          IF NOT EXISTS (
-            SELECT 1 FROM pg_constraint c
-            JOIN pg_class t ON t.oid = c.conrelid
-            JOIN pg_namespace n ON n.oid = t.relnamespace
-            WHERE c.conname = 'players_pitch_ch_binary'
-              AND t.relname = 'players'
-              AND n.nspname = 'public'
-          ) THEN
-            ALTER TABLE players ADD CONSTRAINT players_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
-          END IF;
-        END $$;
+        CREATE TABLE IF NOT EXISTS _startup_migrations (
+          key text PRIMARY KEY,
+          ran_at timestamp DEFAULT now()
+        )
       `);
-    })(),
-    (async () => {
-      await pool.query("UPDATE recruits SET pitch_ch = 1 WHERE pitch_ch > 1");
-      await pool.query(`
-        DO $$ BEGIN
-          IF NOT EXISTS (
-            SELECT 1 FROM pg_constraint c
-            JOIN pg_class t ON t.oid = c.conrelid
-            JOIN pg_namespace n ON n.oid = t.relnamespace
-            WHERE c.conname = 'recruits_pitch_ch_binary'
-              AND t.relname = 'recruits'
-              AND n.nspname = 'public'
-          ) THEN
-            ALTER TABLE recruits ADD CONSTRAINT recruits_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
-          END IF;
-        END $$;
+      const { rows } = await pool.query(`
+        INSERT INTO _startup_migrations (key)
+        VALUES ('drop-pitch-ch-binary-v1')
+        ON CONFLICT (key) DO NOTHING
+        RETURNING key
       `);
-    })(),
-  ]).then(results => {
-    const failed = results.filter(r => r.status === "rejected");
-    if (failed.length > 0) {
-      failed.forEach(r => console.warn("[startup-migration] pitch_ch constraint failed:", (r as PromiseRejectedResult).reason));
+      if (rows.length === 0) return; // already ran
+
+      await pool.query("ALTER TABLE players  DROP CONSTRAINT IF EXISTS players_pitch_ch_binary");
+      await pool.query("ALTER TABLE recruits DROP CONSTRAINT IF EXISTS recruits_pitch_ch_binary");
+      console.log("[startup-migration] drop-pitch-ch-binary-v1: pitch_ch binary constraints dropped");
+    } catch (e) {
+      console.warn("[startup-migration] drop-pitch-ch-binary-v1 failed:", e);
     }
-  });
+  })();
 
   // One-time pitch_spl → pitch_vsl migration.
   // When Task #1133 renamed Splitter → Vertical Slider, the pitchMix() helper in
