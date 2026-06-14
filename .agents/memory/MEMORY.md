@@ -3,3 +3,4 @@
 - [Iterative rank calibration](iterative-rank-calibration.md) — binary-search scale factor calibration must simulate H-P balance overrides to avoid rank gaps; linear targetOVR/rawOVR formula causes non-linear drift.
 - [Pitcher gem/bust/blueChip OVR convergence](pitcher-gem-bust-ovr.md) — stamina, ability tier selection, and fallback order all interact with calculateOVR; retry loops alone can't converge without correct stam/ability constraints.
 - [Pitcher common attr PP mapping](pitcher-common-attrs-pp.md) — confirmed PP→attr mapping and derivation formulas; cap at 85; MEAN_MAX now 307.
+- [Startup DB lock contention](startup-db-lock.md) — ALTER TABLE players in allSettled can queue behind autovacuum AccessExclusiveLock; resolves without code changes but may delay startup 2-3 min under load.
