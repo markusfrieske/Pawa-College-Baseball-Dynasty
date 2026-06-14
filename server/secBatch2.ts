@@ -455,7 +455,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "vs. Strong Batters"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
     // Ryan Hetzler — JR closer, hard fastball
     { firstName: "Ryan", lastName: "Hetzler", position: "P", eligibility: "JR", homeState: "GA", hometown: "Cumming", jerseyNumber: 39,
       hitForAvg: 11, power: 9, speed: 32, arm: 59, fielding: 34, errorResistance: 46, velocity: 59, control: 51, stamina: 55, stuff: 56,
@@ -712,7 +712,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Natural Shuuto"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 0, 0, 0, 4]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]) },
     // Joe Nottingham — FR RHP #20, appeared in SBA data
     { firstName: "Joe", lastName: "Nottingham", position: "P", eligibility: "FR", homeState: "GA", hometown: "Rome", jerseyNumber: 20,
       hitForAvg: 8, power: 7, speed: 26, arm: 38, fielding: 20, errorResistance: 30, velocity: 42, control: 38, stamina: 37, stuff: 42,

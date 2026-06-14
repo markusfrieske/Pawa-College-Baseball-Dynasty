@@ -407,7 +407,7 @@ import type { RealPlayer } from "./realRosters";
         abilities: ["Natural Shuuto"], potential: "B", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        pitchFB: 1, pitch2S: 1, pitchSL: 0, pitchCB: 0, pitchCH: 1, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 4 },
+        pitchFB: 1, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 1, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 4 },
     { firstName: "Colton", lastName: "Sundloff", position: "P", eligibility: "JR", homeState: "NV", hometown: "Henderson", jerseyNumber: 5,
         hitForAvg: 15, power: 7, speed: 26, arm: 27, fielding: 29, errorResistance: 45, velocity: 37, control: 42, stamina: 41, stuff: 44,
         clutch: 35, vsLHP: 38, grit: 33, stealing: 6, running: 30, throwing: 59, recovery: 35, wRISP: 34, vsLefty: 33, poise: 37, heater: 36, agile: 40,

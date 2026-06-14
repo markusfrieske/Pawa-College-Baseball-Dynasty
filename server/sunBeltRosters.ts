@@ -1551,7 +1551,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 52, vsLHP: 50, grit: 54, stealing: 10, running: 37, throwing: 60, recovery: 39, wRISP: 38, vsLefty: 41, poise: 41, heater: 47, agile: 45,
       abilities: ["Constant Speed", "Heavy Ball", "Sharpness"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 0, 0, 0, 3]) },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 3]) },
     { firstName: "Jaxon", lastName: "Harris", position: "P", eligibility: "SR", homeState: "GA", hometown: "Decatur", jerseyNumber: 38,
       hitForAvg: 15, power: 10, speed: 32, arm: 43, fielding: 30, errorResistance: 43, velocity: 48, control: 43, stamina: 86, stuff: 41,
       clutch: 53, vsLHP: 49, grit: 55, stealing: 10, running: 32, throwing: 56, recovery: 38, wRISP: 38, vsLefty: 39, poise: 41, heater: 43, agile: 41,

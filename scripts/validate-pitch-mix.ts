@@ -46,6 +46,9 @@ import {
   pitchCountForTier,
   qualityTierFromOvr,
   qualityTierFromStars,
+  checkPitchDirectionViolations,
+  PITCH_DIRECTION_GROUPS,
+  type PitchMix,
   type PitcherArchetype,
   type QualityTier,
 } from "../server/pitchMixHelpers";
@@ -543,6 +546,143 @@ console.log(
   `  ✓ generateRecruitClass: ${CLASS_RUNS} runs × ${CLASS_SIZE} recruits — `
   + `all pitcher final objects at or below tier cap`
 );
+
+// ─── Section 6: Pitch-direction group rule ───────────────────────────────────
+//
+// Checks that no real-roster pitcher carries 3+ pitches from the same movement
+// group.  Having three downward-movers (e.g. SNK + VSL + FK) or three sweepers
+// is exploitable and was the source of the 68-violation audit.
+//
+// Movement groups (defined in server/pitchMixHelpers.ts):
+//   DROP  — downward/sinker movement:  SNK, VSL, FK, SFF, SPL
+//   SWEEP — horizontal sweeping:       SL, HSL, SWP, CT
+//   RUN   — arm-side run/fade:         SHU, CH, CCH, 2S
+//
+// All 17 pitch fields that can appear on a real-roster player are checked.
+// Generated recruits are covered by a separate sub-check below (using the same
+// generateRecruitClass runs already loaded in Section 5).
+
+console.log("\n── Pitch-direction group rule (real rosters) ──");
+
+// All pitch keys that appear in real roster files (superset of PITCH_FIELDS)
+const ALL_PITCH_KEYS: (keyof PitchMix)[] = [
+  "pitchFB", "pitch2S", "pitchSL", "pitchCB", "pitchCH",
+  "pitchCT", "pitchSNK", "pitchSPL", "pitchVSL", "pitchFK",
+  "pitchSFF", "pitchSHU", "pitchCCH", "pitchHSL", "pitchSWP",
+  "pitchKN", "pitchSCB", "pitchPCB",
+];
+
+interface DirectionViolation {
+  file: string;
+  team: string;
+  player: string;
+  group: string;
+  active: string[];
+}
+
+const directionViolations: DirectionViolation[] = [];
+
+for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
+  for (const [teamName, players] of Object.entries(rosters)) {
+    for (const player of players) {
+      if (!PITCHER_POSITIONS.has(player.position)) continue;
+      const playerName = `${player.firstName} ${player.lastName}`;
+      const raw = player as unknown as Record<string, unknown>;
+
+      // Build a PitchMix from the raw roster fields (unknown keys default to 0)
+      const mix = {} as Record<string, number>;
+      for (const key of ALL_PITCH_KEYS) {
+        mix[key] = typeof raw[key] === "number" ? (raw[key] as number) : 0;
+      }
+
+      const msgs = checkPitchDirectionViolations(mix as unknown as PitchMix);
+      for (const msg of msgs) {
+        // Extract the group name from the message prefix (e.g. "DROP group …")
+        const group = msg.split(" ")[0];
+        const groupKeys = PITCH_DIRECTION_GROUPS[group] ?? [];
+        const active = groupKeys.filter(k => (mix[k as string] ?? 0) > 0).map(String);
+        directionViolations.push({ file: fileName, team: teamName, player: playerName, group, active });
+      }
+    }
+  }
+}
+
+if (directionViolations.length > 0) {
+  console.error(`\n✗ Found ${directionViolations.length} pitch-direction violation(s):\n`);
+
+  const byFile = new Map<string, DirectionViolation[]>();
+  for (const v of directionViolations) {
+    if (!byFile.has(v.file)) byFile.set(v.file, []);
+    byFile.get(v.file)!.push(v);
+  }
+
+  for (const [file, fileViolations] of byFile) {
+    console.error(`  [${file}]`);
+    for (const v of fileViolations) {
+      console.error(`    ${v.team} / ${v.player}: ${v.group} group — ${v.active.join(", ")}`);
+    }
+  }
+
+  console.error(`
+Fix: remove one of the flagged pitches so no movement group has 3+ members.
+     Groups — DROP: SNK/VSL/FK/SFF/SPL  |  SWEEP: SL/HSL/SWP/CT  |  RUN: SHU/CH/CCH/2S
+`);
+  process.exit(1);
+}
+
+console.log(`  ✓ All real-roster pitchers pass the pitch-direction group rule (max 2 per group)`);
+
+// ── Sub-check: generated recruit classes ─────────────────────────────────────
+//
+// Verify the archetype pools don't accidentally produce 3+ pitches from the
+// same movement group.  Re-uses CLASS_RUNS × CLASS_SIZE from Section 5 by
+// generating fresh classes here (the Section 5 loop was local and not saved).
+
+console.log("\n── Pitch-direction group rule (generated recruits) ──");
+
+const GEN_RUNS  = 10;
+const GEN_SIZE  = 80;
+let genDirErrors = 0;
+
+interface GenDirViolation {
+  run: number;
+  stars: number;
+  group: string;
+  active: string[];
+}
+
+const genDirViolations: GenDirViolation[] = [];
+
+for (let run = 0; run < GEN_RUNS; run++) {
+  const recruits = generateRecruitClass(GEN_SIZE);
+  for (const recruit of recruits) {
+    if (!PITCHER_POS.has(recruit.position ?? "")) continue;
+    const raw = recruit as unknown as Record<string, unknown>;
+    const mix = {} as Record<string, number>;
+    for (const key of RECRUIT_PITCH_FIELDS) {
+      mix[key] = typeof raw[key] === "number" ? (raw[key] as number) : 0;
+    }
+    const msgs = checkPitchDirectionViolations(mix as unknown as PitchMix);
+    for (const msg of msgs) {
+      const group = msg.split(" ")[0];
+      const groupKeys = PITCH_DIRECTION_GROUPS[group] ?? [];
+      const active = groupKeys.filter(k => (mix[k as string] ?? 0) > 0).map(String);
+      genDirViolations.push({ run: run + 1, stars: recruit.starRating ?? 3, group, active });
+    }
+  }
+}
+
+if (genDirViolations.length > 0) {
+  genDirErrors++;
+  console.error(`  ✗ ${genDirViolations.length} generated pitcher(s) violated the pitch-direction rule:\n`);
+  for (const v of genDirViolations) {
+    console.error(`    run ${v.run}: ${v.stars}★ recruit — ${v.group} group (${v.active.join(", ")})`);
+  }
+  console.error();
+  process.exit(1);
+}
+
+console.log(`  ✓ ${GEN_RUNS} × ${GEN_SIZE} generated recruits — all pitchers pass the pitch-direction group rule`);
 
 console.log("\n✓ All pitcher pitch-mix fields are valid.");
 process.exit(0);

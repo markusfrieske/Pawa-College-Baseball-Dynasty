@@ -273,48 +273,53 @@ type PoolEntry = [keyof PitchMix, number];
  */
 const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
   // Power starter — Gerrit Cole, Spencer Strider profile
-  // FB dominant, SL as identity pitch, CB secondary, occasional CH or CT
+  // FB dominant, SL as identity pitch, CB secondary, occasional CH or HSL.
+  // CT removed: it belongs to cutter_pitcher; keeping it here would allow
+  // SL+HSL+CT (3 SWEEP pitches) in elite arsenals.
   power_starter: [
     ["pitchSL",  85], ["pitchCB",  65], ["pitchVSL", 35],
     ["pitchPCB", 30], ["pitchCH",  25], ["pitchHSL", 20],
-    ["pitchCT",  15],
   ],
 
   // Command lefty — Kershaw, Sale, Sandoval profile
-  // Deceptive lefties living off CH/CB combos; 2S for early count; CCH is lefty specialty
+  // Deceptive lefties living off CH/CB combos; 2S for early count.
+  // CCH removed: keeping CH+CCH+2S (3 RUN pitches) could fire in 4-5 pitch
+  // arsenals; CH and 2S are the more typical command-lefty RUN choices.
   command_lefty: [
     ["pitchCH",  70], ["pitchCB",  55], ["pitchSL",  45],
-    ["pitch2S",  30], ["pitchCCH", 25], ["pitchSCB", 20],
-    ["pitchSNK", 15],
+    ["pitch2S",  30], ["pitchSCB", 20], ["pitchSNK", 15],
   ],
 
   // Sinkerballer — Framber Valdez, Greinke profile
-  // Ground-ball inducers pairing SNK with cutter/slider shapes; SHU for arm-side movement
+  // Ground-ball inducers pairing SNK with CT/HSL shapes; SHU for arm-side.
+  // SL removed: CT+SL+HSL would produce 3 SWEEP pitches; CT+HSL is sufficient.
   sinkerballer: [
-    ["pitchSNK", 75], ["pitchCT",  50], ["pitchSL",  35],
-    ["pitchHSL", 30], ["pitch2S",  25], ["pitchSHU", 20],
+    ["pitchSNK", 75], ["pitchCT",  50], ["pitchHSL", 30],
+    ["pitch2S",  25], ["pitchSHU", 20],
   ],
 
   // Sweeper specialist — Corbin Burnes, Bryce Miller, George Kirby profile
-  // Modern pitch-design arms built around horizontal sweeper movement
+  // Modern pitch-design arms built around horizontal sweeper movement.
+  // SL removed: SWP+SL+HSL would be 3 SWEEP pitches; SWP+HSL is the right duo.
   sweeper_specialist: [
     ["pitchSWP", 85], ["pitchVSL", 55], ["pitchCB",  40],
-    ["pitchCH",  30], ["pitchSL",  25], ["pitchHSL", 20],
+    ["pitchCH",  30], ["pitchHSL", 20],
   ],
 
   // Cutter pitcher — Lance Lynn, Mariano Rivera era profile
-  // CT as primary weapon; HSL lives between cutter and slider
+  // CT as primary weapon; HSL lives between cutter and slider.
+  // SL removed: CT+HSL+SL would be 3 SWEEP pitches; CT+HSL is the cutter duo.
   cutter_pitcher: [
-    ["pitchCT",  80], ["pitchHSL", 60], ["pitchSL",  40],
-    ["pitchSNK", 25], ["pitchCH",  20], ["pitchCB",  15],
+    ["pitchCT",  80], ["pitchHSL", 60], ["pitchSNK", 25],
+    ["pitchCH",  20], ["pitchCB",  15],
   ],
 
   // Junkball — Jamie Moyer, soft-tosser profile
-  // Survive via deception and variety; FK is binary (0 or 1) but allowed here
+  // Survive via deception and variety; FK is binary (0 or 1) but allowed here.
+  // SHU removed: CH+CCH+SHU would be 3 RUN pitches; CH+CCH are the junk core.
   junkball: [
     ["pitchCB",  55], ["pitchCH",  45], ["pitchSCB", 35],
-    ["pitchCCH", 30], ["pitchSHU", 25], ["pitchSL",  20],
-    ["pitchFK",  15],
+    ["pitchCCH", 30], ["pitchSL",  20], ["pitchFK",  15],
   ],
 
   // Reliever — Edwin Díaz, Josh Hader, Félix Bautista profile
@@ -336,6 +341,42 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 const BINARY_PITCH_KEYS = new Set<keyof PitchMix>([
   "pitchFB", "pitch2S", "pitchFK", "pitchSFF", "pitchKN",
 ]);
+
+// ─── Pitch-direction movement groups ─────────────────────────────────────────
+//
+// Having 3+ pitches from the same movement group creates an exploitable
+// arsenal (batter can key on the single movement plane).  The rule is:
+//   fail if any pitcher has 3+ active pitches from DROP, SWEEP, or RUN.
+//
+// DROP  — downward/sinker movement:  SNK, VSL, FK, SFF, SPL
+// SWEEP — horizontal sweeping:       SL, HSL, SWP, CT
+// RUN   — arm-side run/fade:         SHU, CH, CCH, 2S
+//
+// FB, CB, SCB, PCB, KN are intentionally excluded from all groups: they are
+// either universal anchors (FB/CB) or specialty variants that don't cluster.
+
+export const PITCH_DIRECTION_GROUPS: Record<string, (keyof PitchMix)[]> = {
+  DROP:  ["pitchSNK", "pitchVSL", "pitchFK", "pitchSFF", "pitchSPL"],
+  SWEEP: ["pitchSL",  "pitchHSL", "pitchSWP", "pitchCT"],
+  RUN:   ["pitchSHU", "pitchCH",  "pitchCCH", "pitch2S"],
+};
+
+/**
+ * Assert that the given PitchMix does not have 3+ pitches from any single
+ * movement group.  Returns an array of violation strings (empty = valid).
+ */
+export function checkPitchDirectionViolations(mix: PitchMix): string[] {
+  const violations: string[] = [];
+  for (const [group, keys] of Object.entries(PITCH_DIRECTION_GROUPS)) {
+    const active = keys.filter(k => (mix[k] ?? 0) > 0);
+    if (active.length >= 3) {
+      violations.push(
+        `${group} group has ${active.length} active pitches (${active.join(", ")}); max is 2`,
+      );
+    }
+  }
+  return violations;
+}
 
 /**
  * Generate a PitchMix for a pitcher based on their archetype and quality tier.

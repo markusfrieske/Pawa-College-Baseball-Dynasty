@@ -596,7 +596,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 78, vsLHP: 77, grit: 60, stealing: 17, running: 43, throwing: 78, recovery: 60, wRISP: 60, vsLefty: 60, poise: 60, heater: 60, agile: 54,
       abilities: ["Gyroball", "Escape Pitch", "Heavy Ball", "Release"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
     { firstName: "Logan", lastName: "Eisenreich", position: "P", eligibility: "SO", homeState: "VA", hometown: "Blacksburg", jerseyNumber: 29,
       hitForAvg: 17, power: 13, speed: 32, arm: 44, fielding: 27, errorResistance: 39, velocity: 49, control: 40, stamina: 77, stuff: 39,
       clutch: 50, vsLHP: 48, grit: 52, stealing: 11, running: 32, throwing: 58, recovery: 35, wRISP: 35, vsLefty: 37, poise: 38, heater: 44, agile: 37,
