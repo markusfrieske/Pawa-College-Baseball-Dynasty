@@ -684,5 +684,93 @@ if (genDirViolations.length > 0) {
 
 console.log(`  ✓ ${GEN_RUNS} × ${GEN_SIZE} generated recruits — all pitchers pass the pitch-direction group rule`);
 
+// ─── Section 7: Extended pitch type distribution in generated classes ─────────
+//
+// Confirms that the extended pitch types added to generateArchetypePitchMix
+// (pitchVSL, pitchHSL, pitchSWP, pitchCCH, pitchSCB, pitchPCB, pitchKN)
+// actually appear in generated recruit classes at plausible rates.
+//
+// A "plausible minimum" of 1% is enforced: if an extended type never fires
+// across 10 × 80 recruits it means the pool entry is dead code (or the type
+// was removed from the pool by accident).
+//
+// The distribution report is informational; only the presence threshold is
+// asserted (process.exit(1) on failure).
+
+console.log("\n── Extended pitch type distribution (generated recruits) ──");
+
+// Use 50 runs for robust stochastic coverage.
+// pitchKN is intentionally rare (2% roll on SP/P only) so it needs a larger
+// sample and a lower presence threshold than common extended types.
+const EXT_RUNS = 50;
+const EXT_SIZE = 80;
+
+const EXTENDED_PITCH_LABELS: Record<string, string> = {
+  pitchVSL: "VSL (Vertical Slider)",
+  pitchHSL: "HSL (Hard/High Slider)",
+  pitchSWP: "SWP (Sweeper)",
+  pitchCCH: "CCH (Circle Changeup)",
+  pitchSCB: "SCB (Screwball)",
+  pitchPCB: "PCB (Power Curveball)",
+  pitchKN:  "KN  (Knuckleball)",
+};
+
+// Per-type minimum presence thresholds.
+// Common extended types (appear in 2–5 archetype pools): ≥3%.
+// Rare (1–2 pools, low weight): ≥0.5%.
+// KN: guaranteed only for knuckleballer archetype (2% roll on SP/P only); ≥0.2%.
+const EXT_MIN_PCT: Record<string, number> = {
+  pitchVSL: 3.0,
+  pitchHSL: 3.0,
+  pitchSWP: 3.0,  // guaranteed for sweeper_specialist so should be ≥5%
+  pitchCCH: 0.5,
+  pitchSCB: 0.5,
+  pitchPCB: 0.5,
+  pitchKN:  0.2,
+};
+
+const extCounts: Record<string, number> = {
+  pitchVSL: 0, pitchHSL: 0, pitchSWP: 0,
+  pitchCCH: 0, pitchSCB: 0, pitchPCB: 0, pitchKN: 0,
+};
+let extPitcherTotal = 0;
+
+for (let run = 0; run < EXT_RUNS; run++) {
+  const recruits = generateRecruitClass(EXT_SIZE);
+  for (const recruit of recruits) {
+    if (!PITCHER_POS.has(recruit.position ?? "")) continue;
+    extPitcherTotal++;
+    const raw = recruit as unknown as Record<string, unknown>;
+    for (const key of Object.keys(extCounts)) {
+      if (typeof raw[key] === "number" && (raw[key] as number) > 0) {
+        extCounts[key]++;
+      }
+    }
+  }
+}
+
+console.log(`  ${extPitcherTotal} total generated pitchers across ${EXT_RUNS} × ${EXT_SIZE} classes\n`);
+
+let extErrors = 0;
+
+for (const [key, label] of Object.entries(EXTENDED_PITCH_LABELS)) {
+  const n = extCounts[key];
+  const pct = extPitcherTotal > 0 ? (n / extPitcherTotal) * 100 : 0;
+  const minPct = EXT_MIN_PCT[key] ?? 0.5;
+  const mark = pct >= minPct ? "✓" : "✗";
+  console.log(`  ${mark} ${label.padEnd(28)} ${String(n).padStart(4)} pitchers  (${pct.toFixed(1).padStart(5)}%)  min=${minPct}%`);
+  if (pct < minPct) extErrors++;
+}
+
+if (extErrors > 0) {
+  console.error(
+    `\n✗ ${extErrors} extended pitch type(s) below their presence threshold.` +
+    `\n  Check ARCHETYPE_POOLS / ARCHETYPE_GUARANTEED in server/pitchMixHelpers.ts.\n`
+  );
+  process.exit(1);
+}
+
+console.log(`\n  ✓ All ${Object.keys(extCounts).length} extended pitch types meet their presence thresholds`);
+
 console.log("\n✓ All pitcher pitch-mix fields are valid.");
 process.exit(0);

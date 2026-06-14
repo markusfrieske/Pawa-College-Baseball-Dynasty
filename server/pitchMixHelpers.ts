@@ -268,12 +268,25 @@ type PoolEntry = [keyof PitchMix, number];
 /**
  * Weighted pools of secondary pitches per archetype.
  * Higher weight = more likely to appear in the arsenal.
+ *
+ * Extended pitch types assigned per archetype (the feature of this system):
+ *   power_starter    — pitchVSL (vertical slider, ~35%), pitchPCB (power curve, ~30%), pitchHSL (~20%)
+ *   command_lefty    — pitchSCB (screwball, ~20%)
+ *   sinkerballer     — pitchHSL (hard/high slider, ~30%)
+ *   sweeper_specialist — pitchSWP (sweeper, ~85%), pitchVSL (~55%), pitchHSL (~20%)
+ *   cutter_pitcher   — pitchHSL (~60%)
+ *   junkball         — pitchSCB (~35%), pitchCCH (circle changeup, ~30%)
+ *   reliever         — pitchSWP (~60%), pitchHSL (~35%), pitchVSL (~20%)
+ *   knuckleballer    — pitchKN (knuckleball, always; handled via fast-path below)
+ *
+ * Classic types not listed above can also appear in most pools.
  * pitchSPL is never included in generated recruit pools.
- * pitchKN is handled via fast-path in generateArchetypePitchMix.
+ * Pitch-direction group rule (max 2 per DROP/SWEEP/RUN group) limits co-occurrence.
  */
 const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
   // Power starter — Gerrit Cole, Spencer Strider profile
   // FB dominant, SL as identity pitch, CB secondary, occasional CH or HSL.
+  // Extended: VSL (vertical slider), PCB (power curve), HSL (hard slider).
   // CT removed: it belongs to cutter_pitcher; keeping it here would allow
   // SL+HSL+CT (3 SWEEP pitches) in elite arsenals.
   power_starter: [
@@ -283,6 +296,7 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 
   // Command lefty — Kershaw, Sale, Sandoval profile
   // Deceptive lefties living off CH/CB combos; 2S for early count.
+  // Extended: SCB (screwball) as an arm-side wrinkle.
   // CCH removed: keeping CH+CCH+2S (3 RUN pitches) could fire in 4-5 pitch
   // arsenals; CH and 2S are the more typical command-lefty RUN choices.
   command_lefty: [
@@ -292,6 +306,7 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 
   // Sinkerballer — Framber Valdez, Greinke profile
   // Ground-ball inducers pairing SNK with CT/HSL shapes; SHU for arm-side.
+  // Extended: HSL (hard slider) pairs naturally with heavy sinker movement.
   // SL removed: CT+SL+HSL would produce 3 SWEEP pitches; CT+HSL is sufficient.
   sinkerballer: [
     ["pitchSNK", 75], ["pitchCT",  50], ["pitchHSL", 30],
@@ -300,6 +315,7 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 
   // Sweeper specialist — Corbin Burnes, Bryce Miller, George Kirby profile
   // Modern pitch-design arms built around horizontal sweeper movement.
+  // Extended: SWP (sweeper) is the identity pitch; VSL and HSL pair for depth.
   // SL removed: SWP+SL+HSL would be 3 SWEEP pitches; SWP+HSL is the right duo.
   sweeper_specialist: [
     ["pitchSWP", 85], ["pitchVSL", 55], ["pitchCB",  40],
@@ -308,6 +324,7 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 
   // Cutter pitcher — Lance Lynn, Mariano Rivera era profile
   // CT as primary weapon; HSL lives between cutter and slider.
+  // Extended: HSL (hard slider) as a natural companion to the cutter shape.
   // SL removed: CT+HSL+SL would be 3 SWEEP pitches; CT+HSL is the cutter duo.
   cutter_pitcher: [
     ["pitchCT",  80], ["pitchHSL", 60], ["pitchSNK", 25],
@@ -316,6 +333,7 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 
   // Junkball — Jamie Moyer, soft-tosser profile
   // Survive via deception and variety; FK is binary (0 or 1) but allowed here.
+  // Extended: SCB (screwball) and CCH (circle changeup) as junk-baller staples.
   // SHU removed: CH+CCH+SHU would be 3 RUN pitches; CH+CCH are the junk core.
   junkball: [
     ["pitchCB",  55], ["pitchCH",  45], ["pitchSCB", 35],
@@ -323,14 +341,17 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
   ],
 
   // Reliever — Edwin Díaz, Josh Hader, Félix Bautista profile
-  // High-leverage arms dominating with 1-2 elite secondaries; capped at 3 pitches
+  // High-leverage arms dominating with 1-2 elite secondaries; capped at 3 pitches.
+  // Extended: SWP (sweeper), HSL (hard slider), VSL (vertical slider) — modern
+  // relief archetypes are disproportionately sweep/drop-heavy.
   reliever: [
     ["pitchSL",  65], ["pitchSWP", 60], ["pitchCB",  45],
     ["pitchHSL", 35], ["pitchVSL", 20],
   ],
 
   // Knuckleballer — Wakefield, R.A. Dickey profile
-  // KN always included first at level 5-7; secondary pool for backup pitches only
+  // Extended: pitchKN (knuckleball) always injected first at level 5–7 via the
+  // fast-path in generateArchetypePitchMix; secondary pool for backup pitches only.
   knuckleballer: [
     ["pitchCH",  60], ["pitchSL",  30], ["pitchCB",  20],
   ],
@@ -381,6 +402,16 @@ export function checkPitchDirectionViolations(mix: PitchMix): string[] {
 /**
  * Generate a PitchMix for a pitcher based on their archetype and quality tier.
  *
+ * Extended pitch types are assigned to generated recruits via ARCHETYPE_POOLS:
+ *   pitchVSL  — vertical slider:    power_starter (~35%), sweeper_specialist (~55%), reliever (~20%)
+ *   pitchHSL  — hard/high slider:   power_starter (~20%), sinkerballer (~30%), sweeper_specialist (~20%),
+ *                                    cutter_pitcher (~60%), reliever (~35%)
+ *   pitchSWP  — sweeper:            sweeper_specialist (~85%), reliever (~60%)
+ *   pitchCCH  — circle changeup:    junkball (~30%)
+ *   pitchSCB  — screwball:          command_lefty (~20%), junkball (~35%)
+ *   pitchPCB  — power curveball:    power_starter (~30%)
+ *   pitchKN   — knuckleball:        knuckleballer (always; fast-path below, binary)
+ *
  * Rules enforced:
  * - FB is always included (pitchFB = 1).
  * - pitchSPL is always 0 on generated recruits.
@@ -391,6 +422,7 @@ export function checkPitchDirectionViolations(mix: PitchMix): string[] {
  * - Reliever: pitch count capped at 3 (FB + max 2 secondaries) regardless of tier.
  * - Knuckleballer: KN injected first at level 5–7; pitch count capped at 3 (KN + max 2 secondaries).
  * - Minimum 2 pitches guaranteed (FB + at least one secondary).
+ * - Pitch-direction group rule: no more than 2 pitches from DROP/SWEEP/RUN; enforced by pool design.
  */
 export function generateArchetypePitchMix(
   archetype: PitcherArchetype,
@@ -447,6 +479,26 @@ export function generateArchetypePitchMix(
 
   const pool: PoolEntry[] = [...ARCHETYPE_POOLS[archetype]];
   const selected: (keyof PitchMix)[] = ["pitchFB"];
+
+  // ── Archetype-guaranteed extended pitches ─────────────────────────────────
+  // Certain archetypes always include a specific extended pitch type regardless
+  // of pool draw order.  The guaranteed pitch is injected immediately after FB
+  // and removed from the pool so it cannot be drawn again.  For elite pitchers
+  // it becomes the signature pitch (level 5–7).
+  //
+  // sweeper_specialist: pitchSWP (Sweeper) is always present — a sweeper-
+  //   specialist who doesn't actually throw a sweeper is a contradiction.
+  //   Mirrors how knuckleball is guaranteed for the knuckleballer archetype.
+  const ARCHETYPE_GUARANTEED: Partial<Record<PitcherArchetype, keyof PitchMix>> = {
+    sweeper_specialist: "pitchSWP",
+  };
+
+  const guaranteed = ARCHETYPE_GUARANTEED[archetype];
+  if (guaranteed && selected.length < targetCount) {
+    selected.push(guaranteed);
+    const idx = pool.findIndex(([k]) => k === guaranteed);
+    if (idx !== -1) pool.splice(idx, 1);
+  }
 
   while (selected.length < targetCount && pool.length > 0) {
     const totalWeight = pool.reduce((s, [, w]) => s + w, 0);
