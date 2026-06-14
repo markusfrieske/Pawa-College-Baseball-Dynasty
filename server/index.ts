@@ -951,6 +951,52 @@ app.use((req, res, next) => {
       .catch(e => console.warn("[startup-migration] real-roster-pitch-sync-v7 failed:", e));
   })();
 
+  // ── pitcher-common-attrs-v8 ────────────────────────────────────────────────
+  // Derives the 5 pitcher common attributes (heater, w_risp, vs_lefty, poise,
+  // recovery) from each pitcher's base attrs using the confirmed Power Pros
+  // grade mapping.  grit and agile are left unchanged (no reliable proxy).
+  //   heater   = cap85( gradeVal( velocity*0.6 + stuff*0.4 ) )
+  //   w_risp   = cap85( gradeVal( clutch ) )
+  //   vs_lefty = cap85( gradeVal( vs_lhp ) )
+  //   poise    = cap85( gradeVal( stuff ) )
+  //   recovery = cap85( gradeVal( (stamina + stuff) / 2 ) )
+  (() => {
+    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'pitcher-common-attrs-v8'`)
+      .then(({ rowCount }) => {
+        if ((rowCount ?? 0) > 0) return;
+        const gradeValSql = (expr: string) => `
+          LEAST(85, CASE
+            WHEN (${expr}) >= 80 THEN 85
+            WHEN (${expr}) >= 70 THEN 75
+            WHEN (${expr}) >= 60 THEN 65
+            WHEN (${expr}) >= 50 THEN 55
+            WHEN (${expr}) >= 40 THEN 45
+            WHEN (${expr}) >= 30 THEN 35
+            ELSE 20
+          END)`;
+        return pool.query(`
+          UPDATE players
+          SET
+            heater   = ${gradeValSql('velocity * 0.6 + stuff * 0.4')},
+            w_risp   = ${gradeValSql('clutch')},
+            vs_lefty = ${gradeValSql('vs_lhp')},
+            poise    = ${gradeValSql('stuff')},
+            recovery = ${gradeValSql('(stamina + stuff) / 2.0')}
+          WHERE position = 'P'
+            AND velocity > 0
+        `).then(({ rowCount: fixed }) => {
+          return pool.query(`
+            INSERT INTO _startup_migrations (key)
+            VALUES ('pitcher-common-attrs-v8')
+            ON CONFLICT (key) DO NOTHING
+          `).then(() => {
+            console.log(`[startup-migration] pitcher-common-attrs-v8: updated common attrs for ${fixed ?? 0} pitcher(s)`);
+          });
+        });
+      })
+      .catch(e => console.warn("[startup-migration] pitcher-common-attrs-v8 failed:", e));
+  })();
+
   // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
   app.use('/__mockup', (req, res) => {
     const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;

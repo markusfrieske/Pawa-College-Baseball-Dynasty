@@ -33,7 +33,7 @@ const BANDS: Band[] = [
 ];
 
 const MEAN_MIN = 265;
-const MEAN_MAX = 302;
+const MEAN_MAX = 307;
 
 const counts = new Array(BANDS.length).fill(0);
 let total = 0;
