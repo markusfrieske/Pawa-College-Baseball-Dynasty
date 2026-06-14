@@ -923,6 +923,34 @@ app.use((req, res, next) => {
     }
   })();
 
+  // ── real-roster-pitch-sync-v7 ─────────────────────────────────────────
+  // Rule: a pitcher can't have more than 2 pitches that move in the same
+  // downward direction.  SNK + VSL already fills the 2-slot quota, so any
+  // pitcher who also has FK=1 or SFF=1 violates the rule.
+  // Fix: zero out pitchFK and pitchSFF for all players with pitchVSL > 0.
+  (() => {
+    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v7'`)
+      .then(({ rowCount }) => {
+        if ((rowCount ?? 0) > 0) return;
+        return pool.query(`
+          UPDATE players
+          SET pitch_fk  = 0,
+              pitch_sff = 0
+          WHERE pitch_vsl > 0
+            AND (pitch_fk > 0 OR pitch_sff > 0)
+        `).then(({ rowCount: fixed }) => {
+          return pool.query(`
+            INSERT INTO _startup_migrations (key)
+            VALUES ('real-roster-pitch-sync-v7')
+            ON CONFLICT (key) DO NOTHING
+          `).then(() => {
+            console.log(`[startup-migration] real-roster-pitch-sync-v7: cleared pitch_fk/pitch_sff for ${fixed ?? 0} pitcher(s) with pitch_vsl > 0`);
+          });
+        });
+      })
+      .catch(e => console.warn("[startup-migration] real-roster-pitch-sync-v7 failed:", e));
+  })();
+
   // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
   app.use('/__mockup', (req, res) => {
     const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;

@@ -202,7 +202,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 55, vsLHP: 52, grit: 57, stealing: 13, running: 35, throwing: 66, recovery: 42, wRISP: 40, vsLefty: 42, poise: 43, heater: 50, agile: 41,
       abilities: ["Strikeout", "Natural Shuuto", "Groundball Pitcher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [1, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     // Aidan Keenan — SR RHP #24, starter/long reliever
     // FIXED: throwHand L→R, batHand L→R (real B/T = R/R); jersey 41→24; elig JR→SR
     { firstName: "Aidan", lastName: "Keenan", position: "P", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 24,
@@ -233,7 +233,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 35, vsLHP: 33, grit: 36, stealing: 8, running: 22, throwing: 41, recovery: 31, wRISP: 22, vsLefty: 23, poise: 32, heater: 36, agile: 26,
       abilities: ["Release"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     // David Wiser — SO RHP #48, bullpen arm
     // FIXED: throwHand L→R, batHand L→R (real B/T = R/R); elig FR→SO
     { firstName: "David", lastName: "Wiser", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 48,
@@ -407,7 +407,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "vs. Strong Batters", "Heavy Ball", "Walk"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Lucas Hartman — closer JR, 12 G (T-3rd nation), NPOY + SOY semi, Midseason 2nd Team All-Am — TEAM ELITE STUFF
       { firstName: "Lucas", lastName: "Hartman", position: "P", eligibility: "JR", homeState: "KY", hometown: "Bowling Green", jerseyNumber: 40,
         hitForAvg: 13, power: 10, speed: 32, arm: 64, fielding: 40, errorResistance: 54, velocity: 64, control: 55, stamina: 74, stuff: 69,
@@ -447,7 +447,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Sharpness"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Jayden Stroman — FR midweek SP — PG HM / Top-500 national (2.70 ERA / 16 K in 13.1 IP)
       { firstName: "Jayden", lastName: "Stroman", position: "P", eligibility: "FR", homeState: "VA", hometown: "Chesapeake", jerseyNumber: 48,
         hitForAvg: 14, power: 11, speed: 33, arm: 48, fielding: 22, errorResistance: 34, velocity: 55, control: 43, stamina: 34, stuff: 44,
@@ -602,13 +602,13 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 50, vsLHP: 48, grit: 52, stealing: 11, running: 32, throwing: 58, recovery: 35, wRISP: 35, vsLefty: 37, poise: 38, heater: 44, agile: 37,
       abilities: ["Strong Starter", "vs. Strong Batters", "Staredown"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     { firstName: "Aiden", lastName: "Robertson", position: "P", eligibility: "JR", homeState: "GA", hometown: "Augusta", jerseyNumber: 41,
       hitForAvg: 17, power: 14, speed: 32, arm: 49, fielding: 30, errorResistance: 42, velocity: 54, control: 45, stamina: 60, stuff: 45,
       clutch: 57, vsLHP: 55, grit: 58, stealing: 12, running: 31, throwing: 64, recovery: 42, wRISP: 42, vsLefty: 43, poise: 44, heater: 49, agile: 38,
       abilities: ["Wild Fastball", "Winner's Luck", "Crossfire"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
     { firstName: "Griffin", lastName: "Green", position: "P", eligibility: "JR", homeState: "VA", hometown: "Roanoke", jerseyNumber: 38,
       hitForAvg: 19, power: 16, speed: 33, arm: 53, fielding: 35, errorResistance: 47, velocity: 57, control: 51, stamina: 66, stuff: 49,
       clutch: 59, vsLHP: 57, grit: 60, stealing: 14, running: 36, throwing: 67, recovery: 44, wRISP: 44, vsLefty: 44, poise: 48, heater: 53, agile: 42,
@@ -638,7 +638,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 37, vsLHP: 36, grit: 40, stealing: 9, running: 26, throwing: 45, recovery: 25, wRISP: 24, vsLefty: 25, poise: 27, heater: 31, agile: 30,
       abilities: ["Sharpness", "Heavy Ball"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 0, 1, 4]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
     { firstName: "Ethan", lastName: "Grim", position: "P", eligibility: "FR", homeState: "VA", hometown: "Lynchburg", jerseyNumber: 47,
       hitForAvg: 11, power: 9, speed: 28, arm: 33, fielding: 18, errorResistance: 28, velocity: 41, control: 25, stamina: 9, stuff: 33,
       clutch: 33, vsLHP: 30, grit: 33, stealing: 11, running: 28, throwing: 48, recovery: 21, wRISP: 21, vsLefty: 22, poise: 22, heater: 33, agile: 33,
@@ -760,7 +760,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 55, vsLHP: 54, grit: 57, stealing: 13, running: 34, throwing: 64, recovery: 41, wRISP: 41, vsLefty: 42, poise: 42, heater: 51, agile: 41,
       abilities: ["Strong Starter", "Sharpness", "Full Throttle"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     { firstName: "Matthew", lastName: "Dallas", position: "P", eligibility: "JR", homeState: "NC", hometown: "Greensboro", jerseyNumber: 37,
       hitForAvg: 17, power: 14, speed: 32, arm: 48, fielding: 30, errorResistance: 42, velocity: 50, control: 47, stamina: 69, stuff: 45,
       clutch: 56, vsLHP: 54, grit: 57, stealing: 13, running: 32, throwing: 63, recovery: 41, wRISP: 41, vsLefty: 42, poise: 42, heater: 48, agile: 38,
@@ -802,7 +802,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 31, vsLHP: 30, grit: 33, stealing: 11, running: 28, throwing: 48, recovery: 20, wRISP: 19, vsLefty: 21, poise: 20, heater: 32, agile: 33,
       abilities: ["Release"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 3 },
+      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 3 },
     // CATCHERS (2)
     { firstName: "Jimmy", lastName: "Keenan", position: "C", eligibility: "SR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 12,
       hitForAvg: 52, power: 50, speed: 22, arm: 54, fielding: 53, errorResistance: 54, velocity: 0, control: 0, stamina: 30, stuff: 0,
@@ -931,7 +931,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Inside Pitch", "Staredown", "Fireman"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 1, 0, 4]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
       // Tyler Mudd — RHP, 11 GS, 3-3, 74 K in 47 IP
       { firstName: "Tyler", lastName: "Mudd", position: "P", eligibility: "JR", homeState: "MA", hometown: "Boston", jerseyNumber: 36,
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 58, control: 50, stamina: 77, stuff: 55,
@@ -939,7 +939,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "True Slider"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
       // Sean Hard — RHP NJ (NY Yankees draft pick from HS, command issues but throws hard)
       { firstName: "Sean", lastName: "Hard", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 31,
         hitForAvg: 12, power: 10, speed: 32, arm: 58, fielding: 32, errorResistance: 44, velocity: 61, control: 43, stamina: 52, stuff: 55,
@@ -979,7 +979,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Fireman", "Straddle", "Sharpness"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Trevor Shea — FR RHP
       // CATCHERS (2)
       // Peter Burns — JR C

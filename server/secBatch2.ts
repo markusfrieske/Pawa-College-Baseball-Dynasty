@@ -28,7 +28,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Fireman", "Sharpness", "Natural Shuuto"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Ethan McElvain — JR LHP, 1.88 ERA/6-0/6SV/55K — dominant closer, all raised
       { firstName: "Ethan", lastName: "McElvain", position: "P", eligibility: "JR", homeState: "TN", hometown: "Thompson's Station", jerseyNumber: 33,
         hitForAvg: 13, power: 10, speed: 32, arm: 57, fielding: 33, errorResistance: 44, velocity: 66, control: 63, stamina: 30, stuff: 67,
@@ -228,7 +228,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Fireman", "Low Ball"], potential: "A-", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 0, 0, 0, 3, 0, 1, 0, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [1, 0, 0, 0, 0, 3, 0, 0, 0, 0]), pitchVSL: 4 },
       // Owen Sarna — RHP Winthrop transfer Sunday contender, "throws nothing but strikes"
       { firstName: "Owen", lastName: "Sarna", position: "P", eligibility: "JR", homeState: "SC", hometown: "Rock Hill", jerseyNumber: 27,
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 49, control: 56, stamina: 68, stuff: 53,
@@ -236,7 +236,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Inside Pitch", "Strong Starter", "Low Ball"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 0, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Bobby Alcock — SR RHP weekend/RP, prior SEC Pitcher of Week
       { firstName: "Bobby", lastName: "Alcock", position: "P", eligibility: "SR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 42,
         hitForAvg: 13, power: 10, speed: 32, arm: 50, fielding: 31, errorResistance: 42, velocity: 47, control: 49, stamina: 76, stuff: 47,
@@ -276,7 +276,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Full Throttle", "Wild Fastball"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Myles Upchurch — FR RHP (19th rd Reds, opted to attend Alabama)
       { firstName: "Myles", lastName: "Upchurch", position: "P", eligibility: "FR", homeState: "GA", hometown: "Alpharetta", jerseyNumber: 48,
         hitForAvg: 11, power: 8, speed: 32, arm: 58, fielding: 33, errorResistance: 46, velocity: 63, control: 49, stamina: 47, stuff: 61,
@@ -439,7 +439,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Quick Hands", "Strikeout", "Strong Starter", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     // Jackson Sanders — SO breaking ball specialist
     { firstName: "Jackson", lastName: "Sanders", position: "P", eligibility: "SO", homeState: "GA", hometown: "Marietta", jerseyNumber: 37,
       hitForAvg: 12, power: 10, speed: 32, arm: 56, fielding: 34, errorResistance: 48, velocity: 51, control: 57, stamina: 64, stuff: 57,
@@ -479,7 +479,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Finisher", "Sharpness"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     // Landon Harper — FR RHP
     { firstName: "Landon", lastName: "Harper", position: "P", eligibility: "FR", homeState: "GA", hometown: "Peachtree City", jerseyNumber: 51,
       hitForAvg: 9, power: 7, speed: 30, arm: 37, fielding: 22, errorResistance: 33, velocity: 40, control: 32, stamina: 43, stuff: 34,
@@ -656,7 +656,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Groundball Pitcher", "Heavy Ball", "Escape Pitch"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     // Matt Scott — RHP SR #10 (fix elig JR→SR, jersey #29→#10), 7-0, 3.38 ERA, 53.1 IP, 67 K, 5 SV
     { firstName: "Matt", lastName: "Scott", position: "P", eligibility: "SR", homeState: "CA", hometown: "Palo Alto", jerseyNumber: 10,
       hitForAvg: 12, power: 10, speed: 32, arm: 56, fielding: 34, errorResistance: 46, velocity: 63, control: 62, stamina: 52, stuff: 64,
@@ -859,7 +859,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Flyball Pitcher", "Staredown"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 1, 0, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
       // Maddox Webb — Sunday RHP transfer
       { firstName: "Maddox", lastName: "Webb", position: "P", eligibility: "JR", homeState: "VA", hometown: "Charlottesville", jerseyNumber: 33,
         hitForAvg: 13, power: 10, speed: 32, arm: 56, fielding: 33, errorResistance: 44, velocity: 54, control: 52, stamina: 62, stuff: 53,

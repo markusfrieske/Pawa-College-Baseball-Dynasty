@@ -33,7 +33,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 60, vsLHP: 58, grit: 61, stealing: 9, running: 33, throwing: 65, recovery: 46, wRISP: 45, vsLefty: 46, poise: 47, heater: 54, agile: 41,
       abilities: ["Sharpness", "Good Pickoff", "Pace"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]), pitchVSL: 4 },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
     { firstName: "Adam", lastName: "Urban", position: "P", eligibility: "SO", homeState: "MN", hometown: "Lakeville", jerseyNumber: 42,
       hitForAvg: 10, power: 8, speed: 31, arm: 29, fielding: 18, errorResistance: 30, velocity: 42, control: 27, stamina: 31, stuff: 31,
       clutch: 38, vsLHP: 37, grit: 39, stealing: 8, running: 25, throwing: 44, recovery: 25, wRISP: 24, vsLefty: 25, poise: 25, heater: 31, agile: 30,
@@ -170,7 +170,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Straddle", "Strong Starter", "Low Ball", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
       // Carson Jasa — SO RHP, weekend rotation
       { firstName: "Carson", lastName: "Jasa", position: "P", eligibility: "SO", homeState: "NE", hometown: "Elkhorn", jerseyNumber: 31,
         hitForAvg: 13, power: 11, speed: 32, arm: 56, fielding: 33, errorResistance: 44, velocity: 60, control: 50, stamina: 70, stuff: 54,
@@ -210,7 +210,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Sharpness", "Guts"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 3, 4, 0, 0, 1, 0]), pitchVSL: 4 },
+        ...pitchMix(1, [0, 0, 0, 0, 3, 4, 0, 0, 0, 0]), pitchVSL: 4 },
       // Jalen Worthley — SR RHP RP
       { firstName: "Jalen", lastName: "Worthley", position: "P", eligibility: "SR", homeState: "NE", hometown: "Bellevue", jerseyNumber: 38,
         hitForAvg: 14, power: 12, speed: 32, arm: 54, fielding: 36, errorResistance: 48, velocity: 57, control: 51, stamina: 30, stuff: 51,
