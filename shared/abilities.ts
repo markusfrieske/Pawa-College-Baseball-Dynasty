@@ -486,7 +486,8 @@ const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"E"|"F"|"G",
   vsLefty:  { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
   agile:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
   recovery: { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
-  poise:    { S: 0, A:  0,    B:  0,    C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
+  poise:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
+  grit:     { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
 };
 
 // Gold pitcher abilities linked to common attributes.
@@ -573,18 +574,20 @@ const P_BASE         = 231;
 const PITCH_LEVEL_PTS = [0, 0.87, 2.61, 5.22, 7.83, 11.31, 14.79, 19.14];
 
 // Direction bonus: unique direction categories covered by secondary pitches.
-// Directions: glove-side (SL,CT), arm-side (SNK,2S), down (CB),
-//   down+arm (CH,SPL), down+glove (FK,SFF), screw (SHU)
+// Directions: glove-side (SL,CT,VSL,HSL,SWP), arm-side (SNK,2S), down (CB,SCB,PCB),
+//   down+arm (CH,SPL,CCH), down+glove (FK,SFF), screw (SHU), knuckle (KN)
 const PITCH_DIR_PTS = [0, 3.48, 10.44, 24.36, 31.32, 34.80, 34.80];
 
 // Maps each secondary pitch field to its direction category.
 const PITCH_DIR_MAP: Record<string, string> = {
   pitchSL:  "glove",    pitchCT:  "glove",
+  pitchVSL: "glove",    pitchHSL: "glove",    pitchSWP: "glove",
   pitchSNK: "arm",      pitch2S:  "arm",
-  pitchCB:  "down",
-  pitchCH:  "downArm",  pitchSPL: "downArm",
+  pitchCB:  "down",     pitchSCB: "down",      pitchPCB: "down",
+  pitchCH:  "downArm",  pitchSPL: "downArm",   pitchCCH: "downArm",
   pitchFK:  "downGlove",pitchSFF: "downGlove",
   pitchSHU: "screw",
+  pitchKN:  "knuckle",
 };
 
 // Control tier pts (raw) — 7-tier system matching spreadsheet.
@@ -611,8 +614,9 @@ function staminaTierPts(v: number): number {
 
 // Velocity zone pts (raw). Maps 1–100 scale to km/h then accumulates
 // per-2-km/h incremental pts across three speed zones.
+// Formula matches velocityToKMH() in playerUtils.ts: (82 + (v-1)*20/98) * 1.60934
 function velocityZonePts(velocity: number): number {
-  const kmh = 119 + velocity * 0.51;
+  const kmh = (82 + (velocity - 1) * 20 / 98) * 1.60934;
   const z1 = Math.min(6, Math.max(0, (Math.min(kmh, 142) - 130) / 2)) * 2.61;
   const z2 = Math.min(5, Math.max(0, (Math.min(kmh, 152) - 142) / 2)) * 3.48;
   const z3 = Math.max(0, (kmh - 152) / 2) * 4.35;
@@ -658,6 +662,13 @@ export function calculateOVR(attrs: {
   pitchFK?:  number | null;
   pitchSFF?: number | null;
   pitchSHU?: number | null;
+  pitchVSL?: number | null;
+  pitchHSL?: number | null;
+  pitchSWP?: number | null;
+  pitchKN?:  number | null;
+  pitchCCH?: number | null;
+  pitchSCB?: number | null;
+  pitchPCB?: number | null;
 }): number {
   const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
   const isPitcher = attrs.position ? PITCHER_POSITIONS.has(attrs.position) : null;
@@ -687,7 +698,7 @@ export function calculateOVR(attrs: {
           levelPts += PITCH_LEVEL_PTS[lvl] ?? 0;
         }
       }
-      diversityPts = PITCH_DIR_PTS[Math.min(5, dirs.size)] ?? 0;
+      diversityPts = PITCH_DIR_PTS[Math.min(6, dirs.size)] ?? 0;
     } else {
       // Fallback when pitch field data is absent:
       // use stuff to estimate diversity+level contribution.
