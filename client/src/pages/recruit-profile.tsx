@@ -2338,7 +2338,7 @@ function RecruitPitchMixSection({
     return isFullyRevealed || revealedFields.has(fieldName);
   };
   
-  const BINARY_PITCH_KEYS = new Set(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF", "pitchKN"]);
+  const BINARY_PITCH_KEYS = new Set(["pitchFB", "pitch2S", "pitchFK", "pitchSFF", "pitchKN"]);
 
   const pitchTypes = [
     { key: "pitchFB", label: "Fastball (FB)" },

@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { allPitchKeys, pitchLabels } from "@/components/ui/pitch-mix-dial";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X, Sparkles } from "lucide-react";
 import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -540,29 +539,17 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {allPitchKeys.map(key => {
                   const val = (player as Record<string, unknown>)[`pitch${key}`] as number | null | undefined;
                   const rating = val ?? 0;
-                  const isBinary = ["FB", "2S"].includes(key);
-                  if (rating > 0) {
-                    return (
-                      <div key={key} className="flex items-center justify-between px-1.5 py-0.5 bg-muted/20 rounded">
-                        <span className="text-xs text-foreground">{pitchLabels[key] || key}</span>
-                        {isBinary ? (
-                          <span className="text-[10px] font-bold text-gold px-1 py-0.5 bg-gold/10 rounded border border-gold/30" data-testid={`pitch-rating-${key}`}>Yes</span>
-                        ) : (
-                          <span className="text-xs font-bold text-gold" data-testid={`pitch-rating-${key}`}>{rating}</span>
-                        )}
-                      </div>
-                    );
-                  }
+                  const isBinary = ["FB", "2S", "FK", "SFF", "KN"].includes(key);
+                  if (rating <= 0) return null;
                   return (
-                    <Tooltip key={key}>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center justify-between px-1.5 py-0.5 rounded opacity-40 cursor-default">
-                          <span className="text-xs text-muted-foreground">{pitchLabels[key] || key}</span>
-                          <span className="text-xs text-muted-foreground/60 italic" data-testid={`text-pitch-none-player-${key}`}>None</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>Pitcher does not throw this pitch</TooltipContent>
-                    </Tooltip>
+                    <div key={key} className="flex items-center justify-between px-1.5 py-0.5 bg-muted/20 rounded">
+                      <span className="text-xs text-foreground">{pitchLabels[key] || key}</span>
+                      {isBinary ? (
+                        <span className="text-[10px] font-bold text-gold px-1 py-0.5 bg-gold/10 rounded border border-gold/30" data-testid={`pitch-rating-${key}`}>Yes</span>
+                      ) : (
+                        <span className="text-xs font-bold text-gold" data-testid={`pitch-rating-${key}`}>{rating}</span>
+                      )}
+                    </div>
                   );
                 })}
               </div>
