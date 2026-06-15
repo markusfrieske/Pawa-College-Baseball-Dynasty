@@ -194,7 +194,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 79, vsLHP: 76, grit: 82, stealing: 17, running: 44, throwing: 90, recovery: 75, wRISP: 75, vsLefty: 75, poise: 75, heater: 75, agile: 54,
       abilities: ["Strong Starter", "Release", "Good Pickoff", "Heavy Ball", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 2, 0, 0]) },
     // Parker Warner — JR RHP #23, Saturday starter
     // FIXED: jersey 29→23, batHand L→R (real B/T = R/R); elig SO→JR
     { firstName: "Parker", lastName: "Warner", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Jose", jerseyNumber: 23,
@@ -225,7 +225,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 33, vsLHP: 31, grit: 16, stealing: 9, running: 24, throwing: 41, recovery: 45, wRISP: 35, vsLefty: 35, poise: 45, heater: 55, agile: 16,
       abilities: ["True Slider"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 3, 0, 0]) },
     // Drew Dowd — SR LHP #47, reliever
     // FIXED: throwHand R→L, batHand R→L (real B/T = L/L); elig JR→SR
     { firstName: "Drew", lastName: "Dowd", position: "P", eligibility: "SR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 47,
@@ -399,7 +399,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strong Starter", "Fireman", "True Slider", "Walk"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 4, 0, 0, 0, 0, 1, 0, 0]) },
+        ...pitchMix(1, [1, 0, 4, 0, 0, 0, 0, 2, 0, 0]) },
       // Tyler Kapa — Sunday/Stopper JR RHP, "unicorn" outlier metrics, Stopper of Year semi, 90K/66IP last yr
       { firstName: "Tyler", lastName: "Kapa", position: "P", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 26,
         hitForAvg: 14, power: 11, speed: 32, arm: 68, fielding: 40, errorResistance: 54, velocity: 67, control: 53, stamina: 61, stuff: 68,
@@ -439,7 +439,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Guts"], potential: "B", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 3, 4, 0, 1, 0, 0]) },
+        ...pitchMix(1, [0, 0, 0, 0, 3, 4, 0, 3, 0, 0]) },
       // Noah Yoder — FR RHP — PG Frosh 2nd Team / Top-200 national
       { firstName: "Noah", lastName: "Yoder", position: "P", eligibility: "FR", homeState: "VA", hometown: "Harrisonburg", jerseyNumber: 49,
         hitForAvg: 8, power: 7, speed: 24, arm: 36, fielding: 16, errorResistance: 24, velocity: 42, control: 30, stamina: 46, stuff: 34,
@@ -632,7 +632,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 52, vsLHP: 51, grit: 55, stealing: 10, running: 28, throwing: 55, recovery: 45, wRISP: 55, vsLefty: 55, poise: 35, heater: 45, agile: 33,
       abilities: ["Guts", "Gyroball"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 0, 3, 4, 0, 1, 0, 0]) },
+      ...pitchMix(1, [0, 3, 0, 0, 3, 4, 0, 2, 0, 0]) },
     { firstName: "Ethan", lastName: "Douglas", position: "P", eligibility: "SO", homeState: "VA", hometown: "Norfolk", jerseyNumber: 32,
       hitForAvg: 12, power: 9, speed: 29, arm: 31, fielding: 20, errorResistance: 33, velocity: 29, control: 37, stamina: 38, stuff: 28,
       clutch: 37, vsLHP: 36, grit: 40, stealing: 9, running: 26, throwing: 45, recovery: 35, wRISP: 35, vsLefty: 35, poise: 20, heater: 20, agile: 30,
@@ -766,7 +766,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 56, vsLHP: 54, grit: 57, stealing: 13, running: 32, throwing: 63, recovery: 55, wRISP: 55, vsLefty: 55, poise: 45, heater: 45, agile: 38,
       abilities: ["Sharpness", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 1, 0]) },
+      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 2, 0]) },
     { firstName: "Cameron", lastName: "Bagwell", position: "P", eligibility: "SO", homeState: "NC", hometown: "Wilmington", jerseyNumber: 40,
       hitForAvg: 18, power: 15, speed: 32, arm: 49, fielding: 30, errorResistance: 42, velocity: 52, control: 49, stamina: 67, stuff: 46,
       clutch: 56, vsLHP: 54, grit: 57, stealing: 13, running: 33, throwing: 64, recovery: 55, wRISP: 55, vsLefty: 55, poise: 45, heater: 45, agile: 39,
@@ -796,7 +796,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 36, vsLHP: 35, grit: 38, stealing: 10, running: 26, throwing: 43, recovery: 35, wRISP: 35, vsLefty: 35, poise: 35, heater: 35, agile: 30,
       abilities: ["Flyball Pitcher", "Cowardly"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 3, 0, 0]) },
     { firstName: "Ryan", lastName: "Brennecke", position: "P", eligibility: "FR", homeState: "NC", hometown: "Cary", jerseyNumber: 48,
       hitForAvg: 11, power: 8, speed: 31, arm: 32, fielding: 17, errorResistance: 28, velocity: 43, control: 23, stamina: 10, stuff: 34,
       clutch: 31, vsLHP: 30, grit: 33, stealing: 11, running: 28, throwing: 48, recovery: 20, wRISP: 35, vsLefty: 35, poise: 35, heater: 35, agile: 33,
@@ -971,7 +971,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Guts", "Staredown"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 1, 0, 0]) },
+        ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 2, 0, 0]) },
       // Henry Leake — JR RHP RP
       { firstName: "Henry", lastName: "Leake", position: "P", eligibility: "JR", homeState: "NH", hometown: "Concord", jerseyNumber: 44,
         hitForAvg: 14, power: 12, speed: 32, arm: 50, fielding: 32, errorResistance: 46, velocity: 54, control: 49, stamina: 24, stuff: 47,

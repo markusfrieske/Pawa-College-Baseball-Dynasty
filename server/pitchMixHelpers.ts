@@ -123,17 +123,9 @@ export function pitchMix(primary: number, secondary: number[], context: string =
 
   const pitchCH = coerceSecondary(safeSec[3] ?? 0, useBucket);
 
-  const rawFK = coerceSecondary(safeSec[7] ?? 0, useBucket);
-  if (rawFK > 1) {
-    warnOnce(`${context}:fk`, `pitchMix(${context}): pitchFK quality ${rawFK} collapsed to 1 (FK is binary)`);
-  }
-  const pitchFK = rawFK >= 1 ? 1 : 0;
+  const pitchFK = coerceSecondary(safeSec[7] ?? 0, useBucket);
 
-  const rawSFF = coerceSecondary(safeSec[8] ?? 0, useBucket);
-  if (rawSFF > 1) {
-    warnOnce(`${context}:sff`, `pitchMix(${context}): pitchSFF quality ${rawSFF} collapsed to 1 (SFF is binary)`);
-  }
-  const pitchSFF = rawSFF >= 1 ? 1 : 0;
+  const pitchSFF = coerceSecondary(safeSec[8] ?? 0, useBucket);
 
   return {
     pitchFB: safePrimary >= 1 ? 1 : 0,
@@ -358,9 +350,8 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
 };
 
 // pitchKN added: knuckleball is binary (you either throw it or you don't)
-// pitchFK and pitchSFF remain binary/real-roster-only
 const BINARY_PITCH_KEYS = new Set<keyof PitchMix>([
-  "pitchFB", "pitch2S", "pitchFK", "pitchSFF", "pitchKN",
+  "pitchFB", "pitch2S", "pitchKN",
 ]);
 
 // ─── Pitch-direction movement groups ─────────────────────────────────────────
