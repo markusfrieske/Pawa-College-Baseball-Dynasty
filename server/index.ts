@@ -73,38 +73,39 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Run all idempotent column-addition migrations in parallel to minimize cold-start time.
-  await Promise.allSettled([
-    pool.query("ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP"),
-    pool.query("ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb"),
-    pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text"),
-    pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer"),
-    pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer"),
-    pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb"),
-    pool.query("ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb"),
-    pool.query("ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_prestige integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_facilities integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_academics integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_stadium integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_college_life integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prestige_baseline integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS facilities_baseline integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS academics_baseline integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_baseline integer"),
-    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer"),
-    pool.query("ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0"),
-    pool.query("ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false"),
-    pool.query(`CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`),
-  ]).then(results => {
-    const failed = results.filter(r => r.status === "rejected");
-    if (failed.length > 0) {
-      failed.forEach(r => console.warn("[startup-migration] column add failed:", (r as PromiseRejectedResult).reason));
-    }
-  });
+  // Run idempotent column-addition migrations sequentially (one connection at a time).
+  // Running them in parallel exhausted the pool's 10-connection limit when autovacuum
+  // held a lock on `players`, causing the remaining queries to time out waiting for a
+  // free pool slot and crashing the server with EADDRINUSE on the next restart.
+  const _columnMigrations = [
+    "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP",
+    "ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb",
+    "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text",
+    "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer",
+    "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer",
+    "ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
+    "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
+    "ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_prestige integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_facilities integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_academics integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_stadium integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_college_life integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prestige_baseline integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS facilities_baseline integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS academics_baseline integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_baseline integer",
+    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer",
+    "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0",
+    "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false",
+    `CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`,
+  ];
+  for (const sql of _columnMigrations) {
+    try { await pool.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }
+  }
 
   // ── Sequential Startup Migration Runner ──────────────────────────────────────
   // All one-time startup migrations run inside a single async IIFE, in order.
