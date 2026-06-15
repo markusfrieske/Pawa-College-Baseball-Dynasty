@@ -73,38 +73,52 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Run idempotent column-addition migrations sequentially (one connection at a time).
-  // Running them in parallel exhausted the pool's 10-connection limit when autovacuum
-  // held a lock on `players`, causing the remaining queries to time out waiting for a
-  // free pool slot and crashing the server with EADDRINUSE on the next restart.
-  const _columnMigrations = [
-    "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP",
-    "ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb",
-    "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text",
-    "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer",
-    "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer",
-    "ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
-    "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
-    "ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_prestige integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_facilities integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_academics integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_stadium integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_college_life integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prestige_baseline integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS facilities_baseline integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS academics_baseline integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_baseline integer",
-    "ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer",
-    "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0",
-    "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false",
-    `CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`,
-  ];
-  for (const sql of _columnMigrations) {
-    try { await pool.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }
+  // Run idempotent column-addition migrations sequentially using a single dedicated
+  // client with a 30s lock_timeout scoped only to that session.
+  //
+  // WHY dedicated client: setting lock_timeout on the pool would apply to every
+  // API connection, causing startDynasty INSERTs to fail if they queued behind a
+  // locked ALTER TABLE.  A dedicated client scopes the timeout to startup DDL only.
+  //
+  // WHY sequential: parallel ALTER TABLE queries exhaust the 10-connection pool when
+  // autovacuum holds a lock, causing the remaining queries to timeout waiting for a
+  // free slot and crashing the server with EADDRINUSE on the next restart.
+  {
+    const _ddlClient = await pool.connect();
+    try {
+      await _ddlClient.query("SET lock_timeout = '30s'");
+      const _columnMigrations = [
+        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP",
+        "ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb",
+        "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text",
+        "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer",
+        "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer",
+        "ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
+        "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
+        "ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_prestige integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_facilities integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_academics integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_stadium integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_college_life integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prestige_baseline integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS facilities_baseline integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS academics_baseline integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_baseline integer",
+        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer",
+        "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0",
+        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false",
+        `CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`,
+      ];
+      for (const sql of _columnMigrations) {
+        try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }
+      }
+    } finally {
+      _ddlClient.release();
+    }
   }
 
   // ── Sequential Startup Migration Runner ──────────────────────────────────────

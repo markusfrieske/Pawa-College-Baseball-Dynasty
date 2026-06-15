@@ -13,6 +13,5 @@ if (!process.env.DATABASE_URL) {
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   idleTimeoutMillis: 30000,
-  options: "-c lock_timeout=30s",
 });
 export const db = drizzle(pool, { schema });
