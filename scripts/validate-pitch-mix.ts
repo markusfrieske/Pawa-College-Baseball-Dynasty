@@ -2,7 +2,8 @@
  * Pitch-mix field validator.
  *
  * Schema rules (server/pitchMixHelpers.ts):
- *   - pitchFB, pitch2S, pitchFK, pitchSFF, pitchKN are binary: 0 or 1.
+ *   - pitchFB, pitch2S, pitchKN are binary: 0 or 1.
+ *   - pitchFK and pitchSFF are leveled: 0 (absent) or 1-3.
  *   - pitchCH and all other pitch slots must be integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
@@ -92,7 +93,10 @@ const PITCH_FIELDS = [
 
 // Binary fields: must be 0 or 1
 // pitchKN added as binary for generated recruit validation
-const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchFK", "pitchSFF", "pitchKN"]);
+const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchKN"]);
+
+// Leveled specialty pitches: 0 (absent) or 1-3
+const LEVELED_SPECIALTY_FIELDS = new Set(["pitchFK", "pitchSFF"]);
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
@@ -118,7 +122,9 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
         const value = typeof raw[field] === "number" ? (raw[field] as number) : 0;
         if (BINARY_PITCH_FIELDS.has(field) && value > 1) {
           violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "binary field (must be 0 or 1)" });
-        } else if (!BINARY_PITCH_FIELDS.has(field) && value > 7) {
+        } else if (LEVELED_SPECIALTY_FIELDS.has(field) && value > 3) {
+          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "leveled specialty field (must be 0-3)" });
+        } else if (!BINARY_PITCH_FIELDS.has(field) && !LEVELED_SPECIALTY_FIELDS.has(field) && value > 7) {
           violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "wrong 0-100 scale (must be 0-7)" });
         }
       }
