@@ -531,7 +531,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 4, 0, 4, 4, 0, 0, 2, 0]) },
     // Mason Patel — closer SR, 4 SV, 13.2 scoreless IP / 1.20 ERA / 18K, All-American 2025 (NCBWA), Stopper of Year finalist
-    { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "SR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 30,
+    { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "SR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 29,
       hitForAvg: 10, power: 8, speed: 32, arm: 59, fielding: 34, errorResistance: 50, velocity: 64, control: 56, stamina: 72, stuff: 61,
       clutch: 80, vsLHP: 72, grit: 64, stealing: 7, running: 30, throwing: 74, recovery: 65, wRISP: 85, vsLefty: 75, poise: 65, heater: 65, agile: 42,
       abilities: ["Fireman", "Good Pickoff", "Staredown", "Strikeout", "Inside Pitch"], potential: "A", catcherAbility: null,
@@ -555,15 +555,15 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 4, 0, 0, 4, 0, 0, 0, 3]) },
     // Cooper Underwood — top FR LHP, 12th-round MLB pick chose college, 2025 Prep BB GA Player of Year
-    { firstName: "Cooper", lastName: "Underwood", position: "P", eligibility: "FR", homeState: "GA", hometown: "Woodstock", jerseyNumber: 46,
+    { firstName: "Cooper", lastName: "Underwood", position: "P", eligibility: "FR", homeState: "GA", hometown: "Woodstock", jerseyNumber: 15,
       hitForAvg: 11, power: 9, speed: 32, arm: 56, fielding: 29, errorResistance: 40, velocity: 58, control: 46, stamina: 64, stuff: 55,
       clutch: 50, vsLHP: 48, grit: 52, stealing: 7, running: 28, throwing: 70, recovery: 55, wRISP: 55, vsLefty: 45, poise: 55, heater: 55, agile: 40,
       abilities: ["Strong Starter", "Sharpness", "True Slider"], potential: "A+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
-    // Charlie Willcox — FR RHP depth
-    { firstName: "Charlie", lastName: "Willcox", position: "P", eligibility: "FR", homeState: "GA", hometown: "Cumming", jerseyNumber: 48,
+    // Charlie Wilcox — FR RHP depth
+    { firstName: "Charlie", lastName: "Wilcox", position: "P", eligibility: "FR", homeState: "FL", hometown: "Santa Rosa Beach", jerseyNumber: 16,
       hitForAvg: 7, power: 7, speed: 23, arm: 36, fielding: 16, errorResistance: 25, velocity: 41, control: 32, stamina: 36, stuff: 33,
       clutch: 27, vsLHP: 25, grit: 28, stealing: 4, running: 19, throwing: 40, recovery: 35, wRISP: 20, vsLefty: 20, poise: 35, heater: 35, agile: 24,
       abilities: ["Staredown"], potential: "A", catcherAbility: null,
@@ -571,7 +571,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "blonde", hairStyle: "short",
       ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 3, 0]) },
     // Carson Ballard — JR RHP RP depth
-    { firstName: "Carson", lastName: "Ballard", position: "P", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 41,
+    { firstName: "Carson", lastName: "Ballard", position: "P", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 21,
       hitForAvg: 9, power: 7, speed: 26, arm: 31, fielding: 21, errorResistance: 31, velocity: 31, control: 33, stamina: 49, stuff: 29,
       clutch: 38, vsLHP: 36, grit: 40, stealing: 5, running: 22, throwing: 41, recovery: 35, wRISP: 35, vsLefty: 35, poise: 20, heater: 35, agile: 25,
       abilities: ["Guts"], potential: "B+", catcherAbility: null,
@@ -579,22 +579,22 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 3 },
     // Ben Hjelle — RHP RP depth
-    // Iyan Wilson — RHP RP
-    { firstName: "Iyan", lastName: "Wilson", position: "P", eligibility: "SO", homeState: "GA", hometown: "Atlanta", jerseyNumber: 32,
+    // Jackson Blakely — SO RHP RP, Sunday starter, Thomaston GA (Upson-Lee HS)
+    { firstName: "Jackson", lastName: "Blakely", position: "P", eligibility: "SO", homeState: "GA", hometown: "Thomaston", jerseyNumber: 24,
       hitForAvg: 8, power: 7, speed: 26, arm: 31, fielding: 20, errorResistance: 30, velocity: 30, control: 29, stamina: 38, stuff: 33,
       clutch: 35, vsLHP: 33, grit: 37, stealing: 5, running: 22, throwing: 43, recovery: 35, wRISP: 35, vsLefty: 35, poise: 35, heater: 35, agile: 25,
       abilities: ["Winner's Luck", "Tunneling", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       ...pitchMix(1, [0, 0, 0, 1, 0, 0, 0, 0, 0, 4]), pitchVSL: 4 },
-    // Cade Brown — depth RP
-    { firstName: "Cade", lastName: "Brown", position: "P", eligibility: "SO", homeState: "GA", hometown: "Macon", jerseyNumber: 19,
-      hitForAvg: 9, power: 8, speed: 30, arm: 33, fielding: 20, errorResistance: 32, velocity: 48, control: 31, stamina: 12, stuff: 34,
-      clutch: 36, vsLHP: 34, grit: 38, stealing: 6, running: 24, throwing: 48, recovery: 20, wRISP: 35, vsLefty: 35, poise: 35, heater: 45, agile: 30,
-      abilities: ["Inside Pitch", "Winner's Luck", "Intimidator"], potential: "A-", catcherAbility: null,
+    // Cade Brown — SO OF/INF utility, .250/.400 in 12 AB, 1 HR
+    { firstName: "Cade", lastName: "Brown", position: "OF", eligibility: "SO", homeState: "GA", hometown: "Macon", jerseyNumber: 14,
+      hitForAvg: 46, power: 38, speed: 55, arm: 46, fielding: 47, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 36, vsLHP: 34, grit: 38, stealing: 6, running: 24, throwing: 48, recovery: 20, wRISP: 35, vsLefty: 35, poise: 35, heater: 0, agile: 30,
+      abilities: ["Tough Out", "Insurer"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 0, 0, 0]), pitchVSL: 3 },
+      ...noPitches },
     // CATCHERS (2)
     // Vahn Lackey — JR C, .425/.545/.851, 9 HR, 45 RBI, .789 SLG team-leader, USA Collegiate, #2 D1B catcher, 1st Team Preseason All-American, top catcher in MLB Draft, played 8 positions in single game
     { firstName: "Vahn", lastName: "Lackey", position: "C", eligibility: "JR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 25,
@@ -606,7 +606,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Dominic Stephenson — FR backup C
-    { firstName: "Dominic", lastName: "Stephenson", position: "C", eligibility: "FR", homeState: "GA", hometown: "Roswell", jerseyNumber: 15,
+    { firstName: "Dominic", lastName: "Stephenson", position: "C", eligibility: "FR", homeState: "GA", hometown: "Roswell", jerseyNumber: 5,
       hitForAvg: 53, power: 39, speed: 38, arm: 37, fielding: 27, errorResistance: 22, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 43, vsLHP: 45, grit: 41, stealing: 39, running: 39, throwing: 54, recovery: 28, wRISP: 26, vsLefty: 25, poise: 28, heater: 0, agile: 26,
       abilities: ["Head-first Slide", "Push"], potential: "A", catcherAbility: 40,
@@ -615,7 +615,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (7)
     // Will Baker — DH/1B, .662 SLG, 27 R, power threat
-    { firstName: "Will", lastName: "Baker", position: "1B", eligibility: "SO", homeState: "GA", hometown: "Athens", jerseyNumber: 16,
+    { firstName: "Will", lastName: "Baker", position: "1B", eligibility: "SO", homeState: "GA", hometown: "Athens", jerseyNumber: 7,
       hitForAvg: 59, power: 59, speed: 59, arm: 51, fielding: 49, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 57, grit: 55, stealing: 47, running: 47, throwing: 49, recovery: 56, wRISP: 76, vsLefty: 64, poise: 70, heater: 0, agile: 36,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
@@ -641,31 +641,31 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Ryan Zuckerman — JR 3B (Pitt transfer), .743 SLG TEAM LEADER, 9 HR, 44 RBI, 26 R, 3.85 WAR (#1), 17-game OB streak
-    { firstName: "Ryan", lastName: "Zuckerman", position: "3B", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 17,
+    { firstName: "Ryan", lastName: "Zuckerman", position: "3B", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 11,
       hitForAvg: 63, power: 63, speed: 38, arm: 60, fielding: 60, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 76, grit: 64, stealing: 47, running: 47, throwing: 64, recovery: 54, wRISP: 84, vsLefty: 74, poise: 80, heater: 0, agile: 44,
       abilities: ["Power Hitter", "Consigliere", "Disturbance"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Ethan Dolan — JR backup SS/util
-    { firstName: "Ethan", lastName: "Dolan", position: "SS", eligibility: "JR", homeState: "GA", hometown: "Savannah", jerseyNumber: 4,
+    // Kent Schmidt — JR INF/1B (Georgia Southern transfer), Marietta GA
+    { firstName: "Kent", lastName: "Schmidt", position: "SS", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 10,
       hitForAvg: 63, power: 57, speed: 57, arm: 36, fielding: 63, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 52, stealing: 47, running: 50, throwing: 64, recovery: 46, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 56,
       abilities: ["Walkoff Hitter", "Spray Hitter", "Final Hit"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Jake Whitfield — SO 2B backup
-    { firstName: "Jake", lastName: "Whitfield", position: "2B", eligibility: "SO", homeState: "GA", hometown: "Decatur", jerseyNumber: 11,
+    // Drew Rodgers — SO C/INF utility, Tempe AZ (Hamilton HS)
+    { firstName: "Drew", lastName: "Rodgers", position: "2B", eligibility: "SO", homeState: "AZ", hometown: "Tempe", jerseyNumber: 34,
       hitForAvg: 53, power: 43, speed: 59, arm: 50, fielding: 48, errorResistance: 35, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 48, stealing: 55, running: 53, throwing: 62, recovery: 40, wRISP: 44, vsLefty: 42, poise: 46, heater: 0, agile: 50,
       abilities: ["Pinch Hitter", "Spray Hitter", "Insurer"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "S",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Marcus Terrell — JR depth IF
-    { firstName: "Marcus", lastName: "Terrell", position: "3B", eligibility: "JR", homeState: "SC", hometown: "Greenville", jerseyNumber: 18,
+    // Tyler Neises — JR INF utility (6-3, 225), Dalton GA (Dalton HS), bats L/throws R
+    { firstName: "Tyler", lastName: "Neises", position: "3B", eligibility: "JR", homeState: "GA", hometown: "Dalton", jerseyNumber: 39,
       hitForAvg: 45, power: 42, speed: 59, arm: 53, fielding: 45, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 43, vsLHP: 39, grit: 45, stealing: 47, running: 44, throwing: 51, recovery: 31, wRISP: 34, vsLefty: 31, poise: 34, heater: 0, agile: 31,
       abilities: ["Batter Intimidator"], potential: "B", catcherAbility: null,
@@ -678,11 +678,11 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 51, power: 79, speed: 58, arm: 51, fielding: 65, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 83, grit: 56, stealing: 48, running: 60, throwing: 60, recovery: 62, wRISP: 88, vsLefty: 81, poise: 84, heater: 0, agile: 73,
       abilities: ["Good Infield Hit", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Alex Hernandez — SO OF, 30 R, 34-game on-base streak
-    { firstName: "Alex", lastName: "Hernandez", position: "OF", eligibility: "SO", homeState: "FL", hometown: "Miami", jerseyNumber: 44,
+    // Alex Hernandez — SO RHP/UTL (Cumming GA, Forsyth Central), 30 R, 34-game on-base streak
+    { firstName: "Alex", lastName: "Hernandez", position: "OF", eligibility: "SO", homeState: "FL", hometown: "Miami", jerseyNumber: 4,
       hitForAvg: 59, power: 59, speed: 49, arm: 59, fielding: 59, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 60, grit: 70, stealing: 47, running: 52, throwing: 68, recovery: 50, wRISP: 66, vsLefty: 60, poise: 66, heater: 0, agile: 56,
       abilities: ["Chance Maker", "Defensive Artisan"], potential: "A", catcherAbility: null,
@@ -694,11 +694,11 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 59, power: 59, speed: 59, arm: 59, fielding: 55, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 55, grit: 48, stealing: 47, running: 47, throwing: 48, recovery: 50, wRISP: 70, vsLefty: 64, poise: 68, heater: 0, agile: 50,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R", // corrected: batHand was L → R
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Parker Brosius — SR OF
-    { firstName: "Parker", lastName: "Brosius", position: "OF", eligibility: "SR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 5,
+    { firstName: "Parker", lastName: "Brosius", position: "OF", eligibility: "SR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 1,
       hitForAvg: 59, power: 53, speed: 62, arm: 58, fielding: 60, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 54, stealing: 47, running: 47, throwing: 64, recovery: 44, wRISP: 50, vsLefty: 46, poise: 52, heater: 0, agile: 50,
       abilities: ["Resilient", "Storming Home"], potential: "B+", catcherAbility: null,
@@ -706,28 +706,29 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Coleman Lewis — FR OF speed
-    { firstName: "Coleman", lastName: "Lewis", position: "OF", eligibility: "FR", homeState: "GA", hometown: "Canton", jerseyNumber: 21,
+    { firstName: "Coleman", lastName: "Lewis", position: "OF", eligibility: "FR", homeState: "GA", hometown: "Lake Park", jerseyNumber: 9,
       hitForAvg: 51, power: 38, speed: 59, arm: 41, fielding: 32, errorResistance: 29, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 39, vsLHP: 47, grit: 35, stealing: 47, running: 53, throwing: 32, recovery: 26, wRISP: 28, vsLefty: 24, poise: 28, heater: 0, agile: 44,
       abilities: [], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Nathan Pruitt — JR OF
-    { firstName: "Nathan", lastName: "Pruitt", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Athens", jerseyNumber: 14,
+    // Judson Hartwell — FR INF/OF utility, Watkinsville GA (Prince Avenue Christian)
+    { firstName: "Judson", lastName: "Hartwell", position: "2B", eligibility: "JR", homeState: "GA", hometown: "Watkinsville", jerseyNumber: 41,
       hitForAvg: 63, power: 62, speed: 63, arm: 51, fielding: 39, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 52, stealing: 47, running: 48, throwing: 64, recovery: 42, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 52,
       abilities: ["Walkoff Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "L", // corrected: batHand was R → L
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    { firstName: "Tommy", lastName: "Sheehan", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 14,
-      hitForAvg: 63, power: 56, speed: 63, arm: 51, fielding: 55, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 60, vsLHP: 54, grit: 62, stealing: 47, running: 54, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 54, poise: 60, heater: 0, agile: 56,
-      abilities: ["Spray Hitter", "Tough Out"], potential: "B+", catcherAbility: null,
+    // Porter Buursema — JR RHP RP (Georgia Southern transfer), Woodstock GA
+    { firstName: "Porter", lastName: "Buursema", position: "P", eligibility: "JR", homeState: "GA", hometown: "Woodstock", jerseyNumber: 99,
+      hitForAvg: 9, power: 8, speed: 27, arm: 35, fielding: 22, errorResistance: 33, velocity: 38, control: 32, stamina: 52, stuff: 34,
+      clutch: 40, vsLHP: 38, grit: 42, stealing: 5, running: 22, throwing: 44, recovery: 38, wRISP: 38, vsLefty: 38, poise: 38, heater: 40, agile: 28,
+      abilities: ["Wild Fastball", "Guts"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...noPitches },
+      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 3 },
 ],
 
   "Louisville": [
