@@ -187,193 +187,199 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   // Stanford — Sunken Diamond, ACC member, Tony Harris Yr 2
   "Stanford": [
     // PITCHERS (10)
-    // Christian Lim — SR LHP #35, ace Friday starter; Freshman All-American 2024 (86K/77IP)
-    // FIXED: throwHand R→L, batHand R→L (real B/T = L/L); elig JR→SR
-    { firstName: "Christian", lastName: "Lim", position: "P", eligibility: "SR", homeState: "CA", hometown: "Irvine", jerseyNumber: 35,
+    // Christian Lim — JR LHP #42, ace Friday starter; Freshman All-American 2024 (86K/77IP)
+    // FIXED: throwHand R→L, batHand R→L (real B/T = L/L); jersey 35→42; elig SR→JR; hometown Irvine CA→Nashville TN
+    { firstName: "Christian", lastName: "Lim", position: "P", eligibility: "JR", homeState: "TN", hometown: "Nashville", jerseyNumber: 42,
       hitForAvg: 27, power: 23, speed: 35, arm: 75, fielding: 47, errorResistance: 59, velocity: 70, control: 64, stamina: 72, stuff: 71,
       clutch: 79, vsLHP: 76, grit: 82, stealing: 17, running: 44, throwing: 90, recovery: 75, wRISP: 75, vsLefty: 75, poise: 75, heater: 75, agile: 54,
       abilities: ["Strong Starter", "Release", "Good Pickoff", "Heavy Ball", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 2, 0, 0]) },
-    // Parker Warner — JR RHP #23, Saturday starter
-    // FIXED: jersey 29→23, batHand L→R (real B/T = R/R); elig SO→JR
-    { firstName: "Parker", lastName: "Warner", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Jose", jerseyNumber: 23,
+    // Parker Warner — SO RHP #23, Saturday starter
+    // FIXED: jersey 29→23, batHand L→R (real B/T = R/R); elig JR→SO per 2026 roster; hometown San Jose→Livermore
+    { firstName: "Parker", lastName: "Warner", position: "P", eligibility: "SO", homeState: "CA", hometown: "Livermore", jerseyNumber: 23,
       hitForAvg: 19, power: 15, speed: 33, arm: 52, fielding: 31, errorResistance: 44, velocity: 56, control: 47, stamina: 66, stuff: 46,
       clutch: 55, vsLHP: 52, grit: 57, stealing: 13, running: 35, throwing: 66, recovery: 55, wRISP: 55, vsLefty: 55, poise: 45, heater: 55, agile: 41,
       abilities: ["Strikeout", "Natural Shuuto", "Groundball Pitcher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
-    // Aidan Keenan — SR RHP #24, starter/long reliever
-    // FIXED: throwHand L→R, batHand L→R (real B/T = R/R); jersey 41→24; elig JR→SR
-    { firstName: "Aidan", lastName: "Keenan", position: "P", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 24,
+    // Aidan Keenan — JR RHP #24, starter/long reliever
+    // FIXED: throwHand L→R, batHand L→R (real B/T = R/R); jersey 41→24; elig SR→JR per 2026 roster; hometown Los Angeles→Morgan Hill
+    { firstName: "Aidan", lastName: "Keenan", position: "P", eligibility: "JR", homeState: "CA", hometown: "Morgan Hill", jerseyNumber: 24,
       hitForAvg: 18, power: 14, speed: 32, arm: 48, fielding: 30, errorResistance: 42, velocity: 51, control: 45, stamina: 61, stuff: 44,
       clutch: 55, vsLHP: 53, grit: 57, stealing: 12, running: 32, throwing: 62, recovery: 55, wRISP: 55, vsLefty: 55, poise: 45, heater: 45, agile: 39,
       abilities: ["Tunneling", "Strong Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 3 },
-    // Ryan Bruno — SR LHP #38, reliever
-    // FIXED: throwHand R→L, batHand R→L (real B/T = L/L); elig JR→SR
-    { firstName: "Ryan", lastName: "Bruno", position: "P", eligibility: "SR", homeState: "CA", hometown: "Redwood City", jerseyNumber: 38,
+    // Sam Garewal — SR LHP #26, reliever (2026: 8.90 ERA, 31.1IP, 37K in 19 apps)
+    // REPLACED: Ryan Bruno was phantom; real SR LHP = Sam Garewal #26 (San Diego CA)
+    { firstName: "Sam", lastName: "Garewal", position: "P", eligibility: "SR", homeState: "CA", hometown: "San Diego", jerseyNumber: 26,
       hitForAvg: 19, power: 14, speed: 32, arm: 49, fielding: 33, errorResistance: 46, velocity: 53, control: 48, stamina: 79, stuff: 45,
       clutch: 55, vsLHP: 54, grit: 57, stealing: 13, running: 33, throwing: 63, recovery: 65, wRISP: 55, vsLefty: 55, poise: 45, heater: 45, agile: 39,
       abilities: ["True Slider", "Constant Speed"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 0, 4, 1, 0, 4, 0, 0, 0, 0]) },
-    // Carson Peer — JR RHP #46, bullpen arm; elig SO→JR
-    { firstName: "Carson", lastName: "Peer", position: "P", eligibility: "JR", homeState: "CA", hometown: "Santa Monica", jerseyNumber: 46,
+    // Toran O'Harran — SR RHP #12, reliever/spot-starter (2026: 4.05 ERA, 40IP, 34K in 22 apps)
+    // REPLACED: Carson Peer was phantom; real SR RHP fit = Toran O'Harran #12 (Rocklin CA)
+    { firstName: "Toran", lastName: "O'Harran", position: "P", eligibility: "SR", homeState: "CA", hometown: "Rocklin", jerseyNumber: 12,
       hitForAvg: 11, power: 9, speed: 30, arm: 26, fielding: 17, errorResistance: 29, velocity: 53, control: 23, stamina: 44, stuff: 46,
       clutch: 33, vsLHP: 31, grit: 16, stealing: 9, running: 24, throwing: 41, recovery: 45, wRISP: 35, vsLefty: 35, poise: 45, heater: 55, agile: 16,
       abilities: ["True Slider"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 3, 0, 0]) },
-    // Drew Dowd — SR LHP #47, reliever
-    // FIXED: throwHand R→L, batHand R→L (real B/T = L/L); elig JR→SR
-    { firstName: "Drew", lastName: "Dowd", position: "P", eligibility: "SR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 47,
+    // Austin Steeves — SO LHP #49, reliever (2026: 5.40 ERA, 11.2IP, 13 apps)
+    // REPLACED: Drew Dowd was phantom; real SO LHP fit = Austin Steeves #49 (Petaluma CA); jersey freed after Peterson #49→#48
+    { firstName: "Austin", lastName: "Steeves", position: "P", eligibility: "SO", homeState: "CA", hometown: "Petaluma", jerseyNumber: 49,
       hitForAvg: 11, power: 8, speed: 30, arm: 28, fielding: 18, errorResistance: 29, velocity: 48, control: 26, stamina: 36, stuff: 41,
       clutch: 35, vsLHP: 33, grit: 36, stealing: 8, running: 22, throwing: 41, recovery: 35, wRISP: 35, vsLefty: 35, poise: 45, heater: 45, agile: 26,
       abilities: ["Release"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 4, 0, 0, 0, 0, 0, 0, 0, 0]), pitchVSL: 4 },
-    // David Wiser — SO RHP #48, bullpen arm
-    // FIXED: throwHand L→R, batHand L→R (real B/T = R/R); elig FR→SO
-    { firstName: "David", lastName: "Wiser", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 48,
+    // David Wiser — FR RHP #50, bullpen arm (2026: 1 app, 1IP)
+    // FIXED: throwHand L→R, batHand L→R (real B/T = R/R); jersey 48→50; elig SO→FR per 2026 roster; hometown San Diego→Elk Grove
+    { firstName: "David", lastName: "Wiser", position: "P", eligibility: "FR", homeState: "CA", hometown: "Elk Grove", jerseyNumber: 50,
       hitForAvg: 11, power: 10, speed: 28, arm: 32, fielding: 16, errorResistance: 27, velocity: 51, control: 24, stamina: 37, stuff: 39,
       clutch: 29, vsLHP: 28, grit: 16, stealing: 12, running: 28, throwing: 48, recovery: 35, wRISP: 20, vsLefty: 20, poise: 35, heater: 45, agile: 16,
       abilities: ["Groundball Pitcher"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 4 },
-    // Colt Peterson — SO RHP #49, bullpen arm; elig FR→SO
-    { firstName: "Colt", lastName: "Peterson", position: "P", eligibility: "SO", homeState: "CA", hometown: "Fresno", jerseyNumber: 49,
+    // Colt Peterson — FR RHP #48, bullpen arm (2026: 3W 1L, 6.37 ERA, 29.2IP, 19K in 24 apps)
+    // FIXED: jersey 49→48; elig SO→FR per 2026 roster; hometown Fresno→Orange
+    { firstName: "Colt", lastName: "Peterson", position: "P", eligibility: "FR", homeState: "CA", hometown: "Orange", jerseyNumber: 48,
       hitForAvg: 12, power: 9, speed: 32, arm: 36, fielding: 20, errorResistance: 31, velocity: 51, control: 26, stamina: 10, stuff: 37,
       clutch: 33, vsLHP: 31, grit: 34, stealing: 12, running: 31, throwing: 53, recovery: 20, wRISP: 35, vsLefty: 35, poise: 35, heater: 45, agile: 36,
       abilities: ["Fireman"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]), pitchVSL: 3 },
-    // Jake Torres — FR RHP #41 (generated depth arm; jersey freed from Keenan 41→24)
-    { firstName: "Jake", lastName: "Torres", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Jose", jerseyNumber: 41,
+    // Liam Golden — SO RHP #41, bullpen arm (2026: 7 apps, 6.2IP, 8K)
+    // REPLACED: Jake Torres was phantom; real RHP fit = Liam Golden #41 (Sacramento CA); jersey matches
+    { firstName: "Liam", lastName: "Golden", position: "P", eligibility: "SO", homeState: "CA", hometown: "Sacramento", jerseyNumber: 41,
       hitForAvg: 12, power: 8, speed: 28, arm: 30, fielding: 18, errorResistance: 26, velocity: 38, control: 28, stamina: 34, stuff: 30,
       clutch: 30, vsLHP: 28, grit: 28, stealing: 10, running: 24, throwing: 44, recovery: 35, wRISP: 35, vsLefty: 20, poise: 35, heater: 35, agile: 26,
       abilities: ["Fireman"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 3, 1, 0, 4, 0, 0, 0, 3]) },
     // CATCHERS (2)
-    // Luke Lavin — SR C/1B #11 (FIXED: pos OF→C, jersey 20→11, batHand R→L; real B/T = L/L; elig JR→SR)
-    { firstName: "Luke", lastName: "Lavin", position: "C", eligibility: "SR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 11,
+    // Luke Lavin — JR C/1B #11 (FIXED: pos OF→C, jersey 20→11, batHand R→L; real B/T = L/L; elig SR→JR per 2026 roster; hometown San Francisco→Laguna Beach)
+    { firstName: "Luke", lastName: "Lavin", position: "C", eligibility: "JR", homeState: "CA", hometown: "Laguna Beach", jerseyNumber: 11,
       hitForAvg: 57, power: 50, speed: 56, arm: 61, fielding: 52, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 59, vsLHP: 53, grit: 48, stealing: 46, running: 50, throwing: 62, recovery: 43, wRISP: 49, vsLefty: 45, poise: 50, heater: 0, agile: 44,
       abilities: ["Home Defense"], potential: "B+", catcherAbility: 48,
       throwHand: "L", batHand: "L",
       ...noPitches },
-    // Ryan McAllister — FR C #20 (generated backup; jersey freed from Lavin 20→11)
-    { firstName: "Ryan", lastName: "McAllister", position: "C", eligibility: "FR", homeState: "CA", hometown: "Menlo Park", jerseyNumber: 20,
+    // Nolan Stoll — FR C #47 (2026: .283 AVG, 1.000 FLD%, 27 GP, 12 SBA as catcher)
+    // REPLACED: Ryan McAllister was phantom; real FR C = Nolan Stoll #47 (Stevenson Ranch CA)
+    { firstName: "Nolan", lastName: "Stoll", position: "C", eligibility: "FR", homeState: "CA", hometown: "Stevenson Ranch", jerseyNumber: 47,
       hitForAvg: 59, power: 53, speed: 53, arm: 38, fielding: 40, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 55, vsLHP: 53, grit: 53, stealing: 51, running: 53, throwing: 42, recovery: 20, wRISP: 49, vsLefty: 47, poise: 24, heater: 0, agile: 49,
       abilities: ["Resilient"], potential: "B+", catcherAbility: 32,
       throwHand: "R", batHand: "R",
       ...noPitches },
     // INFIELDERS (6)
-    // Rintaro Sasaki — SO 1B #3 (.269/7HR/41RBI)
-    // FIXED: jersey 21→3, batHand R→L (real B/T = L/R)
+    // Rintaro Sasaki — SO 1B #3 (2026: .262/.952, 16HR, 47RBI in 54 GP)
+    // FIXED: jersey 21→3, batHand R→L (real B/T = L/R); hometown Stanford CA→Hanamaki Japan
     // protectedAttrs: hitForAvg/power bypass Stanford scale (1.122642) — raw = exact in-game value
-    { firstName: "Rintaro", lastName: "Sasaki", position: "1B", eligibility: "SO", homeState: "CA", hometown: "Stanford", jerseyNumber: 3,
+    { firstName: "Rintaro", lastName: "Sasaki", position: "1B", eligibility: "SO", homeState: "JPN", hometown: "Hanamaki", jerseyNumber: 3,
       hitForAvg: 82, power: 90, speed: 60, arm: 46, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 62, vsLHP: 56, grit: 58, stealing: 54, running: 54, throwing: 50, recovery: 48, wRISP: 64, vsLefty: 56, poise: 62, heater: 0, agile: 40,
       abilities: ["Line Drive", "Consigliere"], potential: "B+", catcherAbility: null,
       protectedAttrs: ["hitForAvg", "power"],
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Jimmy Nati — SR 3B #6, team HR/RBI leader (.300/16HR/50RBI, All-ACC Gold Glove finalist)
-    // stat-boosted: power and clutch raised to reflect production
-    { firstName: "Jimmy", lastName: "Nati", position: "3B", eligibility: "SR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 6,
+    // Jimmy Nati — SR INF #6 (2026: .253/.791, 8HR, 32RBI; hometown Sydney Australia)
+    // stat-boosted: power and clutch raised to reflect production; hometown Toms River NJ→Sydney Australia
+    { firstName: "Jimmy", lastName: "Nati", position: "3B", eligibility: "SR", homeState: "AUS", hometown: "Sydney", jerseyNumber: 6,
       hitForAvg: 64, power: 72, speed: 53, arm: 52, fielding: 30, errorResistance: 77, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 58, grit: 54, stealing: 53, running: 48, throwing: 56, recovery: 46, wRISP: 62, vsLefty: 52, poise: 58, heater: 0, agile: 42,
       abilities: ["Power Hitter", "vs. Ace"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Eric Jeon — SR 2B #15 (.329/9HR; FIXED: jersey 14→15, elig JR→SR)
-    { firstName: "Eric", lastName: "Jeon", position: "2B", eligibility: "SR", homeState: "NY", hometown: "New York", jerseyNumber: 15,
+    // Eric Jeon — JR 2B #15 (2026: .323/.965, 9HR, 28RBI; FIXED: jersey 14→15; elig SR→JR; hometown New York NY→Fullerton CA)
+    { firstName: "Eric", lastName: "Jeon", position: "2B", eligibility: "JR", homeState: "CA", hometown: "Fullerton", jerseyNumber: 15,
       hitForAvg: 67, power: 50, speed: 52, arm: 36, fielding: 73, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 62, grit: 54, stealing: 60, running: 56, throwing: 62, recovery: 44, wRISP: 57, vsLefty: 50, poise: 56, heater: 0, agile: 50,
       abilities: ["Chance Maker", "Spray Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // JJ Moran — SO SS #1 (FIXED: pos C→SS, jersey 24→1, clear catcherAbility; real pos = INF)
-    { firstName: "JJ", lastName: "Moran", position: "SS", eligibility: "SO", homeState: "CA", hometown: "Newport Beach", jerseyNumber: 1,
+    // JJ Moran — SO SS #1 (2026: .261/.799, 8HR, 41RBI; FIXED: pos C→SS, jersey 24→1; hometown Newport Beach→San Diego)
+    { firstName: "JJ", lastName: "Moran", position: "SS", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 1,
       hitForAvg: 52, power: 43, speed: 42, arm: 48, fielding: 68, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 49, grit: 49, stealing: 44, running: 44, throwing: 54, recovery: 30, wRISP: 36, vsLefty: 34, poise: 38, heater: 0, agile: 36,
       abilities: ["Double Play", "Defensive Artisan"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Brock Sell — FR 3B #12 (confirmed 2026 incoming FR, from San Clemente CA; R/R)
-    { firstName: "Brock", lastName: "Sell", position: "3B", eligibility: "FR", homeState: "CA", hometown: "San Clemente", jerseyNumber: 12,
+    // Brock Sell — FR INF #2 (2026: .284/.865, 40 GP; jersey 12→2; hometown San Clemente→Stockton CA)
+    { firstName: "Brock", lastName: "Sell", position: "3B", eligibility: "FR", homeState: "CA", hometown: "Stockton", jerseyNumber: 2,
       hitForAvg: 65, power: 58, speed: 38, arm: 36, fielding: 79, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 57, vsLHP: 64, grit: 54, stealing: 53, running: 48, throwing: 71, recovery: 43, wRISP: 51, vsLefty: 48, poise: 50, heater: 0, agile: 51,
       abilities: ["Consigliere"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Max Harrison — FR 2B #32 (generated INF depth; jersey freed from Keenan chain)
-    { firstName: "Max", lastName: "Harrison", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 32,
+    // Rashad Hayes — FR INF #5 (2026: 17 GP, .143 AVG; Oakland CA)
+    // REPLACED: Max Harrison was phantom; real FR INF = Rashad Hayes #5 (Oakland CA)
+    { firstName: "Rashad", lastName: "Hayes", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Oakland", jerseyNumber: 5,
       hitForAvg: 55, power: 49, speed: 67, arm: 32, fielding: 44, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 49, vsLHP: 49, grit: 49, stealing: 53, running: 59, throwing: 40, recovery: 20, wRISP: 45, vsLefty: 43, poise: 26, heater: 0, agile: 55,
       abilities: ["Error Prone"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Jack O'Brien — SR 2B/OF #9 (utility; pos OF→2B to balance roster; elig JR→SR; jersey freed from Bowser removal)
-    { firstName: "Jack", lastName: "O'Brien", position: "2B", eligibility: "SR", homeState: "CA", hometown: "Atherton", jerseyNumber: 9,
+    // Sebastian David — JR INF #14 (2026: 7 GP, .000 AVG; Medina WA)
+    // REPLACED: Jack O'Brien was phantom; real JR INF = Sebastian David #14 (Medina WA)
+    { firstName: "Sebastian", lastName: "David", position: "2B", eligibility: "JR", homeState: "WA", hometown: "Medina", jerseyNumber: 14,
       hitForAvg: 38, power: 44, speed: 76, arm: 44, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 30, grit: 30, stealing: 30, running: 36, throwing: 44, recovery: 28, wRISP: 32, vsLefty: 30, poise: 32, heater: 0, agile: 38,
       abilities: ["High Speed Charge", "Walkoff Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
     // OUTFIELDERS (7)
-    // Teddy Tokheim — SO OF #18, elite power (.349/16HR/OPS 1.359 as true FR, led all freshmen nationally)
-    // FIXED: batHand S→R (real B/T = R/R); elig FR→SO; clutch bumped to reflect elite production
+    // Teddy Tokheim — FR OF/INF #19 (2026: .352/1.118, 17HR, 47RBI — led Stanford in avg/OPS)
+    // FIXED: batHand S→R (real B/T = R/R); jersey 18→19; elig SO→FR per 2026 roster; hometown Edina MN→Seattle WA
     // protectedAttrs: hitForAvg/power bypass Stanford scale (1.122642) — raw = exact in-game value
-    { firstName: "Teddy", lastName: "Tokheim", position: "OF", eligibility: "SO", homeState: "MN", hometown: "Edina", jerseyNumber: 18,
+    { firstName: "Teddy", lastName: "Tokheim", position: "OF", eligibility: "FR", homeState: "WA", hometown: "Seattle", jerseyNumber: 19,
       hitForAvg: 89, power: 90, speed: 42, arm: 55, fielding: 48, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 82, vsLHP: 66, grit: 78, stealing: 30, running: 42, throwing: 58, recovery: 22, wRISP: 28, vsLefty: 24, poise: 28, heater: 0, agile: 44,
       abilities: ["Counterattack", "Power Hitter", "Multi-Hit", "Tough Out"], potential: "A", catcherAbility: null,
       protectedAttrs: ["hitForAvg", "power"],
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Tatum Marsh — SO OF #4, Freshman All-American (.377/3HR/47R; FIXED: elig JR→SO, jersey 7→4)
-    // stat-boosted hitForAvg to reflect .377 AVG; speed reflects 47 R
-    { firstName: "Tatum", lastName: "Marsh", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Atherton", jerseyNumber: 4,
+    // Tatum Marsh — SO OF #4 (2026: .215/.612, 34 GP; FIXED: elig JR→SO, jersey 7→4; hometown Atherton→San Jose)
+    // stat-boosted hitForAvg to reflect prior .377 AVG; speed reflects 47 R prior season
+    { firstName: "Tatum", lastName: "Marsh", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Jose", jerseyNumber: 4,
       hitForAvg: 70, power: 38, speed: 78, arm: 56, fielding: 46, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 58, vsLHP: 56, grit: 52, stealing: 58, running: 62, throwing: 52, recovery: 40, wRISP: 56, vsLefty: 48, poise: 54, heater: 0, agile: 48,
       abilities: ["Contact Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Charlie Bates — SO OF #10, Brooks Wallace watch list (~10HR; FIXED: pos C→OF, batHand R→L, elig JR→SO)
-    { firstName: "Charlie", lastName: "Bates", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Stockton", jerseyNumber: 10,
+    // Charlie Bates — SO INF #10 (2026: .272/.856, 9HR, 34RBI in 53 GP; FIXED: pos C→OF, batHand R→L, elig JR→SO; hometown Stockton→Palo Alto)
+    { firstName: "Charlie", lastName: "Bates", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Palo Alto", jerseyNumber: 10,
       hitForAvg: 60, power: 56, speed: 57, arm: 64, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 55, vsLHP: 54, grit: 50, stealing: 40, running: 44, throwing: 68, recovery: 46, wRISP: 54, vsLefty: 48, poise: 54, heater: 0, agile: 44,
       abilities: ["vs. Breaking Pitches", "Power Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Brady Reynolds — JR OF #29 (FIXED: pos SS→OF, batHand R→L; jersey freed from Warner's 29→23 move)
-    { firstName: "Brady", lastName: "Reynolds", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Carlsbad", jerseyNumber: 29,
+    // Brady Reynolds — JR OF #27 (2026: .292/.935, 4HR, 12RBI in 29 GP; jersey 29→27; hometown Carlsbad→Bakersfield)
+    { firstName: "Brady", lastName: "Reynolds", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 27,
       hitForAvg: 50, power: 32, speed: 88, arm: 44, fielding: 46, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 32, vsLHP: 30, grit: 30, stealing: 36, running: 48, throwing: 38, recovery: 30, wRISP: 36, vsLefty: 32, poise: 34, heater: 0, agile: 42,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-    // Ethan Hott — SR OF #7 (.313 AVG; FIXED: pos 2B→OF, elig JR→SR; jersey freed from Marsh's 7→4 move)
-    { firstName: "Ethan", lastName: "Hott", position: "OF", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 7,
+    // Ethan Hott — SR OF #13 (2026: .313/.871, 1HR, 13RBI in 24 GP; jersey 7→13; hometown Los Angeles CA→Paradise Valley AZ)
+    { firstName: "Ethan", lastName: "Hott", position: "OF", eligibility: "SR", homeState: "AZ", hometown: "Paradise Valley", jerseyNumber: 13,
       hitForAvg: 62, power: 40, speed: 72, arm: 60, fielding: 58, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 58, grit: 50, stealing: 66, running: 60, throwing: 50, recovery: 38, wRISP: 48, vsLefty: 44, poise: 48, heater: 0, agile: 46,
       abilities: ["Spray Hitter", "Head-first Slide"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // Cort MacDonald — SR OF #22 (.346/6HR; FIXED: jersey 27→22, elig JR→SR)
-    { firstName: "Cort", lastName: "MacDonald", position: "OF", eligibility: "SR", homeState: "CA", hometown: "Walnut Creek", jerseyNumber: 22,
+    // Cort MacDonald — SR OF #22 (2026: .340/.910, 3HR, 22RBI, 6 SB; hometown Walnut Creek CA→Arlington TX)
+    { firstName: "Cort", lastName: "MacDonald", position: "OF", eligibility: "SR", homeState: "TX", hometown: "Arlington", jerseyNumber: 22,
       hitForAvg: 62, power: 50, speed: 32, arm: 68, fielding: 58, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 55, grit: 54, stealing: 54, running: 62, throwing: 66, recovery: 46, wRISP: 52, vsLefty: 48, poise: 54, heater: 0, agile: 55,
       abilities: ["Head-first Slide", "Spray Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "S",
       ...noPitches },
-    // Brock Ketelsen — FR OF #8, two-way LHP/OF; FIXED: pos SS→OF (real position), throwHand/batHand R→L (L/L); hometown Scotts Valley CA
-    { firstName: "Brock", lastName: "Ketelsen", position: "OF", eligibility: "FR", homeState: "CA", hometown: "Scotts Valley", jerseyNumber: 8,
+    // Brock Ketelsen — FR OF/LHP #21 (2026: .154/.697 bat; 7.39 ERA 31.2IP pitch; jersey 8→21; Scotts Valley CA)
+    { firstName: "Brock", lastName: "Ketelsen", position: "OF", eligibility: "FR", homeState: "CA", hometown: "Scotts Valley", jerseyNumber: 21,
       hitForAvg: 40, power: 52, speed: 88, arm: 44, fielding: 36, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 34, vsLHP: 34, grit: 32, stealing: 36, running: 58, throwing: 52, recovery: 24, wRISP: 30, vsLefty: 28, poise: 30, heater: 0, agile: 38,
       abilities: ["Pull Hitter"], potential: "A-", catcherAbility: null,
