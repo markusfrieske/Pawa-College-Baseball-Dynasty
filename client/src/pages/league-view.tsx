@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link, useLocation } from "wouter";
+import { useParams, Link, useLocation, useSearch } from "wouter";
 import { useUpdateMusicPhase } from "@/lib/music-context";
 import { useUpdateAtmospherePhase, useSetAtmosphereBurstColor } from "@/components/atmosphere-provider";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -262,9 +262,12 @@ interface LeagueDetails extends League {
   conferences: Conference[];
 }
 
+const HOME_TAB_VALUES = new Set(["prospects", "standings", "teams", "rankings", "news", "awards", "history"]);
+
 export default function LeagueViewPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
+  const search = useSearch();
   const updateMusicPhase = useUpdateMusicPhase();
   const updateAtmospherePhase = useUpdateAtmospherePhase();
   const setAtmosphereBurstColor = useSetAtmosphereBurstColor();
@@ -274,6 +277,16 @@ export default function LeagueViewPage() {
   const [recapSeason, setRecapSeason] = useState(1);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [showAuctionModal, setShowAuctionModal] = useState(false);
+
+  const requestedTab = new URLSearchParams(search).get("tab");
+  const [homeTab, setHomeTab] = useState(
+    requestedTab && HOME_TAB_VALUES.has(requestedTab) ? requestedTab : "news"
+  );
+  useEffect(() => {
+    if (requestedTab && HOME_TAB_VALUES.has(requestedTab)) {
+      setHomeTab(requestedTab);
+    }
+  }, [requestedTab]);
 
   const { data: league, isLoading } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
@@ -804,7 +817,7 @@ export default function LeagueViewPage() {
 
         <OffseasonSummary league={league} />
 
-        <Tabs defaultValue="news" className="space-y-4">
+        <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
               <TabsTrigger value="news" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-news">

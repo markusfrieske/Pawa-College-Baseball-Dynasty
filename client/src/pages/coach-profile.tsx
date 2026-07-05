@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { Badge } from "@/components/ui/badge";
@@ -1423,7 +1423,10 @@ type TabId = typeof TABS[number]["id"];
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CoachProfilePage() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<TabId>("career");
+  const search = useSearch();
+  const requestedTab = new URLSearchParams(search).get("tab");
+  const initialTab: TabId = TABS.some(t => t.id === requestedTab) ? (requestedTab as TabId) : "career";
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

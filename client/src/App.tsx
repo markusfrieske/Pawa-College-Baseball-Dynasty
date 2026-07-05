@@ -206,7 +206,7 @@ function App() {
             <SigningDayBurst />
             <AtmosphereRouter />
             <MusicRouter />
-            <div className="fixed bottom-16 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
+            <div className="fixed bottom-20 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
               <VolumeControl />
             </div>
             <Toaster />
