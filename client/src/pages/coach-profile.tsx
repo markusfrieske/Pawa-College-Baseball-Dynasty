@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useSearch } from "wouter";
@@ -1429,6 +1429,12 @@ export default function CoachProfilePage() {
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (requestedTab && TABS.some(t => t.id === requestedTab)) {
+      setActiveTab(requestedTab as TabId);
+    }
+  }, [requestedTab]);
 
   const { data, isLoading } = useQuery<CoachData>({
     queryKey: ["/api/leagues", id, "coach"],
