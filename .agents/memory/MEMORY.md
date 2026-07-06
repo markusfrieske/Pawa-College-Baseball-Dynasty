@@ -5,3 +5,5 @@
 - [Pitcher common attr PP mapping](pitcher-common-attrs-pp.md) — confirmed PP→attr mapping and derivation formulas; cap at 85; MEAN_MAX now 307.
 - [Startup DB lock contention](startup-db-lock.md) — ALTER TABLE players in allSettled can queue behind autovacuum AccessExclusiveLock; resolves without code changes but may delay startup 2-3 min under load.
 - [League setup flow timing](league-setup-flow-timing.md) — dynasty creation (team-selection/start/setup) legitimately takes 20-90s due to full roster/schedule generation; use long timeouts in tests, don't treat client timeout as failure.
+- [Testing authenticated pages via cookie injection](e2e-cookie-auth-bootstrap.md) — bootstrap a league via API then inject its session cookie with document.cookie in a Playwright test to reach member-only UI states fast.
+- [Shared queryKey response-shape mismatch](shared-querykey-shape-mismatch.md) — multiple components using the same React Query cache key must agree on response shape, or a non-member 403 crashes unrelated components expecting array data.
