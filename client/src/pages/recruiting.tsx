@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -1847,7 +1847,55 @@ export default function RecruitingPage() {
   );
 }
 
-
+function WeeklyPlanSection({
+  title,
+  icon,
+  items,
+  emptyLabel,
+  onItemClick,
+}: {
+  title: string;
+  icon: ReactNode;
+  items: RecruitRecommendation[];
+  emptyLabel: string;
+  onItemClick: (recruitId: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        {icon}
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{title}</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-[10px] text-muted-foreground/70 italic">{emptyLabel}</p>
+      ) : (
+        <ul className="space-y-1">
+          {items.slice(0, 5).map((item) => (
+            <li key={item.recruitId}>
+              <button
+                type="button"
+                className="w-full text-left flex items-center justify-between gap-2 rounded px-1.5 py-1 hover-elevate active-elevate-2"
+                onClick={() => onItemClick(item.recruitId)}
+                data-testid={`link-weekly-plan-${item.recruitId}`}
+              >
+                <span className="text-[10px] truncate">
+                  {item.firstName} {item.lastName}{" "}
+                  <span className="text-muted-foreground">({item.position})</span>
+                </span>
+                <Badge
+                  variant="outline"
+                  className={`text-[8px] shrink-0 ${RECOMMENDED_ACTION_META[item.action].color}`}
+                >
+                  {RECOMMENDED_ACTION_META[item.action].label}
+                </Badge>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function RecruitingSkeleton() {
   return (
