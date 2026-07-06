@@ -8,9 +8,10 @@ interface RetroCardProps {
   style?: React.CSSProperties;
   "data-testid"?: string;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
+  id?: string;
 }
 
-export function RetroCard({ children, className, variant = "default", style, "data-testid": testId, onClick }: RetroCardProps) {
+export function RetroCard({ children, className, variant = "default", style, "data-testid": testId, onClick, id }: RetroCardProps) {
   const variants = {
     default: "bg-card border-card-border",
     highlighted: "bg-card border-gold",
@@ -37,6 +38,7 @@ export function RetroCard({ children, className, variant = "default", style, "da
 
   return (
     <div
+      id={id}
       className={cn("border-2 p-4", variants[variant], className)}
       style={{ ...glowStyles[variant], ...style }}
       data-testid={testId}

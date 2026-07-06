@@ -2239,6 +2239,322 @@ export async function registerRoutes(
     }
   });
 
+  // ============ RECOMMENDED ACTIONS (WAR ROOM) ============
+  //
+  // Decision-support layer: for each recruit, computes the single highest-value
+  // next action (Email/Phone/Campus Visit/HC Visit/Offer/Scout/Hold) plus a
+  // human-readable reason and an urgency score, respecting the same weekly/season
+  // action constraints enforced by the action endpoints above. This layer is
+  // purely advisory — it reads existing signals (interest, competition, stage,
+  // scouting %, position needs, trend) and never touches interest-gain math,
+  // the multiplier stack, or CPU AI.
+  const RECOMMENDABLE_POSITIONS = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+
+  type RecommendedAction = "email" | "phone" | "campus_visit" | "hc_visit" | "offer" | "scout" | "hold";
+
+  interface RecruitRecommendationInput {
+    starRating: number;
+    interestLevel: number;
+    scoutPct: number;
+    stage: string;
+    teamsIn: number;
+    offersOut: number;
+    trend: "up" | "down" | "flat";
+    positionNeed: boolean;
+    userIsLeader: boolean;
+    hasOffer: boolean;
+    isTargeted: boolean;
+    phoneUsedThisWeek: boolean;
+    emailUsedThisWeek: boolean;
+    visitUsed: boolean;
+    hcVisitUsed: boolean;
+    remainingPoints: number;
+    remainingScoutPoints: number;
+  }
+
+  function decideRecruitAction(input: RecruitRecommendationInput): { action: RecommendedAction; reason: string; urgency: number } {
+    const {
+      starRating, interestLevel, scoutPct, stage, teamsIn, offersOut, trend,
+      positionNeed, userIsLeader, hasOffer, isTargeted, phoneUsedThisWeek,
+      emailUsedThisWeek, visitUsed, hcVisitUsed, remainingPoints, remainingScoutPoints,
+    } = input;
+
+    const needBoost = positionNeed ? 10 : 0;
+    const starBoost = Math.max(0, starRating - 3) * 5;
+    const stageBoost = stage === "verbal" ? 25 : stage === "top3" ? 18 : stage === "top5" ? 10 : stage === "top8" ? 5 : 0;
+    const competitionBoost = Math.min(20, teamsIn * 5) + offersOut * 5;
+
+    // Already verbally committed to us — steady contact only, no urgent action.
+    if (stage === "verbal" && userIsLeader) {
+      return { action: "hold", reason: "Verbally committed to you — maintain contact but no urgent action needed", urgency: 5 + needBoost };
+    }
+
+    // Committed elsewhere — long-shot territory, deprioritize.
+    if (stage === "verbal" && !userIsLeader) {
+      return { action: "hold", reason: "Verbally committed to a rival program — unlikely to flip without a major push", urgency: 8 };
+    }
+
+    // Scouting gap — can't make an informed pitch without more intel.
+    if (scoutPct < 25 && remainingScoutPoints > 0) {
+      return {
+        action: "scout",
+        reason: `Only ${scoutPct}% scouted — reveal more before investing recruiting points`,
+        urgency: 25 + needBoost + starBoost,
+      };
+    }
+
+    // Heavy rival competition at a late stage with no offer yet — lock it in.
+    if (!hasOffer && (teamsIn >= 3 || offersOut >= 1) && ["top5", "top3"].includes(stage) && remainingPoints >= 1) {
+      return {
+        action: "offer",
+        reason: `${teamsIn} rival team${teamsIn === 1 ? "" : "s"} in${offersOut > 0 ? ` (${offersOut} with an offer out)` : ""} — extend a scholarship offer before they lock in`,
+        urgency: 80 + competitionBoost + stageBoost + needBoost + starBoost,
+      };
+    }
+
+    // Elite/blue-chip recruits deep in the pipeline get the head coach treatment.
+    if (!hcVisitUsed && starRating >= 5 && ["top5", "top3"].includes(stage) && remainingPoints >= 1) {
+      return {
+        action: "hc_visit",
+        reason: "Elite recruit late in the pipeline — a Head Coach Visit makes the strongest personal impression",
+        urgency: 70 + stageBoost + needBoost,
+      };
+    }
+
+    // High-value recruits not yet campus-visited, once they've shown real interest.
+    if (!visitUsed && (starRating >= 4 || positionNeed) && ["top8", "top5", "top3"].includes(stage) && remainingPoints >= 1) {
+      return {
+        action: "campus_visit",
+        reason: positionNeed
+          ? "Fills a roster need — a Campus Visit can seal the deal"
+          : "High-value target — a Campus Visit converts interest into commitment",
+        urgency: 60 + stageBoost + needBoost + starBoost,
+      };
+    }
+
+    // Slipping away — interest trending down, needs a touchpoint this week.
+    if (trend === "down" && interestLevel > 0) {
+      if (!phoneUsedThisWeek && remainingPoints >= 1) {
+        return { action: "phone", reason: "Interest is trending down — a phone call can stop the slide", urgency: 55 + needBoost + starBoost };
+      }
+      if (!emailUsedThisWeek && remainingPoints >= 1) {
+        return { action: "email", reason: "Interest is trending down — send an email to re-engage", urgency: 50 + needBoost + starBoost };
+      }
+    }
+
+    // Standard weekly cadence — keep the relationship warm.
+    if (!phoneUsedThisWeek && remainingPoints >= 1) {
+      return {
+        action: "phone",
+        reason: positionNeed ? "Fills a roster need — keep the relationship warm with a call" : "No contact yet this week — a phone call keeps interest growing",
+        urgency: 35 + needBoost + starBoost + (isTargeted ? 5 : 0),
+      };
+    }
+    if (!emailUsedThisWeek && remainingPoints >= 1) {
+      return {
+        action: "email",
+        reason: positionNeed ? "Fills a roster need — a quick email maintains momentum" : "No contact yet this week — an email maintains momentum",
+        urgency: 30 + needBoost + starBoost + (isTargeted ? 5 : 0),
+      };
+    }
+
+    return { action: "hold", reason: remainingPoints < 1 ? "Out of recruiting points this week" : "Already contacted this week — nothing further to do right now", urgency: 5 };
+  }
+
+  app.get("/api/leagues/:id/recruiting/recommendations", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const userTeam = userCoach ? leagueTeams.find(t => t.id === userCoach.teamId) : leagueTeams.find(t => !t.isCpu);
+      if (!userTeam) return res.status(400).json({ message: "No team assigned" });
+
+      const [leagueRecruits, interests, allTeamActions, allLeagueInterests, allLeagueTopSchools, roster] = await Promise.all([
+        storage.getRecruitsByLeague(leagueId),
+        storage.getRecruitingInterestsByTeam(userTeam.id),
+        storage.getRecruitingActionsLogByTeam(userTeam.id, leagueId),
+        storage.getRecruitingInterestsByLeague(leagueId),
+        storage.getRecruitTopSchoolsByLeague(leagueId),
+        storage.getPlayersByTeam(userTeam.id),
+      ]);
+
+      const interestMap = new Map(interests.map(i => [i.recruitId, i]));
+
+      // Rival competition signal (teams with meaningful interest or an offer out)
+      const teamsInMap = new Map<string, { teamsIn: number; offersOut: number }>();
+      for (const ri of allLeagueInterests) {
+        if (ri.teamId === userTeam.id) continue;
+        if ((ri.interestLevel || 0) <= 20 && !ri.hasOffer) continue;
+        const entry = teamsInMap.get(ri.recruitId) ?? { teamsIn: 0, offersOut: 0 };
+        entry.teamsIn++;
+        if (ri.hasOffer) entry.offersOut++;
+        teamsInMap.set(ri.recruitId, entry);
+      }
+
+      // Perceived leader (highest combined interest among active top-school entries)
+      const topSchoolsByRecruit = new Map<string, typeof allLeagueTopSchools>();
+      for (const ts of allLeagueTopSchools) {
+        if (!ts.isActive) continue;
+        const arr = topSchoolsByRecruit.get(ts.recruitId) ?? [];
+        arr.push(ts);
+        topSchoolsByRecruit.set(ts.recruitId, arr);
+      }
+      const leaderMap = new Map<string, string>();
+      for (const [rid, arr] of Array.from(topSchoolsByRecruit.entries())) {
+        const best = arr.reduce((a, b) => (a.interestLevel + a.accumulatedInterest) >= (b.interestLevel + b.accumulatedInterest) ? a : b);
+        leaderMap.set(rid, best.teamId);
+      }
+
+      // Weekly/premium action usage + recent trend, from this team's action log
+      const weeklyActionsUsed: Record<string, Set<string>> = {};
+      const premiumActionsUsed: Record<string, Set<string>> = {};
+      const actionsByRecruit = new Map<string, typeof allTeamActions>();
+      for (const a of allTeamActions) {
+        const arr = actionsByRecruit.get(a.recruitId) ?? [];
+        arr.push(a);
+        actionsByRecruit.set(a.recruitId, arr);
+
+        if (a.actionType === "visit" || a.actionType === "head_coach_visit") {
+          if (!premiumActionsUsed[a.recruitId]) premiumActionsUsed[a.recruitId] = new Set();
+          premiumActionsUsed[a.recruitId].add(a.actionType);
+        }
+        if ((a.actionType === "phone" || a.actionType === "email") && a.week === league.currentWeek && a.season === league.currentSeason) {
+          if (!weeklyActionsUsed[a.recruitId]) weeklyActionsUsed[a.recruitId] = new Set();
+          weeklyActionsUsed[a.recruitId].add(a.actionType);
+        }
+      }
+      const currentSeason = league.currentSeason;
+      const currentWeek = league.currentWeek;
+      const getTrend = (recruitId: string): "up" | "down" | "flat" => {
+        const actions = actionsByRecruit.get(recruitId) ?? [];
+        const recent = actions.filter(a => a.season === currentSeason && (currentWeek - a.week) >= 0 && (currentWeek - a.week) <= 2);
+        const totalGain = recent.reduce((s, a) => s + (a.interestChange || 0), 0);
+        if (totalGain > 5) return "up";
+        if (totalGain < -5) return "down";
+        return "flat";
+      };
+
+      // Position needs (mirrors /recruiting/pipeline logic)
+      const seniors = roster.filter(p => p.eligibility === "SR");
+      const positionCounts: Record<string, number> = {};
+      const seniorPositions: Record<string, number> = {};
+      for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+      for (const s of seniors) seniorPositions[s.position] = (seniorPositions[s.position] || 0) + 1;
+      const needPositions = new Set<string>();
+      for (const pos of RECOMMENDABLE_POSITIONS) {
+        const current = positionCounts[pos] || 0;
+        const graduating = seniorPositions[pos] || 0;
+        if (current - graduating < 2) needPositions.add(pos);
+      }
+
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const remainingPoints = Math.max(0, maxRecruitingActions - (userCoach?.recruitActionsUsed || 0));
+      const maxScoutActions = getMaxScoutActions(userCoach);
+      const remainingScoutPoints = Math.max(0, maxScoutActions - (userCoach?.scoutActionsUsed || 0));
+
+      const recommendations: {
+        recruitId: string;
+        firstName: string;
+        lastName: string;
+        position: string;
+        starRating: number;
+        stage: string;
+        action: RecommendedAction;
+        reason: string;
+        urgency: number;
+        interestLevel: number;
+        trend: "up" | "down" | "flat";
+        teamsIn: number;
+        positionNeed: boolean;
+      }[] = [];
+
+      for (const recruit of leagueRecruits) {
+        if (recruit.signedTeamId) continue; // signed anywhere — no action needed
+        const interest = interestMap.get(recruit.id);
+        const interestLevel = interest?.interestLevel ?? 0;
+        const scoutPct = interest?.scoutPercentage ?? 0;
+        const stage = (recruit.stage || "open").toLowerCase();
+        const ti = teamsInMap.get(recruit.id) ?? { teamsIn: 0, offersOut: 0 };
+        const trend = getTrend(recruit.id);
+        const positionNeed = needPositions.has(recruit.position);
+        const userIsLeader = leaderMap.get(recruit.id) === userTeam.id;
+        const weeklyUsed = weeklyActionsUsed[recruit.id] ?? new Set<string>();
+        const premiumUsed = premiumActionsUsed[recruit.id] ?? new Set<string>();
+
+        const decision = decideRecruitAction({
+          starRating: recruit.starRating || 0,
+          interestLevel,
+          scoutPct,
+          stage,
+          teamsIn: ti.teamsIn,
+          offersOut: ti.offersOut,
+          trend,
+          positionNeed,
+          userIsLeader,
+          hasOffer: !!interest?.hasOffer,
+          isTargeted: !!interest?.isTargeted,
+          phoneUsedThisWeek: weeklyUsed.has("phone"),
+          emailUsedThisWeek: weeklyUsed.has("email"),
+          visitUsed: premiumUsed.has("visit"),
+          hcVisitUsed: premiumUsed.has("head_coach_visit"),
+          remainingPoints,
+          remainingScoutPoints,
+        });
+
+        recommendations.push({
+          recruitId: recruit.id,
+          firstName: recruit.firstName,
+          lastName: recruit.lastName,
+          position: recruit.position,
+          starRating: recruit.starRating || 0,
+          stage,
+          ...decision,
+          interestLevel,
+          trend,
+          teamsIn: ti.teamsIn,
+          positionNeed,
+        });
+      }
+
+      const actionable = recommendations.filter(r => r.action !== "hold");
+      const topActions = [...actionable].sort((a, b) => b.urgency - a.urgency).slice(0, 5);
+      const highRisk = recommendations
+        .filter(r => (r.teamsIn >= 3 && r.action !== "hold") || (r.trend === "down" && r.interestLevel > 0))
+        .sort((a, b) => b.urgency - a.urgency)
+        .slice(0, 8);
+      const soonToCommit = recommendations
+        .filter(r => ["top3", "verbal"].includes(r.stage) && r.interestLevel >= 60)
+        .sort((a, b) => b.interestLevel - a.interestLevel)
+        .slice(0, 8);
+      const slippingAway = recommendations
+        .filter(r => r.trend === "down" && r.interestLevel > 0)
+        .sort((a, b) => b.urgency - a.urgency)
+        .slice(0, 8);
+      const uncoveredNeeds = Array.from(needPositions).filter(pos => {
+        const targetedAtPosition = leagueRecruits.some(r =>
+          r.position === pos && !r.signedTeamId && interestMap.get(r.id)?.isTargeted
+        );
+        return !targetedAtPosition;
+      });
+
+      res.json({
+        season: league.currentSeason,
+        week: league.currentWeek,
+        remainingPoints,
+        remainingScoutPoints,
+        recommendations,
+        weeklyPlan: { topActions, highRisk, soonToCommit, slippingAway, uncoveredNeeds },
+      });
+    } catch (error) {
+      console.error("Failed to fetch recruiting recommendations:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting recommendations" });
+    }
+  });
+
   // ============ RECRUITING CALCULATION HELPERS ============
   
   // Clipped-gain observability counter. Incremented whenever a gain lands outside

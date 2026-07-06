@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -65,6 +65,7 @@ import {
   Shuffle,
   AlertOctagon,
   Sprout,
+  ClipboardList,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -160,6 +161,47 @@ interface RecruitWithInterest extends Recruit {
   lastSeasonStats?: LastSeasonStats | null;
 }
 
+interface RecruitRecommendation {
+  recruitId: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  starRating: number;
+  stage: string;
+  action: "email" | "phone" | "campus_visit" | "hc_visit" | "offer" | "scout" | "hold";
+  reason: string;
+  urgency: number;
+  interestLevel: number;
+  trend: "up" | "down" | "flat";
+  teamsIn: number;
+  positionNeed: boolean;
+}
+
+interface RecruitingRecommendationsData {
+  season: number;
+  week: number;
+  remainingPoints: number;
+  remainingScoutPoints: number;
+  recommendations: RecruitRecommendation[];
+  weeklyPlan: {
+    topActions: RecruitRecommendation[];
+    highRisk: RecruitRecommendation[];
+    soonToCommit: RecruitRecommendation[];
+    slippingAway: RecruitRecommendation[];
+    uncoveredNeeds: string[];
+  };
+}
+
+const RECOMMENDED_ACTION_META: Record<RecruitRecommendation["action"], { label: string; color: string }> = {
+  email: { label: "EMAIL", color: "border-blue-400/60 text-blue-300 bg-blue-500/10" },
+  phone: { label: "CALL", color: "border-sky-400/60 text-sky-300 bg-sky-500/10" },
+  campus_visit: { label: "VISIT", color: "border-emerald-400/60 text-emerald-300 bg-emerald-500/10" },
+  hc_visit: { label: "HC VISIT", color: "border-violet-400/60 text-violet-300 bg-violet-500/10" },
+  offer: { label: "OFFER", color: "border-gold/60 text-gold bg-gold/10" },
+  scout: { label: "SCOUT", color: "border-orange-400/60 text-orange-300 bg-orange-500/10" },
+  hold: { label: "HOLD", color: "border-muted-foreground/40 text-muted-foreground bg-muted/20" },
+};
+
 interface AutoPilotAlertEntry {
   recruitName: string;
   recruitStars: number;
@@ -254,6 +296,22 @@ export default function RecruitingPage() {
   const [sortBy, setSortBy] = useState<string>((sf.sortBy as string) ?? "classRank");
   const [showTeamNeeds, setShowTeamNeeds] = useState<boolean>((sf.showTeamNeeds as boolean) ?? false);
   const [showPipeline, setShowPipeline] = useState<boolean>((sf.showPipeline as boolean) ?? false);
+  const [showWeeklyPlan, setShowWeeklyPlan] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem(`recruiting-weekly-plan-collapsed-${id}`) !== "1";
+    } catch {
+      return true;
+    }
+  });
+  const toggleWeeklyPlan = () => {
+    setShowWeeklyPlan(prev => {
+      const next = !prev;
+      try {
+        sessionStorage.setItem(`recruiting-weekly-plan-collapsed-${id}`, next ? "0" : "1");
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [showWatchlistOnly, setShowWatchlistOnly] = useState<boolean>((sf.showWatchlistOnly as boolean) ?? false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
@@ -383,6 +441,16 @@ export default function RecruitingPage() {
     queryKey: ["/api/leagues", id],
   });
 
+  const { data: recommendationsData } = useQuery<RecruitingRecommendationsData>({
+    queryKey: ["/api/leagues", id, "recruiting", "recommendations", leagueData?.currentWeek, leagueData?.currentSeason],
+    staleTime: 30_000,
+  });
+  const recommendationsByRecruit = useMemo(() => {
+    const map = new Map<string, RecruitRecommendation>();
+    for (const r of recommendationsData?.recommendations ?? []) map.set(r.recruitId, r);
+    return map;
+  }, [recommendationsData]);
+
   const isPostSigningDay = ["offseason_walkons", "preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws", "offseason"].includes(leagueData?.currentPhase ?? "");
   const { data: classRankingsData } = useQuery<{
     season: number;
@@ -476,6 +544,15 @@ export default function RecruitingPage() {
     if (!recapDismissKey) return;
     setRecapDismissed(localStorage.getItem(recapDismissKey) === "1");
   }, [recapDismissKey]);
+
+  const scrollToRecruit = (recruitId: string) => {
+    const el = document.getElementById(`recruit-card-${recruitId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-gold");
+      setTimeout(() => el.classList.remove("ring-2", "ring-gold"), 1500);
+    }
+  };
 
   // Auto-pilot alert modal
   const [showAutoPilotAlert, setShowAutoPilotAlert] = useState(false);
@@ -609,6 +686,7 @@ export default function RecruitingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "recommendations"] });
       setActionResultModal({ title: "Scouting Complete", description: "Scouting progress updated.", type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
@@ -676,6 +754,7 @@ export default function RecruitingPage() {
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "recommendations"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Phone Call Made", description: changeLabel.label, type: "success", icon: "phone" });
@@ -706,6 +785,7 @@ export default function RecruitingPage() {
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "recommendations"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Email Sent", description: changeLabel.label, type: "success", icon: "email" });
@@ -739,6 +819,7 @@ export default function RecruitingPage() {
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "recommendations"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit" });
@@ -772,6 +853,7 @@ export default function RecruitingPage() {
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "recommendations"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach" });
@@ -797,6 +879,7 @@ export default function RecruitingPage() {
         return { ...old, recruits };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "recommendations"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Scholarship Offered", description: changeLabel.label, type: "success", icon: "offer" });
@@ -1122,6 +1205,74 @@ export default function RecruitingPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+        {recommendationsData && (
+          <RetroCard className="mb-6">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 py-1"
+              onClick={toggleWeeklyPlan}
+              data-testid="button-toggle-weekly-plan"
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-gold" />
+                <span className="font-pixel text-[10px] text-gold">WEEKLY RECRUITING PLAN</span>
+                {recommendationsData.weeklyPlan.highRisk.length > 0 && (
+                  <span className="text-[9px] text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
+                    {recommendationsData.weeklyPlan.highRisk.length} at risk
+                  </span>
+                )}
+              </div>
+              {showWeeklyPlan ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+            {showWeeklyPlan && (
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <WeeklyPlanSection
+                  title="Top Actions"
+                  icon={<Target className="w-3.5 h-3.5 text-gold" />}
+                  items={recommendationsData.weeklyPlan.topActions}
+                  emptyLabel="No priority actions this week"
+                  onItemClick={scrollToRecruit}
+                />
+                <WeeklyPlanSection
+                  title="High-Risk Recruits"
+                  icon={<AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                  items={recommendationsData.weeklyPlan.highRisk}
+                  emptyLabel="No recruits currently at risk"
+                  onItemClick={scrollToRecruit}
+                />
+                <WeeklyPlanSection
+                  title="Soon to Commit"
+                  icon={<CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
+                  items={recommendationsData.weeklyPlan.soonToCommit}
+                  emptyLabel="No recruits close to committing"
+                  onItemClick={scrollToRecruit}
+                />
+                <WeeklyPlanSection
+                  title="Slipping Away"
+                  icon={<TrendingDown className="w-3.5 h-3.5 text-orange-400" />}
+                  items={recommendationsData.weeklyPlan.slippingAway}
+                  emptyLabel="No recruits slipping away"
+                  onItemClick={scrollToRecruit}
+                />
+                {recommendationsData.weeklyPlan.uncoveredNeeds.length > 0 && (
+                  <div className="md:col-span-2 border-t border-border pt-2">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Uncovered Position Needs</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recommendationsData.weeklyPlan.uncoveredNeeds.map((pos) => (
+                        <Badge key={pos} variant="outline" className="text-[9px] border-red-500/50 text-red-400" data-testid={`badge-uncovered-need-${pos}`}>
+                          {pos}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </RetroCard>
+        )}
         <RetroCard className="mb-6">
           <div className="space-y-4">
             <div className="relative">
@@ -2075,6 +2226,7 @@ export default function RecruitingPage() {
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
               trend={trendsData?.trends?.[recruit.id]}
               userTeamId={data?.team?.id}
+              recommendation={recommendationsByRecruit.get(recruit.id)}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
               isStorylineRecruit={storylineRecruitIds.has(recruit.id)}
               outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
@@ -2328,6 +2480,53 @@ export default function RecruitingPage() {
   );
 }
 
+function WeeklyPlanSection({
+  title,
+  icon,
+  items,
+  emptyLabel,
+  onItemClick,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: RecruitRecommendation[];
+  emptyLabel: string;
+  onItemClick: (recruitId: string) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        {icon}
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{title}</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-[10px] text-muted-foreground italic">{emptyLabel}</p>
+      ) : (
+        <div className="space-y-1">
+          {items.slice(0, 5).map((rec) => (
+            <button
+              key={rec.recruitId}
+              type="button"
+              onClick={() => onItemClick(rec.recruitId)}
+              className="w-full flex items-center justify-between gap-2 text-left bg-card/60 hover-elevate active-elevate-2 border border-border rounded px-2 py-1"
+              data-testid={`link-weekly-plan-${rec.recruitId}`}
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-gold text-[9px] shrink-0">{"★".repeat(Math.min(5, rec.starRating))}</span>
+                <span className="text-[10px] text-foreground truncate">{rec.firstName} {rec.lastName}</span>
+                <span className="text-[9px] text-muted-foreground shrink-0">{rec.position}</span>
+              </div>
+              <Badge variant="outline" className={`text-[8px] shrink-0 ${RECOMMENDED_ACTION_META[rec.action].color}`}>
+                {RECOMMENDED_ACTION_META[rec.action].label}
+              </Badge>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatCard({ icon, label, value, highlight, tooltip }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean; tooltip?: string }) {
   const card = (
     <div className={`bg-card border p-1.5 rounded text-center ${highlight ? "border-red-500/50" : "border-border"} ${tooltip ? "cursor-help" : ""}`}>
@@ -2549,6 +2748,7 @@ function RecruitRow({
   isSelected,
   trend,
   userTeamId,
+  recommendation,
   isStorylineRecruit,
   positionNeed,
   outOfRecruitingActions,
@@ -2588,6 +2788,7 @@ function RecruitRow({
   isSelected: boolean;
   trend?: { trend: "up" | "down" | "flat"; recentGain: number };
   userTeamId?: string;
+  recommendation?: RecruitRecommendation;
   positionNeed?: boolean;
   outOfRecruitingActions?: boolean;
   remainingPoints: number;
@@ -2759,6 +2960,7 @@ function RecruitRow({
 
   return (
     <RetroCard 
+      id={`recruit-card-${recruit.id}`}
       className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} 
       data-testid={`card-recruit-${recruit.id}`}
       style={rowStyle}
@@ -2906,6 +3108,21 @@ function RecruitRow({
                 <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400">
                   NEED
                 </Badge>
+              )}
+              {recommendation && recommendation.action !== "hold" && !isSigned && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className={`text-[8px] no-default-hover-elevate no-default-active-elevate font-bold ${RECOMMENDED_ACTION_META[recommendation.action].color}`}
+                      data-testid={`badge-recommended-action-${recruit.id}`}
+                    >
+                      <Target className="w-2.5 h-2.5 mr-0.5" />
+                      {RECOMMENDED_ACTION_META[recommendation.action].label}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>{recommendation.reason}</TooltipContent>
+                </Tooltip>
               )}
               {isStorylineRecruit && (
                 <Tooltip>
