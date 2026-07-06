@@ -111,7 +111,20 @@ app.use((req, res, next) => {
         "ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer",
         "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0",
         "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false",
+        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS last_digest_at TIMESTAMP",
         `CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`,
+        `CREATE TABLE IF NOT EXISTS advance_digests (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+          league_id varchar NOT NULL REFERENCES leagues(id),
+          season integer NOT NULL,
+          week integer NOT NULL,
+          phase text NOT NULL,
+          window_start timestamp NOT NULL,
+          window_end timestamp NOT NULL,
+          categories json NOT NULL,
+          created_at timestamp NOT NULL DEFAULT now()
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_advance_digests_league_id ON advance_digests (league_id)`,
       ];
       for (const sql of _columnMigrations) {
         try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }

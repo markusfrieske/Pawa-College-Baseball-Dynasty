@@ -168,9 +168,13 @@ export async function computeAndSaveAdvanceDigest(params: FinalizeDigestParams):
       createdAt: (e.createdAt ? new Date(e.createdAt) : new Date()).toISOString(),
     }));
 
-  // Heating-up recruiting battles
-  const actionsInWindow = await storage.getRecruitingActionsLogByLeagueWeek(leagueId, season, weeks[weeks.length - 1] ?? 1)
-    .catch(() => []);
+  // Heating-up recruiting battles — scan every week in the advance window, not just the last one,
+  // so multi-week advances (e.g. long-season sims) don't miss earlier activity.
+  const weeksToScan = weeks.length > 0 ? weeks : [1];
+  const actionsInWindowLists = await Promise.all(
+    weeksToScan.map(w => storage.getRecruitingActionsLogByLeagueWeek(leagueId, season, w).catch(() => []))
+  );
+  const actionsInWindow = actionsInWindowLists.flat();
   const battleMap = new Map<string, { count: number; teams: Set<string> }>();
   for (const a of actionsInWindow) {
     const ts = a.createdAt ? new Date(a.createdAt).getTime() : 0;

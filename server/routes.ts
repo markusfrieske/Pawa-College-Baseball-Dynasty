@@ -12,7 +12,7 @@ import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotent
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
 import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
-import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport, LastSeasonStats } from "@shared/schema";
+import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport, LastSeasonStats, AdvanceDigestCategories } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "./utils";
 import { finalizeAdvanceDigestSafe } from "./digest-engine";
@@ -21410,6 +21410,34 @@ export async function registerRoutes(
   });
 
   // "Since Last Advance" digest feed — history + latest
+  // Commissioner actions are league-wide administrative events, but many (e.g. roster edits,
+  // trade vetoes for a specific team) are only meaningful to the coach whose team was affected.
+  // Filter them per-viewer: keep league-wide actions (no other team named) plus any action that
+  // explicitly names the viewer's own team; drop actions that name a *different* team only.
+  async function filterDigestForViewer<T extends { commissionerActions: AdvanceDigestCategories["commissionerActions"] }>(
+    digest: T,
+    leagueId: string,
+    userId: string,
+  ): Promise<T> {
+    const [teams, coaches] = await Promise.all([
+      storage.getTeamsByLeague(leagueId),
+      storage.getCoachesByLeague(leagueId),
+    ]);
+    const viewerCoach = coaches.find(c => c.userId === userId);
+    const viewerTeamName = viewerCoach?.teamId ? teams.find(t => t.id === viewerCoach.teamId)?.name : undefined;
+    const allTeamNames = teams.map(t => t.name);
+
+    const filteredActions = digest.commissionerActions.filter(a => {
+      const text = `${a.action} ${a.details ?? ""}`;
+      const namedTeams = allTeamNames.filter(name => text.includes(name));
+      if (namedTeams.length === 0) return true; // league-wide action, visible to everyone
+      if (viewerTeamName && namedTeams.includes(viewerTeamName)) return true; // affects the viewer's own team
+      return false; // affects only other teams — not relevant to this viewer
+    });
+
+    return { ...digest, commissionerActions: filteredActions };
+  }
+
   app.get("/api/leagues/:id/digests", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
@@ -21421,7 +21449,15 @@ export async function registerRoutes(
       if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
       const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
       const digests = await storage.getAdvanceDigestsByLeague(leagueId, limit);
-      res.json(digests);
+      const filtered = await Promise.all(digests.map(d => filterDigestForViewer(
+        { ...d, commissionerActions: (d.categories as AdvanceDigestCategories).commissionerActions },
+        leagueId, userId,
+      )));
+      const result = digests.map((d, i) => ({
+        ...d,
+        categories: { ...(d.categories as AdvanceDigestCategories), commissionerActions: filtered[i].commissionerActions },
+      }));
+      res.json(result);
     } catch (error) {
       console.error("Failed to fetch digests:", error);
       res.status(500).json({ message: "Failed to fetch digests" });
@@ -21438,7 +21474,15 @@ export async function registerRoutes(
       const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
       if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
       const digest = await storage.getLatestAdvanceDigest(leagueId);
-      res.json(digest ?? null);
+      if (!digest) return res.json(null);
+      const filtered = await filterDigestForViewer(
+        { ...digest, commissionerActions: (digest.categories as AdvanceDigestCategories).commissionerActions },
+        leagueId, userId,
+      );
+      res.json({
+        ...digest,
+        categories: { ...(digest.categories as AdvanceDigestCategories), commissionerActions: filtered.commissionerActions },
+      });
     } catch (error) {
       console.error("Failed to fetch latest digest:", error);
       res.status(500).json({ message: "Failed to fetch latest digest" });
@@ -21456,7 +21500,14 @@ export async function registerRoutes(
       if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
       const digest = await storage.getAdvanceDigest(req.params.digestId as string);
       if (!digest || digest.leagueId !== leagueId) return res.status(404).json({ message: "Digest not found" });
-      res.json(digest);
+      const filtered = await filterDigestForViewer(
+        { ...digest, commissionerActions: (digest.categories as AdvanceDigestCategories).commissionerActions },
+        leagueId, userId,
+      );
+      res.json({
+        ...digest,
+        categories: { ...(digest.categories as AdvanceDigestCategories), commissionerActions: filtered.commissionerActions },
+      });
     } catch (error) {
       console.error("Failed to fetch digest:", error);
       res.status(500).json({ message: "Failed to fetch digest" });
