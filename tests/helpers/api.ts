@@ -72,6 +72,7 @@ export async function selectTeams(
 ): Promise<void> {
   const resp = await request.post(`/api/leagues/${leagueId}/team-selection`, {
     data: { selectedTeams },
+    timeout: 120_000,
   });
   if (!resp.ok()) {
     throw new Error(`Failed to select teams: ${resp.status()} ${await resp.text()}`);
@@ -84,6 +85,7 @@ export async function startDynasty(
 ): Promise<void> {
   const resp = await request.post(`/api/leagues/${leagueId}/start`, {
     data: {},
+    timeout: 120_000,
   });
   if (!resp.ok()) {
     throw new Error(`Failed to start dynasty: ${resp.status()} ${await resp.text()}`);
@@ -127,6 +129,7 @@ export async function setupCoach(
         archetype: "Balanced",
       },
     },
+    timeout: 120_000,
   });
   if (!resp.ok()) {
     throw new Error(`Failed to setup coach: ${resp.status()} ${await resp.text()}`);
@@ -201,6 +204,7 @@ export async function finalizeDepartures(
 ): Promise<unknown> {
   const resp = await request.post(`/api/leagues/${leagueId}/departures/finalize`, {
     data: {},
+    timeout: 120_000,
   });
   if (resp.status() === 403) {
     return null;
@@ -217,6 +221,7 @@ export async function markWalkonsReady(
 ): Promise<unknown> {
   const resp = await request.post(`/api/leagues/${leagueId}/walkons/ready`, {
     data: {},
+    timeout: 120_000,
   });
   if (resp.status() === 400 || resp.status() === 403) {
     return null;
