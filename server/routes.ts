@@ -21414,17 +21414,27 @@ export async function registerRoutes(
   // trade vetoes for a specific team) are only meaningful to the coach whose team was affected.
   // Filter them per-viewer: keep league-wide actions (no other team named) plus any action that
   // explicitly names the viewer's own team; drop actions that name a *different* team only.
-  async function filterDigestForViewer<T extends { commissionerActions: AdvanceDigestCategories["commissionerActions"] }>(
+  //
+  // Coach ready status follows the same visibility rule used elsewhere for readiness (see the
+  // /ready endpoints): the commissioner always sees the full named list; regular coaches only see
+  // other coaches' names/ready-state when the league has `showReadyNamesToAll` enabled — otherwise
+  // they only see their own team's entry plus an aggregate ready count.
+  async function filterDigestForViewer<T extends {
+    commissionerActions: AdvanceDigestCategories["commissionerActions"];
+    coachReadyStatus: AdvanceDigestCategories["coachReadyStatus"];
+  }>(
     digest: T,
     leagueId: string,
     userId: string,
   ): Promise<T> {
-    const [teams, coaches] = await Promise.all([
+    const [teams, coaches, league] = await Promise.all([
       storage.getTeamsByLeague(leagueId),
       storage.getCoachesByLeague(leagueId),
+      storage.getLeague(leagueId),
     ]);
     const viewerCoach = coaches.find(c => c.userId === userId);
     const viewerTeamName = viewerCoach?.teamId ? teams.find(t => t.id === viewerCoach.teamId)?.name : undefined;
+    const isCommissioner = league?.commissionerId === userId;
     const allTeamNames = teams.map(t => t.name);
 
     const filteredActions = digest.commissionerActions.filter(a => {
@@ -21435,7 +21445,12 @@ export async function registerRoutes(
       return false; // affects only other teams — not relevant to this viewer
     });
 
-    return { ...digest, commissionerActions: filteredActions };
+    const showReadyNames = isCommissioner || (league?.showReadyNamesToAll ?? false);
+    const filteredReadyStatus = showReadyNames
+      ? digest.coachReadyStatus
+      : digest.coachReadyStatus.filter(s => s.teamName === viewerTeamName);
+
+    return { ...digest, commissionerActions: filteredActions, coachReadyStatus: filteredReadyStatus };
   }
 
   app.get("/api/leagues/:id/digests", requireAuth, async (req, res) => {
@@ -21449,13 +21464,20 @@ export async function registerRoutes(
       if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
       const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
       const digests = await storage.getAdvanceDigestsByLeague(leagueId, limit);
-      const filtered = await Promise.all(digests.map(d => filterDigestForViewer(
-        { ...d, commissionerActions: (d.categories as AdvanceDigestCategories).commissionerActions },
-        leagueId, userId,
-      )));
+      const filtered = await Promise.all(digests.map(d => {
+        const cats = d.categories as AdvanceDigestCategories;
+        return filterDigestForViewer(
+          { commissionerActions: cats.commissionerActions, coachReadyStatus: cats.coachReadyStatus },
+          leagueId, userId,
+        );
+      }));
       const result = digests.map((d, i) => ({
         ...d,
-        categories: { ...(d.categories as AdvanceDigestCategories), commissionerActions: filtered[i].commissionerActions },
+        categories: {
+          ...(d.categories as AdvanceDigestCategories),
+          commissionerActions: filtered[i].commissionerActions,
+          coachReadyStatus: filtered[i].coachReadyStatus,
+        },
       }));
       res.json(result);
     } catch (error) {
@@ -21475,13 +21497,18 @@ export async function registerRoutes(
       if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
       const digest = await storage.getLatestAdvanceDigest(leagueId);
       if (!digest) return res.json(null);
+      const cats = digest.categories as AdvanceDigestCategories;
       const filtered = await filterDigestForViewer(
-        { ...digest, commissionerActions: (digest.categories as AdvanceDigestCategories).commissionerActions },
+        { commissionerActions: cats.commissionerActions, coachReadyStatus: cats.coachReadyStatus },
         leagueId, userId,
       );
       res.json({
         ...digest,
-        categories: { ...(digest.categories as AdvanceDigestCategories), commissionerActions: filtered.commissionerActions },
+        categories: {
+          ...cats,
+          commissionerActions: filtered.commissionerActions,
+          coachReadyStatus: filtered.coachReadyStatus,
+        },
       });
     } catch (error) {
       console.error("Failed to fetch latest digest:", error);
@@ -21500,13 +21527,18 @@ export async function registerRoutes(
       if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
       const digest = await storage.getAdvanceDigest(req.params.digestId as string);
       if (!digest || digest.leagueId !== leagueId) return res.status(404).json({ message: "Digest not found" });
+      const cats = digest.categories as AdvanceDigestCategories;
       const filtered = await filterDigestForViewer(
-        { ...digest, commissionerActions: (digest.categories as AdvanceDigestCategories).commissionerActions },
+        { commissionerActions: cats.commissionerActions, coachReadyStatus: cats.coachReadyStatus },
         leagueId, userId,
       );
       res.json({
         ...digest,
-        categories: { ...(digest.categories as AdvanceDigestCategories), commissionerActions: filtered.commissionerActions },
+        categories: {
+          ...cats,
+          commissionerActions: filtered.commissionerActions,
+          coachReadyStatus: filtered.coachReadyStatus,
+        },
       });
     } catch (error) {
       console.error("Failed to fetch digest:", error);
