@@ -7,3 +7,4 @@
 - [League setup flow timing](league-setup-flow-timing.md) — dynasty creation (team-selection/start/setup) legitimately takes 20-90s due to full roster/schedule generation; use long timeouts in tests, don't treat client timeout as failure.
 - [Testing authenticated pages via cookie injection](e2e-cookie-auth-bootstrap.md) — bootstrap a league via API then inject its session cookie with document.cookie in a Playwright test to reach member-only UI states fast.
 - [Shared queryKey response-shape mismatch](shared-querykey-shape-mismatch.md) — multiple components using the same React Query cache key must agree on response shape, or a non-member 403 crashes unrelated components expecting array data.
+- [Skeleton loaders look "blank" to e2e tests](e2e-skeleton-loader-blank.md) — Skeleton-only loading states have no accessible text/roles, so a slow/cold page load can look like a total render failure in browser test tooling even though it's just still loading.

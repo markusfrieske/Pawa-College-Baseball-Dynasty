@@ -144,6 +144,7 @@ export interface ReadyStatusData {
   humanCount: number;
   readyCount: number;
   currentPhase: string;
+  phaseDeadline?: string | null;
   showReadyNamesToAll?: boolean;
   currentUserId?: string;
 }

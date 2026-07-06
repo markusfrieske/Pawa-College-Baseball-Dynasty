@@ -62,6 +62,7 @@ import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-o
 import { SeasonSummaryModal } from "@/components/season-summary-modal";
 import { InningScoreboard, useScoreboardEnabled, type InningScoreboardData } from "@/components/inning-scoreboard";
 import { RecruitingWizard } from "@/components/recruiting-wizard";
+import { getReadyReason, getEffectiveReady } from "@/lib/ready-status";
 
 interface HumanCoach {
   coachId: string;
@@ -1488,14 +1489,26 @@ function ActionsTab({
         />
       )}
       </div>
-      <PhaseDeadlineControl leagueId={league?.id || ""} currentDeadline={league?.phaseDeadline ?? null} />
+      <PhaseDeadlineControl
+        leagueId={league?.id || ""}
+        currentDeadline={league?.phaseDeadline ?? null}
+        commissionerUserId={league?.commissionerId}
+        coCommissionerIds={Array.isArray(league?.coCommissionerIds) ? (league!.coCommissionerIds as string[]) : []}
+      />
     </div>
   );
 }
 
-function PhaseDeadlineControl({ leagueId, currentDeadline }: { leagueId: string; currentDeadline: Date | string | null }) {
+function PhaseDeadlineControl({ leagueId, currentDeadline, commissionerUserId, coCommissionerIds }: { leagueId: string; currentDeadline: Date | string | null; commissionerUserId?: string; coCommissionerIds?: string[] }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const { data: currentUser } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+  const isCommissioner = !!currentUser && (
+    currentUser.id === commissionerUserId ||
+    (coCommissionerIds ?? []).includes(currentUser.id)
+  );
   const [deadlineInput, setDeadlineInput] = useState(() => {
     if (!currentDeadline) return "";
     const d = new Date(currentDeadline);
@@ -1529,6 +1542,33 @@ function PhaseDeadlineControl({ leagueId, currentDeadline }: { leagueId: string;
   };
 
   const deadlinePassed = currentDeadline ? new Date(currentDeadline) <= new Date() : false;
+
+  if (!isCommissioner) {
+    if (!currentDeadline) return null;
+    return (
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Timer className="w-4 h-4 text-gold" />
+            <span>Phase Deadline</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <div className={`p-2 rounded border text-xs flex items-center gap-2 ${
+            deadlinePassed
+              ? "bg-red-500/10 border-red-500/40 text-red-400"
+              : "bg-gold/10 border-gold/40 text-gold"
+          }`} data-testid="text-phase-deadline-readonly">
+            <Timer className="w-3.5 h-3.5 shrink-0" />
+            {deadlinePassed
+              ? `Deadline passed: ${new Date(currentDeadline).toLocaleString()}`
+              : `Active deadline: ${new Date(currentDeadline).toLocaleString()}`
+            }
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
 
   return (
     <RetroCard>
@@ -1769,13 +1809,7 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
   const isWalkonsPhase = data.currentPhase === "offseason_walkons";
   const isRecruitingPhase = ["offseason_recruiting_1","offseason_recruiting_2","offseason_recruiting_3","offseason_recruiting_4"].includes(data.currentPhase);
 
-  const getTeamReady = (team: typeof humanTeams[0]) => {
-    // Auto-pilot teams are always treated as ready — CPU manages them
-    if (team.isAutoPilot) return true;
-    if (isDeparturesPhase) return team.departuresFinalized;
-    if (isWalkonsPhase) return team.walkonReady;
-    return team.isReady;
-  };
+  const getTeamReady = (team: typeof humanTeams[0]) => getEffectiveReady(team, data.currentPhase);
 
   const stalledTeams = humanTeams.filter(t => !getTeamReady(t));
   const readyTeams = humanTeams.filter(t => getTeamReady(t));
@@ -1937,24 +1971,18 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
-                            {team.isAutoPilot ? (
-                              isRecruitingPhase ? (
-                                <span className="text-blue-400/70">CPU took {team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""} this week</span>
-                              ) : (
-                                <span className="text-blue-400/70">CPU is managing this team</span>
-                              )
-                            ) : isDeparturesPhase ? (
-                              <span>Departures not submitted</span>
-                            ) : isWalkonsPhase ? (
-                              <span>Roster not finalized</span>
+                            {team.isAutoPilot && isRecruitingPhase ? (
+                              <span className="text-blue-400/70">CPU took {team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""} this week</span>
+                            ) : team.isAutoPilot ? (
+                              <span className="text-blue-400/70">{getReadyReason(team, data.currentPhase)}</span>
                             ) : isRecruitingPhase ? (
                               <>
-                                <span>{team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""} this week</span>
+                                <span>{getReadyReason(team, data.currentPhase)}</span>
                                 <span>·</span>
                                 <span>Scout: {team.scoutActionsUsed} · Recruit: {team.recruitActionsUsed}</span>
                               </>
                             ) : (
-                              <span>Not marked ready</span>
+                              <span>{getReadyReason(team, data.currentPhase)}</span>
                             )}
                             {!team.isAutoPilot && team.lastActivityAt && (
                               <>
@@ -1986,20 +2014,7 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                               {walkonReadyMutation.isPending ? "Locking..." : "Lock In Bids"}
                             </RetroButton>
                           )}
-                          {!team.isAutoPilot && team.userId !== currentUser?.id && (
-                            <RetroButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() => nudgeMutation.mutate(team.teamId)}
-                              disabled={nudgeMutation.isPending}
-                              data-testid={`button-nudge-${team.teamId}`}
-                              className="border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
-                            >
-                              <BellRing className="w-3 h-3 mr-1" />
-                              Nudge
-                            </RetroButton>
-                          )}
-                          {!team.isAutoPilot && team.userId === currentUser?.id && !isWalkonsPhase && (
+                          {isCommissioner && !team.isAutoPilot && team.userId !== currentUser?.id && (
                             <RetroButton
                               variant="outline"
                               size="sm"

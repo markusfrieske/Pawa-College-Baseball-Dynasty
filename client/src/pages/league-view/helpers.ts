@@ -1,4 +1,5 @@
 import type { ReadyStatusData } from "./types";
+import { getEffectiveReady as sharedGetEffectiveReady, getReadyReason as sharedGetReadyReason } from "@/lib/ready-status";
 
 // Format NIL budget values: ≥1M → "$X.XM", otherwise "$XK"
 export function formatNil(value: number): string {
@@ -144,9 +145,14 @@ export function getEffectiveReady(
   entry: ReadyStatusData["readyStatus"][0],
   phase: string
 ): boolean {
-  if (phase === "offseason_departures") return !!entry.departuresFinalized;
-  if (phase === "offseason_walkons") return !!entry.walkonReady;
-  return !!entry.isReady;
+  return sharedGetEffectiveReady(entry, phase);
+}
+
+export function getReadyReason(
+  entry: ReadyStatusData["readyStatus"][0],
+  phase: string
+): string | null {
+  return sharedGetReadyReason(entry, phase);
 }
 
 export function getRecentForm<T extends { id: string; week: number; isComplete: boolean; homeScore: number | null; awayScore: number | null; homeTeamId: string; awayTeamId: string }>(

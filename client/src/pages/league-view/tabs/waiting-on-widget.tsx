@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { LeagueDetails, ReadyStatusData } from "../types";
 import { STORYLINE_VOTE_CALLOUT_PHASES } from "../types";
-import { getEffectiveReady } from "../helpers";
+import { getEffectiveReady, getReadyReason } from "../helpers";
 
 interface SigningDayPreviewRecruit {
   id: string;
@@ -421,7 +421,8 @@ export function WaitingOnWidget({
                 data-testid="button-mark-ready-widget"
               >
                 <Check className="w-3.5 h-3.5 mr-1" />
-                <span className="hidden sm:inline">Mark </span>Ready
+                <span className="hidden sm:inline">Ready Up</span>
+                <span className="sm:hidden">Ready</span>
               </RetroButton>
             )}
             {myStatus && !myEffectiveReady && isPageActionPhase && pageAction && (
@@ -486,6 +487,7 @@ export function WaitingOnWidget({
             {humanTeams.map((entry) => {
               const ready = getEffectiveReady(entry, phase);
               const isMe = entry.userId === user?.id;
+              const reason = !ready && (isMe ? false : readyData?.showReadyNamesToAll) ? getReadyReason(entry, phase) : null;
               return (
                 <div
                   key={entry.teamId}
@@ -495,6 +497,7 @@ export function WaitingOnWidget({
                       : "bg-card border-border text-muted-foreground"
                   } ${isMe ? "ring-1 ring-gold/60" : ""}`}
                   data-testid={`team-ready-status-${entry.teamId}`}
+                  title={reason ?? undefined}
                 >
                   {ready ? (
                     <Check className="w-3 h-3 text-green-400 shrink-0" />
@@ -505,11 +508,44 @@ export function WaitingOnWidget({
                     {entry.teamName}
                     {isMe && <span className="ml-1 text-gold/60">(you)</span>}
                   </span>
+                  {reason && (
+                    <span className="text-muted-foreground/70" data-testid={`text-ready-reason-${entry.teamId}`}>
+                      · {reason}
+                    </span>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
+
+        {/* Reason for the current coach's own not-ready status */}
+        {myStatus && !myEffectiveReady && (
+          <p className="mt-1 text-[10px] text-muted-foreground" data-testid="text-my-ready-reason">
+            {getReadyReason(myStatus, phase) ?? "Not marked ready yet"}
+          </p>
+        )}
+
+        {/* Deadline / autopilot warning — mirrors commissioner page placement */}
+        {readyData?.phaseDeadline && !allReady && (() => {
+          const deadline = new Date(readyData.phaseDeadline!);
+          const diffMs = deadline.getTime() - Date.now();
+          const passed = diffMs <= 0;
+          const timeLeft = passed
+            ? "Deadline passed — auto-ready will apply on next advance"
+            : diffMs < 3600000
+            ? `${Math.ceil(diffMs / 60000)}m left before auto-ready`
+            : `${Math.ceil(diffMs / 3600000)}h left before auto-ready`;
+          return (
+            <div
+              className={`mt-2 flex items-center gap-1.5 text-[10px] ${passed ? "text-red-400" : "text-amber-400"}`}
+              data-testid="text-phase-deadline-warning"
+            >
+              <Clock className="w-3 h-3 shrink-0" />
+              <span>{timeLeft}</span>
+            </div>
+          );
+        })()}
 
         {/* Privacy note for coaches when names are hidden */}
         {!isCommissioner && !readyData?.showReadyNamesToAll && humanCount > 1 && !allReady && (
