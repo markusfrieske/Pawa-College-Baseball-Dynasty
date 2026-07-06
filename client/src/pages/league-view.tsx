@@ -2686,14 +2686,21 @@ function NewsTab({ leagueId }: { leagueId: string }) {
           <Newspaper className="w-4 h-4 text-gold" />
           <span>Dynasty News</span>
         </div>
-        <RetroButton 
-          size="sm" 
-          onClick={() => setShowForm(!showForm)}
-          data-testid="button-create-news"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Post
-        </RetroButton>
+        <div className="flex items-center gap-2">
+          <Link href={`/league/${leagueId}/digests`}>
+            <RetroButton size="sm" variant="outline" data-testid="button-view-league-digest-feed">
+              League Digest
+            </RetroButton>
+          </Link>
+          <RetroButton 
+            size="sm" 
+            onClick={() => setShowForm(!showForm)}
+            data-testid="button-create-news"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Post
+          </RetroButton>
+        </div>
       </RetroCardHeader>
       <RetroCardContent>
         <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid="news-filters">

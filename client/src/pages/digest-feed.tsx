@@ -66,20 +66,27 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
       </RetroCardHeader>
       <RetroCardContent>
         <CategorySection icon={<Swords className="w-4 h-4" />} title="GAMES" count={c.completedGames?.length ?? 0} testId={`cat-games-${digest.id}`}>
-          {c.completedGames?.map((g, i) => (
-            <div key={i} className="bg-muted/30 rounded p-2 flex items-center justify-between gap-2" data-testid={`item-game-${digest.id}-${i}`}>
-              <div className="min-w-0">
-                <p className="text-xs truncate">
-                  {g.awayTeamName} {g.awayScore ?? "-"} @ {g.homeTeamName} {g.homeScore ?? "-"}
-                </p>
-                {g.description && <p className="text-[10px] text-muted-foreground truncate">{g.description}</p>}
+          {c.completedGames?.map((g, i) => {
+            const row = (
+              <div className={`bg-muted/30 rounded p-2 flex items-center justify-between gap-2 ${g.gameId ? "hover:bg-muted/50 cursor-pointer" : ""}`} data-testid={`item-game-${digest.id}-${i}`}>
+                <div className="min-w-0">
+                  <p className="text-xs truncate">
+                    {g.awayTeamName} {g.awayScore ?? "-"} @ {g.homeTeamName} {g.homeScore ?? "-"}
+                  </p>
+                  {g.description && <p className="text-[10px] text-muted-foreground truncate">{g.description}</p>}
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                  {g.isUpset && <Badge variant="outline" className="text-[8px] text-amber-400 border-amber-500/40">UPSET</Badge>}
+                  {g.isRivalry && <Badge variant="outline" className="text-[8px] text-red-400 border-red-500/40">RIVALRY</Badge>}
+                </div>
               </div>
-              <div className="flex gap-1 flex-shrink-0">
-                {g.isUpset && <Badge variant="outline" className="text-[8px] text-amber-400 border-amber-500/40">UPSET</Badge>}
-                {g.isRivalry && <Badge variant="outline" className="text-[8px] text-red-400 border-red-500/40">RIVALRY</Badge>}
-              </div>
-            </div>
-          ))}
+            );
+            return g.gameId ? (
+              <Link key={i} href={`/league/${leagueId}/game/${g.gameId}/play-by-play`}>{row}</Link>
+            ) : (
+              <div key={i}>{row}</div>
+            );
+          })}
         </CategorySection>
 
         <CategorySection icon={<Star className="w-4 h-4" />} title="TOP PERFORMANCES" count={c.topPerformances?.length ?? 0} testId={`cat-performances-${digest.id}`}>
