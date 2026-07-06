@@ -43,6 +43,7 @@ export const leagues = pgTable("leagues", {
   showReadyNamesToAll: boolean("show_ready_names_to_all").notNull().default(false),
   lastWalkonAuction: text("last_walkon_auction"),
   currentClassVintage: text("current_class_vintage"),
+  lastDigestAt: timestamp("last_digest_at"),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({
@@ -1702,4 +1703,93 @@ export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ i
 });
 export type InsertLeagueEvent = z.infer<typeof insertLeagueEventSchema>;
 export type LeagueEvent = typeof leagueEvents.$inferSelect;
+
+// Advance Digests — "Since Last Advance" digest feed for multiplayer leagues.
+// One row per advance action (weekly advance, sim-to-*, etc), capturing everything
+// that happened in the league since the previous digest window closed.
+export interface AdvanceDigestCategories {
+  completedGames: Array<{
+    gameId: string | null;
+    homeTeamId: string;
+    homeTeamName: string;
+    awayTeamId: string;
+    awayTeamName: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    isUpset: boolean;
+    isRivalry: boolean;
+    description: string;
+    season: number;
+    week: number;
+    phase: string;
+  }>;
+  topPerformances: Array<{
+    gameId: string;
+    playerName: string;
+    teamName: string;
+    statLine: string;
+    category: "hitting" | "pitching";
+  }>;
+  standingsMovement: Array<{
+    teamId: string;
+    teamName: string;
+    prevRank: number | null;
+    newRank: number;
+    delta: number | null;
+  }>;
+  recruitingCommits: Array<{
+    teamId: string | null;
+    teamName: string;
+    description: string;
+    season: number;
+    week: number;
+    createdAt: string;
+  }>;
+  heatingUpBattles: Array<{
+    recruitId: string;
+    recruitName: string;
+    stars: number;
+    position: string;
+    actionCount: number;
+    teamsInvolved: number;
+  }>;
+  pendingScoreReports: Array<{
+    gameId: string;
+    homeTeamName: string;
+    awayTeamName: string;
+    status: string;
+    season: number;
+    week: number;
+  }>;
+  coachReadyStatus: Array<{
+    teamId: string;
+    teamName: string;
+    coachName: string;
+    isReady: boolean;
+    isCpu: boolean;
+  }>;
+  commissionerActions: Array<{
+    action: string;
+    details: string | null;
+    timestamp: string;
+  }>;
+}
+
+export const advanceDigests = pgTable("advance_digests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  season: integer("season").notNull(),
+  week: integer("week").notNull(),
+  phase: text("phase").notNull(),
+  windowStart: timestamp("window_start").notNull(),
+  windowEnd: timestamp("window_end").notNull(),
+  categories: json("categories").$type<AdvanceDigestCategories>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_advance_digests_league_id").on(t.leagueId),
+]);
+
+export const insertAdvanceDigestSchema = createInsertSchema(advanceDigests).omit({ id: true, createdAt: true });
+export type InsertAdvanceDigest = z.infer<typeof insertAdvanceDigestSchema>;
+export type AdvanceDigest = typeof advanceDigests.$inferSelect;
 

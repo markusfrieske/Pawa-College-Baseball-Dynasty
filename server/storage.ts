@@ -4,6 +4,7 @@ import {
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   playerSeasonStats, walkonPool, walkonBids,
   leagueEvents,
+  advanceDigests,
   gameReports,
   recruitingClassSnapshots,
   coachSeasonHistory,
@@ -37,6 +38,7 @@ import {
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
   type RecruitingClassShare, type InsertRecruitingClassShare,
   type LeagueEvent, type InsertLeagueEvent,
+  type AdvanceDigest, type InsertAdvanceDigest,
   type GameReport, type InsertGameReport,
   type RecruitingClassSnapshot, type InsertRecruitingClassSnapshot,
   type CoachSeasonHistory, type InsertCoachSeasonHistory,
@@ -145,6 +147,11 @@ export interface IStorage {
   getLeagueEvents(leagueId: string, limit?: number, eventType?: string): Promise<LeagueEvent[]>;
   getLeagueEventsBySeason(leagueId: string, season: number, eventType?: string): Promise<LeagueEvent[]>;
   getLeagueEventsByTeam(teamId: string, eventType: string, limit?: number): Promise<LeagueEvent[]>;
+
+  createAdvanceDigest(digest: InsertAdvanceDigest): Promise<AdvanceDigest>;
+  getAdvanceDigestsByLeague(leagueId: string, limit?: number): Promise<AdvanceDigest[]>;
+  getLatestAdvanceDigest(leagueId: string): Promise<AdvanceDigest | undefined>;
+  getAdvanceDigest(id: string): Promise<AdvanceDigest | undefined>;
 
   getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]>;
@@ -819,6 +826,31 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(leagueEvents.teamId, teamId), eq(leagueEvents.eventType, eventType)))
       .orderBy(desc(leagueEvents.createdAt))
       .limit(limit);
+  }
+
+  async createAdvanceDigest(digest: InsertAdvanceDigest): Promise<AdvanceDigest> {
+    const [d] = await db.insert(advanceDigests).values(digest).returning();
+    return d;
+  }
+
+  async getAdvanceDigestsByLeague(leagueId: string, limit = 50): Promise<AdvanceDigest[]> {
+    return await db.select().from(advanceDigests)
+      .where(eq(advanceDigests.leagueId, leagueId))
+      .orderBy(desc(advanceDigests.windowEnd))
+      .limit(limit);
+  }
+
+  async getLatestAdvanceDigest(leagueId: string): Promise<AdvanceDigest | undefined> {
+    const [d] = await db.select().from(advanceDigests)
+      .where(eq(advanceDigests.leagueId, leagueId))
+      .orderBy(desc(advanceDigests.windowEnd))
+      .limit(1);
+    return d;
+  }
+
+  async getAdvanceDigest(id: string): Promise<AdvanceDigest | undefined> {
+    const [d] = await db.select().from(advanceDigests).where(eq(advanceDigests.id, id));
+    return d;
   }
 
   async getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]> {

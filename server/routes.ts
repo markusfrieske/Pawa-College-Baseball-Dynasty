@@ -15,6 +15,7 @@ import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport, LastSeasonStats } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "./utils";
+import { finalizeAdvanceDigestSafe } from "./digest-engine";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "./cache";
 import {
   generateGameNewsArticles,
@@ -9702,10 +9703,16 @@ export async function registerRoutes(
         advancingLeagues.delete(leagueId);
       });
 
+      // ============ DIGEST WINDOW START ============
+      // Capture the "since last advance" window start before any mutations happen this cycle.
+      const digestWindowStart = league.lastDigestAt ? new Date(league.lastDigestAt) : new Date();
+
       // ============ POWER RANKINGS SNAPSHOT ============
       // Capture rankings before any changes via SQL aggregation (3 aggregate queries vs 3 full-table loads)
+      let digestPrevPowerRankings: Array<{ teamId: string; rank: number }> | null = null;
       try {
         const snapshot = await storage.computeLeaguePowerRankings(leagueId);
+        digestPrevPowerRankings = snapshot;
         await storage.updateLeague(leagueId, { prevPowerRankings: snapshot } as any);
       } catch (snapErr) {
         console.error("[power-rankings-snapshot] Failed to snapshot rankings:", snapErr);
@@ -10808,6 +10815,15 @@ export async function registerRoutes(
       // Pass the completed week/season/phase (before incrementing) so the digest reflects the games that just finished.
       sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
         .catch(e => console.error("[digest] advance hook:", e));
+      // Fire-and-forget "Since Last Advance" digest feed computation (non-blocking).
+      finalizeAdvanceDigestSafe({
+        leagueId,
+        windowStart: digestWindowStart,
+        season: league.currentSeason,
+        weeks: [currentWeek],
+        phase: league.currentPhase,
+        prevPowerRankings: digestPrevPowerRankings,
+      });
     } catch (error: any) {
       console.error("Failed to advance week:", error);
       // Release the per-league lock on error so the next request isn't blocked
@@ -10823,6 +10839,14 @@ export async function registerRoutes(
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
+      }
+
+      const digestWindowStart = league.lastDigestAt ? new Date(league.lastDigestAt) : new Date();
+      let digestPrevPowerRankings: Array<{ teamId: string; rank: number }> | null = null;
+      try {
+        digestPrevPowerRankings = await storage.computeLeaguePowerRankings(leagueId);
+      } catch (e) {
+        console.error("[power-rankings-snapshot] Failed to snapshot rankings (sim-to-offseason):", e);
       }
 
       const teams = await storage.getTeamsByLeague(leagueId);
@@ -11263,6 +11287,19 @@ export async function registerRoutes(
       });
 
       res.json({ ...currentLeague, simSummary });
+      {
+        const digestWeeks = [...new Set(simSummary.weekResults.map(w => w.week))];
+        if (digestWeeks.length > 0) {
+          finalizeAdvanceDigestSafe({
+            leagueId,
+            windowStart: digestWindowStart,
+            season: startSeason,
+            weeks: digestWeeks,
+            phase: currentLeague.currentPhase,
+            prevPowerRankings: digestPrevPowerRankings,
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to sim to offseason:", error);
       res.status(500).json({ message: "Failed to sim to offseason" });
@@ -11276,6 +11313,14 @@ export async function registerRoutes(
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
+      }
+
+      const digestWindowStart = league.lastDigestAt ? new Date(league.lastDigestAt) : new Date();
+      let digestPrevPowerRankings: Array<{ teamId: string; rank: number }> | null = null;
+      try {
+        digestPrevPowerRankings = await storage.computeLeaguePowerRankings(leagueId);
+      } catch (e) {
+        console.error("[power-rankings-snapshot] Failed to snapshot rankings (sim-to-signing-day):", e);
       }
 
       const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
@@ -11354,6 +11399,15 @@ export async function registerRoutes(
           details: `Fast-forwarded offseason. ${signingResult.recruitsAdded} recruits joined, ${walkonResult.walkonsAdded} walk-ons added, ${walkonResult.newRecruits} new class generated. Now Season ${currentLeague.currentSeason}.`,
         });
 
+        finalizeAdvanceDigestSafe({
+          leagueId,
+          windowStart: digestWindowStart,
+          season: league.currentSeason,
+          weeks: [],
+          phase: currentLeague.currentPhase,
+          prevPowerRankings: digestPrevPowerRankings,
+        });
+
         return res.json({ ...currentLeague, seasonTransition: { ...signingResult, ...walkonResult } });
       }
 
@@ -11379,6 +11433,14 @@ export async function registerRoutes(
       const allValidPhases = [...gamePhases, ...offseasonPhases];
       if (!allValidPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Cannot simulate a full season from the current phase." });
+      }
+
+      const digestWindowStart = league.lastDigestAt ? new Date(league.lastDigestAt) : new Date();
+      let digestPrevPowerRankings: Array<{ teamId: string; rank: number }> | null = null;
+      try {
+        digestPrevPowerRankings = await storage.computeLeaguePowerRankings(leagueId);
+      } catch (e) {
+        console.error("[power-rankings-snapshot] Failed to snapshot rankings (sim-full-season):", e);
       }
 
       const fsTeams = await storage.getTeamsByLeague(leagueId);
@@ -11577,6 +11639,14 @@ export async function registerRoutes(
       });
 
       res.json({ ...currentLeague, seasonTransition });
+      finalizeAdvanceDigestSafe({
+        leagueId,
+        windowStart: digestWindowStart,
+        season: startSeason,
+        weeks: Array.from({ length: 41 }, (_, i) => i),
+        phase: currentLeague.currentPhase,
+        prevPowerRankings: digestPrevPowerRankings,
+      });
     } catch (error) {
       console.error("Failed to sim full season:", error);
       res.status(500).json({ message: "Failed to simulate full season" });
@@ -11596,6 +11666,14 @@ export async function registerRoutes(
       const preseasonPhases = ["preseason", "spring_training", "regular_season"];
       if (!preseasonPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to postseason during the regular season." });
+      }
+
+      const digestWindowStart = league.lastDigestAt ? new Date(league.lastDigestAt) : new Date();
+      let digestPrevPowerRankings: Array<{ teamId: string; rank: number }> | null = null;
+      try {
+        digestPrevPowerRankings = await storage.computeLeaguePowerRankings(leagueId);
+      } catch (e) {
+        console.error("[power-rankings-snapshot] Failed to snapshot rankings (sim-to-postseason):", e);
       }
 
       const psTeams = await storage.getTeamsByLeague(leagueId);
@@ -11679,6 +11757,19 @@ export async function registerRoutes(
         details: `Commissioner sim from ${psStartPhase} → ${currentLeague.currentPhase}. Season ${league.currentSeason}, ${iterations} advances.`,
       });
       res.json({ ...currentLeague, simSummary });
+      {
+        const digestWeeks = [...new Set(simSummary.weekResults.map(w => w.week))];
+        if (digestWeeks.length > 0) {
+          finalizeAdvanceDigestSafe({
+            leagueId,
+            windowStart: digestWindowStart,
+            season: league.currentSeason,
+            weeks: digestWeeks,
+            phase: currentLeague.currentPhase,
+            prevPowerRankings: digestPrevPowerRankings,
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to sim to postseason:", error);
       res.status(500).json({ message: "Failed to sim to postseason" });
@@ -11698,6 +11789,14 @@ export async function registerRoutes(
       const validPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals"];
       if (!validPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to CWS before the College World Series." });
+      }
+
+      const digestWindowStart = league.lastDigestAt ? new Date(league.lastDigestAt) : new Date();
+      let digestPrevPowerRankings: Array<{ teamId: string; rank: number }> | null = null;
+      try {
+        digestPrevPowerRankings = await storage.computeLeaguePowerRankings(leagueId);
+      } catch (e) {
+        console.error("[power-rankings-snapshot] Failed to snapshot rankings (sim-to-cws):", e);
       }
 
       const cwsTeams = await storage.getTeamsByLeague(leagueId);
@@ -11860,6 +11959,19 @@ export async function registerRoutes(
         details: `Simulated ${iterations} advances to ${currentLeague.currentPhase}.`,
       });
       res.json({ ...currentLeague, simSummary });
+      {
+        const digestWeeks = [...new Set(simSummary.weekResults.map(w => w.week))];
+        if (digestWeeks.length > 0) {
+          finalizeAdvanceDigestSafe({
+            leagueId,
+            windowStart: digestWindowStart,
+            season: league.currentSeason,
+            weeks: digestWeeks,
+            phase: currentLeague.currentPhase,
+            prevPowerRankings: digestPrevPowerRankings,
+          });
+        }
+      }
     } catch (error) {
       console.error("Failed to sim to CWS:", error);
       res.status(500).json({ message: "Failed to sim to CWS" });
@@ -21294,6 +21406,60 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch league events:", error);
       res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // "Since Last Advance" digest feed — history + latest
+  app.get("/api/leagues/:id/digests", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
+      if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
+      const limit = Math.min(parseInt(req.query.limit as string) || 30, 100);
+      const digests = await storage.getAdvanceDigestsByLeague(leagueId, limit);
+      res.json(digests);
+    } catch (error) {
+      console.error("Failed to fetch digests:", error);
+      res.status(500).json({ message: "Failed to fetch digests" });
+    }
+  });
+
+  app.get("/api/leagues/:id/digests/latest", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
+      if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
+      const digest = await storage.getLatestAdvanceDigest(leagueId);
+      res.json(digest ?? null);
+    } catch (error) {
+      console.error("Failed to fetch latest digest:", error);
+      res.status(500).json({ message: "Failed to fetch latest digest" });
+    }
+  });
+
+  app.get("/api/leagues/:id/digests/:digestId", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
+      if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
+      const digest = await storage.getAdvanceDigest(req.params.digestId as string);
+      if (!digest || digest.leagueId !== leagueId) return res.status(404).json({ message: "Digest not found" });
+      res.json(digest);
+    } catch (error) {
+      console.error("Failed to fetch digest:", error);
+      res.status(500).json({ message: "Failed to fetch digest" });
     }
   });
 

@@ -63,7 +63,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { League, Team, Conference, Standings, DynastyNews, LeagueEvent, Player } from "@shared/schema";
+import type { League, Team, Conference, Standings, DynastyNews, LeagueEvent, Player, AdvanceDigest } from "@shared/schema";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import { User, Cpu, Pen, GitMerge, FileX, UserCheck, GraduationCap, Activity, Filter, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -814,6 +814,8 @@ export default function LeagueViewPage() {
         <SigningDaySummaryCard league={league} myTeam={myTeam} />
 
         <ProgramChangesCard league={league} myTeam={myTeam} />
+
+        <SinceLastAdvanceWidget leagueId={league.id} />
 
         <OffseasonSummary league={league} />
 
@@ -5680,6 +5682,69 @@ function ProgramChangesCard({ league, myTeam }: { league: LeagueDetails; myTeam:
                 View Program Profile
               </RetroButton>
             </Link>
+          </div>
+        </div>
+      </div>
+    </RetroCard>
+  );
+}
+
+function SinceLastAdvanceWidget({ leagueId }: { leagueId: string }) {
+  const { data: digest, isLoading } = useQuery<AdvanceDigest | null>({
+    queryKey: ["/api/leagues", leagueId, "digests", "latest"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/digests/latest`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    staleTime: 15_000,
+  });
+
+  if (isLoading) return null;
+  if (!digest) return null;
+
+  const c = digest.categories;
+  const gameCount = c.completedGames?.length ?? 0;
+  const upsetCount = c.completedGames?.filter(g => g.isUpset).length ?? 0;
+  const topPerfCount = c.topPerformances?.length ?? 0;
+  const movementCount = c.standingsMovement?.length ?? 0;
+  const commitCount = c.recruitingCommits?.length ?? 0;
+  const heatingCount = c.heatingUpBattles?.length ?? 0;
+  const pendingReportCount = c.pendingScoreReports?.length ?? 0;
+  const notReadyCount = c.coachReadyStatus?.filter(cr => !cr.isReady && !cr.isCpu).length ?? 0;
+
+  const totalItems = gameCount + topPerfCount + movementCount + commitCount + heatingCount + pendingReportCount;
+  if (totalItems === 0 && notReadyCount === 0) return null;
+
+  const chips: { label: string; icon: JSX.Element; testId: string }[] = [];
+  if (gameCount > 0) chips.push({ label: `${gameCount} Game${gameCount === 1 ? "" : "s"}${upsetCount > 0 ? ` (${upsetCount} upset${upsetCount === 1 ? "" : "s"})` : ""}`, icon: <Swords className="w-3 h-3" />, testId: "chip-games" });
+  if (topPerfCount > 0) chips.push({ label: `${topPerfCount} Top Perf${topPerfCount === 1 ? "" : "s"}`, icon: <Star className="w-3 h-3" />, testId: "chip-top-performances" });
+  if (movementCount > 0) chips.push({ label: `${movementCount} Rank Move${movementCount === 1 ? "" : "s"}`, icon: <TrendingUp className="w-3 h-3" />, testId: "chip-standings-movement" });
+  if (commitCount > 0) chips.push({ label: `${commitCount} Commit${commitCount === 1 ? "" : "s"}`, icon: <UserPlus className="w-3 h-3" />, testId: "chip-recruiting-commits" });
+  if (heatingCount > 0) chips.push({ label: `${heatingCount} Heating Up`, icon: <Zap className="w-3 h-3" />, testId: "chip-heating-up" });
+  if (pendingReportCount > 0) chips.push({ label: `${pendingReportCount} Pending Report${pendingReportCount === 1 ? "" : "s"}`, icon: <AlertTriangle className="w-3 h-3" />, testId: "chip-pending-reports" });
+  if (notReadyCount > 0) chips.push({ label: `${notReadyCount} Not Ready`, icon: <Clock className="w-3 h-3" />, testId: "chip-not-ready" });
+
+  return (
+    <RetroCard className="border-gold/30 mb-4" data-testid="widget-since-last-advance">
+      <div className="flex items-start gap-3">
+        <Bell className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="font-pixel text-gold text-[10px]">SINCE LAST ADVANCE</p>
+            <Link href={`/league/${leagueId}/digests`}>
+              <span className="font-pixel text-[8px] text-muted-foreground hover:text-gold cursor-pointer flex items-center gap-1" data-testid="link-view-all-digests">
+                View All <ChevronRight className="w-3 h-3" />
+              </span>
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {chips.map((chip) => (
+              <Badge key={chip.testId} variant="outline" className="text-[9px] gap-1 py-1 px-2 border-border" data-testid={chip.testId}>
+                {chip.icon}
+                {chip.label}
+              </Badge>
+            ))}
           </div>
         </div>
       </div>
