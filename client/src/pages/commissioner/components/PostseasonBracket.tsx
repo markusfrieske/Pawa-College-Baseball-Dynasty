@@ -160,8 +160,8 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
   const gfGame = games.find((g) => g.bracketType === "grand_final");
   const gfResetGm = games.find((g) => g.bracketType === "grand_final_reset");
 
-  const wbRounds = [...new Set(wbGames.map((g) => g.bracketRound ?? 1))].sort((a, b) => a - b);
-  const lbRounds = [...new Set(lbGames.map((g) => g.bracketRound ?? 2))].sort((a, b) => a - b);
+  const wbRounds = Array.from(new Set(wbGames.map((g) => g.bracketRound ?? 1))).sort((a, b) => a - b);
+  const lbRounds = Array.from(new Set(lbGames.map((g) => g.bracketRound ?? 2))).sort((a, b) => a - b);
 
   const lossMap: Record<string, number> = {};
   for (const g of [...wbGames, ...lbGames].filter((g2) => g2.isComplete)) {

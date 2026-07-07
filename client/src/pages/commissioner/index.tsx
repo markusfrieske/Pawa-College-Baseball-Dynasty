@@ -14,13 +14,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RetroCard } from "@/components/ui/retro-card";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-overlay";
+import { SimProgressOverlay } from "@/components/sim-progress-overlay";
 import { SeasonSummaryModal } from "@/components/season-summary-modal";
 import { InningScoreboard, useScoreboardEnabled, type InningScoreboardData } from "@/components/inning-scoreboard";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { ReadyStatusSection } from "./components/ReadyStatusSection";
+import { useCommissionerSimActions } from "./hooks/useCommissionerSimActions";
 import { ActionsTab } from "./tabs/ActionsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { AuditLogTab } from "./tabs/AuditLogTab";
@@ -76,11 +77,8 @@ export default function CommissionerPage() {
   const [autoAdvance, setAutoAdvance] = useState(() => {
     return localStorage.getItem(`auto-advance-${id}`) === "true";
   });
-  const [simSummary, setSimSummary] = useState<SimSummary | null>(null);
-  const [showSimOverlay, setShowSimOverlay] = useState(false);
   const [showSeasonSummary, setShowSeasonSummary] = useState(false);
   const [summaryCompletedSeason, setSummaryCompletedSeason] = useState(1);
-  const [pendingSeasonSummary, setPendingSeasonSummary] = useState<number | null>(null);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [scoreboardData, setScoreboardData] = useState<InningScoreboardData | null>(null);
   const scoreboardEnabled = useScoreboardEnabled();
@@ -106,6 +104,20 @@ export default function CommissionerPage() {
     setAutoAdvance(val);
     localStorage.setItem(`auto-advance-${id}`, val ? "true" : "false");
   };
+
+  const simActions = useCommissionerSimActions({
+    leagueId: id!,
+    onSeasonComplete: (season) => {
+      setSummaryCompletedSeason(season);
+      setShowSeasonSummary(true);
+    },
+    onShowScoreboard: scoreboardEnabled
+      ? (data) => {
+          setScoreboardData(data);
+          setShowScoreboard(true);
+        }
+      : undefined,
+  });
 
   const { data, isLoading, isError, error } = useQuery<CommissionerData>({
     queryKey: ["/api/leagues", id, "commissioner"],
@@ -337,236 +349,6 @@ export default function CommissionerPage() {
     },
   });
 
-  const simToSigningDayMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/sim-to-signing-day`, {});
-    },
-    onSuccess: (response: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      if (response?.seasonTransition) {
-        const t = response.seasonTransition;
-        toast({
-          title: "Offseason Complete!",
-          description: `${t.recruitsAdded} recruits signed, ${t.newRecruits} new class generated. Welcome to Season ${response.currentSeason}!`,
-        });
-      } else {
-        toast({
-          title: "Offseason Simulated",
-          description: "Fast-forwarded through the offseason.",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const simToOffseasonMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/sim-to-offseason`, {});
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      const hasSimData =
-        data?.simSummary &&
-        (data.simSummary.weekResults?.length > 0 || data.simSummary.postseasonResults?.length > 0);
-      const isOffseasonTransition =
-        data?.currentPhase === "offseason_departures" || data?.currentPhase === "offseason";
-      if (hasSimData) {
-        setSimSummary(data.simSummary);
-        setShowSimOverlay(true);
-        if (isOffseasonTransition) {
-          setPendingSeasonSummary(data?.currentSeason || 1);
-        }
-      } else {
-        toast({
-          title: "Season Simulated!",
-          description:
-            "The entire season has been simulated. Review player departures before continuing.",
-        });
-        if (isOffseasonTransition) {
-          setSummaryCompletedSeason(data?.currentSeason || 1);
-          setShowSeasonSummary(true);
-        }
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const simToPostseasonMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/sim-to-postseason`, {});
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      if (
-        data?.simSummary &&
-        (data.simSummary.weekResults?.length > 0 || data.simSummary.postseasonResults?.length > 0)
-      ) {
-        setSimSummary(data.simSummary);
-        setShowSimOverlay(true);
-      } else {
-        toast({
-          title: "Regular Season Complete!",
-          description: "Conference Championships are set. Time for postseason baseball!",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const simToCwsMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/sim-to-cws`, {});
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      if (
-        data?.simSummary &&
-        (data.simSummary.weekResults?.length > 0 || data.simSummary.postseasonResults?.length > 0)
-      ) {
-        setSimSummary(data.simSummary);
-        setShowSimOverlay(true);
-      } else {
-        toast({
-          title: "College World Series!",
-          description: "The final two teams are set for the CWS championship series.",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const simFullSeasonMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/sim-full-season`, {});
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/leagues/${id}/roster`] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      if (data?.seasonTransition) {
-        const t = data.seasonTransition;
-        toast({
-          title: "Full Season Complete!",
-          description: `Season simulated end-to-end. ${t.recruitsAdded ?? 0} recruits signed, ${t.newRecruits ?? 0} new class generated. Welcome to Season ${data.currentSeason}!`,
-        });
-      } else {
-        toast({
-          title: "Full Season Simulated",
-          description: "The entire season has been simulated through to the next preseason.",
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const simulateWeekMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/simulate`, {});
-      return res.json();
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      toast({ title: "Week Simulated", description: "All games have been auto-resolved." });
-      if (data?.userTeamGame && scoreboardEnabled) {
-        setScoreboardData(data.userTeamGame as InningScoreboardData);
-        setShowScoreboard(true);
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const backfillScoresMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest(
-        "POST",
-        `/api/leagues/${id}/backfill-recruiting-scores`,
-        {},
-      );
-      return res.json() as Promise<{ updated: number; message: string }>;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting-scores"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-history"] });
-      toast({
-        title: "Backfill Complete",
-        description: data?.message ?? "Recruiting scores updated.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Backfill Failed",
-        description: parseErrorMessage(error),
-        variant: "destructive",
-      });
-    },
-  });
-
-  const dedupRostersMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest(
-        "POST",
-        `/api/leagues/${id}/admin/dedup-rosters`,
-        {},
-      );
-      return res.json() as Promise<{ removed: number; log: string[] }>;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      const msg =
-        data.removed === 0
-          ? "No duplicate players found — rosters are clean."
-          : `Removed ${data.removed} duplicate player row(s).`;
-      toast({ title: "Dedup Complete", description: msg });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Dedup Failed",
-        description: parseErrorMessage(error),
-        variant: "destructive",
-      });
-    },
-  });
-
   const importRecruitingMutation = useMutation({
     mutationFn: async (csvData?: string) => {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, { csvData });
@@ -758,22 +540,22 @@ export default function CommissionerPage() {
               isAdvancingSeason={advanceSeasonMutation.isPending}
               onImportRecruiting={(csvData?: string) => importRecruitingMutation.mutate(csvData)}
               isImporting={importRecruitingMutation.isPending}
-              onSimulateWeek={() => simulateWeekMutation.mutate()}
-              isSimulating={simulateWeekMutation.isPending}
-              onSimToOffseason={() => simToOffseasonMutation.mutate()}
-              isSimToOffseason={simToOffseasonMutation.isPending}
-              onSimToSigningDay={() => simToSigningDayMutation.mutate()}
-              isSimToSigningDay={simToSigningDayMutation.isPending}
-              onSimToPostseason={() => simToPostseasonMutation.mutate()}
-              isSimToPostseason={simToPostseasonMutation.isPending}
-              onSimToCws={() => simToCwsMutation.mutate()}
-              isSimToCws={simToCwsMutation.isPending}
-              onSimFullSeason={() => simFullSeasonMutation.mutate()}
-              isSimFullSeason={simFullSeasonMutation.isPending}
-              onBackfillScores={() => backfillScoresMutation.mutate()}
-              isBackfilling={backfillScoresMutation.isPending}
-              onDedupRosters={() => dedupRostersMutation.mutate()}
-              isDedupingRosters={dedupRostersMutation.isPending}
+              onSimulateWeek={simActions.simulateWeek}
+              isSimulating={simActions.isSimulating}
+              onSimToOffseason={simActions.simToOffseason}
+              isSimToOffseason={simActions.isSimToOffseason}
+              onSimToSigningDay={simActions.simToSigningDay}
+              isSimToSigningDay={simActions.isSimToSigningDay}
+              onSimToPostseason={simActions.simToPostseason}
+              isSimToPostseason={simActions.isSimToPostseason}
+              onSimToCws={simActions.simToCws}
+              isSimToCws={simActions.isSimToCws}
+              onSimFullSeason={simActions.simFullSeason}
+              isSimFullSeason={simActions.isSimFullSeason}
+              onBackfillScores={simActions.backfillScores}
+              isBackfilling={simActions.isBackfilling}
+              onDedupRosters={simActions.dedupRosters}
+              isDedupingRosters={simActions.isDedupingRosters}
               autoAdvance={autoAdvance}
               toggleAutoAdvance={toggleAutoAdvance}
             />
@@ -821,16 +603,9 @@ export default function CommissionerPage() {
       </main>
 
       <SimProgressOverlay
-        open={showSimOverlay}
-        onClose={() => {
-          setShowSimOverlay(false);
-          if (pendingSeasonSummary !== null) {
-            setSummaryCompletedSeason(pendingSeasonSummary);
-            setShowSeasonSummary(true);
-            setPendingSeasonSummary(null);
-          }
-        }}
-        simSummary={simSummary}
+        open={simActions.showSimOverlay}
+        onClose={simActions.handleSimOverlayClosed}
+        simSummary={simActions.simSummary}
         data-testid="sim-progress-overlay"
       />
       <SeasonSummaryModal

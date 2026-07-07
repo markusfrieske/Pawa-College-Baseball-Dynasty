@@ -885,13 +885,8 @@ export function ActionsTab({
 
       <PhaseDeadlineControl
         leagueId={league?.id || ""}
-        currentDeadline={league?.phaseDeadline ?? null}
-        commissionerUserId={league?.commissionerId}
-        coCommissionerIds={
-          Array.isArray(league?.coCommissionerIds)
-            ? (league!.coCommissionerIds as string[])
-            : []
-        }
+        currentDeadline={league?.phaseDeadline ? String(league.phaseDeadline) : null}
+        currentPhase={league?.currentPhase || ""}
       />
     </div>
   );

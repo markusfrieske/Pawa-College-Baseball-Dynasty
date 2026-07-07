@@ -449,10 +449,7 @@ export function SettingsTab({
       )}
 
       {league?.id && (
-        <TransferCommissionerSection
-          leagueId={league.id}
-          commissionerId={league.commissionerId ?? undefined}
-        />
+        <TransferCommissionerSection leagueId={league.id} />
       )}
     </div>
   );

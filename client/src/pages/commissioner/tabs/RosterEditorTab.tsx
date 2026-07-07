@@ -719,7 +719,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                             { field: "recovery", label: "Recovery" },
                                           ].map((attr) => {
                                             const rawVal =
-                                              (ep as Record<string, number | null>)[attr.field] as number ?? 50;
+                                              (ep as unknown as Record<string, number | null>)[attr.field] as number ?? 50;
                                             const grade = pitcherCommonGrade(rawVal);
                                             return (
                                               <div key={attr.field} className="text-center">
@@ -767,7 +767,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                             { field: "recovery", label: "Recovery" },
                                           ].map((attr) => {
                                             const rawVal =
-                                              (ep as Record<string, number | null>)[attr.field] as number ?? 50;
+                                              (ep as unknown as Record<string, number | null>)[attr.field] as number ?? 50;
                                             const grade = commonGrade(rawVal);
                                             return (
                                               <div key={attr.field} className="text-center">
