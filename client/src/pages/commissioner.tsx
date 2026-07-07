@@ -124,9 +124,11 @@ export default function CommissionerPage() {
     localStorage.setItem(`auto-advance-${id}`, val ? "true" : "false");
   };
 
-  const { data, isLoading } = useQuery<CommissionerData>({
+  const { data, isLoading, isError, error } = useQuery<CommissionerData>({
     queryKey: ["/api/leagues", id, "commissioner"],
+    retry: false,
   });
+  const isForbidden = isError && error instanceof Error && error.message.startsWith("403");
 
   const advanceWeekMutation = useMutation({
     mutationFn: async (opts?: { savedRecruitingClassId?: string }) => {
@@ -549,6 +551,32 @@ export default function CommissionerPage() {
 
   if (isLoading) {
     return <CommissionerSkeleton />;
+  }
+
+  // Non-commissioners who land on this page (e.g. via a shared link) never see
+  // commissioner-only tools. Trim the view down to the same shared ready-status
+  // list everyone sees on League Home, instead of a broken/empty tab layout.
+  if (isForbidden) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b border-border">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-4">
+              <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <h1 className="font-pixel text-gold text-lg">Commissioner</h1>
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-6 pb-20 md:pb-6 max-w-2xl">
+          <div className="mb-4 p-3 rounded border border-border bg-card/50 text-xs text-muted-foreground" data-testid="text-commissioner-restricted">
+            Only the commissioner can access commissioner tools (nudge, force advance, deadline settings). Here's the shared status everyone can see.
+          </div>
+          <ReadyStatusSection leagueId={id!} />
+        </main>
+      </div>
+    );
   }
 
   const phaseLabels: Record<string, string> = {

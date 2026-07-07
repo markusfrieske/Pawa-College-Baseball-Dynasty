@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import type { LeagueDetails, ReadyStatusData } from "../types";
 import { STORYLINE_VOTE_CALLOUT_PHASES } from "../types";
-import { getEffectiveReady, getReadyReason } from "../helpers";
+import { getEffectiveReady, getReadyReason, getReadyBlockReason } from "../helpers";
 
 interface SigningDayPreviewRecruit {
   id: string;
@@ -373,6 +373,7 @@ export function WaitingOnWidget({
   const myStatus = readyData?.readyStatus.find((s) => s.userId === user?.id);
   const isCommissioner = !!user && user.id === league.commissionerId;
   const myEffectiveReady = myStatus ? getEffectiveReady(myStatus, phase) : false;
+  const myBlockReason = myStatus ? getReadyBlockReason(myStatus, phase) : null;
   const allReady = readyData?.allHumansReady ?? false;
   const readyCount = readyData?.readyCount ?? 0;
   const humanCount = readyData?.humanCount ?? 0;
@@ -417,7 +418,8 @@ export function WaitingOnWidget({
                 size="sm"
                 variant="primary"
                 onClick={() => toggleReady.mutate()}
-                disabled={toggleReady.isPending}
+                disabled={toggleReady.isPending || !!myBlockReason}
+                title={myBlockReason ?? undefined}
                 data-testid="button-mark-ready-widget"
               >
                 <Check className="w-3.5 h-3.5 mr-1" />
@@ -433,7 +435,21 @@ export function WaitingOnWidget({
                 </RetroButton>
               </Link>
             )}
-            {myStatus && myEffectiveReady && !isCommissioner && (
+            {myStatus && myEffectiveReady && !isPageActionPhase && !myStatus.isAutoPilot && (
+              <RetroButton
+                size="sm"
+                variant="outline"
+                onClick={() => toggleReady.mutate()}
+                disabled={toggleReady.isPending}
+                className="border-green-500/50 bg-green-600/10 text-green-300 hover:bg-red-600/10 hover:border-red-500/50 hover:text-red-300"
+                data-testid="button-undo-ready-widget"
+              >
+                <Check className="w-3.5 h-3.5 mr-1" />
+                <span className="hidden sm:inline">Ready &#10003; (Undo)</span>
+                <span className="sm:hidden">Ready &#10003;</span>
+              </RetroButton>
+            )}
+            {myStatus && myEffectiveReady && (isPageActionPhase || myStatus.isAutoPilot) && !isCommissioner && (
               <span className="flex items-center gap-1 text-[10px] text-green-400" data-testid="badge-you-are-ready">
                 <Check className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">You&apos;re ready</span>
@@ -519,10 +535,15 @@ export function WaitingOnWidget({
           </div>
         )}
 
-        {/* Reason for the current coach's own not-ready status */}
+        {/* Reason for the current coach's own not-ready status. When there's an
+            outstanding requirement, call it out distinctly since it's what's
+            keeping the Ready Up button disabled. */}
         {myStatus && !myEffectiveReady && (
-          <p className="mt-1 text-[10px] text-muted-foreground" data-testid="text-my-ready-reason">
-            {getReadyReason(myStatus, phase) ?? "Not marked ready yet"}
+          <p
+            className={`mt-1 text-[10px] ${myBlockReason ? "text-amber-400" : "text-muted-foreground"}`}
+            data-testid="text-my-ready-reason"
+          >
+            {myBlockReason ?? getReadyReason(myStatus, phase) ?? "Not marked ready yet"}
           </p>
         )}
 

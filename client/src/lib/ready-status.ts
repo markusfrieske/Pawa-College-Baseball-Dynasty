@@ -61,3 +61,27 @@ export function getReadyReason(entry: ReadyStatusEntryLike, phase: string): stri
 
   return "Not marked ready yet";
 }
+
+/**
+ * Whether the coach has an outstanding, actionable requirement that should
+ * keep the one-tap Ready Up button disabled — as opposed to simply not
+ * having clicked it yet. This never introduces a new server-side gate; it
+ * only reflects signals the server already tracks (hasReportedScores,
+ * recruiting action counts) so the UI can explain *why* before the coach
+ * taps a button that would otherwise appear to do nothing useful.
+ *
+ * Returns null when there's no known blocker (the coach is free to ready up).
+ */
+export function getReadyBlockReason(entry: ReadyStatusEntryLike, phase: string): string | null {
+  if (getEffectiveReady(entry, phase)) return null;
+  if (entry.isAutoPilot) return null;
+
+  if (entry.hasReportedScores === false) return "Report your scores before readying up";
+
+  if (isRecruitingPhase(phase)) {
+    const actions = entry.currentWeekActionCount ?? ((entry.scoutActionsUsed ?? 0) + (entry.recruitActionsUsed ?? 0));
+    if (!actions) return "Take at least one recruiting action this week before readying up";
+  }
+
+  return null;
+}
