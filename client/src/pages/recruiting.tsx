@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -458,14 +459,8 @@ export default function RecruitingPage() {
     setRecapDismissed(localStorage.getItem(recapDismissKey) === "1");
   }, [recapDismissKey]);
 
-  const scrollToRecruit = (recruitId: string) => {
-    const el = document.getElementById(`recruit-card-${recruitId}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("ring-2", "ring-gold");
-      setTimeout(() => el.classList.remove("ring-2", "ring-gold"), 1500);
-    }
-  };
+  const scrollToRecruitRef = useRef<(id: string) => void>(() => {});
+  const scrollToRecruit = (recruitId: string) => scrollToRecruitRef.current(recruitId);
 
   // Auto-pilot alert modal
   const [showAutoPilotAlert, setShowAutoPilotAlert] = useState(false);
@@ -542,6 +537,28 @@ export default function RecruitingPage() {
     trendsData,
     data?.team?.id
   );
+
+  const recruitListRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useWindowVirtualizer({
+    count: filteredRecruits.length,
+    estimateSize: () => 108,
+    overscan: 8,
+    scrollMargin: recruitListRef.current?.offsetTop ?? 0,
+  });
+
+  scrollToRecruitRef.current = (recruitId: string) => {
+    const idx = filteredRecruits.findIndex((r) => r.id === recruitId);
+    if (idx >= 0) {
+      virtualizer.scrollToIndex(idx, { align: "center" });
+      setTimeout(() => {
+        const el = document.getElementById(`recruit-card-${recruitId}`);
+        if (el) {
+          el.classList.add("ring-2", "ring-gold");
+          setTimeout(() => el.classList.remove("ring-2", "ring-gold"), 1500);
+        }
+      }, 300);
+    }
+  };
 
   if (isLoading) {
     return <RecruitingSkeleton />;
@@ -1602,52 +1619,76 @@ export default function RecruitingPage() {
           </div>
         )}
 
-        <div className="space-y-3">
-          {filteredRecruits.map((recruit) => (
-            <div key={recruit.id} className="recruit-row-cv" id={`recruit-card-${recruit.id}`}>
-            <RecruitRow
-              recruit={recruit}
-              leagueId={id!}
-              onTarget={() => targetMutation.mutate(recruit.id, targetCallbacks)}
-              onScout={() => scoutMutation.mutate(recruit.id, scoutCallbacks)}
-              onPhone={(pitchTopic?: string) => phoneMutation.mutate({ recruitId: recruit.id, pitchTopic }, phoneCallbacks)}
-              onEmail={(pitchTopic?: string) => emailMutation.mutate({ recruitId: recruit.id, pitchTopic }, emailCallbacks)}
-              onVisit={() => visitMutation.mutate(recruit.id, visitCallbacks)}
-              onHeadCoachVisit={() => headCoachVisitMutation.mutate(recruit.id, headCoachVisitCallbacks)}
-              onOffer={() => offerMutation.mutate(recruit.id, offerCallbacks)}
-              onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
-              onSetBoardRank={(boardRank) => boardRankMutation.mutate({ recruitId: recruit.id, boardRank })}
-              onToggleCompare={() => toggleCompare(recruit)}
-              isTargeting={targetMutation.isPending}
-              isScouting={scoutMutation.isPending}
-              isPhoning={phoneMutation.isPending}
-              isEmailing={emailMutation.isPending}
-              isVisiting={visitMutation.isPending}
-              isHeadCoachVisiting={headCoachVisitMutation.isPending}
-              isOffering={offerMutation.isPending}
-              hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
-              hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
-              phonedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false)}
-              emailedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false)}
-              isSavingNotes={notesMutation.isPending}
-              isSavingBoardRank={boardRankMutation.isPending}
-              isSelected={compareRecruits.some(r => r.id === recruit.id)}
-              trend={trendsData?.trends?.[recruit.id]}
-              userTeamId={data?.team?.id}
-              recommendation={recommendationsByRecruit.get(recruit.id)}
-              positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
-              isStorylineRecruit={storylineRecruitIds.has(recruit.id)}
-              outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
-              remainingPoints={data?.remainingPoints ?? 0}
-              visitCost={data?.recruitPointCosts?.[recruit.id]?.visit ?? 2}
-              headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
-              outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
-              progressionEnabled={leagueData?.progressionEnabled}
-              nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-              seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
-            />
-            </div>
-          ))}
+        <div ref={recruitListRef}>
+          <div
+            style={{
+              height: `${virtualizer.getTotalSize()}px`,
+              position: "relative",
+            }}
+          >
+            {virtualizer.getVirtualItems().map((virtualItem) => {
+              const recruit = filteredRecruits[virtualItem.index];
+              if (!recruit) return null;
+              return (
+                <div
+                  key={recruit.id}
+                  id={`recruit-card-${recruit.id}`}
+                  data-index={virtualItem.index}
+                  ref={virtualizer.measureElement}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)`,
+                    paddingBottom: "12px",
+                  }}
+                >
+                  <RecruitRow
+                    recruit={recruit}
+                    leagueId={id!}
+                    onTarget={() => targetMutation.mutate(recruit.id, targetCallbacks)}
+                    onScout={() => scoutMutation.mutate(recruit.id, scoutCallbacks)}
+                    onPhone={(pitchTopic?: string) => phoneMutation.mutate({ recruitId: recruit.id, pitchTopic }, phoneCallbacks)}
+                    onEmail={(pitchTopic?: string) => emailMutation.mutate({ recruitId: recruit.id, pitchTopic }, emailCallbacks)}
+                    onVisit={() => visitMutation.mutate(recruit.id, visitCallbacks)}
+                    onHeadCoachVisit={() => headCoachVisitMutation.mutate(recruit.id, headCoachVisitCallbacks)}
+                    onOffer={() => offerMutation.mutate(recruit.id, offerCallbacks)}
+                    onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
+                    onSetBoardRank={(boardRank) => boardRankMutation.mutate({ recruitId: recruit.id, boardRank })}
+                    onToggleCompare={() => toggleCompare(recruit)}
+                    isTargeting={targetMutation.isPending}
+                    isScouting={scoutMutation.isPending}
+                    isPhoning={phoneMutation.isPending}
+                    isEmailing={emailMutation.isPending}
+                    isVisiting={visitMutation.isPending}
+                    isHeadCoachVisiting={headCoachVisitMutation.isPending}
+                    isOffering={offerMutation.isPending}
+                    hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
+                    hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
+                    phonedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false)}
+                    emailedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false)}
+                    isSavingNotes={notesMutation.isPending}
+                    isSavingBoardRank={boardRankMutation.isPending}
+                    isSelected={compareRecruits.some(r => r.id === recruit.id)}
+                    trend={trendsData?.trends?.[recruit.id]}
+                    userTeamId={data?.team?.id}
+                    recommendation={recommendationsByRecruit.get(recruit.id)}
+                    positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
+                    isStorylineRecruit={storylineRecruitIds.has(recruit.id)}
+                    outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
+                    remainingPoints={data?.remainingPoints ?? 0}
+                    visitCost={data?.recruitPointCosts?.[recruit.id]?.visit ?? 2}
+                    headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
+                    outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
+                    progressionEnabled={leagueData?.progressionEnabled}
+                    nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
+                    seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {filteredRecruits.length === 0 && (
