@@ -250,6 +250,7 @@ export default function RecruitingPage() {
     type: "success" | "error";
     icon?: "check" | "phone" | "email" | "visit" | "coach" | "offer" | "scout";
   } | null>(null);
+  const [modalRevealKey, setModalRevealKey] = useState(0);
   const [showSaveClassDialog, setShowSaveClassDialog] = useState(false);
   const [saveClassName, setSaveClassName] = useState("");
   const { toast } = useToast();
@@ -374,6 +375,7 @@ export default function RecruitingPage() {
   const scoutCallbacks = {
     onSuccess: () => {
       playScoutSfx();
+      setModalRevealKey(k => k + 1);
       setActionResultModal({ title: "Scouting Complete", description: "Scouting progress updated.", type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
@@ -1742,7 +1744,7 @@ export default function RecruitingPage() {
               actionResultModal.icon === "scout" ? (
                 <ActionResultFlipIcon
                   back={<Eye className="h-7 w-7 text-[#c8aa6e]" />}
-                  key={actionResultModal.title + Date.now()}
+                  key={modalRevealKey}
                 />
               ) : (
                 <div

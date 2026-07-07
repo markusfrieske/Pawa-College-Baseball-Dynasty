@@ -155,27 +155,47 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
             </p>
           )}
 
-          {weekResults.slice(0, Math.min(displayCount, weekResults.length)).map((week, i) => (
-            <div
-              key={`week-${i}`}
-              className={`space-y-1 ${!skipped ? "sim-section-in" : ""}`}
-            >
-              <div className="flex items-center gap-2">
-                <h3 className="font-pixel text-[9px] text-gold">
-                  Week {week.week}
-                </h3>
-                <span className="text-[8px] text-muted-foreground font-pixel">
-                  {formatPhase(week.phase)}
-                </span>
-                <div className="flex-1 border-t border-border/50" />
+          {weekResults.slice(0, Math.min(displayCount, weekResults.length)).map((week, i) => {
+            const userGames = userTeamName ? week.games.filter(g => g.isUserTeam) : [];
+            const userWins = userGames.filter(g => {
+              const isHome = g.homeTeam.toLowerCase().includes(userTeamName!.toLowerCase());
+              return isHome ? g.homeScore > g.awayScore : g.awayScore > g.homeScore;
+            }).length;
+            const userLosses = userGames.length - userWins;
+            const isRecruitingPhase = week.phase === "regular_season" || week.phase === "spring_training";
+            return (
+              <div
+                key={`week-${i}`}
+                className={`space-y-1 ${!skipped ? "sim-section-in" : ""}`}
+              >
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-pixel text-[9px] text-gold">
+                    Week {week.week}
+                  </h3>
+                  <span className="text-[8px] text-muted-foreground font-pixel">
+                    {formatPhase(week.phase)}
+                  </span>
+                  {userGames.length > 0 && (
+                    <span className={`font-pixel text-[8px] px-1.5 py-0.5 rounded ${userWins > userLosses ? "bg-green-900/40 text-green-400" : userLosses > userWins ? "bg-red-900/30 text-red-400" : "bg-muted/40 text-muted-foreground"}`}>
+                      {userWins}W-{userLosses}L
+                    </span>
+                  )}
+                  {isRecruitingPhase && (
+                    <span className="font-pixel text-[7px] text-[#c8aa6e]/50 flex items-center gap-0.5">
+                      <Star className="w-2 h-2 inline" />
+                      Recruiting
+                    </span>
+                  )}
+                  <div className="flex-1 border-t border-border/50 min-w-[20px]" />
+                </div>
+                <div className="space-y-0.5">
+                  {week.games.map((game, j) => (
+                    <GameRow key={j} game={game} userTeamName={userTeamName} animate={!skipped} />
+                  ))}
+                </div>
               </div>
-              <div className="space-y-0.5">
-                {week.games.map((game, j) => (
-                  <GameRow key={j} game={game} userTeamName={userTeamName} animate={!skipped} />
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           {displayCount > weekResults.length &&
             postseasonResults.slice(0, displayCount - weekResults.length).map((ps, i) => (

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import { FlipReveal } from "@/components/ui/flip-reveal";
 import { 
   Eye, Phone, Mail, MapPin, GraduationCap, Gem, XCircle, TrendingUp, TrendingDown,
   ChevronDown, ChevronUp, Star, Skull, Lock, BookOpen, Gift, Building2, Crown,
@@ -38,6 +39,23 @@ import {
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { CompetingSchoolsList, SeeUponSigningBadge, CommonAbilityRow } from "./recruiting-shared";
 import { RecruitActionsLog } from "./recruit-actions-log";
+
+/** Flips from "??" to the real attribute value when the card opens — staggered by delay. */
+function AttrFlipValue({ value, delay = 0 }: { value: ReactNode; delay?: number }) {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setRevealed(true), delay);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <FlipReveal
+      revealed={revealed}
+      duration={280}
+      front={<span className="font-bold text-muted-foreground text-sm select-none">??</span>}
+      back={<span className="font-bold text-foreground text-sm">{value}</span>}
+    />
+  );
+}
 
 export 
 function RecruitDetailModal({
@@ -467,9 +485,7 @@ function RecruitDetailModal({
                         {isSigningDayLocked || !revealed ? (
                           <SeeUponSigningBadge />
                         ) : (
-                          <span className="font-bold text-foreground">
-                            {displayValue}
-                          </span>
+                          <AttrFlipValue value={displayValue} delay={idx * 80 + 100} />
                         )}
                       </div>
                     );
@@ -498,9 +514,7 @@ function RecruitDetailModal({
                       {isSigningDayLocked || !revealed ? (
                         <SeeUponSigningBadge />
                       ) : (
-                        <span className="font-bold text-foreground">
-                          {attr.value}
-                        </span>
+                        <AttrFlipValue value={attr.value} delay={idx * 80 + 100} />
                       )}
                     </div>
                   );
@@ -1088,9 +1102,7 @@ function RecruitDetailModal({
                         {isSigningDayLocked || !revealed ? (
                           <SeeUponSigningBadge />
                         ) : (
-                          <span className="font-bold text-foreground">
-                            {displayValue}
-                          </span>
+                          <AttrFlipValue value={displayValue} delay={idx * 80 + 100} />
                         )}
                       </div>
                     );
@@ -1119,9 +1131,7 @@ function RecruitDetailModal({
                       {isSigningDayLocked || !revealed ? (
                         <SeeUponSigningBadge />
                       ) : (
-                        <span className="font-bold text-foreground">
-                          {attr.value}
-                        </span>
+                        <AttrFlipValue value={attr.value} delay={idx * 80 + 100} />
                       )}
                     </div>
                   );
