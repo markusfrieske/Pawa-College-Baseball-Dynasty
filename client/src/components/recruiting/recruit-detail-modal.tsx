@@ -450,7 +450,7 @@ function RecruitDetailModal({
               <div>
                 <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  {attrs.map((attr) => {
+                  {attrs.map((attr, idx) => {
                     const isSigningDayLocked = sdLocked.has(attr.key);
                     const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                     const isVelocity = attr.key === "velocity";
@@ -458,7 +458,11 @@ function RecruitDetailModal({
                       ? `${velocityToKMH(attr.value)} KMH`
                       : (revealed ? attr.value : "??");
                     return (
-                      <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <div
+                        key={attr.key}
+                        className={`flex items-center justify-between p-2 bg-muted/50 rounded${revealed ? " sim-row-in" : ""}`}
+                        style={revealed ? { animationDelay: `${idx * 40}ms` } : undefined}
+                      >
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         {isSigningDayLocked || !revealed ? (
                           <SeeUponSigningBadge />
@@ -481,11 +485,15 @@ function RecruitDetailModal({
             <div>
               <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
-                {attrs.map((attr) => {
+                {attrs.map((attr, idx) => {
                   const isSigningDayLocked = sdLocked.has(attr.key);
                   const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                   return (
-                    <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <div
+                      key={attr.key}
+                      className={`flex items-center justify-between p-2 bg-muted/50 rounded${revealed ? " sim-row-in" : ""}`}
+                      style={revealed ? { animationDelay: `${idx * 40}ms` } : undefined}
+                    >
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
                       {isSigningDayLocked || !revealed ? (
                         <SeeUponSigningBadge />
@@ -1063,7 +1071,7 @@ function RecruitDetailModal({
               <div>
                 <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  {attrs.map((attr) => {
+                  {attrs.map((attr, idx) => {
                     const isSigningDayLocked = sdLocked.has(attr.key);
                     const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                     const isVelocity = attr.key === "velocity";
@@ -1071,7 +1079,11 @@ function RecruitDetailModal({
                       ? `${velocityToKMH(attr.value)} KMH`
                       : (revealed ? attr.value : "??");
                     return (
-                      <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <div
+                        key={attr.key}
+                        className={`flex items-center justify-between p-2 bg-muted/50 rounded${revealed ? " sim-row-in" : ""}`}
+                        style={revealed ? { animationDelay: `${idx * 40}ms` } : undefined}
+                      >
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         {isSigningDayLocked || !revealed ? (
                           <SeeUponSigningBadge />
@@ -1094,11 +1106,15 @@ function RecruitDetailModal({
             <div>
               <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
-                {attrs.map((attr) => {
+                {attrs.map((attr, idx) => {
                   const isSigningDayLocked = sdLocked.has(attr.key);
                   const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                   return (
-                    <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <div
+                      key={attr.key}
+                      className={`flex items-center justify-between p-2 bg-muted/50 rounded${revealed ? " sim-row-in" : ""}`}
+                      style={revealed ? { animationDelay: `${idx * 40}ms` } : undefined}
+                    >
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
                       {isSigningDayLocked || !revealed ? (
                         <SeeUponSigningBadge />

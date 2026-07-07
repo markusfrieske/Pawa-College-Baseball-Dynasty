@@ -860,7 +860,12 @@ function RevealPortraitCard({
         animation: disableAnimation ? "none" : `cardSlideIn 0.5s ease-out ${animationDelay}s both`,
         cursor: "pointer",
       }}
-      onClick={() => setFlipped(f => !f)}
+      onClick={() => {
+        if (!flipped) {
+          import("@/lib/sfx").then(m => m.playOfferSfx()).catch(() => {});
+        }
+        setFlipped(f => !f);
+      }}
       data-testid={`recruit-card-${recruit.id}`}
       title={flipped ? "Click to see front" : "Click to flip and see full profile"}
     >
