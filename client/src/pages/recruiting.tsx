@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PositionBadge } from "@/components/ui/position-badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -332,7 +333,7 @@ export default function RecruitingPage() {
   };
 
   const {
-    recruitingData: { data, isLoading },
+    recruitingData: { data, isLoading, isError, error, refetch },
     pipelineData: { data: pipelineData },
     trendsData: { data: trendsData },
     leagueData: { data: leagueData },
@@ -544,6 +545,14 @@ export default function RecruitingPage() {
 
   if (isLoading) {
     return <RecruitingSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <QueryError error={error} onRetry={refetch} />
+      </div>
+    );
   }
 
   const actionLabel: Record<string, string> = {

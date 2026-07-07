@@ -7,6 +7,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -273,7 +274,7 @@ export default function SchedulePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery<ScheduleData>({
+  const { data, isLoading, isError, error, refetch } = useQuery<ScheduleData>({
     queryKey: ["/api/leagues", id, "schedule"],
   });
 
@@ -365,6 +366,11 @@ export default function SchedulePage() {
   );
 
   if (isLoading) return <ScheduleSkeleton />;
+  if (isError) return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <QueryError error={error} onRetry={refetch} />
+    </div>
+  );
 
   const gameCallbacks = {
     onViewBoxScore: (game: GameWithTeams) => setBoxScoreGame(game),

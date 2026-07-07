@@ -6,6 +6,7 @@ import { useUpdateMusicPhase } from "@/lib/music-context";
 import { useUpdateAtmospherePhase, useSetAtmosphereBurstColor } from "@/components/atmosphere-provider";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard } from "@/components/ui/retro-card";
+import { QueryError } from "@/components/ui/query-error";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -78,7 +79,7 @@ export default function LeagueViewPage() {
     }
   }, [requestedTab]);
 
-  const { data: league, isLoading } = useQuery<LeagueDetails>({
+  const { data: league, isLoading, isError: leagueIsError, error: leagueError, refetch: refetchLeague } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
   });
 
@@ -176,6 +177,14 @@ export default function LeagueViewPage() {
 
   if (isLoading) {
     return <LeagueViewSkeleton />;
+  }
+
+  if (leagueIsError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <QueryError error={leagueError} onRetry={refetchLeague} />
+      </div>
+    );
   }
 
   if (!league) {

@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState, lazy, Suspense } from "react";
+import { useState, useRef, lazy, Suspense } from "react";
 import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
@@ -64,12 +64,19 @@ const GuestWarningModalLazy = lazy(() =>
 const PageLoader = () => <div className="min-h-screen bg-background" />;
 
 /**
- * Thin page-transition wrapper — applies a quick fade+slide-up
- * whenever the active route changes, keyed on the pathname.
+ * Direction-aware page transition — slides forward/back based on URL depth,
+ * fades on same-depth tab switches.
  */
-function PageTransition({ children, location }: { children: React.ReactNode; location: string }) {
+function PageTransition({ children, location, direction }: {
+  children: React.ReactNode;
+  location: string;
+  direction: "forward" | "back" | "fade";
+}) {
+  const cls = direction === "forward" ? "page-slide-forward"
+    : direction === "back" ? "page-slide-back"
+    : "page-fade-in";
   return (
-    <div key={location} className="page-fade-in">
+    <div key={location} className={cls}>
       {children}
     </div>
   );
@@ -77,9 +84,20 @@ function PageTransition({ children, location }: { children: React.ReactNode; loc
 
 function Router() {
   const [location] = useLocation();
+  const prevLocationRef = useRef(location);
+  const directionRef = useRef<"forward" | "back" | "fade">("fade");
+
+  if (location !== prevLocationRef.current) {
+    const prevDepth = prevLocationRef.current.split("/").filter(Boolean).length;
+    const currDepth = location.split("/").filter(Boolean).length;
+    directionRef.current = currDepth > prevDepth ? "forward"
+      : currDepth < prevDepth ? "back"
+      : "fade";
+    prevLocationRef.current = location;
+  }
 
   return (
-    <PageTransition location={location}>
+    <PageTransition location={location} direction={directionRef.current}>
       <Suspense fallback={<PageLoader />}>
         <Switch>
           <Route path="/" component={LandingPage} />

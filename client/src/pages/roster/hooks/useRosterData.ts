@@ -38,7 +38,7 @@ export function useRosterData(
     ? `/api/leagues/${leagueId}/roster?teamId=${viewingTeamId}`
     : `/api/leagues/${leagueId}/roster`;
 
-  const { data, isLoading } = useQuery<RosterData>({
+  const { data, isLoading, isError, error, refetch } = useQuery<RosterData>({
     queryKey: [rosterUrl],
   });
 
@@ -125,6 +125,9 @@ export function useRosterData(
     rosterUrl,
     data,
     isLoading,
+    isError,
+    error,
+    refetch,
     leagueData,
     authData,
     isCommissioner,

@@ -39,8 +39,8 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
       {/* Mobile card layout */}
       <div className="sm:hidden divide-y divide-border/40">
         {players.map((player) => (
+          <div key={player.id} className="roster-row-cv">
           <button
-            key={player.id}
             onClick={() => onSelectPlayer(player)}
             className="w-full text-left px-3 py-2.5 hover:bg-card/50 transition-colors active:bg-card/70"
             data-testid={`card-player-mobile-${player.id}`}
@@ -108,6 +108,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
               </div>
             </div>
           </button>
+          </div>
         ))}
       </div>
 

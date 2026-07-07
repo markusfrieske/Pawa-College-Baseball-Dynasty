@@ -5,6 +5,7 @@ import { ArrowLeft, BarChart } from "lucide-react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryError } from "@/components/ui/query-error";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Conference, Team, Player } from "@shared/schema";
 
@@ -79,7 +80,7 @@ export default function StatsPage() {
   });
 
   const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
-  const { data, isLoading } = useQuery<StatsData>({
+  const { data, isLoading, isError, error, refetch } = useQuery<StatsData>({
     queryKey: ["/api/leagues", leagueId, "stats", selectedSeason || "latest"],
     queryFn: () => fetch(`/api/leagues/${leagueId}/stats${seasonParam}`, { credentials: "include" }).then(r => r.json()),
   });
@@ -146,6 +147,10 @@ export default function StatsPage() {
             <Skeleton className="h-8 w-48 bg-card" />
             <Skeleton className="h-64 bg-card" />
           </div>
+        )}
+
+        {!isLoading && isError && (
+          <QueryError error={error} onRetry={refetch} />
         )}
 
         {!isLoading && (!data || data.totalGames === 0) && (

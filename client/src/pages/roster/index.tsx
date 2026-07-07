@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { QueryError } from "@/components/ui/query-error";
 import { useParams, Link, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard } from "@/components/ui/retro-card";
@@ -61,6 +62,9 @@ export default function RosterPage() {
     rosterUrl,
     data,
     isLoading,
+    isError,
+    error,
+    refetch,
     leagueData,
     isCommissioner,
     canViewDevelopment,
@@ -102,6 +106,14 @@ export default function RosterPage() {
 
   if (isLoading) {
     return <RosterSkeleton />;
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <QueryError error={error} onRetry={refetch} />
+      </div>
+    );
   }
 
   return (

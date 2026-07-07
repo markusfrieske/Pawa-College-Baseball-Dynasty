@@ -1,20 +1,16 @@
 const CACHE_NAME = 'cbd-shell-v1';
-
-const APP_SHELL = [
-  '/',
-  '/src/main.tsx',
-];
-
 const FONT_CACHE = 'cbd-fonts-v1';
 const STATIC_CACHE = 'cbd-static-v1';
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_SHELL).catch(() => {});
+    caches.open(CACHE_NAME).then(async (cache) => {
+      try { await cache.add('/'); } catch (_) {}
+      try { await cache.add('/manifest.json'); } catch (_) {}
+      try { await cache.add('/favicon.png'); } catch (_) {}
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
