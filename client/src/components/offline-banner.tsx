@@ -1,19 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { WifiOff } from "lucide-react";
 
 export function OfflineBanner() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [visible, setVisible] = useState(!navigator.onLine);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleOffline = () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
       setIsOffline(true);
       setVisible(true);
     };
     const handleOnline = () => {
       setIsOffline(false);
-      const t = setTimeout(() => setVisible(false), 2500);
-      return () => clearTimeout(t);
+      timerRef.current = setTimeout(() => setVisible(false), 2500);
     };
 
     window.addEventListener("offline", handleOffline);
@@ -21,6 +25,7 @@ export function OfflineBanner() {
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 

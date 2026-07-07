@@ -315,6 +315,17 @@
   .safe-x      { padding-left:   env(safe-area-inset-left,   0px);
                  padding-right:  env(safe-area-inset-right,  0px); }
 
+  /*
+   * Top notch / Dynamic Island guard — every sticky page <header> gets
+   * extra top padding equal to the device safe-area-inset-top so content
+   * never slides under the iOS notch in standalone (PWA) mode.
+   * <thead> table headers and in-modal headers are unaffected because they
+   * are not <header> HTML elements.
+   */
+  header {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
   /* ── Page transitions ── */
   .page-fade-in {
     animation: page-fade 140ms ease-out both;
@@ -346,12 +357,6 @@
     .mobile-content-safe {
       padding-bottom: 0;
     }
-  }
-
-  /* ── Recruit list row — native-browser paint skip for offscreen rows ── */
-  .recruit-row-cv {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 88px;
   }
 
   /* ── Roster player row — paint skip for offscreen rows ── */
