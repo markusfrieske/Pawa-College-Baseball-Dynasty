@@ -379,7 +379,12 @@ export function PrimaryPhaseCTA({
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/ready`);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: { isReady?: boolean }) => {
+      if (data?.isReady) {
+        import("@/lib/sfx").then(({ playReadyUpSfx }) => playReadyUpSfx());
+      } else {
+        import("@/lib/sfx").then(({ playClick }) => playClick());
+      }
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
     },
   });

@@ -46,6 +46,13 @@ interface SeasonSummaryData {
   leagueDraftPicks: { playerName: string; position: string; teamName: string; draftRound: number }[];
 }
 
+/** Inline animation style for staggered card entrance — respects prefers-reduced-motion via CSS. */
+function cardIn(index: number): React.CSSProperties {
+  return {
+    animationDelay: `${index * 80}ms`,
+  };
+}
+
 export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSummaryModalProps) {
   const { data, isLoading } = useQuery<SeasonSummaryData>({
     queryKey: ["/api/leagues", leagueId, "season-summary", season],
@@ -72,7 +79,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
             ) : data ? (
               <>
                 {data.userTeam && (
-                  <RetroCard data-testid="summary-user-team">
+                  <RetroCard className="summary-card-in" style={cardIn(0)} data-testid="summary-user-team">
                     <RetroCardHeader>Your Team</RetroCardHeader>
                     <RetroCardContent>
                       <div className="flex items-center gap-3 mb-3">
@@ -98,7 +105,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                   </RetroCard>
                 )}
 
-                <RetroCard data-testid="summary-cws-champion">
+                <RetroCard className="summary-card-in" style={cardIn(1)} data-testid="summary-cws-champion">
                   <RetroCardHeader>College World Series</RetroCardHeader>
                   <RetroCardContent>
                     {data.cwsChampion ? (
@@ -118,7 +125,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                   </RetroCardContent>
                 </RetroCard>
 
-                <RetroCard data-testid="summary-awards">
+                <RetroCard className="summary-card-in" style={cardIn(2)} data-testid="summary-awards">
                   <RetroCardHeader>Season Awards</RetroCardHeader>
                   <RetroCardContent className="space-y-3">
                     {data.awards.mvp && (
@@ -134,7 +141,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                 </RetroCard>
 
                 {data.leagueDraftPicks.length > 0 && (
-                  <RetroCard data-testid="summary-draft">
+                  <RetroCard className="summary-card-in" style={cardIn(3)} data-testid="summary-draft">
                     <RetroCardHeader>MLB Draft</RetroCardHeader>
                     <RetroCardContent className="space-y-2">
                       {data.leagueDraftPicks.map((pick, i) => (
@@ -152,7 +159,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                 )}
 
                 {data.userDepartures && (data.userDepartures.graduated > 0 || data.userDepartures.drafted > 0 || data.userDepartures.transferred > 0) && (
-                  <RetroCard data-testid="summary-departures">
+                  <RetroCard className="summary-card-in" style={cardIn(4)} data-testid="summary-departures">
                     <RetroCardHeader>Your Departures</RetroCardHeader>
                     <RetroCardContent>
                       <div className="flex flex-wrap gap-4 text-sm">
@@ -193,7 +200,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                   </RetroCard>
                 )}
 
-                <RetroCard data-testid="summary-standings">
+                <RetroCard className="summary-card-in" style={cardIn(5)} data-testid="summary-standings">
                   <RetroCardHeader>Final Standings (Top 5)</RetroCardHeader>
                   <RetroCardContent className="space-y-2">
                     {data.standings.slice(0, 5).map((team, i) => (
@@ -207,7 +214,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                   </RetroCardContent>
                 </RetroCard>
 
-                <div className="pt-2">
+                <div className="pt-2 summary-card-in" style={cardIn(6)}>
                   <RetroButton onClick={onClose} className="w-full" data-testid="button-continue-offseason">
                     Continue to Offseason
                   </RetroButton>

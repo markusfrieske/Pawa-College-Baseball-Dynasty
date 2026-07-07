@@ -107,3 +107,55 @@ export function playAdvanceComplete(): void {
   playTone(554.37, 0.08, "square", 0.18, 0.06);
   playTone(659.25, 0.12, "square", 0.22, 0.12);
 }
+
+/** Light tap — scout reveal, target, minor interactions. Maps to haptic: light. */
+export function playScoutSfx(): void {
+  playTone(660, 0.05, "square", 0.12, 0);
+  playTone(990, 0.1, "square", 0.15, 0.04);
+}
+
+/** Soft ascending 3-note — email sent. Maps to haptic: light. */
+export function playEmailSfx(): void {
+  playTone(523.25, 0.08, "square", 0.14, 0);
+  playTone(659.25, 0.08, "square", 0.14, 0.07);
+  playTone(783.99, 0.13, "square", 0.16, 0.14);
+}
+
+/** Double-ring beep — phone call made. Maps to haptic: medium. */
+export function playPhoneSfx(): void {
+  playTone(880, 0.06, "square", 0.14, 0);
+  playTone(880, 0.06, "square", 0.11, 0.11);
+  playTone(1108.73, 0.13, "square", 0.17, 0.2);
+}
+
+/** Warm ascending — campus/coach visit completed. Maps to haptic: success. */
+export function playVisitSfx(): void {
+  playTone(440, 0.08, "triangle", 0.17, 0);
+  playTone(554.37, 0.08, "triangle", 0.17, 0.07);
+  playTone(659.25, 0.08, "triangle", 0.17, 0.14);
+  playTone(880, 0.2, "triangle", 0.22, 0.21);
+}
+
+/** Fanfare — scholarship offered. Maps to haptic: success (heavy). */
+export function playOfferSfx(): void {
+  playTone(392, 0.07, "square", 0.17, 0);
+  playTone(523.25, 0.07, "square", 0.17, 0.06);
+  playTone(659.25, 0.07, "square", 0.17, 0.12);
+  playTone(783.99, 0.07, "square", 0.19, 0.18);
+  playTone(1046.50, 0.25, "triangle", 0.26, 0.24);
+}
+
+/** Confirmation chime — ready-up marked. Maps to haptic: success. */
+export function playReadyUpSfx(): void {
+  playTone(523.25, 0.08, "square", 0.19, 0);
+  playTone(659.25, 0.08, "square", 0.19, 0.07);
+  playTone(783.99, 0.08, "square", 0.19, 0.14);
+  playTone(1046.50, 0.22, "square", 0.26, 0.21);
+}
+
+/** Satisfying completion — score reported. Maps to haptic: medium. */
+export function playScoreSubmitSfx(): void {
+  playTone(440, 0.08, "triangle", 0.17, 0);
+  playTone(554.37, 0.11, "triangle", 0.19, 0.07);
+  playTone(659.25, 0.18, "triangle", 0.23, 0.15);
+}

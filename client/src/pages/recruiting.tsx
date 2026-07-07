@@ -101,6 +101,7 @@ import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { velocityToKMH } from "@/lib/playerUtils";
+import { playScoutSfx, playEmailSfx, playPhoneSfx, playVisitSfx, playOfferSfx } from "@/lib/sfx";
 
 interface AutoPilotAlertEntry {
   recruitName: string;
@@ -346,6 +347,7 @@ export default function RecruitingPage() {
 
   const scoutCallbacks = {
     onSuccess: () => {
+      playScoutSfx();
       setActionResultModal({ title: "Scouting Complete", description: "Scouting progress updated.", type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
@@ -354,6 +356,7 @@ export default function RecruitingPage() {
   };
   const targetCallbacks = {
     onSuccess: () => {
+      playScoutSfx();
       setActionResultModal({ title: "Recruit Targeted", description: "Added to your target list.", type: "success", icon: "check" });
     },
     onError: (error: Error) => {
@@ -362,6 +365,7 @@ export default function RecruitingPage() {
   };
   const phoneCallbacks = {
     onSuccess: (data: any) => {
+      playPhoneSfx();
       const gain = data?.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Phone Call Made", description: changeLabel.label, type: "success", icon: "phone" });
@@ -372,6 +376,7 @@ export default function RecruitingPage() {
   };
   const emailCallbacks = {
     onSuccess: (data: any) => {
+      playEmailSfx();
       const gain = data?.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Email Sent", description: changeLabel.label, type: "success", icon: "email" });
@@ -382,6 +387,7 @@ export default function RecruitingPage() {
   };
   const visitCallbacks = {
     onSuccess: (data: any) => {
+      playVisitSfx();
       const gain = data?.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit" });
@@ -392,6 +398,7 @@ export default function RecruitingPage() {
   };
   const headCoachVisitCallbacks = {
     onSuccess: (data: any) => {
+      playVisitSfx();
       const gain = data?.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach" });
@@ -402,6 +409,7 @@ export default function RecruitingPage() {
   };
   const offerCallbacks = {
     onSuccess: (data: any) => {
+      playOfferSfx();
       const gain = data?.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
       setActionResultModal({ title: "Scholarship Offered", description: changeLabel.label, type: "success", icon: "offer" });
@@ -569,6 +577,7 @@ export default function RecruitingPage() {
       )}
 
       <header className="border-b border-border sticky top-0 bg-background z-[1000]">
+        <div className="h-[2px] w-full" style={{ background: "rgb(var(--atm-accent) / 0.55)" }} aria-hidden="true" />
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">
             <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">

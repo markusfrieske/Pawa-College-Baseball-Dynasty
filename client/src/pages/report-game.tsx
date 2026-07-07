@@ -220,6 +220,7 @@ function ReportGameInner() {
       return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, payload);
     },
     onSuccess: () => {
+      import("@/lib/sfx").then(({ playScoreSubmitSfx }) => playScoreSubmitSfx());
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       toast({ title: "Report Submitted", description: "Waiting for the opposing coach to confirm." });
       setLocation(`/league/${id}/schedule`);
