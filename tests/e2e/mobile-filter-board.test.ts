@@ -98,15 +98,35 @@ test.describe("Mobile filter sheet updates all recruiting tabs", () => {
     expect(filteredCount).toBeGreaterThan(0);
     expect(filteredCount).toBeLessThan(initialCount);
 
-    // ── 3. Targets tab: filter must still be active (no crash, no reset) ──
+    // ── 3. Targets tab: filter flows through — no non-Pitcher cards visible ──
     await page.click('[data-testid="mobile-tab-targets"]');
     await page.waitForTimeout(400);
-    await expect(page.locator('[data-testid="mobile-tab-targets"]')).toBeVisible();
 
-    // ── 4. Battles tab: filter must still be active ──
+    const targetCards = page.locator('[data-testid^="mobile-recruit-card-"]');
+    const targetCount = await targetCards.count();
+    // Targets is a strict subset of filteredRecruits, so count ≤ filteredCount
+    expect(targetCount).toBeLessThanOrEqual(filteredCount);
+    // Every card visible on Targets must carry a Pitcher position badge (position "P")
+    for (let i = 0; i < targetCount; i++) {
+      await expect(
+        targetCards.nth(i).locator('[data-testid="position-badge-p"]')
+      ).toBeVisible();
+    }
+
+    // ── 4. Battles tab: filter flows through — no non-Pitcher cards visible ──
     await page.click('[data-testid="mobile-tab-battles"]');
     await page.waitForTimeout(400);
-    await expect(page.locator('[data-testid="mobile-tab-battles"]')).toBeVisible();
+
+    const battleCards = page.locator('[data-testid^="mobile-recruit-card-"]');
+    const battleCount = await battleCards.count();
+    // Battles is a strict subset of filteredRecruits, so count ≤ filteredCount
+    expect(battleCount).toBeLessThanOrEqual(filteredCount);
+    // Every card visible on Battles must carry a Pitcher position badge
+    for (let i = 0; i < battleCount; i++) {
+      await expect(
+        battleCards.nth(i).locator('[data-testid="position-badge-p"]')
+      ).toBeVisible();
+    }
 
     // ── 5. Back to Board: recruit count must still match the filtered count ──
     await page.click('[data-testid="mobile-tab-board"]');
