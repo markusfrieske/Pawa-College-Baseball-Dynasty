@@ -437,7 +437,6 @@ function ReportGameInner() {
   const playersLoading = homePlayersLoading || awayPlayersLoading;
 
   function validateScores(): string | null {
-    if (homeScore === awayScore) return null;
     if (homeScore < 0 || awayScore < 0) return "Scores cannot be negative";
     if (showInnings) {
       const inningHome = homeInnings.reduce((a, b) => a + b, 0);
@@ -1032,9 +1031,13 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: {
                 <th className="text-center p-1 text-gold/80 w-8">AB</th>
                 <th className="text-center p-1 text-gold/80 w-8">R</th>
                 <th className="text-center p-1 text-gold/80 w-8">H</th>
+                <th className="text-center p-1 text-gold/80 w-8">2B</th>
+                <th className="text-center p-1 text-gold/80 w-8">3B</th>
                 <th className="text-center p-1 text-gold/80 w-8">HR</th>
                 <th className="text-center p-1 text-gold/80 w-8">RBI</th>
+                <th className="text-center p-1 text-gold/80 w-8">BB</th>
                 <th className="text-center p-1 text-red-400 w-8">SO</th>
+                <th className="text-center p-1 text-gold/80 w-8">SB</th>
                 <th className="w-5"></th>
               </tr>
             </thead>
@@ -1042,7 +1045,7 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: {
               {batting.map((b, i) => (
                 <tr key={b.playerId} className="border-b border-gold/10">
                   <td className="p-1 text-foreground font-medium truncate max-w-[80px]">{b.name}</td>
-                  {(["ab", "r", "h", "hr", "rbi", "so"] as (keyof BatterEntry)[]).map(field => (
+                  {(["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"] as (keyof BatterEntry)[]).map(field => (
                     <td key={field} className="p-0.5">
                       <input type="number" min={0} value={b[field] as number}
                         onChange={e => updateBatter(i, field, parseInt(e.target.value) || 0)}
@@ -1196,9 +1199,12 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
                 <th className="text-left p-1 text-gold/80">Pitcher</th>
                 <th className="text-center p-1 text-gold/80 w-16">Role</th>
                 <th className="text-center p-1 text-gold/80 w-12">IP</th>
+                <th className="text-center p-1 text-gold/80 w-8">H</th>
+                <th className="text-center p-1 text-gold/80 w-8">R</th>
                 <th className="text-center p-1 text-gold/80 w-8">ER</th>
-                <th className="text-center p-1 text-gold/80 w-8">SO</th>
                 <th className="text-center p-1 text-gold/80 w-8">BB</th>
+                <th className="text-center p-1 text-gold/80 w-8">SO</th>
+                <th className="text-center p-1 text-gold/80 w-8">HR</th>
                 <th className="text-center p-1 text-gold/80 w-8">W</th>
                 <th className="text-center p-1 text-gold/80 w-8">L</th>
                 <th className="w-5"></th>
@@ -1231,7 +1237,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
                       className={`w-12 h-7 text-center text-xs bg-muted/40 border rounded focus:outline-none text-foreground ${/^\d+(\.[012])?$/.test(p.ip) ? "border-border focus:border-gold" : "border-red-500"}`}
                       placeholder="0.0" data-testid={`input-pitcher-${i}-ip`} />
                   </td>
-                  {(["er", "so", "bb"] as (keyof PitcherEntry)[]).map(field => (
+                  {(["h", "r", "er", "bb", "so", "hr"] as (keyof PitcherEntry)[]).map(field => (
                     <td key={field} className="p-0.5">
                       <input type="number" min={0} value={p[field] as number}
                         onChange={e => onUpdate(i, field, parseInt(e.target.value) || 0)}

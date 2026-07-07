@@ -15,7 +15,22 @@ import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle,
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
-import { ReportStatusBadge } from "./report-game";
+import { ReportStatusBadge, type ReportStatus } from "./report-game";
+
+function deriveReportStatus(
+  game: { isComplete: boolean; isManuallyReported?: boolean | null },
+  report: { status: string } | undefined,
+  isHumanVsHuman: boolean
+): ReportStatus | undefined {
+  if (!game.isComplete) {
+    if (report?.status === "disputed") return "disputed";
+    if (report?.status === "pending") return "pending";
+    return undefined;
+  }
+  if (!game.isManuallyReported) return undefined;
+  if (report?.status === "disputed") return "finalized";
+  return isHumanVsHuman ? "confirmed" : "finalized";
+}
 
 interface GameWithTeams extends Game {
   homeTeam: Team;
@@ -984,12 +999,12 @@ function CompactGameRow({
                 {userWon ? "W" : "L"}
               </Badge>
             )}
-            <ReportStatusBadge status={game.isManuallyReported ? (isHumanVsHuman ? "confirmed" : "finalized") : undefined} />
+            <ReportStatusBadge status={deriveReportStatus(game, report, isHumanVsHuman)} />
           </button>
         ) : (
           <div className="flex items-center gap-1.5">
             <span className="text-muted-foreground text-xs">vs</span>
-            <ReportStatusBadge status={report?.status ?? undefined} />
+            <ReportStatusBadge status={deriveReportStatus(game, report, isHumanVsHuman)} />
           </div>
         )}
 
@@ -1183,7 +1198,7 @@ function StandaloneGameRow({
                 {userWon ? "W" : "L"}
               </Badge>
             )}
-            <ReportStatusBadge status={game.isManuallyReported ? (isHumanVsHuman ? "confirmed" : "finalized") : undefined} />
+            <ReportStatusBadge status={deriveReportStatus(game, report, isHumanVsHuman)} />
           </button>
         ) : (
           <div className="flex items-center gap-1.5 shrink-0">
@@ -1191,7 +1206,7 @@ function StandaloneGameRow({
             {badge && (
               <Badge variant="outline" className="text-[8px] border-purple-600/50 text-purple-400 font-pixel">{badge}</Badge>
             )}
-            <ReportStatusBadge status={report?.status ?? undefined} />
+            <ReportStatusBadge status={deriveReportStatus(game, report, isHumanVsHuman)} />
           </div>
         )}
 
