@@ -3,7 +3,7 @@ import {
   Target, Flame, Users, ClipboardList, Star as StarIcon,
   TrendingUp, TrendingDown, Minus, Search, AlertTriangle, X,
   Eye, Phone, Mail, MapPin, GraduationCap, Crown, Building2, Skull, Gem,
-  ChevronRight, Zap,
+  ChevronRight, ChevronDown, ChevronUp, Loader2, Zap,
 } from "lucide-react";
 import { StarRating } from "@/components/ui/star-rating";
 import { PositionBadge } from "@/components/ui/position-badge";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { RetroInput } from "@/components/ui/retro-input";
 import { Progress } from "@/components/ui/progress";
 import { RetroButton } from "@/components/ui/retro-button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   getInterestLabel,
   getInterestBarColor,
@@ -28,6 +29,14 @@ import type {
 
 type TabKey = "board" | "targets" | "battles" | "needs" | "recap";
 
+const PITCH_TOPICS = [
+  { key: "playingTime", label: "Playing Time" },
+  { key: "academics",   label: "Academics" },
+  { key: "prestige",    label: "Prestige" },
+  { key: "facilities",  label: "Facilities" },
+  { key: "collegeLife", label: "College Life" },
+] as const;
+
 interface MobileRecruitCardProps {
   recruit: RecruitWithInterest;
   trend?: { trend: "up" | "down" | "flat"; recentGain: number };
@@ -35,6 +44,12 @@ interface MobileRecruitCardProps {
   positionNeed?: boolean;
   isStoryline?: boolean;
   onSelect: () => void;
+  onQuickPhone?: () => void;
+  onQuickEmail?: () => void;
+  isPending?: boolean;
+  phonedThisWeek?: boolean;
+  emailedThisWeek?: boolean;
+  outOfActions?: boolean;
 }
 
 const STAGE_BADGE: Record<string, { label: string; textColor: string; borderColor: string }> = {
@@ -53,7 +68,14 @@ function MobileRecruitCard({
   positionNeed,
   isStoryline,
   onSelect,
+  onQuickPhone,
+  onQuickEmail,
+  isPending = false,
+  phonedThisWeek = false,
+  emailedThisWeek = false,
+  outOfActions = false,
 }: MobileRecruitCardProps) {
+  const [expanded, setExpanded] = useState(false);
   const interest = recruit.interest;
   const interestLevel = interest?.interestLevel ?? 0;
   const scoutPct = interest?.scoutPercentage ?? 0;
@@ -92,19 +114,26 @@ function MobileRecruitCard({
     ? "text-red-400"
     : "text-muted-foreground";
 
+  const hasQuickActions = !!(onQuickPhone || onQuickEmail);
+  const canPhone = !phonedThisWeek && !outOfActions && !!onQuickPhone;
+  const canEmail = !emailedThisWeek && !outOfActions && !!onQuickEmail;
+
   return (
-    <button
-      className={`w-full text-left bg-card border rounded-lg p-3 flex flex-col gap-2 transition-colors active:bg-muted/40 ${
+    <div
+      className={`w-full bg-card border rounded-lg p-3 flex flex-col gap-2 transition-colors ${
         isStoryline
           ? "border-violet-500/40 shadow-[0_0_6px_rgba(139,92,246,0.2)]"
           : isSigned
           ? "border-gold/40 bg-gold/5"
           : positionNeed
           ? "border-red-500/30"
-          : "border-border/60 hover:border-border"
+          : "border-border/60"
       }`}
-      onClick={onSelect}
       data-testid={`mobile-recruit-card-${recruit.id}`}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && onSelect()}
     >
       {/* Row 1: Stars + rank + badges + trend */}
       <div className="flex items-center gap-1.5 flex-wrap">
@@ -168,7 +197,7 @@ function MobileRecruitCard({
         </div>
       </div>
 
-      {/* Row 4: Scout / OVR / Pipeline stage / CTA */}
+      {/* Row 4: Scout / OVR / Pipeline stage / expand toggle */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] text-muted-foreground">
@@ -185,15 +214,81 @@ function MobileRecruitCard({
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          {actionMeta && (
+          {actionMeta && !expanded && (
             <span className={`text-[10px] font-pixel px-1.5 py-0.5 rounded border ${actionMeta.color}`}>
               {actionMeta.label}
             </span>
           )}
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+          {hasQuickActions ? (
+            <button
+              className="p-0.5 text-muted-foreground hover:text-gold transition-colors"
+              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+              aria-label={expanded ? "Collapse actions" : "Expand actions"}
+              data-testid={`mobile-card-expand-${recruit.id}`}
+            >
+              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+          )}
         </div>
       </div>
-    </button>
+
+      {/* Row 5: Quick actions (expanded) */}
+      {expanded && hasQuickActions && (
+        <div
+          className="flex items-center gap-2 pt-1 border-t border-border/40"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {onQuickPhone && (
+            <button
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded border transition-colors ${
+                canPhone && !isPending
+                  ? "border-blue-500/50 text-blue-400 hover:bg-blue-500/10 active:bg-blue-500/20"
+                  : "border-border/40 text-muted-foreground/50 cursor-not-allowed"
+              }`}
+              onClick={() => canPhone && !isPending && onQuickPhone()}
+              disabled={!canPhone || isPending}
+              data-testid={`mobile-card-phone-${recruit.id}`}
+            >
+              {isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Phone className="w-3.5 h-3.5" />
+              )}
+              {phonedThisWeek ? "Called" : "Call"}
+            </button>
+          )}
+          {onQuickEmail && (
+            <button
+              className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded border transition-colors ${
+                canEmail && !isPending
+                  ? "border-purple-500/50 text-purple-400 hover:bg-purple-500/10 active:bg-purple-500/20"
+                  : "border-border/40 text-muted-foreground/50 cursor-not-allowed"
+              }`}
+              onClick={() => canEmail && !isPending && onQuickEmail()}
+              disabled={!canEmail || isPending}
+              data-testid={`mobile-card-email-${recruit.id}`}
+            >
+              {isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Mail className="w-3.5 h-3.5" />
+              )}
+              {emailedThisWeek ? "Emailed" : "Email"}
+            </button>
+          )}
+          <button
+            className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground border border-border/40 rounded py-1.5 px-2 hover:border-gold/50 hover:text-gold transition-colors shrink-0"
+            onClick={onSelect}
+            data-testid={`mobile-card-details-${recruit.id}`}
+          >
+            Details
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -206,6 +301,11 @@ interface MobileRecruitListProps {
   onSelectRecruit: (r: RecruitWithInterest) => void;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
+  onQuickPhone?: (recruitId: string) => void;
+  onQuickEmail?: (recruitId: string) => void;
+  pendingRecruitId?: string | null;
+  weeklyActionsUsed?: Record<string, string[]>;
+  outOfActions?: boolean;
 }
 
 function MobileRecruitList({
@@ -217,6 +317,11 @@ function MobileRecruitList({
   onSelectRecruit,
   emptyMessage = "No recruits found",
   emptyIcon,
+  onQuickPhone,
+  onQuickEmail,
+  pendingRecruitId,
+  weeklyActionsUsed,
+  outOfActions,
 }: MobileRecruitListProps) {
   if (recruits.length === 0) {
     return (
@@ -238,6 +343,12 @@ function MobileRecruitList({
           positionNeed={positionNeeds?.find((p) => p.position === recruit.position)?.need}
           isStoryline={storylineRecruitIds.has(recruit.id)}
           onSelect={() => onSelectRecruit(recruit)}
+          onQuickPhone={onQuickPhone ? () => onQuickPhone(recruit.id) : undefined}
+          onQuickEmail={onQuickEmail ? () => onQuickEmail(recruit.id) : undefined}
+          isPending={pendingRecruitId === recruit.id}
+          phonedThisWeek={weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false}
+          emailedThisWeek={weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false}
+          outOfActions={outOfActions}
         />
       ))}
     </div>
@@ -471,6 +582,11 @@ interface MobileNeedsTabProps {
   recommendationsByRecruit: Map<string, RecruitRecommendation>;
   storylineRecruitIds: Set<string>;
   onSelectRecruit: (r: RecruitWithInterest) => void;
+  onQuickPhone?: (recruitId: string) => void;
+  onQuickEmail?: (recruitId: string) => void;
+  pendingRecruitId?: string | null;
+  weeklyActionsUsed?: Record<string, string[]>;
+  outOfActions?: boolean;
 }
 
 function MobileNeedsTab({
@@ -480,6 +596,11 @@ function MobileNeedsTab({
   recommendationsByRecruit,
   storylineRecruitIds,
   onSelectRecruit,
+  onQuickPhone,
+  onQuickEmail,
+  pendingRecruitId,
+  weeklyActionsUsed,
+  outOfActions,
 }: MobileNeedsTabProps) {
   const needs = pipelineData?.positionNeeds?.filter((p) => p.need) ?? [];
   const [selectedPos, setSelectedPos] = useState<string | null>(null);
@@ -545,6 +666,11 @@ function MobileNeedsTab({
         onSelectRecruit={onSelectRecruit}
         emptyMessage={selectedPos ? `No ${selectedPos} recruits in your current board` : "No recruits matching position needs"}
         emptyIcon={<Users className="w-10 h-10" />}
+        onQuickPhone={onQuickPhone}
+        onQuickEmail={onQuickEmail}
+        pendingRecruitId={pendingRecruitId}
+        weeklyActionsUsed={weeklyActionsUsed}
+        outOfActions={outOfActions}
       />
     </div>
   );
@@ -564,6 +690,12 @@ export interface MobileRecruitingBoardProps {
   onSelectRecruit: (r: RecruitWithInterest) => void;
   onOpenFilterSheet: () => void;
   onDismissDecommit: (id: string) => void;
+  onPhone: (recruitId: string, pitchTopic?: string) => void;
+  onEmail: (recruitId: string, pitchTopic?: string) => void;
+  isPhoning: boolean;
+  isEmailing: boolean;
+  weeklyActionsUsed: Record<string, string[]>;
+  remainingPoints: number;
 }
 
 export function MobileRecruitingBoard({
@@ -580,9 +712,45 @@ export function MobileRecruitingBoard({
   onSelectRecruit,
   onOpenFilterSheet,
   onDismissDecommit,
+  onPhone,
+  onEmail,
+  isPhoning,
+  isEmailing,
+  weeklyActionsUsed,
+  remainingPoints,
 }: MobileRecruitingBoardProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("board");
   const [boardSearch, setBoardSearch] = useState("");
+  const [pendingAction, setPendingAction] = useState<{ recruitId: string; type: "phone" | "email" } | null>(null);
+  const [showTopicSheet, setShowTopicSheet] = useState(false);
+  const [lastActioningId, setLastActioningId] = useState<string | null>(null);
+
+  const outOfActions = remainingPoints <= 0;
+  const isPendingAny = isPhoning || isEmailing;
+
+  function handleQuickPhone(recruitId: string) {
+    setPendingAction({ recruitId, type: "phone" });
+    setShowTopicSheet(true);
+  }
+
+  function handleQuickEmail(recruitId: string) {
+    setPendingAction({ recruitId, type: "email" });
+    setShowTopicSheet(true);
+  }
+
+  function handleTopicSelect(topic?: string) {
+    if (!pendingAction) return;
+    setLastActioningId(pendingAction.recruitId);
+    setShowTopicSheet(false);
+    if (pendingAction.type === "phone") {
+      onPhone(pendingAction.recruitId, topic);
+    } else {
+      onEmail(pendingAction.recruitId, topic);
+    }
+    setPendingAction(null);
+  }
+
+  const pendingRecruitId = isPendingAny ? lastActioningId : null;
 
   const boardRecruits = useMemo(() => {
     if (!boardSearch.trim()) return filteredRecruits;
@@ -727,6 +895,11 @@ export function MobileRecruitingBoard({
               onSelectRecruit={onSelectRecruit}
               emptyMessage={boardSearch ? "No recruits match your search" : "No recruits match current filters"}
               emptyIcon={<Target className="w-10 h-10" />}
+              onQuickPhone={handleQuickPhone}
+              onQuickEmail={handleQuickEmail}
+              pendingRecruitId={pendingRecruitId}
+              weeklyActionsUsed={weeklyActionsUsed}
+              outOfActions={outOfActions}
             />
           </div>
         )}
@@ -745,6 +918,11 @@ export function MobileRecruitingBoard({
               onSelectRecruit={onSelectRecruit}
               emptyMessage="No recruits targeted yet"
               emptyIcon={<StarIcon className="w-10 h-10" />}
+              onQuickPhone={handleQuickPhone}
+              onQuickEmail={handleQuickEmail}
+              pendingRecruitId={pendingRecruitId}
+              weeklyActionsUsed={weeklyActionsUsed}
+              outOfActions={outOfActions}
             />
           </div>
         )}
@@ -763,6 +941,11 @@ export function MobileRecruitingBoard({
               onSelectRecruit={onSelectRecruit}
               emptyMessage="No contested recruits right now"
               emptyIcon={<Flame className="w-10 h-10" />}
+              onQuickPhone={handleQuickPhone}
+              onQuickEmail={handleQuickEmail}
+              pendingRecruitId={pendingRecruitId}
+              weeklyActionsUsed={weeklyActionsUsed}
+              outOfActions={outOfActions}
             />
           </div>
         )}
@@ -775,6 +958,11 @@ export function MobileRecruitingBoard({
             recommendationsByRecruit={recommendationsByRecruit}
             storylineRecruitIds={storylineRecruitIds}
             onSelectRecruit={onSelectRecruit}
+            onQuickPhone={handleQuickPhone}
+            onQuickEmail={handleQuickEmail}
+            pendingRecruitId={pendingRecruitId}
+            weeklyActionsUsed={weeklyActionsUsed}
+            outOfActions={outOfActions}
           />
         )}
 
@@ -790,6 +978,39 @@ export function MobileRecruitingBoard({
           />
         )}
       </div>
+
+      {/* Pitch topic picker — bottom sheet */}
+      <Sheet open={showTopicSheet} onOpenChange={(open) => { if (!open) { setShowTopicSheet(false); setPendingAction(null); } }}>
+        <SheetContent side="bottom" className="pb-8">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="font-pixel text-[11px] text-gold">
+              {pendingAction?.type === "phone" ? "Call Topic" : "Email Topic"}
+            </SheetTitle>
+            <p className="text-[11px] text-muted-foreground">
+              Choose a topic to pitch, or send without one
+            </p>
+          </SheetHeader>
+          <div className="space-y-2">
+            {PITCH_TOPICS.map((topic) => (
+              <button
+                key={topic.key}
+                className="w-full text-left px-4 py-3 rounded-lg border border-border hover:border-gold/50 hover:bg-gold/5 text-sm font-medium transition-colors"
+                onClick={() => handleTopicSelect(topic.key)}
+                data-testid={`mobile-topic-${topic.key}`}
+              >
+                {topic.label}
+              </button>
+            ))}
+            <button
+              className="w-full text-left px-4 py-3 rounded-lg border border-border/40 hover:border-border text-sm text-muted-foreground transition-colors"
+              onClick={() => handleTopicSelect(undefined)}
+              data-testid="mobile-topic-none"
+            >
+              No specific topic
+            </button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

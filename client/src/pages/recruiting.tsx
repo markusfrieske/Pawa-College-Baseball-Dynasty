@@ -756,6 +756,12 @@ export default function RecruitingPage() {
               onSelectRecruit={setSelectedRecruit}
               onOpenFilterSheet={() => setShowFilterSheet(true)}
               onDismissDecommit={dismissDecommit}
+              onPhone={(recruitId, pitchTopic) => phoneMutation.mutate({ recruitId, pitchTopic }, phoneCallbacks)}
+              onEmail={(recruitId, pitchTopic) => emailMutation.mutate({ recruitId, pitchTopic }, emailCallbacks)}
+              isPhoning={phoneMutation.isPending}
+              isEmailing={emailMutation.isPending}
+              weeklyActionsUsed={data?.weeklyActionsUsed ?? {}}
+              remainingPoints={data?.remainingPoints ?? 1}
             />
           </div>
           <MobileFilterSheet
