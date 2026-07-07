@@ -3,19 +3,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, X } from "lucide-react";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
 import { RetroButton } from "@/components/ui/retro-button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { RetroInput } from "@/components/ui/retro-input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { parseErrorMessage } from "@/lib/errorUtils";
-
-const DEADLINE_OPTIONS = [
-  { value: "", label: "No deadline" },
-  { value: "24h", label: "24 hours" },
-  { value: "48h", label: "48 hours" },
-  { value: "72h", label: "72 hours" },
-  { value: "1w", label: "1 week" },
-];
 
 interface PhaseDeadlineControlProps {
   leagueId: string;
@@ -28,33 +19,23 @@ export function PhaseDeadlineControl({
   currentDeadline,
   currentPhase,
 }: PhaseDeadlineControlProps) {
-  const [selected, setSelected] = useState("");
+  const [deadlineInput, setDeadlineInput] = useState("");
   const qc = useQueryClient();
   const { toast } = useToast();
 
   const setDeadlineMutation = useMutation({
-    mutationFn: async (duration: string) => {
-      return apiRequest("POST", `/api/leagues/${leagueId}/phase-deadline`, { duration: duration || null });
+    mutationFn: async (deadline: string | null) => {
+      return apiRequest("PATCH", `/api/leagues/${leagueId}/deadline`, { deadline });
     },
-    onSuccess: () => {
+    onSuccess: (_data, deadline) => {
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
-      toast({ title: "Deadline Updated" });
-      setSelected("");
-    },
-    onError: (err: unknown) => {
-      toast({ title: "Error", description: parseErrorMessage(err as Error), variant: "destructive" });
-    },
-  });
-
-  const clearDeadlineMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${leagueId}/phase-deadline`, { duration: null });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
-      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
-      toast({ title: "Deadline Cleared" });
+      if (deadline) {
+        toast({ title: "Deadline Set" });
+        setDeadlineInput("");
+      } else {
+        toast({ title: "Deadline Cleared" });
+      }
     },
     onError: (err: unknown) => {
       toast({ title: "Error", description: parseErrorMessage(err as Error), variant: "destructive" });
@@ -89,8 +70,8 @@ export function PhaseDeadlineControl({
               size="sm"
               variant="outline"
               className="h-6 px-2 text-[9px]"
-              onClick={() => clearDeadlineMutation.mutate()}
-              disabled={clearDeadlineMutation.isPending}
+              onClick={() => setDeadlineMutation.mutate(null)}
+              disabled={setDeadlineMutation.isPending}
               data-testid="button-clear-deadline"
             >
               <X className="w-2.5 h-2.5" />
@@ -99,22 +80,19 @@ export function PhaseDeadlineControl({
         )}
 
         <div className="flex gap-2">
-          <Select value={selected} onValueChange={setSelected}>
-            <SelectTrigger className="flex-1" data-testid="select-deadline-duration">
-              <SelectValue placeholder="Select duration" />
-            </SelectTrigger>
-            <SelectContent>
-              {DEADLINE_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <RetroInput
+            type="datetime-local"
+            value={deadlineInput}
+            onChange={(e) => setDeadlineInput(e.target.value)}
+            className="flex-1 text-xs"
+            data-testid="input-deadline-datetime"
+          />
           <RetroButton
             variant="primary"
-            onClick={() => setDeadlineMutation.mutate(selected)}
-            disabled={!selected || setDeadlineMutation.isPending}
+            onClick={() =>
+              setDeadlineMutation.mutate(deadlineInput ? new Date(deadlineInput).toISOString() : null)
+            }
+            disabled={!deadlineInput || setDeadlineMutation.isPending}
             loading={setDeadlineMutation.isPending}
             data-testid="button-set-deadline"
           >
