@@ -37,6 +37,15 @@ interface MobileRecruitCardProps {
   onSelect: () => void;
 }
 
+const STAGE_BADGE: Record<string, { label: string; textColor: string; borderColor: string }> = {
+  open:   { label: "Open",   textColor: "text-gray-400",    borderColor: "border-gray-500/40" },
+  top8:   { label: "Top 8",  textColor: "text-blue-400",    borderColor: "border-blue-500/40" },
+  top5:   { label: "Top 5",  textColor: "text-green-400",   borderColor: "border-green-500/40" },
+  top3:   { label: "Top 3",  textColor: "text-yellow-400",  borderColor: "border-yellow-500/40" },
+  verbal: { label: "Verbal", textColor: "text-amber-400",   borderColor: "border-amber-500/40" },
+  signed: { label: "Signed", textColor: "text-gold",        borderColor: "border-gold/40" },
+};
+
 function MobileRecruitCard({
   recruit,
   trend,
@@ -50,8 +59,9 @@ function MobileRecruitCard({
   const scoutPct = interest?.scoutPercentage ?? 0;
   const { label: interestLabel, color: interestColor } = getInterestLabel(interestLevel);
   const barColor = getInterestBarColor(interestLevel);
-  const isSigned = interest?.stage === "signed";
-  const isCommitted = interest?.stage === "verbal";
+  const stage = recruit.stage ?? "open";
+  const isSigned = stage === "signed";
+  const stageBadge = STAGE_BADGE[stage] ?? STAGE_BADGE.open;
 
   const ovrStr = (() => {
     const min = interest?.minOverall;
@@ -61,15 +71,7 @@ function MobileRecruitCard({
     return `${min}–${max}`;
   })();
 
-  const yearLabel = (() => {
-    switch (recruit.year) {
-      case 1: return "FR";
-      case 2: return "SO";
-      case 3: return "JR";
-      case 4: return "SR";
-      default: return `Y${recruit.year}`;
-    }
-  })();
+  const yearLabel = recruit.recruitYear ?? "";
 
   const typeLabel = (() => {
     if (recruit.recruitType === "transfer") return "XFER";
@@ -115,14 +117,16 @@ function MobileRecruitCard({
           <span className="text-[10px] text-muted-foreground font-mono">#{recruit.classRank}</span>
         )}
         <PositionBadge position={recruit.position} />
-        <span className="text-[10px] text-muted-foreground">{yearLabel}</span>
+        {yearLabel && (
+          <span className="text-[10px] text-muted-foreground">{yearLabel}</span>
+        )}
         {typeLabel && (
           <span className={`text-[10px] font-pixel px-1 rounded ${typeLabel === "XFER" ? "text-purple-300 bg-purple-500/15 border border-purple-500/30" : "text-cyan-300 bg-cyan-500/15 border border-cyan-500/30"}`}>
             {typeLabel}
           </span>
         )}
         {recruit.isBlueChip && (
-          <span className="text-[10px] font-pixel text-gold px-1 rounded border border-gold/40 bg-gold/10">BLUE CHIP</span>
+          <span className="text-[10px] font-pixel text-gold px-1 rounded border border-gold/40 bg-gold/10">CHIP</span>
         )}
         {recruit.isGenerationalGem && (
           <Gem className="w-3 h-3 text-emerald-400" />
@@ -132,12 +136,6 @@ function MobileRecruitCard({
         )}
         {positionNeed && (
           <span className="text-[10px] font-pixel text-red-400 border border-red-500/40 px-1 rounded">NEED</span>
-        )}
-        {isSigned && (
-          <span className="text-[10px] font-pixel text-gold border border-gold/40 px-1 rounded">SIGNED</span>
-        )}
-        {isCommitted && (
-          <span className="text-[10px] font-pixel text-emerald-400 border border-emerald-500/40 px-1 rounded">VERBAL</span>
         )}
         <div className="ml-auto">
           <TrendIcon className={`w-3.5 h-3.5 ${trendColor}`} />
@@ -149,9 +147,9 @@ function MobileRecruitCard({
         <span className="text-sm font-semibold text-foreground leading-tight">
           {recruit.firstName} {recruit.lastName}
         </span>
-        {recruit.homeState && (
+        {(recruit.hometown || recruit.homeState) && (
           <span className="text-[11px] text-muted-foreground truncate">
-            {recruit.homeState}
+            {[recruit.hometown, recruit.homeState].filter(Boolean).join(", ")}
           </span>
         )}
       </div>
@@ -170,22 +168,23 @@ function MobileRecruitCard({
         </div>
       </div>
 
-      {/* Row 4: Scout / OVR / CTA */}
+      {/* Row 4: Scout / OVR / Pipeline stage / CTA */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] text-muted-foreground">
             Scout <span className="text-foreground font-medium">{Math.round(scoutPct)}%</span>
           </span>
           <span className="text-[11px] text-muted-foreground">
             OVR <span className="text-foreground font-medium">{ovrStr}</span>
           </span>
-          {typeof recruit.teamsIn === "number" && recruit.teamsIn > 0 && (
-            <span className="text-[11px] text-muted-foreground">
-              <span className="text-orange-400 font-medium">{recruit.teamsIn}</span> teams
-            </span>
+          <span className={`text-[10px] font-pixel px-1.5 py-0.5 rounded border ${stageBadge.textColor} ${stageBadge.borderColor}`}>
+            {stageBadge.label}
+          </span>
+          {typeof recruit.teamsIn === "number" && recruit.teamsIn > 1 && (
+            <span className="text-[10px] text-orange-400 font-medium">{recruit.teamsIn} teams</span>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {actionMeta && (
             <span className={`text-[10px] font-pixel px-1.5 py-0.5 rounded border ${actionMeta.color}`}>
               {actionMeta.label}
@@ -593,7 +592,7 @@ export function MobileRecruitingBoard({
         `${r.firstName} ${r.lastName}`.toLowerCase().includes(q) ||
         r.position.toLowerCase().includes(q) ||
         (r.homeState && r.homeState.toLowerCase().includes(q)) ||
-        (r.homeCity && r.homeCity.toLowerCase().includes(q))
+        (r.hometown && r.hometown.toLowerCase().includes(q))
     );
   }, [filteredRecruits, boardSearch]);
 
