@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Crown, Loader2 } from "lucide-react";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
@@ -26,6 +27,7 @@ interface TransferCommissionerSectionProps {
 export function TransferCommissionerSection({ leagueId }: TransferCommissionerSectionProps) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [, navigate] = useLocation();
   const [selectedUserId, setSelectedUserId] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -51,6 +53,7 @@ export function TransferCommissionerSection({ leagueId }: TransferCommissionerSe
       });
       setSelectedUserId("");
       setConfirmOpen(false);
+      navigate(`/league/${leagueId}`);
     },
     onError: (err: unknown) => {
       toast({ title: "Transfer Failed", description: parseErrorMessage(err as Error), variant: "destructive" });
