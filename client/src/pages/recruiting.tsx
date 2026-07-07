@@ -75,6 +75,7 @@ import { RetroInput } from "@/components/ui/retro-input";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { useRecruitingData, useRecruitingActions } from "@/hooks/use-recruiting";
 import { MobileFilterSheet } from "@/components/recruiting/mobile-filter-sheet";
+import { MobileRecruitingBoard } from "@/components/recruiting/mobile-board";
 import { RecruitRow } from "@/components/recruiting/recruit-row";
 import { RecruitDetailModal } from "@/components/recruiting/recruit-detail-modal";
 import { CompareModal } from "@/components/recruiting/compare-modal";
@@ -299,6 +300,7 @@ export default function RecruitingPage() {
     }
   };
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const savePreset = () => {
     if (!newPresetName.trim()) return;
@@ -737,6 +739,73 @@ export default function RecruitingPage() {
         </div>
       </header>
 
+      {isMobile ? (
+        <>
+          <div className="pb-20">
+            <MobileRecruitingBoard
+              filteredRecruits={filteredRecruits}
+              allRecruits={data?.recruits ?? []}
+              pipelineData={pipelineData}
+              trendsData={trendsData}
+              weekRecapData={weekRecapData}
+              visibleDecommits={visibleDecommits}
+              historyData={historyData}
+              recommendationsByRecruit={recommendationsByRecruit}
+              storylineRecruitIds={storylineRecruitIds}
+              currentWeek={currentWeek}
+              onSelectRecruit={setSelectedRecruit}
+              onOpenFilterSheet={() => setShowFilterSheet(true)}
+              onDismissDecommit={dismissDecommit}
+            />
+          </div>
+          <MobileFilterSheet
+            isOpen={showFilterSheet}
+            onOpenChange={setShowFilterSheet}
+            positionFilter={positionFilter}
+            setPositionFilter={setPositionFilter}
+            starFilter={starFilter}
+            setStarFilter={setStarFilter}
+            typeFilter={typeFilter}
+            setTypeFilter={setTypeFilter}
+            stateFilter={stateFilter}
+            setStateFilter={setStateFilter}
+            showWatchlistOnly={showWatchlistOnly}
+            setShowWatchlistOnly={setShowWatchlistOnly}
+            showTopAvailable={showTopAvailable}
+            setShowTopAvailable={setShowTopAvailable}
+            showTeamNeeds={showTeamNeeds}
+            setShowTeamNeeds={setShowTeamNeeds}
+            showPipeline={showPipeline}
+            setShowPipeline={setShowPipeline}
+            showContested={showContested}
+            setShowContested={setShowContested}
+            showStory={showStory}
+            setShowStory={setShowStory}
+            filteredRecruitsCount={filteredRecruits.length}
+            positionOptions={positionOptions}
+            starOptions={starOptions}
+            stateOptions={[
+              { label: "All States", value: "all" },
+              ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
+            ]}
+            onReset={() => {
+              skipPersistRef.current = true;
+              localStorage.removeItem(`recruiting-filters-${id}`);
+              setPositionFilter("all");
+              setStarFilter("all");
+              setTypeFilter("all");
+              setStateFilter("all");
+              setShowWatchlistOnly(false);
+              setShowTopAvailable(false);
+              setShowTeamNeeds(false);
+              setShowPipeline(false);
+              setShowContested(false);
+              setShowStory(false);
+              setShowFilterSheet(false);
+            }}
+          />
+        </>
+      ) : (
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         {recommendationsData && (
           <RetroCard className="mb-6">
@@ -1717,6 +1786,7 @@ export default function RecruitingPage() {
           </RetroCard>
         )}
       </main>
+      )}
 
       <RecruitDetailModal
         recruit={selectedRecruit}
