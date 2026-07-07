@@ -984,7 +984,7 @@ function CompactGameRow({
                 {userWon ? "W" : "L"}
               </Badge>
             )}
-            <ReportStatusBadge isComplete status={undefined} isManuallyReported={game.isManuallyReported ?? false} />
+            <ReportStatusBadge status={game.isManuallyReported ? (isHumanVsHuman ? "confirmed" : "finalized") : undefined} />
           </button>
         ) : (
           <div className="flex items-center gap-1.5">
@@ -1183,7 +1183,7 @@ function StandaloneGameRow({
                 {userWon ? "W" : "L"}
               </Badge>
             )}
-            <ReportStatusBadge isComplete status={undefined} isManuallyReported={game.isManuallyReported ?? false} />
+            <ReportStatusBadge status={game.isManuallyReported ? (isHumanVsHuman ? "confirmed" : "finalized") : undefined} />
           </button>
         ) : (
           <div className="flex items-center gap-1.5 shrink-0">

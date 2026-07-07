@@ -100,33 +100,36 @@ function liveEra(er: number, ip: string): string {
   return (9 * er / dec).toFixed(2);
 }
 
-export function ReportStatusBadge({ status, isComplete, isManuallyReported }: {
-  status?: string | null;
-  isComplete?: boolean;
-  isManuallyReported?: boolean;
-}) {
-  if (isComplete && isManuallyReported) {
-    return (
-      <Badge variant="outline" className="text-[8px] border-green-600 text-green-400 gap-0.5" data-testid="badge-finalized">
-        <CheckCircle className="w-2.5 h-2.5" /> CONFIRMED
-      </Badge>
-    );
-  }
-  if (status === "pending") {
-    return (
-      <Badge variant="outline" className="text-[8px] border-yellow-600 text-yellow-400 gap-0.5" data-testid="badge-pending">
-        <Clock className="w-2.5 h-2.5" /> PENDING
-      </Badge>
-    );
-  }
-  if (status === "disputed") {
-    return (
-      <Badge variant="outline" className="text-[8px] border-red-600 text-red-400 gap-0.5" data-testid="badge-disputed">
-        <XCircle className="w-2.5 h-2.5" /> DISPUTED
-      </Badge>
-    );
-  }
-  return null;
+export type ReportStatus = "pending" | "confirmed" | "disputed" | "finalized";
+
+const REPORT_STATUS_CONFIG: Record<ReportStatus, { icon: ReactNode; label: string; className: string; testId: string }> = {
+  pending: {
+    icon: <Clock className="w-2.5 h-2.5" />, label: "PENDING",
+    className: "border-yellow-600 text-yellow-400", testId: "badge-pending",
+  },
+  confirmed: {
+    icon: <CheckCircle className="w-2.5 h-2.5" />, label: "CONFIRMED",
+    className: "border-green-600 text-green-400", testId: "badge-confirmed",
+  },
+  disputed: {
+    icon: <XCircle className="w-2.5 h-2.5" />, label: "DISPUTED",
+    className: "border-red-600 text-red-400", testId: "badge-disputed",
+  },
+  finalized: {
+    icon: <Check className="w-2.5 h-2.5" />, label: "FINALIZED",
+    className: "border-blue-400 text-blue-300", testId: "badge-finalized",
+  },
+};
+
+export function ReportStatusBadge({ status }: { status?: ReportStatus | string | null }) {
+  if (!status) return null;
+  const cfg = REPORT_STATUS_CONFIG[status as ReportStatus];
+  if (!cfg) return null;
+  return (
+    <Badge variant="outline" className={`text-[8px] ${cfg.className} gap-0.5`} data-testid={cfg.testId}>
+      {cfg.icon} {cfg.label}
+    </Badge>
+  );
 }
 
 type Phase = "score" | "review" | "submitted";
@@ -872,12 +875,33 @@ function ScoreEntryStep({
   );
 }
 
+interface ScheduleForReadyUp {
+  userTeamId: string | null;
+  games: Array<{ id: string; isComplete: boolean; homeTeamId: string; awayTeamId: string }>;
+  reportsByGameId: Record<string, unknown>;
+}
+
 function SubmittedPhase({
   leagueId, homeTeam, awayTeam, homeScore, awayScore, isAutoFinalized,
 }: {
   leagueId: string; homeTeam: Team; awayTeam: Team;
   homeScore: number; awayScore: number; isAutoFinalized: boolean;
 }) {
+  const { data: scheduleData } = useQuery<ScheduleForReadyUp>({
+    queryKey: ["/api/leagues", leagueId, "schedule"],
+  });
+
+  const allReported = (() => {
+    if (!scheduleData?.userTeamId) return false;
+    const uid = scheduleData.userTeamId;
+    const unreported = scheduleData.games.filter(g =>
+      !g.isComplete &&
+      (g.homeTeamId === uid || g.awayTeamId === uid) &&
+      !scheduleData.reportsByGameId[g.id]
+    );
+    return unreported.length === 0;
+  })();
+
   return (
     <div className="flex flex-col items-center gap-6 py-6 text-center">
       <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isAutoFinalized ? "bg-green-900/40 border-2 border-green-600" : "bg-yellow-900/30 border-2 border-yellow-600/60"}`}>
@@ -916,11 +940,7 @@ function SubmittedPhase({
           </div>
         </div>
         <div className="flex justify-center pb-3">
-          <ReportStatusBadge
-            status={isAutoFinalized ? undefined : "pending"}
-            isComplete={isAutoFinalized}
-            isManuallyReported={isAutoFinalized}
-          />
+          <ReportStatusBadge status={isAutoFinalized ? "finalized" : "pending"} />
         </div>
       </RetroCard>
 
@@ -936,9 +956,15 @@ function SubmittedPhase({
 
       <div className="flex flex-col gap-2 w-full max-w-xs">
         <Link href={`/league/${leagueId}/schedule`}>
-          <RetroButton className="w-full" data-testid="button-back-to-schedule">
-            <ClipboardCheck className="w-4 h-4 mr-2" /> Back to Schedule & Ready Up
-          </RetroButton>
+          {allReported ? (
+            <RetroButton className="w-full" data-testid="button-ready-up">
+              <ClipboardCheck className="w-4 h-4 mr-2" /> Ready Up
+            </RetroButton>
+          ) : (
+            <RetroButton variant="outline" className="w-full" data-testid="button-back-to-schedule">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back to Schedule
+            </RetroButton>
+          )}
         </Link>
       </div>
     </div>
