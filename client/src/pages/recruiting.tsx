@@ -762,6 +762,7 @@ export default function RecruitingPage() {
               isEmailing={emailMutation.isPending}
               weeklyActionsUsed={data?.weeklyActionsUsed ?? {}}
               remainingPoints={data?.remainingPoints ?? 1}
+              leagueId={id!}
             />
           </div>
           <MobileFilterSheet

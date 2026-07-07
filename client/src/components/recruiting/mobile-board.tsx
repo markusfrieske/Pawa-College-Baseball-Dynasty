@@ -696,6 +696,7 @@ export interface MobileRecruitingBoardProps {
   isEmailing: boolean;
   weeklyActionsUsed: Record<string, string[]>;
   remainingPoints: number;
+  leagueId: string;
 }
 
 export function MobileRecruitingBoard({
@@ -718,8 +719,18 @@ export function MobileRecruitingBoard({
   isEmailing,
   weeklyActionsUsed,
   remainingPoints,
+  leagueId,
 }: MobileRecruitingBoardProps) {
-  const [activeTab, setActiveTab] = useState<TabKey>("board");
+  const tabStorageKey = `recruiting-mobile-tab-${leagueId}`;
+  const [activeTab, setActiveTabState] = useState<TabKey>(() => {
+    const saved = sessionStorage.getItem(tabStorageKey);
+    return (saved as TabKey | null) ?? "board";
+  });
+
+  function setActiveTab(tab: TabKey) {
+    setActiveTabState(tab);
+    sessionStorage.setItem(tabStorageKey, tab);
+  }
   const [boardSearch, setBoardSearch] = useState("");
   const [pendingAction, setPendingAction] = useState<{ recruitId: string; type: "phone" | "email" } | null>(null);
   const [showTopicSheet, setShowTopicSheet] = useState(false);
