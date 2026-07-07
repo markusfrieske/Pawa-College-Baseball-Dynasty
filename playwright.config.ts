@@ -1,18 +1,28 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync, readdirSync } from "fs";
 
+const NIX_CHROMIUM_CANDIDATES = [
+  "/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium-browser",
+  "/usr/bin/chromium-browser",
+  "/usr/bin/chromium",
+];
+
 function findPlaywrightChromium(): string | undefined {
   const base = process.env.PLAYWRIGHT_BROWSERS_PATH;
-  if (!base || !existsSync(base)) return undefined;
-  try {
-    const entries = readdirSync(base);
-    for (const entry of entries) {
-      if (entry.startsWith("chromium-")) {
-        const candidate = `${base}/${entry}/chrome-linux/chrome`;
-        if (existsSync(candidate)) return candidate;
+  if (base && existsSync(base)) {
+    try {
+      const entries = readdirSync(base);
+      for (const entry of entries) {
+        if (entry.startsWith("chromium-")) {
+          const candidate = `${base}/${entry}/chrome-linux/chrome`;
+          if (existsSync(candidate)) return candidate;
+        }
       }
-    }
-  } catch {}
+    } catch {}
+  }
+  for (const p of NIX_CHROMIUM_CANDIDATES) {
+    if (existsSync(p)) return p;
+  }
   return undefined;
 }
 
