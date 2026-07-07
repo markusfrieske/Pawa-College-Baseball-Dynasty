@@ -364,7 +364,9 @@ function ReportGameInner() {
   }
 
   function buildPayload(): ReportPayload {
-    const inningScores = showInnings ? awayInnings.map((a, i) => [a, homeInnings[i] ?? 0]) : [];
+    const hasInningData = homeInnings.some(v => v > 0) || awayInnings.some(v => v > 0);
+    const includeInnings = showInnings || (isEditMode && hasInningData);
+    const inningScores = includeInnings ? awayInnings.map((a, i) => [a, homeInnings[i] ?? 0]) : [];
     const homeBoxData = {
       batting: homeBatting, pitching: homePitching,
       totals: {
@@ -876,7 +878,8 @@ function ScoreEntryStep({
 
 interface ScheduleForReadyUp {
   userTeamId: string | null;
-  games: Array<{ id: string; isComplete: boolean; homeTeamId: string; awayTeamId: string }>;
+  currentWeek: number | null;
+  games: Array<{ id: string; isComplete: boolean; homeTeamId: string; awayTeamId: string; week: number | null }>;
   reportsByGameId: Record<string, unknown>;
 }
 
@@ -893,10 +896,12 @@ function SubmittedPhase({
   const allReported = (() => {
     if (!scheduleData?.userTeamId) return false;
     const uid = scheduleData.userTeamId;
+    const cw = scheduleData.currentWeek;
     const unreported = scheduleData.games.filter(g =>
       !g.isComplete &&
       (g.homeTeamId === uid || g.awayTeamId === uid) &&
-      !scheduleData.reportsByGameId[g.id]
+      !scheduleData.reportsByGameId[g.id] &&
+      (cw === null || g.week === cw)
     );
     return unreported.length === 0;
   })();
