@@ -425,6 +425,7 @@ export function WaitingOnWidget({
                 onClick={() => toggleReady.mutate()}
                 disabled={toggleReady.isPending || !!myBlockReason}
                 title={myBlockReason ?? undefined}
+                data-haptic="success"
                 data-testid="button-mark-ready-widget"
               >
                 <Check className="w-3.5 h-3.5 mr-1" />

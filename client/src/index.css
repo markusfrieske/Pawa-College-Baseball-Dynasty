@@ -801,6 +801,41 @@ html[data-mood="offseason"] nav {
   to   { transform: rotate(360deg); }
 }
 
+/* ── Sim progress overlay — section and row slide-in ── */
+@keyframes simSectionIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+@keyframes simRowIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+@keyframes simPostseasonIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sim-section-in {
+    animation: simSectionIn 220ms ease-out both;
+  }
+  .sim-row-in {
+    animation: simRowIn 160ms ease-out both;
+  }
+  .sim-postseason-section {
+    animation: simPostseasonIn 280ms ease-out both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sim-section-in,
+  .sim-row-in,
+  .sim-postseason-section {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
 /* ── Season summary modal — staggered card entrance ── */
 @keyframes summaryCardIn {
   from { opacity: 0; transform: translateY(14px); }

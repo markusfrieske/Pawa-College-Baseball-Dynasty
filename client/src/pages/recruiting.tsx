@@ -102,6 +102,7 @@ import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { velocityToKMH } from "@/lib/playerUtils";
 import { playScoutSfx, playEmailSfx, playPhoneSfx, playVisitSfx, playOfferSfx } from "@/lib/sfx";
+import { FlipReveal } from "@/components/ui/flip-reveal";
 
 interface AutoPilotAlertEntry {
   recruitName: string;
@@ -162,6 +163,31 @@ import {
   type RecruitRecommendation,
   type RecruitingRecommendationsData
 } from "@/lib/recruitingUtils";
+
+/** Auto-flipping icon for scout/scouting reveal in the action result modal. */
+function ActionResultFlipIcon({ back }: { back: React.ReactNode }) {
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setRevealed(true), 280);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <FlipReveal
+      revealed={revealed}
+      duration={400}
+      front={
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#0d2a0d] border-2 border-[#c8aa6e]/25">
+          <span className="font-pixel text-[#c8aa6e]/40 text-base select-none">?</span>
+        </div>
+      }
+      back={
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a] tap-pulse">
+          {back}
+        </div>
+      }
+    />
+  );
+}
 
 export default function RecruitingPage() {
   const { id } = useParams<{ id: string }>();
@@ -1713,16 +1739,29 @@ export default function RecruitingPage() {
         <DialogContent className="max-w-sm border-2 border-[#1a3a1a] bg-[#0d1f0d]" data-testid="action-result-modal">
           <div className="flex flex-col items-center gap-4 py-4">
             {actionResultModal?.type === "success" ? (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a]">
-                {actionResultModal.icon === "phone" && <Phone className="h-7 w-7 text-[#c8aa6e]" />}
-                {actionResultModal.icon === "email" && <Mail className="h-7 w-7 text-[#c8aa6e]" />}
-                {actionResultModal.icon === "visit" && <Building2 className="h-7 w-7 text-[#c8aa6e]" />}
-                {actionResultModal.icon === "coach" && <Crown className="h-7 w-7 text-[#c8aa6e]" />}
-                {actionResultModal.icon === "offer" && <GraduationCap className="h-7 w-7 text-[#c8aa6e]" />}
-                {actionResultModal.icon === "scout" && <Eye className="h-7 w-7 text-[#c8aa6e]" />}
-                {actionResultModal.icon === "check" && <CheckCircle className="h-7 w-7 text-green-400" />}
-                {!actionResultModal.icon && <CheckCircle className="h-7 w-7 text-green-400" />}
-              </div>
+              actionResultModal.icon === "scout" ? (
+                <ActionResultFlipIcon
+                  back={<Eye className="h-7 w-7 text-[#c8aa6e]" />}
+                  key={actionResultModal.title + Date.now()}
+                />
+              ) : (
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a] tap-pulse"
+                  key={actionResultModal.title}
+                  data-haptic={
+                    actionResultModal.icon === "offer" ? "success" :
+                    actionResultModal.icon === "visit" || actionResultModal.icon === "coach" ? "success" : "light"
+                  }
+                >
+                  {actionResultModal.icon === "phone" && <Phone className="h-7 w-7 text-[#c8aa6e]" />}
+                  {actionResultModal.icon === "email" && <Mail className="h-7 w-7 text-[#c8aa6e]" />}
+                  {actionResultModal.icon === "visit" && <Building2 className="h-7 w-7 text-[#c8aa6e]" />}
+                  {actionResultModal.icon === "coach" && <Crown className="h-7 w-7 text-[#c8aa6e]" />}
+                  {actionResultModal.icon === "offer" && <GraduationCap className="h-7 w-7 text-[#c8aa6e]" />}
+                  {actionResultModal.icon === "check" && <CheckCircle className="h-7 w-7 text-green-400" />}
+                  {!actionResultModal.icon && <CheckCircle className="h-7 w-7 text-green-400" />}
+                </div>
+              )
             ) : (
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-900/30">
                 <XCircle className="h-7 w-7 text-red-400" />
@@ -1739,6 +1778,7 @@ export default function RecruitingPage() {
             <RetroButton
               onClick={() => setActionResultModal(null)}
               className="mt-2"
+              data-haptic="light"
               data-testid="action-result-dismiss"
             >
               OK

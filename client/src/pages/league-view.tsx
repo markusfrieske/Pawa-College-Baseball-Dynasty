@@ -261,6 +261,7 @@ export default function LeagueViewPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
+        <div className="h-[2px] w-full" style={{ background: "rgb(var(--atm-accent) / 0.55)" }} aria-hidden="true" />
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-3 min-w-0">
             <Link href="/dashboard" className="text-muted-foreground hover:text-gold transition-colors shrink-0">

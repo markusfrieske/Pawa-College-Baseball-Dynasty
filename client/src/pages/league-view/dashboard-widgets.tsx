@@ -467,6 +467,7 @@ export function PrimaryPhaseCTA({
       className="w-full text-xs sm:text-sm py-3.5"
       onClick={onClick ?? undefined}
       disabled={toggleReady.isPending}
+      data-haptic={onClick === null ? "light" : "success"}
       data-testid="button-primary-phase-cta"
     >
       {icon}

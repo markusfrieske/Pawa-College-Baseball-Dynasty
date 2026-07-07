@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Star, Zap } from "lucide-react";
@@ -49,7 +48,7 @@ function formatPhase(phase: string): string {
   return map[phase] || phase;
 }
 
-function GameRow({ game, userTeamName }: { game: SimGameResult; userTeamName?: string }) {
+function GameRow({ game, userTeamName, animate }: { game: SimGameResult; userTeamName?: string; animate: boolean }) {
   const isUserGame = game.isUserTeam;
   const isCloseGame = Math.abs(game.homeScore - game.awayScore) <= 1;
   const homeWon = game.homeScore > game.awayScore;
@@ -58,7 +57,7 @@ function GameRow({ game, userTeamName }: { game: SimGameResult; userTeamName?: s
     <div
       className={`flex items-center gap-2 px-2 py-1 rounded text-xs ${
         isUserGame ? "bg-gold/10 border border-gold/30" : ""
-      }`}
+      } ${animate ? "sim-row-in" : ""}`}
       data-testid={`sim-game-${game.homeTeam}-vs-${game.awayTeam}`}
     >
       {isUserGame && <Star className="w-3 h-3 text-gold flex-shrink-0" />}
@@ -70,7 +69,7 @@ function GameRow({ game, userTeamName }: { game: SimGameResult; userTeamName?: s
       >
         {game.homeTeam}
       </span>
-      <span className="font-pixel text-[9px] text-foreground min-w-[40px] text-center">
+      <span className={`font-pixel text-[9px] min-w-[40px] text-center ${isUserGame ? "text-gold" : "text-foreground"}`}>
         {game.homeScore} - {game.awayScore}
       </span>
       <span
@@ -134,11 +133,14 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col bg-card border-border p-0 gap-0">
-        <DialogHeader className="p-4 pb-2 border-b border-border">
-          <DialogTitle className="font-pixel text-gold text-sm tracking-wider flex items-center gap-2">
-            <Trophy className="w-4 h-4" />
-            Season Simulation
-          </DialogTitle>
+        <DialogHeader className="p-0 border-b border-border">
+          <div className="h-[2px] w-full" style={{ background: "rgb(var(--atm-accent) / 0.55)" }} aria-hidden="true" />
+          <div className="px-4 py-3 flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-gold shrink-0" />
+            <DialogTitle className="font-pixel text-gold text-sm tracking-wider">
+              Season Simulation
+            </DialogTitle>
+          </div>
         </DialogHeader>
 
         <div
@@ -154,7 +156,10 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
           )}
 
           {weekResults.slice(0, Math.min(displayCount, weekResults.length)).map((week, i) => (
-            <div key={`week-${i}`} className="space-y-1">
+            <div
+              key={`week-${i}`}
+              className={`space-y-1 ${!skipped ? "sim-section-in" : ""}`}
+            >
               <div className="flex items-center gap-2">
                 <h3 className="font-pixel text-[9px] text-gold">
                   Week {week.week}
@@ -166,7 +171,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
               </div>
               <div className="space-y-0.5">
                 {week.games.map((game, j) => (
-                  <GameRow key={j} game={game} userTeamName={userTeamName} />
+                  <GameRow key={j} game={game} userTeamName={userTeamName} animate={!skipped} />
                 ))}
               </div>
             </div>
@@ -174,7 +179,10 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
 
           {displayCount > weekResults.length &&
             postseasonResults.slice(0, displayCount - weekResults.length).map((ps, i) => (
-              <div key={`ps-${i}`} className="space-y-1 pt-2">
+              <div
+                key={`ps-${i}`}
+                className={`space-y-1 pt-2 ${!skipped ? "sim-section-in sim-postseason-section" : ""}`}
+              >
                 <div className="flex items-center gap-2">
                   <Trophy className="w-3 h-3 text-gold" />
                   <h3 className="font-pixel text-[10px] text-gold">
@@ -184,7 +192,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
                 </div>
                 <div className="space-y-0.5">
                   {ps.games.map((game, j) => (
-                    <GameRow key={j} game={game} userTeamName={userTeamName} />
+                    <GameRow key={j} game={game} userTeamName={userTeamName} animate={!skipped} />
                   ))}
                 </div>
               </div>
@@ -201,6 +209,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
           {animationDone ? (
             <RetroButton
               onClick={onClose}
+              data-haptic="success"
               data-testid="sim-overlay-continue"
             >
               Continue
@@ -210,6 +219,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
               variant="outline"
               size="sm"
               onClick={handleSkip}
+              data-haptic="light"
               data-testid="sim-overlay-skip"
             >
               Skip
