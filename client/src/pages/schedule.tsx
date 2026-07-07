@@ -15,6 +15,7 @@ import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle,
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
+import { ReportStatusBadge } from "./report-game";
 
 interface GameWithTeams extends Game {
   homeTeam: Team;
@@ -983,19 +984,12 @@ function CompactGameRow({
                 {userWon ? "W" : "L"}
               </Badge>
             )}
-            {game.isManuallyReported && (
-              <Badge variant="outline" className="text-[8px] border-blue-600 text-blue-400">R</Badge>
-            )}
+            <ReportStatusBadge isComplete status={undefined} isManuallyReported={game.isManuallyReported ?? false} />
           </button>
         ) : (
           <div className="flex items-center gap-1.5">
             <span className="text-muted-foreground text-xs">vs</span>
-            {report?.status === "pending" && (
-              <Badge variant="outline" className="text-[8px] border-yellow-600 text-yellow-400" data-testid={`badge-report-pending-${game.id}`}>PENDING</Badge>
-            )}
-            {report?.status === "disputed" && (
-              <Badge variant="outline" className="text-[8px] border-red-600 text-red-400" data-testid={`badge-report-disputed-${game.id}`}>DISPUTED</Badge>
-            )}
+            <ReportStatusBadge status={report?.status ?? undefined} />
           </div>
         )}
 
@@ -1189,9 +1183,7 @@ function StandaloneGameRow({
                 {userWon ? "W" : "L"}
               </Badge>
             )}
-            {game.isManuallyReported && (
-              <Badge variant="outline" className="text-[9px] border-blue-600 text-blue-400">Reported</Badge>
-            )}
+            <ReportStatusBadge isComplete status={undefined} isManuallyReported={game.isManuallyReported ?? false} />
           </button>
         ) : (
           <div className="flex items-center gap-1.5 shrink-0">
@@ -1199,12 +1191,7 @@ function StandaloneGameRow({
             {badge && (
               <Badge variant="outline" className="text-[8px] border-purple-600/50 text-purple-400 font-pixel">{badge}</Badge>
             )}
-            {report?.status === "pending" && (
-              <Badge variant="outline" className="text-[9px] border-yellow-600 text-yellow-400" data-testid={`badge-report-pending-${game.id}`}>PENDING</Badge>
-            )}
-            {report?.status === "disputed" && (
-              <Badge variant="outline" className="text-[9px] border-red-600 text-red-400" data-testid={`badge-report-disputed-${game.id}`}>DISPUTED</Badge>
-            )}
+            <ReportStatusBadge status={report?.status ?? undefined} />
           </div>
         )}
 
