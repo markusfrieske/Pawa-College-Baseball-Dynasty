@@ -74,6 +74,7 @@ export function MobileNav() {
     <>
       <nav
         className="fixed bottom-0 left-0 right-0 z-[100] md:hidden bg-card border-t border-border"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         data-testid="mobile-nav"
       >
         <div className="grid grid-cols-5 h-16">
@@ -110,7 +111,7 @@ export function MobileNav() {
       </nav>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto pb-8" data-testid="sheet-more-menu">
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }} data-testid="sheet-more-menu">
           <SheetHeader>
             <SheetTitle className="font-pixel text-xs text-gold">More</SheetTitle>
             <SheetDescription className="sr-only">Additional navigation links</SheetDescription>

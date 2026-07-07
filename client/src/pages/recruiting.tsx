@@ -1595,8 +1595,8 @@ export default function RecruitingPage() {
 
         <div className="space-y-3">
           {filteredRecruits.map((recruit) => (
+            <div key={recruit.id} className="recruit-row-cv" id={`recruit-card-${recruit.id}`}>
             <RecruitRow
-              key={recruit.id}
               recruit={recruit}
               leagueId={id!}
               onTarget={() => targetMutation.mutate(recruit.id, targetCallbacks)}
@@ -1637,6 +1637,7 @@ export default function RecruitingPage() {
               nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
               seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
             />
+            </div>
           ))}
         </div>
 

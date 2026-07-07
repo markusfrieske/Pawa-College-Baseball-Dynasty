@@ -11,6 +11,7 @@ import { VolumeControl } from "@/components/volume-control";
 import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanner } from "@/components/atmosphere-provider";
 import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { MobileNav } from "@/components/mobile-nav";
+import { OfflineBanner } from "@/components/offline-banner";
 import { useToast } from "@/hooks/use-toast";
 import { usePresence } from "@/hooks/use-presence";
 
@@ -211,9 +212,10 @@ function App() {
             <div className="fixed bottom-20 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
               <VolumeControl />
             </div>
+            <OfflineBanner />
             <Toaster />
             <MobileNav />
-            <div className="pb-16 md:pb-0">
+            <div className="mobile-content-safe">
               <Router />
             </div>
           </MusicProvider>

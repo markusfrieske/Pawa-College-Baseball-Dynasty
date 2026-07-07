@@ -71,6 +71,12 @@
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
+  /* ── Safe-area insets (notch / home-indicator) ── */
+  --sat: env(safe-area-inset-top,    0px);
+  --sar: env(safe-area-inset-right,  0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left,   0px);
+
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
@@ -301,13 +307,37 @@
     text-shadow: 0 0 8px rgba(239,68,68,0.70), 0 0 20px rgba(239,68,68,0.35);
   }
 
+  /* ── Safe-area utility classes ── */
+  .safe-top    { padding-top:    env(safe-area-inset-top,    0px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .safe-left   { padding-left:   env(safe-area-inset-left,   0px); }
+  .safe-right  { padding-right:  env(safe-area-inset-right,  0px); }
+  .safe-x      { padding-left:   env(safe-area-inset-left,   0px);
+                 padding-right:  env(safe-area-inset-right,  0px); }
+
   /* ── Page fade-in transition ── */
   .page-fade-in {
-    animation: page-fade 120ms ease-out both;
+    animation: page-fade 140ms ease-out both;
   }
   @keyframes page-fade {
-    from { opacity: 0; transform: translateY(4px); }
+    from { opacity: 0; transform: translateY(3px); }
     to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* ── Mobile content wrapper — clears mobile-nav + home indicator ── */
+  .mobile-content-safe {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 768px) {
+    .mobile-content-safe {
+      padding-bottom: 0;
+    }
+  }
+
+  /* ── Recruit list row — native-browser paint skip for offscreen rows ── */
+  .recruit-row-cv {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 88px;
   }
 
   /* ── Recruit card staggered entrance ── */

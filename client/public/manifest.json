@@ -1,0 +1,33 @@
+{
+  "name": "College Baseball Dynasty",
+  "short_name": "CBDynasty",
+  "description": "A league-first, story-driven college baseball dynasty simulator.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#152a15",
+  "theme_color": "#152a15",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["games", "sports"],
+  "prefer_related_applications": false
+}
