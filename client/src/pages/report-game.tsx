@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Component, type ReactNode, type ErrorInfo } from "react";
+import { useState, useEffect, useRef, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
@@ -310,6 +310,21 @@ function ReportGameInner() {
   const [corrections, setCorrections] = useState<Record<string, { fieldLabel?: string; ocrValue: string; correctedValue: string }>>({});
   // Parent-level ref so it survives GameScreenshotUpload unmount/remount (score ↔ review phase transitions).
   const autoAppliedScreenshotsRef = useRef<Set<string>>(new Set());
+
+  // Derived set of categories where the coach has already manually corrected at least one
+  // OCR-filled field. Auto-apply is skipped for these categories to prevent silent overwrites.
+  const correctedCategories = useMemo<ReadonlySet<ScreenshotCategory>>(() => {
+    const cats = new Set<ScreenshotCategory>();
+    for (const [key, source] of Object.entries(fieldMeta)) {
+      if (source !== "corrected") continue;
+      if (key.startsWith("score.") || key.startsWith("inning.")) cats.add("final_score");
+      else if (key.startsWith("batting.home.")) cats.add("home_batting");
+      else if (key.startsWith("batting.away.")) cats.add("away_batting");
+      else if (key.startsWith("pitching.home.")) cats.add("home_pitching");
+      else if (key.startsWith("pitching.away.")) cats.add("away_pitching");
+    }
+    return cats;
+  }, [fieldMeta]);
 
   // OCR status summary — used to show the "still reading / all done" banner in the score phase.
   const { data: screenshotImages } = useGameReportImages(id, gameId, phase === "score");
@@ -727,6 +742,7 @@ function ReportGameInner() {
                 onApply={handleApplyOcr}
                 autoAppliedIdsRef={autoAppliedScreenshotsRef}
                 enableAutoApply={!isEditMode}
+                correctedCategories={correctedCategories}
               />
             )}
 

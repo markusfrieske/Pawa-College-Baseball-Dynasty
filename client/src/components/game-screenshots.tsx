@@ -205,12 +205,15 @@ function CategoryUploadTile({
  * is not overwritten by OCR results on load.
  */
 export function GameScreenshotUpload({
-  leagueId, gameId, onApply, autoAppliedIdsRef, enableAutoApply = true,
+  leagueId, gameId, onApply, autoAppliedIdsRef, enableAutoApply = true, correctedCategories,
 }: {
   leagueId: string; gameId: string;
   onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
   autoAppliedIdsRef: MutableRefObject<Set<string>>;
   enableAutoApply?: boolean;
+  /** Categories where the coach has already manually corrected at least one OCR-filled field.
+   *  Auto-apply is skipped for these categories so corrections are never silently overwritten. */
+  correctedCategories?: ReadonlySet<ScreenshotCategory>;
 }) {
   const { data: images } = useGameReportImages(leagueId, gameId, true);
   const onApplyRef = useRef(onApply);
@@ -219,12 +222,17 @@ export function GameScreenshotUpload({
   useEffect(() => {
     if (!enableAutoApply || !images) return;
     for (const img of images) {
-      if (img.ocrStatus === "done" && img.ocrResult && !autoAppliedIdsRef.current.has(img.id)) {
+      if (
+        img.ocrStatus === "done" &&
+        img.ocrResult &&
+        !autoAppliedIdsRef.current.has(img.id) &&
+        !correctedCategories?.has(img.category)
+      ) {
         autoAppliedIdsRef.current.add(img.id);
         onApplyRef.current(img.category, img.ocrResult, img.id);
       }
     }
-  }, [images, enableAutoApply, autoAppliedIdsRef]);
+  }, [images, enableAutoApply, autoAppliedIdsRef, correctedCategories]);
 
   return (
     <div className="space-y-2">
