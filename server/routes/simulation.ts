@@ -66,6 +66,7 @@ import {
   ensureCoachTraits,
   calculatePhilosophyRetentionBonus,
 } from "../route-helpers";
+import { updateRecruitStages } from "./league-mgmt";
 
 // ============ ADVANCE PROGRESS STORE ============
 // In-memory map: leagueId -> { stage, pct, updatedAt }

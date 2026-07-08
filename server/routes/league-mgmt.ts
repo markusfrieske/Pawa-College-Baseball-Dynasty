@@ -41,9 +41,7 @@ const settingsSchema = z.object({
 
 type SimulateGameFn = (homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhil?: string, awayPhil?: string, week?: number | null) => Promise<{ homeScore: number; awayScore: number; boxScore: string }>;
 
-export function registerLeagueMgmtRoutes(app: Express, simulateGame?: SimulateGameFn): void {
-// ============ RECRUIT STAGE PROGRESSION FUNCTION ============
-async function updateRecruitStages(leagueId: string, week: number) {
+export async function updateRecruitStages(leagueId: string, week: number) {
   const recruits = await storage.getRecruitsByLeague(leagueId);
   const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
 
@@ -262,6 +260,9 @@ async function updateRecruitStages(leagueId: string, week: number) {
     }
   }));
 }
+
+export function registerLeagueMgmtRoutes(app: Express, simulateGame?: SimulateGameFn): void {
+// ============ RECRUIT STAGE PROGRESSION FUNCTION ============
 
 // Generate recruiting class for dynasty setup
 app.post("/api/leagues/:id/recruiting/generate", requireAuth, async (req, res) => {
