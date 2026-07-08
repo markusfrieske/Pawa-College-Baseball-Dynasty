@@ -32,6 +32,8 @@ interface GameReport {
   awayErrors: number;
   status: string;
   disputeReason: string | null;
+  disputeCorrectedHomeScore: number | null;
+  disputeCorrectedAwayScore: number | null;
   inningScores: number[][] | string | null;
   createdAt: string;
 }
@@ -71,8 +73,8 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
   );
 
   const finalizeMutation = useMutation({
-    mutationFn: async (gameId: string) => {
-      return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, {});
+    mutationFn: async ({ gameId, useCorrectedScore }: { gameId: string; useCorrectedScore?: boolean }) => {
+      return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, { useCorrectedScore });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -207,21 +209,40 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
                 {report.disputeReason}
               </p>
             )}
+            {report.disputeCorrectedHomeScore != null && report.disputeCorrectedAwayScore != null && (
+              <p className="text-xs text-yellow-300" data-testid={`text-corrected-score-${report.id}`}>
+                Proposed correction: {report.disputeCorrectedAwayScore} - {report.disputeCorrectedHomeScore}
+              </p>
+            )}
             <p className="text-[9px] text-muted-foreground">
               Submitted {new Date(report.createdAt).toLocaleDateString()}
             </p>
             <GameScreenshotGallery leagueId={leagueId} gameId={report.gameId} />
           </div>
           {(isPending || isDisputed) && (
-            <RetroButton
-              size="sm"
-              variant="primary"
-              onClick={() => finalizeMutation.mutate(report.gameId)}
-              disabled={finalizeMutation.isPending}
-              data-testid={`button-finalize-${report.id}`}
-            >
-              <Check className="w-3 h-3 mr-1" /> Force Finalize
-            </RetroButton>
+            <div className="flex flex-col gap-2 items-end">
+              <RetroButton
+                size="sm"
+                variant="primary"
+                onClick={() => finalizeMutation.mutate({ gameId: report.gameId })}
+                disabled={finalizeMutation.isPending}
+                data-testid={`button-finalize-${report.id}`}
+              >
+                <Check className="w-3 h-3 mr-1" /> Finalize As Reported
+              </RetroButton>
+              {report.disputeCorrectedHomeScore != null && report.disputeCorrectedAwayScore != null && (
+                <RetroButton
+                  size="sm"
+                  variant="outline"
+                  onClick={() => finalizeMutation.mutate({ gameId: report.gameId, useCorrectedScore: true })}
+                  disabled={finalizeMutation.isPending}
+                  data-testid={`button-finalize-corrected-${report.id}`}
+                  className="border-yellow-600 text-yellow-300 hover:bg-yellow-900/20"
+                >
+                  <Check className="w-3 h-3 mr-1" /> Finalize With Correction
+                </RetroButton>
+              )}
+            </div>
           )}
         </div>
       </div>

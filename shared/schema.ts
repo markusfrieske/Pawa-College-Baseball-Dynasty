@@ -1561,6 +1561,10 @@ export const gameReports = pgTable("game_reports", {
   confirmedByUserId: varchar("confirmed_by_user_id"),
   disputedByUserId: varchar("disputed_by_user_id"),
   disputeReason: text("dispute_reason"),
+  // Optional corrected score proposed by the disputing coach — the commissioner can
+  // apply these instead of the original reported score when resolving the dispute.
+  disputeCorrectedHomeScore: integer("dispute_corrected_home_score"),
+  disputeCorrectedAwayScore: integer("dispute_corrected_away_score"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -1666,7 +1670,7 @@ export const insertCoachSeasonHistorySchema = createInsertSchema(coachSeasonHist
 export type InsertCoachSeasonHistory = z.infer<typeof insertCoachSeasonHistorySchema>;
 export type CoachSeasonHistory = typeof coachSeasonHistory.$inferSelect;
 
-const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "STORYLINE_ABILITY", "NUDGE", "DECOMMIT", "PROGRAM_ATTR_CHANGE"] as const;
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "STORYLINE_ABILITY", "NUDGE", "DECOMMIT", "PROGRAM_ATTR_CHANGE", "GAME_REPORT"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
 // NIL Season Earnings table — records every NIL bonus awarded each season per team

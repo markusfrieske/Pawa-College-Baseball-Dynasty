@@ -286,6 +286,8 @@ export default function SchedulePage() {
   const [showMyTeam, setShowMyTeam] = useState(true);
   const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
+  const [disputeCorrectedAway, setDisputeCorrectedAway] = useState("");
+  const [disputeCorrectedHome, setDisputeCorrectedHome] = useState("");
   const [matchupPreviewGameId, setMatchupPreviewGameId] = useState<string | null>(null);
   const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
   const { toast } = useToast();
@@ -309,8 +311,8 @@ export default function SchedulePage() {
   });
 
   const disputeReportMutation = useMutation({
-    mutationFn: async ({ gameId, reason }: { gameId: string; reason: string }) => {
-      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/dispute`, { reason });
+    mutationFn: async ({ gameId, reason, correctedHomeScore, correctedAwayScore }: { gameId: string; reason: string; correctedHomeScore?: number; correctedAwayScore?: number }) => {
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/dispute`, { reason, correctedHomeScore, correctedAwayScore });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
@@ -614,7 +616,7 @@ export default function SchedulePage() {
 
       <BoxScoreModal game={boxScoreGame} leagueId={id!} onClose={() => setBoxScoreGame(null)} />
 
-      <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) setDisputeGameId(null); }}>
+      <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) { setDisputeGameId(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); } }}>
         <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-md" data-testid="dialog-dispute-reason">
           <DialogHeader>
             <DialogTitle className="font-pixel text-gold text-sm">Dispute Reported Score</DialogTitle>
@@ -632,8 +634,34 @@ export default function SchedulePage() {
               className="w-full text-sm bg-muted/40 border border-border rounded p-2 focus:outline-none focus:border-gold text-foreground resize-none"
               data-testid="textarea-dispute-reason"
             />
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">
+                Optional: propose the correct final score (helps the commissioner resolve faster)
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  value={disputeCorrectedAway}
+                  onChange={e => setDisputeCorrectedAway(e.target.value)}
+                  placeholder="Away"
+                  className="w-20 text-sm bg-muted/40 border border-border rounded p-2 focus:outline-none focus:border-gold text-foreground"
+                  data-testid="input-corrected-away-score"
+                />
+                <span className="text-muted-foreground text-sm">-</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={disputeCorrectedHome}
+                  onChange={e => setDisputeCorrectedHome(e.target.value)}
+                  placeholder="Home"
+                  className="w-20 text-sm bg-muted/40 border border-border rounded p-2 focus:outline-none focus:border-gold text-foreground"
+                  data-testid="input-corrected-home-score"
+                />
+              </div>
+            </div>
             <div className="flex gap-3 justify-end">
-              <RetroButton variant="outline" size="sm" onClick={() => setDisputeGameId(null)} data-testid="button-cancel-dispute">
+              <RetroButton variant="outline" size="sm" onClick={() => { setDisputeGameId(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); }} data-testid="button-cancel-dispute">
                 Cancel
               </RetroButton>
               <RetroButton
@@ -642,8 +670,17 @@ export default function SchedulePage() {
                 disabled={!disputeReason.trim() || disputeReportMutation.isPending}
                 onClick={() => {
                   if (disputeGameId && disputeReason.trim()) {
-                    disputeReportMutation.mutate({ gameId: disputeGameId, reason: disputeReason.trim() });
+                    const correctedAwayScore = disputeCorrectedAway.trim() !== "" ? Number(disputeCorrectedAway) : undefined;
+                    const correctedHomeScore = disputeCorrectedHome.trim() !== "" ? Number(disputeCorrectedHome) : undefined;
+                    disputeReportMutation.mutate({
+                      gameId: disputeGameId,
+                      reason: disputeReason.trim(),
+                      correctedAwayScore: Number.isFinite(correctedAwayScore) ? correctedAwayScore : undefined,
+                      correctedHomeScore: Number.isFinite(correctedHomeScore) ? correctedHomeScore : undefined,
+                    });
                     setDisputeGameId(null);
+                    setDisputeCorrectedAway("");
+                    setDisputeCorrectedHome("");
                   }
                 }}
                 data-testid="button-submit-dispute"
@@ -1476,8 +1513,9 @@ function BoxScoreModal({ game, leagueId, onClose }: { game: GameWithTeams | null
     <Dialog open={!!game} onOpenChange={() => onClose()}>
       <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-box-score">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm">
-            {game.awayTeam.abbreviation} {game.awayScore} @ {game.homeTeam.abbreviation} {game.homeScore}
+          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2 flex-wrap">
+            <span>{game.awayTeam.abbreviation} {game.awayScore} @ {game.homeTeam.abbreviation} {game.homeScore}</span>
+            {game.isManuallyReported && <ReportStatusBadge status="finalized" />}
           </DialogTitle>
         </DialogHeader>
 

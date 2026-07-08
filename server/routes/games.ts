@@ -653,13 +653,43 @@ export function registerGameRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can confirm this report" });
       }
 
+      const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
+      const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
+      const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
+      const confirmerLabel = isCommissioner ? "Commissioner" : "Opposing coach";
+
       if (game.isComplete) {
         await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
+        await storage.createAuditLog({
+          leagueId,
+          userId: req.session.userId,
+          action: "Game Report Confirmed",
+          details: `${confirmerLabel} confirmed already-finalized report: ${report.awayScore}-${report.homeScore}`,
+        });
         return res.json({ message: "Report confirmed (game was already finalized)" });
       }
 
       await finalizeReportedGame(report, game, leagueId);
       await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
+
+      await storage.createAuditLog({
+        leagueId,
+        userId: req.session.userId,
+        action: "Game Report Confirmed",
+        details: `${confirmerLabel} confirmed reported score: ${report.awayScore}-${report.homeScore}`,
+      });
+
+      await storage.createLeagueEvent({
+        leagueId,
+        teamId: reporterTeamId ?? null,
+        teamName: null,
+        teamAbbreviation: null,
+        teamPrimaryColor: null,
+        eventType: "GAME_REPORT",
+        description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: reported score confirmed (${report.awayScore}-${report.homeScore}) and finalized.`,
+        season: game.season,
+        week: game.week,
+      });
 
       invalidateLeague(leagueId);
       res.json({ message: "Report confirmed and game finalized" });
@@ -709,17 +739,47 @@ export function registerGameRoutes(app: Express): void {
         return res.status(400).json({ message: "You cannot dispute your own report" });
       }
 
+      const { correctedHomeScore, correctedAwayScore } = req.body as {
+        correctedHomeScore?: unknown;
+        correctedAwayScore?: unknown;
+      };
+      const hasCorrectedScore =
+        typeof correctedHomeScore === "number" && typeof correctedAwayScore === "number" &&
+        correctedHomeScore >= 0 && correctedAwayScore >= 0;
+
       await storage.updateGameReport(report.id, {
         status: "disputed",
         disputedByUserId: req.session.userId,
         disputeReason: req.body.reason || "Score disputed by opposing coach",
+        disputeCorrectedHomeScore: hasCorrectedScore ? correctedHomeScore : null,
+        disputeCorrectedAwayScore: hasCorrectedScore ? correctedAwayScore : null,
       });
+
+      const disputeDetails = hasCorrectedScore
+        ? `${req.body.reason || "Score disputed by opposing coach"} (proposed correction: ${correctedAwayScore}-${correctedHomeScore})`
+        : req.body.reason || "Score disputed by opposing coach";
 
       await storage.createAuditLog({
         leagueId,
         userId: req.session.userId,
         action: "Game Report Disputed",
-        details: req.body.reason || "Score disputed by opposing coach",
+        details: disputeDetails,
+      });
+
+      const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
+      const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
+      const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
+
+      await storage.createLeagueEvent({
+        leagueId,
+        teamId: reporterTeamId ?? null,
+        teamName: null,
+        teamAbbreviation: null,
+        teamPrimaryColor: null,
+        eventType: "GAME_REPORT",
+        description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: reported score disputed. Awaiting commissioner review.`,
+        season: game.season,
+        week: game.week,
       });
 
       res.json({ message: "Report disputed. Commissioner will review." });
@@ -750,14 +810,45 @@ export function registerGameRoutes(app: Express): void {
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
-      await finalizeReportedGame(report, game, leagueId);
-      await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
+      // Commissioner may opt to apply the disputing coach's proposed corrected score
+      // instead of the originally reported one when resolving a dispute.
+      const useCorrectedScore = req.body?.useCorrectedScore === true &&
+        typeof report.disputeCorrectedHomeScore === "number" &&
+        typeof report.disputeCorrectedAwayScore === "number";
+      const reportToFinalize = useCorrectedScore
+        ? { ...report, homeScore: report.disputeCorrectedHomeScore!, awayScore: report.disputeCorrectedAwayScore! }
+        : report;
+
+      await finalizeReportedGame(reportToFinalize, game, leagueId);
+      await storage.updateGameReport(report.id, {
+        status: "confirmed",
+        confirmedByUserId: req.session.userId,
+        ...(useCorrectedScore ? { homeScore: reportToFinalize.homeScore, awayScore: reportToFinalize.awayScore } : {}),
+      });
 
       await storage.createAuditLog({
         leagueId,
         userId: req.session.userId,
         action: "Game Report Force-Finalized",
-        details: `Commissioner finalized: ${report.awayScore}-${report.homeScore}`,
+        details: useCorrectedScore
+          ? `Commissioner finalized with corrected score: ${reportToFinalize.awayScore}-${reportToFinalize.homeScore} (originally reported ${report.awayScore}-${report.homeScore})`
+          : `Commissioner finalized: ${report.awayScore}-${report.homeScore}`,
+      });
+
+      const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
+      const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
+      const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
+
+      await storage.createLeagueEvent({
+        leagueId,
+        teamId: null,
+        teamName: null,
+        teamAbbreviation: null,
+        teamPrimaryColor: null,
+        eventType: "GAME_REPORT",
+        description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: commissioner finalized the official score (${reportToFinalize.awayScore}-${reportToFinalize.homeScore}).`,
+        season: game.season,
+        week: game.week,
       });
 
       invalidateLeague(leagueId);
