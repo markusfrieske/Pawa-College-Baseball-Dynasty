@@ -368,6 +368,33 @@ export function calculatePhilosophyRetentionBonus(coach: any): number {
   return Math.min(0.15, bonus); // Cap at +15pp total retention bonus
 }
 
+// ── SIGNING INTEREST THRESHOLD ───────────────────────────────────────────────
+// Shared by the manual /sign endpoint (recruiting.ts) and the signing-day
+// auto-commit logic (updateRecruitStages in league-mgmt.ts) so both paths use
+// an identical star/blue-chip/storyline/prestige-adjusted threshold. Keeping
+// this in one place prevents the two signing paths from drifting apart.
+export function calculateSignInterestThreshold(
+  starRating: number,
+  isBlueChip: boolean,
+  isStoryline: boolean,
+  signingTeamPrestige: number,
+): number {
+  const storylineInterestBonus = isStoryline ? 10 : 0;
+  const prestigeThresholdReduction = signingTeamPrestige >= 9 ? 5 : signingTeamPrestige >= 8 ? 3 : 0;
+  return Math.max(
+    55,
+    (isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65) +
+      storylineInterestBonus -
+      prestigeThresholdReduction,
+  );
+}
+
+// Recruit stages eligible for manual/auto signing — a recruit must have
+// progressed at least to "top3" before any team (with an offer + sufficient
+// interest) can close the deal. Guards against instant-signing a recruit who
+// hasn't shown real commitment signals yet.
+export const SIGNABLE_STAGES = new Set(["top3", "verbal"]);
+
 // Calculate proximity bonus based on recruit home state vs team state.
 // Optional `team` param: national brands (prestige 8+ AND/OR stadium 8+) compress the
 // out-of-region/out-of-state penalty — recruits across the country already know them.

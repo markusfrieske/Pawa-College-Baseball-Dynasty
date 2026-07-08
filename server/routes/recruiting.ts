@@ -26,7 +26,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber, calculateSignInterestThreshold, SIGNABLE_STAGES } from "../route-helpers";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
@@ -1621,6 +1621,42 @@ export function registerRecruitingRoutes(app: Express): void {
 
       if (recruit.signedTeamId) {
         return res.status(400).json({ message: "Recruit already signed to a team" });
+      }
+
+      // ── Multiplayer integrity gating ────────────────────────────────────
+      // A coach may only sign a recruit their own team has actually offered,
+      // who has shown enough interest, and who has progressed far enough in
+      // the recruiting stage funnel. Mirrors the auto-commit rules in
+      // updateRecruitStages (server/routes/league-mgmt.ts) so manual and
+      // automatic signing stay consistent.
+      const interest = await storage.getRecruitingInterest(recruit.id, userTeam.id);
+      if (!interest || !interest.hasOffer) {
+        return res.status(400).json({ message: "You must extend a scholarship offer to this recruit before signing them." });
+      }
+
+      const stage = recruit.stage || "open";
+      if (!SIGNABLE_STAGES.has(stage)) {
+        return res.status(400).json({ message: "This recruit hasn't progressed far enough in their recruiting decision to be signed yet." });
+      }
+
+      const league = await storage.getLeague(req.params.id as string);
+      let isStoryline = false;
+      if (league) {
+        try {
+          const storylineRecruits = await storage.getStorylineRecruitsByLeague(req.params.id as string, league.currentSeason);
+          isStoryline = storylineRecruits.some(sl => sl.recruitId === recruit.id);
+        } catch (e) {
+          console.error("Failed to check storyline recruit status for sign gating:", e);
+        }
+      }
+      const signInterestThreshold = calculateSignInterestThreshold(
+        recruit.starRating || recruit.starRank || 3,
+        recruit.isBlueChip || false,
+        isStoryline,
+        userTeam.prestige || 5,
+      );
+      if ((interest.interestLevel || 0) < signInterestThreshold) {
+        return res.status(400).json({ message: `This recruit's interest in your program (${interest.interestLevel || 0}%) hasn't reached the level needed to sign (${signInterestThreshold}%).` });
       }
 
       const roster = await storage.getPlayersByTeam(userTeam.id);

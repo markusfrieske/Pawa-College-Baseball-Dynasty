@@ -8,7 +8,7 @@
 import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, calculateSignInterestThreshold } from "../route-helpers";
 import { getRealRosters } from "../realRostersLoader";
 import { normalizeCommonAbilities } from "../normalizeCommonAbilities";
 import { generateRecruitClass } from "../recruit-generator";
@@ -109,7 +109,9 @@ export async function updateRecruitStages(leagueId: string, week: number) {
     // Signing thresholds scale with star rating
     const verbalWeek = (isBlueChip ? 11 : starRating >= 5 ? 10 : starRating >= 4 ? 8 : 6) + storylineWeekBonus;
     const verbalInterest = Math.max(50, (isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60) + storylineInterestBonus - prestigeThresholdReduction);
-    const signInterest = Math.max(55, (isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65) + storylineInterestBonus - prestigeThresholdReduction);
+    // Shared with the manual /sign endpoint (server/routes/recruiting.ts) so
+    // auto-commit and manual signing always require the same interest level.
+    const signInterest = calculateSignInterestThreshold(starRating, isBlueChip, isStoryline, topSchoolPrestige);
     
     // Passive weekly buzz: high College Life + Prestige programs generate ambient interest each week.
     // Represents organic brand awareness — recruits hear about the program passively.

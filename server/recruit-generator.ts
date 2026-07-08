@@ -407,10 +407,13 @@ export function generateRecruitClass(
 
   let numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
   if (opts.wizardSpecialCounts?.blueChips != null) numBlueChips = Math.min(opts.wizardSpecialCounts.blueChips, count);
-  let numGenGems = 2;
-  if (opts.wizardSpecialCounts?.genGems != null) numGenGems = Math.min(opts.wizardSpecialCounts.genGems, Math.floor(count * 0.05));
-  let numGenBusts = 3 + Math.floor(Math.random() * 3);
-  if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.floor(count * 0.10));
+  // Documented design (replit.md): exactly 1 Generational Gem and 1 Generational
+  // Bust per class, to keep them genuinely rare/special. Wizard overrides are
+  // still allowed but clamped to a sane per-class ceiling.
+  let numGenGems = 1;
+  if (opts.wizardSpecialCounts?.genGems != null) numGenGems = Math.min(opts.wizardSpecialCounts.genGems, Math.max(1, Math.floor(count * 0.05)));
+  let numGenBusts = 1;
+  if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.max(1, Math.floor(count * 0.05)));
   const numRegGems = opts.wizardSpecialCounts?.gems != null
     ? Math.min(opts.wizardSpecialCounts.gems, Math.floor(count * 0.15))
     : 5 + Math.floor(Math.random() * 6);
