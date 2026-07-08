@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, type MutableRefObject } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, Loader2, CheckCircle2, XCircle, Sparkles, Image as ImageIcon, Trash2, X, AlertTriangle,
@@ -198,27 +198,33 @@ function CategoryUploadTile({
  * Coaches upload screenshots per stat category; OCR auto-fills the form fields
  * as soon as each screenshot is processed. All auto-filled fields remain fully
  * editable and are reviewed by the coach before submission.
+ *
+ * autoAppliedIdsRef MUST be a parent-level ref (not created here) so it survives
+ * unmount/remount when the user navigates between score and review phases.
+ * enableAutoApply should be false in edit mode so existing corrected report data
+ * is not overwritten by OCR results on load.
  */
 export function GameScreenshotUpload({
-  leagueId, gameId, onApply,
+  leagueId, gameId, onApply, autoAppliedIdsRef, enableAutoApply = true,
 }: {
   leagueId: string; gameId: string;
   onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
+  autoAppliedIdsRef: MutableRefObject<Set<string>>;
+  enableAutoApply?: boolean;
 }) {
   const { data: images } = useGameReportImages(leagueId, gameId, true);
-  const autoAppliedRef = useRef<Set<string>>(new Set());
   const onApplyRef = useRef(onApply);
   onApplyRef.current = onApply;
 
   useEffect(() => {
-    if (!images) return;
+    if (!enableAutoApply || !images) return;
     for (const img of images) {
-      if (img.ocrStatus === "done" && img.ocrResult && !autoAppliedRef.current.has(img.id)) {
-        autoAppliedRef.current.add(img.id);
+      if (img.ocrStatus === "done" && img.ocrResult && !autoAppliedIdsRef.current.has(img.id)) {
+        autoAppliedIdsRef.current.add(img.id);
         onApplyRef.current(img.category, img.ocrResult, img.id);
       }
     }
-  }, [images]);
+  }, [images, enableAutoApply, autoAppliedIdsRef]);
 
   return (
     <div className="space-y-2">

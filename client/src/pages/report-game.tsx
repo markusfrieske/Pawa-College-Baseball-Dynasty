@@ -305,6 +305,8 @@ function ReportGameInner() {
   // Coach corrections logged during OCR review — keyed by field, capturing the original OCR
   // value (first edit only) and the latest corrected value, for the commissioner audit trail.
   const [corrections, setCorrections] = useState<Record<string, { fieldLabel?: string; ocrValue: string; correctedValue: string }>>({});
+  // Parent-level ref so it survives GameScreenshotUpload unmount/remount (score ↔ review phase transitions).
+  const autoAppliedScreenshotsRef = useRef<Set<string>>(new Set());
 
   function markFieldCorrected(key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) {
     const hadOcrProvenance = fieldMeta[key] === "ocr" || fieldMeta[key] === "low";
@@ -710,7 +712,13 @@ function ReportGameInner() {
         {phase === "score" && (
           <>
             {id && gameId && (
-              <GameScreenshotUpload leagueId={id} gameId={gameId} onApply={handleApplyOcr} />
+              <GameScreenshotUpload
+                leagueId={id}
+                gameId={gameId}
+                onApply={handleApplyOcr}
+                autoAppliedIdsRef={autoAppliedScreenshotsRef}
+                enableAutoApply={!isEditMode}
+              />
             )}
 
             {hasOcrData && (
