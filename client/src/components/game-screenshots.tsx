@@ -61,7 +61,7 @@ function CategoryUploadTile({
   leagueId, gameId, category, images, onApply,
 }: {
   leagueId: string; gameId: string; category: ScreenshotCategory;
-  images: GameReportImage[]; onApply: (category: ScreenshotCategory, data: Record<string, unknown>) => void;
+  images: GameReportImage[]; onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -150,7 +150,7 @@ function CategoryUploadTile({
               </Badge>
               <button
                 type="button"
-                onClick={() => img.ocrResult && onApply(category, img.ocrResult)}
+                onClick={() => img.ocrResult && onApply(category, img.ocrResult, img.id)}
                 className="text-gold hover:underline flex items-center gap-0.5"
                 data-testid={`button-apply-${img.id}`}
               >
@@ -199,7 +199,7 @@ export function GameScreenshotUpload({
   leagueId, gameId, onApply,
 }: {
   leagueId: string; gameId: string;
-  onApply: (category: ScreenshotCategory, data: Record<string, unknown>) => void;
+  onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
 }) {
   const { data: images } = useGameReportImages(leagueId, gameId, true);
 

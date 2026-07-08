@@ -86,6 +86,25 @@ export function computeReviewIssues(input: {
     }
   }
 
+  const homeNeedsName = homeBatting.filter(b => b.needsName);
+  if (homeNeedsName.length > 0) {
+    issues.push({
+      id: "home-needs-name",
+      section: "home_batting",
+      severity: "soft",
+      message: `${homeNeedsName.length} ${homeTeamName} batting row(s) are missing a readable name — assign a player before submitting.`,
+    });
+  }
+  const awayNeedsName = awayBatting.filter(b => b.needsName);
+  if (awayNeedsName.length > 0) {
+    issues.push({
+      id: "away-needs-name",
+      section: "away_batting",
+      severity: "soft",
+      message: `${awayNeedsName.length} ${awayTeamName} batting row(s) are missing a readable name — assign a player before submitting.`,
+    });
+  }
+
   const ipRe = /^\d+(\.[012])?$/;
   for (const p of homePitching) {
     if (p.ip && !ipRe.test(p.ip)) {
@@ -282,7 +301,16 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
         <span className="text-[10px] font-pixel text-gold/80">{team.abbreviation} • {batting.length} batters</span>
       </div>
       {batting.map((b, i) => (
-        <div key={b.playerId} className="border border-border/40 rounded-lg p-2.5 space-y-2" data-testid={`row-review-batter-${side}-${i}`}>
+        <div
+          key={b.playerId}
+          className={`border rounded-lg p-2.5 space-y-2 ${b.needsName ? "border-yellow-600/60 bg-yellow-900/10" : "border-border/40"}`}
+          data-testid={`row-review-batter-${side}-${i}`}
+        >
+          {b.needsName && (
+            <div className="flex items-center gap-1 text-[9px] text-yellow-400" data-testid={`badge-needs-name-${side}-${i}`}>
+              <AlertTriangle className="w-3 h-3" /> Needs a name — OCR couldn't read this row
+            </div>
+          )}
           <TextField
             value={b.name}
             onChange={v => update(i, "name", v, `batting.${side}.${b.playerId}.name`)}

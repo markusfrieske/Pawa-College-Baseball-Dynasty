@@ -19,6 +19,10 @@ import { useToast } from "@/hooks/use-toast";
 import { GameScreenshotUpload } from "@/components/game-screenshots";
 import { OcrReviewScreen, computeReviewIssues, type FieldSource } from "@/components/ocr-review-screen";
 import type { Game, Team, Player, ScreenshotCategory } from "@shared/schema";
+import {
+  type BatterEntry, type OcrBattingPlayer, type BattingMergeResult,
+  defaultBatter, playerName, matchRosterPlayer, mergeBattingRows, ocrNumberOrDefault,
+} from "@/lib/ocr-batting-merge";
 
 class ReportGameErrorBoundary extends Component<
   { children: ReactNode; leagueId: string | undefined },
@@ -56,13 +60,7 @@ interface GameWithTeams extends Game {
   awayTeam: Team;
 }
 
-export interface BatterEntry {
-  playerId: string;
-  name: string;
-  position: string;
-  ab: number; r: number; h: number; doubles: number; triples: number; hr: number;
-  rbi: number; bb: number; so: number; sb: number;
-}
+export type { BatterEntry };
 
 export interface PitcherEntry {
   playerId: string;
@@ -71,17 +69,6 @@ export interface PitcherEntry {
   ip: string;
   h: number; r: number; er: number; bb: number; so: number; hr: number;
   win: boolean; loss: boolean;
-}
-
-function playerName(player: Player): string {
-  return `${player.firstName} ${player.lastName}`;
-}
-
-function defaultBatter(player: Player): BatterEntry {
-  return {
-    playerId: player.id, name: playerName(player), position: player.position,
-    ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0,
-  };
 }
 
 function defaultPitcher(player: Player): PitcherEntry {
@@ -102,42 +89,6 @@ export function liveEra(er: number, ip: string): string {
   return (9 * er / dec).toFixed(2);
 }
 
-function normalizeOcrName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z\s]/g, "").trim();
-}
-
-/**
- * OCR-extracted names come from Power Pros' own in-game display and can be romanized
- * differently than the roster spelling. This does a best-effort fuzzy match (exact name,
- * then last-name + first-initial, then last-name substring) so screenshot data prefills
- * against real roster players wherever possible. Unmatched names still import as
- * synthetic rows so the coach can see and fix them in the review form.
- */
-function matchRosterPlayer(ocrName: string, players: Player[]): Player | undefined {
-  const norm = normalizeOcrName(ocrName);
-  if (!norm) return undefined;
-  const parts = norm.split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return undefined;
-  const lastName = parts[parts.length - 1];
-  const firstInitial = parts[0][0];
-
-  const exact = players.find(p => normalizeOcrName(`${p.firstName} ${p.lastName}`) === norm);
-  if (exact) return exact;
-
-  const lastNameMatches = players.filter(p => p.lastName.toLowerCase() === lastName);
-  if (lastNameMatches.length === 1) return lastNameMatches[0];
-  if (lastNameMatches.length > 1) {
-    return lastNameMatches.find(p => p.firstName.toLowerCase()[0] === firstInitial) ?? lastNameMatches[0];
-  }
-
-  return players.find(p => p.lastName.toLowerCase().includes(lastName) || lastName.includes(p.lastName.toLowerCase()));
-}
-
-function ocrNumberOrDefault(value: unknown, fallback = 0): number {
-  const n = typeof value === "number" ? value : parseInt(String(value ?? ""), 10);
-  return Number.isFinite(n) ? n : fallback;
-}
-
 interface OcrFinalScoreData {
   homeScore?: number | null; awayScore?: number | null;
   homeHits?: number | null; awayHits?: number | null;
@@ -145,34 +96,9 @@ interface OcrFinalScoreData {
   innings?: Array<[number, number]> | null;
 }
 
-interface OcrBattingPlayer {
-  name?: string; position?: string | null;
-  ab?: number; r?: number; h?: number; doubles?: number; triples?: number; hr?: number;
-  rbi?: number; bb?: number; so?: number; sb?: number;
-}
-
 interface OcrPitchingPlayer {
   name?: string; ip?: string; h?: number; r?: number; er?: number; bb?: number; so?: number; hr?: number;
   decision?: "W" | "L" | "S" | null;
-}
-
-function ocrBattersToEntries(data: Record<string, unknown>, players: Player[]): BatterEntry[] {
-  const raw = (data.players as OcrBattingPlayer[] | undefined) ?? [];
-  return raw
-    .filter(p => p.name)
-    .map((p, idx) => {
-      const match = matchRosterPlayer(p.name!, players);
-      const base = match ? defaultBatter(match) : {
-        playerId: `screenshot-${idx}-${p.name}`, name: p.name!, position: p.position ?? "?",
-        ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0,
-      };
-      return {
-        ...base,
-        ab: ocrNumberOrDefault(p.ab), r: ocrNumberOrDefault(p.r), h: ocrNumberOrDefault(p.h),
-        doubles: ocrNumberOrDefault(p.doubles), triples: ocrNumberOrDefault(p.triples), hr: ocrNumberOrDefault(p.hr),
-        rbi: ocrNumberOrDefault(p.rbi), bb: ocrNumberOrDefault(p.bb), so: ocrNumberOrDefault(p.so), sb: ocrNumberOrDefault(p.sb),
-      };
-    });
 }
 
 function ocrPitchersToEntries(data: Record<string, unknown>, players: Player[]): PitcherEntry[] {
@@ -212,21 +138,7 @@ function scoreFieldMeta(d: OcrFinalScoreData): Record<string, FieldSource> {
   return meta;
 }
 
-const BATTING_META_FIELDS: (keyof OcrBattingPlayer)[] = ["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"];
 const PITCHING_META_FIELDS: (keyof OcrPitchingPlayer)[] = ["h", "r", "er", "bb", "so", "hr"];
-
-function battingFieldMeta(side: "home" | "away", data: Record<string, unknown>, entries: BatterEntry[]): Record<string, FieldSource> {
-  const raw = (data.players as OcrBattingPlayer[] | undefined ?? []).filter(p => p.name);
-  const meta: Record<string, FieldSource> = {};
-  entries.forEach((entry, idx) => {
-    const r = raw[idx];
-    meta[`batting.${side}.${entry.playerId}.name`] = r?.name != null ? "ocr" : "low";
-    BATTING_META_FIELDS.forEach(f => {
-      meta[`batting.${side}.${entry.playerId}.${f}`] = r?.[f] != null ? "ocr" : "low";
-    });
-  });
-  return meta;
-}
 
 function pitchingFieldMeta(side: "home" | "away", data: Record<string, unknown>, entries: PitcherEntry[]): Record<string, FieldSource> {
   const raw = (data.players as OcrPitchingPlayer[] | undefined ?? []).filter(p => p.name);
@@ -378,6 +290,11 @@ function ReportGameInner() {
 
   const [homeBatting, setHomeBatting] = useState<BatterEntry[]>([]);
   const [awayBatting, setAwayBatting] = useState<BatterEntry[]>([]);
+  // Raw per-screenshot batting extractions, keyed by screenshot image id, so applying a new
+  // batting screenshot merges with (rather than replaces) any screenshots already applied
+  // for that team/category. See mergeBattingRows().
+  const [homeBattingSources, setHomeBattingSources] = useState<Record<string, OcrBattingPlayer[]>>({});
+  const [awayBattingSources, setAwayBattingSources] = useState<Record<string, OcrBattingPlayer[]>>({});
   const [homePitching, setHomePitching] = useState<PitcherEntry[]>([]);
   const [awayPitching, setAwayPitching] = useState<PitcherEntry[]>([]);
   const [homePitchersInitialized, setHomePitchersInitialized] = useState(false);
@@ -504,7 +421,7 @@ function ReportGameInner() {
     }
   }
 
-  function handleApplyOcr(category: ScreenshotCategory, data: Record<string, unknown>) {
+  function handleApplyOcr(category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) {
     switch (category) {
       case "final_score": {
         const d = data as OcrFinalScoreData;
@@ -525,19 +442,37 @@ function ReportGameInner() {
         break;
       }
       case "home_batting": {
-        const entries = ocrBattersToEntries(data, homePlayers ?? []);
-        setHomeBatting(entries);
+        const rows = (data.players as OcrBattingPlayer[] | undefined) ?? [];
+        const nextSources = { ...homeBattingSources, [imageId ?? `unkeyed-${Date.now()}`]: rows };
+        setHomeBattingSources(nextSources);
+        const merged = mergeBattingRows("home", Object.values(nextSources), homePlayers ?? []);
+        setHomeBatting(merged.entries);
         setShowHomeBatting(true);
-        setFieldMeta(prev => ({ ...prev, ...battingFieldMeta("home", data, entries) }));
-        toast({ title: "Applied home batting", description: "Names were auto-matched to the roster where possible — double-check each row." });
+        setFieldMeta(prev => ({ ...prev, ...merged.fieldMeta }));
+        const needsNameCount = merged.entries.filter(e => e.needsName).length;
+        toast({
+          title: "Applied home batting",
+          description: merged.screenshotCount > 1
+            ? `Merged ${merged.screenshotCount} screenshots into ${merged.entries.length} batter rows.${needsNameCount ? ` ${needsNameCount} row(s) need a name.` : ""}`
+            : "Names were auto-matched to the roster where possible — double-check each row.",
+        });
         break;
       }
       case "away_batting": {
-        const entries = ocrBattersToEntries(data, awayPlayers ?? []);
-        setAwayBatting(entries);
+        const rows = (data.players as OcrBattingPlayer[] | undefined) ?? [];
+        const nextSources = { ...awayBattingSources, [imageId ?? `unkeyed-${Date.now()}`]: rows };
+        setAwayBattingSources(nextSources);
+        const merged = mergeBattingRows("away", Object.values(nextSources), awayPlayers ?? []);
+        setAwayBatting(merged.entries);
         setShowAwayBatting(true);
-        setFieldMeta(prev => ({ ...prev, ...battingFieldMeta("away", data, entries) }));
-        toast({ title: "Applied away batting", description: "Names were auto-matched to the roster where possible — double-check each row." });
+        setFieldMeta(prev => ({ ...prev, ...merged.fieldMeta }));
+        const needsNameCount = merged.entries.filter(e => e.needsName).length;
+        toast({
+          title: "Applied away batting",
+          description: merged.screenshotCount > 1
+            ? `Merged ${merged.screenshotCount} screenshots into ${merged.entries.length} batter rows.${needsNameCount ? ` ${needsNameCount} row(s) need a name.` : ""}`
+            : "Names were auto-matched to the roster where possible — double-check each row.",
+        });
         break;
       }
       case "home_pitching": {
@@ -1311,8 +1246,11 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: {
             </thead>
             <tbody>
               {batting.map((b, i) => (
-                <tr key={b.playerId} className="border-b border-gold/10">
-                  <td className="p-1 text-foreground font-medium truncate max-w-[80px]">{b.name}</td>
+                <tr key={b.playerId} className={`border-b border-gold/10 ${b.needsName ? "bg-yellow-900/20" : ""}`}>
+                  <td className="p-1 text-foreground font-medium truncate max-w-[80px]" title={b.needsName ? "OCR couldn't read a name for this row — edit it in the review step" : undefined}>
+                    {b.name}
+                    {b.needsName && <span className="text-yellow-400 text-[9px] ml-1">(needs name)</span>}
+                  </td>
                   {(["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"] as (keyof BatterEntry)[]).map(field => (
                     <td key={field} className="p-0.5">
                       <input type="number" min={0} value={b[field] as number}
