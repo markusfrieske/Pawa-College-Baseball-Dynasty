@@ -521,21 +521,62 @@ export async function registerRoutes(
     try {
       const userId = req.session.userId!;
       const userLeagues = await storage.getLeaguesByUser(userId);
+      const leagueIds = userLeagues.map(l => l.id);
 
-      const results = await Promise.all(userLeagues.map(async (league) => {
-        const [leagueTeams, coaches] = await Promise.all([
-          storage.getTeamsByLeague(league.id),
-          storage.getCoachesByLeague(league.id),
-        ]);
-        const userCoach = coaches.find((c) => c.userId === userId);
+      // Batch-fetch teams/coaches for all leagues in 2 queries instead of
+      // looping per-league, then determine each league's user team in memory.
+      const [allTeams, allCoaches] = await Promise.all([
+        storage.getTeamsByLeagueIds(leagueIds),
+        storage.getCoachesByLeagueIds(leagueIds),
+      ]);
+
+      const teamsByLeague = new Map<string, typeof allTeams>();
+      for (const t of allTeams) {
+        if (!teamsByLeague.has(t.leagueId)) teamsByLeague.set(t.leagueId, []);
+        teamsByLeague.get(t.leagueId)!.push(t);
+      }
+      const coachesByLeague = new Map<string, typeof allCoaches>();
+      for (const c of allCoaches) {
+        if (!coachesByLeague.has(c.leagueId)) coachesByLeague.set(c.leagueId, []);
+        coachesByLeague.get(c.leagueId)!.push(c);
+      }
+
+      const userTeamByLeague = new Map<string, typeof allTeams[number]>();
+      for (const league of userLeagues) {
+        const leagueTeams = teamsByLeague.get(league.id) ?? [];
+        const leagueCoaches = coachesByLeague.get(league.id) ?? [];
+        const userCoach = leagueCoaches.find((c) => c.userId === userId);
         const userTeam = userCoach ? leagueTeams.find((t) => t.coachId === userCoach.id) : leagueTeams.find((t) => !t.isCpu);
+        if (userTeam) userTeamByLeague.set(league.id, userTeam);
+      }
 
-        if (!userTeam) return null;
+      const userTeamIds = Array.from(userTeamByLeague.values()).map(t => t.id);
 
-        const [players, recruits] = await Promise.all([
-          storage.getPlayersByTeam(userTeam.id),
-          storage.getRecruitsByLeague(league.id),
-        ]);
+      // Batch-fetch players for all user teams and recruits for all leagues
+      // in 2 queries instead of 2 queries per league.
+      const [allPlayers, allRecruits] = await Promise.all([
+        storage.getPlayersByTeamIds(userTeamIds),
+        storage.getRecruitsByLeagueIds(leagueIds),
+      ]);
+
+      const playersByTeam = new Map<string, typeof allPlayers>();
+      for (const p of allPlayers) {
+        if (!playersByTeam.has(p.teamId)) playersByTeam.set(p.teamId, []);
+        playersByTeam.get(p.teamId)!.push(p);
+      }
+      const recruitsByLeague = new Map<string, typeof allRecruits>();
+      for (const r of allRecruits) {
+        if (!recruitsByLeague.has(r.leagueId)) recruitsByLeague.set(r.leagueId, []);
+        recruitsByLeague.get(r.leagueId)!.push(r);
+      }
+
+      const validResults: { roster: any; recruiting: any }[] = [];
+      for (const league of userLeagues) {
+        const userTeam = userTeamByLeague.get(league.id);
+        if (!userTeam) continue;
+
+        const players = playersByTeam.get(userTeam.id) ?? [];
+        const recruits = recruitsByLeague.get(league.id) ?? [];
 
         const activePlayers = players.filter(p => !p.declaredForDraft);
         const avgOvr = activePlayers.length > 0
@@ -544,7 +585,7 @@ export async function registerRoutes(
         const starPlayers = activePlayers.filter(p => (p.overall || 0) >= 400).length;
         const teamRecruits = recruits.filter((r: any) => r.committedTeamId === userTeam.id);
 
-        return {
+        validResults.push({
           roster: {
             leagueId: league.id,
             leagueName: league.name,
@@ -570,10 +611,9 @@ export async function registerRoutes(
             committed: teamRecruits.length,
             phase: league.currentPhase,
           },
-        };
-      }));
+        });
+      }
 
-      const validResults = results.filter(Boolean) as { roster: any; recruiting: any }[];
       res.json({
         rosters: validResults.map(r => r.roster),
         recruiting: validResults.map(r => r.recruiting),

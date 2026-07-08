@@ -1043,13 +1043,27 @@ app.use((req, res, next) => {
 
   await registerRoutes(httpServer, app);
 
-  // One-time OVR resync — runs in background after startup.
+  // One-time OVR resync — runs in background after startup, at most once ever.
   // Recomputes calculateOVR() for every player and corrects any stored `overall`
   // that drifted out of sync when the OVR formula weights were last updated.
   // Also clears suspiciously large negative progressionDeltas.overall (< -20)
   // that were caused by formula-drift, not genuine regression.
+  //
+  // WHY GATED: this originally ran unconditionally on every server boot, doing a
+  // full-table scan plus one sequential awaited UPDATE per changed player. That
+  // added several seconds of DB load to every single restart even though the
+  // resync is idempotent and only needs to happen once after a formula change.
+  // Gated behind `_startup_migrations` (key bumped whenever the OVR formula
+  // changes) and batched into chunks run concurrently instead of one row at a time.
   void (async () => {
+    const MIGRATION_KEY = "ovr-resync-v1";
     try {
+      const { rows: already } = await pool.query<{ key: string }>(
+        `SELECT key FROM _startup_migrations WHERE key = $1`,
+        [MIGRATION_KEY],
+      );
+      if (already.length > 0) return;
+
       const { rows: players } = await pool.query<{
         id: string;
         position: string | null;
@@ -1076,6 +1090,8 @@ app.use((req, res, next) => {
 
       let resynced = 0;
       let deltaCleared = 0;
+
+      const pendingUpdates: { sql: string; vals: (string | number | null)[] }[] = [];
 
       for (const p of players) {
         const computed = calculateOVR({
@@ -1111,12 +1127,26 @@ app.use((req, res, next) => {
 
         if (setFields.length > 0) {
           vals.push(p.id);
-          await pool.query(
-            `UPDATE players SET ${setFields.join(", ")} WHERE id = $${vals.length}`,
+          pendingUpdates.push({
+            sql: `UPDATE players SET ${setFields.join(", ")} WHERE id = $${vals.length}`,
             vals,
-          );
+          });
         }
       }
+
+      // Run updates in small concurrent batches instead of one sequential
+      // await per row — cuts wall-clock time substantially for large tables
+      // while still bounding how many connections this background job holds.
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < pendingUpdates.length; i += BATCH_SIZE) {
+        const batch = pendingUpdates.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(({ sql, vals }) => pool.query(sql, vals)));
+      }
+
+      await pool.query(
+        `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING`,
+        [MIGRATION_KEY],
+      );
 
       if (resynced > 0 || deltaCleared > 0) {
         console.log(`[ovr-resync] Corrected ${resynced} player OVR values, cleared ${deltaCleared} spurious negative deltas`);

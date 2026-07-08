@@ -87,9 +87,11 @@ export interface IStorage {
   createScout(scout: InsertScout): Promise<Scout>;
 
   getPlayersByTeam(teamId: string): Promise<Player[]>;
+  getPlayersByTeamIds(teamIds: string[]): Promise<Player[]>;
   createPlayer(player: InsertPlayer): Promise<Player>;
 
   getRecruitsByLeague(leagueId: string): Promise<Recruit[]>;
+  getRecruitsByLeagueIds(leagueIds: string[]): Promise<Recruit[]>;
   getRecruit(id: string): Promise<Recruit | undefined>;
   createRecruit(recruit: InsertRecruit): Promise<Recruit>;
   batchCreateRecruits(recruitsData: InsertRecruit[]): Promise<Recruit[]>;
@@ -479,6 +481,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(players).where(eq(players.teamId, teamId));
   }
 
+  async getPlayersByTeamIds(teamIds: string[]): Promise<Player[]> {
+    if (teamIds.length === 0) return [];
+    return await db.select().from(players).where(inArray(players.teamId, teamIds));
+  }
+
   async getPlayerCountsByLeague(leagueId: string): Promise<Map<string, number>> {
     const leagueTeams = await this.getTeamsByLeague(leagueId);
     if (leagueTeams.length === 0) return new Map();
@@ -500,6 +507,11 @@ export class DatabaseStorage implements IStorage {
 
   async getRecruitsByLeague(leagueId: string): Promise<Recruit[]> {
     return await db.select().from(recruits).where(eq(recruits.leagueId, leagueId));
+  }
+
+  async getRecruitsByLeagueIds(leagueIds: string[]): Promise<Recruit[]> {
+    if (leagueIds.length === 0) return [];
+    return await db.select().from(recruits).where(inArray(recruits.leagueId, leagueIds));
   }
 
   async getRecruit(id: string): Promise<Recruit | undefined> {
