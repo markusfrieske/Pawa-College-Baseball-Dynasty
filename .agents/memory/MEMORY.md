@@ -9,3 +9,4 @@
 - [Shared queryKey response-shape mismatch](shared-querykey-shape-mismatch.md) — multiple components using the same React Query cache key must agree on response shape, or a non-member 403 crashes unrelated components expecting array data.
 - [Skeleton loaders look "blank" to e2e tests](e2e-skeleton-loader-blank.md) — Skeleton-only loading states have no accessible text/roles, so a slow/cold page load can look like a total render failure in browser test tooling even though it's just still loading.
 - [Test/scratch data bloat as a root cause of DB slowness](test-data-db-bloat.md) — E2E/guest leagues can silently balloon to millions of rows; use TRUNCATE...CASCADE + pg_terminate_backend to safely purge.
+- [API-driven flow verification beats scaled-up browser tests](api-driven-flow-verification.md) — for large-league flows, drive create/select/setup/start via fetch+cookie jar instead of a big browser test plan; catches real bugs (e.g. missing import) fast.

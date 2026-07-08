@@ -27,6 +27,7 @@ import {
   generateDeparturesSummaryNews,
 } from "./news-engine";
 import { getRealRosters } from "./realRostersLoader";
+import { checkTeamRosterStructure } from "./rosterValidation";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "./rosterScaleFactors";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool, db } from "./db";
