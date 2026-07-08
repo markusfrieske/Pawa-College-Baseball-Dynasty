@@ -5,7 +5,7 @@ import { useParams, useLocation, useSearch, Link } from "wouter";
 import {
   ArrowLeft, ChevronDown, ChevronUp, Check, AlertTriangle,
   CheckCircle, Clock, XCircle, Plus, Minus, ChevronRight,
-  ClipboardCheck,
+  ClipboardCheck, Sparkles,
 } from "lucide-react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -682,9 +682,12 @@ function ReportGameInner() {
               </p>
             </div>
             {phase !== "submitted" && (
-              <div className="flex items-center gap-1 shrink-0">
-                <div className={`w-2 h-2 rounded-full ${phase === "score" ? "bg-gold" : "bg-muted"}`} />
-                <div className={`w-2 h-2 rounded-full ${phase === "review" ? "bg-gold" : "bg-muted"}`} />
+              <div className="flex items-center gap-1 shrink-0 text-[8px] font-pixel">
+                <span className={phase === "score" ? "text-gold" : "text-muted-foreground"} data-testid="step-upload">1 Upload</span>
+                <ChevronRight className="w-2 h-2 text-muted-foreground/50" />
+                <span className={phase === "review" ? "text-gold" : "text-muted-foreground"} data-testid="step-review">2 Review</span>
+                <ChevronRight className="w-2 h-2 text-muted-foreground/50" />
+                <span className="text-muted-foreground" data-testid="step-submit">3 Submit</span>
               </div>
             )}
           </div>
@@ -706,6 +709,17 @@ function ReportGameInner() {
 
         {phase === "score" && (
           <>
+            {id && gameId && (
+              <GameScreenshotUpload leagueId={id} gameId={gameId} onApply={handleApplyOcr} />
+            )}
+
+            {hasOcrData && (
+              <div className="flex items-start gap-2 p-2.5 bg-gold/5 border border-gold/20 rounded text-[9px] text-gold/80" data-testid="banner-ocr-autofilled">
+                <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
+                <span>Form auto-filled from screenshots — fields marked ✦ came from OCR. Correct anything that looks wrong, then continue to review.</span>
+              </div>
+            )}
+
             <ScoreEntryStep
               homeTeam={homeTeam}
               awayTeam={awayTeam}
@@ -734,11 +748,7 @@ function ReportGameInner() {
               awayHits={awayHits}
             />
 
-            {id && gameId && (
-              <GameScreenshotUpload leagueId={id} gameId={gameId} onApply={handleApplyOcr} />
-            )}
-
-            <div className="text-[10px] text-muted-foreground px-1">Optional box score detail</div>
+            <div className="text-[10px] text-muted-foreground px-1">Box score detail (optional)</div>
 
             <CollapsibleSection
               label={`${homeTeam.name} Batting`}
@@ -811,13 +821,21 @@ function ReportGameInner() {
               onClick={handleContinueToReview}
               data-testid="button-continue-review"
             >
-              Review & Submit <ChevronRight className="w-4 h-4 ml-1" />
+              {hasOcrData ? "Review Auto-filled Stats" : "Review & Submit"} <ChevronRight className="w-4 h-4 ml-1" />
             </RetroButton>
           </>
         )}
 
         {phase === "review" && (
           <>
+            <div className="flex items-start gap-2 p-2.5 bg-muted/30 border border-border rounded text-[9px] text-muted-foreground" data-testid="banner-review-before-submit">
+              <ClipboardCheck className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
+              <span>
+                {hasOcrData
+                  ? "Review every field before submitting — OCR is a reading aid, not a guarantee. Correct anything that looks wrong. Your reviewed data is what gets submitted."
+                  : "Review your score before submitting. You can go back to make corrections."}
+              </span>
+            </div>
             {hasOcrData ? (
               <OcrReviewScreen
                 homeTeam={homeTeam}

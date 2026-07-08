@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Upload, Loader2, CheckCircle2, XCircle, Sparkles, Image as ImageIcon, Trash2, X,
+  Upload, Loader2, CheckCircle2, XCircle, Sparkles, Image as ImageIcon, Trash2, X, AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -172,6 +172,10 @@ function CategoryUploadTile({
               >
                 Retry
               </button>
+              <span className="w-full flex items-center gap-1 text-[8px] text-muted-foreground mt-0.5" data-testid={`text-ocr-fallback-${img.id}`}>
+                <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-yellow-500" />
+                Enter this section manually in the form below
+              </span>
             </>
           )}
           <button
@@ -191,9 +195,9 @@ function CategoryUploadTile({
 
 /**
  * Full categorized upload panel for the "score" phase of report-game.tsx.
- * Coaches upload one screenshot per stat category; OCR drafts extracted stats
- * which the coach can apply into the existing box-score form fields (still
- * fully editable afterward — nothing here writes to the report directly).
+ * Coaches upload screenshots per stat category; OCR auto-fills the form fields
+ * as soon as each screenshot is processed. All auto-filled fields remain fully
+ * editable and are reviewed by the coach before submission.
  */
 export function GameScreenshotUpload({
   leagueId, gameId, onApply,
@@ -202,15 +206,28 @@ export function GameScreenshotUpload({
   onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
 }) {
   const { data: images } = useGameReportImages(leagueId, gameId, true);
+  const autoAppliedRef = useRef<Set<string>>(new Set());
+  const onApplyRef = useRef(onApply);
+  onApplyRef.current = onApply;
+
+  useEffect(() => {
+    if (!images) return;
+    for (const img of images) {
+      if (img.ocrStatus === "done" && img.ocrResult && !autoAppliedRef.current.has(img.id)) {
+        autoAppliedRef.current.add(img.id);
+        onApplyRef.current(img.category, img.ocrResult, img.id);
+      }
+    }
+  }, [images]);
 
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <ImageIcon className="w-3.5 h-3.5 text-gold" />
-        <span className="text-[10px] font-pixel text-gold">Screenshot Import (Optional)</span>
+        <span className="text-[10px] font-pixel text-gold">Upload Screenshots</span>
       </div>
       <p className="text-[9px] text-muted-foreground">
-        Upload eBaseball Power Pros screenshots and let OCR draft the stats for you. Review and correct everything before submitting.
+        Upload Power Pros screenshots — the app reads your stats and auto-fills the form. Review before submitting; every field stays editable.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {SCREENSHOT_CATEGORIES.map((category) => (
