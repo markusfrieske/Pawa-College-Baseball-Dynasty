@@ -1,4 +1,4 @@
-import { useState, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
+import { useState, useEffect, useRef, Component, type ReactNode, type ErrorInfo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
