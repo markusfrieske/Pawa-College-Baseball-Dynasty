@@ -9,10 +9,14 @@
  *
  * OCR output is a DRAFT ONLY — it is never auto-applied. The coach reviews/corrects
  * every field in the client before submitting a report.
+ *
+ * Japanese header translations and field ordering come from powerProsMapping.ts —
+ * fix mapping bugs or add new screen types there, not here.
  */
 import OpenAI from "openai";
 import type { ScreenshotCategory } from "@shared/schema";
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
+import { buildGlossaryText } from "./powerProsMapping";
 
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -21,34 +25,18 @@ const openai = new OpenAI({
 
 const objectStorageService = new ObjectStorageService();
 
-const JAPANESE_HEADER_GLOSSARY = `
-Japanese eBaseball Power Pros stat header glossary (map these to the English fields below):
-- 打数 = at-bats (ab)
-- 得点 = runs (r)
-- 安打 = hits (h)
-- 二塁打 = doubles
-- 三塁打 = triples
-- 本塁打 = home runs (hr)
-- 打点 = RBI
-- 三振 = strikeouts (so) — for batters this is times struck out; for pitchers this is strikeouts recorded
-- 四死球 = walks + hit-by-pitch combined (map to bb)
-- 犠打 = sacrifice bunts (ignore unless asked)
-- 盗塁 = stolen bases (sb)
-- 併殺 = double plays grounded into (ignore unless asked)
-- 失策 = errors (e)
-- 投球回 = innings pitched (ip) — format as X.Y where Y is outs past the whole inning (0/1/2), Power Pros often shows this as a fraction like "6 1/3"; convert to "6.1" style (whole.outs)
-- 球数 = pitch count (ignore unless asked)
-- 打者 = batters faced (ignore unless asked)
-- 被安打 = hits allowed (h, pitching)
-- 奪三振 = strikeouts (so, pitching)
-- 自責点 = earned runs (er)
-- 暴投 = wild pitches (ignore unless asked)
-- 被本塁打 = home runs allowed (hr, pitching)
-- 防御率 = ERA (ignore, computed elsewhere)
-- 勝利 = win (W)
-- セーブ = save (S)
-- 敗戦 = loss (L)
-`;
+// ---------------------------------------------------------------------------
+// LLM prompt construction — uses powerProsMapping for the glossary
+// ---------------------------------------------------------------------------
+
+function buildSystemPrompt(): string {
+  const glossary = buildGlossaryText({ includeAdvancedContact: false });
+  return `You are an OCR assistant specialized in reading eBaseball Power Pros (Japanese-language) baseball game screenshots and converting their stat tables into structured JSON for a college baseball dynasty simulator's game-reporting feature.
+
+${glossary}
+
+Always respond with ONLY a single JSON object (no markdown fences, no commentary). If a field cannot be determined, use null rather than guessing. Never fabricate data that isn't visible in the image.`;
+}
 
 function categoryInstructions(category: ScreenshotCategory): string {
   switch (category) {
@@ -60,33 +48,53 @@ function categoryInstructions(category: ScreenshotCategory): string {
   "homeErrors": number, "awayErrors": number,
   "innings": [[awayRunsInning1, homeRunsInning1], [awayRunsInning2, homeRunsInning2], ...]
 }
-If the linescore table isn't visible, omit "innings" and just return the totals you can see. Use null for any value you truly cannot read.`;
+The linescore rows are labelled V (visitor/away) and H (home). The kanji column headers 一二三四五六七八九 are innings 1–9; 計 is the total-runs column; H is hits; E is errors.
+If the linescore table isn't visible, omit "innings" and just return the totals you can see. Use null for any value you truly cannot read.
+The decision badges below the board use: 勝利 = winning pitcher, セーブ = save pitcher, 敗戦 = losing pitcher — include those names only if a "decisions" field would help the caller; otherwise omit.`;
+
     case "home_batting":
     case "away_batting":
-      return `This is a BATTING grid for one team. Extract a "players" array, one entry per row:
+      return `This is a BATTING grid for one team. The columns from left to right are:
+打数 (ab), 得点 (r), 安打 (h), 二塁打 (doubles), 三塁打 (triples), 本塁打 (hr), 打点 (rbi), 三振 (so), 四死球 (bb), 犠打 (sac — omit), 盗塁 (sb), 併殺 (gdp — omit), 失策 (e).
+
+Extract a "players" array, one entry per batter row:
 {
   "players": [
     { "name": string, "position": string | null, "ab": number, "r": number, "h": number,
       "doubles": number, "triples": number, "hr": number, "rbi": number, "bb": number,
-      "so": number, "sb": number }
+      "so": number, "sb": number, "e": number }
   ]
 }
-Skip the "totals"/team-total row if present. Use the player's in-game displayed name exactly as shown (romanized or as displayed). Use 0 for blank/dash cells, null only if truly unreadable.`;
+Skip the 合計 (team totals) row. Use the player's in-game displayed name exactly as shown. Use 0 for blank/dash cells; null only if truly unreadable.`;
+
     case "home_pitching":
     case "away_pitching":
-      return `This is a PITCHING grid for one team. Extract a "players" array, one entry per row, in the order pitchers appear (first row is normally the starter):
+      return `This is a PITCHING grid for one team. The columns from left to right are:
+投球回 (ip), 球数 (pc — omit), 打者 (bf — omit), 被安打 (h), 奪三振 (so), 四死球 (bb), 失点 (r), 自責点 (er), 暴投 (wp — omit), 被本塁打 (hr), 防御率 (era — omit).
+
+Extract a "players" array, one entry per pitcher row, in order (first row is normally the starter):
 {
   "players": [
     { "name": string, "ip": string, "h": number, "r": number, "er": number, "bb": number,
       "so": number, "hr": number, "decision": "W" | "L" | "S" | null }
   ]
 }
-"ip" should be formatted like "6.1" (6 and 1/3 innings) matching whole.outs notation. Only mark "decision" for the pitcher(s) actually credited with the win/loss/save if shown (often marked with 勝/敗/Ｓ or W/L/S next to the name).`;
+"ip" should be "6.1" notation (whole.outs where outs ∈ {0,1,2}) — Power Pros often shows fractions like "6 1/3"; convert accordingly.
+Mark "decision" for the pitcher credited with the win (勝/勝利/W), loss (敗/敗戦/L), or save (セーブ/S) if a badge is shown next to their name; otherwise use null.`;
+
     case "advanced_stats":
     default:
-      return `This is an ADVANCED STATS screen (may show exit velocity, pitch speed, spin, or other Statcast-like data). Extract whatever labeled stat rows/columns you can read into a flat JSON object of { "label": "value" } pairs, grouped under a top-level "stats" array of { "label": string, "value": string }. This data is reference-only and won't be auto-applied to the box score.`;
+      return `This is an ADVANCED STATS screen (may show exit velocity, pitch speed, spin, batting average, OBP, SLG, or other Statcast-like data). Extract whatever labeled stat rows/columns you can read into a flat JSON object:
+{
+  "stats": [ { "label": string, "value": string } ]
+}
+This data is reference-only and won't be auto-applied to the box score.`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Result types
+// ---------------------------------------------------------------------------
 
 export interface OcrExtractionResult {
   success: boolean;
@@ -101,6 +109,10 @@ export interface OcrExtractionResult {
   fieldConfidence?: Record<string, "high" | "low">;
   error?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Field-confidence derivation
+// ---------------------------------------------------------------------------
 
 /**
  * Walks the parsed OCR JSON and derives a flat per-field confidence map using the same
@@ -129,6 +141,10 @@ function deriveFieldConfidence(data: Record<string, unknown>): Record<string, "h
   return confidence;
 }
 
+// ---------------------------------------------------------------------------
+// Main extraction entry point
+// ---------------------------------------------------------------------------
+
 /**
  * Downloads the image bytes for an object-storage path and runs OCR extraction
  * via the vision-capable chat model, returning structured JSON for the given category.
@@ -145,10 +161,7 @@ export async function extractBoxScoreFromScreenshot(
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${contentType};base64,${base64}`;
 
-    const systemPrompt = `You are an OCR assistant specialized in reading eBaseball Power Pros (Japanese-language) baseball game screenshots and converting their stat tables into structured JSON for a college baseball dynasty simulator's game-reporting feature. ${JAPANESE_HEADER_GLOSSARY}
-
-Always respond with ONLY a single JSON object (no markdown fences, no commentary). If a field cannot be determined, use null rather than guessing. Never fabricate data that isn't visible in the image.`;
-
+    const systemPrompt = buildSystemPrompt();
     const userPrompt = categoryInstructions(category);
 
     const response = await openai.chat.completions.create({
