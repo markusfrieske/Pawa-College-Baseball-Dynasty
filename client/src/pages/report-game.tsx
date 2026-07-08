@@ -293,8 +293,11 @@ function ReportGameInner() {
   // Raw per-screenshot batting extractions, keyed by screenshot image id, so applying a new
   // batting screenshot merges with (rather than replaces) any screenshots already applied
   // for that team/category. See mergeBattingRows().
-  const [homeBattingSources, setHomeBattingSources] = useState<Record<string, OcrBattingPlayer[]>>({});
-  const [awayBattingSources, setAwayBattingSources] = useState<Record<string, OcrBattingPlayer[]>>({});
+  // Stored as refs (not state) so handleApplyOcr reads the current accumulated value
+  // synchronously — this prevents stale-closure data loss when two batting screenshots
+  // complete OCR and are auto-applied in the same render pass.
+  const homeBattingSourcesRef = useRef<Record<string, OcrBattingPlayer[]>>({});
+  const awayBattingSourcesRef = useRef<Record<string, OcrBattingPlayer[]>>({});
   const [homePitching, setHomePitching] = useState<PitcherEntry[]>([]);
   const [awayPitching, setAwayPitching] = useState<PitcherEntry[]>([]);
   const [homePitchersInitialized, setHomePitchersInitialized] = useState(false);
@@ -458,9 +461,8 @@ function ReportGameInner() {
       }
       case "home_batting": {
         const rows = (data.players as OcrBattingPlayer[] | undefined) ?? [];
-        const nextSources = { ...homeBattingSources, [imageId ?? `unkeyed-${Date.now()}`]: rows };
-        setHomeBattingSources(nextSources);
-        const merged = mergeBattingRows("home", Object.values(nextSources), homePlayers ?? []);
+        homeBattingSourcesRef.current = { ...homeBattingSourcesRef.current, [imageId ?? `unkeyed-${Date.now()}`]: rows };
+        const merged = mergeBattingRows("home", Object.values(homeBattingSourcesRef.current), homePlayers ?? []);
         setHomeBatting(merged.entries);
         setShowHomeBatting(true);
         setFieldMeta(prev => ({ ...prev, ...merged.fieldMeta }));
@@ -475,9 +477,8 @@ function ReportGameInner() {
       }
       case "away_batting": {
         const rows = (data.players as OcrBattingPlayer[] | undefined) ?? [];
-        const nextSources = { ...awayBattingSources, [imageId ?? `unkeyed-${Date.now()}`]: rows };
-        setAwayBattingSources(nextSources);
-        const merged = mergeBattingRows("away", Object.values(nextSources), awayPlayers ?? []);
+        awayBattingSourcesRef.current = { ...awayBattingSourcesRef.current, [imageId ?? `unkeyed-${Date.now()}`]: rows };
+        const merged = mergeBattingRows("away", Object.values(awayBattingSourcesRef.current), awayPlayers ?? []);
         setAwayBatting(merged.entries);
         setShowAwayBatting(true);
         setFieldMeta(prev => ({ ...prev, ...merged.fieldMeta }));
