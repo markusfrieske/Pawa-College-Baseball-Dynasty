@@ -45,6 +45,9 @@ export async function createLeague(
       selectedConferences: opts.selectedConferences ?? ["SEC", "ACC", "Big 12"],
       seasonLength: opts.seasonLength ?? "standard",
       progressionEnabled: opts.progressionEnabled ?? false,
+      // All leagues created via this test helper are transient E2E fixtures —
+      // flag them so the cleanup script can safely prune them.
+      isTestData: true,
     },
   });
   if (!resp.ok()) {

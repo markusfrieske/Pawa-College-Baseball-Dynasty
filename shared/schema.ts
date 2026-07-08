@@ -44,6 +44,8 @@ export const leagues = pgTable("leagues", {
   lastWalkonAuction: text("last_walkon_auction"),
   currentClassVintage: text("current_class_vintage"),
   lastDigestAt: timestamp("last_digest_at"),
+  isTestData: boolean("is_test_data").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({
@@ -54,6 +56,9 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   seasonLength: true,
   currentPhase: true,
   progressionEnabled: true,
+  isTestData: true,
+}).extend({
+  isTestData: z.boolean().optional(),
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;

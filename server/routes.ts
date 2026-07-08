@@ -87,6 +87,7 @@ const leagueCreateSchema = z.object({
   selectedConferences: z.array(z.string()).min(1).max(4).optional(),
   seasonLength: z.enum(["short", "medium", "standard", "long"]).optional(),
   progressionEnabled: z.boolean().optional(),
+  isTestData: z.boolean().optional(),
 });
 
 const gameScoreSchema = z.object({
@@ -632,7 +633,11 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false } = result.data;
+      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false, isTestData } = result.data;
+
+      // Safety net: always flag leagues named with the E2E test-runner convention
+      // as test data, even if the caller forgot to pass isTestData explicitly.
+      const autoDetectedTestData = /^e2e[\s-]/i.test(name.trim());
 
       const league = await storage.createLeague({
         name,
@@ -642,6 +647,7 @@ export async function registerRoutes(
         seasonLength,
         currentPhase: "dynasty_setup",
         progressionEnabled,
+        isTestData: isTestData === true || autoDetectedTestData,
       });
 
       // Create conferences - use selected conferences or default to first N

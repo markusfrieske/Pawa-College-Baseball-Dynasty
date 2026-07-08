@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
+import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
 
 const app = express();
 const httpServer = createServer(app);
@@ -112,6 +113,8 @@ app.use((req, res, next) => {
         "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0",
         "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false",
         "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS last_digest_at TIMESTAMP",
+        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS is_test_data boolean NOT NULL DEFAULT false",
+        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT now()",
         `CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`,
         `CREATE TABLE IF NOT EXISTS advance_digests (
           id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1153,6 +1156,42 @@ app.use((req, res, next) => {
       }
     } catch (e) {
       console.warn("[ovr-resync] Failed:", e);
+    }
+  })();
+
+  // Daily automatic prune of stale E2E-test and abandoned guest leagues.
+  //
+  // WHY: E2E test runs and anonymous guest sessions previously left leagues
+  // (and their teams/players/recruits/etc) in the database indefinitely,
+  // eventually bloating it to ~10k leftover leagues. This targeted cleanup
+  // (never TRUNCATE) deletes only leagues explicitly flagged `is_test_data`
+  // that are a few hours old, plus guest-owned leagues that have been
+  // inactive for a week — real user leagues are never touched.
+  //
+  // Gated by a date-keyed `_startup_migrations` row so it runs at most once
+  // per calendar day regardless of how many times the server restarts.
+  void (async () => {
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const DAILY_KEY = `cleanup-stale-leagues-${today}`;
+    try {
+      const { rows: already } = await pool.query<{ key: string }>(
+        `SELECT key FROM _startup_migrations WHERE key = $1`,
+        [DAILY_KEY],
+      );
+      if (already.length > 0) return;
+
+      const result = await cleanupStaleLeagues(pool);
+
+      await pool.query(
+        `INSERT INTO _startup_migrations (key) VALUES ($1) ON CONFLICT (key) DO NOTHING`,
+        [DAILY_KEY],
+      );
+
+      if (result.leagueCount > 0) {
+        console.log(`[cleanup-stale-leagues] Deleted ${result.leagueCount} stale league(s) and ${result.teamCount} team(s)`);
+      }
+    } catch (e) {
+      console.warn("[cleanup-stale-leagues] Failed:", e);
     }
   })();
 

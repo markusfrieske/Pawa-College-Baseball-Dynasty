@@ -378,6 +378,7 @@ async function main(): Promise<void> {
     selectedConferences: TEAM_SELECTION.map(c => c.conferenceName),
     seasonLength: "medium",
     progressionEnabled: false,
+    isTestData: true,
   });
   log(`  → league id ${created.id}`);
 
