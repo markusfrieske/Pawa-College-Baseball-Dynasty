@@ -451,8 +451,9 @@ function DecisionsSection({ homeTeam, awayTeam, homePitching, awayPitching, onCh
  */
 export function OcrReviewScreen({
   homeTeam, awayTeam,
-  homeScore, awayScore,
+  homeScore, awayScore, onChangeHomeScore, onChangeAwayScore,
   homeErrors, awayErrors, onChangeHomeErrors, onChangeAwayErrors,
+  homeHits, awayHits,
   showInnings, numInnings, homeInnings, awayInnings, onChangeHomeInning, onChangeAwayInning,
   homeBatting, awayBatting, onChangeHomeBatting, onChangeAwayBatting,
   homePitching, awayPitching, onChangeHomePitching, onChangeAwayPitching,
@@ -461,8 +462,10 @@ export function OcrReviewScreen({
 }: {
   homeTeam: Team; awayTeam: Team;
   homeScore: number; awayScore: number;
+  onChangeHomeScore: (v: number) => void; onChangeAwayScore: (v: number) => void;
   homeErrors: number; awayErrors: number;
   onChangeHomeErrors: (v: number) => void; onChangeAwayErrors: (v: number) => void;
+  homeHits: number; awayHits: number;
   showInnings: boolean; numInnings: number; homeInnings: number[]; awayInnings: number[];
   onChangeHomeInning: (i: number, v: number) => void; onChangeAwayInning: (i: number, v: number) => void;
   homeBatting: BatterEntry[]; awayBatting: BatterEntry[];
@@ -512,13 +515,21 @@ export function OcrReviewScreen({
           <div className="flex flex-col items-center gap-1 flex-1">
             <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
             <span className="text-[10px] text-muted-foreground">{awayTeam.abbreviation}</span>
-            <span className="font-pixel text-xl text-gold" data-testid="review-away-score">{awayScore}</span>
+            {showInnings ? (
+              <span className="font-pixel text-xl text-gold" data-testid="review-away-score">{awayScore}</span>
+            ) : (
+              <NumberField value={awayScore} onChange={v => onChangeAwayScore(v)} testId="review-away-score" source={fieldMeta["score.awayScore"]} width="w-12" />
+            )}
           </div>
           <span className="font-pixel text-muted-foreground text-sm">@</span>
           <div className="flex flex-col items-center gap-1 flex-1">
             <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
             <span className="text-[10px] text-muted-foreground">{homeTeam.abbreviation}</span>
-            <span className="font-pixel text-xl text-gold" data-testid="review-home-score">{homeScore}</span>
+            {showInnings ? (
+              <span className="font-pixel text-xl text-gold" data-testid="review-home-score">{homeScore}</span>
+            ) : (
+              <NumberField value={homeScore} onChange={v => onChangeHomeScore(v)} testId="review-home-score" source={fieldMeta["score.homeScore"]} width="w-12" />
+            )}
           </div>
         </div>
         {showInnings && <p className="text-[9px] text-muted-foreground text-center">Score is computed from the Line Score section below.</p>}
@@ -530,6 +541,16 @@ export function OcrReviewScreen({
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-muted-foreground w-16">{homeTeam.abbreviation} Errors</span>
             <NumberField value={homeErrors} onChange={onChangeHomeErrors} testId="review-home-errors" source={fieldMeta["score.homeErrors"]} />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground w-16">{awayTeam.abbreviation} Hits</span>
+            <span className="text-sm font-medium text-foreground" data-testid="review-away-hits">{awayHits}</span>
+            <span className="text-[8px] text-muted-foreground">(from batting)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground w-16">{homeTeam.abbreviation} Hits</span>
+            <span className="text-sm font-medium text-foreground" data-testid="review-home-hits">{homeHits}</span>
+            <span className="text-[8px] text-muted-foreground">(from batting)</span>
           </div>
         </div>
       </Section>
@@ -615,7 +636,7 @@ export function OcrReviewScreen({
         </div>
       )}
 
-      {hardErrors.length === 0 && softIssues.length > 0 && (
+      {hardErrors.length === 0 && (softIssues.length > 0 || lowConfSummary) && (
         <label className="flex items-start gap-2 p-3 bg-yellow-900/10 border border-yellow-700/30 rounded-lg cursor-pointer" data-testid="label-ack-warnings">
           <Checkbox checked={ackWarnings} onCheckedChange={v => onChangeAckWarnings(v === true)} data-testid="checkbox-ack-warnings" className="mt-0.5" />
           <span className="text-[10px] text-yellow-300">

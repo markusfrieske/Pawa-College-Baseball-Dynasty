@@ -869,10 +869,14 @@ function ReportGameInner() {
                 awayTeam={awayTeam}
                 homeScore={homeScore}
                 awayScore={awayScore}
+                onChangeHomeScore={v => { markFieldCorrected("score.homeScore"); setHomeScoreDirect(v); }}
+                onChangeAwayScore={v => { markFieldCorrected("score.awayScore"); setAwayScoreDirect(v); }}
                 homeErrors={homeErrors}
                 awayErrors={awayErrors}
                 onChangeHomeErrors={v => { markFieldCorrected("score.homeErrors"); setHomeErrors(v); }}
                 onChangeAwayErrors={v => { markFieldCorrected("score.awayErrors"); setAwayErrors(v); }}
+                homeHits={homeHits}
+                awayHits={awayHits}
                 showInnings={showInnings}
                 numInnings={numInnings}
                 homeInnings={homeInnings}
