@@ -91,7 +91,42 @@ Skip the "totals"/team-total row if present. Use the player's in-game displayed 
 export interface OcrExtractionResult {
   success: boolean;
   data?: Record<string, unknown>;
+  /** Raw, unparsed text returned by the OCR model — kept verbatim for the audit trail. */
+  rawText?: string;
+  /**
+   * Derived (not model-reported) per-field confidence: "low" for any field the model
+   * returned as null/unreadable, "high" otherwise. This is a heuristic computed from the
+   * parsed JSON shape, not a change to the extraction prompt/model itself.
+   */
+  fieldConfidence?: Record<string, "high" | "low">;
   error?: string;
+}
+
+/**
+ * Walks the parsed OCR JSON and derives a flat per-field confidence map using the same
+ * dotted-key convention the client uses for its fieldMeta (e.g. "homeScore", "players.0.ab").
+ * A value of null/undefined is treated as "low" confidence (OCR couldn't read it); anything
+ * else is "high". This purely reflects what the model already returned — it does not alter
+ * extraction behavior.
+ */
+function deriveFieldConfidence(data: Record<string, unknown>): Record<string, "high" | "low"> {
+  const confidence: Record<string, "high" | "low"> = {};
+  function walk(value: unknown, path: string) {
+    if (Array.isArray(value)) {
+      value.forEach((v, i) => walk(v, path ? `${path}.${i}` : String(i)));
+      return;
+    }
+    if (value !== null && typeof value === "object") {
+      for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+        walk(v, path ? `${path}.${k}` : k);
+      }
+      return;
+    }
+    if (!path) return;
+    confidence[path] = value === null || value === undefined ? "low" : "high";
+  }
+  walk(data, "");
+  return confidence;
 }
 
 /**
@@ -140,10 +175,10 @@ Always respond with ONLY a single JSON object (no markdown fences, no commentary
     try {
       parsed = JSON.parse(raw);
     } catch {
-      return { success: false, error: "OCR model returned invalid JSON" };
+      return { success: false, error: "OCR model returned invalid JSON", rawText: raw };
     }
 
-    return { success: true, data: parsed };
+    return { success: true, data: parsed, rawText: raw, fieldConfidence: deriveFieldConfidence(parsed) };
   } catch (error) {
     console.error("[ocr] extraction failed:", error);
     const message = error instanceof Error ? error.message : "Unknown OCR error";

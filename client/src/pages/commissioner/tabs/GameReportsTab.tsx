@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronUp, History } from "lucide-react";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,89 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { GameScreenshotGallery } from "@/components/game-screenshots";
+
+interface OcrCorrection {
+  id: string;
+  fieldKey: string;
+  fieldLabel: string | null;
+  ocrValue: string | null;
+  correctedValue: string | null;
+  correctedByUserId: string;
+  createdAt: string;
+}
+
+interface OcrAuditData {
+  corrections: OcrCorrection[];
+  correctedFieldCount: number;
+}
+
+function OcrCorrectionsPanel({ leagueId, gameId }: { leagueId: string; gameId: string }) {
+  const [open, setOpen] = useState(false);
+  const { data, isLoading } = useQuery<OcrAuditData>({
+    queryKey: ["/api/leagues", leagueId, "games", gameId, "report", "audit"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/games/${gameId}/report/audit`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch OCR audit trail");
+      return res.json();
+    },
+    enabled: open,
+  });
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1 text-[10px] text-gold/80 hover:text-gold"
+        data-testid={`button-toggle-ocr-audit-${gameId}`}
+      >
+        <History className="w-3 h-3" />
+        OCR vs. Corrections
+        {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+      </button>
+      {open && (
+        <div className="mt-2 border border-border/40 rounded p-2 bg-black/20" data-testid={`panel-ocr-audit-${gameId}`}>
+          {isLoading && <Skeleton className="h-12 w-full" />}
+          {!isLoading && (data?.corrections?.length ?? 0) === 0 && (
+            <p className="text-[10px] text-muted-foreground">
+              No coach corrections were made to OCR-extracted values for this game.
+            </p>
+          )}
+          {!isLoading && (data?.corrections?.length ?? 0) > 0 && (
+            <>
+              {/* The corrected value is what the coach submitted as the final stat line for
+                  each field, since corrections are captured at the moment of edit and no
+                  further raw OCR value overwrites them afterward. */}
+              <table className="w-full text-[10px]">
+                <thead>
+                  <tr className="text-muted-foreground border-b border-border/30">
+                    <th className="text-left py-1 pr-2">Field</th>
+                    <th className="text-left py-1 pr-2">OCR Value</th>
+                    <th className="text-left py-1">Final (Corrected) Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data!.corrections.map(c => (
+                    <tr key={c.id} className="border-b border-border/10" data-testid={`row-ocr-audit-${c.fieldKey}`}>
+                      <td className="py-1 pr-2 text-foreground">{c.fieldLabel ?? c.fieldKey}</td>
+                      <td className="py-1 pr-2 text-red-300/80 line-through">{c.ocrValue ?? "—"}</td>
+                      <td className="py-1 text-green-300 font-bold">{c.correctedValue ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[9px] text-muted-foreground mt-1">
+                {data!.correctedFieldCount} field(s) corrected by coach during review.
+              </p>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface ScheduleGame {
   id: string;
@@ -218,6 +302,7 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
               Submitted {new Date(report.createdAt).toLocaleDateString()}
             </p>
             <GameScreenshotGallery leagueId={leagueId} gameId={report.gameId} />
+            <OcrCorrectionsPanel leagueId={leagueId} gameId={report.gameId} />
           </div>
           {(isPending || isDisputed) && (
             <div className="flex flex-col gap-2 items-end">

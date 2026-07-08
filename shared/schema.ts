@@ -1597,6 +1597,15 @@ export const gameReportImages = pgTable("game_report_images", {
   objectPath: text("object_path").notNull(), // /objects/... path in App Storage
   ocrStatus: text("ocr_status").notNull().default("pending"), // pending | processing | done | failed
   ocrResult: json("ocr_result").$type<Record<string, unknown>>(),
+  // Full raw text/JSON returned by the OCR model before parsing — kept verbatim (not just
+  // the parsed subset in ocrResult) so a commissioner can audit exactly what the model said,
+  // even if parsing later drops or reshapes fields.
+  ocrRawResponse: text("ocr_raw_response"),
+  // Per-field confidence derived from ocrResult (e.g. "high" when the model returned a value,
+  // "low" when it returned null/uncertain). Keyed the same way as the client's fieldMeta maps
+  // (e.g. "score.homeScore", "batting.home.<playerId>.ab"). Does not change OCR extraction
+  // itself — just records a derived confidence signal alongside the raw/parsed data.
+  ocrFieldConfidence: json("ocr_field_confidence").$type<Record<string, "high" | "low">>(),
   ocrError: text("ocr_error"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -1606,10 +1615,39 @@ export const insertGameReportImageSchema = createInsertSchema(gameReportImages).
   createdAt: true,
   ocrStatus: true,
   ocrResult: true,
+  ocrRawResponse: true,
+  ocrFieldConfidence: true,
   ocrError: true,
 });
 export type InsertGameReportImage = z.infer<typeof insertGameReportImageSchema>;
 export type GameReportImage = typeof gameReportImages.$inferSelect;
+
+// Field-level correction log — captures every coach edit made during OCR review so the
+// original OCR value is never silently overwritten. One row per corrected field per report.
+// This is the audit trail that lets a commissioner see "OCR said X, coach changed it to Y".
+export const gameReportCorrections = pgTable("game_report_corrections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameReportId: varchar("game_report_id").notNull().references(() => gameReports.id),
+  gameId: varchar("game_id").notNull().references(() => games.id),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  // Dotted field key matching the client's fieldMeta convention, e.g. "score.homeScore" or
+  // "batting.home.<playerId>.ab".
+  fieldKey: text("field_key").notNull(),
+  // Human-readable label for display in the commissioner comparison view (e.g. "Home Score",
+  // "J. Smith AB"). Optional — falls back to fieldKey if not provided.
+  fieldLabel: text("field_label"),
+  ocrValue: text("ocr_value"),
+  correctedValue: text("corrected_value"),
+  correctedByUserId: varchar("corrected_by_user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertGameReportCorrectionSchema = createInsertSchema(gameReportCorrections).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertGameReportCorrection = z.infer<typeof insertGameReportCorrectionSchema>;
+export type GameReportCorrection = typeof gameReportCorrections.$inferSelect;
 
 // Recruiting Class Snapshots — final class rankings captured at signing day finalization
 export const recruitingClassSnapshots = pgTable("recruiting_class_snapshots", {

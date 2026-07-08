@@ -280,13 +280,14 @@ function IssueBanner({ issues, section }: { issues: ReviewIssue[]; section: Revi
 function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrect }: {
   side: "home" | "away"; team: Team; batting: BatterEntry[];
   onChange: (b: BatterEntry[]) => void;
-  fieldMeta: Record<string, FieldSource>; onCorrect: (key: string) => void;
+  fieldMeta: Record<string, FieldSource>; onCorrect: (key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) => void;
 }) {
-  function update<K extends keyof BatterEntry>(idx: number, field: K, value: BatterEntry[K], key: string) {
+  function update<K extends keyof BatterEntry>(idx: number, field: K, value: BatterEntry[K], key: string, fieldLabel?: string) {
+    const oldValue = batting[idx]?.[field];
     const next = [...batting];
     next[idx] = { ...next[idx], [field]: value };
     onChange(next);
-    onCorrect(key);
+    onCorrect(key, oldValue, value, fieldLabel);
   }
   const fields: (keyof BatterEntry)[] = ["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"];
   const fieldLabels: Record<string, string> = { ab: "AB", r: "R", h: "H", doubles: "2B", triples: "3B", hr: "HR", rbi: "RBI", bb: "BB", so: "SO", sb: "SB" };
@@ -313,7 +314,7 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
           )}
           <TextField
             value={b.name}
-            onChange={v => update(i, "name", v, `batting.${side}.${b.playerId}.name`)}
+            onChange={v => update(i, "name", v, `batting.${side}.${b.playerId}.name`, `${team.abbreviation} Batter Name`)}
             testId={`review-batter-${side}-${i}-name`}
             source={fieldMeta[`batting.${side}.${b.playerId}.name`]}
             width="w-full"
@@ -324,7 +325,7 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
                 <span className="text-[8px] text-muted-foreground uppercase">{fieldLabels[field]}</span>
                 <NumberField
                   value={b[field] as number}
-                  onChange={v => update(i, field, v as BatterEntry[typeof field], `batting.${side}.${b.playerId}.${field}`)}
+                  onChange={v => update(i, field, v as BatterEntry[typeof field], `batting.${side}.${b.playerId}.${field}`, `${b.name} ${fieldLabels[field]}`)}
                   testId={`review-batter-${side}-${i}-${field}`}
                   source={fieldMeta[`batting.${side}.${b.playerId}.${field}`]}
                   width="w-full"
@@ -341,13 +342,14 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
 function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorrect }: {
   side: "home" | "away"; team: Team; pitching: PitcherEntry[];
   onChange: (p: PitcherEntry[]) => void;
-  fieldMeta: Record<string, FieldSource>; onCorrect: (key: string) => void;
+  fieldMeta: Record<string, FieldSource>; onCorrect: (key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) => void;
 }) {
-  function update<K extends keyof PitcherEntry>(idx: number, field: K, value: PitcherEntry[K], key: string) {
+  function update<K extends keyof PitcherEntry>(idx: number, field: K, value: PitcherEntry[K], key: string, fieldLabel?: string) {
+    const oldValue = pitching[idx]?.[field];
     const next = [...pitching];
     next[idx] = { ...next[idx], [field]: value };
     onChange(next);
-    onCorrect(key);
+    onCorrect(key, oldValue, value, fieldLabel);
   }
   const fields: (keyof PitcherEntry)[] = ["h", "r", "er", "bb", "so", "hr"];
   const fieldLabels: Record<string, string> = { h: "H", r: "R", er: "ER", bb: "BB", so: "SO", hr: "HR" };
@@ -364,7 +366,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
           <div className="flex items-center gap-2">
             <TextField
               value={p.name}
-              onChange={v => update(i, "name", v, `pitching.${side}.${p.playerId}.name`)}
+              onChange={v => update(i, "name", v, `pitching.${side}.${p.playerId}.name`, `${team.abbreviation} Pitcher Name`)}
               testId={`review-pitcher-${side}-${i}-name`}
               source={fieldMeta[`pitching.${side}.${p.playerId}.name`]}
               width="flex-1"
@@ -373,7 +375,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
               <span className="text-[8px] text-muted-foreground uppercase">IP</span>
               <IpField
                 value={p.ip}
-                onChange={v => update(i, "ip", v, `pitching.${side}.${p.playerId}.ip`)}
+                onChange={v => update(i, "ip", v, `pitching.${side}.${p.playerId}.ip`, `${p.name} IP`)}
                 testId={`review-pitcher-${side}-${i}-ip`}
                 source={fieldMeta[`pitching.${side}.${p.playerId}.ip`]}
               />
@@ -385,7 +387,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
                 <span className="text-[8px] text-muted-foreground uppercase">{fieldLabels[field]}</span>
                 <NumberField
                   value={p[field] as number}
-                  onChange={v => update(i, field, v as PitcherEntry[typeof field], `pitching.${side}.${p.playerId}.${field}`)}
+                  onChange={v => update(i, field, v as PitcherEntry[typeof field], `pitching.${side}.${p.playerId}.${field}`, `${p.name} ${fieldLabels[field]}`)}
                   testId={`review-pitcher-${side}-${i}-${field}`}
                   source={fieldMeta[`pitching.${side}.${p.playerId}.${field}`]}
                   width="w-full"
@@ -501,7 +503,7 @@ export function OcrReviewScreen({
   homePitching: PitcherEntry[]; awayPitching: PitcherEntry[];
   onChangeHomePitching: (p: PitcherEntry[]) => void; onChangeAwayPitching: (p: PitcherEntry[]) => void;
   fieldMeta: Record<string, FieldSource>;
-  onCorrect: (key: string) => void;
+  onCorrect: (key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) => void;
   issues: ReviewIssue[];
   ackWarnings: boolean; onChangeAckWarnings: (v: boolean) => void;
 }) {

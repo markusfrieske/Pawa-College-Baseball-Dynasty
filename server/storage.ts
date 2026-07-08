@@ -7,6 +7,7 @@ import {
   advanceDigests,
   gameReports,
   gameReportImages,
+  gameReportCorrections,
   recruitingClassSnapshots,
   coachSeasonHistory,
   storylineRecruits, storylineEvents, storylineVotes,
@@ -42,6 +43,7 @@ import {
   type AdvanceDigest, type InsertAdvanceDigest,
   type GameReport, type InsertGameReport,
   type GameReportImage, type InsertGameReportImage,
+  type GameReportCorrection, type InsertGameReportCorrection,
   type RecruitingClassSnapshot, type InsertRecruitingClassSnapshot,
   type CoachSeasonHistory, type InsertCoachSeasonHistory,
   type StorylineRecruit, type InsertStorylineRecruit,
@@ -243,6 +245,9 @@ export interface IStorage {
   createGameReportImage(data: InsertGameReportImage): Promise<GameReportImage>;
   updateGameReportImage(id: string, data: Partial<GameReportImage>): Promise<GameReportImage | undefined>;
   deleteGameReportImage(id: string): Promise<void>;
+  getGameReportCorrections(gameId: string): Promise<GameReportCorrection[]>;
+  createGameReportCorrection(data: InsertGameReportCorrection): Promise<GameReportCorrection>;
+  batchCreateGameReportCorrections(data: InsertGameReportCorrection[]): Promise<GameReportCorrection[]>;
 
   // Recruiting class snapshots
   createRecruitingClassSnapshot(data: InsertRecruitingClassSnapshot): Promise<RecruitingClassSnapshot>;
@@ -1217,7 +1222,9 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(walkonPool).where(eq(walkonPool.leagueId, id));
 
       await tx.delete(recruits).where(eq(recruits.leagueId, id));
+      await tx.delete(gameReportCorrections).where(eq(gameReportCorrections.leagueId, id));
       await tx.delete(gameReportImages).where(eq(gameReportImages.leagueId, id));
+      await tx.delete(gameReports).where(eq(gameReports.leagueId, id));
       await tx.delete(games).where(eq(games.leagueId, id));
       await tx.delete(standings).where(eq(standings.leagueId, id));
       await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
@@ -1654,6 +1661,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGameReportImage(id: string): Promise<void> {
     await db.delete(gameReportImages).where(eq(gameReportImages.id, id));
+  }
+
+  // ─── Game Report Corrections (OCR audit trail) ─────────────────────────────
+  async getGameReportCorrections(gameId: string): Promise<GameReportCorrection[]> {
+    return db.select().from(gameReportCorrections)
+      .where(eq(gameReportCorrections.gameId, gameId))
+      .orderBy(gameReportCorrections.createdAt);
+  }
+
+  async createGameReportCorrection(data: InsertGameReportCorrection): Promise<GameReportCorrection> {
+    const [r] = await db.insert(gameReportCorrections).values(data).returning();
+    return r;
+  }
+
+  async batchCreateGameReportCorrections(data: InsertGameReportCorrection[]): Promise<GameReportCorrection[]> {
+    if (data.length === 0) return [];
+    return db.insert(gameReportCorrections).values(data).returning();
   }
 
   // ─── Storyline Votes ─────────────────────────────────────────────────────────

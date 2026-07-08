@@ -31,6 +31,38 @@ import { ObjectStorageService, ObjectNotFoundError } from "../replit_integration
 
 const objectStorageService = new ObjectStorageService();
 
+// Shape of a single coach correction logged during OCR review. `ocrValue`/`correctedValue`
+// are stored as strings (already stringified client-side) so the audit trail can compare
+// heterogeneous field types (numbers, strings, booleans) uniformly.
+interface CorrectionInput {
+  fieldKey?: unknown;
+  fieldLabel?: unknown;
+  ocrValue?: unknown;
+  correctedValue?: unknown;
+}
+
+async function persistCorrections(
+  rawCorrections: unknown,
+  ctx: { gameReportId: string; gameId: string; leagueId: string; userId: string }
+): Promise<void> {
+  if (!Array.isArray(rawCorrections) || rawCorrections.length === 0) return;
+  const rows = (rawCorrections as CorrectionInput[])
+    .filter(c => typeof c.fieldKey === "string" && c.fieldKey.length > 0)
+    .map(c => ({
+      gameReportId: ctx.gameReportId,
+      gameId: ctx.gameId,
+      leagueId: ctx.leagueId,
+      fieldKey: c.fieldKey as string,
+      fieldLabel: typeof c.fieldLabel === "string" ? c.fieldLabel : null,
+      ocrValue: c.ocrValue == null ? null : String(c.ocrValue),
+      correctedValue: c.correctedValue == null ? null : String(c.correctedValue),
+      correctedByUserId: ctx.userId,
+    }));
+  if (rows.length > 0) {
+    await storage.batchCreateGameReportCorrections(rows);
+  }
+}
+
 export function registerGameRoutes(app: Express): void {
   // ── Schedule ──────────────────────────────────────────────────────────────
   app.get("/api/leagues/:id/schedule", requireAuth, async (req, res) => {
@@ -517,6 +549,13 @@ export function registerGameRoutes(app: Express): void {
         details: `Reported: ${awayScore}-${homeScore}${isCpuGame ? " (auto-confirmed vs CPU)" : ""}`,
       });
 
+      await persistCorrections(req.body.corrections, {
+        gameReportId: report.id,
+        gameId: game.id,
+        leagueId,
+        userId: req.session.userId!,
+      });
+
       if (isCpuGame) {
         await finalizeReportedGame(report, game, leagueId);
         return res.json({ ...report, autoConfirmed: true });
@@ -609,10 +648,75 @@ export function registerGameRoutes(app: Express): void {
         action: "Game Report Edited",
         details: `Commissioner updated report: ${awayScore}-${homeScore}`,
       });
+      await persistCorrections(req.body.corrections, {
+        gameReportId: existing.id,
+        gameId,
+        leagueId,
+        userId: req.session.userId!,
+      });
       res.json(updated);
     } catch (error) {
       console.error("Failed to update game report:", error);
       res.status(500).json({ message: "Failed to update game report" });
+    }
+  });
+
+  // ── OCR audit trail (commissioner-facing OCR vs correction vs final comparison) ──
+  app.get("/api/leagues/:id/games/:gameId/report/audit", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const game = await storage.getGame(gameId);
+      if (!game || game.leagueId !== leagueId) {
+        return res.status(404).json({ message: "Game not found in this league" });
+      }
+
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+      if (!isCommissioner) {
+        const coaches = await storage.getCoachesByLeague(leagueId);
+        const coach = coaches.find(c => c.userId === req.session.userId);
+        const isInvolved = coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId);
+        if (!isInvolved) {
+          return res.status(403).json({ message: "Only involved coaches or the commissioner can view this audit trail" });
+        }
+      }
+
+      const [report, images, corrections] = await Promise.all([
+        storage.getGameReport(gameId),
+        storage.getGameReportImages(gameId),
+        storage.getGameReportCorrections(gameId),
+      ]);
+
+      // Build a per-field comparison: OCR value (from screenshot confidence maps, if the
+      // field was ever extracted), the correction (if the coach edited it), and null for
+      // "final" — the final submitted stat line lives in `report.homeBoxData`/`awayBoxData`
+      // and inline score fields, which the client can already read directly off `report`.
+      // We surface the correction rows alongside so a commissioner can line OCR → correction
+      // → final up without cross-referencing multiple screens.
+      const correctionByField = new Map(corrections.map(c => [c.fieldKey, c]));
+      const comparison = corrections.map(c => ({
+        fieldKey: c.fieldKey,
+        fieldLabel: c.fieldLabel ?? c.fieldKey,
+        ocrValue: c.ocrValue,
+        correctedValue: c.correctedValue,
+        correctedByUserId: c.correctedByUserId,
+        correctedAt: c.createdAt,
+      }));
+
+      res.json({
+        report: report ?? null,
+        images,
+        corrections,
+        comparison,
+        correctedFieldCount: correctionByField.size,
+      });
+    } catch (error) {
+      console.error("Failed to fetch OCR audit trail:", error);
+      res.status(500).json({ message: "Failed to fetch OCR audit trail" });
     }
   });
 
@@ -941,9 +1045,19 @@ export function registerGameRoutes(app: Express): void {
           await storage.updateGameReportImage(image.id, { ocrStatus: "processing" });
           const result = await extractBoxScoreFromScreenshot(objectPath, category as ScreenshotCategory);
           if (result.success) {
-            await storage.updateGameReportImage(image.id, { ocrStatus: "done", ocrResult: result.data ?? null, ocrError: null });
+            await storage.updateGameReportImage(image.id, {
+              ocrStatus: "done",
+              ocrResult: result.data ?? null,
+              ocrRawResponse: result.rawText ?? null,
+              ocrFieldConfidence: result.fieldConfidence ?? null,
+              ocrError: null,
+            });
           } else {
-            await storage.updateGameReportImage(image.id, { ocrStatus: "failed", ocrError: result.error ?? "OCR failed" });
+            await storage.updateGameReportImage(image.id, {
+              ocrStatus: "failed",
+              ocrRawResponse: result.rawText ?? null,
+              ocrError: result.error ?? "OCR failed",
+            });
           }
         } catch (err) {
           console.error("[report-images] OCR background job failed:", err);
@@ -972,9 +1086,19 @@ export function registerGameRoutes(app: Express): void {
         try {
           const result = await extractBoxScoreFromScreenshot(image.objectPath, image.category as ScreenshotCategory);
           if (result.success) {
-            await storage.updateGameReportImage(image.id, { ocrStatus: "done", ocrResult: result.data ?? null, ocrError: null });
+            await storage.updateGameReportImage(image.id, {
+              ocrStatus: "done",
+              ocrResult: result.data ?? null,
+              ocrRawResponse: result.rawText ?? null,
+              ocrFieldConfidence: result.fieldConfidence ?? null,
+              ocrError: null,
+            });
           } else {
-            await storage.updateGameReportImage(image.id, { ocrStatus: "failed", ocrError: result.error ?? "OCR failed" });
+            await storage.updateGameReportImage(image.id, {
+              ocrStatus: "failed",
+              ocrRawResponse: result.rawText ?? null,
+              ocrError: result.error ?? "OCR failed",
+            });
           }
         } catch (err) {
           console.error("[report-images] OCR re-run failed:", err);

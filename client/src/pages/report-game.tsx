@@ -302,9 +302,22 @@ function ReportGameInner() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [fieldMeta, setFieldMeta] = useState<Record<string, FieldSource>>({});
   const [ackReviewWarnings, setAckReviewWarnings] = useState(false);
+  // Coach corrections logged during OCR review — keyed by field, capturing the original OCR
+  // value (first edit only) and the latest corrected value, for the commissioner audit trail.
+  const [corrections, setCorrections] = useState<Record<string, { fieldLabel?: string; ocrValue: string; correctedValue: string }>>({});
 
-  function markFieldCorrected(key: string) {
+  function markFieldCorrected(key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) {
+    const hadOcrProvenance = fieldMeta[key] === "ocr" || fieldMeta[key] === "low";
     setFieldMeta(prev => (prev[key] ? { ...prev, [key]: "corrected" } : prev));
+    if (!hadOcrProvenance) return;
+    setCorrections(prev => ({
+      ...prev,
+      [key]: {
+        fieldLabel: fieldLabel ?? prev[key]?.fieldLabel,
+        ocrValue: prev[key] ? prev[key].ocrValue : String(oldValue ?? ""),
+        correctedValue: String(newValue ?? ""),
+      },
+    }));
   }
 
   const { data: gameData, isLoading: gameLoading, isError: gameError } = useQuery<{ game: GameWithTeams; homeTeam: Team; awayTeam: Team }>({
@@ -505,6 +518,7 @@ function ReportGameInner() {
     homeErrors: number; awayErrors: number; inningScores: number[][];
     homeBoxData: { batting: BatterEntry[]; pitching: PitcherEntry[]; totals: Record<string, number> };
     awayBoxData: { batting: BatterEntry[]; pitching: PitcherEntry[]; totals: Record<string, number> };
+    corrections?: Array<{ fieldKey: string; fieldLabel?: string; ocrValue: string; correctedValue: string }>;
   }
 
   function buildPayload(): ReportPayload {
@@ -531,7 +545,13 @@ function ReportGameInner() {
         hr: awayBatting.reduce((a, b) => a + b.hr, 0),
       },
     };
-    return { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData };
+    const correctionsPayload = Object.entries(corrections).map(([fieldKey, v]) => ({
+      fieldKey, fieldLabel: v.fieldLabel, ocrValue: v.ocrValue, correctedValue: v.correctedValue,
+    }));
+    return {
+      homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData,
+      corrections: correctionsPayload.length > 0 ? correctionsPayload : undefined,
+    };
   }
 
   const submitMutation = useMutation({
@@ -804,20 +824,20 @@ function ReportGameInner() {
                 awayTeam={awayTeam}
                 homeScore={homeScore}
                 awayScore={awayScore}
-                onChangeHomeScore={v => { markFieldCorrected("score.homeScore"); setHomeScoreDirect(v); }}
-                onChangeAwayScore={v => { markFieldCorrected("score.awayScore"); setAwayScoreDirect(v); }}
+                onChangeHomeScore={v => { markFieldCorrected("score.homeScore", homeScore, v, "Home Score"); setHomeScoreDirect(v); }}
+                onChangeAwayScore={v => { markFieldCorrected("score.awayScore", awayScore, v, "Away Score"); setAwayScoreDirect(v); }}
                 homeErrors={homeErrors}
                 awayErrors={awayErrors}
-                onChangeHomeErrors={v => { markFieldCorrected("score.homeErrors"); setHomeErrors(v); }}
-                onChangeAwayErrors={v => { markFieldCorrected("score.awayErrors"); setAwayErrors(v); }}
+                onChangeHomeErrors={v => { markFieldCorrected("score.homeErrors", homeErrors, v, "Home Errors"); setHomeErrors(v); }}
+                onChangeAwayErrors={v => { markFieldCorrected("score.awayErrors", awayErrors, v, "Away Errors"); setAwayErrors(v); }}
                 homeHits={homeHits}
                 awayHits={awayHits}
                 showInnings={showInnings}
                 numInnings={numInnings}
                 homeInnings={homeInnings}
                 awayInnings={awayInnings}
-                onChangeHomeInning={(i, v) => { markFieldCorrected(`inning.${i}.home`); setHomeInnings(prev => { const n = [...prev]; n[i] = v; return n; }); }}
-                onChangeAwayInning={(i, v) => { markFieldCorrected(`inning.${i}.away`); setAwayInnings(prev => { const n = [...prev]; n[i] = v; return n; }); }}
+                onChangeHomeInning={(i, v) => { markFieldCorrected(`inning.${i}.home`, homeInnings[i], v, `Inning ${i + 1} (Home)`); setHomeInnings(prev => { const n = [...prev]; n[i] = v; return n; }); }}
+                onChangeAwayInning={(i, v) => { markFieldCorrected(`inning.${i}.away`, awayInnings[i], v, `Inning ${i + 1} (Away)`); setAwayInnings(prev => { const n = [...prev]; n[i] = v; return n; }); }}
                 homeBatting={homeBatting}
                 awayBatting={awayBatting}
                 onChangeHomeBatting={setHomeBatting}
