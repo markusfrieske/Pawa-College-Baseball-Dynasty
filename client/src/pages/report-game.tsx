@@ -5,7 +5,7 @@ import { useParams, useLocation, useSearch, Link } from "wouter";
 import {
   ArrowLeft, ChevronDown, ChevronUp, Check, AlertTriangle,
   CheckCircle, Clock, XCircle, Plus, Minus, ChevronRight,
-  ClipboardCheck, Sparkles,
+  ClipboardCheck, Sparkles, Loader2,
 } from "lucide-react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { GameScreenshotUpload } from "@/components/game-screenshots";
+import { GameScreenshotUpload, useGameReportImages } from "@/components/game-screenshots";
 import { OcrReviewScreen, computeReviewIssues, type FieldSource } from "@/components/ocr-review-screen";
 import type { Game, Team, Player, ScreenshotCategory } from "@shared/schema";
 import {
@@ -310,6 +310,14 @@ function ReportGameInner() {
   const [corrections, setCorrections] = useState<Record<string, { fieldLabel?: string; ocrValue: string; correctedValue: string }>>({});
   // Parent-level ref so it survives GameScreenshotUpload unmount/remount (score ↔ review phase transitions).
   const autoAppliedScreenshotsRef = useRef<Set<string>>(new Set());
+
+  // OCR status summary — used to show the "still reading / all done" banner in the score phase.
+  const { data: screenshotImages } = useGameReportImages(id, gameId, phase === "score");
+  const pendingOcrCount = (screenshotImages ?? []).filter(
+    (img) => img.ocrStatus === "pending" || img.ocrStatus === "processing"
+  ).length;
+  const hasAnyScreenshots = (screenshotImages ?? []).length > 0;
+  const allOcrSettled = hasAnyScreenshots && pendingOcrCount === 0;
 
   function markFieldCorrected(key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) {
     const hadOcrProvenance = fieldMeta[key] === "ocr" || fieldMeta[key] === "low";
@@ -822,6 +830,20 @@ function ReportGameInner() {
               <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" data-testid="text-validation-error">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{validationError}</span>
+              </div>
+            )}
+
+            {pendingOcrCount > 0 && (
+              <div className="flex items-center gap-2 p-2.5 bg-yellow-900/20 border border-yellow-700/40 rounded text-[9px] text-yellow-300" data-testid="banner-ocr-pending">
+                <Loader2 className="w-3 h-3 shrink-0 animate-spin" />
+                <span>Still reading {pendingOcrCount} screenshot{pendingOcrCount !== 1 ? "s" : ""} — wait for them to finish for the best auto-fill.</span>
+              </div>
+            )}
+
+            {allOcrSettled && (
+              <div className="flex items-center gap-2 p-2.5 bg-green-900/20 border border-green-700/40 rounded text-[9px] text-green-300" data-testid="banner-ocr-complete">
+                <CheckCircle className="w-3 h-3 shrink-0" />
+                <span>All screenshots read — form is ready to review.</span>
               </div>
             )}
 
