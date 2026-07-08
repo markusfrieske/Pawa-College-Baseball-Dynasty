@@ -16,6 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
 import { ReportStatusBadge, type ReportStatus } from "./report-game";
+import { GameScreenshotGallery } from "@/components/game-screenshots";
 
 function deriveReportStatus(
   game: { isComplete: boolean; isManuallyReported?: boolean | null },
@@ -611,7 +612,7 @@ export default function SchedulePage() {
         )}
       </main>
 
-      <BoxScoreModal game={boxScoreGame} onClose={() => setBoxScoreGame(null)} />
+      <BoxScoreModal game={boxScoreGame} leagueId={id!} onClose={() => setBoxScoreGame(null)} />
 
       <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) setDisputeGameId(null); }}>
         <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-md" data-testid="dialog-dispute-reason">
@@ -1454,7 +1455,7 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
   );
 }
 
-function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose: () => void }) {
+function BoxScoreModal({ game, leagueId, onClose }: { game: GameWithTeams | null; leagueId: string; onClose: () => void }) {
   if (!game) return null;
 
   let boxScore: BoxScoreData | null = null;
@@ -1554,6 +1555,8 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
             </Tabs>
           </div>
         )}
+
+        <GameScreenshotGallery leagueId={leagueId} gameId={game.id} />
       </DialogContent>
     </Dialog>
   );

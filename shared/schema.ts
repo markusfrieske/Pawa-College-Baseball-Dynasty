@@ -45,6 +45,10 @@ export const leagues = pgTable("leagues", {
   currentClassVintage: text("current_class_vintage"),
   lastDigestAt: timestamp("last_digest_at"),
   isTestData: boolean("is_test_data").notNull().default(false),
+  // "simulated" (default) = games are auto-simulated by the game engine, zero behavior
+  // change from legacy leagues. "reported" = coaches upload screenshots / manually enter
+  // box scores via the Report Game flow instead of auto-simulation.
+  gameMode: text("game_mode").notNull().default("simulated"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -57,8 +61,10 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   currentPhase: true,
   progressionEnabled: true,
   isTestData: true,
+  gameMode: true,
 }).extend({
   isTestData: z.boolean().optional(),
+  gameMode: z.enum(["simulated", "reported"]).optional(),
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;
@@ -1562,6 +1568,44 @@ export const gameReports = pgTable("game_reports", {
 export const insertGameReportSchema = createInsertSchema(gameReports).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertGameReport = z.infer<typeof insertGameReportSchema>;
 export type GameReport = typeof gameReports.$inferSelect;
+
+// Screenshot categories for the OCR-assisted box score import flow.
+export const SCREENSHOT_CATEGORIES = [
+  "final_score",
+  "home_batting",
+  "away_batting",
+  "home_pitching",
+  "away_pitching",
+  "advanced_stats",
+] as const;
+export type ScreenshotCategory = (typeof SCREENSHOT_CATEGORIES)[number];
+
+// Uploaded box-score screenshots attached to a (pending or in-progress) game report.
+// Coaches upload categorized screenshots of eBaseball Power Pros game screens; OpenAI's
+// vision model OCRs the Japanese-labeled stat tables into structured JSON matching the
+// app's box score shape, which the coach then reviews/corrects before submitting the report.
+export const gameReportImages = pgTable("game_report_images", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull().references(() => games.id),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  uploadedByUserId: varchar("uploaded_by_user_id").notNull(),
+  category: text("category").notNull(), // one of SCREENSHOT_CATEGORIES
+  objectPath: text("object_path").notNull(), // /objects/... path in App Storage
+  ocrStatus: text("ocr_status").notNull().default("pending"), // pending | processing | done | failed
+  ocrResult: json("ocr_result").$type<Record<string, unknown>>(),
+  ocrError: text("ocr_error"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertGameReportImageSchema = createInsertSchema(gameReportImages).omit({
+  id: true,
+  createdAt: true,
+  ocrStatus: true,
+  ocrResult: true,
+  ocrError: true,
+});
+export type InsertGameReportImage = z.infer<typeof insertGameReportImageSchema>;
+export type GameReportImage = typeof gameReportImages.$inferSelect;
 
 // Recruiting Class Snapshots — final class rankings captured at signing day finalization
 export const recruitingClassSnapshots = pgTable("recruiting_class_snapshots", {

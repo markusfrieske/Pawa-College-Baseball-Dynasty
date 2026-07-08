@@ -25,6 +25,11 @@ import {
   updateStandingsForGame,
   finalizeReportedGame,
 } from "../game-engine";
+import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
+import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
+import { ObjectStorageService, ObjectNotFoundError } from "../replit_integrations/object_storage/objectStorage";
+
+const objectStorageService = new ObjectStorageService();
 
 export function registerGameRoutes(app: Express): void {
   // ── Schedule ──────────────────────────────────────────────────────────────
@@ -760,6 +765,155 @@ export function registerGameRoutes(app: Express): void {
     } catch (error) {
       console.error("Failed to finalize game report:", error);
       res.status(500).json({ message: "Failed to finalize game report" });
+    }
+  });
+
+  // ── Screenshot upload & OCR (categorized box-score images) ──────────────
+  // Coaches upload categorized eBaseball Power Pros screenshots for a scheduled game;
+  // OpenAI vision OCR extracts a draft stat line (never auto-applied) that prefills the
+  // review form in report-game.tsx. Images stay attached to the game/report permanently
+  // for later viewing on the box score and commissioner review screens.
+
+  async function assertGameAccessForImages(req: any, res: any): Promise<{ leagueId: string; gameId: string; game: any; league: any } | null> {
+    const leagueId = req.params.id as string;
+    const gameId = req.params.gameId as string;
+    const league = await storage.getLeague(leagueId);
+    if (!league) { res.status(404).json({ message: "League not found" }); return null; }
+    const game = await storage.getGame(gameId);
+    if (!game || game.leagueId !== leagueId) { res.status(404).json({ message: "Game not found in this league" }); return null; }
+    const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+    if (!isCommissioner) {
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const coach = coaches.find((c: any) => c.userId === req.session.userId);
+      const isInvolved = coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId);
+      if (!isInvolved) {
+        res.status(403).json({ message: "Only involved coaches or the commissioner can access screenshots for this game" });
+        return null;
+      }
+    }
+    return { leagueId, gameId, game, league };
+  }
+
+  // List all screenshots uploaded for a game (grouped by category on the client),
+  // viewable from both the box score view and the commissioner review screen.
+  app.get("/api/leagues/:id/games/:gameId/report-images", requireAuth, async (req, res) => {
+    try {
+      const ctx = await assertGameAccessForImages(req, res);
+      if (!ctx) return;
+      const images = await storage.getGameReportImages(ctx.gameId);
+      res.json(images);
+    } catch (error) {
+      console.error("Failed to fetch game report images:", error);
+      res.status(500).json({ message: "Failed to fetch game report images" });
+    }
+  });
+
+  // Register an uploaded screenshot (after the client has PUT it to the presigned URL)
+  // and kick off OCR extraction for it.
+  app.post("/api/leagues/:id/games/:gameId/report-images", requireAuth, async (req, res) => {
+    try {
+      const ctx = await assertGameAccessForImages(req, res);
+      if (!ctx) return;
+      const { category, objectPath } = req.body as { category?: string; objectPath?: string };
+      if (!category || !SCREENSHOT_CATEGORIES.includes(category as ScreenshotCategory)) {
+        return res.status(400).json({ message: `category must be one of: ${SCREENSHOT_CATEGORIES.join(", ")}` });
+      }
+      if (!objectPath || typeof objectPath !== "string") {
+        return res.status(400).json({ message: "objectPath is required" });
+      }
+      // objectPath must reference a real, already-uploaded object in our own
+      // storage namespace — this rejects arbitrary/attacker-supplied strings
+      // (e.g. "javascript:" URLs) before they're persisted and later rendered
+      // as an <a href>/<img src> on the client.
+      try {
+        await objectStorageService.getObjectEntityFile(objectPath);
+      } catch (err) {
+        if (err instanceof ObjectNotFoundError) {
+          return res.status(400).json({ message: "objectPath does not reference an uploaded object" });
+        }
+        throw err;
+      }
+
+      const image = await storage.createGameReportImage({
+        gameId: ctx.gameId,
+        leagueId: ctx.leagueId,
+        uploadedByUserId: req.session.userId!,
+        category,
+        objectPath,
+      });
+
+      res.json(image);
+
+      // Fire-and-forget OCR — client polls the image record for ocrStatus updates.
+      (async () => {
+        try {
+          await storage.updateGameReportImage(image.id, { ocrStatus: "processing" });
+          const result = await extractBoxScoreFromScreenshot(objectPath, category as ScreenshotCategory);
+          if (result.success) {
+            await storage.updateGameReportImage(image.id, { ocrStatus: "done", ocrResult: result.data ?? null, ocrError: null });
+          } else {
+            await storage.updateGameReportImage(image.id, { ocrStatus: "failed", ocrError: result.error ?? "OCR failed" });
+          }
+        } catch (err) {
+          console.error("[report-images] OCR background job failed:", err);
+          await storage.updateGameReportImage(image.id, { ocrStatus: "failed", ocrError: err instanceof Error ? err.message : "OCR failed" }).catch(() => {});
+        }
+      })();
+    } catch (error) {
+      console.error("Failed to create game report image:", error);
+      res.status(500).json({ message: "Failed to create game report image" });
+    }
+  });
+
+  // Re-run OCR on an existing screenshot (e.g. after a failure).
+  app.post("/api/leagues/:id/games/:gameId/report-images/:imageId/ocr", requireAuth, async (req, res) => {
+    try {
+      const ctx = await assertGameAccessForImages(req, res);
+      if (!ctx) return;
+      const image = await storage.getGameReportImage(req.params.imageId as string);
+      if (!image || image.gameId !== ctx.gameId) {
+        return res.status(404).json({ message: "Screenshot not found for this game" });
+      }
+      await storage.updateGameReportImage(image.id, { ocrStatus: "processing", ocrError: null });
+      res.json({ message: "OCR re-run started" });
+
+      (async () => {
+        try {
+          const result = await extractBoxScoreFromScreenshot(image.objectPath, image.category as ScreenshotCategory);
+          if (result.success) {
+            await storage.updateGameReportImage(image.id, { ocrStatus: "done", ocrResult: result.data ?? null, ocrError: null });
+          } else {
+            await storage.updateGameReportImage(image.id, { ocrStatus: "failed", ocrError: result.error ?? "OCR failed" });
+          }
+        } catch (err) {
+          console.error("[report-images] OCR re-run failed:", err);
+          await storage.updateGameReportImage(image.id, { ocrStatus: "failed", ocrError: err instanceof Error ? err.message : "OCR failed" }).catch(() => {});
+        }
+      })();
+    } catch (error) {
+      console.error("Failed to re-run OCR:", error);
+      res.status(500).json({ message: "Failed to re-run OCR" });
+    }
+  });
+
+  // Remove a screenshot (uploader or commissioner only).
+  app.delete("/api/leagues/:id/games/:gameId/report-images/:imageId", requireAuth, async (req, res) => {
+    try {
+      const ctx = await assertGameAccessForImages(req, res);
+      if (!ctx) return;
+      const image = await storage.getGameReportImage(req.params.imageId as string);
+      if (!image || image.gameId !== ctx.gameId) {
+        return res.status(404).json({ message: "Screenshot not found for this game" });
+      }
+      const isCommissioner = hasCommissionerAccess(ctx.league, req.session.userId);
+      if (!isCommissioner && image.uploadedByUserId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the uploader or the commissioner can delete this screenshot" });
+      }
+      await storage.deleteGameReportImage(image.id);
+      res.json({ message: "Screenshot deleted" });
+    } catch (error) {
+      console.error("Failed to delete game report image:", error);
+      res.status(500).json({ message: "Failed to delete game report image" });
     }
   });
 }

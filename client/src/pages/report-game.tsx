@@ -16,7 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Game, Team, Player } from "@shared/schema";
+import { GameScreenshotUpload } from "@/components/game-screenshots";
+import type { Game, Team, Player, ScreenshotCategory } from "@shared/schema";
 
 class ReportGameErrorBoundary extends Component<
   { children: ReactNode; leagueId: string | undefined },
@@ -98,6 +99,100 @@ function liveEra(er: number, ip: string): string {
   const dec = ipToDecimal(ip);
   if (dec <= 0) return "--";
   return (9 * er / dec).toFixed(2);
+}
+
+function normalizeOcrName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z\s]/g, "").trim();
+}
+
+/**
+ * OCR-extracted names come from Power Pros' own in-game display and can be romanized
+ * differently than the roster spelling. This does a best-effort fuzzy match (exact name,
+ * then last-name + first-initial, then last-name substring) so screenshot data prefills
+ * against real roster players wherever possible. Unmatched names still import as
+ * synthetic rows so the coach can see and fix them in the review form.
+ */
+function matchRosterPlayer(ocrName: string, players: Player[]): Player | undefined {
+  const norm = normalizeOcrName(ocrName);
+  if (!norm) return undefined;
+  const parts = norm.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return undefined;
+  const lastName = parts[parts.length - 1];
+  const firstInitial = parts[0][0];
+
+  const exact = players.find(p => normalizeOcrName(`${p.firstName} ${p.lastName}`) === norm);
+  if (exact) return exact;
+
+  const lastNameMatches = players.filter(p => p.lastName.toLowerCase() === lastName);
+  if (lastNameMatches.length === 1) return lastNameMatches[0];
+  if (lastNameMatches.length > 1) {
+    return lastNameMatches.find(p => p.firstName.toLowerCase()[0] === firstInitial) ?? lastNameMatches[0];
+  }
+
+  return players.find(p => p.lastName.toLowerCase().includes(lastName) || lastName.includes(p.lastName.toLowerCase()));
+}
+
+function ocrNumberOrDefault(value: unknown, fallback = 0): number {
+  const n = typeof value === "number" ? value : parseInt(String(value ?? ""), 10);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+interface OcrFinalScoreData {
+  homeScore?: number | null; awayScore?: number | null;
+  homeHits?: number | null; awayHits?: number | null;
+  homeErrors?: number | null; awayErrors?: number | null;
+  innings?: Array<[number, number]> | null;
+}
+
+interface OcrBattingPlayer {
+  name?: string; position?: string | null;
+  ab?: number; r?: number; h?: number; doubles?: number; triples?: number; hr?: number;
+  rbi?: number; bb?: number; so?: number; sb?: number;
+}
+
+interface OcrPitchingPlayer {
+  name?: string; ip?: string; h?: number; r?: number; er?: number; bb?: number; so?: number; hr?: number;
+  decision?: "W" | "L" | "S" | null;
+}
+
+function ocrBattersToEntries(data: Record<string, unknown>, players: Player[]): BatterEntry[] {
+  const raw = (data.players as OcrBattingPlayer[] | undefined) ?? [];
+  return raw
+    .filter(p => p.name)
+    .map((p, idx) => {
+      const match = matchRosterPlayer(p.name!, players);
+      const base = match ? defaultBatter(match) : {
+        playerId: `screenshot-${idx}-${p.name}`, name: p.name!, position: p.position ?? "?",
+        ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0,
+      };
+      return {
+        ...base,
+        ab: ocrNumberOrDefault(p.ab), r: ocrNumberOrDefault(p.r), h: ocrNumberOrDefault(p.h),
+        doubles: ocrNumberOrDefault(p.doubles), triples: ocrNumberOrDefault(p.triples), hr: ocrNumberOrDefault(p.hr),
+        rbi: ocrNumberOrDefault(p.rbi), bb: ocrNumberOrDefault(p.bb), so: ocrNumberOrDefault(p.so), sb: ocrNumberOrDefault(p.sb),
+      };
+    });
+}
+
+function ocrPitchersToEntries(data: Record<string, unknown>, players: Player[]): PitcherEntry[] {
+  const raw = (data.players as OcrPitchingPlayer[] | undefined) ?? [];
+  return raw
+    .filter(p => p.name)
+    .map((p, idx) => {
+      const match = matchRosterPlayer(p.name!, players);
+      const base = match ? defaultPitcher(match) : {
+        playerId: `screenshot-${idx}-${p.name}`, name: p.name!, role: "starter" as const,
+        ip: "0.0", h: 0, r: 0, er: 0, bb: 0, so: 0, hr: 0, win: false, loss: false,
+      };
+      return {
+        ...base,
+        role: idx === 0 ? "starter" as const : "reliever" as const,
+        ip: p.ip ?? base.ip,
+        h: ocrNumberOrDefault(p.h), r: ocrNumberOrDefault(p.r), er: ocrNumberOrDefault(p.er),
+        bb: ocrNumberOrDefault(p.bb), so: ocrNumberOrDefault(p.so), hr: ocrNumberOrDefault(p.hr),
+        win: p.decision === "W", loss: p.decision === "L",
+      };
+    });
 }
 
 export type ReportStatus = "pending" | "confirmed" | "disputed" | "finalized";
@@ -356,6 +451,54 @@ function ReportGameInner() {
     }
   }
 
+  function handleApplyOcr(category: ScreenshotCategory, data: Record<string, unknown>) {
+    switch (category) {
+      case "final_score": {
+        const d = data as OcrFinalScoreData;
+        if (typeof d.homeScore === "number") setHomeScoreDirect(d.homeScore);
+        if (typeof d.awayScore === "number") setAwayScoreDirect(d.awayScore);
+        if (typeof d.homeErrors === "number") { setHomeErrors(d.homeErrors); setShowHitsErrors(true); }
+        if (typeof d.awayErrors === "number") { setAwayErrors(d.awayErrors); setShowHitsErrors(true); }
+        if (Array.isArray(d.innings) && d.innings.length > 0) {
+          const away = d.innings.map(pair => ocrNumberOrDefault(pair?.[0]));
+          const home = d.innings.map(pair => ocrNumberOrDefault(pair?.[1]));
+          setNumInnings(away.length);
+          setAwayInnings(away);
+          setHomeInnings(home);
+          setShowInnings(true);
+        }
+        toast({ title: "Applied final score", description: "Review the score fields below before continuing." });
+        break;
+      }
+      case "home_batting":
+        setHomeBatting(ocrBattersToEntries(data, homePlayers ?? []));
+        setShowHomeBatting(true);
+        toast({ title: "Applied home batting", description: "Names were auto-matched to the roster where possible — double-check each row." });
+        break;
+      case "away_batting":
+        setAwayBatting(ocrBattersToEntries(data, awayPlayers ?? []));
+        setShowAwayBatting(true);
+        toast({ title: "Applied away batting", description: "Names were auto-matched to the roster where possible — double-check each row." });
+        break;
+      case "home_pitching":
+        setHomePitching(ocrPitchersToEntries(data, homePlayers ?? []));
+        setHomePitchersInitialized(true);
+        setShowPitching(true);
+        toast({ title: "Applied home pitching", description: "Review innings pitched and decisions before continuing." });
+        break;
+      case "away_pitching":
+        setAwayPitching(ocrPitchersToEntries(data, awayPlayers ?? []));
+        setAwayPitchersInitialized(true);
+        setShowPitching(true);
+        toast({ title: "Applied away pitching", description: "Review innings pitched and decisions before continuing." });
+        break;
+      case "advanced_stats":
+      default:
+        toast({ title: "Advanced stats are reference-only", description: "This category isn't applied to the box score form." });
+        break;
+    }
+  }
+
   interface ReportPayload {
     homeScore: number; awayScore: number; homeHits: number; awayHits: number;
     homeErrors: number; awayErrors: number; inningScores: number[][];
@@ -555,6 +698,10 @@ function ReportGameInner() {
               homeHits={homeHits}
               awayHits={awayHits}
             />
+
+            {id && gameId && (
+              <GameScreenshotUpload leagueId={id} gameId={gameId} onApply={handleApplyOcr} />
+            )}
 
             <div className="text-[10px] text-muted-foreground px-1">Optional box score detail</div>
 

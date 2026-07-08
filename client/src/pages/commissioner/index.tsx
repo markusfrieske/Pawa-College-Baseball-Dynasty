@@ -285,6 +285,25 @@ export default function CommissionerPage() {
     },
   });
 
+  const toggleGameModeMutation = useMutation({
+    mutationFn: async (gameMode: "simulated" | "reported") => {
+      return apiRequest("PATCH", `/api/leagues/${id}/settings`, { gameMode });
+    },
+    onSuccess: (_r, gameMode) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      toast({
+        title: gameMode === "reported" ? "Reported Mode Enabled" : "Simulated Mode Enabled",
+        description:
+          gameMode === "reported"
+            ? "Games will no longer auto-simulate. Coaches will upload screenshots for OCR box score import."
+            : "Games will auto-simulate as usual.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const updateDifficultyMutation = useMutation({
     mutationFn: async (cpuDifficulty: string) => {
       return apiRequest("PATCH", `/api/leagues/${id}/settings`, { cpuDifficulty });
@@ -575,6 +594,7 @@ export default function CommissionerPage() {
               isDelegating={delegateMutation.isPending}
               onToggleEmailDigests={(enabled) => toggleEmailDigestsMutation.mutate(enabled)}
               onToggleShowReadyNames={(enabled) => toggleShowReadyNamesMutation.mutate(enabled)}
+              onChangeGameMode={(gameMode) => toggleGameModeMutation.mutate(gameMode)}
             />
           </TabsContent>
 

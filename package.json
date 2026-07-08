@@ -13,6 +13,7 @@
     "test:smoke": "PLAYWRIGHT_BROWSERS_PATH=$(ls -d /nix/store/*-playwright-browsers-chromium 2>/dev/null | head -1) playwright test tests/smoke"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.21.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@playwright/test": "^1.59.1",
@@ -46,6 +47,10 @@
     "@tanstack/react-query": "^5.60.5",
     "@tanstack/react-virtual": "^3.14.5",
     "@types/bcrypt": "^6.0.0",
+    "@uppy/aws-s3": "^5.1.0",
+    "@uppy/core": "^5.2.0",
+    "@uppy/dashboard": "^5.1.1",
+    "@uppy/react": "^5.2.0",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -59,6 +64,7 @@
     "express": "^5.0.1",
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
+    "google-auth-library": "^10.9.0",
     "html2canvas": "^1.4.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.453.0",

@@ -37,6 +37,7 @@ import { coaches as coachesTable } from "@shared/schema";
 // ── Domain route modules ─────────────────────────────────────────────────────
 import { registerAuthRoutes } from "./routes/auth";
 import { registerGameRoutes } from "./routes/games";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerInviteRoutes } from "./routes/invites";
 import { registerSavedRoutes } from "./routes/saved";
 import { registerStatsRoutes } from "./routes/stats";
@@ -89,6 +90,7 @@ const leagueCreateSchema = z.object({
   seasonLength: z.enum(["short", "medium", "standard", "long"]).optional(),
   progressionEnabled: z.boolean().optional(),
   isTestData: z.boolean().optional(),
+  gameMode: z.enum(["simulated", "reported"]).optional(),
 });
 
 const gameScoreSchema = z.object({
@@ -455,6 +457,7 @@ export async function registerRoutes(
   registerLeagueMgmtRoutes(app, (...args: Parameters<typeof simulateGame>) => simulateGame(...args));
   registerRosterRoutes(app);
   registerSimulationRoutes(app);
+  registerObjectStorageRoutes(app);
 
   // League routes
   app.get("/api/leagues", requireAuth, async (req, res) => {
@@ -634,7 +637,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false, isTestData } = result.data;
+      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false, isTestData, gameMode = "simulated" } = result.data;
 
       // Safety net: always flag leagues named with the E2E test-runner convention
       // as test data, even if the caller forgot to pass isTestData explicitly.
@@ -649,6 +652,7 @@ export async function registerRoutes(
         currentPhase: "dynasty_setup",
         progressionEnabled,
         isTestData: isTestData === true || autoDetectedTestData,
+        gameMode,
       });
 
       // Create conferences - use selected conferences or default to first N

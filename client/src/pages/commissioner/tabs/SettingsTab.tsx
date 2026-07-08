@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bot, Crown, Loader2, Settings, User, Users, Zap } from "lucide-react";
+import { Bot, Camera, Crown, Loader2, Settings, User, Users, Zap } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
 import { Switch } from "@/components/ui/switch";
@@ -25,6 +25,7 @@ interface SettingsTabProps {
   isDelegating: boolean;
   onToggleEmailDigests: (enabled: boolean) => void;
   onToggleShowReadyNames: (enabled: boolean) => void;
+  onChangeGameMode: (gameMode: "simulated" | "reported") => void;
 }
 
 export function SettingsTab({
@@ -38,6 +39,7 @@ export function SettingsTab({
   isDelegating,
   onToggleEmailDigests,
   onToggleShowReadyNames,
+  onChangeGameMode,
 }: SettingsTabProps) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -126,6 +128,24 @@ export function SettingsTab({
                 checked={league?.showReadyNamesToAll ?? false}
                 onCheckedChange={onToggleShowReadyNames}
                 data-testid="switch-show-ready-names"
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border pt-6">
+              <div className="flex items-center gap-3">
+                <Camera className="w-4 h-4 text-gold shrink-0" />
+                <div>
+                  <p className="font-medium">Reported Games (Screenshot Import)</p>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, games do not auto-simulate. Coaches upload screenshots which are
+                    OCR-scanned into an editable box score for review before submission.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={league?.gameMode === "reported"}
+                onCheckedChange={(checked) => onChangeGameMode(checked ? "reported" : "simulated")}
+                data-testid="switch-game-mode"
               />
             </div>
 

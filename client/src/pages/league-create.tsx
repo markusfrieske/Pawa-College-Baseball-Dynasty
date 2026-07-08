@@ -8,7 +8,7 @@ import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Star, ArrowLeft, TrendingUp, Check } from "lucide-react";
+import { Star, ArrowLeft, TrendingUp, Check, Camera } from "lucide-react";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
 
@@ -59,6 +59,7 @@ export default function LeagueCreatePage() {
   const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "Big Ten", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("standard");
   const [progressionEnabled, setProgressionEnabled] = useState(false);
+  const [gameMode, setGameMode] = useState<"simulated" | "reported">("simulated");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -116,6 +117,7 @@ export default function LeagueCreatePage() {
       selectedConferences: string[];
       seasonLength: string;
       progressionEnabled: boolean;
+      gameMode: string;
     }) => {
       return apiRequest("POST", "/api/leagues", data);
     },
@@ -162,6 +164,7 @@ export default function LeagueCreatePage() {
       selectedConferences,
       seasonLength,
       progressionEnabled,
+      gameMode,
     });
   };
 
@@ -325,6 +328,34 @@ export default function LeagueCreatePage() {
                     <p>C- to C+: Players stay stable</p>
                     <p>D+ and below: Players decline each season</p>
                     <p className="mt-1">Recruit potential is scouted as a 2-grade range. The exact grade is revealed when they join your roster.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded border border-border bg-background/50">
+                  <div className="flex items-center gap-3">
+                    <Camera className="w-4 h-4 text-gold" />
+                    <div>
+                      <label htmlFor="game-mode-toggle" className="text-sm font-medium text-foreground cursor-pointer">
+                        Reported Games (Screenshot Import)
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Coaches upload eBaseball Power Pros screenshots and OCR extracts box scores, instead of auto-simulation
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="game-mode-toggle"
+                    checked={gameMode === "reported"}
+                    onCheckedChange={(checked) => setGameMode(checked ? "reported" : "simulated")}
+                    data-testid="switch-game-mode"
+                  />
+                </div>
+                {gameMode === "reported" && (
+                  <div className="p-3 rounded border border-gold/20 bg-gold/5 text-xs text-muted-foreground space-y-1">
+                    <p className="text-gold font-medium">Reported Mode</p>
+                    <p>Games do not auto-simulate. After each series, coaches upload screenshots (Final Score, Batting, Pitching, Advanced Stats) which are OCR-scanned into an editable box score for review before submission.</p>
                   </div>
                 )}
               </div>

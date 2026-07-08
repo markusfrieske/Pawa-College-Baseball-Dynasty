@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { parseErrorMessage } from "@/lib/errorUtils";
+import { GameScreenshotGallery } from "@/components/game-screenshots";
 
 interface ScheduleGame {
   id: string;
@@ -209,6 +210,7 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
             <p className="text-[9px] text-muted-foreground">
               Submitted {new Date(report.createdAt).toLocaleDateString()}
             </p>
+            <GameScreenshotGallery leagueId={leagueId} gameId={report.gameId} />
           </div>
           {(isPending || isDisputed) && (
             <RetroButton

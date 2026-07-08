@@ -6,6 +6,7 @@ import {
   leagueEvents,
   advanceDigests,
   gameReports,
+  gameReportImages,
   recruitingClassSnapshots,
   coachSeasonHistory,
   storylineRecruits, storylineEvents, storylineVotes,
@@ -40,6 +41,7 @@ import {
   type LeagueEvent, type InsertLeagueEvent,
   type AdvanceDigest, type InsertAdvanceDigest,
   type GameReport, type InsertGameReport,
+  type GameReportImage, type InsertGameReportImage,
   type RecruitingClassSnapshot, type InsertRecruitingClassSnapshot,
   type CoachSeasonHistory, type InsertCoachSeasonHistory,
   type StorylineRecruit, type InsertStorylineRecruit,
@@ -233,6 +235,14 @@ export interface IStorage {
   getPendingReportsForTeam(leagueId: string, teamId: string): Promise<GameReport[]>;
   createGameReport(data: InsertGameReport): Promise<GameReport>;
   updateGameReport(id: string, data: Partial<GameReport>): Promise<GameReport | undefined>;
+
+  // Screenshot uploads for OCR-assisted reporting
+  getGameReportImages(gameId: string): Promise<GameReportImage[]>;
+  getGameReportImage(id: string): Promise<GameReportImage | undefined>;
+  getGameReportImageByObjectPath(objectPath: string): Promise<GameReportImage | undefined>;
+  createGameReportImage(data: InsertGameReportImage): Promise<GameReportImage>;
+  updateGameReportImage(id: string, data: Partial<GameReportImage>): Promise<GameReportImage | undefined>;
+  deleteGameReportImage(id: string): Promise<void>;
 
   // Recruiting class snapshots
   createRecruitingClassSnapshot(data: InsertRecruitingClassSnapshot): Promise<RecruitingClassSnapshot>;
@@ -1207,6 +1217,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(walkonPool).where(eq(walkonPool.leagueId, id));
 
       await tx.delete(recruits).where(eq(recruits.leagueId, id));
+      await tx.delete(gameReportImages).where(eq(gameReportImages.leagueId, id));
       await tx.delete(games).where(eq(games.leagueId, id));
       await tx.delete(standings).where(eq(standings.leagueId, id));
       await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
@@ -1614,6 +1625,35 @@ export class DatabaseStorage implements IStorage {
   async updateGameReport(id: string, data: Partial<GameReport>): Promise<GameReport | undefined> {
     const [r] = await db.update(gameReports).set({ ...data, updatedAt: new Date() }).where(eq(gameReports.id, id)).returning();
     return r || undefined;
+  }
+
+  // ─── Game Report Screenshots (OCR-assisted import) ─────────────────────────────
+  async getGameReportImages(gameId: string): Promise<GameReportImage[]> {
+    return db.select().from(gameReportImages).where(eq(gameReportImages.gameId, gameId)).orderBy(gameReportImages.createdAt);
+  }
+
+  async getGameReportImage(id: string): Promise<GameReportImage | undefined> {
+    const [r] = await db.select().from(gameReportImages).where(eq(gameReportImages.id, id));
+    return r || undefined;
+  }
+
+  async getGameReportImageByObjectPath(objectPath: string): Promise<GameReportImage | undefined> {
+    const [r] = await db.select().from(gameReportImages).where(eq(gameReportImages.objectPath, objectPath));
+    return r || undefined;
+  }
+
+  async createGameReportImage(data: InsertGameReportImage): Promise<GameReportImage> {
+    const [r] = await db.insert(gameReportImages).values(data).returning();
+    return r;
+  }
+
+  async updateGameReportImage(id: string, data: Partial<GameReportImage>): Promise<GameReportImage | undefined> {
+    const [r] = await db.update(gameReportImages).set(data).where(eq(gameReportImages.id, id)).returning();
+    return r || undefined;
+  }
+
+  async deleteGameReportImage(id: string): Promise<void> {
+    await db.delete(gameReportImages).where(eq(gameReportImages.id, id));
   }
 
   // ─── Storyline Votes ─────────────────────────────────────────────────────────

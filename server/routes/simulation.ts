@@ -6299,7 +6299,12 @@ export function registerSimulationRoutes(app: Express): void {
       // During preseason, skip regular season games — only exhibition games run below.
       // Regular Season Week 1 games exist in the schedule from dynasty start and must NOT
       // be simulated during the preseason advance tick.
-      const incompleteGames = league.currentPhase === "preseason" ? [] : seasonGames.filter(g => 
+      // In "reported" game mode leagues, regular season games are NOT auto-simulated —
+      // coaches submit them via the manual/OCR Report Game flow instead. Any games still
+      // incomplete when the week advances remain incomplete (unreported) rather than being
+      // engine-simulated; this keeps the sim engine itself completely untouched for these
+      // leagues, per task scope.
+      const incompleteGames = (league.currentPhase === "preseason" || league.gameMode === "reported") ? [] : seasonGames.filter(g => 
         g.week === currentWeek && 
         g.phase === "regular" && 
         !g.isComplete

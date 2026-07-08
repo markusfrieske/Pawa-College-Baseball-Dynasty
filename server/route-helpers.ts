@@ -38,6 +38,24 @@ export function hasCommissionerAccess(
   return coIds.includes(userId);
 }
 
+// Only the commissioner (or a co-commissioner) or a coach involved in the game
+// (home/away) may view an uploaded box-score screenshot for that game.
+export async function canAccessGameReportImage(
+  leagueId: string,
+  gameId: string,
+  userId: string | undefined,
+): Promise<boolean> {
+  if (!userId) return false;
+  const league = await storage.getLeague(leagueId);
+  if (!league) return false;
+  if (hasCommissionerAccess(league, userId)) return true;
+  const game = await storage.getGame(gameId);
+  if (!game || game.leagueId !== leagueId) return false;
+  const coaches = await storage.getCoachesByLeague(leagueId);
+  const coach = coaches.find((c: any) => c.userId === userId);
+  return !!(coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId));
+}
+
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 
 export const SALT_ROUNDS = 10;

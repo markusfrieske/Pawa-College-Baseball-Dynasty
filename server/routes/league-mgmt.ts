@@ -37,6 +37,7 @@ const settingsSchema = z.object({
   cpuRecruitingAggression: z.number().int().min(1).max(5).optional(),
   emailDigestsEnabled: z.boolean().optional(),
   showReadyNamesToAll: z.boolean().optional(),
+  gameMode: z.enum(["simulated", "reported"]).optional(),
 });
 
 type SimulateGameFn = (homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhil?: string, awayPhil?: string, week?: number | null) => Promise<{ homeScore: number; awayScore: number; boxScore: string }>;
@@ -1136,6 +1137,7 @@ app.patch("/api/leagues/:id/settings", requireAuth, async (req, res) => {
     if (result.data.cpuRecruitingAggression !== undefined) updateData.cpuRecruitingAggression = result.data.cpuRecruitingAggression;
     if (result.data.emailDigestsEnabled !== undefined) updateData.emailDigestsEnabled = result.data.emailDigestsEnabled;
     if (result.data.showReadyNamesToAll !== undefined) updateData.showReadyNamesToAll = result.data.showReadyNamesToAll;
+    if (result.data.gameMode !== undefined) updateData.gameMode = result.data.gameMode;
     const updated = await storage.updateLeague(req.params.id as string, updateData);
     res.json(updated);
   } catch (error) {
