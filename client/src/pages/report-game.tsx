@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { GameScreenshotUpload } from "@/components/game-screenshots";
+import { OcrReviewScreen, computeReviewIssues, type FieldSource } from "@/components/ocr-review-screen";
 import type { Game, Team, Player, ScreenshotCategory } from "@shared/schema";
 
 class ReportGameErrorBoundary extends Component<
@@ -55,7 +56,7 @@ interface GameWithTeams extends Game {
   awayTeam: Team;
 }
 
-interface BatterEntry {
+export interface BatterEntry {
   playerId: string;
   name: string;
   position: string;
@@ -63,7 +64,7 @@ interface BatterEntry {
   rbi: number; bb: number; so: number; sb: number;
 }
 
-interface PitcherEntry {
+export interface PitcherEntry {
   playerId: string;
   name: string;
   role: "starter" | "reliever" | "closer";
@@ -90,12 +91,12 @@ function defaultPitcher(player: Player): PitcherEntry {
   };
 }
 
-function ipToDecimal(ip: string): number {
+export function ipToDecimal(ip: string): number {
   const [whole, frac] = ip.split(".");
   return (parseInt(whole) || 0) + (parseInt(frac) || 0) / 3;
 }
 
-function liveEra(er: number, ip: string): string {
+export function liveEra(er: number, ip: string): string {
   const dec = ipToDecimal(ip);
   if (dec <= 0) return "--";
   return (9 * er / dec).toFixed(2);
@@ -193,6 +194,52 @@ function ocrPitchersToEntries(data: Record<string, unknown>, players: Player[]):
         win: p.decision === "W", loss: p.decision === "L",
       };
     });
+}
+
+function scoreFieldMeta(d: OcrFinalScoreData): Record<string, FieldSource> {
+  const meta: Record<string, FieldSource> = {
+    "score.homeScore": d.homeScore != null ? "ocr" : "low",
+    "score.awayScore": d.awayScore != null ? "ocr" : "low",
+    "score.homeErrors": d.homeErrors != null ? "ocr" : "low",
+    "score.awayErrors": d.awayErrors != null ? "ocr" : "low",
+  };
+  if (Array.isArray(d.innings)) {
+    d.innings.forEach((pair, i) => {
+      meta[`inning.${i}.away`] = pair?.[0] != null ? "ocr" : "low";
+      meta[`inning.${i}.home`] = pair?.[1] != null ? "ocr" : "low";
+    });
+  }
+  return meta;
+}
+
+const BATTING_META_FIELDS: (keyof OcrBattingPlayer)[] = ["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"];
+const PITCHING_META_FIELDS: (keyof OcrPitchingPlayer)[] = ["h", "r", "er", "bb", "so", "hr"];
+
+function battingFieldMeta(side: "home" | "away", data: Record<string, unknown>, entries: BatterEntry[]): Record<string, FieldSource> {
+  const raw = (data.players as OcrBattingPlayer[] | undefined ?? []).filter(p => p.name);
+  const meta: Record<string, FieldSource> = {};
+  entries.forEach((entry, idx) => {
+    const r = raw[idx];
+    meta[`batting.${side}.${entry.playerId}.name`] = r?.name != null ? "ocr" : "low";
+    BATTING_META_FIELDS.forEach(f => {
+      meta[`batting.${side}.${entry.playerId}.${f}`] = r?.[f] != null ? "ocr" : "low";
+    });
+  });
+  return meta;
+}
+
+function pitchingFieldMeta(side: "home" | "away", data: Record<string, unknown>, entries: PitcherEntry[]): Record<string, FieldSource> {
+  const raw = (data.players as OcrPitchingPlayer[] | undefined ?? []).filter(p => p.name);
+  const meta: Record<string, FieldSource> = {};
+  entries.forEach((entry, idx) => {
+    const r = raw[idx];
+    meta[`pitching.${side}.${entry.playerId}.name`] = r?.name != null ? "ocr" : "low";
+    meta[`pitching.${side}.${entry.playerId}.ip`] = r?.ip != null ? "ocr" : "low";
+    PITCHING_META_FIELDS.forEach(f => {
+      meta[`pitching.${side}.${entry.playerId}.${f}`] = r?.[f] != null ? "ocr" : "low";
+    });
+  });
+  return meta;
 }
 
 export type ReportStatus = "pending" | "confirmed" | "disputed" | "finalized";
@@ -336,6 +383,12 @@ function ReportGameInner() {
   const [homePitchersInitialized, setHomePitchersInitialized] = useState(false);
   const [awayPitchersInitialized, setAwayPitchersInitialized] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [fieldMeta, setFieldMeta] = useState<Record<string, FieldSource>>({});
+  const [ackReviewWarnings, setAckReviewWarnings] = useState(false);
+
+  function markFieldCorrected(key: string) {
+    setFieldMeta(prev => (prev[key] ? { ...prev, [key]: "corrected" } : prev));
+  }
 
   const { data: gameData, isLoading: gameLoading, isError: gameError } = useQuery<{ game: GameWithTeams; homeTeam: Team; awayTeam: Team }>({
     queryKey: ["/api/leagues", id, "games", gameId],
@@ -467,31 +520,44 @@ function ReportGameInner() {
           setHomeInnings(home);
           setShowInnings(true);
         }
+        setFieldMeta(prev => ({ ...prev, ...scoreFieldMeta(d) }));
         toast({ title: "Applied final score", description: "Review the score fields below before continuing." });
         break;
       }
-      case "home_batting":
-        setHomeBatting(ocrBattersToEntries(data, homePlayers ?? []));
+      case "home_batting": {
+        const entries = ocrBattersToEntries(data, homePlayers ?? []);
+        setHomeBatting(entries);
         setShowHomeBatting(true);
+        setFieldMeta(prev => ({ ...prev, ...battingFieldMeta("home", data, entries) }));
         toast({ title: "Applied home batting", description: "Names were auto-matched to the roster where possible — double-check each row." });
         break;
-      case "away_batting":
-        setAwayBatting(ocrBattersToEntries(data, awayPlayers ?? []));
+      }
+      case "away_batting": {
+        const entries = ocrBattersToEntries(data, awayPlayers ?? []);
+        setAwayBatting(entries);
         setShowAwayBatting(true);
+        setFieldMeta(prev => ({ ...prev, ...battingFieldMeta("away", data, entries) }));
         toast({ title: "Applied away batting", description: "Names were auto-matched to the roster where possible — double-check each row." });
         break;
-      case "home_pitching":
-        setHomePitching(ocrPitchersToEntries(data, homePlayers ?? []));
+      }
+      case "home_pitching": {
+        const entries = ocrPitchersToEntries(data, homePlayers ?? []);
+        setHomePitching(entries);
         setHomePitchersInitialized(true);
         setShowPitching(true);
+        setFieldMeta(prev => ({ ...prev, ...pitchingFieldMeta("home", data, entries) }));
         toast({ title: "Applied home pitching", description: "Review innings pitched and decisions before continuing." });
         break;
-      case "away_pitching":
-        setAwayPitching(ocrPitchersToEntries(data, awayPlayers ?? []));
+      }
+      case "away_pitching": {
+        const entries = ocrPitchersToEntries(data, awayPlayers ?? []);
+        setAwayPitching(entries);
         setAwayPitchersInitialized(true);
         setShowPitching(true);
+        setFieldMeta(prev => ({ ...prev, ...pitchingFieldMeta("away", data, entries) }));
         toast({ title: "Applied away pitching", description: "Review innings pitched and decisions before continuing." });
         break;
+      }
       case "advanced_stats":
       default:
         toast({ title: "Advanced stats are reference-only", description: "This category isn't applied to the box score form." });
@@ -600,6 +666,7 @@ function ReportGameInner() {
     const err = validateScores();
     if (err) { setValidationError(err); return; }
     setValidationError(null);
+    setAckReviewWarnings(false);
     setPhase("review");
   }
 
@@ -617,6 +684,19 @@ function ReportGameInner() {
 
   const isAutoFinalized = phase === "submitted" && (game.isComplete ?? false);
   const hasBoxScoreDetail = homeBatting.length > 0 || awayBatting.length > 0 || homePitching.length > 0 || awayPitching.length > 0;
+  const hasOcrData = Object.keys(fieldMeta).length > 0;
+  const lowConfidenceCount = Object.values(fieldMeta).filter(v => v === "low").length;
+  const reviewIssues = hasOcrData
+    ? computeReviewIssues({
+        homeScore, awayScore, showInnings, numInnings, homeInnings, awayInnings,
+        homeBatting, awayBatting, homePitching, awayPitching,
+        homeTeamName: homeTeam.abbreviation, awayTeamName: awayTeam.abbreviation,
+        lowConfidenceCount,
+      })
+    : [];
+  const reviewHardErrors = reviewIssues.filter(i => i.severity === "hard");
+  const reviewSoftIssues = reviewIssues.filter(i => i.severity === "soft");
+  const submitBlocked = hasOcrData && (reviewHardErrors.length > 0 || (reviewSoftIssues.length > 0 && !ackReviewWarnings));
 
   return (
     <div className="min-h-screen bg-background">
@@ -783,23 +863,55 @@ function ReportGameInner() {
 
         {phase === "review" && (
           <>
-            <ReviewStep
-              homeTeam={homeTeam}
-              awayTeam={awayTeam}
-              homeScore={homeScore}
-              awayScore={awayScore}
-              homeHits={homeHits}
-              awayHits={awayHits}
-              homeErrors={homeErrors}
-              awayErrors={awayErrors}
-              homeBatting={homeBatting}
-              awayBatting={awayBatting}
-              homePitching={homePitching}
-              awayPitching={awayPitching}
-              homeInnings={showInnings ? homeInnings : []}
-              awayInnings={showInnings ? awayInnings : []}
-              hasBoxScore={hasBoxScoreDetail}
-            />
+            {hasOcrData ? (
+              <OcrReviewScreen
+                homeTeam={homeTeam}
+                awayTeam={awayTeam}
+                homeScore={homeScore}
+                awayScore={awayScore}
+                homeErrors={homeErrors}
+                awayErrors={awayErrors}
+                onChangeHomeErrors={v => { markFieldCorrected("score.homeErrors"); setHomeErrors(v); }}
+                onChangeAwayErrors={v => { markFieldCorrected("score.awayErrors"); setAwayErrors(v); }}
+                showInnings={showInnings}
+                numInnings={numInnings}
+                homeInnings={homeInnings}
+                awayInnings={awayInnings}
+                onChangeHomeInning={(i, v) => { markFieldCorrected(`inning.${i}.home`); setHomeInnings(prev => { const n = [...prev]; n[i] = v; return n; }); }}
+                onChangeAwayInning={(i, v) => { markFieldCorrected(`inning.${i}.away`); setAwayInnings(prev => { const n = [...prev]; n[i] = v; return n; }); }}
+                homeBatting={homeBatting}
+                awayBatting={awayBatting}
+                onChangeHomeBatting={setHomeBatting}
+                onChangeAwayBatting={setAwayBatting}
+                homePitching={homePitching}
+                awayPitching={awayPitching}
+                onChangeHomePitching={setHomePitching}
+                onChangeAwayPitching={setAwayPitching}
+                fieldMeta={fieldMeta}
+                onCorrect={markFieldCorrected}
+                issues={reviewIssues}
+                ackWarnings={ackReviewWarnings}
+                onChangeAckWarnings={setAckReviewWarnings}
+              />
+            ) : (
+              <ReviewStep
+                homeTeam={homeTeam}
+                awayTeam={awayTeam}
+                homeScore={homeScore}
+                awayScore={awayScore}
+                homeHits={homeHits}
+                awayHits={awayHits}
+                homeErrors={homeErrors}
+                awayErrors={awayErrors}
+                homeBatting={homeBatting}
+                awayBatting={awayBatting}
+                homePitching={homePitching}
+                awayPitching={awayPitching}
+                homeInnings={showInnings ? homeInnings : []}
+                awayInnings={showInnings ? awayInnings : []}
+                hasBoxScore={hasBoxScoreDetail}
+              />
+            )}
 
             {validationError && (
               <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" data-testid="text-validation-error-review">
@@ -811,7 +923,7 @@ function ReportGameInner() {
             <div className="flex gap-3">
               <RetroButton
                 variant="outline"
-                onClick={() => { setPhase("score"); setValidationError(null); }}
+                onClick={() => { setPhase("score"); setValidationError(null); setAckReviewWarnings(false); }}
                 data-testid="button-back-to-score-from-review"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Edit Score
@@ -819,7 +931,7 @@ function ReportGameInner() {
               <RetroButton
                 className="flex-1"
                 onClick={handleSubmit}
-                disabled={isMutating}
+                disabled={isMutating || submitBlocked}
                 data-testid="button-submit-report"
               >
                 {isMutating
