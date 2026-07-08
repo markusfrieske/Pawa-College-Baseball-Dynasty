@@ -26,7 +26,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber } from "../route-helpers";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
@@ -34,6 +34,19 @@ import type { Player } from "@shared/schema";
 import { generateRecruitCommitNewsArticle } from "../news-engine";
 import { invalidateLeague } from "../cache";
 import { getActionPointCost } from "@shared/stateDistance";
+import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
+import {
+  getAttributesToRevealCount,
+  getAttributesToReveal,
+  generateRecruits,
+  SCOUT_ATTRS,
+} from "../recruit-engine";
+import { normalizeCommonAbilities } from "../normalizeCommonAbilities";
+import { pool, db } from "../db";
+import { sql as drizzleSql } from "drizzle-orm";
+import { coaches as coachesTable } from "@shared/schema";
+import type { Recruit } from "@shared/schema";
+import type { LastSeasonStats } from "@shared/schema";
 
 export function registerRecruitingRoutes(app: Express): void {
   // ============ RECOMMENDED ACTIONS (WAR ROOM) ============
@@ -1948,487 +1961,862 @@ export function registerRecruitingRoutes(app: Express): void {
     }
   });
 
-  // Roster routes
-  app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
+  // Recruiting routes
+  app.get("/api/leagues/:id/recruiting", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-      const requestedTeamId = req.query.teamId as string | undefined;
-      
-      let team;
-      if (requestedTeamId) {
-        team = leagueTeams.find((t) => t.id === requestedTeamId);
-        if (!team) {
-          return res.status(404).json({ message: "Team not found" });
-        }
-      } else {
-        const userId = req.session.userId;
-        const coaches = await storage.getCoachesByLeague(req.params.id as string);
-        const userCoach = coaches.find((c) => c.userId === userId);
-        team = userCoach ? leagueTeams.find((t) => t.id === userCoach.teamId) : leagueTeams.find((t) => !t.isCpu);
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
       }
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = userCoach
+        ? leagueTeams.find((t) => t.coachId === userCoach.id)
+        : leagueTeams.find((t) => !t.isCpu);
       
-      if (!team) {
+      if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const teamPlayers = await storage.getPlayersByTeam(team.id);
+      const leagueRecruits = await storage.getRecruitsByLeague(league.id);
+      const interests = await storage.getRecruitingInterestsByTeam(userTeam.id);
+      const roster = await storage.getPlayersByTeam(userTeam.id);
       
-      // Filter out players who have declared for the draft or are otherwise flagged as departing
-      const activePlayers = teamPlayers.filter(p => !p.declaredForDraft && !p.pendingDeparture);
+      // Get coach data for skill-based action limits
+      const coach = userCoach ?? (userTeam.coachId ? await storage.getCoach(userTeam.coachId) : null);
+
+      // Build team lookup map for top schools
+      const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
+
+      // Rivalry computation: use recruit_top_schools combined interest (interestLevel + accumulatedInterest)
+      // as the canonical interest signal.
+      // RIVALRY_INTEREST_THRESHOLD: combined baseline prestige (default 50) + meaningful active
+      // recruiting accumulation (30). A school must exceed this sum to count as an active rival.
+      const RIVALRY_INTEREST_THRESHOLD = 80;
+      // RIVALRY_INTENSITY_CUTOFFS: school counts that define Light / Moderate / Heavy labels.
+      const RIVALRY_INTENSITY_CUTOFFS = { moderate: 2, heavy: 4 } as const;
+      const allLeagueTopSchools = await storage.getRecruitTopSchoolsByLeague(league.id);
+      const cpuDifficulty = league.cpuDifficulty || "high_school";
+      const cpuCountsForRivalry = cpuDifficulty === "all_american" || cpuDifficulty === "elite";
+      // Build per-recruit map: recruitId -> count of teams with meaningful combined interest
+      const rivalryMap = new Map<string, number>();
+      for (const ts of allLeagueTopSchools) {
+        if (ts.teamId === userTeam.id) continue;
+        if (!ts.isActive) continue;
+        if ((ts.interestLevel || 0) + (ts.accumulatedInterest || 0) < RIVALRY_INTEREST_THRESHOLD) continue;
+        const tsTeam = teamMap.get(ts.teamId);
+        if (!tsTeam) continue;
+        if (tsTeam.isCpu && !cpuCountsForRivalry) continue;
+        rivalryMap.set(ts.recruitId, (rivalryMap.get(ts.recruitId) || 0) + 1);
+      }
+
+      // teamsIn map: recruitId -> { teamsIn, offersOut } from recruiting_interests table.
+      // Counts rival teams that have either extended an offer OR accumulated >20% interest.
+      // More precise than rivalryMap (which uses recruit_top_schools prestige baseline).
+      // Revealed once the user has scouted >= 10% of the recruit.
+      const allLeagueInterests = await storage.getRecruitingInterestsByLeague(league.id);
+      const teamsInMap = new Map<string, { teamsIn: number; offersOut: number }>();
+      for (const ri of allLeagueInterests) {
+        if (ri.teamId === userTeam.id) continue;
+        if ((ri.interestLevel || 0) <= 20 && !ri.hasOffer) continue;
+        const entry = teamsInMap.get(ri.recruitId) ?? { teamsIn: 0, offersOut: 0 };
+        entry.teamsIn++;
+        if (ri.hasOffer) entry.offersOut++;
+        teamsInMap.set(ri.recruitId, entry);
+      }
+
+      // Build a per-recruit map from the already-fetched allLeagueTopSchools to avoid N+1 queries
+      const topSchoolsByRecruit = new Map<string, (typeof allLeagueTopSchools)[number][]>();
+      for (const ts of allLeagueTopSchools) {
+        if (!topSchoolsByRecruit.has(ts.recruitId)) topSchoolsByRecruit.set(ts.recruitId, []);
+        topSchoolsByRecruit.get(ts.recruitId)!.push(ts);
+      }
+
+      const recruitsWithInterest = await Promise.all(leagueRecruits.map(async (recruit) => {
+        const interest = interests.find((i) => i.recruitId === recruit.id);
+        
+        // Use pre-fetched top schools map — no extra DB query per recruit
+        const storedTopSchools = topSchoolsByRecruit.get(recruit.id) ?? [];
+        
+        // Stage values are lowercase: "open", "top8", "top5", "top3", "verbal", "signed"
+        const stage = (recruit.stage || "open").toLowerCase();
+        const topSchoolsCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
+        
+        // Convert stored top schools to display format, filtering by active schools in the league
+        // Deduplicate by teamId, keeping the entry with the highest combined interest
+        const deduped = new Map<string, typeof storedTopSchools[0]>();
+        for (const ts of storedTopSchools) {
+          if (!ts.isActive || !teamMap.has(ts.teamId)) continue;
+          const existing = deduped.get(ts.teamId);
+          if (!existing || (ts.interestLevel + ts.accumulatedInterest) > (existing.interestLevel + existing.accumulatedInterest)) {
+            deduped.set(ts.teamId, ts);
+          }
+        }
+        let topSchools = Array.from(deduped.values())
+          .sort((a, b) => {
+            const aTotal = a.interestLevel + a.accumulatedInterest;
+            const bTotal = b.interestLevel + b.accumulatedInterest;
+            const aGain = a.previousInterestLevel != null ? aTotal - a.previousInterestLevel : 0;
+            const bGain = b.previousInterestLevel != null ? bTotal - b.previousInterestLevel : 0;
+            if (bGain !== aGain) return bGain - aGain;
+            return bTotal - aTotal;
+          })
+          .slice(0, topSchoolsCount)
+          .map(ts => {
+            const team = teamMap.get(ts.teamId)!;
+            const combined = Math.min(100, ts.interestLevel + ts.accumulatedInterest);
+            return {
+              teamId: ts.teamId,
+              teamName: team.name,
+              abbreviation: team.abbreviation,
+              primaryColor: team.primaryColor,
+              interestLevel: combined,
+              previousInterestLevel: ts.previousInterestLevel ?? null,
+            };
+          });
+        
+        // Fallback: if no stored top schools, generate from league teams
+        if (topSchools.length === 0) {
+          const seedFromId = (id: string) => {
+            let hash = 0;
+            for (let i = 0; i < id.length; i++) {
+              hash = ((hash << 5) - hash) + id.charCodeAt(i);
+              hash = hash & hash;
+            }
+            return Math.abs(hash);
+          };
+          const seed = seedFromId(recruit.id);
+          const seededShuffle = <T,>(arr: T[], s: number): T[] => {
+            const result = [...arr];
+            for (let i = result.length - 1; i > 0; i--) {
+              const j = (s * (i + 1)) % result.length;
+              [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+          };
+          const shuffledTeams = seededShuffle(leagueTeams, seed).slice(0, topSchoolsCount);
+          topSchools = shuffledTeams.map((team, idx) => ({
+            teamId: team.id,
+            teamName: team.name,
+            abbreviation: team.abbreviation,
+            primaryColor: team.primaryColor,
+            interestLevel: Math.max(10, 100 - (idx * 10) - ((seed + idx) % 10)),
+          })).sort((a, b) => b.interestLevel - a.interestLevel);
+        }
+        
+        const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
+        
+        let actualPotential = recruit.potential;
+        if (actualPotential == null) {
+          actualPotential = rollWeightedPotential();
+          storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
+        }
+        let dynamicPotentialFloor = recruit.potentialFloor;
+        let dynamicPotentialCeiling = recruit.potentialCeiling;
+        if (actualPotential != null && coach) {
+          const evalSkill = coach.evaluationSkill || 1;
+          const dynRange = getPotentialRange(actualPotential, evalSkill);
+          dynamicPotentialFloor = dynRange.floor;
+          dynamicPotentialCeiling = dynRange.ceiling;
+        }
+        
+        // Rivalry signals: only visible when viewer has scouted >= 25%
+        const userScoutPct = interest?.scoutPercentage || 0;
+        const rawCompetingCount = rivalryMap.get(recruit.id) || 0;
+        const competingCount = userScoutPct >= 25 ? rawCompetingCount : null;
+        const competingIntensity: string | null =
+          competingCount === null || competingCount === 0 ? null :
+          competingCount < RIVALRY_INTENSITY_CUTOFFS.moderate ? "Light" :
+          competingCount < RIVALRY_INTENSITY_CUTOFFS.heavy ? "Moderate" : "Heavy";
+
+        // teamsIn / offersOut: revealed once user has scouted >= 10%.
+        // Sourced from recruiting_interests (hasOffer OR interestLevel > 20) — more
+        // precise than the prestige-baseline rivalryMap used for competingCount.
+        const rawTeamsIn = teamsInMap.get(recruit.id) ?? { teamsIn: 0, offersOut: 0 };
+        const teamsIn: number | null = userScoutPct >= 10 ? rawTeamsIn.teamsIn : null;
+        const offersOut: number | null = userScoutPct >= 10 ? rawTeamsIn.offersOut : null;
+
+        // Signing-day holdback: hold back last 40% of attribute fields and last 50% of common-ability
+        // fields until signingDayRevealed = true.  Blue chips are fully exempt.
+        const SIGNING_ATTR_KEYS = new Set([
+          'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
+          'velocity', 'control', 'stamina',
+          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
+        ]);
+        const SIGNING_COMMON_KEYS = new Set([
+          'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
+          'wRISP', 'vsLefty', 'poise', 'heater', 'agile', 'catcherAbility',
+        ]);
+        // Default field ordering for recruits whose scoutingOrder was generated before
+        // attribute/common-ability keys were included (prevents empty holdbackFields).
+        const isPitcherRecruit = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
+        const defaultAttrOrder = isPitcherRecruit
+          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU']
+          : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
+        const defaultCommonOrder = isPitcherRecruit
+          ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
+          : ['clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
+        const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
+        const attrOrderFromScouting   = scoutingOrder.filter(f => SIGNING_ATTR_KEYS.has(f));
+        const commonOrderFromScouting = scoutingOrder.filter(f => SIGNING_COMMON_KEYS.has(f));
+        // Fall back to defaults when scoutingOrder predates these key groups
+        const attrOrder   = attrOrderFromScouting.length   > 0 ? attrOrderFromScouting   : defaultAttrOrder;
+        const commonOrder = commonOrderFromScouting.length > 0 ? commonOrderFromScouting : defaultCommonOrder;
+        // Signing-day holdback: fields are nulled before reaching the client and the client
+        // renders them as gold lock icons. Blue chips / generational gems are fully revealed
+        // with no holdback (coaches have been following them all year). Regular recruits hold
+        // back exactly half of attrs and half of common abilities. All locks clear on signing day.
+        const holdbackFields: string[] = recruit.signingDayRevealed
+          ? []
+          : (recruit.isBlueChip || recruit.isGenerationalGem)
+            ? []  // fully revealed — no locks for elite recruits
+            : [
+                ...attrOrder.slice(Math.floor(attrOrder.length * 0.50)),    // hold back last 50%
+                ...commonOrder.slice(Math.floor(commonOrder.length * 0.50)), // hold back last 50%
+              ];
+
+        // Null out holdback field values so they never reach the client before signing day
+        const maskedRecruit: Record<string, unknown> = { ...recruit };
+        for (const field of holdbackFields) {
+          maskedRecruit[field] = null;
+        }
+
+        // Stadium atmosphere signal: high-stadium programs get an intel flag when a recruit
+        // strongly values reputation. Revealed once scouted ≥ 10% — the recruit's buzz
+        // about the venue is part of what you learn from early contact.
+        const reputationPri = recruit.reputationPriority || "Somewhat";
+        const reputationHighWeight = reputationPri === "Extremely" || reputationPri === "Very";
+        const stadiumAffinitySignal = userScoutPct >= 10 && reputationHighWeight && (userTeam.stadium || 5) >= 7;
+
+        return {
+          ...maskedRecruit,
+          potential: actualPotential,
+          potentialFloor: dynamicPotentialFloor,
+          potentialCeiling: dynamicPotentialCeiling,
+          interest,
+          topSchools,
+          signedTeamName: signedTeam?.name || null,
+          signedTeamAbbreviation: signedTeam?.abbreviation || null,
+          signedTeamPrimaryColor: signedTeam?.primaryColor || null,
+          signedTeamSecondaryColor: signedTeam?.secondaryColor || null,
+          competingCount,
+          competingIntensity,
+          teamsIn,
+          offersOut,
+          stadiumAffinitySignal,
+          // Tell the client which fields are signing-day locked vs just unscouted
+          signingDayLockedFields: holdbackFields,
+        };
+      }));
+
+      // Batch-fetch last season stats for transfer recruits (single query, not N queries)
+      const transferSourceIds = leagueRecruits
+        .filter(r => r.recruitType === "TRANSFER" && r.sourcePlayerId)
+        .map(r => r.sourcePlayerId as string);
+      const transferStatsMap = new Map<string, LastSeasonStats>();
+      if (transferSourceIds.length > 0) {
+        const rawStats = await storage.getLatestPlayerSeasonStatsByIds(league.id, transferSourceIds);
+        const latestBySrc = new Map<string, typeof rawStats[0]>();
+        for (const row of rawStats) {
+          const ex = latestBySrc.get(row.playerId);
+          if (!ex || row.season > ex.season) latestBySrc.set(row.playerId, row);
+        }
+        for (const [pid, row] of latestBySrc) {
+          const ipInnings = (row.ipOuts || 0) / 3;
+          const abTotal = row.ab + (row.bb || 0) + (row.hbp || 0);
+          transferStatsMap.set(pid, {
+            avg: row.ab > 0 ? Math.round((row.h / row.ab) * 1000) / 1000 : null,
+            obp: abTotal > 0 ? Math.round(((row.h + (row.bb || 0) + (row.hbp || 0)) / abTotal) * 1000) / 1000 : null,
+            hr: row.hr,
+            rbi: row.rbi,
+            era: ipInnings > 0 ? Math.round(((row.pEr || 0) * 9 / ipInnings) * 100) / 100 : null,
+            ip: ipInnings > 0 ? Math.round(ipInnings * 10) / 10 : null,
+            k: row.pSo,
+            whip: ipInnings > 0 ? Math.round(((row.pHits || 0) + (row.pBb || 0)) / ipInnings * 100) / 100 : null,
+          });
+        }
+      }
+      // Attach lastSeasonStats to each recruit
+      const recruitsWithStats = recruitsWithInterest.map(r => ({
+        ...r,
+        lastSeasonStats: r.sourcePlayerId ? (transferStatsMap.get(r.sourcePlayerId) ?? null) : null,
+      }));
+
+      // Current roster position counts
+      const positionCounts: Record<string, number> = {};
+      roster.forEach((player) => {
+        positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+      });
+
+      // Next year's roster forecast (seniors graduate, players age up)
+      const nextYearDepth: Record<string, number> = {};
+      roster.forEach((player) => {
+        // Seniors will graduate, so don't count them for next year
+        if (player.eligibility !== 'SR') {
+          nextYearDepth[player.position] = (nextYearDepth[player.position] || 0) + 1;
+        }
+      });
+
+      const maxScoutActions = getMaxScoutActions(coach);
+      const maxRecruitingActions = getMaxRecruitingActions(coach);
+      
+      // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
+      const seniorsCount = roster.filter(p => p.eligibility === 'SR').length;
+      const nextYearRosterSize = roster.length - seniorsCount;
+      const maxCommits = Math.max(0, 25 - roster.length + seniorsCount);
+      
+      const scoutActionsUsed = coach?.scoutActionsUsed || 0;
+      const recruitingActionsUsed = coach?.recruitActionsUsed || 0;
+      const remainingScoutActions = Math.max(0, maxScoutActions - scoutActionsUsed);
+      const remainingRecruitingActions = Math.max(0, maxRecruitingActions - recruitingActionsUsed);
+
+      const allTeamActions = await storage.getRecruitingActionsLogByTeam(userTeam.id, league.id);
+      const premiumActionsUsed: Record<string, string[]> = {};
+      const weeklyActionsUsed: Record<string, string[]> = {};
+      let _seasonCampusVisits = 0;
+      let _seasonHcVisits = 0;
+      for (const action of allTeamActions) {
+        if (action.actionType === "visit" || action.actionType === "head_coach_visit") {
+          if (!premiumActionsUsed[action.recruitId]) {
+            premiumActionsUsed[action.recruitId] = [];
+          }
+          if (!premiumActionsUsed[action.recruitId].includes(action.actionType)) {
+            premiumActionsUsed[action.recruitId].push(action.actionType);
+          }
+          if (action.season === league.currentSeason) {
+            if (action.actionType === "visit") _seasonCampusVisits++;
+            else _seasonHcVisits++;
+          }
+        }
+        if ((action.actionType === "phone" || action.actionType === "email")
+            && action.week === league.currentWeek && action.season === league.currentSeason) {
+          if (!weeklyActionsUsed[action.recruitId]) {
+            weeklyActionsUsed[action.recruitId] = [];
+          }
+          if (!weeklyActionsUsed[action.recruitId].includes(action.actionType)) {
+            weeklyActionsUsed[action.recruitId].push(action.actionType);
+          }
+        }
+      }
+      const seasonVisitCount = { campusVisits: _seasonCampusVisits, hcVisits: _seasonHcVisits, total: _seasonCampusVisits + _seasonHcVisits };
+
+      const recruitPointCosts: Record<string, { visit: number; headCoachVisit: number }> = {};
+      for (const recruit of leagueRecruits) {
+        recruitPointCosts[recruit.id] = {
+          visit: getActionPointCost("visit", userTeam.state, recruit.homeState),
+          headCoachVisit: getActionPointCost("head_coach_visit", userTeam.state, recruit.homeState),
+        };
+      }
 
       res.json({
-        players: activePlayers,
-        team: team,
+        recruits: recruitsWithStats,
+        team: userTeam,
+        remainingPoints: remainingRecruitingActions,
+        maxPoints: maxRecruitingActions,
+        pointsUsed: recruitingActionsUsed,
+        remainingScoutPoints: remainingScoutActions,
+        maxScoutPoints: maxScoutActions,
+        scoutPointsUsed: scoutActionsUsed,
+        targetedCount: interests.filter((i) => i.isTargeted).length,
+        commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
+        maxCommits,
+        rosterDepth: positionCounts,
+        rosterSize: roster.length,
+        nextYearDepth,
+        nextYearRosterSize,
+        seniorsGraduating: seniorsCount,
+        premiumActionsUsed,
+        weeklyActionsUsed,
+        weeklyActionsWeek: league.currentWeek,
+        weeklyActionsSeason: league.currentSeason,
+        recruitPointCosts,
+        seasonVisitCount,
+        autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
       });
     } catch (error) {
-      console.error("Failed to fetch roster:", error);
-      res.status(500).json({ message: "Failed to fetch roster" });
+      console.error("Failed to fetch recruiting data:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting data" });
     }
   });
 
-  // Pitcher availability endpoint
-  app.get("/api/leagues/:id/pitcher-availability", requireAuth, async (req, res) => {
+  app.post("/api/leagues/:id/recruiting/:recruitId/scout", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId) || leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const maxScoutActions = getMaxScoutActions(userCoach);
+      if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
+        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week` });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      // Scout reveals 15-25% each time, with archetype scouting efficiency bonus
+      const archetypeScoutEfficiency: Record<string, number> = {
+        "Scout Master": 15,
+        "Academic Dean": 5,
+        "Balanced": 0,
+        "Pure CEO": 0,
+        "Player's Coach": 0,
+        "Dealmaker": 0,
+        "Tactician": 3,
+        "Old School": 0,
+      };
+      const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
+      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
+      // Facilities 7+: elite infrastructure means deeper, faster evaluations
+      const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
+      const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
+      const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
+      const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0) + philosophyNarrowBonus;
+
+      // Helper function to narrow down a range (with archetype potential narrowing bonus).
+      // Scouting is partially capped before signing day — attrs cap at 60%, common abilities at 50%.
+      // The held-back portion unlocks only at the signing-day cinematic.
+      const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
+        const range = max - min;
+        // Cap effective pct at 60: even fully-scouted recruits stay as a range until signing day.
+        const cappedPct = Math.min(pct, 60);
+        const effectivePct = Math.min(100, cappedPct * potentialNarrowMultiplier);
+        const narrowFactor = effectivePct / 100;
+        const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
+        const halfRange = Math.floor(newRange / 2);
+        let newMin = Math.max(1, Math.max(min, actual - halfRange));
+        let newMax = Math.min(max, actual + halfRange);
+        // Enforce minimum display width of 150 before signing day.
+        // Expand symmetrically around actual, then shift window if clipped at boundary.
+        if (newMax - newMin < 150) {
+          let newMinAdj = Math.max(1, actual - 75);
+          let newMaxAdj = Math.min(999, newMinAdj + 150);
+          // If upper-bound clip made range too narrow, push window left
+          if (newMaxAdj - newMinAdj < 150) {
+            newMinAdj = Math.max(1, newMaxAdj - 150);
+          }
+          newMin = newMinAdj;
+          newMax = newMaxAdj;
+        }
+        return { newMin, newMax };
+      };
+
+      // Helper function to narrow star range
+      const narrowStarRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
+        if (pct >= 100) return { newMin: actual, newMax: actual };
+        if (pct >= 75) {
+          // At 75%+, exact star
+          return { newMin: actual, newMax: actual };
+        }
+        if (pct >= 50) {
+          // At 50%+, narrow to within 1 star
+          return { 
+            newMin: Math.max(1, actual - 1), 
+            newMax: Math.min(5, actual + 1) 
+          };
+        }
+        if (pct >= 25) {
+          // At 25%+, narrow to within 2 stars of actual
+          return { 
+            newMin: Math.max(1, actual - 2), 
+            newMax: Math.min(5, actual + 2) 
+          };
+        }
+        return { newMin: 1, newMax: 5 };
+      };
+      
+      if (!interest) {
+        // Determine which attributes to reveal — capped at 60% before signing day
+        const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 60));
+        
+        // Calculate initial ranges based on reveal amount
+        const ovrRange = narrowRange(1, 999, recruit.overall, revealAmount);
+        const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
+        
+        // Reveal abilities based on percentage, capped at 50% — rest unlocks at signing day
+        const totalAbilities = (recruit.abilities as string[] || []).length;
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(revealAmount, 50) / 100)));
+        
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId as string,
+          teamId: userTeam.id,
+          scoutPercentage: revealAmount,
+          revealedAttributes: revealedAttrs,
+          minOverall: ovrRange.newMin,
+          maxOverall: ovrRange.newMax,
+          minStar: starRange.newMin,
+          maxStar: starRange.newMax,
+          revealedAbilitiesCount,
+        });
+      } else {
+        const currentPct = interest.scoutPercentage || 0;
+        const newPct = Math.min(100, currentPct + revealAmount);
+        
+        // Add more revealed attributes using target-based count (prevents floor compounding).
+        // Cap target at 60% of all attrs — the remaining 40% unlocks at signing day.
+        const currentAttrs = (interest.revealedAttributes as string[]) || [];
+        const effectiveNewPct = Math.min(newPct, 60);
+        const targetTotal = Math.floor(effectiveNewPct / 100 * SCOUT_ATTRS.length);
+        const needToReveal = Math.max(0, targetTotal - currentAttrs.length);
+        const additionalAttrs = getAttributesToRevealCount(needToReveal, currentAttrs);
+        const allAttrs = [...currentAttrs, ...additionalAttrs];
+        
+        // Narrow down the rating ranges
+        const currentMinOvr = interest.minOverall || 1;
+        const currentMaxOvr = interest.maxOverall || 999;
+        const currentMinStar = interest.minStar || 1;
+        const currentMaxStar = interest.maxStar || 5;
+        
+        const ovrRange = narrowRange(currentMinOvr, currentMaxOvr, recruit.overall, newPct);
+        const starRange = narrowStarRange(currentMinStar, currentMaxStar, recruit.starRating, newPct);
+        
+        // Reveal more abilities, capped at 50% — rest unlocks at signing day
+        const totalAbilities = (recruit.abilities as string[] || []).length;
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(newPct, 50) / 100)));
+        
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          scoutPercentage: newPct,
+          revealedAttributes: allAttrs,
+          minOverall: ovrRange.newMin,
+          maxOverall: ovrRange.newMax,
+          minStar: starRange.newMin,
+          maxStar: starRange.newMax,
+          revealedAbilitiesCount,
+        });
+      }
+
+      // Log the scouting action
+      const league = await storage.getLeague(req.params.id);
+      if (league) {
+        await storage.createRecruitingAction({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          leagueId: req.params.id,
+          week: league.currentWeek,
+          season: league.currentSeason,
+          actionType: "scout",
+          interestChange: 0,
+          notes: `Scouted to ${interest?.scoutPercentage || 0}%`,
+        });
+      }
+
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          scoutActionsUsed: (userCoach.scoutActionsUsed || 0) + 1,
+        });
+      }
+
+      res.json(interest);
+    } catch (error) {
+      console.error("Failed to scout recruit:", error);
+      res.status(500).json({ message: "Failed to scout recruit" });
+    }
+  });
+
+  // Bulk-scout endpoint — atomically consumes one action per recruit and runs
+  // each scout sequentially so the action counter is never double-read.
+  app.post("/api/leagues/:id/recruiting/bulk-scout", requireAuth, async (req, res) => {
+    try {
+      const { recruitIds } = req.body as { recruitIds: string[] };
+      if (!Array.isArray(recruitIds) || recruitIds.length === 0) {
+        return res.status(400).json({ message: "recruitIds must be a non-empty array" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId) || leagueTeams.find((t) => !t.isCpu);
+
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const maxScoutActions = getMaxScoutActions(userCoach);
+      const actionsUsed = userCoach?.scoutActionsUsed || 0;
+      const actionsRemaining = Math.max(0, maxScoutActions - actionsUsed);
+
+      if (actionsRemaining === 0) {
+        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week`, scouted: 0, skipped: recruitIds.length });
+      }
+
+      // Cap the list to available actions — no race condition because we read once here
+      const allowedIds = recruitIds.slice(0, actionsRemaining);
+      const skippedCount = recruitIds.length - allowedIds.length;
+
+      const league = await storage.getLeague(req.params.id);
+
+      // Archetype/skill bonuses (same as single-scout endpoint)
+      const archetypeScoutEfficiency: Record<string, number> = {
+        "Scout Master": 15,
+        "Academic Dean": 5,
+        "Balanced": 0,
+        "Pure CEO": 0,
+        "Player's Coach": 0,
+        "Dealmaker": 0,
+        "Tactician": 3,
+        "Old School": 0,
+      };
+      const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
+      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
+      const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
+
+      const narrowRange = (min: number, max: number, actual: number, pct: number, potentialNarrowMultiplier: number): { newMin: number; newMax: number } => {
+        const range = max - min;
+        const cappedPct = Math.min(pct, 60);
+        const effectivePct = Math.min(100, cappedPct * potentialNarrowMultiplier);
+        const narrowFactor = effectivePct / 100;
+        const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
+        const halfRange = Math.floor(newRange / 2);
+        let newMin = Math.max(1, Math.max(min, actual - halfRange));
+        let newMax = Math.min(max, actual + halfRange);
+        if (newMax - newMin < 150) {
+          let newMinAdj = Math.max(1, actual - 75);
+          let newMaxAdj = Math.min(999, newMinAdj + 150);
+          if (newMaxAdj - newMinAdj < 150) newMinAdj = Math.max(1, newMaxAdj - 150);
+          newMin = newMinAdj;
+          newMax = newMaxAdj;
+        }
+        return { newMin, newMax };
+      };
+
+      const narrowStarRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
+        if (pct >= 75) return { newMin: actual, newMax: actual };
+        if (pct >= 50) return { newMin: Math.max(1, actual - 1), newMax: Math.min(5, actual + 1) };
+        if (pct >= 25) return { newMin: Math.max(1, actual - 2), newMax: Math.min(5, actual + 2) };
+        return { newMin: 1, newMax: 5 };
+      };
+
+      // Process each allowed recruit sequentially
+      const results = [];
+      for (const recruitId of allowedIds) {
+        const recruit = await storage.getRecruit(recruitId);
+        if (!recruit) continue;
+
+        const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
+        const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
+        const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0) + philosophyNarrowBonus;
+
+        let interest = await storage.getRecruitingInterest(recruitId, userTeam.id);
+
+        if (!interest) {
+          const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 60));
+          const ovrRange = narrowRange(1, 999, recruit.overall, revealAmount, potentialNarrowMultiplier);
+          const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
+          const totalAbilities = (recruit.abilities as string[] || []).length;
+          const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(revealAmount, 50) / 100)));
+          interest = await storage.createRecruitingInterest({
+            recruitId,
+            teamId: userTeam.id,
+            scoutPercentage: revealAmount,
+            revealedAttributes: revealedAttrs,
+            minOverall: ovrRange.newMin,
+            maxOverall: ovrRange.newMax,
+            minStar: starRange.newMin,
+            maxStar: starRange.newMax,
+            revealedAbilitiesCount,
+          });
+        } else {
+          const currentPct = interest.scoutPercentage || 0;
+          const newPct = Math.min(100, currentPct + revealAmount);
+          const currentAttrs = (interest.revealedAttributes as string[]) || [];
+          const effectiveNewPct = Math.min(newPct, 60);
+          const targetTotal = Math.floor(effectiveNewPct / 100 * SCOUT_ATTRS.length);
+          const needToReveal = Math.max(0, targetTotal - currentAttrs.length);
+          const additionalAttrs = getAttributesToRevealCount(needToReveal, currentAttrs);
+          const allAttrs = [...currentAttrs, ...additionalAttrs];
+          const ovrRange = narrowRange(interest.minOverall || 1, interest.maxOverall || 999, recruit.overall, newPct, potentialNarrowMultiplier);
+          const starRange = narrowStarRange(interest.minStar || 1, interest.maxStar || 5, recruit.starRating, newPct);
+          const totalAbilities = (recruit.abilities as string[] || []).length;
+          const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(newPct, 50) / 100)));
+          interest = await storage.updateRecruitingInterest(interest.id, {
+            scoutPercentage: newPct,
+            revealedAttributes: allAttrs,
+            minOverall: ovrRange.newMin,
+            maxOverall: ovrRange.newMax,
+            minStar: starRange.newMin,
+            maxStar: starRange.newMax,
+            revealedAbilitiesCount,
+          });
+        }
+
+        if (league) {
+          await storage.createRecruitingAction({
+            recruitId,
+            teamId: userTeam.id,
+            leagueId: req.params.id,
+            week: league.currentWeek,
+            season: league.currentSeason,
+            actionType: "scout",
+            interestChange: 0,
+            notes: `Scouted to ${interest?.scoutPercentage || 0}%`,
+          });
+        }
+
+        results.push(interest);
+      }
+
+      // Increment scoutActionsUsed atomically using a SQL expression so concurrent
+      // requests cannot overwrite each other's writes. LEAST(..., max) prevents
+      // exceeding the weekly cap even if two requests race past the initial check.
+      if (userCoach && results.length > 0) {
+        await db.update(coachesTable)
+          .set({ scoutActionsUsed: drizzleSql`LEAST(${coachesTable.scoutActionsUsed} + ${results.length}, ${maxScoutActions})` })
+          .where(drizzleSql`${coachesTable.id} = ${userCoach.id}`);
+      }
+
+      res.json({ scouted: results.length, skipped: skippedCount });
+    } catch (error) {
+      console.error("Failed to bulk scout recruits:", error);
+      res.status(500).json({ message: "Failed to bulk scout recruits" });
+    }
+  });
+
+  // Get recruiting actions log for a recruit
+  app.get("/api/leagues/:id/recruiting/:recruitId/actions", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const actions = await storage.getRecruitingActionsLog(req.params.recruitId, userTeam.id);
+      res.json({ actions });
+    } catch (error) {
+      console.error("Failed to fetch recruiting actions:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting actions" });
+    }
+  });
+
+  // Get all scouting/recruiting actions for user's team (history across all recruits)
+  app.get("/api/leagues/:id/recruiting-history", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      if (!userCoach) {
+        return res.status(400).json({ message: "No coach assigned" });
+      }
+
+      const actions = await storage.getRecruitingActionsLogByTeam(userCoach.teamId, req.params.id);
+      
+      const recruits = await storage.getRecruitsByLeague(req.params.id);
+      const recruitMap = new Map(recruits.map(r => [r.id, r]));
+      
+      const enrichedActions = actions.map(a => {
+        const recruit = recruitMap.get(a.recruitId);
+        return {
+          ...a,
+          recruitName: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
+          recruitPosition: recruit?.position || "?",
+          recruitStarRating: recruit?.starRating || 0,
+        };
+      });
+
+      res.json({ actions: enrichedActions });
+    } catch (error) {
+      console.error("Failed to fetch recruiting history:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting history" });
+    }
+  });
+
+  // Weekly rival activity recap for recruiting page
+  app.get("/api/leagues/:id/recruiting/weekly-recap", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
-      const teamId = req.query.teamId as string | undefined;
-      const userId = req.session.userId;
-
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
-      const isCommissioner = hasCommissionerAccess(league, userId);
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach) return res.status(400).json({ message: "No coach assigned" });
 
-      let targetTeamId = teamId;
-      if (!targetTeamId) {
-        const coaches = await storage.getCoachesByLeague(leagueId);
-        const userCoach = coaches.find(c => c.userId === userId);
-        const leagueTeams = await storage.getTeamsByLeague(leagueId);
-        const userTeam = userCoach ? leagueTeams.find(t => t.id === userCoach.teamId) : leagueTeams.find(t => !t.isCpu);
-        targetTeamId = userTeam?.id;
-      } else if (!isCommissioner) {
-        const coaches = await storage.getCoachesByLeague(leagueId);
-        const userCoach = coaches.find(c => c.userId === userId);
-        if (!userCoach || userCoach.teamId !== targetTeamId) {
-          return res.status(403).json({ message: "Forbidden" });
-        }
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const userTeam = leagueTeams.find(t => t.id === userCoach.teamId);
+      if (!userTeam) return res.status(400).json({ message: "No team assigned" });
+
+      const reqSeason = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
+      const reqWeek = req.query.week ? parseInt(req.query.week as string) : Math.max(1, league.currentWeek - 1);
+
+      // Get ALL actions for this league/season/week
+      const allActions = await storage.getRecruitingActionsLogByLeagueWeek(leagueId, reqSeason, reqWeek);
+
+      // Separate my actions from rivals'
+      const myActions = allActions.filter(a => a.teamId === userTeam.id);
+      const rivalActions = allActions.filter(a => a.teamId !== userTeam.id);
+
+      // Build set of recruits I contacted this week
+      const myRecruitIds = new Set(myActions.map(a => a.recruitId));
+
+      // Build rival action counts per recruit
+      const rivalCountByRecruit = new Map<string, number>();
+      for (const a of rivalActions) {
+        rivalCountByRecruit.set(a.recruitId, (rivalCountByRecruit.get(a.recruitId) || 0) + 1);
       }
 
-      if (!targetTeamId) return res.status(400).json({ message: "No team found" });
+      const getActivityLevel = (count: number): string => {
+        if (count >= 5) return "Hot";
+        if (count >= 2) return "Active";
+        return "Quiet";
+      };
 
-      const players = await storage.getPlayersByTeam(targetTeamId);
-      const pitchers = players.filter(p => p.position === "P" && !p.pendingDeparture && !p.declaredForDraft);
-      const currentWeek = league.currentWeek ?? 1;
+      // Load recruits for name/position/star info
+      const allRecruits = await storage.getRecruitsByLeague(leagueId);
+      const recruitMap = new Map(allRecruits.map(r => [r.id, r]));
 
-      const result = pitchers.map(p => {
-        const slots: Record<string, unknown> = {};
-        for (const day of ALL_GAME_DAYS) {
-          slots[day] = computeWeeklyAvailability(
-            p.lastPitchedOuts ?? 0,
-            p.lastPitchedWeek ?? null,
-            (p.lastPitchedDay ?? null) as GameDay | null,
-            p.stamina ?? 50,
-            currentWeek,
-          )[day];
-        }
+      // Recruits I contacted: show rival activity count
+      const myRecruits = Array.from(myRecruitIds).map(recruitId => {
+        const recruit = recruitMap.get(recruitId);
+        const rivalCount = rivalCountByRecruit.get(recruitId) || 0;
         return {
-          playerId: p.id,
-          name: `${p.firstName} ${p.lastName}`,
-          pitchingRole: p.pitchingRole ?? null,
-          lastPitchedOuts: p.lastPitchedOuts ?? 0,
-          lastPitchedWeek: p.lastPitchedWeek ?? null,
-          lastPitchedDay: p.lastPitchedDay ?? null,
-          stamina: p.stamina ?? 50,
-          slots,
+          recruitId,
+          name: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
+          position: recruit?.position || "?",
+          starRating: recruit?.starRating || 0,
+          otherTeamActionCount: rivalCount,
+          activityLevel: getActivityLevel(rivalCount),
         };
-      });
+      }).sort((a, b) => b.otherTeamActionCount - a.otherTeamActionCount);
 
-      res.json({ currentWeek, pitchers: result });
-    } catch (error) {
-      console.error("Failed to fetch pitcher availability:", error);
-      res.status(500).json({ message: "Failed to fetch pitcher availability" });
-    }
-  });
-
-  // Get single player by id
-  app.get("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
-    try {
-      const player = await storage.getPlayer(req.params.playerId as string);
-      if (!player) return res.status(404).json({ message: "Player not found" });
-      res.json(player);
-    } catch (error) {
-      console.error("Failed to fetch player:", error);
-      res.status(500).json({ message: "Failed to fetch player" });
-    }
-  });
-
-  // Update player (commissioner only)
-  app.patch("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
-    try {
-      const league = await storage.getLeague(req.params.id as string);
-      if (!league) {
-        return res.status(404).json({ message: "League not found" });
-      }
-
-      if (!hasCommissionerAccess(league, req.session.userId)) {
-        return res.status(403).json({ message: "Only the commissioner can edit players" });
-      }
-
-      const player = await storage.getPlayer(req.params.playerId as string);
-      if (!player) {
-        return res.status(404).json({ message: "Player not found" });
-      }
-
-      // Enforce league scoping: verify the player's team belongs to this league
-      const playerTeamForScope = await storage.getTeam(player.teamId);
-      if (!playerTeamForScope || playerTeamForScope.leagueId !== req.params.id as string) {
-        return res.status(403).json({ message: "Player does not belong to this league" });
-      }
-
-      // Build a field-by-field change summary for the audit log
-      const EDITABLE_FIELD_LABELS: Record<string, string> = {
-        position: "Position", eligibility: "Eligibility", potential: "Potential",
-        hitForAvg: "Contact", power: "Power", speed: "Speed", arm: "Arm",
-        fielding: "Fielding", errorResistance: "Error Res", clutch: "Clutch",
-        vsLHP: "vs LHP", grit: "Grit", stealing: "Stealing", running: "Running",
-        throwing: "Throwing", recovery: "Recovery", catcherAbility: "Catcher",
-        velocity: "Velocity", control: "Control", stamina: "Stamina", stuff: "Stuff",
-        wRISP: "W/RISP", vsLefty: "vs Lefty", poise: "Poise", heater: "Heater",
-        agile: "Agile", abilities: "Abilities",
-      };
-      const changeSummary: string[] = [];
-      for (const [field, label] of Object.entries(EDITABLE_FIELD_LABELS)) {
-        if (!(field in req.body)) continue;
-        const oldVal = (player as Record<string, unknown>)[field];
-        const newVal = req.body[field];
-        const oldStr = Array.isArray(oldVal) ? (oldVal as string[]).join(", ") || "none" : String(oldVal ?? "");
-        const newStr = Array.isArray(newVal) ? (newVal as string[]).join(", ") || "none" : String(newVal ?? "");
-        if (oldStr !== newStr) {
-          changeSummary.push(`${label}: ${oldStr} → ${newStr}`);
-        }
-      }
-
-      const mergedPlayer = { ...player, ...req.body };
-      // Recalculate OVR using the new (merged) position — converted players get the
-      // correct positional attribute weights applied immediately.
-      const recalcedOverall = calculateOVR(mergedPlayer);
-      const recalcedStar = getStarRatingFromOVR(recalcedOverall);
-      const positionChanged = req.body.position != null && req.body.position !== player.position;
-      const shouldSetOriginal = positionChanged && !player.originalPosition;
-      const updated = await storage.updatePlayer(req.params.playerId as string, {
-        ...req.body,
-        overall: recalcedOverall,
-        starRating: recalcedStar,
-        ...(shouldSetOriginal ? { originalPosition: player.position } : {}),
-      });
-
-      // Sync the current-season stat row's position so the career stats display
-      // immediately reflects the new position after conversion.
-      if (positionChanged) {
-        await storage.updatePlayerSeasonStatsPosition(
-          req.params.playerId as string,
-          req.params.id as string,
-          league.currentSeason,
-          req.body.position,
-        );
-      }
-
-      // Use the already-fetched team for the richer audit entry
-      const playerTeamName = playerTeamForScope.name ?? "Unknown Team";
-      const playerName = `${player.firstName} ${player.lastName}`;
-      const changeDetail = changeSummary.length > 0
-        ? changeSummary.join("; ")
-        : "No attribute changes";
-
-      const auditDetails = `Commissioner edited ${playerName} (${playerTeamName}): ${changeDetail}`;
-
-      await storage.createAuditLog({
-        leagueId: req.params.id as string,
-        userId: req.session.userId,
-        action: "Roster Edit",
-        details: auditDetails,
-      });
-
-      // Also surface in the activity feed so all coaches see the edit in the News tab
-      await storage.createLeagueEvent({
-        leagueId: req.params.id as string,
-        eventType: "roster_edit" as any,        description: `Commissioner edited ${playerName} (${playerTeamName}). Changes: ${changeDetail}`,
-      });
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Failed to update player:", error);
-      res.status(500).json({ message: "Failed to update player" });
-    }
-  });
-
-  // Declare player for draft (commissioner or owning coach)
-  app.post("/api/leagues/:id/players/:playerId/declare-draft", requireAuth, async (req, res) => {
-    try {
-      const league = await storage.getLeague(req.params.id as string);
-      if (!league) {
-        return res.status(404).json({ message: "League not found" });
-      }
-
-      const player = await storage.getPlayer(req.params.playerId as string);
-      if (!player) {
-        return res.status(404).json({ message: "Player not found" });
-      }
-
-      // Check if player's team belongs to this league
-      const team = await storage.getTeam(player.teamId);
-      if (!team) {
-        return res.status(404).json({ message: "Team not found" });
-      }
-      
-      // Verify team belongs to the league in the URL
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-      const teamBelongsToLeague = leagueTeams.some(t => t.id === team.id);
-      if (!teamBelongsToLeague) {
-        return res.status(404).json({ message: "Player not found in this league" });
-      }
-
-      // Check if user is commissioner or owns this player's team
-      const coaches = await storage.getCoachesByLeague(req.params.id as string);
-      const userCoach = coaches.find(c => c.userId === req.session.userId);
-      
-      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
-      const isTeamCoach = userCoach && team && userCoach.teamId === team.id;
-      
-      if (!isCommissioner && !isTeamCoach) {
-        return res.status(403).json({ message: "Only the commissioner or team coach can declare players for draft" });
-      }
-
-      // Check eligibility: must be RS (redshirt) and at least sophomore level with high skill
-      // RS eligibility format: "RS" for redshirt freshmen who haven't played
-      // High skill = 4 or 5 star rating OR overall >= 500
-      const isRedshirt = player.eligibility === "RS";
-      const isHighSkill = player.starRating >= 4 || player.overall >= 500;
-      
-      // For RS sophomores - eligibility would still show RS but they've had a year
-      // In reality, RS players who are sophomores or higher (played 2+ years) can declare
-      // Since we use RS as a blanket term, we'll check for high skill + RS eligibility
-      
-      if (!isRedshirt) {
-        return res.status(400).json({ 
-          message: "Only redshirt players can declare for the draft early" 
+      // Hot recruits I HAVEN'T contacted with rival actions
+      // Prestige bidding war intel: high-prestige programs (7+) have national scouting networks
+      // and detect heated recruiting battles earlier — threshold drops to 2 rival actions.
+      const hotMissedThreshold = (userTeam.prestige || 5) >= 7 ? 2 : 3;
+      const hotMissed = Array.from(rivalCountByRecruit.entries())
+        .filter(([recruitId, count]) => !myRecruitIds.has(recruitId) && count >= hotMissedThreshold)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([recruitId, count]) => {
+          const recruit = recruitMap.get(recruitId);
+          return {
+            recruitId,
+            name: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
+            position: recruit?.position || "?",
+            starRating: recruit?.starRating || 0,
+            otherTeamActionCount: count,
+            activityLevel: getActivityLevel(count),
+          };
         });
-      }
 
-      if (!isHighSkill) {
-        return res.status(400).json({ 
-          message: "Only high-skill players (4+ stars or 500+ overall) can declare for the draft" 
-        });
-      }
-
-      if (player.declaredForDraft) {
-        return res.status(400).json({ message: "Player has already declared for the draft" });
-      }
-
-      // Update player to mark as declared for draft
-      const updated = await storage.updatePlayer(req.params.playerId as string, {
-        declaredForDraft: true,
-        draftDeclarationDate: new Date(),
-      });
-
-      await storage.createAuditLog({
-        leagueId: req.params.id as string,
-        userId: req.session.userId,
-        action: "Draft Declaration",
-        details: `${player.firstName} ${player.lastName} (${team?.abbreviation || 'Unknown'}) declared for the MLB Draft`,
-      });
-
-      try {
-        const leagueForEvent = await storage.getLeague(req.params.id as string);
-        await storage.createLeagueEvent({
-          leagueId: req.params.id as string,
-          teamId: team?.id,
-          teamName: team?.name,
-          teamAbbreviation: team?.abbreviation,
-          eventType: "DRAFT",
-          description: `${player.firstName} ${player.lastName} (${player.position}, ${team?.abbreviation || "UNK"}) declared for the MLB Draft`,
-          season: leagueForEvent?.currentSeason || 1,
-          week: leagueForEvent?.currentWeek || 1,
-        });
-      } catch (e) { console.error("League event error:", e); }
-
-      res.json({ 
-        success: true, 
-        message: `${player.firstName} ${player.lastName} has declared for the MLB Draft`,
-        player: updated 
-      });
+      res.json({ season: reqSeason, week: reqWeek, myRecruits, hotMissed });
     } catch (error) {
-      console.error("Failed to declare player for draft:", error);
-      res.status(500).json({ message: "Failed to declare player for draft" });
-    }
-  });
-
-  // Enter player into transfer portal (commissioner or owning coach)
-  app.post("/api/leagues/:id/players/:playerId/enter-portal", requireAuth, async (req, res) => {
-    try {
-      const league = await storage.getLeague(req.params.id as string);
-      if (!league) {
-        return res.status(404).json({ message: "League not found" });
-      }
-
-      const player = await storage.getPlayer(req.params.playerId as string);
-      if (!player) {
-        return res.status(404).json({ message: "Player not found" });
-      }
-
-      // Check if player's team belongs to this league
-      const team = await storage.getTeam(player.teamId);
-      if (!team) {
-        return res.status(404).json({ message: "Team not found" });
-      }
-      
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-      const teamBelongsToLeague = leagueTeams.some(t => t.id === team.id);
-      if (!teamBelongsToLeague) {
-        return res.status(404).json({ message: "Player not found in this league" });
-      }
-
-      // Check if user is commissioner or owns this player's team
-      const coaches = await storage.getCoachesByLeague(req.params.id as string);
-      const userCoach = coaches.find(c => c.userId === req.session.userId);
-      
-      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
-      const isTeamCoach = userCoach && userCoach.teamId === team.id;
-      
-      if (!isCommissioner && !isTeamCoach) {
-        return res.status(403).json({ message: "Only the commissioner or team coach can enter players into the transfer portal" });
-      }
-
-      if (player.inTransferPortal) {
-        return res.status(400).json({ message: "Player is already in the transfer portal" });
-      }
-
-      if (player.declaredForDraft) {
-        return res.status(400).json({ message: "Player has already declared for the draft" });
-      }
-
-      // Seniors cannot enter portal (they're graduating)
-      if (player.eligibility === "Sr") {
-        return res.status(400).json({ message: "Seniors cannot enter the transfer portal" });
-      }
-
-      const { reason } = req.body as { reason?: string };
-
-      const updated = await storage.updatePlayer(req.params.playerId as string, {
-        inTransferPortal: true,
-        portalEntryDate: new Date(),
-        portalReason: reason || "Seeking new opportunity",
-      });
-
-      await storage.createAuditLog({
-        leagueId: req.params.id as string,
-        userId: req.session.userId,
-        action: "Transfer Portal Entry",
-        details: `${player.firstName} ${player.lastName} (${team.abbreviation}) entered the transfer portal${reason ? `: ${reason}` : ''}`,
-      });
-
-      try {
-        const leagueForEvent = await storage.getLeague(req.params.id as string);
-        await storage.createLeagueEvent({
-          leagueId: req.params.id as string,
-          teamId: team.id,
-          teamName: team.name,
-          teamAbbreviation: team.abbreviation,
-          eventType: "TRANSFER",
-          description: `${player.firstName} ${player.lastName} (${player.position}, ${team.abbreviation}) entered the transfer portal`,
-          season: leagueForEvent?.currentSeason || 1,
-          week: leagueForEvent?.currentWeek || 1,
-        });
-      } catch (e) { console.error("League event error:", e); }
-
-      res.json({ 
-        success: true, 
-        message: `${player.firstName} ${player.lastName} has entered the transfer portal`,
-        player: updated 
-      });
-    } catch (error) {
-      console.error("Failed to enter player into portal:", error);
-      res.status(500).json({ message: "Failed to enter player into transfer portal" });
-    }
-  });
-
-  // Get players leaving (graduates, draft declarations, transfer portal) - summary by team
-  app.get("/api/leagues/:id/players-leaving", requireAuth, async (req, res) => {
-    try {
-      const league = await storage.getLeague(req.params.id as string);
-      if (!league) {
-        return res.status(404).json({ message: "League not found" });
-      }
-
-      const teams = await storage.getTeamsByLeague(req.params.id as string);
-      const playersLeavingByTeam: Record<string, {
-        teamId: string;
-        teamName: string;
-        abbreviation: string;
-        primaryColor: string;
-        secondaryColor: string;
-        graduates: typeof allPlayers;
-        draftDeclarations: typeof allPlayers;
-        transfers: typeof allPlayers;
-        totalLeaving: number;
-      }> = {};
-
-      // Initialize for all teams
-      for (const team of teams) {
-        playersLeavingByTeam[team.id] = {
-          teamId: team.id,
-          teamName: team.name,
-          // @ts-ignore
-        mascot: team.mascot,
-          abbreviation: team.abbreviation,
-          primaryColor: team.primaryColor,
-          secondaryColor: team.secondaryColor,
-          graduates: [],
-          draftDeclarations: [],
-          transfers: [],
-          totalLeaving: 0,
-        };
-      }
-
-      // Get all players for all teams
-      const allPlayers: Player[] = [];
-      for (const team of teams) {
-        const teamPlayers = await storage.getPlayersByTeam(team.id);
-        allPlayers.push(...teamPlayers);
-      }
-
-      // Categorize players
-      for (const player of allPlayers) {
-        const teamData = playersLeavingByTeam[player.teamId];
-        if (!teamData) continue;
-
-        if (player.eligibility === "Sr") {
-          teamData.graduates.push(player);
-          teamData.totalLeaving++;
-        } else if (player.declaredForDraft) {
-          teamData.draftDeclarations.push(player);
-          teamData.totalLeaving++;
-        } else if (player.inTransferPortal) {
-          teamData.transfers.push(player);
-          teamData.totalLeaving++;
-        }
-      }
-
-      // Calculate league totals
-      const leagueTotals = {
-        graduates: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.graduates.length, 0),
-        draftDeclarations: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.draftDeclarations.length, 0),
-        transfers: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.transfers.length, 0),
-        total: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.totalLeaving, 0),
-      };
-
-      res.json({
-        league: { id: league.id, name: league.name, currentSeason: league.currentSeason },
-        teams: Object.values(playersLeavingByTeam).sort((a, b) => b.totalLeaving - a.totalLeaving),
-        totals: leagueTotals,
-      });
-    } catch (error) {
-      console.error("Failed to get players leaving:", error);
-      res.status(500).json({ message: "Failed to get players leaving" });
+      console.error("Failed to fetch weekly recap:", error);
+      res.status(500).json({ message: "Failed to fetch weekly recap" });
     }
   });
 
