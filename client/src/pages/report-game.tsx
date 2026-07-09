@@ -339,19 +339,52 @@ function ReportGameInner() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [guardActive]);
 
-  // Wouter navigates via history.pushState — intercept it so in-app link clicks also
-  // go through the confirmation.  On confirm we call the original and dispatch a popstate
-  // event so Wouter's location subscription detects the URL change.
+  // Intercept in-app navigation (Wouter's pushState) and browser Back/Forward (popstate)
+  // so the confirmation fires for all SPA navigation paths.
   useEffect(() => {
     if (!guardActive) return;
-    const orig = window.history.pushState;
+
+    // Snapshot the current path so we can restore it if the user cancels a Back navigation.
+    const savedPath = window.location.pathname + window.location.search;
+    const origPushState = window.history.pushState;
+    // Flags to distinguish internally-dispatched events from real browser ones.
+    let bypassing = false;
+    let ownPopstate = false;
+
+    // Patch pushState — called by Wouter's setLocation / Link clicks.
     window.history.pushState = function (...args: Parameters<typeof window.history.pushState>) {
+      if (bypassing) { origPushState.apply(window.history, args); return; }
       if (window.confirm(LEAVE_MSG)) {
-        orig.apply(window.history, args);
+        origPushState.apply(window.history, args);
+        // Dispatch popstate so Wouter's location subscription picks up the URL change.
+        ownPopstate = true;
         window.dispatchEvent(new PopStateEvent("popstate"));
+        ownPopstate = false;
       }
     };
-    return () => { window.history.pushState = orig; };
+
+    // Listen for popstate — fired by browser Back/Forward (not pushState).
+    const handlePopState = () => {
+      // Ignore popstate events we dispatched ourselves (prevents double-prompting).
+      if (ownPopstate) return;
+      if (!window.confirm(LEAVE_MSG)) {
+        // Undo the back navigation: push the saved path back, bypass our own patch,
+        // then sync Wouter so the route shows the correct page again.
+        bypassing = true;
+        origPushState.call(window.history, null, "", savedPath);
+        bypassing = false;
+        ownPopstate = true;
+        window.dispatchEvent(new PopStateEvent("popstate"));
+        ownPopstate = false;
+      }
+      // On confirm: navigation already completed (URL changed), Wouter will sync naturally.
+    };
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.history.pushState = origPushState;
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, [guardActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // OCR status summary — used to show the "still reading / all done" banner in the score phase.
