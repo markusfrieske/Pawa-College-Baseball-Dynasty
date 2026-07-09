@@ -1,0 +1,154 @@
+/**
+ * buildClassEnvelope
+ *
+ * Wraps a validated recruit array in the versioned ClassEnvelope format:
+ *   { version: 1, source, config?, summary, recruits }
+ *
+ * Also exports helpers for extracting recruits / summary from any stored
+ * classData (legacy raw array, legacy { theme, recruits }, or versioned envelope).
+ */
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+export interface ClassSummary {
+  recruitCount: number;
+  starDist: Record<number, number>;
+  posDist: Record<string, number>;
+  blueChips: number;
+  gems: number;
+  busts: number;
+  genGems: number;
+  genBusts: number;
+  avgOvr: number;
+  theme: string | null;
+}
+
+export interface ClassEnvelope {
+  version: 1;
+  source: "wizard" | "import" | "manual";
+  config?: Record<string, unknown>;
+  summary: ClassSummary;
+  recruits: Record<string, unknown>[];
+}
+
+// ── Summary computation ───────────────────────────────────────────────────────
+
+export function computeSummary(
+  recruits: Record<string, unknown>[],
+  theme: string | null = null
+): ClassSummary {
+  const starDist: Record<number, number> = {};
+  const posDist: Record<string, number> = {};
+  let blueChips = 0, gems = 0, busts = 0, genGems = 0, genBusts = 0, ovrSum = 0;
+
+  for (const r of recruits) {
+    const star = typeof r.starRating === "number" ? r.starRating : 3;
+    starDist[star] = (starDist[star] || 0) + 1;
+
+    const pos = typeof r.position === "string" ? r.position : "?";
+    posDist[pos] = (posDist[pos] || 0) + 1;
+
+    if (r.isBlueChip)        blueChips++;
+    if (r.isGem)             gems++;
+    if (r.isBust)            busts++;
+    if (r.isGenerationalGem) genGems++;
+    if (r.isGenerationalBust) genBusts++;
+    ovrSum += typeof r.overall === "number" ? r.overall : 0;
+  }
+
+  const avgOvr = recruits.length > 0 ? Math.round(ovrSum / recruits.length) : 0;
+
+  return { recruitCount: recruits.length, starDist, posDist, blueChips, gems, busts, genGems, genBusts, avgOvr, theme };
+}
+
+// ── Envelope builder ─────────────────────────────────────────────────────────
+
+export function buildClassEnvelope(
+  recruits: Record<string, unknown>[],
+  source: "wizard" | "import" | "manual",
+  opts: { config?: Record<string, unknown>; theme?: string | null } = {}
+): ClassEnvelope {
+  const envelope: ClassEnvelope = {
+    version: 1,
+    source,
+    summary: computeSummary(recruits, opts.theme ?? null),
+    recruits,
+  };
+  if (opts.config) envelope.config = opts.config;
+  return envelope;
+}
+
+// ── Extraction helpers (handle all legacy + versioned formats) ───────────────
+
+/**
+ * Extract recruits array from any stored classData format.
+ * Handles: raw array, { theme, recruits }, { version:1, ..., recruits }
+ */
+export function extractRecruits(classData: unknown): Record<string, unknown>[] {
+  if (Array.isArray(classData)) return classData as Record<string, unknown>[];
+  if (classData !== null && typeof classData === "object") {
+    const obj = classData as Record<string, unknown>;
+    if (Array.isArray(obj.recruits)) return obj.recruits as Record<string, unknown>[];
+  }
+  return [];
+}
+
+/**
+ * Extract the summary from stored classData.
+ * Returns null for legacy formats so callers can fall back to computing it.
+ */
+export function extractSummary(classData: unknown): ClassSummary | null {
+  if (classData !== null && typeof classData === "object" && !Array.isArray(classData)) {
+    const obj = classData as Record<string, unknown>;
+    if (obj.version === 1 && obj.summary && typeof obj.summary === "object") {
+      return obj.summary as ClassSummary;
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract theme from stored classData (any format).
+ */
+export function extractTheme(classData: unknown): string | null {
+  if (classData === null || typeof classData !== "object" || Array.isArray(classData)) return null;
+  const obj = classData as Record<string, unknown>;
+  // versioned format: theme lives in summary
+  if (obj.version === 1) {
+    const summary = obj.summary as Record<string, unknown> | undefined;
+    return typeof summary?.theme === "string" ? summary.theme : null;
+  }
+  // legacy { theme, recruits }
+  return typeof obj.theme === "string" ? obj.theme : null;
+}
+
+/**
+ * Detect source from inbound classData sent by the client.
+ * - Wizard sends { theme, recruits } → "wizard"
+ * - Versioned envelope already has source
+ * - Raw array → "manual"
+ */
+export function detectSource(raw: unknown): { source: "wizard" | "import" | "manual"; theme: string | null; config?: Record<string, unknown> } {
+  if (Array.isArray(raw)) {
+    return { source: "manual", theme: null };
+  }
+  if (raw !== null && typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    // Already versioned
+    if (obj.version === 1) {
+      const src = (obj.source as string) === "wizard" ? "wizard"
+        : (obj.source as string) === "import" ? "import"
+        : "manual";
+      const summary = obj.summary as Record<string, unknown> | undefined;
+      const theme = typeof summary?.theme === "string" ? summary.theme : null;
+      const config = obj.config ? (obj.config as Record<string, unknown>) : undefined;
+      return { source: src, theme, config };
+    }
+    // Legacy wizard format { theme, recruits }
+    if (Array.isArray(obj.recruits)) {
+      const theme = typeof obj.theme === "string" ? obj.theme : null;
+      return { source: theme ? "wizard" : "manual", theme };
+    }
+  }
+  return { source: "manual", theme: null };
+}

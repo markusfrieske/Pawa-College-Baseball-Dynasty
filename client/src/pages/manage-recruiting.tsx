@@ -82,24 +82,61 @@ const WIZARD_THEME_LABELS: Record<string, string> = {
   power_class: "Power Class",
 };
 
+interface ClassSummary {
+  recruitCount: number;
+  starDist: Record<number, number>;
+  posDist: Record<string, number>;
+  blueChips: number;
+  gems: number;
+  busts: number;
+  genGems: number;
+  genBusts: number;
+  avgOvr: number;
+  theme: string | null;
+}
+
+interface VersionedClassData {
+  version: 1;
+  source: "wizard" | "import" | "manual";
+  config?: Record<string, unknown>;
+  summary: ClassSummary;
+  recruits: RecruitData[];
+}
+
 interface SavedClass {
   id: number | string;
   name: string;
   description: string;
   recruitCount: number;
-  classData: RecruitData[] | { theme?: string; recruits: RecruitData[] };
+  classData: RecruitData[] | { theme?: string; recruits: RecruitData[] } | VersionedClassData;
   createdAt?: string;
   isLocal?: boolean;
 }
 
 function getClassRecruits(classData: SavedClass["classData"]): RecruitData[] {
   if (Array.isArray(classData)) return classData;
-  return Array.isArray(classData?.recruits) ? classData.recruits : [];
+  const obj = classData as Record<string, unknown>;
+  return Array.isArray(obj.recruits) ? (obj.recruits as RecruitData[]) : [];
 }
 
 function getClassTheme(classData: SavedClass["classData"]): string | null {
   if (Array.isArray(classData)) return null;
-  return (classData as any)?.theme ?? null;
+  const obj = classData as Record<string, unknown>;
+  // versioned format: theme lives in summary
+  if (obj.version === 1) {
+    const summary = obj.summary as Record<string, unknown> | undefined;
+    return typeof summary?.theme === "string" ? summary.theme : null;
+  }
+  return typeof obj.theme === "string" ? obj.theme : null;
+}
+
+function getClassSummary(classData: SavedClass["classData"]): ClassSummary | null {
+  if (Array.isArray(classData)) return null;
+  const obj = classData as Record<string, unknown>;
+  if (obj.version === 1 && obj.summary && typeof obj.summary === "object") {
+    return obj.summary as ClassSummary;
+  }
+  return null;
 }
 
 type SortField = "lastName" | "position" | "overall" | "starRating";
@@ -682,14 +719,22 @@ export default function ManageRecruitingPage() {
             <RetroCardContent className="p-0">
               <div className="grid gap-2">
                 {savedClasses.map((cls) => {
-                  const recruits = getClassRecruits(cls.classData);
-                  const theme = getClassTheme(cls.classData);
+                  const summary = getClassSummary(cls.classData);
+                  const recruits = summary ? [] : getClassRecruits(cls.classData);
+                  const theme = summary ? summary.theme : getClassTheme(cls.classData);
                   const themeLabel = theme ? (WIZARD_THEME_LABELS[theme] ?? theme) : null;
-                  const starCounts = [5, 4, 3, 2, 1].map(s => ({
-                    star: s,
-                    count: recruits.filter(r => r.starRating === s).length,
-                  })).filter(x => x.count > 0);
+                  // Use stored starDist from summary when available, fall back to computing from recruits
+                  const starCounts = summary
+                    ? [5, 4, 3, 2, 1]
+                        .filter(s => (summary.starDist[s] ?? 0) > 0)
+                        .map(s => ({ star: s, count: summary.starDist[s] }))
+                    : [5, 4, 3, 2, 1]
+                        .map(s => ({ star: s, count: recruits.filter(r => r.starRating === s).length }))
+                        .filter(x => x.count > 0);
                   const savedDate = cls.createdAt ? new Date(cls.createdAt).toLocaleDateString() : null;
+                  const clsObj = cls.classData as Record<string, unknown>;
+                  const source: string | null = (!Array.isArray(cls.classData) && clsObj.version === 1)
+                    ? (clsObj.source as string) : null;
                   return (
                   <div
                     key={cls.id}
@@ -706,6 +751,9 @@ export default function ManageRecruitingPage() {
                           {themeLabel && (
                             <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/40" data-testid={`class-theme-${cls.id}`}>{themeLabel}</Badge>
                           )}
+                          {source === "import" && (
+                            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-400/40" data-testid={`class-source-${cls.id}`}>Imported</Badge>
+                          )}
                           {editingId === cls.id && (
                             <Badge variant="outline" className="text-[10px] text-gold border-gold">Active</Badge>
                           )}
@@ -719,6 +767,26 @@ export default function ManageRecruitingPage() {
                               {"★".repeat(star)} {count}
                             </span>
                           ))}
+                          {summary && summary.avgOvr > 0 && (
+                            <span className="text-[10px] text-muted-foreground" data-testid={`class-avgovr-${cls.id}`}>
+                              Avg {summary.avgOvr} OVR
+                            </span>
+                          )}
+                          {summary && summary.blueChips > 0 && (
+                            <span className="text-[10px] text-amber-400" data-testid={`class-bluechips-${cls.id}`}>
+                              {summary.blueChips} BC
+                            </span>
+                          )}
+                          {summary && summary.genGems > 0 && (
+                            <span className="text-[10px] text-purple-400" data-testid={`class-gengems-${cls.id}`}>
+                              {summary.genGems} GG
+                            </span>
+                          )}
+                          {summary && summary.genBusts > 0 && (
+                            <span className="text-[10px] text-red-400" data-testid={`class-genbusts-${cls.id}`}>
+                              {summary.genBusts} GB
+                            </span>
+                          )}
                           {savedDate && (
                             <span className="text-[10px] text-muted-foreground/60" data-testid={`class-date-${cls.id}`}>
                               Saved {savedDate}

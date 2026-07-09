@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
+import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource } from "../lib/buildClassEnvelope";
 
 export function registerSavedRoutes(app: Express): void {
   // ── Saved Rosters ──────────────────────────────────────────────────────────
@@ -104,6 +105,10 @@ export function registerSavedRoutes(app: Express): void {
       const userId = req.session.userId!;
       const { name, description, classData } = req.body;
       if (!name || !classData) return res.status(400).json({ message: "Name and class data required" });
+
+      // Detect source / theme from the inbound shape before validation strips context
+      const { source, theme, config } = detectSource(classData);
+
       let validated;
       try {
         validated = validateAndNormalizeRecruitingClass(classData);
@@ -114,10 +119,13 @@ export function registerSavedRoutes(app: Express): void {
       if (validated.warnings.length > 0) {
         console.warn(`[save-class] ${validated.warnings.length} warning(s):`, validated.warnings);
       }
+
+      const envelope = buildClassEnvelope(validated.recruits, source, { theme, config });
+
       const rc = await storage.createSavedRecruitingClass({
         userId, name, description,
         recruitCount: validated.recruitCount,
-        classData: validated.recruits as any,
+        classData: envelope as any,
       });
       res.json(rc);
     } catch (error) {
@@ -133,9 +141,10 @@ export function registerSavedRoutes(app: Express): void {
       if (rc.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
       const patchBody = { ...req.body };
       if (patchBody.classData !== undefined) {
+        const { source, theme, config } = detectSource(patchBody.classData);
         try {
           const validated = validateAndNormalizeRecruitingClass(patchBody.classData);
-          patchBody.classData = validated.recruits;
+          patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config });
           patchBody.recruitCount = validated.recruitCount;
         } catch (e) {
           if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
@@ -233,9 +242,16 @@ export function registerSavedRoutes(app: Express): void {
         }
       } catch {}
 
-      const classData = rc.classData as any;
-      const recruits: any[] = Array.isArray(classData) ? classData : (Array.isArray(classData?.recruits) ? classData.recruits : []);
-      const theme = !Array.isArray(classData) ? classData?.theme : null;
+      const classData = rc.classData as unknown;
+
+      // Extract recruits from any stored format (legacy array, legacy object, versioned envelope)
+      const recruits = extractRecruits(classData);
+
+      // Use stored summary if available (versioned format), otherwise compute on the fly
+      const storedSummary = extractSummary(classData);
+      const summary = storedSummary ?? computeSummary(recruits);
+      const theme = summary.theme;
+
       const previewRecruits = recruits.map(r => ({
         firstName: r.firstName,
         lastName: r.lastName,
@@ -261,6 +277,7 @@ export function registerSavedRoutes(app: Express): void {
         description: rc.description,
         recruitCount: rc.recruitCount,
         theme,
+        summary,
         recruits: previewRecruits,
       });
     } catch (error) {
@@ -281,6 +298,12 @@ export function registerSavedRoutes(app: Express): void {
       }
       const rc = await storage.getSavedRecruitingClass(share.classId);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+
+      // Detect theme from source class before validation
+      const storedSummary = extractSummary(rc.classData as unknown);
+      const sourceTheme = storedSummary?.theme ?? null;
+      const sourceConfig = (rc.classData as any)?.config ?? undefined;
+
       let validated;
       try {
         validated = validateAndNormalizeRecruitingClass(rc.classData as unknown);
@@ -290,12 +313,15 @@ export function registerSavedRoutes(app: Express): void {
         }
         throw e;
       }
+
+      const envelope = buildClassEnvelope(validated.recruits, "import", { theme: sourceTheme, config: sourceConfig });
+
       const imported = await storage.createSavedRecruitingClass({
         userId,
         name: rc.name,
         description: rc.description ?? undefined,
         recruitCount: validated.recruitCount,
-        classData: validated.recruits as any,
+        classData: envelope as any,
       });
       await storage.incrementClassShareImportCount(share.id);
       res.json({ success: true, class: imported });

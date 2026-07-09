@@ -9,6 +9,19 @@ import { AlertTriangle, Download, LogIn, CheckCircle2, BookOpen, Users } from "l
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+interface ClassSummary {
+  recruitCount: number;
+  starDist: Record<number, number>;
+  posDist: Record<string, number>;
+  blueChips: number;
+  gems: number;
+  busts: number;
+  genGems: number;
+  genBusts: number;
+  avgOvr: number;
+  theme: string | null;
+}
+
 interface ClassPreview {
   shareId: string;
   token: string;
@@ -20,6 +33,7 @@ interface ClassPreview {
   description: string | null;
   recruitCount: number;
   theme: string | null;
+  summary?: ClassSummary;
   recruits: PreviewRecruit[];
 }
 
@@ -138,21 +152,33 @@ export default function ImportClassPage() {
   const recruits = preview.recruits ?? [];
   const themeLabel = preview.theme ? (THEME_LABELS[preview.theme] ?? preview.theme) : null;
 
-  const starDist = [5, 4, 3, 2, 1].map(s => ({
-    star: s,
-    count: recruits.filter(r => r.starRating === s).length,
-  })).filter(x => x.count > 0);
+  // Use stored summary when available (versioned format), otherwise compute from preview recruits
+  const storedSummary = preview.summary;
 
-  const blueChipCount = recruits.filter(r => r.isBlueChip).length;
-  const genGemCount = recruits.filter(r => r.isGenerationalGem).length;
-  const genBustCount = recruits.filter(r => r.isGenerationalBust).length;
-  const avgOvr = recruits.length > 0
-    ? Math.round(recruits.reduce((s, r) => s + (r.overall || 0), 0) / recruits.length)
-    : 0;
+  const starDist = storedSummary
+    ? [5, 4, 3, 2, 1]
+        .filter(s => (storedSummary.starDist[s] ?? 0) > 0)
+        .map(s => ({ star: s, count: storedSummary.starDist[s] }))
+    : [5, 4, 3, 2, 1]
+        .map(s => ({ star: s, count: recruits.filter(r => r.starRating === s).length }))
+        .filter(x => x.count > 0);
 
-  const posDist: Record<string, number> = {};
-  recruits.forEach(r => { posDist[r.position] = (posDist[r.position] || 0) + 1; });
-  const sortedPos = Object.entries(posDist).sort((a, b) => b[1] - a[1]);
+  const blueChipCount = storedSummary ? storedSummary.blueChips : recruits.filter(r => r.isBlueChip).length;
+  const genGemCount   = storedSummary ? storedSummary.genGems   : recruits.filter(r => r.isGenerationalGem).length;
+  const genBustCount  = storedSummary ? storedSummary.genBusts  : recruits.filter(r => r.isGenerationalBust).length;
+  const avgOvr = storedSummary
+    ? storedSummary.avgOvr
+    : recruits.length > 0
+      ? Math.round(recruits.reduce((s, r) => s + (r.overall || 0), 0) / recruits.length)
+      : 0;
+
+  const sortedPos: [string, number][] = storedSummary
+    ? Object.entries(storedSummary.posDist).sort((a, b) => b[1] - a[1])
+    : (() => {
+        const pd: Record<string, number> = {};
+        recruits.forEach(r => { pd[r.position] = (pd[r.position] || 0) + 1; });
+        return Object.entries(pd).sort((a, b) => b[1] - a[1]);
+      })();
 
   return (
     <div className="min-h-screen bg-background">
