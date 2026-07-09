@@ -17,6 +17,7 @@ import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, LastSeasonStats, AdvanceDigestCategories } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "../utils";
+import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { finalizeAdvanceDigestSafe } from "../digest-engine";
 import { captureLeagueSaveState } from "../lib/leagueSaveState";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
@@ -7078,7 +7079,7 @@ export function registerSimulationRoutes(app: Express): void {
         }
 
         // Validate saved class BEFORE any state mutation
-        let savedClassRecruits: any[] | null = null;
+        let validatedAdvanceClass: ReturnType<typeof validateAndNormalizeRecruitingClass> | null = null;
         let savedClassName: string | null = null;
         if (savedRecruitingClassId !== "auto") {
           const savedClass = await storage.getSavedRecruitingClass(String(savedRecruitingClassId));
@@ -7088,13 +7089,14 @@ export function registerSimulationRoutes(app: Express): void {
           if (savedClass.userId && savedClass.userId !== req.session.userId) {
             return res.status(403).json({ message: "You do not own this saved recruiting class." });
           }
-          // classData may be array (legacy) or { recruits: [...] }
-          const raw = savedClass.classData as any;
-          const recruitRows: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.recruits) ? raw.recruits : []);
-          if (recruitRows.length === 0) {
-            return res.status(400).json({ message: "The selected saved class has no recruits." });
+          try {
+            validatedAdvanceClass = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
+          } catch (e) {
+            if (e instanceof ClassValidationError) {
+              return res.status(400).json({ message: `Saved class is invalid: ${e.message}` });
+            }
+            throw e;
           }
-          savedClassRecruits = recruitRows;
           savedClassName = savedClass.name;
         }
 
@@ -7102,16 +7104,13 @@ export function registerSimulationRoutes(app: Express): void {
         const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
 
         // Apply saved class if one was validated above
-        if (savedClassRecruits !== null) {
+        if (validatedAdvanceClass !== null) {
           await storage.deleteRecruitsByLeague(leagueId);
           await storage.batchCreateRecruits(
-            savedClassRecruits.map((r: any) => {
-              const { id, leagueId: _lid, ...rest } = r;
-              return { ...rest, leagueId };
-            })
+            validatedAdvanceClass.recruits.map((r) => ({ ...r, leagueId }))
           );
-          walkonResult.newRecruits = savedClassRecruits.length;
-          console.log(`[advance] Loaded saved class "${savedClassName}" (${savedClassRecruits.length} recruits) for season ${league.currentSeason + 1}`);
+          walkonResult.newRecruits = validatedAdvanceClass.recruitCount;
+          console.log(`[advance] Loaded saved class "${savedClassName}" (${validatedAdvanceClass.recruitCount} recruits) for season ${league.currentSeason + 1}`);
         }
         
         const updatedLeague = await storage.updateLeague(league.id, {

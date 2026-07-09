@@ -7,6 +7,7 @@ import type { Express } from "express";
 import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
+import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 
 export function registerSavedRoutes(app: Express): void {
   // ── Saved Rosters ──────────────────────────────────────────────────────────
@@ -101,9 +102,23 @@ export function registerSavedRoutes(app: Express): void {
   app.post("/api/saved-recruiting-classes", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const { name, description, recruitCount, classData } = req.body;
+      const { name, description, classData } = req.body;
       if (!name || !classData) return res.status(400).json({ message: "Name and class data required" });
-      const rc = await storage.createSavedRecruitingClass({ userId, name, description, recruitCount: recruitCount || 80, classData });
+      let validated;
+      try {
+        validated = validateAndNormalizeRecruitingClass(classData);
+      } catch (e) {
+        if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
+        throw e;
+      }
+      if (validated.warnings.length > 0) {
+        console.warn(`[save-class] ${validated.warnings.length} warning(s):`, validated.warnings);
+      }
+      const rc = await storage.createSavedRecruitingClass({
+        userId, name, description,
+        recruitCount: validated.recruitCount,
+        classData: validated.recruits as any,
+      });
       res.json(rc);
     } catch (error) {
       console.error("Failed to create saved recruiting class:", error);
@@ -116,7 +131,18 @@ export function registerSavedRoutes(app: Express): void {
       const rc = await storage.getSavedRecruitingClass(req.params.id as string);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
       if (rc.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
-      const updated = await storage.updateSavedRecruitingClass(req.params.id as string, req.body);
+      const patchBody = { ...req.body };
+      if (patchBody.classData !== undefined) {
+        try {
+          const validated = validateAndNormalizeRecruitingClass(patchBody.classData);
+          patchBody.classData = validated.recruits;
+          patchBody.recruitCount = validated.recruitCount;
+        } catch (e) {
+          if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
+          throw e;
+        }
+      }
+      const updated = await storage.updateSavedRecruitingClass(req.params.id as string, patchBody);
       res.json(updated);
     } catch (error) {
       console.error("Failed to update saved recruiting class:", error);
@@ -255,12 +281,21 @@ export function registerSavedRoutes(app: Express): void {
       }
       const rc = await storage.getSavedRecruitingClass(share.classId);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      let validated;
+      try {
+        validated = validateAndNormalizeRecruitingClass(rc.classData as unknown);
+      } catch (e) {
+        if (e instanceof ClassValidationError) {
+          return res.status(400).json({ message: `Source class is malformed: ${e.message}` });
+        }
+        throw e;
+      }
       const imported = await storage.createSavedRecruitingClass({
         userId,
         name: rc.name,
         description: rc.description ?? undefined,
-        recruitCount: rc.recruitCount,
-        classData: rc.classData as any,
+        recruitCount: validated.recruitCount,
+        classData: validated.recruits as any,
       });
       await storage.incrementClassShareImportCount(share.id);
       res.json({ success: true, class: imported });

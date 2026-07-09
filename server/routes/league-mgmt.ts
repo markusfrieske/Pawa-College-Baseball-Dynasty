@@ -18,6 +18,7 @@ import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
 import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
 import { initializeStorylineRecruits } from "../storyline-routes";
+import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import {
   generateSchedule,
   generateRecruits,
@@ -1018,21 +1019,28 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { recruits } = req.body as { recruits: any[] };
-    if (!Array.isArray(recruits) || recruits.length === 0) {
+    const { recruits: rawRecruits } = req.body as { recruits: any[] };
+    if (!Array.isArray(rawRecruits) || rawRecruits.length === 0) {
       return res.status(400).json({ message: "recruits array required" });
+    }
+    let validatedWizard;
+    try {
+      validatedWizard = validateAndNormalizeRecruitingClass(rawRecruits);
+    } catch (e) {
+      if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
+      throw e;
     }
 
     await storage.deleteRecruitsByLeague(req.params.id as string);
 
     const leagueId = req.params.id as string;
     const createdRecruits = await storage.batchCreateRecruits(
-      recruits.map((r: any) => ({ ...r, leagueId }))
+      validatedWizard.recruits.map((r) => ({ ...r, leagueId }))
     );
 
-    if (createdRecruits.length !== recruits.length) {
+    if (createdRecruits.length !== validatedWizard.recruits.length) {
       return res.status(500).json({
-        message: `Save incomplete: only ${createdRecruits.length} of ${recruits.length} recruits were saved. Please try again.`,
+        message: `Save incomplete: only ${createdRecruits.length} of ${validatedWizard.recruits.length} recruits were saved. Please try again.`,
       });
     }
 
@@ -1067,20 +1075,19 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
       return res.status(403).json({ message: "You do not own this saved class" });
     }
 
-    const raw = savedClass.classData as any;
-    const classData: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.recruits) ? raw.recruits : []);
-    if (classData.length === 0) {
-      return res.status(400).json({ message: "Saved class has no recruits" });
+    let validatedLoad;
+    try {
+      validatedLoad = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
+    } catch (e) {
+      if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
+      throw e;
     }
 
     const leagueId = req.params.id as string;
     await storage.deleteRecruitsByLeague(leagueId);
 
     const createdRecruits = await storage.batchCreateRecruits(
-      classData.map((r: any) => {
-        const { id, leagueId: _lid, ...rest } = r;
-        return { ...rest, leagueId };
-      })
+      validatedLoad.recruits.map((r) => ({ ...r, leagueId }))
     );
 
     await storage.createAuditLog({
@@ -1921,22 +1928,21 @@ app.post("/api/leagues/:id/load-recruiting-class", requireAuth, async (req, res)
       return res.status(403).json({ message: "You do not own this saved recruiting class." });
     }
 
-    const raw = savedClass.classData as any;
-    const recruitRows: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.recruits) ? raw.recruits : []);
-    if (recruitRows.length === 0) {
-      return res.status(400).json({ message: "The selected saved class has no recruits." });
+    let validatedLrc;
+    try {
+      validatedLrc = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
+    } catch (e) {
+      if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
+      throw e;
     }
 
     // Clear existing recruits and replace with the saved class
     await storage.deleteRecruitsByLeague(leagueId);
     await storage.batchCreateRecruits(
-      recruitRows.map((r: any) => {
-        const { id, leagueId: _lid, ...rest } = r;
-        return { ...rest, leagueId };
-      })
+      validatedLrc.recruits.map((r) => ({ ...r, leagueId }))
     );
 
-    res.json({ ok: true, count: recruitRows.length, className: savedClass.name });
+    res.json({ ok: true, count: validatedLrc.recruitCount, className: savedClass.name });
   } catch (error) {
     console.error("Failed to load recruiting class:", error);
     res.status(500).json({ message: "Failed to load recruiting class" });
@@ -2030,21 +2036,24 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
       if (recruitingClassId) {
         const savedClass = await storage.getSavedRecruitingClass(recruitingClassId);
         if (savedClass && savedClass.userId === userId) {
-          const classData = savedClass.classData as any;
-          if (classData?.recruits) {
-            for (const recruitData of classData.recruits) {
-              await storage.createRecruit({
-                ...recruitData,
-                leagueId,
-              });
+          let validatedDynasty;
+          try {
+            validatedDynasty = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
+          } catch (e) {
+            if (e instanceof ClassValidationError) {
+              return res.status(400).json({ message: `Recruiting class is invalid: ${e.message}` });
             }
-            // Saved-class path bypasses generateRecruits(), so storylines must be
-            // initialized explicitly here to match the auto-generate path.
-            // Fire-and-forget so the HTTP response is not delayed.
-            initializeStorylineRecruits(leagueId, league.currentSeason)
-              .then(n => console.log(`[storylines] initialized ${n} recruits for saved-class dynasty ${leagueId}`))
-              .catch(err => console.error("[storylines] Failed to initialize for saved-class dynasty:", err));
+            throw e;
           }
+          await storage.batchCreateRecruits(
+            validatedDynasty.recruits.map((r) => ({ ...r, leagueId }))
+          );
+          // Saved-class path bypasses generateRecruits(), so storylines must be
+          // initialized explicitly here to match the auto-generate path.
+          // Fire-and-forget so the HTTP response is not delayed.
+          initializeStorylineRecruits(leagueId, league.currentSeason)
+            .then(n => console.log(`[storylines] initialized ${n} recruits for saved-class dynasty ${leagueId}`))
+            .catch(err => console.error("[storylines] Failed to initialize for saved-class dynasty:", err));
         }
       } else {
         const teams = await storage.getTeamsByLeague(leagueId);
