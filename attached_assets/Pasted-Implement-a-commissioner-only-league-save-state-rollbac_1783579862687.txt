@@ -1,0 +1,199 @@
+Implement a commissioner-only league save state / rollback system so a multiplayer dynasty league can safely revert if a week advance, force advance, offseason transition, recruiting update, stat accumulation, or postseason transition causes a bad state.
+
+Goal:
+Before any league advance mutates the dynasty, the app should automatically create a full restore point. Commissioners should also be able to manually create restore points, list restore points, and restore the league back to any saved point.
+
+Core requirements:
+
+1. Add a league_save_states table
+
+Create a new table named league_save_states with:
+
+- id
+- leagueId
+- season
+- week
+- phase
+- reason
+- trigger
+- createdByUserId
+- snapshotData as json/jsonb
+- restoredAt nullable
+- restoredByUserId nullable
+- createdAt
+
+Add indexes for:
+- leagueId
+- leagueId + createdAt
+
+Also add a startup-safe migration or existing project migration so this table is created for existing databases.
+
+2. Snapshot the full league state
+
+Add storage/service functions that can capture the entire league state into snapshotData.
+
+The snapshot must include all league-scoped data needed to fully restore a dynasty, including:
+
+- league row
+- conferences
+- teams
+- coaches
+- scouts
+- players
+- recruits
+- recruiting interests
+- recruit top schools
+- recruiting action logs
+- transfer portal interests
+- walk-on pool
+- walk-on bids
+- games
+- game reports
+- standings
+- player season stats
+- player history
+- player promises
+- recruiting class snapshots
+- coach season history
+- storyline recruits
+- storyline events
+- storyline votes
+- dynasty news
+- league events
+- league invites
+- audit logs
+- NIL season earnings
+
+Do not include unrelated users or global saved roster/recruiting templates unless they are actually league-scoped.
+
+3. Restore must be transactional
+
+Implement restoreLeagueSaveState(saveStateId, restoredByUserId).
+
+The restore should:
+
+- validate the save state exists
+- validate it belongs to the league being restored
+- run inside a database transaction
+- delete current league-scoped rows in dependency-safe order
+- reinsert rows from snapshotData in dependency-safe order
+- preserve the save state record itself
+- mark restoredAt and restoredByUserId
+- invalidate league cache after restore
+
+Important:
+Before restoring an old save state, automatically create a new “pre_restore” save state of the current league. This gives commissioners a way back if they restore the wrong point.
+
+4. Add commissioner API routes
+
+Add these routes:
+
+GET /api/leagues/:id/save-states
+
+Returns save states for the league, newest first. Do not return the full snapshotData blob in the list response.
+
+POST /api/leagues/:id/save-states
+
+Creates a manual save state. Body can include:
+
+- reason
+
+If no reason is provided, use something like:
+“Manual save before {phase} S{season} W{week}”
+
+POST /api/leagues/:id/save-states/:saveStateId/restore
+
+Restores that save state.
+
+All routes must be commissioner/co-commissioner only.
+
+Block create/restore if a league advance is currently running.
+
+5. Automatically save before risky actions
+
+Create an automatic save state before:
+
+- normal league advance
+- force advance
+- restore
+
+For normal advance:
+trigger = “pre_advance”
+reason = “Automatic save before advance from {phase} S{season} W{week}”
+
+For force advance:
+trigger = “pre_force_advance”
+reason = “Automatic save before force advance from {phase} S{season} W{week}”
+
+For restore:
+trigger = “pre_restore”
+reason = “Automatic save before restoring to {phase} S{season} W{week}”
+
+6. Protect against concurrent operations
+
+Use the existing advance lock if one exists, or add a league-level operation lock.
+
+A league should not be able to:
+
+- advance while restore is running
+- restore while advance is running
+- create a manual save while advance is running
+- restore twice at the same time
+
+7. Add audit logs
+
+Create audit log entries for:
+
+- manual save state created
+- automatic pre-advance save state created
+- automatic pre-force-advance save state created
+- save state restored
+
+The restore audit log should clearly say:
+“Restored to {phase}, season {season}, week {week}: {reason}”
+
+8. Add a small commissioner UI
+
+Add a commissioner-facing “League Safety / Restore Points” section.
+
+It should show:
+
+- current phase, season, week
+- list of save states
+- trigger type
+- reason
+- created date
+- restored date if applicable
+- button to create manual restore point
+- restore button for each save state
+
+Before restore, show a confirmation dialog that clearly says restoring will replace the current league state with the saved version.
+
+The UI should explain this simply:
+“Restore points let you recover the league if an advance or code issue creates a bad state.”
+
+Keep the UI mobile-readable.
+
+9. Testing / validation
+
+Add or run tests that verify:
+
+- manual save state can be created
+- save state list excludes snapshotData
+- normal advance creates a pre_advance save state
+- force advance creates a pre_force_advance save state
+- restore creates a pre_restore save state first
+- restore resets league.currentWeek/currentPhase back to the saved point
+- restored games/standings/player stats match the snapshot
+- non-commissioners cannot create/list/restore save states
+- restore is blocked during active advance
+
+Implementation notes:
+
+- Prefer JSONB snapshot storage.
+- Keep snapshot format versioned with a field like version: 1.
+- Use dependency-safe delete and insert order.
+- Do not snapshot global users.
+- Do not expose snapshotData through list endpoints.
+- If the app has a cache invalidation helper, call it after create/restore/advance as appropriate.
+- If the app already has startup migrations, add the table creation there too so existing leagues are protected without manual DB work.

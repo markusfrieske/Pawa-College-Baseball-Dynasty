@@ -1884,3 +1884,22 @@ export const insertAdvanceDigestSchema = createInsertSchema(advanceDigests).omit
 export type InsertAdvanceDigest = z.infer<typeof insertAdvanceDigestSchema>;
 export type AdvanceDigest = typeof advanceDigests.$inferSelect;
 
+export const leagueSaveStates = pgTable("league_save_states", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  season: integer("season").notNull(),
+  week: integer("week").notNull(),
+  phase: text("phase").notNull(),
+  label: text("label").notNull(),
+  trigger: text("trigger").notNull(),
+  createdByUserId: varchar("created_by_user_id"),
+  snapshotData: jsonb("snapshot_data").notNull(),
+  restoredAt: timestamp("restored_at"),
+  restoredByUserId: varchar("restored_by_user_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_league_save_states_league_id").on(t.leagueId),
+]);
+
+export type LeagueSaveState = typeof leagueSaveStates.$inferSelect;
+

@@ -18,6 +18,7 @@ import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonS
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "../utils";
 import { finalizeAdvanceDigestSafe } from "../digest-engine";
+import { captureLeagueSaveState } from "../lib/leagueSaveState";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { evaluatePlayerPromises, processOffseasonDepartures, finalizeDeparturesInternal } from "../offseason-helpers";
 import {
@@ -6120,6 +6121,18 @@ export function registerSimulationRoutes(app: Express): void {
       advancingLeagues.add(leagueId);
       // Invalidate server cache immediately so data doesn't serve stale content after advance
       invalidateLeague(leagueId);
+
+      // Auto-save before advance so commissioner can roll back if needed
+      try {
+        await captureLeagueSaveState(
+          leagueId,
+          "pre_advance",
+          `Auto-save: S${league.currentSeason} W${currentWeek} (${league.currentPhase})`,
+          req.session.userId
+        );
+      } catch (saveErr) {
+        console.error("[pre-advance-save] Failed to create save state (non-fatal):", saveErr);
+      }
 
       setAdvanceProgress(leagueId, "initializing", 5);
       // Auto-clear progress and lock once the response is fully sent

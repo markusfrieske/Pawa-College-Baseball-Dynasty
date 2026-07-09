@@ -48,6 +48,7 @@ import { registerPostseasonRoutes } from "./routes/postseason";
 import { registerLeagueMgmtRoutes } from "./routes/league-mgmt";
 import { registerRosterRoutes } from "./routes/roster";
 import { registerSimulationRoutes, simulateGame } from "./routes/simulation";
+import { registerSaveStateRoutes } from "./routes/saveStates";
 import {
   generateSchedule,
   generateRecruits,
@@ -457,6 +458,7 @@ export async function registerRoutes(
   registerLeagueMgmtRoutes(app, (...args: Parameters<typeof simulateGame>) => simulateGame(...args));
   registerRosterRoutes(app);
   registerSimulationRoutes(app);
+  registerSaveStateRoutes(app);
   registerObjectStorageRoutes(app);
 
   // League routes

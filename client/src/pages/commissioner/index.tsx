@@ -29,6 +29,7 @@ import { InvitesTab } from "./tabs/InvitesTab";
 import { GameReportsTab } from "./tabs/GameReportsTab";
 import { NilOverviewTab } from "./tabs/NilOverviewTab";
 import { RosterEditorTab } from "./tabs/RosterEditorTab";
+import { SaveStatesTab } from "./tabs/SaveStatesTab";
 import { phaseLabels } from "./helpers/phaseHelpers";
 import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 import type { HumanCoach } from "./types";
@@ -547,6 +548,15 @@ export default function CommissionerPage() {
                   Roster Editor
                 </TabsTrigger>
               )}
+              {isPrimaryCommissioner && (
+                <TabsTrigger
+                  value="save-states"
+                  className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                  data-testid="tab-save-states"
+                >
+                  Save States
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -617,6 +627,12 @@ export default function CommissionerPage() {
           {isPrimaryCommissioner && (
             <TabsContent value="roster-editor">
               <RosterEditorTab leagueId={id!} auditLogs={data?.auditLogs || []} />
+            </TabsContent>
+          )}
+
+          {isPrimaryCommissioner && (
+            <TabsContent value="save-states">
+              <SaveStatesTab leagueId={id!} />
             </TabsContent>
           )}
         </Tabs>

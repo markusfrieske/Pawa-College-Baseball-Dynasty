@@ -128,6 +128,21 @@ app.use((req, res, next) => {
           created_at timestamp NOT NULL DEFAULT now()
         )`,
         `CREATE INDEX IF NOT EXISTS idx_advance_digests_league_id ON advance_digests (league_id)`,
+        `CREATE TABLE IF NOT EXISTS league_save_states (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+          league_id varchar NOT NULL REFERENCES leagues(id),
+          season integer NOT NULL,
+          week integer NOT NULL,
+          phase text NOT NULL,
+          label text NOT NULL,
+          trigger text NOT NULL,
+          created_by_user_id varchar,
+          snapshot_data jsonb NOT NULL,
+          restored_at timestamp,
+          restored_by_user_id varchar,
+          created_at timestamp NOT NULL DEFAULT now()
+        )`,
+        `CREATE INDEX IF NOT EXISTS idx_league_save_states_league_id ON league_save_states (league_id)`,
       ];
       for (const sql of _columnMigrations) {
         try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }
