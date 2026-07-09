@@ -17,9 +17,9 @@ import { getPotentialRange, rollWeightedPotential } from "../../shared/potential
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
 import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
-import { initializeStorylineRecruits } from "../storyline-routes";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
+import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import {
   generateSchedule,
   generateRecruits,
@@ -1040,27 +1040,31 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
       throw e;
     }
 
-    await storage.deleteRecruitsByLeague(req.params.id as string);
-
     const leagueId = req.params.id as string;
-    const createdRecruits = await storage.batchCreateRecruits(
-      validatedWizard.recruits.map((r) => ({ ...r, leagueId }))
-    );
+    const { count: savedCount } = await replaceLeagueRecruitingClass({
+      leagueId,
+      season: league.currentSeason,
+      recruits: validatedWizard.recruits.map(r => ({ ...r, leagueId })),
+      initStorylines: true,
+      saveState: {
+        trigger: "pre_restore",
+        label: `Pre-wizard-class replacement (season ${league.currentSeason})`,
+        userId: req.session.userId,
+      },
+      audit: {
+        userId: req.session.userId ?? "system",
+        action: "Recruiting Class Created (Wizard)",
+        details: `Commissioner created a recruiting class of ${validatedWizard.recruits.length} recruits via the class wizard`,
+      },
+    });
 
-    if (createdRecruits.length !== validatedWizard.recruits.length) {
+    if (savedCount !== validatedWizard.recruits.length) {
       return res.status(500).json({
-        message: `Save incomplete: only ${createdRecruits.length} of ${validatedWizard.recruits.length} recruits were saved. Please try again.`,
+        message: `Save incomplete: only ${savedCount} of ${validatedWizard.recruits.length} recruits were saved. Please try again.`,
       });
     }
 
-    await storage.createAuditLog({
-      leagueId: league.id,
-      userId: req.session.userId,
-      action: "Recruiting Class Created (Wizard)",
-      details: `Commissioner created a recruiting class of ${createdRecruits.length} recruits via the class wizard`,
-    });
-
-    res.json({ success: true, count: createdRecruits.length });
+    res.json({ success: true, count: savedCount });
   } catch (error) {
     console.error("Failed to save wizard class:", error);
     res.status(500).json({ message: "Failed to save class" });
@@ -1093,20 +1097,24 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
     }
 
     const leagueId = req.params.id as string;
-    await storage.deleteRecruitsByLeague(leagueId);
-
-    const createdRecruits = await storage.batchCreateRecruits(
-      validatedLoad.recruits.map((r) => ({ ...r, leagueId }))
-    );
-
-    await storage.createAuditLog({
-      leagueId: league.id,
-      userId: req.session.userId,
-      action: "Recruiting Class Loaded",
-      details: `Commissioner loaded saved class "${savedClass.name}" (${createdRecruits.length} recruits)`,
+    const { count: loadedCount } = await replaceLeagueRecruitingClass({
+      leagueId,
+      season: league.currentSeason,
+      recruits: validatedLoad.recruits.map(r => ({ ...r, leagueId })),
+      initStorylines: true,
+      saveState: {
+        trigger: "pre_restore",
+        label: `Pre-load-saved-class "${savedClass.name}" (season ${league.currentSeason})`,
+        userId: req.session.userId,
+      },
+      audit: {
+        userId: req.session.userId ?? "system",
+        action: "Recruiting Class Loaded",
+        details: `Commissioner loaded saved class "${savedClass.name}" (${validatedLoad.recruits.length} recruits)`,
+      },
     });
 
-    res.json({ success: true, count: createdRecruits.length, className: savedClass.name });
+    res.json({ success: true, count: loadedCount, className: savedClass.name });
   } catch (error) {
     console.error("Failed to load saved class:", error);
     res.status(500).json({ message: "Failed to load saved class" });
@@ -1946,12 +1954,18 @@ app.post("/api/leagues/:id/load-recruiting-class", requireAuth, async (req, res)
     }
 
     // Clear existing recruits and replace with the saved class
-    await storage.deleteRecruitsByLeague(leagueId);
-    await storage.batchCreateRecruits(
-      validatedLrc.recruits.map((r) => ({ ...r, leagueId }))
-    );
+    const { count: lrcCount } = await replaceLeagueRecruitingClass({
+      leagueId,
+      season: league.currentSeason,
+      recruits: validatedLrc.recruits.map(r => ({ ...r, leagueId })),
+      audit: {
+        userId: userId ?? "system",
+        action: "Recruiting Class Loaded (Pre-Start)",
+        details: `Commissioner loaded saved class "${savedClass.name}" (${validatedLrc.recruits.length} recruits) before dynasty start`,
+      },
+    });
 
-    res.json({ ok: true, count: validatedLrc.recruitCount, className: savedClass.name });
+    res.json({ ok: true, count: lrcCount, className: savedClass.name });
   } catch (error) {
     console.error("Failed to load recruiting class:", error);
     res.status(500).json({ message: "Failed to load recruiting class" });
@@ -2054,15 +2068,20 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
             }
             throw e;
           }
-          await storage.batchCreateRecruits(
-            validatedDynasty.recruits.map((r) => ({ ...r, leagueId }))
-          );
-          // Saved-class path bypasses generateRecruits(), so storylines must be
-          // initialized explicitly here to match the auto-generate path.
-          // Fire-and-forget so the HTTP response is not delayed.
-          initializeStorylineRecruits(leagueId, league.currentSeason)
-            .then(n => console.log(`[storylines] initialized ${n} recruits for saved-class dynasty ${leagueId}`))
-            .catch(err => console.error("[storylines] Failed to initialize for saved-class dynasty:", err));
+          // Saved-class path bypasses generateRecruits(); helper handles insert,
+          // storyline init (fire-and-forget), and cache invalidation.
+          await replaceLeagueRecruitingClass({
+            leagueId,
+            season: league.currentSeason,
+            recruits: validatedDynasty.recruits.map(r => ({ ...r, leagueId })),
+            initStorylines: true,
+            asyncStorylines: true,
+            audit: {
+              userId: userId ?? "system",
+              action: "Recruiting Class Loaded (Dynasty Start)",
+              details: `Saved class applied at dynasty start (${validatedDynasty.recruits.length} recruits)`,
+            },
+          });
         }
       } else {
         const teams = await storage.getTeamsByLeague(leagueId);

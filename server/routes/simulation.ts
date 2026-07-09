@@ -18,6 +18,7 @@ import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonS
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "../utils";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
+import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import { finalizeAdvanceDigestSafe } from "../digest-engine";
 import { captureLeagueSaveState } from "../lib/leagueSaveState";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
@@ -7103,12 +7104,25 @@ export function registerSimulationRoutes(app: Express): void {
         // All validation passed — now mutate state
         const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
 
-        // Apply saved class if one was validated above
+        // Apply saved class if one was validated above (overrides auto-generated class from finalizeWalkonsPhase)
         if (validatedAdvanceClass !== null) {
-          await storage.deleteRecruitsByLeague(leagueId);
-          await storage.batchCreateRecruits(
-            validatedAdvanceClass.recruits.map((r) => ({ ...r, leagueId }))
-          );
+          await replaceLeagueRecruitingClass({
+            leagueId,
+            season: league.currentSeason + 1,
+            recruits: validatedAdvanceClass.recruits.map(r => ({ ...r, leagueId })),
+            vintage: null,
+            initStorylines: true,
+            saveState: {
+              trigger: "pre_restore",
+              label: `Pre-advance-class "${savedClassName}" (season ${league.currentSeason + 1})`,
+              userId: req.session.userId,
+            },
+            audit: {
+              userId: req.session.userId ?? "system",
+              action: "Recruiting Class Loaded (Season Advance)",
+              details: `Commissioner applied saved class "${savedClassName}" (${validatedAdvanceClass.recruitCount} recruits) for season ${league.currentSeason + 1}`,
+            },
+          });
           walkonResult.newRecruits = validatedAdvanceClass.recruitCount;
           console.log(`[advance] Loaded saved class "${savedClassName}" (${validatedAdvanceClass.recruitCount} recruits) for season ${league.currentSeason + 1}`);
         }
