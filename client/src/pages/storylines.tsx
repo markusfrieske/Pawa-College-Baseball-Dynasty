@@ -1,19 +1,22 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
-import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StarRating } from "@/components/ui/star-rating";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
+import { RetroButton } from "@/components/ui/retro-button";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, BookOpen, Sparkles, TrendingUp, TrendingDown, Minus,
   ChevronRight, ChevronDown, Users, Trophy, Flame, Skull, Crown, Zap,
-  Vote, Clock, CheckCircle, BarChart2, Link2, Calendar,
+  Vote, Clock, CheckCircle, BarChart2, Link2, Calendar, Shield,
   Target, History, GitBranch, Activity, RefreshCw, Loader2,
+  AlertTriangle, Info, HeartPulse, Wrench, Radio, MapPin, Star,
+  Swords, Eye, Award,
 } from "lucide-react";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface StorylineEventFull {
   id: string;
@@ -33,7 +36,13 @@ interface StorylineEventFull {
   resolvedAbilityRemove?: string | null;
   resolvedAbilityTier?: string | null;
   archetypeAtEvent?: string | null;
-  eventImageUrl?: string | null;
+}
+
+interface ChoiceHint {
+  choice: string;
+  riskLevel: "low" | "medium" | "high";
+  rewardLevel: "low" | "medium" | "high";
+  flavor: string;
 }
 
 interface StorylineRecruit {
@@ -49,97 +58,156 @@ interface StorylineRecruit {
   overlappingRecruitId: string | null;
   overlappingRecruitName: string | null;
   recruit: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    position: string;
-    starRank: number;
-    overall: number;
-    homeState: string;
-    isBlueChip: boolean;
-    isGenerationalGem: boolean;
+    id: string; firstName: string; lastName: string;
+    position: string; starRank: number; overall: number;
+    homeState: string; isBlueChip: boolean; isGenerationalGem: boolean;
     stage: string;
     signedTeamAbbreviation?: string | null;
     signedTeamPrimaryColor?: string | null;
-    skinTone?: string | null;
-    hairColor?: string | null;
-    hairStyle?: string | null;
-    facialHair?: string | null;
-    eyeStyle?: string | null;
-    eyebrowStyle?: string | null;
-    mouthStyle?: string | null;
-    eyeBlack?: string | null;
-    abilities?: string[] | null;
-    storyLockedAbilities?: string[] | null;
+    skinTone?: string | null; hairColor?: string | null; hairStyle?: string | null;
+    facialHair?: string | null; eyeStyle?: string | null; eyebrowStyle?: string | null;
+    mouthStyle?: string | null; eyeBlack?: string | null;
+    abilities?: string[] | null; storyLockedAbilities?: string[] | null;
   } | null;
   archetypeName: string;
   archetypeDescription: string;
   archetypeFlavor: string;
-  imageUrl: string | null;
   archetypeImageUrl: string | null;
   totalArcEvents: number;
   activeEvent: StorylineEventFull | null;
   latestResolvedEvent: StorylineEventFull | null;
   latestResolvedVoteCounts: Record<string, number>;
   latestResolvedMyVote: string | null;
-  latestEvent: StorylineEventFull | null;
   allEvents: StorylineEventFull[];
   totalEvents: number;
   resolvedEvents: number;
   voteCounts: Record<string, number>;
   myVote: string | null;
   featuredTeamName?: string | null;
+  moodHint?: "rising" | "steady" | "falling";
+  recruitingImpactHint?: "high impact" | "moderate impact" | "low impact";
+  choiceHints?: ChoiceHint[] | null;
 }
 
-const TIER_CONFIG: Record<string, { label: string; color: string }> = {
-  elite:         { label: "Elite",      color: "text-amber-400 bg-amber-500/15 border-amber-500/30" },
-  above_average: { label: "Above Avg",  color: "text-blue-400 bg-blue-500/15 border-blue-500/30" },
-  average:       { label: "Average",    color: "text-green-400 bg-green-500/15 border-green-500/30" },
-  below_average: { label: "Below Avg",  color: "text-gray-400 bg-gray-500/15 border-gray-500/30" },
-  unknown:       { label: "Unknown",    color: "text-purple-400 bg-purple-500/15 border-purple-500/30" },
-  legendary:     { label: "Legendary",  color: "text-gold bg-gold/15 border-gold/30" },
-};
-
-const CHOICE_LABELS = ["A", "B", "C", "D"] as const;
-const CHOICE_COLORS: Record<string, string> = {
-  A: "border-blue-500/50 hover:border-blue-500 hover:bg-blue-500/10",
-  B: "border-green-500/50 hover:border-green-500 hover:bg-green-500/10",
-  C: "border-amber-500/50 hover:border-amber-500 hover:bg-amber-500/10",
-  D: "border-purple-500/50 hover:border-purple-500 hover:bg-purple-500/10",
-};
-const CHOICE_ACTIVE: Record<string, string> = {
-  A: "border-blue-500 bg-blue-500/20 text-blue-300",
-  B: "border-green-500 bg-green-500/20 text-green-300",
-  C: "border-amber-500 bg-amber-500/20 text-amber-300",
-  D: "border-purple-500 bg-purple-500/20 text-purple-300",
-};
-
-function OvrDeltaBadge({ delta }: { delta: number }) {
-  if (delta === 0) return <span className="text-muted-foreground text-xs flex items-center gap-1"><Minus className="w-3 h-3" /> No change</span>;
-  if (delta > 0) return <span className="text-green-400 text-xs font-bold flex items-center gap-1"><TrendingUp className="w-3 h-3" /> +{delta} OVR</span>;
-  return <span className="text-red-400 text-xs font-bold flex items-center gap-1"><TrendingDown className="w-3 h-3" /> {delta} OVR</span>;
+interface LeagueData {
+  id: string;
+  commissionerId: string;
+  coCommissionerIds?: string[];
+  currentWeek: number;
+  currentPhase: string;
+  currentSeason: number;
 }
 
-function VoteBar({ counts, total, myVote, resolvedChoice }: { counts: Record<string, number>; total: number; myVote: string | null; resolvedChoice?: string | null }) {
+interface HealthIssue {
+  severity: "error" | "warning" | "info";
+  code: string;
+  message: string;
+  detail?: string;
+  repairAction?: string;
+}
+
+interface HealthReport {
+  healthy: boolean;
+  issues: HealthIssue[];
+  summary: {
+    storylineCount: number; recruitCount: number;
+    unresolvedEvents: number; staleEvents: number;
+    totalEventsGenerated: number; zeroEventRecruits: number; mismatchedRecruits: number;
+  };
+  checkedAt: string;
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const CHOICE_COLORS: Record<string, { border: string; active: string; label: string }> = {
+  A: { border: "border-blue-500/40", active: "border-blue-500 bg-blue-500/15", label: "text-blue-300" },
+  B: { border: "border-green-500/40", active: "border-green-500 bg-green-500/15", label: "text-green-300" },
+  C: { border: "border-amber-500/40", active: "border-amber-500 bg-amber-500/15", label: "text-amber-300" },
+  D: { border: "border-purple-500/40", active: "border-purple-500 bg-purple-500/15", label: "text-purple-300" },
+};
+
+const RISK_COLORS: Record<string, string> = {
+  low: "text-green-400 bg-green-500/10 border-green-500/30",
+  medium: "text-amber-400 bg-amber-500/10 border-amber-500/30",
+  high: "text-red-400 bg-red-500/10 border-red-500/30",
+};
+
+const REWARD_COLORS: Record<string, string> = {
+  low: "text-muted-foreground bg-muted/20 border-border/30",
+  medium: "text-blue-400 bg-blue-500/10 border-blue-500/30",
+  high: "text-gold bg-gold/10 border-gold/30",
+};
+
+const MOOD_CONFIG = {
+  rising:  { icon: TrendingUp,   color: "text-green-400", bar: "bg-green-400",  label: "Rising",  pct: 82 },
+  steady:  { icon: Minus,        color: "text-amber-400", bar: "bg-amber-400",  label: "Steady",  pct: 50 },
+  falling: { icon: TrendingDown, color: "text-red-400",   bar: "bg-red-400",    label: "Falling", pct: 22 },
+};
+
+// ── Small helpers ─────────────────────────────────────────────────────────────
+
+function OvrPill({ delta }: { delta: number }) {
+  if (!delta) return null;
   return (
-    <div className="space-y-1.5">
-      {CHOICE_LABELS.map(c => {
+    <span className={`inline-flex items-center gap-0.5 text-[9px] font-pixel font-bold px-1.5 py-0.5 rounded border
+      ${delta > 0 ? "text-green-400 bg-green-500/10 border-green-500/30" : "text-red-400 bg-red-500/10 border-red-500/30"}`}>
+      {delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
+      {delta > 0 ? "+" : ""}{delta} OVR
+    </span>
+  );
+}
+
+function MoodMeter({ mood }: { mood?: "rising" | "steady" | "falling" }) {
+  const cfg = MOOD_CONFIG[mood ?? "steady"];
+  const Icon = cfg.icon;
+  return (
+    <div className="flex items-center gap-1.5">
+      <Icon className={`w-3 h-3 ${cfg.color} flex-shrink-0`} />
+      <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${cfg.bar} transition-all`} style={{ width: `${cfg.pct}%` }} />
+      </div>
+      <span className={`text-[9px] font-pixel ${cfg.color} flex-shrink-0`}>{cfg.label.toUpperCase()}</span>
+    </div>
+  );
+}
+
+function ArcProgressBar({ stage, total, isLegendary }: { stage: number; total: number; isLegendary: boolean }) {
+  const t = Math.max(3, total);
+  const f = Math.min(stage, t);
+  return (
+    <div className="flex items-center gap-1" data-testid="arc-progress-pips">
+      {Array.from({ length: t }).map((_, i) => (
+        <div key={i} className={`h-1.5 flex-1 rounded-sm ${
+          i < f
+            ? isLegendary ? "bg-gold/80" : "bg-muted-foreground/55"
+            : isLegendary ? "bg-gold/15" : "bg-muted/40"
+        }`} />
+      ))}
+      <span className={`text-[8px] font-pixel ml-0.5 flex-shrink-0 ${isLegendary ? "text-gold/70" : "text-muted-foreground/50"}`}>
+        {f}/{t}
+      </span>
+    </div>
+  );
+}
+
+function VoteBar({ counts, total, myVote, resolvedChoice }: {
+  counts: Record<string, number>; total: number; myVote: string | null; resolvedChoice?: string | null;
+}) {
+  return (
+    <div className="space-y-1">
+      {(["A","B","C","D"] as const).map(c => {
         const count = counts[c] || 0;
+        if (!count && !resolvedChoice) return null;
         const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-        const isWinner = resolvedChoice
-          ? c === resolvedChoice
-          : (total > 0 && count === Math.max(...CHOICE_LABELS.map(x => counts[x] || 0)));
+        const isWinner = resolvedChoice ? c === resolvedChoice : (total > 0 && count === Math.max(...["A","B","C","D"].map(x => counts[x] || 0)));
+        const cc = CHOICE_COLORS[c];
         return (
           <div key={c} className="flex items-center gap-2">
             <span className={`w-4 text-[9px] font-pixel font-bold ${(myVote === c || c === resolvedChoice) ? "text-gold" : "text-muted-foreground"}`}>{c}</span>
-            <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${isWinner && total > 0 ? "bg-gold" : "bg-muted-foreground/40"}`}
-                style={{ width: `${pct}%` }}
-              />
+            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+              <div className={`h-full rounded-full transition-all ${isWinner && total > 0 ? "bg-gold" : "bg-muted-foreground/30"}`} style={{ width: `${pct}%` }} />
             </div>
-            <span className="text-[9px] text-muted-foreground w-8 text-right">{count}v</span>
-            <span className="text-[9px] text-muted-foreground w-7 text-right">{pct}%</span>
+            <span className="text-[9px] text-muted-foreground w-10 text-right">{count}v · {pct}%</span>
           </div>
         );
       })}
@@ -147,608 +215,795 @@ function VoteBar({ counts, total, myVote, resolvedChoice }: { counts: Record<str
   );
 }
 
+// ── Vote Card (full game-like card for active votes) ──────────────────────────
 
-function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
-  if (events.length === 0) return null;
-  // Sort ascending by week so history renders chronologically (Wk 1 → Wk N)
-  const resolved = [...events]
-    .filter(e => e.resolvedChoice)
-    .sort((a, b) => (a.week ?? 0) - (b.week ?? 0));
-  if (resolved.length === 0) return null;
-  return (
-    <div className="mt-3 border-t border-border/30 pt-3">
-      <div className="flex items-center gap-1.5 mb-2">
-        <History className="w-3 h-3 text-muted-foreground" />
-        <span className="text-[9px] font-pixel text-muted-foreground">ARC HISTORY</span>
-      </div>
-      <div className="space-y-2">
-        {resolved.map((e, idx) => {
-          const prevArchetype = idx > 0 ? resolved[idx - 1].archetypeAtEvent : null;
-          const archetypeChanged = prevArchetype && e.archetypeAtEvent && prevArchetype !== e.archetypeAtEvent;
-          return (
-            <div key={e.id} className="flex items-start gap-2">
-              <div className="flex flex-col items-center">
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${e.ovrDelta && e.ovrDelta > 0 ? "border-green-500/50 bg-green-500/10" : e.ovrDelta && e.ovrDelta < 0 ? "border-red-500/50 bg-red-500/10" : "border-border/50 bg-muted/20"}`}>
-                  <span className="text-[7px] font-pixel font-bold">{idx + 1}</span>
-                </div>
-                {idx < resolved.length - 1 && <div className="w-px h-3 bg-border/40 my-0.5" />}
-              </div>
-              <div className="flex-1 min-w-0 pb-1">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[9px] font-pixel text-muted-foreground">Wk {e.week}</span>
-                  {e.ovrDelta !== null && e.ovrDelta !== 0 && <OvrDeltaBadge delta={e.ovrDelta} />}
-                </div>
-                {(() => {
-                  const wc = e.resolvedChoice;
-                  const wcText = wc === "A" ? e.choiceA : wc === "B" ? e.choiceB : wc === "C" ? e.choiceC : (e.choiceD || "");
-                  return wc && wcText ? (
-                    <p className="text-[10px] text-foreground/80 mt-0.5 leading-snug" data-testid={`text-arc-choice-${e.id}`}>
-                      <span className={`font-pixel text-[9px] mr-1 ${CHOICE_ACTIVE[wc] ? wc === "A" ? "text-blue-300" : wc === "B" ? "text-green-300" : wc === "C" ? "text-amber-300" : "text-purple-300" : "text-gold"}`}>{wc}.</span>
-                      {wcText}
-                    </p>
-                  ) : null;
-                })()}
-                {archetypeChanged && (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <GitBranch className="w-2.5 h-2.5 text-amber-400" />
-                    <span className="text-[9px] text-amber-400/80 font-pixel">Arc shift → {e.archetypeAtEvent?.replace(/_/g, " ")}</span>
-                  </div>
-                )}
-                {e.resolvedOutcomeText && (
-                  <p className="text-[10px] text-muted-foreground/70 italic mt-0.5 leading-relaxed">"{e.resolvedOutcomeText}"</p>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
+function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState(false);
-  const [showTimeline, setShowTimeline] = useState(false);
   const [pendingChoice, setPendingChoice] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const r = sl.recruit;
-  const activeEvent = sl.activeEvent;
-  const resolvedEvent = sl.latestResolvedEvent;
+  const ev = sl.activeEvent!;
   const totalVotes = Object.values(sl.voteCounts).reduce((s, v) => s + v, 0);
-  const tierCfg = TIER_CONFIG[sl.tier] || TIER_CONFIG.average;
-  const ovrDelta = sl.resolvedOvrDelta ?? 0;
-  const isCommitted = r?.stage === "signed" || r?.stage === "committed";
-  const hasLinkedArc = !!sl.overlappingRecruitId;
+  const hasD = !!ev.choiceD;
+  const choices = hasD ? ["A","B","C","D"] : ["A","B","C"];
+  const choiceText: Record<string, string> = { A: ev.choiceA, B: ev.choiceB, C: ev.choiceC, D: ev.choiceD ?? "" };
+  const hintMap: Record<string, ChoiceHint> = {};
+  (sl.choiceHints ?? []).forEach(h => { hintMap[h.choice] = h; });
+  const voted = !!sl.myVote;
 
   const voteMutation = useMutation({
     mutationFn: ({ choice }: { choice: string }) =>
-      apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${activeEvent!.id}/vote`, { choice }),
+      apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${ev.id}/vote`, { choice }),
     onSuccess: () => {
       setPendingChoice(null);
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
     },
   });
 
-  const hasChoiceD = !!activeEvent?.choiceD;
-  const availableChoices = hasChoiceD ? CHOICE_LABELS : (["A", "B", "C"] as const);
+  const resolvedEvents = sl.allEvents.filter(e => e.resolvedChoice).sort((a, b) => a.week - b.week);
 
   return (
-    <RetroCard
-      variant="bordered"
-      className={`overflow-hidden transition-all ${sl.isLegendary ? "border-gold/60 shadow-lg shadow-gold/10" : ""} ${isCommitted ? "border-green-500/40" : ""}`}
+    <div
+      className={`rounded-xl border overflow-hidden ${sl.isLegendary ? "border-gold/50 shadow-lg shadow-gold/10" : "border-border/60"}`}
+      style={{ background: sl.isLegendary ? "linear-gradient(135deg, rgba(212,175,55,0.06) 0%, transparent 60%)" : "hsl(var(--card))" }}
       data-testid={`card-storyline-${sl.id}`}
     >
+      {/* Legendary banner */}
       {sl.isLegendary && (
-        <div className="bg-gradient-to-r from-gold/20 via-gold/10 to-transparent px-4 py-1 flex items-center gap-2">
+        <div className="px-4 py-1.5 bg-gradient-to-r from-gold/20 via-gold/8 to-transparent flex items-center gap-2 border-b border-gold/20">
           <Crown className="w-3 h-3 text-gold" />
-          <span className="text-[9px] font-pixel text-gold tracking-widest">GENERATIONAL STORYLINE</span>
+          <span className="text-[9px] font-pixel text-gold tracking-[0.2em]">GENERATIONAL STORYLINE</span>
+        </div>
+      )}
+
+      {/* Chapter header bar */}
+      <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-border/30">
+        <div className="flex items-center gap-1.5">
+          <Vote className="w-3.5 h-3.5 text-gold animate-pulse" />
+          <span className="font-pixel text-[9px] text-gold">CHAPTER {ev.week} OPEN</span>
+        </div>
+        <span className="text-[9px] text-muted-foreground ml-auto">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
+        {voted && (
+          <span className="text-[9px] font-pixel text-green-400 flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" /> Voted {sl.myVote}
+          </span>
+        )}
+      </div>
+
+      {/* Recruit identity row */}
+      <div className="px-4 py-3 flex items-center gap-3">
+        <div className={`w-14 h-14 rounded-xl border overflow-hidden flex-shrink-0 ${sl.isLegendary ? "border-gold/40" : "border-border/40"}`}>
+          <PlayerPortrait
+            skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
+            hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
+            eyeStyle={r?.eyeStyle || undefined} eyebrowStyle={r?.eyebrowStyle || undefined}
+            mouthStyle={r?.mouthStyle || undefined} eyeBlack={r?.eyeBlack ? true : undefined}
+            playerId={r?.id} isRecruit={true} className="w-full h-full"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {r && (
+              <Link href={`/league/${leagueId}/recruit/${r.id}`}>
+                <span className="font-bold text-gold hover:underline text-sm leading-tight" data-testid={`link-recruit-${r.id}`}>
+                  {r.firstName} {r.lastName}
+                </span>
+              </Link>
+            )}
+            {r?.isGenerationalGem && <Sparkles className="w-3 h-3 text-amber-400" />}
+            {r?.isBlueChip && !r?.isGenerationalGem && <Flame className="w-3 h-3 text-blue-400" />}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {r && <span className="text-[10px] text-muted-foreground">{r.position} · {r.homeState}</span>}
+            {r && <StarRating rating={r.starRank} size="sm" />}
+          </div>
+          <div className="mt-1.5">
+            <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isLegendary={sl.isLegendary} />
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
+          <div className="text-right">
+            <MoodMeter mood={sl.moodHint} />
+          </div>
+        </div>
+      </div>
+
+      {/* Archetype label */}
+      <div className="mx-4 mb-2 px-3 py-1.5 rounded-lg bg-muted/20 border border-border/30 flex items-center gap-2">
+        <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
+        <span className="text-[9px] font-pixel text-gold">{sl.archetypeName}</span>
+        {sl.featuredTeamName && (
+          <span className="ml-auto text-[9px] text-blue-300/70 italic flex-shrink-0">vs {sl.featuredTeamName}</span>
+        )}
+      </div>
+
+      {/* Story event text */}
+      <div className="px-4 pb-3">
+        <p className="text-xs leading-relaxed text-foreground/85">{ev.eventText}</p>
+      </div>
+
+      {/* Choice cards */}
+      <div className="px-4 pb-3 space-y-2">
+        {choices.map(c => {
+          const cc = CHOICE_COLORS[c];
+          const hint = hintMap[c];
+          const isSelected = pendingChoice === c;
+          const isMyVote = sl.myVote === c;
+          const disabled = voted || voteMutation.isPending;
+          return (
+            <button
+              key={c}
+              onClick={() => !voted && setPendingChoice(isSelected ? null : c)}
+              disabled={disabled}
+              className={`w-full text-left rounded-lg border transition-all p-3 ${
+                isMyVote
+                  ? `${cc.active} ${cc.border}`
+                  : isSelected
+                  ? `${cc.active} ${cc.border}`
+                  : voted
+                  ? "border-border/20 bg-muted/10 opacity-40"
+                  : `${cc.border} bg-muted/10 hover:bg-muted/20`
+              }`}
+              data-testid={`button-vote-${c}-${ev.id}`}
+              style={{ minHeight: "56px" }}
+            >
+              <div className="flex items-start gap-2.5">
+                <span className={`font-pixel text-base font-bold flex-shrink-0 leading-none ${isSelected || isMyVote ? cc.label : "text-muted-foreground"}`}>{c}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs leading-snug ${isSelected || isMyVote ? "text-foreground" : "text-foreground/80"}`}>{choiceText[c]}</p>
+                  {hint && (
+                    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                      <span className={`text-[8px] font-pixel px-1.5 py-0.5 rounded border ${RISK_COLORS[hint.riskLevel]}`}>
+                        {hint.riskLevel.toUpperCase()} RISK
+                      </span>
+                      <span className={`text-[8px] font-pixel px-1.5 py-0.5 rounded border ${REWARD_COLORS[hint.rewardLevel]}`}>
+                        {hint.rewardLevel.toUpperCase()} REWARD
+                      </span>
+                      <span className="text-[9px] text-muted-foreground italic truncate">{hint.flavor}</span>
+                    </div>
+                  )}
+                </div>
+                {isMyVote && <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Submit / vote bar */}
+      {!voted ? (
+        <div className="px-4 pb-4">
+          <button
+            onClick={() => pendingChoice && voteMutation.mutate({ choice: pendingChoice })}
+            disabled={!pendingChoice || voteMutation.isPending}
+            className={`w-full py-3 rounded-lg border font-pixel text-xs transition-all ${
+              pendingChoice
+                ? "border-gold bg-gold/10 text-gold hover:bg-gold/20 active:bg-gold/30"
+                : "border-border/30 bg-muted/10 text-muted-foreground/40 cursor-not-allowed"
+            }`}
+            data-testid={`button-submit-vote-${ev.id}`}
+            style={{ minHeight: "48px" }}
+          >
+            {voteMutation.isPending ? (
+              <span className="flex items-center justify-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Submitting…</span>
+            ) : pendingChoice ? `SUBMIT VOTE — CHOICE ${pendingChoice}` : "SELECT A CHOICE ABOVE"}
+          </button>
+        </div>
+      ) : totalVotes > 0 ? (
+        <div className="px-4 pb-4 pt-1">
+          <div className="flex items-center gap-1.5 mb-2">
+            <BarChart2 className="w-3 h-3 text-muted-foreground" />
+            <span className="text-[9px] font-pixel text-muted-foreground">LIVE VOTE DISTRIBUTION</span>
+          </div>
+          <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} />
+        </div>
+      ) : null}
+
+      {/* Arc history (collapsible) */}
+      {resolvedEvents.length > 0 && (
+        <div className="border-t border-border/20 px-4 py-2">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-1.5 text-[9px] font-pixel text-muted-foreground hover:text-gold transition-colors"
+            data-testid={`button-timeline-${sl.id}`}
+          >
+            <History className="w-3 h-3" />
+            {showHistory ? "Hide" : "Show"} arc history ({resolvedEvents.length})
+            {showHistory ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          </button>
+          {showHistory && <ArcTimeline events={resolvedEvents} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Arc Timeline ──────────────────────────────────────────────────────────────
+
+function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
+  return (
+    <div className="mt-3 space-y-3" data-testid="arc-timeline">
+      {events.map((e, idx) => {
+        const wc = e.resolvedChoice;
+        const wcText = wc === "A" ? e.choiceA : wc === "B" ? e.choiceB : wc === "C" ? e.choiceC : (e.choiceD ?? "");
+        const cc = wc ? CHOICE_COLORS[wc] : null;
+        const prevArc = idx > 0 ? events[idx - 1].archetypeAtEvent : null;
+        const arcShift = prevArc && e.archetypeAtEvent && prevArc !== e.archetypeAtEvent;
+        return (
+          <div key={e.id} className="flex items-start gap-3">
+            <div className="flex flex-col items-center flex-shrink-0">
+              <div className={`w-6 h-6 rounded-full border flex items-center justify-center ${
+                e.ovrDelta && e.ovrDelta > 0 ? "border-green-500/50 bg-green-500/10" :
+                e.ovrDelta && e.ovrDelta < 0 ? "border-red-500/50 bg-red-500/10" :
+                "border-border/50 bg-muted/20"
+              }`}>
+                <span className="text-[8px] font-pixel">{idx + 1}</span>
+              </div>
+              {idx < events.length - 1 && <div className="w-px h-4 bg-border/30 my-0.5" />}
+            </div>
+            <div className="flex-1 min-w-0 pb-1">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] font-pixel text-muted-foreground">Wk {e.week}</span>
+                {e.ovrDelta !== null && e.ovrDelta !== 0 && <OvrPill delta={e.ovrDelta} />}
+                {arcShift && (
+                  <span className="text-[8px] text-amber-400 font-pixel flex items-center gap-0.5">
+                    <GitBranch className="w-2.5 h-2.5" /> Arc shift
+                  </span>
+                )}
+              </div>
+              {wc && wcText && cc && (
+                <p className="text-[10px] text-foreground/80 leading-snug">
+                  <span className={`font-pixel text-[9px] mr-1.5 ${cc.label}`}>{wc}.</span>{wcText}
+                </p>
+              )}
+              {e.resolvedOutcomeText && (
+                <p className="text-[10px] text-muted-foreground/70 italic mt-0.5">"{e.resolvedOutcomeText}"</p>
+              )}
+              {e.resolvedAbilityGain && (
+                <div className={`inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded border text-[8px] ${
+                  e.resolvedAbilityTier === "gold" ? "bg-amber-500/10 border-amber-400/30 text-amber-300" :
+                  e.resolvedAbilityTier === "red" ? "bg-red-500/10 border-red-400/30 text-red-300" :
+                  "bg-blue-500/10 border-blue-400/30 text-blue-300"
+                }`}>
+                  <Sparkles className="w-2.5 h-2.5" /> {e.resolvedAbilityGain}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Arc Card (non-vote state) ─────────────────────────────────────────────────
+
+function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const r = sl.recruit;
+  const resolvedEvents = sl.allEvents.filter(e => e.resolvedChoice).sort((a, b) => a.week - b.week);
+  const isCommitted = r?.stage === "signed" || r?.stage === "committed";
+  const isComplete = sl.currentArcStage >= sl.totalArcEvents && sl.totalArcEvents > 0;
+
+  return (
+    <div
+      className={`rounded-xl border overflow-hidden ${
+        sl.isLegendary ? "border-gold/40" :
+        isCommitted ? "border-green-500/30" :
+        isComplete ? "border-muted-foreground/30" :
+        "border-border/40"
+      }`}
+      style={{ background: "hsl(var(--card))" }}
+      data-testid={`card-arc-${sl.id}`}
+    >
+      {sl.isLegendary && (
+        <div className="px-3 py-1 bg-gradient-to-r from-gold/15 to-transparent flex items-center gap-1.5 border-b border-gold/20">
+          <Crown className="w-2.5 h-2.5 text-gold" />
+          <span className="text-[8px] font-pixel text-gold tracking-widest">LEGENDARY</span>
         </div>
       )}
       {isCommitted && (
-        <div className="bg-gradient-to-r from-green-500/20 via-green-500/10 to-transparent px-4 py-1 flex items-center gap-2">
-          <CheckCircle className="w-3 h-3 text-green-400" />
-          <span className="text-[9px] font-pixel text-green-400 tracking-widest">
+        <div className="px-3 py-1 bg-green-500/10 flex items-center gap-1.5 border-b border-green-500/20">
+          <CheckCircle className="w-2.5 h-2.5 text-green-400" />
+          <span className="text-[8px] font-pixel text-green-400">
             COMMITTED{r?.signedTeamAbbreviation ? ` — ${r.signedTeamAbbreviation}` : ""}
           </span>
         </div>
       )}
-
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <div className="relative flex-shrink-0">
-            <div className={`w-14 h-14 rounded-lg border overflow-hidden ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`}>
-              <PlayerPortrait
-                skinTone={r?.skinTone ?? "light"}
-                hairColor={r?.hairColor ?? "brown"}
-                hairStyle={r?.hairStyle ?? "short"}
-                facialHair={r?.facialHair ?? "none"}
-                eyeStyle={r?.eyeStyle || undefined}
-                eyebrowStyle={r?.eyebrowStyle || undefined}
-                mouthStyle={r?.mouthStyle || undefined}
-                eyeBlack={r?.eyeBlack ? true : undefined}
-                playerId={r?.id}
-                isRecruit={true}
-                className="w-full h-full"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {r && (
-                    <Link href={`/league/${leagueId}/recruit/${r.id}`}>
-                      <span className="font-bold text-gold hover:underline cursor-pointer text-sm" data-testid={`link-recruit-${r.id}`}>
-                        {r.firstName} {r.lastName}
-                      </span>
-                    </Link>
-                  )}
-                  {r?.isGenerationalGem && <Sparkles className="w-3 h-3 text-amber-400" />}
-                  {r?.isBlueChip && !r?.isGenerationalGem && <Flame className="w-3 h-3 text-blue-400" />}
-                  {isCommitted && <CheckCircle className="w-3 h-3 text-green-400" />}
-                </div>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  {r && <span className="text-[10px] text-muted-foreground">{r.position} • {r.homeState}</span>}
-                  {r && <StarRating rating={r.starRank} size="sm" />}
-                  <Badge className={`text-[9px] border no-default-hover-elevate no-default-active-elevate ${tierCfg.color}`}>
-                    {sl.tier === "unknown" ? "?" : tierCfg.label}
-                  </Badge>
-                  {hasLinkedArc && (
-                    <Badge className="text-[9px] border border-cyan-500/30 text-cyan-400 bg-cyan-500/10 no-default-hover-elevate no-default-active-elevate" title={`Linked arc with ${sl.overlappingRecruitName || "another recruit"}`}>
-                      <Link2 className="w-2.5 h-2.5 mr-0.5" />
-                      Linked Arc
-                    </Badge>
-                  )}
-                </div>
-                {hasLinkedArc && sl.overlappingRecruitName && (
-                  <p className="text-[9px] text-cyan-400/70 mt-0.5 flex items-center gap-1">
-                    <GitBranch className="w-2.5 h-2.5" />
-                    Connected to {sl.overlappingRecruitName}'s storyline
-                  </p>
-                )}
-              </div>
-
-              <div className="text-right flex-shrink-0">
-                <OvrDeltaBadge delta={ovrDelta} />
-              </div>
-            </div>
-
-            <ArcProgressPips
-              arcStage={sl.currentArcStage}
-              totalArcEvents={sl.totalArcEvents}
-              isLegendary={sl.isLegendary}
+      <div className="p-3">
+        <div className="flex items-center gap-2.5">
+          <div className={`w-11 h-11 rounded-lg border overflow-hidden flex-shrink-0 ${sl.isLegendary ? "border-gold/30" : "border-border/30"}`}>
+            <PlayerPortrait
+              skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
+              hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
+              eyeStyle={r?.eyeStyle || undefined} eyebrowStyle={r?.eyebrowStyle || undefined}
+              mouthStyle={r?.mouthStyle || undefined} eyeBlack={r?.eyeBlack ? true : undefined}
+              playerId={r?.id} isRecruit={true} className="w-full h-full"
             />
-
-            <div className="mt-2 bg-muted/20 rounded-md px-3 py-1.5" data-testid={`archetype-banner-${sl.id}`}>
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-                  <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
-                </div>
-                {sl.featuredTeamName && (
-                  <span className="text-[9px] text-blue-300/80 italic flex-shrink-0">
-                    Recruiting target of {sl.featuredTeamName}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] text-muted-foreground italic mt-0.5">{sl.archetypeFlavor}</p>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {r && (
+                <Link href={`/league/${leagueId}/recruit/${r.id}`}>
+                  <span className="font-semibold text-gold hover:underline text-[13px]">{r.firstName} {r.lastName}</span>
+                </Link>
+              )}
+              {r?.isGenerationalGem && <Sparkles className="w-3 h-3 text-amber-400" />}
             </div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {r && <span className="text-[10px] text-muted-foreground">{r.position} · {r.homeState}</span>}
+              {r && <StarRating rating={r.starRank} size="sm" />}
+            </div>
+            <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isLegendary={sl.isLegendary} />
+          </div>
+          <div className="flex-shrink-0 flex flex-col items-end gap-1">
+            {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
+            <span className="text-[8px] font-pixel text-muted-foreground">{sl.archetypeName.slice(0, 14)}</span>
           </div>
         </div>
 
-        <div className="mt-4 space-y-3">
-          {/* ── CHAPTER RESOLVED section ── shown whenever a resolved event exists */}
-          {resolvedEvent && (
-            <div
-              className={`rounded-md border overflow-hidden ${resolvedEvent.ovrDelta && resolvedEvent.ovrDelta > 0 ? "bg-green-950/20 border-green-500/30" : resolvedEvent.ovrDelta && resolvedEvent.ovrDelta < 0 ? "bg-red-950/20 border-red-500/30" : "bg-muted/20 border-border/40"}`}
-              data-testid={`section-resolved-${sl.id}`}
-            >
-              <div className="px-3 py-2.5">
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <CheckCircle className="w-3 h-3 text-green-400" />
-                  <span className="text-[9px] font-pixel text-muted-foreground">
-                    CHAPTER {resolvedEvent.week} RESOLVED — Choice {resolvedEvent.resolvedChoice} Won
-                  </span>
-                  {resolvedEvent.ovrDelta !== null && resolvedEvent.ovrDelta !== 0 && (
-                    <span className="ml-auto"><OvrDeltaBadge delta={resolvedEvent.ovrDelta} /></span>
-                  )}
-                </div>
-                <p className="text-xs leading-relaxed text-foreground/70 line-clamp-1">{resolvedEvent.eventText}</p>
-                {(() => {
-                  const wc = resolvedEvent.resolvedChoice;
-                  const wcText = wc === "A" ? resolvedEvent.choiceA : wc === "B" ? resolvedEvent.choiceB : wc === "C" ? resolvedEvent.choiceC : (resolvedEvent.choiceD || "");
-                  return wc && wcText ? (
-                    <div className={`mt-2 flex items-start gap-2 px-3 py-2 rounded-md border ${CHOICE_ACTIVE[wc] ?? ""}`} data-testid={`box-winning-choice-${resolvedEvent.id}`}>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-pixel text-muted-foreground/70 mb-0.5">WINNING CHOICE</p>
-                        <p className="text-xs leading-snug">
-                          <span className="font-pixel text-[9px] mr-1.5">{wc}.</span>
-                          {wcText}
-                        </p>
-                      </div>
-                    </div>
-                  ) : null;
-                })()}
-                {resolvedEvent.resolvedOutcomeText && (
-                  <p className="text-xs text-muted-foreground italic mt-2">"{resolvedEvent.resolvedOutcomeText}"</p>
-                )}
-                {/* ── Ability change callout (ability-first display) ── */}
-                {resolvedEvent.resolvedAbilityGain && (
-                  <div className={`mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md border ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'bg-amber-950/30 border-amber-400/40' : resolvedEvent.resolvedAbilityTier === 'red' ? 'bg-red-950/30 border-red-400/40' : 'bg-blue-950/30 border-blue-400/40'}`} data-testid={`ability-gain-banner-${resolvedEvent.id}`}>
-                    <Sparkles className={`w-3 h-3 flex-shrink-0 ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'text-amber-400' : resolvedEvent.resolvedAbilityTier === 'red' ? 'text-red-400' : 'text-blue-400'}`} />
-                    <span className="text-[9px] font-pixel text-muted-foreground">ABILITY GAINED:</span>
-                    <span className={`text-[10px] font-pixel font-bold ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'text-amber-300' : resolvedEvent.resolvedAbilityTier === 'red' ? 'text-red-300' : 'text-blue-300'}`}>{resolvedEvent.resolvedAbilityGain}</span>
-                    <span className={`ml-auto text-[8px] font-pixel px-1.5 py-0.5 rounded border ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'border-amber-400/50 text-amber-400 bg-amber-400/10' : resolvedEvent.resolvedAbilityTier === 'red' ? 'border-red-400/50 text-red-400 bg-red-400/10' : 'border-blue-400/50 text-blue-400 bg-blue-400/10'}`}>{(resolvedEvent.resolvedAbilityTier ?? 'blue').toUpperCase()}</span>
-                  </div>
-                )}
-                {resolvedEvent.resolvedAbilityRemove && !resolvedEvent.resolvedAbilityGain && (
-                  <div className="mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md border bg-red-950/20 border-red-400/30" data-testid={`ability-remove-banner-${resolvedEvent.id}`}>
-                    <Skull className="w-3 h-3 flex-shrink-0 text-red-400" />
-                    <span className="text-[9px] font-pixel text-muted-foreground">ABILITY LOST:</span>
-                    <span className="text-[10px] font-pixel font-bold text-red-300">{resolvedEvent.resolvedAbilityRemove}</span>
-                  </div>
-                )}
-                {resolvedEvent.resolvedAbilityRemove && resolvedEvent.resolvedAbilityGain && (
-                  <div className="mt-1 flex items-center gap-2 px-2.5 py-1 rounded-md border bg-red-950/10 border-red-400/20" data-testid={`ability-remove-secondary-${resolvedEvent.id}`}>
-                    <Skull className="w-2.5 h-2.5 flex-shrink-0 text-red-400/70" />
-                    <span className="text-[8px] font-pixel text-muted-foreground">REMOVED:</span>
-                    <span className="text-[9px] text-red-300/70 line-through">{resolvedEvent.resolvedAbilityRemove}</span>
-                  </div>
-                )}
-                {(() => {
-                  const resolvedTotal = Object.values(sl.latestResolvedVoteCounts).reduce((s, v) => s + v, 0);
-                  return resolvedTotal > 0 ? (
-                    <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
-                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                        <BarChart2 className="w-3 h-3" />
-                        Final vote distribution
-                      </div>
-                      <VoteBar counts={sl.latestResolvedVoteCounts} total={resolvedTotal} myVote={sl.latestResolvedMyVote} resolvedChoice={resolvedEvent.resolvedChoice} />
-                    </div>
-                  ) : null;
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* ── Separator between resolved result and next chapter ── */}
-          {resolvedEvent && activeEvent && (
-            <div className="flex items-center gap-2 py-1" data-testid={`separator-next-chapter-${sl.id}`}>
-              <div className="flex-1 h-px bg-gold/20" />
-              <span className="text-[8px] font-pixel text-gold/60 tracking-widest">NEXT CHAPTER</span>
-              <div className="flex-1 h-px bg-gold/20" />
-            </div>
-          )}
-
-          {/* ── ACTIVE VOTE section ── shown when there is an open vote */}
-          {activeEvent && (
-            <div className="space-y-3">
-              <div className="rounded-md border overflow-hidden bg-card/80 border-gold/20">
-                <div className="px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Vote className="w-3 h-3 text-gold animate-pulse" />
-                    <span className="text-[9px] font-pixel text-muted-foreground">
-                      CHAPTER {activeEvent.week} OPEN
-                    </span>
-                    <span className="ml-auto text-[9px] text-muted-foreground">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
-                  </div>
-                  <p className="text-xs leading-relaxed text-foreground/90">{activeEvent.eventText}</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="flex items-center gap-1 text-[9px] font-pixel text-muted-foreground hover:text-gold transition-colors"
-                  data-testid={`button-expand-vote-${sl.id}`}
-                >
-                  <Vote className="w-3 h-3" />
-                  {expanded ? "Hide choices" : "Show choices & vote"}
-                  <ChevronRight className={`w-3 h-3 transition-transform ${expanded ? "rotate-90" : ""}`} />
-                </button>
-
-                {expanded && (
-                  <div className="space-y-2">
-                    {sl.myVote ? (
-                      availableChoices.map((c) => {
-                        const text = c === "A" ? activeEvent.choiceA : c === "B" ? activeEvent.choiceB : c === "C" ? activeEvent.choiceC : activeEvent.choiceD || "";
-                        const isMyVote = sl.myVote === c;
-                        return (
-                          <div
-                            key={c}
-                            className={`w-full text-left px-3 py-2 rounded-md border text-xs ${isMyVote ? CHOICE_ACTIVE[c] : "bg-muted/10 text-muted-foreground/50 border-border/30"}`}
-                            data-testid={`button-vote-${c}-${activeEvent.id}`}
-                          >
-                            <span className="font-pixel text-[9px] mr-2">{c}.</span>
-                            {text}
-                            {isMyVote && <span className="ml-2 text-[9px] opacity-70">(your vote — locked)</span>}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <>
-                        {availableChoices.map((c) => {
-                          const text = c === "A" ? activeEvent.choiceA : c === "B" ? activeEvent.choiceB : c === "C" ? activeEvent.choiceC : activeEvent.choiceD || "";
-                          const isSelected = pendingChoice === c;
-                          return (
-                            <button
-                              key={c}
-                              onClick={() => setPendingChoice(isSelected ? null : c)}
-                              disabled={voteMutation.isPending}
-                              className={`w-full text-left px-3 py-2 rounded-md border text-xs transition-all ${isSelected ? CHOICE_ACTIVE[c] : `bg-muted/20 text-foreground ${CHOICE_COLORS[c]}`}`}
-                              data-testid={`button-vote-${c}-${activeEvent.id}`}
-                            >
-                              <span className="font-pixel text-[9px] mr-2">{c}.</span>
-                              {text}
-                              {isSelected && <span className="ml-2 text-[9px] opacity-70">(selected)</span>}
-                            </button>
-                          );
-                        })}
-                        <button
-                          onClick={() => pendingChoice && voteMutation.mutate({ choice: pendingChoice })}
-                          disabled={!pendingChoice || voteMutation.isPending}
-                          className={`w-full px-3 py-2 rounded-md border text-xs font-pixel transition-all ${pendingChoice ? "border-gold bg-gold/10 text-gold hover:bg-gold/20" : "border-border/30 bg-muted/10 text-muted-foreground/40 cursor-not-allowed"}`}
-                          data-testid={`button-submit-vote-${activeEvent.id}`}
-                        >
-                          {voteMutation.isPending ? "Submitting…" : pendingChoice ? `Submit Vote — Choice ${pendingChoice}` : "Select a choice above"}
-                        </button>
-                      </>
-                    )}
-
-                    {totalVotes > 0 && (
-                      <div className="pt-1">
-                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground mb-1.5">
-                          <BarChart2 className="w-3 h-3" />
-                          Current vote distribution
-                        </div>
-                        <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} />
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ── Waiting for next chapter (resolved exists, no active vote yet) ── */}
-          {resolvedEvent && !activeEvent && (
-            <div className="text-center py-2 text-muted-foreground" data-testid={`section-waiting-${sl.id}`}>
-              <Clock className="w-3.5 h-3.5 mx-auto mb-1 opacity-40" />
-              <p className="text-[10px]">Advance the week to unlock the next chapter</p>
-            </div>
-          )}
-
-          {/* ── True empty state: no events at all yet ── */}
-          {!resolvedEvent && !activeEvent && (
-            <div className="text-center py-2 text-muted-foreground" data-testid={`section-no-event-${sl.id}`}>
-              <Clock className="w-4 h-4 mx-auto mb-1 opacity-50" />
-              <p className="text-[10px]">No active event — advance the week to generate one</p>
-            </div>
+        {/* Mood + impact row */}
+        <div className="mt-2 flex items-center gap-4">
+          <div className="flex-1">
+            <MoodMeter mood={sl.moodHint} />
+          </div>
+          {sl.recruitingImpactHint && (
+            <span className={`text-[8px] font-pixel px-1.5 py-0.5 rounded border ${
+              sl.recruitingImpactHint === "high impact" ? "text-gold border-gold/30 bg-gold/10" :
+              sl.recruitingImpactHint === "low impact" ? "text-muted-foreground border-border/30 bg-muted/10" :
+              "text-blue-400 border-blue-400/30 bg-blue-400/10"
+            }`}>{sl.recruitingImpactHint.toUpperCase()}</span>
           )}
         </div>
 
-        {sl.allEvents.filter(e => e.resolvedChoice).length > 0 && (
-          <div className="mt-2">
-            <button
-              onClick={() => setShowTimeline(!showTimeline)}
-              className="flex items-center gap-1 text-[9px] font-pixel text-muted-foreground hover:text-gold transition-colors"
-              data-testid={`button-timeline-${sl.id}`}
-            >
-              <History className="w-3 h-3" />
-              {showTimeline ? "Hide" : "Show"} arc history ({sl.allEvents.filter(e => e.resolvedChoice).length} resolved)
-              {showTimeline ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            </button>
-            {showTimeline && (
-              <div className="flex items-start gap-3 mt-2">
-                {r && (
-                  <div className={`flex-shrink-0 w-20 h-20 rounded-lg border overflow-hidden ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`} data-testid={`portrait-expanded-${sl.id}`}>
-                    <PlayerPortrait
-                      skinTone={r.skinTone ?? "light"}
-                      hairColor={r.hairColor ?? "brown"}
-                      hairStyle={r.hairStyle ?? "short"}
-                      facialHair={r.facialHair ?? "none"}
-                      eyeStyle={r.eyeStyle || undefined}
-                      eyebrowStyle={r.eyebrowStyle || undefined}
-                      mouthStyle={r.mouthStyle || undefined}
-                      eyeBlack={r.eyeBlack ? true : undefined}
-                      playerId={r.id}
-                      isRecruit={true}
-                      className="w-full h-full"
-                    />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <ArcTimeline events={sl.allEvents} />
-                </div>
-              </div>
-            )}
+        {/* Waiting / complete status */}
+        {isComplete && !sl.activeEvent && (
+          <div className="mt-2 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+            <Trophy className="w-3 h-3 text-gold" />
+            <span className="font-pixel">Arc complete</span>
+            {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
           </div>
         )}
+        {!isComplete && !sl.activeEvent && (
+          <div className="mt-2 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            <span>Advance week for next chapter</span>
+          </div>
+        )}
+
+        {/* Timeline toggle */}
+        {resolvedEvents.length > 0 && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="mt-2 flex items-center gap-1 text-[9px] font-pixel text-muted-foreground hover:text-gold transition-colors"
+            data-testid={`button-timeline-${sl.id}`}
+          >
+            <History className="w-2.5 h-2.5" />
+            {expanded ? "Hide" : "Show"} history ({resolvedEvents.length})
+            {expanded ? <ChevronDown className="w-2.5 h-2.5" /> : <ChevronRight className="w-2.5 h-2.5" />}
+          </button>
+        )}
+        {expanded && <ArcTimeline events={resolvedEvents} />}
       </div>
-    </RetroCard>
+    </div>
   );
 }
 
-// Trending Recruits: top-3 storyline recruits by arc activity (votes cast + OVR impact)
-function TrendingRecruits({ storylines, leagueId }: { storylines: StorylineRecruit[]; leagueId: string }) {
-  const ranked = [...storylines]
-    .map(sl => {
-      const totalVotes = Object.values(sl.voteCounts).reduce((s, v) => s + v, 0);
-      const activityScore = totalVotes * 2 + Math.abs(sl.resolvedOvrDelta ?? 0) + (sl.currentArcStage * 3);
-      return { sl, activityScore };
-    })
-    .sort((a, b) => b.activityScore - a.activityScore)
-    .slice(0, 3)
-    .filter(({ activityScore }) => activityScore > 0);
+// ── Weekly Headline Feed ──────────────────────────────────────────────────────
 
-  if (ranked.length === 0) return null;
+function WeeklyHeadlines({ storylines }: { storylines: StorylineRecruit[] }) {
+  const headlines = storylines
+    .flatMap(sl =>
+      sl.allEvents
+        .filter(e => e.resolvedChoice)
+        .map(e => ({ sl, event: e }))
+    )
+    .sort((a, b) => b.event.week - a.event.week)
+    .slice(0, 12);
+
+  if (headlines.length === 0) return null;
 
   return (
-    <RetroCard variant="bordered" className="p-4 mb-4" data-testid="card-trending-recruits">
-      <div className="flex items-center gap-2 mb-3">
-        <Activity className="w-4 h-4 text-gold" />
-        <span className="font-pixel text-[10px] text-gold">TRENDING RECRUITS</span>
-        <span className="text-[9px] text-muted-foreground ml-1">most arc activity</span>
+    <div data-testid="section-headlines">
+      <div className="flex items-center gap-2 mb-2">
+        <Radio className="w-3.5 h-3.5 text-gold" />
+        <span className="font-pixel text-[9px] text-gold">RECENT DISPATCHES</span>
       </div>
-      <div className="space-y-2">
-        {ranked.map(({ sl, activityScore }, idx) => {
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
+        {headlines.map(({ sl, event }) => {
           const r = sl.recruit;
-          if (!r) return null;
-          const totalVotes = Object.values(sl.voteCounts).reduce((s, v) => s + v, 0);
-          const ovrDelta = sl.resolvedOvrDelta ?? 0;
+          const wc = event.resolvedChoice;
+          const wcText = wc === "A" ? event.choiceA : wc === "B" ? event.choiceB : wc === "C" ? event.choiceC : (event.choiceD ?? "");
+          const cc = wc ? CHOICE_COLORS[wc] : null;
           return (
-            <div key={sl.id} className="flex items-center gap-2" data-testid={`trending-recruit-${sl.id}`}>
-              <span className="font-pixel text-[9px] text-muted-foreground w-4">{idx + 1}.</span>
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sl.isLegendary ? "bg-gold" : "bg-muted-foreground/40"}`} />
-              <Link href={`/league/${leagueId}/recruit/${r.id}`} className="text-[10px] font-medium hover:text-gold flex-1 truncate">
-                {r.firstName} {r.lastName}
-              </Link>
-              <span className="text-[9px] text-muted-foreground">{r.position}</span>
-              <StarRating rating={r.starRank} size="sm" />
-              <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
-                <Vote className="w-2.5 h-2.5" />{totalVotes}v
-              </span>
-              {ovrDelta !== 0 && <OvrDeltaBadge delta={ovrDelta} />}
-              <span className="text-[8px] text-muted-foreground/50">({activityScore}pts)</span>
+            <div
+              key={event.id}
+              className="flex-shrink-0 w-52 snap-start rounded-xl border border-border/40 bg-muted/10 p-3"
+              style={{ minWidth: "208px" }}
+            >
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-[8px] font-pixel text-muted-foreground">WK {event.week}</span>
+                {event.ovrDelta !== null && event.ovrDelta !== 0 && <OvrPill delta={event.ovrDelta} />}
+                {sl.isLegendary && <Crown className="w-2.5 h-2.5 text-gold" />}
+              </div>
+              <p className="text-[10px] font-semibold text-foreground/90 leading-snug mb-1">
+                {r?.firstName} {r?.lastName}
+              </p>
+              {wc && wcText && cc && (
+                <p className="text-[9px] text-muted-foreground leading-snug">
+                  <span className={`font-pixel ${cc.label}`}>{wc}.</span> {wcText.slice(0, 60)}{wcText.length > 60 ? "…" : ""}
+                </p>
+              )}
+              {event.resolvedAbilityGain && (
+                <div className={`inline-flex items-center gap-1 mt-1.5 px-1.5 py-0.5 rounded border text-[8px] ${
+                  event.resolvedAbilityTier === "gold" ? "bg-amber-500/10 border-amber-400/30 text-amber-300" :
+                  "bg-blue-500/10 border-blue-400/30 text-blue-300"
+                }`}>
+                  <Sparkles className="w-2 h-2" /> {event.resolvedAbilityGain}
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-    </RetroCard>
-  );
-}
-
-function ArcProgressPips({ arcStage, totalArcEvents, isLegendary }: { arcStage: number; totalArcEvents: number; isLegendary: boolean }) {
-  const total = Math.max(3, totalArcEvents);
-  const filled = Math.min(arcStage, total);
-  return (
-    <div className="flex items-center gap-1 mt-1.5" data-testid="arc-progress-pips">
-      {Array.from({ length: total }).map((_, i) => (
-        <div
-          key={i}
-          className={`h-1.5 flex-1 rounded-sm transition-colors ${
-            i < filled
-              ? isLegendary
-                ? "bg-gold/80"
-                : "bg-muted-foreground/55"
-              : isLegendary
-              ? "bg-gold/15"
-              : "bg-muted/40"
-          }`}
-        />
-      ))}
-      <span className={`text-[8px] font-pixel flex-shrink-0 ml-0.5 ${isLegendary ? "text-gold/70" : "text-muted-foreground/50"}`}>
-        {filled}/{total}
-      </span>
     </div>
   );
 }
 
-function ArcInterestBar({ arcStage, totalEvents, ovrDelta }: { arcStage: number; totalEvents: number; ovrDelta: number }) {
-  // Derive a 0–100 arc interest score: arc stage progress + OVR trajectory
-  const progressPct = totalEvents > 0 ? Math.min(100, Math.round((arcStage / Math.max(3, totalEvents)) * 100)) : 0;
-  const trend = ovrDelta > 5 ? "rising" : ovrDelta < -5 ? "falling" : "stable";
+// ── Top Recruiters / Competing Programs ────────────────────────────────────────
+
+function CompetingPrograms({ storylines }: { storylines: StorylineRecruit[] }) {
+  const teamMap: Record<string, number> = {};
+  storylines.forEach(sl => {
+    if (sl.featuredTeamName) {
+      teamMap[sl.featuredTeamName] = (teamMap[sl.featuredTeamName] ?? 0) + 1;
+    }
+  });
+  const teams = Object.entries(teamMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (teams.length === 0) return null;
+
   return (
-    <div className="flex items-center gap-1.5 min-w-0">
-      <div className="flex-1 h-1 bg-muted/40 rounded-full overflow-hidden" style={{ minWidth: "40px" }}>
-        <div
-          className={`h-full rounded-full ${trend === "rising" ? "bg-green-400" : trend === "falling" ? "bg-red-400" : "bg-muted-foreground/60"}`}
-          style={{ width: `${progressPct}%` }}
-        />
+    <div data-testid="section-competing-programs">
+      <div className="flex items-center gap-2 mb-2">
+        <Swords className="w-3.5 h-3.5 text-gold" />
+        <span className="font-pixel text-[9px] text-gold">COMPETING PROGRAMS</span>
       </div>
-      {trend === "rising" && <TrendingUp className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
-      {trend === "falling" && <TrendingDown className="w-2.5 h-2.5 text-red-400 flex-shrink-0" />}
-      {trend === "stable" && <Minus className="w-2.5 h-2.5 text-muted-foreground/60 flex-shrink-0" />}
+      <div className="grid grid-cols-2 gap-1.5">
+        {teams.map(([name, count]) => (
+          <div key={name} className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border/30 bg-muted/10">
+            <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+            <span className="text-[10px] text-foreground/80 truncate flex-1">{name}</span>
+            <span className="text-[9px] font-pixel text-gold flex-shrink-0">{count}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function CommitmentTracker({ storylines }: { storylines: StorylineRecruit[] }) {
-  const committed = storylines.filter(sl => sl.recruit?.stage === "signed" || sl.recruit?.stage === "committed");
-  const pending = storylines.filter(sl => sl.recruit?.stage !== "signed" && sl.recruit?.stage !== "committed");
+// ── Completed Arc Recap ───────────────────────────────────────────────────────
 
-  // Sort pending by arc interest: most active arcs (high arcStage + OVR momentum) first
-  const sortedPending = [...pending].sort((a, b) => {
-    const scoreA = (a.currentArcStage * 3) + Math.abs(a.resolvedOvrDelta ?? 0) + (a.totalEvents ?? 0);
-    const scoreB = (b.currentArcStage * 3) + Math.abs(b.resolvedOvrDelta ?? 0) + (b.totalEvents ?? 0);
-    return scoreB - scoreA;
+function CompletedArcsRecap({ storylines }: { storylines: StorylineRecruit[] }) {
+  const completed = storylines.filter(sl =>
+    sl.currentArcStage >= sl.totalArcEvents && sl.totalArcEvents > 0
+  );
+  if (completed.length === 0) return null;
+
+  return (
+    <div data-testid="section-completed-arcs">
+      <div className="flex items-center gap-2 mb-2">
+        <Award className="w-3.5 h-3.5 text-gold" />
+        <span className="font-pixel text-[9px] text-gold">COMPLETED ARCS</span>
+        <span className="text-[9px] text-muted-foreground">{completed.length} recruit{completed.length !== 1 ? "s" : ""}</span>
+      </div>
+      <div className="space-y-1.5">
+        {completed.map(sl => {
+          const r = sl.recruit;
+          const abilities = sl.allEvents.filter(e => e.resolvedAbilityGain).map(e => e.resolvedAbilityGain);
+          return (
+            <div key={sl.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
+              sl.isLegendary ? "border-gold/30 bg-gold/5" : "border-border/30 bg-muted/10"
+            }`}>
+              {sl.isLegendary && <Crown className="w-3 h-3 text-gold flex-shrink-0" />}
+              {!sl.isLegendary && <Trophy className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+              <Link href={`/league/${sl.leagueId}/recruit/${r?.id ?? ""}`} className="text-[10px] font-semibold hover:text-gold flex-1 truncate">
+                {r?.firstName} {r?.lastName}
+              </Link>
+              <span className="text-[9px] text-muted-foreground flex-shrink-0">{r?.position}</span>
+              {r && <StarRating rating={r.starRank} size="sm" />}
+              {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
+              {abilities.length > 0 && (
+                <span className="text-[8px] font-pixel text-blue-300 flex-shrink-0 flex items-center gap-0.5">
+                  <Sparkles className="w-2.5 h-2.5" /> {abilities.length}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Legendary Spotlight ───────────────────────────────────────────────────────
+
+function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRecruit[]; leagueId: string }) {
+  const legends = storylines.filter(sl => sl.isLegendary);
+  if (legends.length === 0) return null;
+
+  return (
+    <div data-testid="section-legendary-spotlight">
+      <div className="flex items-center gap-2 mb-3">
+        <Crown className="w-3.5 h-3.5 text-gold" />
+        <span className="font-pixel text-[9px] text-gold">GENERATIONAL RECRUITS</span>
+        <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+          {legends.length}
+        </span>
+      </div>
+      <div className="space-y-3">
+        {legends.map(sl => {
+          const r = sl.recruit;
+          const isGem = r?.isGenerationalGem;
+          return (
+            <div
+              key={sl.id}
+              className="rounded-xl border border-gold/50 overflow-hidden"
+              style={{ background: "linear-gradient(135deg, rgba(212,175,55,0.10) 0%, rgba(212,175,55,0.02) 100%)" }}
+            >
+              <div className="p-4 flex items-center gap-3">
+                <div className="w-16 h-16 rounded-xl border border-gold/40 overflow-hidden flex-shrink-0">
+                  <PlayerPortrait
+                    skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
+                    hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
+                    eyeStyle={r?.eyeStyle || undefined} eyebrowStyle={r?.eyebrowStyle || undefined}
+                    mouthStyle={r?.mouthStyle || undefined} eyeBlack={r?.eyeBlack ? true : undefined}
+                    playerId={r?.id} isRecruit={true} className="w-full h-full"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    {isGem ? <Sparkles className="w-3.5 h-3.5 text-amber-400" /> : <Skull className="w-3.5 h-3.5 text-red-400" />}
+                    <span className={`font-pixel text-[8px] tracking-widest ${isGem ? "text-amber-400" : "text-red-400"}`}>
+                      {isGem ? "GENERATIONAL GEM" : "GENERATIONAL BUST"}
+                    </span>
+                  </div>
+                  {r && (
+                    <Link href={`/league/${leagueId}/recruit/${r.id}`}>
+                      <p className="font-bold text-gold text-base hover:underline mt-0.5">{r.firstName} {r.lastName}</p>
+                    </Link>
+                  )}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {r && <span className="text-[10px] text-muted-foreground">{r.position} · {r.homeState}</span>}
+                    {r && <StarRating rating={r.starRank} size="sm" />}
+                  </div>
+                  <div className="mt-2">
+                    <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isLegendary={true} />
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
+                  <div className="mt-1">
+                    <MoodMeter mood={sl.moodHint} />
+                  </div>
+                </div>
+              </div>
+              <div className="px-4 pb-3">
+                <p className="text-xs text-muted-foreground italic">{sl.archetypeFlavor}</p>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="text-[9px] font-pixel text-gold">{sl.archetypeName}</span>
+                  {sl.activeEvent && (
+                    <span className="ml-auto text-[8px] font-pixel bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+                      VOTE OPEN
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Commissioner Health Panel ─────────────────────────────────────────────────
+
+function HealthPanel({ leagueId }: { leagueId: string }) {
+  const queryClient = useQueryClient();
+
+  const { data: health, isLoading: healthLoading, refetch: refetchHealth } = useQuery<HealthReport>({
+    queryKey: ["/api/leagues", leagueId, "storylines", "health"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/storylines/health`, { credentials: "include" });
+      if (!res.ok) throw new Error("Health check failed");
+      return res.json();
+    },
   });
 
+  const repairMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/storylines/health/repair`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
+      refetchHealth();
+    },
+  });
+
+  const legacyRepairMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/storylines/repair`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
+      refetchHealth();
+    },
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/storylines/generate`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
+    },
+  });
+
+  const severityIcon = (s: string) => {
+    if (s === "error") return <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />;
+    if (s === "warning") return <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />;
+    return <Info className="w-3 h-3 text-blue-400 flex-shrink-0" />;
+  };
+
   return (
-    <RetroCard variant="bordered" className="p-4 mb-6" data-testid="card-commitment-tracker">
-      <div className="flex items-center gap-2 mb-3">
-        <Target className="w-4 h-4 text-gold" />
-        <span className="font-pixel text-[10px] text-gold">COMMITMENT TRACKER</span>
-        <Badge className="text-[8px] bg-green-500/20 text-green-400 border-green-500/30 no-default-hover-elevate no-default-active-elevate ml-auto">
-          {committed.length}/{storylines.length} committed
-        </Badge>
+    <div className="space-y-4" data-testid="section-health-panel">
+      {/* Health status card */}
+      <div className={`rounded-xl border p-4 ${
+        healthLoading ? "border-border/40" :
+        health?.healthy ? "border-green-500/40 bg-green-500/5" :
+        "border-red-500/40 bg-red-500/5"
+      }`}>
+        <div className="flex items-center gap-2 mb-3">
+          <HeartPulse className={`w-4 h-4 ${health?.healthy ? "text-green-400" : "text-red-400"}`} />
+          <span className="font-pixel text-[9px] text-gold">STORYLINE HEALTH</span>
+          {health && (
+            <span className={`ml-auto text-[8px] font-pixel px-1.5 py-0.5 rounded border ${
+              health.healthy ? "text-green-400 border-green-500/30 bg-green-500/10" : "text-red-400 border-red-500/30 bg-red-500/10"
+            }`}>
+              {health.healthy ? "HEALTHY" : "ISSUES DETECTED"}
+            </span>
+          )}
+        </div>
+
+        {healthLoading && (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        )}
+
+        {health && (
+          <>
+            {/* Summary stats */}
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {[
+                { label: "ARCS", value: health.summary.storylineCount },
+                { label: "EVENTS", value: health.summary.totalEventsGenerated },
+                { label: "STALE", value: health.summary.staleEvents, alert: health.summary.staleEvents > 0 },
+              ].map(s => (
+                <div key={s.label} className="text-center bg-muted/20 rounded-lg px-2 py-2">
+                  <div className={`text-lg font-bold ${s.alert ? "text-amber-400" : "text-foreground"}`}>{s.value}</div>
+                  <div className="text-[8px] font-pixel text-muted-foreground">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Issues */}
+            {health.issues.length === 0 ? (
+              <div className="flex items-center gap-1.5 text-[10px] text-green-400">
+                <CheckCircle className="w-3.5 h-3.5" /> All systems nominal
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {health.issues.map((issue, i) => (
+                  <div key={i} className={`p-2.5 rounded-lg border text-[10px] ${
+                    issue.severity === "error" ? "border-red-500/30 bg-red-500/8" :
+                    issue.severity === "warning" ? "border-amber-500/30 bg-amber-500/8" :
+                    "border-blue-500/30 bg-blue-500/8"
+                  }`}>
+                    <div className="flex items-center gap-1.5">
+                      {severityIcon(issue.severity)}
+                      <span className="font-pixel text-[8px] text-muted-foreground">{issue.code}</span>
+                    </div>
+                    <p className="mt-0.5 text-foreground/80 leading-snug">{issue.message}</p>
+                    {issue.detail && <p className="mt-0.5 text-muted-foreground/70 text-[9px] leading-snug">{issue.detail}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {health.checkedAt && (
+              <p className="text-[8px] text-muted-foreground mt-2">
+                Checked {new Date(health.checkedAt).toLocaleTimeString()}
+              </p>
+            )}
+          </>
+        )}
       </div>
-      {committed.length === 0 && pending.length === 0 && (
-        <p className="text-[10px] text-muted-foreground italic">No storyline recruits this season.</p>
-      )}
-      {committed.length > 0 && (
-        <div className="space-y-1.5 mb-2">
-          {committed.map(sl => {
-            const r = sl.recruit!;
-            const ovrDelta = sl.resolvedOvrDelta ?? 0;
-            return (
-              <div key={sl.id} className="flex items-center gap-2 bg-green-500/10 rounded-md px-2 py-1.5">
-                <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                <Link href={`/league/${sl.leagueId}/recruit/${r.id}`} className="text-[10px] font-medium hover:text-gold flex-1 truncate">
-                  {r.firstName} {r.lastName}
-                </Link>
-                <span className="text-[9px] text-muted-foreground">{r.position}</span>
-                <StarRating rating={r.starRank} size="sm" />
-                {ovrDelta !== 0 && <OvrDeltaBadge delta={ovrDelta} />}
-                {r.signedTeamAbbreviation && (
-                  <Badge
-                    className="text-[8px] text-white no-default-hover-elevate no-default-active-elevate"
-                    style={{ backgroundColor: r.signedTeamPrimaryColor || "#666" }}
-                  >
-                    {r.signedTeamAbbreviation}
-                  </Badge>
-                )}
-              </div>
-            );
-          })}
+
+      {/* Admin actions */}
+      <div className="rounded-xl border border-border/40 bg-muted/10 p-4 space-y-2">
+        <div className="flex items-center gap-2 mb-3">
+          <Wrench className="w-3.5 h-3.5 text-gold" />
+          <span className="font-pixel text-[9px] text-gold">ADMIN ACTIONS</span>
         </div>
-      )}
-      {sortedPending.length > 0 && (
-        <div className={`space-y-1.5 ${committed.length > 0 ? "border-t border-border/30 pt-2" : ""}`}>
-          <div className="font-pixel text-[8px] text-muted-foreground mb-1">UNDECIDED — ARC INTEREST</div>
-          {sortedPending.map(sl => {
-            const r = sl.recruit;
-            const ovrDelta = sl.resolvedOvrDelta ?? 0;
-            return (
-              <div key={sl.id} className="flex items-center gap-2 px-2 py-1.5 bg-muted/10 rounded-md">
-                <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                <Link href={`/league/${sl.leagueId}/recruit/${r?.id ?? ""}`} className="text-[10px] font-medium hover:text-gold truncate" style={{ minWidth: "80px", maxWidth: "120px" }}>
-                  {r?.firstName} {r?.lastName}
-                </Link>
-                <span className="text-[9px] text-muted-foreground flex-shrink-0">{r?.position}</span>
-                <ArcInterestBar arcStage={sl.currentArcStage} totalEvents={sl.totalEvents} ovrDelta={ovrDelta} />
-                <span className="text-[9px] text-muted-foreground flex-shrink-0">Wk {sl.currentArcStage}</span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </RetroCard>
+
+        <button
+          onClick={() => refetchHealth()}
+          disabled={healthLoading}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-border/50 bg-muted/20 text-xs text-muted-foreground hover:text-foreground hover:border-border transition-all"
+          data-testid="button-health-check"
+          style={{ minHeight: "44px" }}
+        >
+          <HeartPulse className="w-3.5 h-3.5" /> Run Health Check
+        </button>
+
+        {health && !health.healthy && (
+          <button
+            onClick={() => repairMutation.mutate()}
+            disabled={repairMutation.isPending}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-xs text-amber-400 hover:bg-amber-500/15 transition-all"
+            data-testid="button-auto-repair"
+            style={{ minHeight: "44px" }}
+          >
+            {repairMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wrench className="w-3.5 h-3.5" />}
+            Auto-Repair Issues ({health.issues.filter(i => i.severity === "error").length} error{health.issues.filter(i => i.severity === "error").length !== 1 ? "s" : ""})
+          </button>
+        )}
+
+        <button
+          onClick={() => legacyRepairMutation.mutate()}
+          disabled={legacyRepairMutation.isPending}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-border/40 bg-muted/10 text-xs text-muted-foreground hover:text-gold hover:border-gold/30 transition-all"
+          data-testid="button-repair-storylines"
+          style={{ minHeight: "44px" }}
+        >
+          {legacyRepairMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+          Initialize Missing Arcs
+        </button>
+
+        <button
+          onClick={() => generateMutation.mutate()}
+          disabled={generateMutation.isPending}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-lg border border-border/40 bg-muted/10 text-xs text-muted-foreground hover:text-gold hover:border-gold/30 transition-all"
+          data-testid="button-generate-events"
+          style={{ minHeight: "44px" }}
+        >
+          {generateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Generate Storyline Events
+        </button>
+      </div>
+    </div>
   );
 }
+
+// ── Tab types ─────────────────────────────────────────────────────────────────
+
+type Tab = "vote" | "arcs" | "intel" | "command";
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function StorylinesPage() {
   const { id: leagueId } = useParams<{ id: string }>();
-  const [filterLegendary, setFilterLegendary] = useState(false);
-  const [filterLinked, setFilterLinked] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("vote");
 
   const { data: authData } = useQuery<{ id: string }>({ queryKey: ["/api/auth/me"] });
-  const { data: leagueData } = useQuery<{ commissionerId: string }>({
+
+  const { data: leagueData } = useQuery<LeagueData>({
     queryKey: ["/api/leagues", leagueId],
     enabled: !!leagueId,
   });
-  const isCommissioner = !!(authData?.id && leagueData?.commissionerId && authData.id === leagueData.commissionerId);
+
+  const isCommissioner = !!(
+    authData?.id && leagueData &&
+    (leagueData.commissionerId === authData.id ||
+      (leagueData.coCommissionerIds ?? []).includes(authData.id))
+  );
 
   const { data: storylinesResp, isLoading } = useQuery<{ storylines: StorylineRecruit[] }>({
     queryKey: ["/api/leagues", leagueId, "storylines"],
@@ -758,198 +1013,264 @@ export default function StorylinesPage() {
       const json = await res.json();
       return Array.isArray(json) ? { storylines: json } : json;
     },
-    refetchInterval: 30000,
-  });
-
-  const queryClient = useQueryClient();
-
-  const repairMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/storylines/repair`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
-    },
+    refetchInterval: 30_000,
   });
 
   const storylines = storylinesResp?.storylines ?? [];
 
-  let filtered = filterLegendary ? storylines.filter(s => s.isLegendary) : storylines;
-  if (filterLinked) filtered = filtered.filter(s => !!s.overlappingRecruitId);
-
-  // Count only events the current coach has NOT yet voted on (not all unresolved events).
+  // Derived counts
   const activeVotes = storylines.filter(s => s.activeEvent && !s.myVote).length;
+  const totalVotes = storylines.filter(s => s.activeEvent).length;
   const legendaryCount = storylines.filter(s => s.isLegendary).length;
-  const linkedCount = storylines.filter(s => !!s.overlappingRecruitId).length;
   const committedCount = storylines.filter(s => s.recruit?.stage === "signed" || s.recruit?.stage === "committed").length;
+  const completedCount = storylines.filter(s => s.currentArcStage >= s.totalArcEvents && s.totalArcEvents > 0).length;
+
+  // Split storylines
+  const withVotes = storylines.filter(s => !!s.activeEvent).sort((a, b) => {
+    if (a.isLegendary && !b.isLegendary) return -1;
+    if (!a.isLegendary && b.isLegendary) return 1;
+    const aVoted = a.myVote ? 1 : 0;
+    const bVoted = b.myVote ? 1 : 0;
+    return aVoted - bVoted;
+  });
+  const withoutVotes = storylines.filter(s => !s.activeEvent).sort((a, b) => {
+    if (a.isLegendary && !b.isLegendary) return -1;
+    if (!a.isLegendary && b.isLegendary) return 1;
+    return (b.currentArcStage - a.currentArcStage);
+  });
+
+  // Auto-switch to vote tab if votes are pending
+  const defaultTab: Tab = activeVotes > 0 ? "vote" : "arcs";
+
+  // Tab bar definition
+  const tabs: { id: Tab; label: string; badge?: number | string; badgeGold?: boolean }[] = [
+    { id: "vote",    label: "VOTE",    badge: totalVotes > 0 ? totalVotes : undefined, badgeGold: true },
+    { id: "arcs",    label: "ARCS",    badge: storylines.length > 0 ? storylines.length : undefined },
+    { id: "intel",   label: "INTEL" },
+    ...(isCommissioner ? [{ id: "command" as Tab, label: "CMD" }] : []),
+  ];
+
+  const currentTab = activeTab;
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Link href={`/league/${leagueId}`}>
-            <RetroButton variant="outline" size="sm" data-testid="button-back-storylines">
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              League
-            </RetroButton>
-          </Link>
-          <div>
-            <h1 className="font-pixel text-lg text-gold flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Recruit Storylines
-            </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Each recruit has a branching narrative. Your votes shape their development.
-            </p>
+      {/* ── Sticky header ───────────────────────────────────────────────── */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40">
+        <div className="max-w-lg mx-auto px-4 pt-3 pb-0">
+          {/* Back + title row */}
+          <div className="flex items-center gap-3 mb-3">
+            <Link href={`/league/${leagueId}`}>
+              <button className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" data-testid="button-back-storylines">
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </Link>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="font-pixel text-[13px] text-gold">STORYLINE HUB</h1>
+                {leagueData && (
+                  <span className="text-[8px] font-pixel text-muted-foreground border border-border/40 px-1.5 py-0.5 rounded">
+                    S{leagueData.currentSeason} · WK{leagueData.currentWeek}
+                  </span>
+                )}
+                {activeVotes > 0 && (
+                  <span className="ml-auto text-[8px] font-pixel bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+                    {activeVotes} VOTE{activeVotes !== 1 ? "S" : ""} NEEDED
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <RetroCard className="p-3 text-center" data-testid="card-storylines-total">
-            <div className="font-pixel text-[8px] text-muted-foreground mb-1">STORYLINES</div>
-            <div className="text-2xl font-bold">{storylines.length}</div>
-            <div className="text-[10px] text-muted-foreground">this class</div>
-          </RetroCard>
-          <RetroCard className="p-3 text-center" data-testid="card-storylines-votes">
-            <div className="font-pixel text-[8px] text-muted-foreground mb-1">OPEN VOTES</div>
-            <div className={`text-2xl font-bold ${activeVotes > 0 ? "text-gold" : ""}`}>{activeVotes}</div>
-            <div className="text-[10px] text-muted-foreground">pending</div>
-          </RetroCard>
-          <RetroCard className="p-3 text-center" data-testid="card-storylines-committed">
-            <div className="font-pixel text-[8px] text-muted-foreground mb-1">COMMITTED</div>
-            <div className={`text-2xl font-bold ${committedCount > 0 ? "text-green-400" : ""}`}>{committedCount}</div>
-            <div className="text-[10px] text-muted-foreground">signed/committed</div>
-          </RetroCard>
-        </div>
-
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <RetroButton
-            variant={!filterLegendary && !filterLinked ? "primary" : "outline"}
-            size="sm"
-            onClick={() => { setFilterLegendary(false); setFilterLinked(false); }}
-            data-testid="filter-all-storylines"
-          >
-            <Users className="w-3 h-3 mr-1" />
-            All ({storylines.length})
-          </RetroButton>
-          {linkedCount > 0 && (
-            <RetroButton
-              variant={filterLinked ? "primary" : "outline"}
-              size="sm"
-              onClick={() => { setFilterLinked(true); setFilterLegendary(false); }}
-              data-testid="filter-linked-storylines"
-            >
-              <Link2 className="w-3 h-3 mr-1" />
-              Linked Arcs ({linkedCount})
-            </RetroButton>
-          )}
-        </div>
-
-        {storylines.length > 0 && !filterLegendary && !filterLinked && (
-          <>
-            <TrendingRecruits storylines={storylines} leagueId={leagueId!} />
-            <CommitmentTracker storylines={storylines} />
-          </>
-        )}
-
-        {storylines.length > 0 && activeVotes === 0 && !isLoading && !filterLegendary && !filterLinked && (
-          <div
-            className="mb-4 px-4 py-3 rounded border border-gold/30 bg-gold/5 text-xs text-muted-foreground flex items-center gap-2"
-            data-testid="banner-storylines-between-chapters"
-          >
-            <span className="text-gold font-pixel text-[8px]">■</span>
-            <span>
-              All {storylines.length} storyline arcs are between chapters.{" "}
-              {committedCount > 0 && <span className="text-green-400">{committedCount} committed.</span>}{" "}
-              Advance the week to generate new events.
-            </span>
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <Skeleton key={i} className="h-48" />
+          {/* Stats strip */}
+          <div className="grid grid-cols-4 gap-1.5 mb-3">
+            {[
+              { label: "ARCS",      value: storylines.length, color: "" },
+              { label: "OPEN",      value: totalVotes,         color: totalVotes > 0 ? "text-gold" : "" },
+              { label: "SIGNED",    value: committedCount,     color: committedCount > 0 ? "text-green-400" : "" },
+              { label: "DONE",      value: completedCount,     color: completedCount > 0 ? "text-muted-foreground" : "" },
+            ].map(s => (
+              <div key={s.label} className="text-center bg-muted/20 rounded-lg py-1.5 px-1">
+                <div className={`text-base font-bold leading-tight ${s.color || "text-foreground"}`}>{s.value}</div>
+                <div className="text-[7px] font-pixel text-muted-foreground">{s.label}</div>
+              </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
-          <RetroCard className="p-12 text-center">
-            <BookOpen className="w-16 h-16 mx-auto mb-4 text-muted-foreground/30" />
-            <h3 className="font-pixel text-sm text-gold mb-2">
-              {filterLegendary ? "No Legendary Recruits" : filterLinked ? "No Linked Arcs" : "No Storylines Yet"}
-            </h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto mb-4">
-              {filterLegendary
-                ? "No legendary storyline recruits in this class."
-                : filterLinked
-                ? "No linked storyline arcs were generated for this class. About 15% of classes feature connected arcs."
-                : "Storyline recruits are generated when your recruiting class is created. Advance the week to see their stories unfold."}
-            </p>
-            {!filterLegendary && !filterLinked && isCommissioner && (
-              <div className="mt-2">
-                <p className="text-xs text-muted-foreground mb-3">
-                  If this dynasty was started with a saved recruiting class, storylines may need to be initialized.
+
+          {/* Tab bar */}
+          <div className="flex border-b border-border/40 -mx-4 px-4">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 flex items-center justify-center gap-1 py-2 text-[9px] font-pixel transition-all border-b-2 -mb-px ${
+                  currentTab === tab.id
+                    ? "border-gold text-gold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+                data-testid={`tab-${tab.id}`}
+              >
+                {tab.label}
+                {tab.badge !== undefined && (
+                  <span className={`rounded px-1 py-px text-[7px] border ${
+                    tab.badgeGold && Number(tab.badge) > 0
+                      ? "bg-gold/20 text-gold border-gold/40"
+                      : "bg-muted/30 text-muted-foreground border-border/30"
+                  }`}>{tab.badge}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tab content ─────────────────────────────────────────────────── */}
+      <div className="max-w-lg mx-auto px-4 py-4">
+
+        {/* VOTE tab */}
+        {currentTab === "vote" && (
+          <div className="space-y-4" data-testid="section-vote-center">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72 rounded-xl" />)
+            ) : withVotes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <CheckCircle className="w-12 h-12 text-green-400/30 mb-4" />
+                <h3 className="font-pixel text-[11px] text-gold mb-2">ALL CAUGHT UP</h3>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  No open votes right now.{" "}
+                  {withoutVotes.length > 0
+                    ? "Check the ARCS tab for recruit status."
+                    : "Advance the week to generate new storyline events."}
                 </p>
-                <RetroButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => repairMutation.mutate()}
-                  disabled={repairMutation.isPending}
-                  data-testid="button-repair-storylines"
-                >
-                  {repairMutation.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                  )}
-                  Repair Storylines
-                </RetroButton>
+                {withoutVotes.length > 0 && (
+                  <button
+                    onClick={() => setActiveTab("arcs")}
+                    className="mt-4 text-[9px] font-pixel text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-all"
+                  >
+                    VIEW ARCS →
+                  </button>
+                )}
               </div>
+            ) : (
+              <>
+                {withVotes.some(s => !s.myVote) && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gold/30 bg-gold/5">
+                    <Vote className="w-3.5 h-3.5 text-gold" />
+                    <span className="text-[10px] text-gold font-pixel">{activeVotes} vote{activeVotes !== 1 ? "s" : ""} pending your decision</span>
+                  </div>
+                )}
+                {withVotes.map(sl => <VoteCard key={sl.id} sl={sl} leagueId={leagueId!} />)}
+              </>
             )}
-          </RetroCard>
-        ) : (() => {
-          const sorted = [...filtered].sort((a, b) => {
-            if (a.isLegendary && !b.isLegendary) return -1;
-            if (!a.isLegendary && b.isLegendary) return 1;
-            const aHasVote = a.activeEvent ? 1 : 0;
-            const bHasVote = b.activeEvent ? 1 : 0;
-            return bHasVote - aHasVote;
-          });
-          const votePending = sorted.filter(sl => !!sl.activeEvent);
-          const noActivePending = sorted.filter(sl => !sl.activeEvent);
-          return (
-            <div className="space-y-6">
-              {votePending.length > 0 && (
-                <section data-testid="section-vote-center">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Vote className="w-4 h-4 text-gold" />
-                    <span className="font-pixel text-[10px] text-gold">VOTE CENTER</span>
-                    <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
-                      {votePending.length} open
-                    </span>
+          </div>
+        )}
+
+        {/* ARCS tab */}
+        {currentTab === "arcs" && (
+          <div className="space-y-5" data-testid="section-arcs">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+            ) : storylines.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <BookOpen className="w-12 h-12 text-muted-foreground/20 mb-4" />
+                <h3 className="font-pixel text-[11px] text-gold mb-2">NO STORYLINES YET</h3>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Storyline recruits are assigned when a recruiting class is created. Advance the week to see their stories unfold.
+                </p>
+                {isCommissioner && (
+                  <button
+                    onClick={() => setActiveTab("command")}
+                    className="mt-4 text-[9px] font-pixel text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-all"
+                  >
+                    REPAIR IN COMMAND →
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                {legendaryCount > 0 && <LegendarySpotlight storylines={storylines} leagueId={leagueId!} />}
+                {completedCount > 0 && <CompletedArcsRecap storylines={storylines} />}
+                {withoutVotes.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Activity className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="font-pixel text-[9px] text-muted-foreground">ACTIVE ARCS</span>
+                      <span className="text-[9px] text-muted-foreground/60">{withoutVotes.length}</span>
+                    </div>
+                    <div className="space-y-3">
+                      {withoutVotes.map(sl => <ArcCard key={sl.id} sl={sl} leagueId={leagueId!} />)}
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    {votePending.map(sl => (
-                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
-                    ))}
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* INTEL tab */}
+        {currentTab === "intel" && (
+          <div className="space-y-6" data-testid="section-intel">
+            {isLoading ? (
+              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+            ) : (
+              <>
+                <WeeklyHeadlines storylines={storylines} />
+                <CompetingPrograms storylines={storylines} />
+
+                {/* Commitment status */}
+                {committedCount > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                      <span className="font-pixel text-[9px] text-gold">COMMITTED</span>
+                      <span className="text-[9px] text-green-400">{committedCount}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {storylines.filter(s => s.recruit?.stage === "signed" || s.recruit?.stage === "committed").map(sl => {
+                        const r = sl.recruit;
+                        return (
+                          <div key={sl.id} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-green-500/25 bg-green-500/8">
+                            <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
+                            <Link href={`/league/${sl.leagueId}/recruit/${r?.id ?? ""}`} className="text-[10px] font-semibold hover:text-gold flex-1 truncate">
+                              {r?.firstName} {r?.lastName}
+                            </Link>
+                            <span className="text-[9px] text-muted-foreground">{r?.position}</span>
+                            {r && <StarRating rating={r.starRank} size="sm" />}
+                            {r?.signedTeamAbbreviation && (
+                              <Badge
+                                className="text-[8px] text-white no-default-hover-elevate no-default-active-elevate"
+                                style={{ backgroundColor: r.signedTeamPrimaryColor || "#666" }}
+                              >
+                                {r.signedTeamAbbreviation}
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </section>
-              )}
-              {noActivePending.length > 0 && (
-                <section data-testid="section-storyline-feed">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-pixel text-[10px] text-muted-foreground">STORYLINE FEED</span>
-                    <span className="text-[9px] text-muted-foreground/60">{noActivePending.length} recruit{noActivePending.length !== 1 ? "s" : ""}</span>
+                )}
+
+                {storylines.length === 0 && (
+                  <div className="py-12 text-center">
+                    <Eye className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
+                    <p className="text-xs text-muted-foreground">No intel available yet — generate storyline events to see data here.</p>
                   </div>
-                  <div className="space-y-4">
-                    {noActivePending.map(sl => (
-                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          );
-        })()}
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* COMMAND tab (commissioner only) */}
+        {currentTab === "command" && isCommissioner && (
+          <HealthPanel leagueId={leagueId!} />
+        )}
+        {currentTab === "command" && !isCommissioner && (
+          <div className="py-16 text-center">
+            <Shield className="w-10 h-10 mx-auto mb-3 text-muted-foreground/20" />
+            <p className="text-xs text-muted-foreground">Commissioner or co-commissioner access required.</p>
+          </div>
+        )}
       </div>
     </div>
   );
