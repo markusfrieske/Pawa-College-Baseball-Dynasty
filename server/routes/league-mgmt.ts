@@ -19,6 +19,7 @@ import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
 import { initializeStorylineRecruits } from "../storyline-routes";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
+import { validateWizardConfig } from "../lib/validateWizardConfig";
 import {
   generateSchedule,
   generateRecruits,
@@ -895,6 +896,10 @@ app.post("/api/recruiting/generate-preview", async (req, res) => {
   try {
     const { config } = req.body as { config: any };
     if (!config) return res.status(400).json({ message: "config required" });
+    const configErrors = validateWizardConfig(config);
+    if (configErrors) {
+      return res.status(400).json({ message: configErrors.errors.join("; "), errors: configErrors.errors });
+    }
     const theme = (config.theme as RecruitingTheme) || "balanced";
     const count = Math.min(Math.max(Number(config.count) || 75, 20), 80);
     const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
@@ -952,6 +957,10 @@ app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req,
     }
     const { config } = req.body as { config: any };
     if (!config) return res.status(400).json({ message: "config required" });
+    const configErrors2 = validateWizardConfig(config);
+    if (configErrors2) {
+      return res.status(400).json({ message: configErrors2.errors.join("; "), errors: configErrors2.errors });
+    }
 
     const theme = (config.theme as RecruitingTheme) || "balanced";
     const count = Math.min(Math.max(Number(config.count) || 75, 20), 80);
