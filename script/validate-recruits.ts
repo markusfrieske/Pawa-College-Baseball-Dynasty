@@ -53,21 +53,21 @@ function validatePerClassInvariants(
       });
     }
 
-    // 2. Gen gem count = 2, gen bust count = 3-5
+    // 2. Gen gem count = 1, gen bust count = 1 (spec: exactly 1 each per class)
     const gems = recruits.filter((r) => r.isGenerationalGem);
     const busts = recruits.filter((r) => r.isGenerationalBust);
-    if (gems.length !== 2) {
+    if (gems.length !== 1) {
       issues.push({
         scope,
         severity: "error",
-        message: `expected exactly 2 generational gems, got ${gems.length}`,
+        message: `expected exactly 1 generational gem, got ${gems.length}`,
       });
     }
-    if (busts.length < 3 || busts.length > 5) {
+    if (busts.length !== 1) {
       issues.push({
         scope,
         severity: "error",
-        message: `expected 3-5 generational busts, got ${busts.length}`,
+        message: `expected exactly 1 generational bust, got ${busts.length}`,
       });
     }
 
