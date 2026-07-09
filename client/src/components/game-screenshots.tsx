@@ -56,12 +56,18 @@ export function useGameReportImages(leagueId: string | undefined, gameId: string
  * shows OCR status, and offers an "Apply to form" action once OCR finishes.
  * OCR output is a draft only — nothing is written to the report until the coach
  * explicitly applies it, and every applied field remains editable afterward.
+ *
+ * When the coach has already corrected fields in this category, the tile shows a
+ * "Corrections detected — not auto-applied" note and requires explicit confirmation
+ * before overwriting those corrections with a later OCR result.
  */
 function CategoryUploadTile({
-  leagueId, gameId, category, images, onApply,
+  leagueId, gameId, category, images, onApply, correctedCategories,
 }: {
   leagueId: string; gameId: string; category: ScreenshotCategory;
-  images: GameReportImage[]; onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
+  images: GameReportImage[];
+  onApply: (category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) => void;
+  correctedCategories?: ReadonlySet<ScreenshotCategory>;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -69,6 +75,12 @@ function CategoryUploadTile({
   const { uploadFile, isUploading } = useUpload();
   const categoryImages = images.filter((img) => img.category === category);
   const imagesKey = ["/api/leagues", leagueId, "games", gameId, "report-images"];
+  const hasCorrections = correctedCategories?.has(category) ?? false;
+
+  // When the coach clicks "Apply to form" on a category that already has corrections,
+  // we show an inline confirmation step before overwriting. This state holds the
+  // imageId waiting for confirmation (null = no pending confirmation).
+  const [pendingConfirmId, setPendingConfirmId] = useState<string | null>(null);
 
   const registerMutation = useMutation({
     mutationFn: async (objectPath: string) =>
@@ -98,7 +110,26 @@ function CategoryUploadTile({
     else toast({ title: "Upload failed", description: "Could not upload the screenshot. Try again.", variant: "destructive" });
   }
 
+  function handleApplyClick(img: GameReportImage) {
+    if (!img.ocrResult) return;
+    if (hasCorrections) {
+      // Require confirmation before overwriting corrections
+      setPendingConfirmId(img.id);
+    } else {
+      onApply(category, img.ocrResult, img.id);
+    }
+  }
+
+  function handleConfirmApply(img: GameReportImage) {
+    if (img.ocrResult) onApply(category, img.ocrResult, img.id);
+    setPendingConfirmId(null);
+  }
+
   const busy = isUploading || registerMutation.isPending;
+
+  // True if there's at least one OCR-done image in this category that was skipped
+  // by auto-apply because corrections exist.
+  const hasDoneImages = categoryImages.some((img) => img.ocrStatus === "done" && img.ocrResult);
 
   return (
     <div className="border border-border rounded p-2 space-y-1.5" data-testid={`tile-screenshot-${category}`}>
@@ -124,6 +155,18 @@ function CategoryUploadTile({
           data-testid={`input-file-${category}`}
         />
       </div>
+
+      {/* Warning shown when auto-apply was skipped due to existing corrections */}
+      {hasCorrections && hasDoneImages && (
+        <div
+          className="flex items-start gap-1 text-[8px] text-yellow-400/80 bg-yellow-900/20 border border-yellow-700/30 rounded px-1.5 py-1"
+          data-testid={`note-corrections-skipped-${category}`}
+        >
+          <AlertTriangle className="w-2.5 h-2.5 shrink-0 mt-px text-yellow-500" />
+          <span>Corrections detected — not auto-applied. Use "Apply to form" to merge manually.</span>
+        </div>
+      )}
+
       {categoryImages.length === 0 && (
         <p className="text-[9px] text-muted-foreground">No screenshot uploaded yet</p>
       )}
@@ -148,14 +191,39 @@ function CategoryUploadTile({
               <Badge variant="outline" className="text-[8px] border-green-600 text-green-400 gap-1">
                 <CheckCircle2 className="w-2.5 h-2.5" /> Read
               </Badge>
-              <button
-                type="button"
-                onClick={() => img.ocrResult && onApply(category, img.ocrResult, img.id)}
-                className="text-gold hover:underline flex items-center gap-0.5"
-                data-testid={`button-apply-${img.id}`}
-              >
-                <Sparkles className="w-3 h-3" /> Apply to form
-              </button>
+              {pendingConfirmId === img.id ? (
+                /* Inline confirmation step — shown when the coach clicks Apply on a corrected category */
+                <span className="flex items-center gap-1 flex-wrap w-full mt-0.5" data-testid={`confirm-apply-${img.id}`}>
+                  <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-yellow-500" />
+                  <span className="text-yellow-400/90">This will overwrite your corrections for this category.</span>
+                  <button
+                    type="button"
+                    onClick={() => handleConfirmApply(img)}
+                    className="text-gold hover:underline"
+                    data-testid={`button-confirm-apply-${img.id}`}
+                  >
+                    Confirm
+                  </button>
+                  <span className="text-muted-foreground">·</span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingConfirmId(null)}
+                    className="text-muted-foreground hover:text-white"
+                    data-testid={`button-cancel-apply-${img.id}`}
+                  >
+                    Cancel
+                  </button>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleApplyClick(img)}
+                  className="text-gold hover:underline flex items-center gap-0.5"
+                  data-testid={`button-apply-${img.id}`}
+                >
+                  <Sparkles className="w-3 h-3" /> Apply to form
+                </button>
+              )}
             </>
           )}
           {img.ocrStatus === "failed" && (
@@ -252,6 +320,7 @@ export function GameScreenshotUpload({
             category={category}
             images={images ?? []}
             onApply={onApply}
+            correctedCategories={correctedCategories}
           />
         ))}
       </div>
