@@ -1488,14 +1488,78 @@ export function generateStorylineEvent(
   };
 }
 
+// ─── Deterministic No-Vote Fallback ───────────────────────────────────────────
+// Used when an all-human league advances with zero votes cast on a storyline event.
+// Instead of pure Math.random(), this derives a stable choice from the recruit's
+// hidden personality variables so the outcome feels character-driven.
+//
+// Algorithm:
+//   1. Combine momentum, loyalty, stability, pressure into a deterministic 0–1 "personality roll".
+//   2. Compute positivity scores for each choice using the same formula as simulateCpuVotes.
+//   3. Bias the weighted selection with the personality roll: high roll → higher-positivity choices.
+//
+// Guarantees:
+//   - Same hiddenVars + same event → same choice (no Math.random() involved).
+//   - Choice is correlated with the recruit's personality profile.
+//   - Falls back to first available choice if weights degenerate.
+export function deterministicFallbackChoice(
+  hiddenVars: Record<string, unknown> | null | undefined,
+  choices: readonly string[],
+  positivityScores: number[],
+): string {
+  if (choices.length === 0) return "A";
+  if (choices.length === 1) return choices[0];
+
+  // Derive a stable roll in [0, 1) from hidden personality variables.
+  let personalityRoll: number;
+  if (hiddenVars) {
+    const momentum  = Math.max(1, Math.min(10, Number(hiddenVars.storyMomentum ?? 5)));
+    const loyalty   = Math.max(1, Math.min(10, Number(hiddenVars.loyaltySeed   ?? 5)));
+    const stability = Math.max(1, Math.min(10, Number(hiddenVars.stability     ?? 5)));
+    const pressure  = Math.max(1, Math.min(10, Number(hiddenVars.pressure      ?? 5)));
+    const breakout  = hiddenVars.breakoutSeed ? 1 : 0;
+    // Large prime mix — distributes values uniformly across [0, 1)
+    const raw = (momentum * 1847 + loyalty * 2053 + stability * 997 + pressure * 1499 + breakout * 3001) % 10000;
+    personalityRoll = raw / 10000;
+  } else {
+    // No hidden vars (shouldn't normally happen): pure random fallback
+    personalityRoll = Math.random();
+  }
+
+  // Clamp scores so all weights are positive, then bias high-positivity choices
+  // when the recruit's personality roll is high (optimistic personality).
+  const scores = positivityScores.length === choices.length ? positivityScores : choices.map(() => 1);
+  const minScore = Math.min(...scores);
+  const shifted = scores.map(s => Math.max(0.05, s - minScore + 0.1));
+  // Exponent < 1 flattens the distribution (cautious recruit), > 1 amplifies (decisive recruit)
+  const exponent = 0.5 + personalityRoll;  // range 0.5–1.5
+  const biased = shifted.map(s => Math.pow(s, exponent));
+  const total = biased.reduce((a, b) => a + b, 0);
+
+  // Walk the cumulative distribution using personalityRoll as the selection point
+  let threshold = personalityRoll * total;
+  for (let i = 0; i < choices.length; i++) {
+    threshold -= biased[i];
+    if (threshold <= 0) return choices[i];
+  }
+  return choices[choices.length - 1];
+}
+
 // ─── Vote Resolution ──────────────────────────────────────────────────────────
 // Returns the winning choice letter based on vote plurality.
 // OVR impact is now computed by applyStoryOutcomeToRecruit in storyline-routes.ts
 // using the structured StoryOutcome for that choice (not a probabilistic delta roll).
+//
+// When votes is empty and fallback is provided, deterministicFallbackChoice is used
+// so all-human leagues get a personality-driven outcome instead of pure random.
 export function resolveVotes(
   votes: Array<{ choice: string }>,
   hasChoiceD: boolean,
-): { winningChoice: string } {
+  fallback?: {
+    hiddenVars: Record<string, unknown> | null | undefined;
+    positivityScores: number[];
+  },
+): { winningChoice: string; usedFallback?: boolean } {
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
   for (const v of votes) {
     counts[v.choice] = (counts[v.choice] || 0) + 1;
@@ -1503,6 +1567,14 @@ export function resolveVotes(
 
   const choices = hasChoiceD ? (["A", "B", "C", "D"] as const) : (["A", "B", "C"] as const);
   if (votes.length === 0) {
+    if (fallback) {
+      const winningChoice = deterministicFallbackChoice(
+        fallback.hiddenVars,
+        choices,
+        fallback.positivityScores,
+      );
+      return { winningChoice, usedFallback: true };
+    }
     const winningChoice = choices[Math.floor(Math.random() * choices.length)];
     return { winningChoice };
   }

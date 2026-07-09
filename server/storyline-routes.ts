@@ -5,6 +5,8 @@ import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights, StoryOutcome } from "@shared/schema";
 import { getAbilitiesForPosition, calculateOVR } from "@shared/abilities";
 import { isPitcher } from "@shared/positions";
+import { hasCommissionerAccess } from "./route-helpers";
+import { checkStorylineHealth } from "./lib/storylineHealth";
 
 // ─── Advance Index Mapping ─────────────────────────────────────────────────────
 // Maps league phase + week to a 0–9 advance index used for slot-based story scheduling.
@@ -141,6 +143,69 @@ function requireAuth(req: Request, res: Response, next: () => void) {
 
 export async function warmupEventSceneImages(): Promise<void> {}
 
+// ─── Risk/Reward Hint Helpers ─────────────────────────────────────────────────
+// Derive game-like hint labels from ChoiceWeights without exposing exact probability numbers.
+// Exposed on every active event in GET /storylines so coaches can assess risk/reward before voting.
+
+function _positivityScore(w: ChoiceWeights): number {
+  return (
+    (w.minor_pos ?? 0) * 1 + (w.moderate_pos ?? 0) * 2 + (w.major_pos ?? 0) * 3 + (w.legendary_pos ?? 0) * 4 -
+    (w.minor_neg ?? 0) * 1 - (w.moderate_neg ?? 0) * 2 - (w.major_neg ?? 0) * 3 - (w.legendary_neg ?? 0) * 4
+  );
+}
+
+function buildChoiceHints(event: {
+  choiceAWeights: unknown; choiceBWeights: unknown; choiceCWeights: unknown;
+  choiceDWeights?: unknown; choiceD?: string | null;
+}): Array<{ choice: string; riskLevel: 'low' | 'medium' | 'high'; rewardLevel: 'low' | 'medium' | 'high'; flavor: string }> {
+  const pairs: Array<{ choice: string; weights: unknown }> = [
+    { choice: 'A', weights: event.choiceAWeights },
+    { choice: 'B', weights: event.choiceBWeights },
+    { choice: 'C', weights: event.choiceCWeights },
+  ];
+  if (event.choiceD) pairs.push({ choice: 'D', weights: event.choiceDWeights });
+
+  return pairs.map(({ choice, weights }) => {
+    if (!weights) return { choice, riskLevel: 'low' as const, rewardLevel: 'low' as const, flavor: 'Unknown outcome' };
+    const w = weights as ChoiceWeights;
+    const pos = _positivityScore(w);
+    const negMass = (w.minor_neg ?? 0) + (w.moderate_neg ?? 0) + (w.major_neg ?? 0) + (w.legendary_neg ?? 0);
+    const posMass = (w.minor_pos ?? 0) + (w.moderate_pos ?? 0) + (w.major_pos ?? 0) + (w.legendary_pos ?? 0);
+    const hasLegPos = (w.legendary_pos ?? 0) > 0.05;
+    const hasLegNeg = (w.legendary_neg ?? 0) > 0.05;
+
+    const riskLevel: 'low' | 'medium' | 'high' = negMass > 0.35 ? 'high' : negMass > 0.15 ? 'medium' : 'low';
+    const rewardLevel: 'low' | 'medium' | 'high' = posMass > 0.50 ? 'high' : posMass > 0.25 ? 'medium' : 'low';
+
+    let flavor: string;
+    if (hasLegPos && hasLegNeg) flavor = 'All-or-nothing — extraordinary ceiling or devastating floor';
+    else if (hasLegPos) flavor = 'Rare upside — could unlock a defining career moment';
+    else if (hasLegNeg) flavor = 'Dangerous call — potential program-altering setback';
+    else if (pos >= 1.0) flavor = 'Favored outcome — leans strongly positive';
+    else if (pos >= 0.4) flavor = 'Moderate upside — slightly positive lean';
+    else if (pos <= -0.4) flavor = 'Difficult path — leans negative';
+    else flavor = 'Balanced — outcome is genuinely uncertain';
+
+    return { choice, riskLevel, rewardLevel, flavor };
+  });
+}
+
+function buildMoodHint(hiddenVars: Record<string, unknown> | null | undefined): 'rising' | 'steady' | 'falling' {
+  if (!hiddenVars) return 'steady';
+  const momentum = Number(hiddenVars.storyMomentum ?? 5);
+  if (momentum >= 8) return 'rising';
+  if (momentum <= 3) return 'falling';
+  return 'steady';
+}
+
+function buildRecruitingImpactHint(hiddenVars: Record<string, unknown> | null | undefined): 'high impact' | 'moderate impact' | 'low impact' {
+  if (!hiddenVars) return 'moderate impact';
+  const volatility = Number(hiddenVars.volatility ?? 5);
+  if (volatility >= 8) return 'high impact';
+  if (volatility <= 3) return 'low impact';
+  return 'moderate impact';
+}
+
 async function resolveCoachTeamId(leagueId: string, userId: string): Promise<string | null> {
   const coaches = await storage.getCoachesByLeague(leagueId);
   return coaches.find(c => c.userId === userId)?.teamId ?? null;
@@ -148,6 +213,10 @@ async function resolveCoachTeamId(leagueId: string, userId: string): Promise<str
 
 async function assertLeagueMember(leagueId: string, userId: string | undefined, res: Response): Promise<boolean> {
   if (!userId) { res.status(401).json({ message: "Not authenticated" }); return false; }
+  const league = await storage.getLeague(leagueId);
+  if (!league) { res.status(404).json({ message: "League not found" }); return false; }
+  // Commissioner and co-commissioners always have access — they don't need a coach team
+  if (hasCommissionerAccess(league, userId)) return true;
   const teamId = await resolveCoachTeamId(leagueId, userId);
   if (!teamId) { res.status(403).json({ message: "You are not a member of this league" }); return false; }
   return true;
@@ -226,6 +295,13 @@ export function registerStorylineRoutes(app: Express) {
           }
         }
 
+        // Risk/reward hints — derived from active event weights + hidden vars.
+        // No raw probability numbers are exposed; only labeled tiers and flavor text.
+        const hv = sl.hiddenVars as Record<string, unknown> | null ?? null;
+        const choiceHints = activeEvent ? buildChoiceHints(activeEvent) : null;
+        const moodHint = buildMoodHint(hv);
+        const recruitingImpactHint = buildRecruitingImpactHint(hv);
+
         return {
           ...sl,
           recruit,
@@ -245,6 +321,9 @@ export function registerStorylineRoutes(app: Express) {
           voteCounts,
           myVote,
           overlappingRecruitName,
+          choiceHints,
+          moodHint,
+          recruitingImpactHint,
         };
       }));
 
@@ -532,14 +611,14 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
-  // POST /api/leagues/:id/storylines/generate — commissioner-only manual trigger
+  // POST /api/leagues/:id/storylines/generate — commissioner + co-commissioner manual trigger
   app.post("/api/leagues/:id/storylines/generate", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
-        return res.status(403).json({ message: "Only the commissioner can manually trigger storyline events" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner or co-commissioners can manually trigger storyline events" });
       }
 
       const unresolvedEvents = await storage.getUnresolvedStorylineEvents(leagueId, league.currentSeason);
@@ -559,15 +638,15 @@ export function registerStorylineRoutes(app: Express) {
   });
 
   // POST /api/leagues/:id/storylines/repair
-  // Commissioner-only: initializes storyline recruits if missing for the current season.
+  // Commissioner + co-commissioners: initializes storyline recruits if missing for the current season.
   // Repairs dynasties started with a saved recruiting class before the auto-init fix.
   app.post("/api/leagues/:id/storylines/repair", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
-        return res.status(403).json({ message: "Only the commissioner can repair storylines" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner or co-commissioners can repair storylines" });
       }
 
       const existing = await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason);
@@ -586,6 +665,80 @@ export function registerStorylineRoutes(app: Express) {
     } catch (err) {
       console.error("[storylines] REPAIR error:", err);
       res.status(500).json({ message: "Failed to repair storylines" });
+    }
+  });
+
+  // GET /api/leagues/:id/storylines/health
+  // Commissioner + co-commissioners: run a health check on storyline data integrity.
+  // Returns a StorylineHealthReport with issue codes, severity, and repair hints.
+  app.get("/api/leagues/:id/storylines/health", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner or co-commissioners can view storyline health" });
+      }
+      const report = await checkStorylineHealth(leagueId, league.currentSeason, league.currentWeek);
+      res.json(report);
+    } catch (err) {
+      console.error("[storylines] HEALTH error:", err);
+      res.status(500).json({ message: "Failed to run storyline health check" });
+    }
+  });
+
+  // POST /api/leagues/:id/storylines/health/repair
+  // Commissioner + co-commissioners: attempt automated repair of detected issues.
+  // Repairs are additive — they do not delete data that already exists.
+  app.post("/api/leagues/:id/storylines/health/repair", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner or co-commissioners can repair storyline health" });
+      }
+
+      // Run health check first so we know what to fix
+      const before = await checkStorylineHealth(leagueId, league.currentSeason, league.currentWeek);
+      const actions: string[] = [];
+
+      // Repair: missing storyline recruits — initialize them
+      const missingIssue = before.issues.find(i => i.code === "MISSING_STORYLINE_RECRUITS");
+      if (missingIssue) {
+        const recruits = await storage.getRecruitsByLeague(leagueId);
+        if (recruits.length > 0) {
+          const count = await initializeStorylineRecruits(leagueId, league.currentSeason);
+          actions.push(`Initialized ${count} storyline recruits`);
+        }
+      }
+
+      // Repair: mismatch — existing storyline data has orphaned recruit references; re-init
+      const mismatchIssue = before.issues.find(i => i.code === "STORYLINE_CLASS_MISMATCH");
+      if (mismatchIssue) {
+        actions.push("Storyline class mismatch detected — manual DB inspection recommended; auto-repair only initializes missing arcs");
+      }
+
+      // Repair: stale unresolved events — resolve them with the deterministic fallback
+      const staleIssue = before.issues.find(i => i.code === "STALE_UNRESOLVED_EVENTS");
+      if (staleIssue) {
+        const resolved = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek);
+        actions.push(`Resolved ${resolved} stale storyline event(s) using deterministic fallback`);
+      }
+
+      // Re-run health to get the updated state
+      const after = await checkStorylineHealth(leagueId, league.currentSeason, league.currentWeek);
+
+      res.json({
+        success: true,
+        actionsPerformed: actions,
+        before: { healthy: before.healthy, issueCount: before.issues.length },
+        after: { healthy: after.healthy, issueCount: after.issues.length },
+        report: after,
+      });
+    } catch (err) {
+      console.error("[storylines] HEALTH/REPAIR error:", err);
+      res.status(500).json({ message: "Failed to repair storyline health issues" });
     }
   });
 }
@@ -687,7 +840,28 @@ async function resolveOneStorylineEvent(
     const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
     if (!sl) return false;
 
-    const { winningChoice } = resolveVotes(votes, !!event.choiceD);
+    // Build positivity scores for each choice so the deterministic fallback can
+    // bias toward the recruit's personality profile when no votes were cast.
+    const hv = sl.hiddenVars as Record<string, unknown> | null ?? null;
+    const positivityScores = [
+      event.choiceAWeights, event.choiceBWeights, event.choiceCWeights,
+      ...(event.choiceD ? [event.choiceDWeights] : []),
+    ].map(w => {
+      if (!w) return 0;
+      const cw = w as ChoiceWeights;
+      return (
+        (cw.minor_pos ?? 0) * 1 + (cw.moderate_pos ?? 0) * 2 + (cw.major_pos ?? 0) * 3 + (cw.legendary_pos ?? 0) * 4 -
+        (cw.minor_neg ?? 0) * 1 - (cw.moderate_neg ?? 0) * 2 - (cw.major_neg ?? 0) * 3 - (cw.legendary_neg ?? 0) * 4
+      );
+    });
+
+    const { winningChoice, usedFallback } = resolveVotes(votes, !!event.choiceD, {
+      hiddenVars: hv,
+      positivityScores,
+    });
+    if (usedFallback) {
+      console.log(`[storylines] no-vote deterministic fallback for event ${event.id}: choice=${winningChoice}`);
+    }
     const volatility = (sl.hiddenVars as { volatility?: number })?.volatility ?? 5;
 
     const outcomeText = winningChoice === "A" ? event.choiceAOutcome

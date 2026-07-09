@@ -45,7 +45,7 @@ import { coaches as coachesTable } from "@shared/schema";
 import { calibrateRpiOvr } from "../calibrateRpiOvr";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "../pitchMixHelpers";
 import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, computePitcherAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
-import { generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents, initializeStorylineRecruits } from "../storyline-routes";
+import { generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents, initializeStorylineRecruits, catchUpAndResolveStorylineArcs } from "../storyline-routes";
 import {
   generateSchedule,
   generateRecruits,
@@ -6674,11 +6674,14 @@ export function registerSimulationRoutes(app: Express): void {
               const diagSR = diagGames.filter((g: any) => g.phase === "super_regionals" && g.season === league.currentSeason);
               console.warn(`[postseason-skip] SR done but no champion — league=${leagueId} season=${league.currentSeason} srGameCount=${diagSR.length} completedSR=${diagSR.filter((g: any) => g.isComplete).length} srResult=${JSON.stringify(srResult)}`);
             } catch { /* diagnostic only */ }
-            // Resolve any unresolved storyline arcs before entering offseason.
+            // Catch up and resolve ALL remaining storyline arcs before entering offseason.
+            // catchUpAndResolveStorylineArcs force-generates any missing events then resolves
+            // everything, so recruits who missed arc beats during the postseason still get
+            // their full narrative resolved before signing day.
             try {
-              const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
-              if (swept > 0) console.log(`[storylines] sr→offseason sweep resolved ${swept} arc events`);
-            } catch (e) { console.warn("[storylines] sr→offseason sweep failed:", e); }
+              const swept = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek ?? 1);
+              if (swept > 0) console.log(`[storylines] sr→offseason catch-up resolved ${swept} arc events`);
+            } catch (e) { console.warn("[storylines] sr→offseason catch-up failed:", e); }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek, currentClassVintage: null });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
             try {
@@ -6799,11 +6802,14 @@ export function registerSimulationRoutes(app: Express): void {
               }));
             } catch (e) { console.error("All-Americans coach stats error:", e); }
 
-            // Resolve any unresolved storyline arcs before entering offseason.
+            // Catch up and resolve ALL remaining storyline arcs before entering offseason.
+            // catchUpAndResolveStorylineArcs force-generates any missing events then resolves
+            // everything, so recruits who missed arc beats during postseason still get their
+            // full narrative resolved before signing day.
             try {
-              const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
-              if (swept > 0) console.log(`[storylines] cws→offseason sweep resolved ${swept} arc events`);
-            } catch (e) { console.warn("[storylines] cws→offseason sweep failed:", e); }
+              const swept = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek ?? 1);
+              if (swept > 0) console.log(`[storylines] cws→offseason catch-up resolved ${swept} arc events`);
+            } catch (e) { console.warn("[storylines] cws→offseason catch-up failed:", e); }
             
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek, currentClassVintage: null });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
