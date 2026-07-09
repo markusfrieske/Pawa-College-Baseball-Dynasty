@@ -531,6 +531,16 @@ function ReportGameInner() {
     return next;
   }
 
+  function clearCategoryCorrections(prefixes: string[]) {
+    setCorrections(prev => {
+      const next: typeof prev = {};
+      for (const [key, value] of Object.entries(prev)) {
+        if (!prefixes.some(p => key.startsWith(p))) next[key] = value;
+      }
+      return next;
+    });
+  }
+
   function handleApplyOcr(category: ScreenshotCategory, data: Record<string, unknown>, imageId?: string) {
     switch (category) {
       case "final_score": {
@@ -548,6 +558,7 @@ function ReportGameInner() {
           setShowInnings(true);
         }
         setFieldMeta(prev => ({ ...clearCategoryFieldMeta(prev, ["score.", "inning."]), ...scoreFieldMeta(d) }));
+        clearCategoryCorrections(["score.", "inning."]);
         toast({ title: "Applied final score", description: "Review the score fields below before continuing." });
         break;
       }
@@ -558,6 +569,7 @@ function ReportGameInner() {
         setHomeBatting(merged.entries);
         setShowHomeBatting(true);
         setFieldMeta(prev => ({ ...clearCategoryFieldMeta(prev, ["batting.home."]), ...merged.fieldMeta }));
+        clearCategoryCorrections(["batting.home."]);
         const needsNameCount = merged.entries.filter(e => e.needsName).length;
         toast({
           title: "Applied home batting",
@@ -574,6 +586,7 @@ function ReportGameInner() {
         setAwayBatting(merged.entries);
         setShowAwayBatting(true);
         setFieldMeta(prev => ({ ...clearCategoryFieldMeta(prev, ["batting.away."]), ...merged.fieldMeta }));
+        clearCategoryCorrections(["batting.away."]);
         const needsNameCount = merged.entries.filter(e => e.needsName).length;
         toast({
           title: "Applied away batting",
@@ -589,6 +602,7 @@ function ReportGameInner() {
         setHomePitchersInitialized(true);
         setShowPitching(true);
         setFieldMeta(prev => ({ ...clearCategoryFieldMeta(prev, ["pitching.home."]), ...pitchingFieldMeta("home", data, entries) }));
+        clearCategoryCorrections(["pitching.home."]);
         toast({ title: "Applied home pitching", description: "Review innings pitched and decisions before continuing." });
         break;
       }
@@ -598,6 +612,7 @@ function ReportGameInner() {
         setAwayPitchersInitialized(true);
         setShowPitching(true);
         setFieldMeta(prev => ({ ...clearCategoryFieldMeta(prev, ["pitching.away."]), ...pitchingFieldMeta("away", data, entries) }));
+        clearCategoryCorrections(["pitching.away."]);
         toast({ title: "Applied away pitching", description: "Review innings pitched and decisions before continuing." });
         break;
       }
