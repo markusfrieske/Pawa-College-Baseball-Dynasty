@@ -1,0 +1,37 @@
+Redesign the Recruit Storylines system so it no longer gives away gems, busts, or true player quality.
+
+Core design rules:
+1. Do not display labels like Generational Gem, Generational Bust, The Phenom, The Collapse, or any title that reveals whether a recruit is secretly good or bad.
+2. Public storyline labels must be ambiguous scouting/event categories such as Medical Watch, Late Evaluation, Position Uncertainty, Summer Surge, Mechanical Rebuild, Eligibility Concern, Two-Sport Decision, Scouting Dispute, Raw Tools, or Showcase Volatility.
+3. Storyline text must not be written directly to one coach, one school, or one program. Remove language like “you,” “your program,” “your school,” “visited {team},” “committed to {team},” or “your staff.”
+4. Rewrite storyline events as league-wide recruit situations: showcases, injuries, family decisions, academic issues, mechanics changes, position experiments, scouting disputes, travel ball performance, draft interest, social media pressure, eligibility reviews, and personal development.
+5. Branching outcomes should affect the recruit directly, not a single team relationship.
+
+Add or support these outcome types:
+- reveal one or more hidden ratings,
+- increase/decrease specific ratings,
+- change primary position,
+- add/remove secondary position if supported,
+- increase/decrease overall,
+- add/remove abilities,
+- apply injury or medical risk,
+- temporarily hide or lock scouting info,
+- remove recruit from pool,
+- delay recruit decision,
+- accelerate recruit decision,
+- change star rating or position rank if the system supports it,
+- mark recruit as volatile/high-risk without revealing gem/bust truth.
+
+Update the UI:
+- Show “Storyline Category” instead of archetype truth.
+- Show vague indicators like Rising, Falling, Unstable, Under Review, Healthy, Medical Concern, Position Watch, Eligibility Watch.
+- Never show gem/bust/generational truth from the storyline card.
+- Only reveal major truths through scouting thresholds, signing day, or specific storyline outcomes.
+- Replace “Vote Open” with “League Decision” or “Evaluation Window.”
+
+Update the backend:
+- Keep hidden archetypes/internal variables private.
+- Add publicStoryLabel/publicArcStatus fields or derive them safely from archetype without spoilers.
+- Update generateStorylineEvent so templates are neutral and league-wide.
+- Update applyStoryOutcomeToRecruit to support non-rating outcomes such as position change, reveal scouting info, recruit removal, injury/medical flag, and decision timing changes.
+- Add tests ensuring no public storyline payload exposes isGem, isBust, isGenerationalGem, isGenerationalBust, or spoiler archetype names before proper reveal.

@@ -9,11 +9,11 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, BookOpen, Sparkles, TrendingUp, TrendingDown, Minus,
-  ChevronRight, ChevronDown, Users, Trophy, Flame, Skull, Crown, Zap,
+  ChevronRight, ChevronDown, Users, Trophy, Flame, Crown, Zap,
   Vote, Clock, CheckCircle, BarChart2, Link2, Calendar, Shield,
   Target, History, GitBranch, Activity, RefreshCw, Loader2,
-  AlertTriangle, Info, HeartPulse, Wrench, Radio, MapPin, Star,
-  Swords, Eye, Award,
+  AlertTriangle, Info, HeartPulse, Wrench, Radio, Star,
+  Eye, Award,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -51,8 +51,7 @@ interface StorylineRecruit {
   recruitId: string;
   season: number;
   archetype: string;
-  tier: string;
-  isLegendary: boolean;
+  isHighInterest: boolean;
   currentArcStage: number;
   resolvedOvrDelta: number;
   overlappingRecruitId: string | null;
@@ -60,7 +59,7 @@ interface StorylineRecruit {
   recruit: {
     id: string; firstName: string; lastName: string;
     position: string; starRank: number; overall: number;
-    homeState: string; isBlueChip: boolean; isGenerationalGem: boolean;
+    homeState: string; isBlueChip: boolean;
     stage: string;
     signedTeamAbbreviation?: string | null;
     signedTeamPrimaryColor?: string | null;
@@ -69,9 +68,9 @@ interface StorylineRecruit {
     mouthStyle?: string | null; eyeBlack?: string | null;
     abilities?: string[] | null; storyLockedAbilities?: string[] | null;
   } | null;
-  archetypeName: string;
-  archetypeDescription: string;
-  archetypeFlavor: string;
+  publicStoryLabel: string;
+  publicArcFlavor: string;
+  publicArcStatus: string;
   archetypeImageUrl: string | null;
   totalArcEvents: number;
   activeEvent: StorylineEventFull | null;
@@ -83,7 +82,6 @@ interface StorylineRecruit {
   resolvedEvents: number;
   voteCounts: Record<string, number>;
   myVote: string | null;
-  featuredTeamName?: string | null;
   moodHint?: "rising" | "steady" | "falling";
   recruitingImpactHint?: "high impact" | "moderate impact" | "low impact";
   choiceHints?: ChoiceHint[] | null;
@@ -171,7 +169,7 @@ function MoodMeter({ mood }: { mood?: "rising" | "steady" | "falling" }) {
   );
 }
 
-function ArcProgressBar({ stage, total, isLegendary }: { stage: number; total: number; isLegendary: boolean }) {
+function ArcProgressBar({ stage, total, isHighInterest }: { stage: number; total: number; isHighInterest: boolean }) {
   const t = Math.max(3, total);
   const f = Math.min(stage, t);
   return (
@@ -179,11 +177,11 @@ function ArcProgressBar({ stage, total, isLegendary }: { stage: number; total: n
       {Array.from({ length: t }).map((_, i) => (
         <div key={i} className={`h-1.5 flex-1 rounded-sm ${
           i < f
-            ? isLegendary ? "bg-gold/80" : "bg-muted-foreground/55"
-            : isLegendary ? "bg-gold/15" : "bg-muted/40"
+            ? isHighInterest ? "bg-gold/80" : "bg-muted-foreground/55"
+            : isHighInterest ? "bg-gold/15" : "bg-muted/40"
         }`} />
       ))}
-      <span className={`text-[8px] font-pixel ml-0.5 flex-shrink-0 ${isLegendary ? "text-gold/70" : "text-muted-foreground/50"}`}>
+      <span className={`text-[8px] font-pixel ml-0.5 flex-shrink-0 ${isHighInterest ? "text-gold/70" : "text-muted-foreground/50"}`}>
         {f}/{t}
       </span>
     </div>
@@ -244,15 +242,15 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
 
   return (
     <div
-      className={`rounded-xl border overflow-hidden ${sl.isLegendary ? "border-gold/50 shadow-lg shadow-gold/10" : "border-border/60"}`}
-      style={{ background: sl.isLegendary ? "linear-gradient(135deg, rgba(212,175,55,0.06) 0%, transparent 60%)" : "hsl(var(--card))" }}
+      className={`rounded-xl border overflow-hidden ${sl.isHighInterest ? "border-gold/50 shadow-lg shadow-gold/10" : "border-border/60"}`}
+      style={{ background: sl.isHighInterest ? "linear-gradient(135deg, rgba(212,175,55,0.06) 0%, transparent 60%)" : "hsl(var(--card))" }}
       data-testid={`card-storyline-${sl.id}`}
     >
-      {/* Legendary banner */}
-      {sl.isLegendary && (
+      {/* High-interest banner */}
+      {sl.isHighInterest && (
         <div className="px-4 py-1.5 bg-gradient-to-r from-gold/20 via-gold/8 to-transparent flex items-center gap-2 border-b border-gold/20">
           <Crown className="w-3 h-3 text-gold" />
-          <span className="text-[9px] font-pixel text-gold tracking-[0.2em]">GENERATIONAL STORYLINE</span>
+          <span className="text-[9px] font-pixel text-gold tracking-[0.2em]">FEATURED EVALUATION</span>
         </div>
       )}
 
@@ -272,7 +270,7 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
 
       {/* Recruit identity row */}
       <div className="px-4 py-3 flex items-center gap-3">
-        <div className={`w-14 h-14 rounded-xl border overflow-hidden flex-shrink-0 ${sl.isLegendary ? "border-gold/40" : "border-border/40"}`}>
+        <div className={`w-14 h-14 rounded-xl border overflow-hidden flex-shrink-0 ${sl.isHighInterest ? "border-gold/40" : "border-border/40"}`}>
           <PlayerPortrait
             skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
             hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
@@ -290,15 +288,14 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
                 </span>
               </Link>
             )}
-            {r?.isGenerationalGem && <Sparkles className="w-3 h-3 text-amber-400" />}
-            {r?.isBlueChip && !r?.isGenerationalGem && <Flame className="w-3 h-3 text-blue-400" />}
+            {r?.isBlueChip && <Flame className="w-3 h-3 text-blue-400" />}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             {r && <span className="text-[10px] text-muted-foreground">{r.position} · {r.homeState}</span>}
             {r && <StarRating rating={r.starRank} size="sm" />}
           </div>
           <div className="mt-1.5">
-            <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isLegendary={sl.isLegendary} />
+            <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isHighInterest={sl.isHighInterest} />
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
@@ -309,13 +306,11 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
         </div>
       </div>
 
-      {/* Archetype label */}
+      {/* Scouting category label */}
       <div className="mx-4 mb-2 px-3 py-1.5 rounded-lg bg-muted/20 border border-border/30 flex items-center gap-2">
         <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-        <span className="text-[9px] font-pixel text-gold">{sl.archetypeName}</span>
-        {sl.featuredTeamName && (
-          <span className="ml-auto text-[9px] text-blue-300/70 italic flex-shrink-0">vs {sl.featuredTeamName}</span>
-        )}
+        <span className="text-[9px] font-pixel text-gold">{sl.publicStoryLabel}</span>
+        <span className="ml-auto text-[8px] font-pixel text-muted-foreground/60 flex-shrink-0">{sl.publicArcStatus}</span>
       </div>
 
       {/* Story event text */}
@@ -489,7 +484,7 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
   return (
     <div
       className={`rounded-xl border overflow-hidden ${
-        sl.isLegendary ? "border-gold/40" :
+        sl.isHighInterest ? "border-gold/40" :
         isCommitted ? "border-green-500/30" :
         isComplete ? "border-muted-foreground/30" :
         "border-border/40"
@@ -497,10 +492,10 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
       style={{ background: "hsl(var(--card))" }}
       data-testid={`card-arc-${sl.id}`}
     >
-      {sl.isLegendary && (
+      {sl.isHighInterest && (
         <div className="px-3 py-1 bg-gradient-to-r from-gold/15 to-transparent flex items-center gap-1.5 border-b border-gold/20">
           <Crown className="w-2.5 h-2.5 text-gold" />
-          <span className="text-[8px] font-pixel text-gold tracking-widest">LEGENDARY</span>
+          <span className="text-[8px] font-pixel text-gold tracking-widest">FEATURED</span>
         </div>
       )}
       {isCommitted && (
@@ -513,7 +508,7 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
       )}
       <div className="p-3">
         <div className="flex items-center gap-2.5">
-          <div className={`w-11 h-11 rounded-lg border overflow-hidden flex-shrink-0 ${sl.isLegendary ? "border-gold/30" : "border-border/30"}`}>
+          <div className={`w-11 h-11 rounded-lg border overflow-hidden flex-shrink-0 ${sl.isHighInterest ? "border-gold/30" : "border-border/30"}`}>
             <PlayerPortrait
               skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
               hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
@@ -529,17 +524,16 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
                   <span className="font-semibold text-gold hover:underline text-[13px]">{r.firstName} {r.lastName}</span>
                 </Link>
               )}
-              {r?.isGenerationalGem && <Sparkles className="w-3 h-3 text-amber-400" />}
             </div>
             <div className="flex items-center gap-1.5 mt-0.5">
               {r && <span className="text-[10px] text-muted-foreground">{r.position} · {r.homeState}</span>}
               {r && <StarRating rating={r.starRank} size="sm" />}
             </div>
-            <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isLegendary={sl.isLegendary} />
+            <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isHighInterest={sl.isHighInterest} />
           </div>
           <div className="flex-shrink-0 flex flex-col items-end gap-1">
             {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
-            <span className="text-[8px] font-pixel text-muted-foreground">{sl.archetypeName.slice(0, 14)}</span>
+            <span className="text-[8px] font-pixel text-muted-foreground">{sl.publicStoryLabel.slice(0, 14)}</span>
           </div>
         </div>
 
@@ -625,7 +619,7 @@ function WeeklyHeadlines({ storylines }: { storylines: StorylineRecruit[] }) {
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="text-[8px] font-pixel text-muted-foreground">WK {event.week}</span>
                 {event.ovrDelta !== null && event.ovrDelta !== 0 && <OvrPill delta={event.ovrDelta} />}
-                {sl.isLegendary && <Crown className="w-2.5 h-2.5 text-gold" />}
+                {sl.isHighInterest && <Crown className="w-2.5 h-2.5 text-gold" />}
               </div>
               <p className="text-[10px] font-semibold text-foreground/90 leading-snug mb-1">
                 {r?.firstName} {r?.lastName}
@@ -651,36 +645,10 @@ function WeeklyHeadlines({ storylines }: { storylines: StorylineRecruit[] }) {
   );
 }
 
-// ── Top Recruiters / Competing Programs ────────────────────────────────────────
-
-function CompetingPrograms({ storylines }: { storylines: StorylineRecruit[] }) {
-  const teamMap: Record<string, number> = {};
-  storylines.forEach(sl => {
-    if (sl.featuredTeamName) {
-      teamMap[sl.featuredTeamName] = (teamMap[sl.featuredTeamName] ?? 0) + 1;
-    }
-  });
-  const teams = Object.entries(teamMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-  if (teams.length === 0) return null;
-
-  return (
-    <div data-testid="section-competing-programs">
-      <div className="flex items-center gap-2 mb-2">
-        <Swords className="w-3.5 h-3.5 text-gold" />
-        <span className="font-pixel text-[9px] text-gold">COMPETING PROGRAMS</span>
-      </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        {teams.map(([name, count]) => (
-          <div key={name} className="flex items-center gap-2 px-2.5 py-2 rounded-lg border border-border/30 bg-muted/10">
-            <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-            <span className="text-[10px] text-foreground/80 truncate flex-1">{name}</span>
-            <span className="text-[9px] font-pixel text-gold flex-shrink-0">{count}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// CompetingPrograms removed — displaying featured team names in public feed
+// would reveal which specific programs are recruiting storyline prospects,
+// leaking competitive intel and potentially spoiling gem/bust identity.
+// The section has been removed to preserve fog of war.
 
 // ── Completed Arc Recap ───────────────────────────────────────────────────────
 
@@ -703,10 +671,10 @@ function CompletedArcsRecap({ storylines }: { storylines: StorylineRecruit[] }) 
           const abilities = sl.allEvents.filter(e => e.resolvedAbilityGain).map(e => e.resolvedAbilityGain);
           return (
             <div key={sl.id} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${
-              sl.isLegendary ? "border-gold/30 bg-gold/5" : "border-border/30 bg-muted/10"
+              sl.isHighInterest ? "border-gold/30 bg-gold/5" : "border-border/30 bg-muted/10"
             }`}>
-              {sl.isLegendary && <Crown className="w-3 h-3 text-gold flex-shrink-0" />}
-              {!sl.isLegendary && <Trophy className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+              {sl.isHighInterest && <Crown className="w-3 h-3 text-gold flex-shrink-0" />}
+              {!sl.isHighInterest && <Trophy className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
               <Link href={`/league/${sl.leagueId}/recruit/${r?.id ?? ""}`} className="text-[10px] font-semibold hover:text-gold flex-1 truncate">
                 {r?.firstName} {r?.lastName}
               </Link>
@@ -726,17 +694,17 @@ function CompletedArcsRecap({ storylines }: { storylines: StorylineRecruit[] }) 
   );
 }
 
-// ── Legendary Spotlight ───────────────────────────────────────────────────────
+// ── High-Interest Spotlight ───────────────────────────────────────────────────
 
 function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRecruit[]; leagueId: string }) {
-  const legends = storylines.filter(sl => sl.isLegendary);
+  const legends = storylines.filter(sl => sl.isHighInterest);
   if (legends.length === 0) return null;
 
   return (
     <div data-testid="section-legendary-spotlight">
       <div className="flex items-center gap-2 mb-3">
         <Crown className="w-3.5 h-3.5 text-gold" />
-        <span className="font-pixel text-[9px] text-gold">GENERATIONAL RECRUITS</span>
+        <span className="font-pixel text-[9px] text-gold">HIGH-INTEREST STORYLINES</span>
         <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
           {legends.length}
         </span>
@@ -744,7 +712,6 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
       <div className="space-y-3">
         {legends.map(sl => {
           const r = sl.recruit;
-          const isGem = r?.isGenerationalGem;
           return (
             <div
               key={sl.id}
@@ -763,9 +730,9 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    {isGem ? <Sparkles className="w-3.5 h-3.5 text-amber-400" /> : <Skull className="w-3.5 h-3.5 text-red-400" />}
-                    <span className={`font-pixel text-[8px] tracking-widest ${isGem ? "text-amber-400" : "text-red-400"}`}>
-                      {isGem ? "GENERATIONAL GEM" : "GENERATIONAL BUST"}
+                    <Crown className="w-3 h-3 text-gold/70" />
+                    <span className="font-pixel text-[8px] tracking-widest text-gold/80">
+                      {sl.publicStoryLabel.toUpperCase()}
                     </span>
                   </div>
                   {r && (
@@ -778,7 +745,7 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
                     {r && <StarRating rating={r.starRank} size="sm" />}
                   </div>
                   <div className="mt-2">
-                    <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isLegendary={true} />
+                    <ArcProgressBar stage={sl.currentArcStage} total={sl.totalArcEvents} isHighInterest={true} />
                   </div>
                 </div>
                 <div className="flex-shrink-0 text-right">
@@ -789,12 +756,12 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
                 </div>
               </div>
               <div className="px-4 pb-3">
-                <p className="text-xs text-muted-foreground italic">{sl.archetypeFlavor}</p>
+                <p className="text-xs text-muted-foreground italic">{sl.publicArcFlavor}</p>
                 <div className="flex items-center gap-1.5 mt-2">
-                  <span className="text-[9px] font-pixel text-gold">{sl.archetypeName}</span>
+                  <span className="text-[9px] font-pixel text-gold">{sl.publicArcStatus}</span>
                   {sl.activeEvent && (
                     <span className="ml-auto text-[8px] font-pixel bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
-                      VOTE OPEN
+                      EVALUATION WINDOW
                     </span>
                   )}
                 </div>
@@ -1021,21 +988,21 @@ export default function StorylinesPage() {
   // Derived counts
   const activeVotes = storylines.filter(s => s.activeEvent && !s.myVote).length;
   const totalVotes = storylines.filter(s => s.activeEvent).length;
-  const legendaryCount = storylines.filter(s => s.isLegendary).length;
+  const featuredCount = storylines.filter(s => s.isHighInterest).length;
   const committedCount = storylines.filter(s => s.recruit?.stage === "signed" || s.recruit?.stage === "committed").length;
   const completedCount = storylines.filter(s => s.currentArcStage >= s.totalArcEvents && s.totalArcEvents > 0).length;
 
   // Split storylines
   const withVotes = storylines.filter(s => !!s.activeEvent).sort((a, b) => {
-    if (a.isLegendary && !b.isLegendary) return -1;
-    if (!a.isLegendary && b.isLegendary) return 1;
+    if (a.isHighInterest && !b.isHighInterest) return -1;
+    if (!a.isHighInterest && b.isHighInterest) return 1;
     const aVoted = a.myVote ? 1 : 0;
     const bVoted = b.myVote ? 1 : 0;
     return aVoted - bVoted;
   });
   const withoutVotes = storylines.filter(s => !s.activeEvent).sort((a, b) => {
-    if (a.isLegendary && !b.isLegendary) return -1;
-    if (!a.isLegendary && b.isLegendary) return 1;
+    if (a.isHighInterest && !b.isHighInterest) return -1;
+    if (!a.isHighInterest && b.isHighInterest) return 1;
     return (b.currentArcStage - a.currentArcStage);
   });
 
@@ -1187,7 +1154,7 @@ export default function StorylinesPage() {
               </div>
             ) : (
               <>
-                {legendaryCount > 0 && <LegendarySpotlight storylines={storylines} leagueId={leagueId!} />}
+                {featuredCount > 0 && <LegendarySpotlight storylines={storylines} leagueId={leagueId!} />}
                 {completedCount > 0 && <CompletedArcsRecap storylines={storylines} />}
                 {withoutVotes.length > 0 && (
                   <div>
@@ -1214,7 +1181,6 @@ export default function StorylinesPage() {
             ) : (
               <>
                 <WeeklyHeadlines storylines={storylines} />
-                <CompetingPrograms storylines={storylines} />
 
                 {/* Commitment status */}
                 {committedCount > 0 && (

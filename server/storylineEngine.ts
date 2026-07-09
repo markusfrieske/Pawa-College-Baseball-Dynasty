@@ -220,6 +220,74 @@ export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; ne
   small_town_hero:      { positive: "rivalry_recruit",       negative: "confidence_crisis" },
 };
 
+// ─── Public Label System ──────────────────────────────────────────────────────
+// Maps internal archetype keys to neutral, ambiguous scouting category labels
+// that coaches see in the league-wide Storyline Hub. These must NOT reveal
+// gem/bust/legendary truth — they are deliberately vague scouting categories.
+export const PUBLIC_STORY_LABELS: Record<Archetype, string> = {
+  late_bloomer:           "Late Evaluation",
+  velocity_freak:         "Showcase Volatility",
+  swing_rebuild:          "Mechanical Rebuild",
+  position_change:        "Position Uncertainty",
+  summer_breakout:        "Showcase Volatility",
+  social_media_star:      "Showcase Volatility",
+  confidence_crisis:      "Under Review",
+  burnout_candidate:      "Medical Watch",
+  injury_risk:            "Medical Watch",
+  academic_concern:       "Eligibility Concern",
+  transfer_rumors:        "Eligibility Concern",
+  two_sport_athlete:      "Two-Sport Decision",
+  knuckleball_specialist: "Raw Tools",
+  rivalry_recruit:        "Scouting Dispute",
+  generational_prodigy:   "Showcase Volatility",
+  financial_pressure:     "Late Evaluation",
+  coaching_change:        "Scouting Dispute",
+  first_gen_student:      "Late Evaluation",
+  draft_agent_pressure:   "Showcase Volatility",
+  small_town_hero:        "Raw Tools",
+  the_phenom:             "Showcase Volatility",
+  the_collapse:           "Medical Watch",
+  the_two_sport_icon:     "Two-Sport Decision",
+  the_scientist:          "Mechanical Rebuild",
+  folk_hero:              "Raw Tools",
+};
+
+// Neutral flavor text keyed by public story label. Reveals nothing about internal archetype.
+const PUBLIC_ARC_FLAVORS: Record<string, string> = {
+  "Late Evaluation":      "Scouting reports are still developing on this prospect. The full picture has not yet emerged.",
+  "Showcase Volatility":  "Recent showcase performances have drawn significant attention. Evaluators are watching closely.",
+  "Mechanical Rebuild":   "Scouts are tracking an ongoing developmental process. Early indicators are mixed.",
+  "Position Uncertainty": "Position fit remains an open question. Multiple programs are monitoring the situation.",
+  "Medical Watch":        "Scouts are awaiting further updates. The situation continues to develop.",
+  "Eligibility Concern":  "Eligibility status is under active review. Programs are proceeding with caution.",
+  "Two-Sport Decision":   "This prospect is weighing commitments across multiple sports. A decision is pending.",
+  "Raw Tools":            "An unconventional skill set is attracting interest from programs with specific development needs.",
+  "Scouting Dispute":     "Evaluators are divided on this prospect. Intelligence gathering is actively ongoing.",
+  "Under Review":         "The scouting committee is reviewing updated film and performance data. No consensus yet.",
+};
+
+export function getPublicArcFlavor(archetype: Archetype): string {
+  const label = PUBLIC_STORY_LABELS[archetype];
+  return PUBLIC_ARC_FLAVORS[label] ?? "Scouting reports on this prospect are still developing.";
+}
+
+// Derives a vague public status string from mood + impact signals.
+// Must never directly encode gem/bust/legendary status.
+export function derivePublicArcStatus(
+  moodHint: "rising" | "steady" | "falling",
+  recruitingImpactHint: "high impact" | "moderate impact" | "low impact",
+  currentArcStage: number,
+): string {
+  if (currentArcStage === 0) return "Early Evaluation";
+  if (moodHint === "rising" && recruitingImpactHint === "high impact") return "Active Evaluation";
+  if (moodHint === "rising") return "Developing";
+  if (moodHint === "falling" && recruitingImpactHint === "high impact") return "Volatile";
+  if (moodHint === "falling") return "Under Review";
+  if (recruitingImpactHint === "high impact") return "High Priority";
+  if (recruitingImpactHint === "low impact") return "Monitoring";
+  return "Steady";
+}
+
 // When a transition target is position-incompatible, substitute with a narratively
 // equivalent archetype that works for that position rather than blocking the transition.
 // Keys are pitcher-only or hitter-only archetypes; values are position-safe alternatives.

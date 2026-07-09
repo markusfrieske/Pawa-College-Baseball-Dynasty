@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, generateStoryOutcomes } from "./storylineEngine";
+import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, generateStoryOutcomes, PUBLIC_STORY_LABELS, getPublicArcFlavor, derivePublicArcStatus } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights, StoryOutcome } from "@shared/schema";
 import { getAbilitiesForPosition, calculateOVR } from "@shared/abilities";
@@ -302,12 +302,40 @@ export function registerStorylineRoutes(app: Express) {
         const moodHint = buildMoodHint(hv);
         const recruitingImpactHint = buildRecruitingImpactHint(hv);
 
+        // Scrub gem/bust/tier spoilers from the recruit sub-object before
+        // returning — coaches must not be able to discover isGenerationalGem,
+        // isGenerationalBust, or isBlueChip via the storylines endpoint.
+        const publicRecruit = recruit ? (() => {
+          const { isGenerationalGem: _g, isGenerationalBust: _b, ...safeRecruit } = recruit as Record<string, unknown>;
+          return safeRecruit;
+        })() : null;
+
+        const archetypeKey = sl.archetype as Archetype;
+        const publicStoryLabel = PUBLIC_STORY_LABELS[archetypeKey] ?? "Scouting Report";
+        const publicArcFlavor = getPublicArcFlavor(archetypeKey);
+        const publicArcStatus = derivePublicArcStatus(moodHint, recruitingImpactHint, sl.currentArcStage ?? 0);
+
         return {
+          // Spread storyline_recruit columns but override identity-revealing fields
           ...sl,
-          recruit,
-          archetypeName: archetypeDef?.name ?? sl.archetype,
-          archetypeDescription: archetypeDef?.description ?? "",
-          archetypeFlavor: archetypeDef?.flavor ?? "",
+          // Override archetype with internal key only (not the human-readable name)
+          archetype: sl.archetype,
+          // Strip legendary/tier — replaced with a non-spoiling high-interest flag
+          isHighInterest: sl.isLegendary,
+          isLegendary: undefined,
+          tier: undefined,
+          // Strip featuredTeamName — reveals which program is prominently recruiting
+          featuredTeamName: undefined,
+          // Public-safe metadata (no gem/bust/generational truth)
+          publicStoryLabel,
+          publicArcFlavor,
+          publicArcStatus,
+          // Scrubbed recruit object
+          recruit: publicRecruit,
+          // Remove the raw archetype def fields that expose internal names
+          archetypeName: undefined,
+          archetypeDescription: undefined,
+          archetypeFlavor: undefined,
           archetypeImageUrl: archetypeDef?.imageUrl ?? null,
           totalArcEvents: (archetypeDef?.events.length ?? 3) + (sl.isLegendary ? (archetypeDef?.legendaryEvents?.length ?? 0) : 0),
           activeEvent,
@@ -399,13 +427,24 @@ export function registerStorylineRoutes(app: Express) {
       }));
 
       const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
+      const archetypeKey = sl.archetype as Archetype;
+      const publicRecruit = recruit ? (() => {
+        const { isGenerationalGem: _g, isGenerationalBust: _b, ...safeRecruit } = recruit as Record<string, unknown>;
+        return safeRecruit;
+      })() : null;
 
       res.json({
         ...sl,
-        recruit,
-        archetypeName: archetypeDef?.name ?? sl.archetype,
-        archetypeDescription: archetypeDef?.description ?? "",
-        archetypeFlavor: archetypeDef?.flavor ?? "",
+        isHighInterest: sl.isLegendary,
+        isLegendary: undefined,
+        tier: undefined,
+        featuredTeamName: undefined,
+        recruit: publicRecruit,
+        publicStoryLabel: PUBLIC_STORY_LABELS[archetypeKey] ?? "Scouting Report",
+        publicArcFlavor: getPublicArcFlavor(archetypeKey),
+        archetypeName: undefined,
+        archetypeDescription: undefined,
+        archetypeFlavor: undefined,
         events: enrichedEvents,
       });
     } catch (err) {
@@ -445,8 +484,8 @@ export function registerStorylineRoutes(app: Express) {
             D: e.choiceD ?? "",
           };
           const archetypeKey = e.archetypeAtEvent ?? null;
-          const archetypeNameAtEvent = archetypeKey
-            ? (ARCHETYPE_DEFS[archetypeKey as Archetype]?.name ?? archetypeKey)
+          const publicStoryLabelAtEvent = archetypeKey
+            ? (PUBLIC_STORY_LABELS[archetypeKey as Archetype] ?? "Scouting Report")
             : null;
           return {
             id: e.id,
@@ -454,7 +493,7 @@ export function registerStorylineRoutes(app: Express) {
             season: e.season,
             eventText: e.eventText,
             archetypeAtEvent: archetypeKey,
-            archetypeNameAtEvent,
+            publicStoryLabelAtEvent,
             resolvedChoice: e.resolvedChoice,
             resolvedChoiceLabel: choiceMap[e.resolvedChoice!] ?? e.resolvedChoice,
             resolvedOutcomeText: e.resolvedOutcomeText,
@@ -463,17 +502,15 @@ export function registerStorylineRoutes(app: Express) {
           };
         });
 
-      const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
+      const arcHistoryKey = sl.archetype as Archetype;
 
       res.json({
         storylineRecruit: {
           id: sl.id,
           archetype: sl.archetype,
-          archetypeName: archetypeDef?.name ?? sl.archetype,
-          archetypeDescription: archetypeDef?.description ?? "",
-          tier: sl.tier,
+          publicStoryLabel: PUBLIC_STORY_LABELS[arcHistoryKey] ?? "Scouting Report",
           currentArcStage: sl.currentArcStage,
-          isLegendary: sl.isLegendary,
+          isHighInterest: sl.isLegendary,
           resolvedOvrDelta: sl.resolvedOvrDelta,
           imageUrl: sl.imageUrl,
         },
@@ -498,7 +535,7 @@ export function registerStorylineRoutes(app: Express) {
 
       const entries = await Promise.all(storylines.map(async (sl) => {
         const recruit = await storage.getRecruit(sl.recruitId);
-        const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
+        const wrapKey = sl.archetype as Archetype;
         return {
           storylineRecruitId: sl.id,
           recruitId: sl.recruitId,
@@ -506,17 +543,17 @@ export function registerStorylineRoutes(app: Express) {
           lastName: recruit?.lastName ?? "Recruit",
           position: recruit?.position ?? "",
           archetype: sl.archetype,
-          archetypeName: archetypeDef?.name ?? sl.archetype,
-          isLegendary: sl.isLegendary,
+          publicStoryLabel: PUBLIC_STORY_LABELS[wrapKey] ?? "Scouting Report",
+          isHighInterest: sl.isLegendary,
           resolvedOvrDelta: sl.resolvedOvrDelta,
           committed: !!recruit?.signedTeamId,
           signedTeamId: recruit?.signedTeamId ?? null,
         };
       }));
 
-      // Sort: legendary first, then by absolute OVR impact descending
+      // Sort: high-interest first, then by absolute OVR impact descending
       entries.sort((a, b) => {
-        if (a.isLegendary !== b.isLegendary) return a.isLegendary ? -1 : 1;
+        if (a.isHighInterest !== b.isHighInterest) return a.isHighInterest ? -1 : 1;
         return Math.abs(b.resolvedOvrDelta) - Math.abs(a.resolvedOvrDelta);
       });
 
@@ -1198,7 +1235,9 @@ async function generateWeeklyStorylineEvents(
         linkedRecruitName,
         recruit.position ?? undefined,
         (sl.usedTemplateIds as string[] | null) ?? [],
-        featuredTeamName,
+        // Do NOT pass featuredTeamName — {team} must resolve to "the program"
+        // to prevent event text from revealing which specific school is recruiting.
+        undefined,
       );
 
       // storyOutcomes is generated inside generateStorylineEvent and included in eventData
@@ -1354,7 +1393,9 @@ export async function catchUpAndResolveStorylineArcs(
           undefined,
           recruit.position ?? undefined,
           currentUsed,
-          featuredTeamName,
+          // Do NOT pass featuredTeamName — {team} must resolve to "the program"
+          // to prevent event text from revealing which specific school is recruiting.
+          undefined,
         );
 
         const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;
