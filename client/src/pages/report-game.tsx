@@ -326,6 +326,34 @@ function ReportGameInner() {
     return cats;
   }, [fieldMeta]);
 
+  // Unsaved OCR-data guard: warn the coach before they navigate away with auto-filled stats
+  // that haven't been submitted yet.  Active as soon as any OCR data lands in fieldMeta and
+  // deactivated automatically once the report is submitted (phase === "submitted").
+  const guardActive = Object.keys(fieldMeta).length > 0 && phase !== "submitted";
+  const LEAVE_MSG = "You have auto-filled stats from screenshots that haven't been submitted yet. Leave anyway?";
+
+  useEffect(() => {
+    if (!guardActive) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [guardActive]);
+
+  // Wouter navigates via history.pushState — intercept it so in-app link clicks also
+  // go through the confirmation.  On confirm we call the original and dispatch a popstate
+  // event so Wouter's location subscription detects the URL change.
+  useEffect(() => {
+    if (!guardActive) return;
+    const orig = window.history.pushState;
+    window.history.pushState = function (...args: Parameters<typeof window.history.pushState>) {
+      if (window.confirm(LEAVE_MSG)) {
+        orig.apply(window.history, args);
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      }
+    };
+    return () => { window.history.pushState = orig; };
+  }, [guardActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // OCR status summary — used to show the "still reading / all done" banner in the score phase.
   const { data: screenshotImages } = useGameReportImages(id, gameId, phase === "score");
   const pendingOcrCount = (screenshotImages ?? []).filter(
