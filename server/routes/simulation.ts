@@ -3803,7 +3803,8 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
 
     // Use the same coach-driven budget as humans so archetype/skill perks
     // measurably affect CPU action throughput too. Difficulty stretches it.
-    const baseBudget = getMaxRecruitingActions(teamCoach);
+    // Pass seasonLength so CPU budget scales identically to the human path.
+    const baseBudget = getMaxRecruitingActions(teamCoach, league?.seasonLength);
     // Reduced stretches for AA/Elite: action volume advantage is modest; smarts do the heavy lifting.
     const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 }[teamDifficulty] ?? 1.0;
     const actionsBudget = Math.max(2, Math.round(baseBudget * difficultyStretch));

@@ -261,7 +261,7 @@ export function registerRecruitingRoutes(app: Express): void {
         if (current - graduating < 2) needPositions.add(pos);
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
       const remainingPoints = Math.max(0, maxRecruitingActions - (userCoach?.recruitActionsUsed || 0));
       const maxScoutActions = getMaxScoutActions(userCoach);
       const remainingScoutPoints = Math.max(0, maxScoutActions - (userCoach?.scoutActionsUsed || 0));
@@ -468,11 +468,20 @@ export function registerRecruitingRoutes(app: Express): void {
     "Old School": 0.90,
   };
 
-  function getMaxRecruitingActions(coach: any): number {
+  function getMaxRecruitingActions(coach: any, seasonLength?: string | null): number {
     const baseActions = 15;
     const skillBonus = Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2);
     const archetypeBonus = ARCHETYPE_RECRUITING_ACTION_BONUS[coach?.archetype] || 0;
-    return Math.max(4, baseActions + skillBonus + archetypeBonus);
+    const rawBudget = Math.max(4, baseActions + skillBonus + archetypeBonus);
+    // Scale weekly budget for longer seasons so total-season recruiting budget stays comparable.
+    // short/standard (9 total weeks): 15/wk → 135 total.
+    // medium (14 total weeks): ~13/wk → 182 total.
+    // long (19 total weeks): ~11/wk → 209 total.
+    // This prevents long-season coaches from having a 2× action-point advantage while still
+    // letting the larger week count mean a naturally deeper class can be recruited.
+    const seasonScale: Record<string, number> = { short: 1.0, standard: 1.0, medium: 0.87, long: 0.73 };
+    const scale = seasonScale[seasonLength ?? "standard"] ?? 1.0;
+    return Math.max(4, Math.round(rawBudget * scale));
   }
 
   function getMaxScoutActions(coach: any): number {
@@ -1008,7 +1017,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "You've already called this recruit this week. Max 1 phone call per recruit per week." });
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
       const phoneCost = getActionPointCost("phone", userTeam.state, recruit.homeState);
       if ((userCoach?.recruitActionsUsed || 0) + phoneCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Phone calls cost ${phoneCost} recruiting points. You don't have enough points remaining this week.` });
@@ -1113,7 +1122,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "You've already emailed this recruit this week. Max 1 email per recruit per week." });
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
@@ -1209,7 +1218,7 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const actionCost = getActionPointCost("visit", userTeam.state, recruit.homeState);
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Campus Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
@@ -1307,7 +1316,7 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const actionCost = getActionPointCost("head_coach_visit", userTeam.state, recruit.homeState);
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Head Coach Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
@@ -1407,7 +1416,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
@@ -2300,7 +2309,7 @@ export function registerRecruitingRoutes(app: Express): void {
       });
 
       const maxScoutActions = getMaxScoutActions(coach);
-      const maxRecruitingActions = getMaxRecruitingActions(coach);
+      const maxRecruitingActions = getMaxRecruitingActions(coach, league?.seasonLength);
       
       // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
       const seniorsCount = roster.filter(p => p.eligibility === 'SR').length;

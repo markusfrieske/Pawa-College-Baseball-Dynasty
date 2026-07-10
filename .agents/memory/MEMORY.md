@@ -16,3 +16,4 @@
 - [drizzle-kit interactive create/rename ambiguity](drizzle-kit-interactive-prompt.md) — `db:push --force` can still hang on a create-vs-rename prompt for a genuinely new table; create it via raw SQL first, then re-run push.
 - [OCR name normalization must collapse whitespace](ocr-name-normalization.md) — a name-normalizer used for OCR dedupe/match keys must collapse internal whitespace runs, not just strip/trim, or near-identical OCR reads fail to merge.
 - [Multiplayer CPU fallback pattern](multiplayer-cpu-fallback.md) — `leagueTeams.find(t => !t.isCpu)` as a team fallback silently corrupts 14-user leagues; use `resolveUserTeam` from route-helpers instead.
+- [Recruiting balance across season lengths](recruiting-season-length-normalization.md) — verbalWeek must be season-relative (seasonMaxWeeks + offset) not a fixed number, or medium/long seasons commit recruits mid-regular-season and short seasons can never close 5★/BC recruits.

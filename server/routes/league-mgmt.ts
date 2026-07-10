@@ -109,8 +109,21 @@ export async function updateRecruitStages(leagueId: string, week: number) {
     // Up to -5 threshold reduction for prestige 9, -3 for prestige 8
     const prestigeThresholdReduction = topSchoolPrestige >= 9 ? 5 : topSchoolPrestige >= 8 ? 3 : 0;
     
-    // Signing thresholds scale with star rating
-    const verbalWeek = (isBlueChip ? 11 : starRating >= 5 ? 10 : starRating >= 4 ? 8 : 6) + storylineWeekBonus;
+    // Season-length-aware verbal week: recruits become committable at a fixed offset AFTER the
+    // regular season ends, so all season lengths funnel commit decisions into the offseason
+    // recruiting window (weeks +1 through +4 relative to season end). This prevents the
+    // broken behavior where medium/long seasons had recruits committing mid-regular-season
+    // (verbalWeek=6 with a 15-week season = regular season week 6, far too early).
+    //
+    // Offsets from season end:
+    //   3★: +1 (commit possible in offseason week 1)
+    //   4★: +2 (commit possible in offseason week 2)
+    //   5★: +3 (commit possible in offseason week 3)
+    //   BC:  +4 (commit possible in offseason week 4 — final week before signing day)
+    const seasonLength = league?.seasonLength || "standard";
+    const seasonMaxWeeks = seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
+    const verbalOffset = isBlueChip ? 4 : starRating >= 5 ? 3 : starRating >= 4 ? 2 : 1;
+    const verbalWeek = seasonMaxWeeks + verbalOffset + storylineWeekBonus;
     const verbalInterest = Math.max(50, (isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60) + storylineInterestBonus - prestigeThresholdReduction);
     // Shared with the manual /sign endpoint (server/routes/recruiting.ts) so
     // auto-commit and manual signing always require the same interest level.
@@ -118,16 +131,19 @@ export async function updateRecruitStages(leagueId: string, week: number) {
     
     // Passive weekly buzz: high College Life + Prestige programs generate ambient interest each week.
     // Represents organic brand awareness — recruits hear about the program passively.
+    // For medium/long seasons, buzz is capped at 1%/week (vs 1-2% for short/standard) to prevent
+    // elite programs from gaining a compounding advantage over many more in-season recruiting weeks.
     if (sortedInterests.length > 0) {
+      const maxBuzzGain = (seasonLength === "long" || seasonLength === "medium") ? 1 : 2;
       for (const interest of allInterests) {
         const buzzTeam = allLeagueTeams.find(t => t.id === interest.teamId);
         if (!buzzTeam) continue;
         const cl = buzzTeam.collegeLife || 5;
         const pr = buzzTeam.prestige || 5;
         const buzzScore = (cl + pr) / 2; // average of the two; range 1–9
-        // Only programs with combined average 7+ generate meaningful passive buzz (1–2%/week)
+        // Only programs with combined average 7+ generate meaningful passive buzz
         if (buzzScore >= 7) {
-          const buzzGain = buzzScore >= 8.5 ? 2 : 1;
+          const buzzGain = Math.min(maxBuzzGain, buzzScore >= 8.5 ? 2 : 1);
           const newLevel = Math.min(99, (interest.interestLevel || 0) + buzzGain);
           if (newLevel !== interest.interestLevel) {
             await storage.updateRecruitingInterest(interest.id, { interestLevel: newLevel });
