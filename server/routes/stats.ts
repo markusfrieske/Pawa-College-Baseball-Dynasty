@@ -630,6 +630,397 @@ export function registerStatsRoutes(app: Express): void {
     }
   });
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // HISTORICAL ARCHIVE
+  // ──────────────────────────────────────────────────────────────────────────
+
+  function archiveGradeFromScore(score: number | null): string | null {
+    if (score === null) return null;
+    if (score >= 95) return "A+";
+    if (score >= 88) return "A";
+    if (score >= 80) return "A-";
+    if (score >= 72) return "B+";
+    if (score >= 65) return "B";
+    if (score >= 58) return "B-";
+    if (score >= 50) return "C+";
+    if (score >= 42) return "C";
+    return "C-";
+  }
+
+  // GET /api/leagues/:id/archive?season=N
+  app.get("/api/leagues/:id/archive", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const [teams, confs, allCoaches, allStandings, allGames, allPlayerHistory,
+             allSeasonStats, allCoachHistory, allRecruitSnaps, allRecaps] =
+        await Promise.all([
+          storage.getTeamsByLeague(leagueId),
+          storage.getConferencesByLeague(leagueId),
+          storage.getCoachesByLeague(leagueId),
+          storage.getAllStandingsByLeague(leagueId),
+          storage.getGamesByLeague(leagueId),
+          storage.getPlayerHistoryByLeague(leagueId),
+          storage.getAllPlayerSeasonStatsByLeague(leagueId),
+          storage.getCoachSeasonHistoryByLeague(leagueId),
+          storage.getRecruitingClassSnapshotsAllSeasons(leagueId),
+          storage.getGameRecapsByLeague(leagueId, 1000),
+        ]);
+      const coachMap = new Map(allCoaches.map(c => [c.id, c]));
+
+      const teamMap = new Map(teams.map(t => [t.id, t]));
+      const confMap = new Map(confs.map(c => [c.id, c]));
+
+      // Available seasons = all seasons that have standings, sorted newest first
+      const availableSeasons = Array.from(new Set(allStandings.map(s => s.season)))
+        .sort((a, b) => b - a);
+
+      // Default to most recent completed season (not current, or current if only one exists)
+      const requestedSeason = req.query.season ? parseInt(req.query.season as string, 10) : null;
+      const completedSeasons = availableSeasons.filter(s => s < league.currentSeason);
+      const defaultSeason = completedSeasons[0] ?? availableSeasons[0];
+      const selectedSeason = requestedSeason && availableSeasons.includes(requestedSeason)
+        ? requestedSeason
+        : defaultSeason;
+
+      if (selectedSeason === undefined) {
+        return res.json({ availableSeasons: [], selectedSeason: null, overview: null,
+          recruitingSnapshots: [], departedStars: [], legendaryGames: [], teamStandings: [] });
+      }
+
+      // ── Champion & conf champs ──────────────────────────────────────────────
+      const seasonStandings = allStandings.filter(s => s.season === selectedSeason);
+      const sortedStandings = [...seasonStandings].sort((a, b) => {
+        const aPct = (a.wins + a.losses) > 0 ? a.wins / (a.wins + a.losses) : 0;
+        const bPct = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
+        return bPct - aPct;
+      });
+
+      const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === selectedSeason && g.isComplete);
+      let cwsChampId: string | null = null;
+      let cwsRunnerUpId: string | null = null;
+      if (cwsGames.length >= 2) {
+        const winsMap: Record<string, number> = {};
+        for (const g of cwsGames) {
+          const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+          winsMap[wId] = (winsMap[wId] || 0) + 1;
+        }
+        cwsChampId = Object.entries(winsMap).find(([, w]) => w >= 2)?.[0] ?? null;
+        const others = Object.keys(winsMap).filter(id => id !== cwsChampId);
+        cwsRunnerUpId = others[0] ?? null;
+      }
+      const champId = cwsChampId ?? sortedStandings[0]?.teamId ?? null;
+      const ruId = cwsRunnerUpId ?? sortedStandings[1]?.teamId ?? null;
+
+      const makeTeamSummary = (teamId: string | null) => {
+        if (!teamId) return null;
+        const t = teamMap.get(teamId);
+        const s = seasonStandings.find(x => x.teamId === teamId);
+        return t ? {
+          teamId: t.id, name: t.name, abbr: t.abbreviation,
+          color: t.primaryColor, wins: s?.wins ?? 0, losses: s?.losses ?? 0,
+        } : null;
+      };
+
+      const confChampGames = allGames.filter(g =>
+        g.phase === "conference_championship" && g.season === selectedSeason && g.isComplete);
+      const confChamps: { teamId: string; name: string; abbr: string; color: string; confName: string }[] = [];
+      if (confChampGames.length > 0) {
+        const seen = new Set<string>();
+        for (const g of confChampGames) {
+          const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+          if (seen.has(wId)) continue;
+          seen.add(wId);
+          const t = teamMap.get(wId);
+          if (t) confChamps.push({
+            teamId: wId, name: t.name, abbr: t.abbreviation,
+            color: t.primaryColor,
+            confName: confMap.get(t.conferenceId ?? "")?.name ?? "Unknown",
+          });
+        }
+      } else {
+        const seenConf = new Set<string | null>();
+        for (const s of sortedStandings) {
+          const t = teamMap.get(s.teamId);
+          const cid = t?.conferenceId ?? null;
+          if (seenConf.has(cid)) continue;
+          seenConf.add(cid);
+          if (t) confChamps.push({
+            teamId: s.teamId, name: t.name, abbr: t.abbreviation,
+            color: t.primaryColor,
+            confName: confMap.get(cid ?? "")?.name ?? "Unknown",
+          });
+        }
+      }
+
+      // ── Stat leaders for this season ────────────────────────────────────────
+      const seasonStats = allSeasonStats.filter(p => p.season === selectedSeason);
+      const batters = seasonStats.filter(p => p.ab >= 10);
+      const pitchers = seasonStats.filter(p => p.ipOuts >= 3);
+
+      const hrLeaderRow = batters.length
+        ? batters.reduce((b, p) => p.hr > b.hr ? p : b)
+        : null;
+      const avgLeaderRow = batters.length
+        ? batters.reduce((b, p) => (p.ab > 0 ? p.h / p.ab : 0) > (b.ab > 0 ? b.h / b.ab : 0) ? p : b)
+        : null;
+      const eraLeaderRow = pitchers.length
+        ? pitchers.reduce((b, p) => {
+            const era = p.ipOuts > 0 ? (p.pEr * 27) / p.ipOuts : 99;
+            const bEra = b.ipOuts > 0 ? (b.pEr * 27) / b.ipOuts : 99;
+            return era < bEra ? p : b;
+          })
+        : null;
+      const soLeaderRow = pitchers.length
+        ? pitchers.reduce((b, p) => p.pSo > b.pSo ? p : b)
+        : null;
+
+      const makeStatLeader = (row: typeof hrLeaderRow, statLabel: string, value: string) => {
+        if (!row) return null;
+        const t = teamMap.get(row.teamId);
+        return { playerId: row.playerId, name: row.playerName, teamAbbr: t?.abbreviation ?? "???",
+          teamColor: t?.primaryColor ?? "#888", statLabel, value };
+      };
+
+      const statLeaders = {
+        hrLeader: makeStatLeader(hrLeaderRow, "HR", hrLeaderRow?.hr.toString() ?? "0"),
+        avgLeader: makeStatLeader(avgLeaderRow, "AVG",
+          avgLeaderRow ? (avgLeaderRow.ab > 0 ? (avgLeaderRow.h / avgLeaderRow.ab).toFixed(3) : ".000") : ""),
+        eraLeader: makeStatLeader(eraLeaderRow, "ERA",
+          eraLeaderRow ? (eraLeaderRow.ipOuts > 0 ? ((eraLeaderRow.pEr * 27) / eraLeaderRow.ipOuts).toFixed(2) : "0.00") : ""),
+        soLeader: makeStatLeader(soLeaderRow, "SO", soLeaderRow?.pSo.toString() ?? "0"),
+      };
+
+      // ── Team standings for this season ──────────────────────────────────────
+      const teamStandings = sortedStandings.map(s => {
+        const t = teamMap.get(s.teamId);
+        const confName = confMap.get(t?.conferenceId ?? "")?.name ?? "";
+        return {
+          teamId: s.teamId, name: t?.name ?? "", abbr: t?.abbreviation ?? "???",
+          color: t?.primaryColor ?? "#888", confName,
+          wins: s.wins, losses: s.losses,
+          confWins: s.conferenceWins, confLosses: s.conferenceLosses,
+          isCwsChamp: s.teamId === cwsChampId,
+          isConfChamp: confChamps.some(c => c.teamId === s.teamId),
+        };
+      });
+
+      // ── Recruiting snapshots for this season ─────────────────────────────────
+      const recruitingSnapshots = allRecruitSnaps
+        .filter(s => s.season === selectedSeason)
+        .sort((a, b) => a.classRank - b.classRank)
+        .map(s => {
+          const t = teamMap.get(s.teamId);
+          const grade = archiveGradeFromScore(s.classScore);
+          return {
+            teamId: s.teamId, name: t?.name ?? "", abbr: t?.abbreviation ?? "???",
+            color: t?.primaryColor ?? "#888", classRank: s.classRank,
+            classScore: s.classScore, grade,
+            totalCommits: s.totalCommits, fiveStars: s.fiveStars, fourStars: s.fourStars,
+            threeStars: s.threeStars, twoStars: s.twoStars, oneStars: s.oneStars,
+            topRecruitName: s.topRecruitName, topRecruitOvr: s.topRecruitOvr,
+            topRecruitStars: s.topRecruitStars,
+          };
+        });
+
+      // ── Departed stars for this season ──────────────────────────────────────
+      const departedStars = allPlayerHistory
+        .filter(h => h.departedSeason === selectedSeason)
+        .sort((a, b) => b.overall - a.overall)
+        .slice(0, 50)
+        .map(h => {
+          const t = teamMap.get(h.teamId);
+          return {
+            id: h.id, firstName: h.firstName, lastName: h.lastName,
+            position: h.position, overall: h.overall, starRating: h.starRating,
+            departureType: h.departureType, draftRound: h.draftRound,
+            seasonsPlayed: h.seasonsPlayed, finalEligibility: h.finalEligibility,
+            teamId: h.teamId, teamName: t?.name ?? "Unknown",
+            teamAbbr: t?.abbreviation ?? "???", teamColor: t?.primaryColor ?? "#888",
+            abilities: Array.isArray(h.abilities) ? h.abilities : [],
+          };
+        });
+
+      // ── Legendary games (top drama recaps) ──────────────────────────────────
+      const seasonRecaps = allRecaps.filter(r => r.season === selectedSeason);
+      const scoredRecaps = seasonRecaps.map(r => {
+        const phaseScore = r.phase === "cws" ? 10
+          : r.phase === "super_regionals" ? 6
+          : r.phase === "conference_championship" ? 4 : 0;
+        const diff = Math.abs((r.homeScore ?? 0) - (r.awayScore ?? 0));
+        const closenessScore = diff <= 1 ? 4 : diff <= 2 ? 2 : 0;
+        const badgeScore = Array.isArray(r.badges) ? r.badges.length : 0;
+        return { recap: r, dramaScore: phaseScore + closenessScore + badgeScore };
+      });
+      scoredRecaps.sort((a, b) => b.dramaScore - a.dramaScore);
+      const legendaryGames = scoredRecaps.slice(0, 10).map(x => ({
+        gameId: x.recap.gameId, headline: x.recap.headline,
+        homeTeamName: x.recap.homeTeamName, awayTeamName: x.recap.awayTeamName,
+        homeTeamAbbr: x.recap.homeTeamAbbr, awayTeamAbbr: x.recap.awayTeamAbbr,
+        homeScore: x.recap.homeScore, awayScore: x.recap.awayScore,
+        phase: x.recap.phase, week: x.recap.week,
+        playerOfGame: x.recap.playerOfGame,
+        turningPoint: x.recap.turningPoint,
+        badges: x.recap.badges,
+        dramaScore: x.dramaScore,
+      }));
+
+      // ── Coach of the year (top recruiting score this season) ────────────────
+      const seasonCoachHistory = allCoachHistory.filter(c => c.season === selectedSeason);
+      const recruiterOfYear = seasonCoachHistory.length
+        ? seasonCoachHistory.reduce((best, c) =>
+            (c.recruitingScore ?? 0) > (best.recruitingScore ?? 0) ? c : best)
+        : null;
+      const royCoach = recruiterOfYear ? coachMap.get(recruiterOfYear.coachId) : null;
+      const royCoachName = royCoach
+        ? `${royCoach.firstName} ${royCoach.lastName}`
+        : recruiterOfYear?.teamName ?? null;
+
+      res.json({
+        availableSeasons,
+        selectedSeason,
+        overview: {
+          cwsChampion: makeTeamSummary(champId),
+          cwsRunnerUp: makeTeamSummary(ruId),
+          confChampions: confChamps,
+          statLeaders,
+          recruiterOfYear: recruiterOfYear ? {
+            coachName: royCoachName,
+            teamName: recruiterOfYear.teamName,
+            teamAbbr: recruiterOfYear.teamAbbr,
+            grade: archiveGradeFromScore(recruiterOfYear.recruitingScore ?? null),
+            score: recruiterOfYear.recruitingScore,
+          } : null,
+        },
+        recruitingSnapshots,
+        departedStars,
+        legendaryGames,
+        teamStandings,
+      });
+    } catch (error) {
+      console.error("Failed to load archive:", error);
+      res.status(500).json({ message: "Failed to load archive" });
+    }
+  });
+
+  // GET /api/leagues/:id/archive/team/:teamId
+  app.get("/api/leagues/:id/archive/team/:teamId", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamId = req.params.teamId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const team = await storage.getTeam(teamId);
+      if (!team || team.leagueId !== leagueId)
+        return res.status(404).json({ message: "Team not found" });
+
+      const [allStandings, allGames, teamCoaches, playerHistory, coachHistory, recruitSnaps] =
+        await Promise.all([
+          storage.getStandingsByTeam(teamId),
+          storage.getGamesByLeague(leagueId),
+          storage.getCoachesByLeague(leagueId),
+          storage.getPlayerHistoryByLeague(leagueId).then(h => h.filter(x => x.teamId === teamId)),
+          storage.getCoachSeasonHistoryByLeague(leagueId),
+          storage.getRecruitingClassSnapshotsAllSeasons(leagueId),
+        ]);
+      const teamCoachMap = new Map(teamCoaches.map(c => [c.id, c]));
+
+      const seasons = Array.from(new Set(allStandings.map(s => s.season))).sort((a, b) => b - a);
+
+      const teamHistory = seasons.map(season => {
+        const standing = allStandings.find(s => s.season === season);
+        const snap = recruitSnaps.find(s => s.season === season && s.teamId === teamId);
+        const teamCoach = coachHistory.find(c => c.season === season && c.teamId === teamId);
+        const departed = playerHistory.filter(h => h.departedSeason === season);
+        const drafted = departed.filter(h => h.departureType === "drafted" || h.departureType === "declared");
+
+        // Postseason result from games
+        const cwsGames = allGames.filter(g =>
+          g.phase === "cws" && g.season === season && g.isComplete &&
+          (g.homeTeamId === teamId || g.awayTeamId === teamId));
+        const srGames = allGames.filter(g =>
+          g.phase === "super_regionals" && g.season === season && g.isComplete &&
+          (g.homeTeamId === teamId || g.awayTeamId === teamId));
+        const ccGames = allGames.filter(g =>
+          g.phase === "conference_championship" && g.season === season && g.isComplete &&
+          (g.homeTeamId === teamId || g.awayTeamId === teamId));
+
+        let postseasonResult: string | null = null;
+        if (cwsGames.length > 0) {
+          const cwsWinsMap: Record<string, number> = {};
+          const leagueAllCwsGames = allGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
+          for (const g of leagueAllCwsGames) {
+            const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+            cwsWinsMap[wId] = (cwsWinsMap[wId] || 0) + 1;
+          }
+          const champId = Object.entries(cwsWinsMap).find(([, w]) => w >= 2)?.[0] ?? null;
+          if (champId === teamId) postseasonResult = "CWS Champion";
+          else postseasonResult = "CWS Appearance";
+        } else if (srGames.length > 0) {
+          const srWon = srGames.some(g => {
+            const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+            return wId === teamId;
+          });
+          postseasonResult = srWon ? "Super Regionals Win" : "Super Regionals";
+        } else if (ccGames.length > 0) {
+          const ccWon = ccGames.some(g => {
+            const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+            return wId === teamId;
+          });
+          postseasonResult = ccWon ? "Conf Champion" : "Conf Championship";
+        }
+
+        const topDepart = drafted.length
+          ? drafted.sort((a, b) => (a.draftRound ?? 99) - (b.draftRound ?? 99))[0]
+          : null;
+
+        return {
+          season,
+          wins: standing?.wins ?? 0,
+          losses: standing?.losses ?? 0,
+          confWins: standing?.conferenceWins ?? 0,
+          confLosses: standing?.conferenceLosses ?? 0,
+          postseasonResult,
+          classRank: snap?.classRank ?? null,
+          classScore: snap?.classScore ?? null,
+          grade: archiveGradeFromScore(snap?.classScore ?? null),
+          topRecruitName: snap?.topRecruitName ?? null,
+          topRecruitOvr: snap?.topRecruitOvr ?? null,
+          topRecruitStars: snap?.topRecruitStars ?? null,
+          totalCommits: snap?.totalCommits ?? 0,
+          coachName: teamCoach?.coachId ?? null,
+          departedCount: departed.length,
+          draftedCount: drafted.length,
+          topDraftPick: topDepart ? {
+            name: `${topDepart.firstName} ${topDepart.lastName}`,
+            position: topDepart.position,
+            round: topDepart.draftRound,
+            overall: topDepart.overall,
+          } : null,
+          departed: departed
+            .sort((a, b) => b.overall - a.overall)
+            .slice(0, 8)
+            .map(h => ({
+              name: `${h.firstName} ${h.lastName}`,
+              position: h.position,
+              overall: h.overall,
+              starRating: h.starRating,
+              departureType: h.departureType,
+              draftRound: h.draftRound,
+            })),
+        };
+      });
+
+      res.json({ team: { id: team.id, name: team.name, abbr: team.abbreviation,
+        color: team.primaryColor, mascot: team.mascot }, teamHistory });
+    } catch (error) {
+      console.error("Failed to load team archive:", error);
+      res.status(500).json({ message: "Failed to load team archive" });
+    }
+  });
+
   // ============ SIGNING DAY SUMMARY API ============
   app.get("/api/leagues/:id/signing-day", requireAuth, async (req, res) => {
     try {

@@ -28,6 +28,7 @@ import {
   ClipboardList,
   Crown,
   LogOut,
+  History as HistoryIcon,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Player } from "@shared/schema";
@@ -542,6 +543,12 @@ export default function LeagueViewPage() {
             icon={<BookOpen className="w-6 h-6" />}
             title="Record Book"
             subtitle="Dynasty records"
+          />
+          <QuickActionCard
+            href={`/league/${id}/archive`}
+            icon={<HistoryIcon className="w-6 h-6" />}
+            title="Archive"
+            subtitle="Season history"
           />
           <QuickActionCard
             href={`/league/${id}/postseason`}
