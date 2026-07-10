@@ -27,6 +27,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber, calculateSignInterestThreshold, SIGNABLE_STAGES, resolveUserTeam } from "../route-helpers";
+import { getRecruitingPitch, getProgramCulture } from "@shared/programIdentity";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
@@ -742,8 +743,57 @@ export function registerRecruitingRoutes(app: Express): void {
       : (ARCHETYPE_HITTER_BONUS[coach.archetype] || 1.0);
 
     const philosophyAddon = calculatePhilosophyBonus(coach, recruit, actionType, team);
-    
-    return skillBonus * archetypeBonus * positionBonus + philosophyAddon;
+    const identityAddon   = calculateIdentityRecruitingBonus(coach, recruit, actionType);
+
+    return skillBonus * archetypeBonus * positionBonus + philosophyAddon + identityAddon;
+  }
+
+  // Additive identity bonus from the coach's recruiting pitch.
+  // Max +0.06 per action — small enough to not dominate, large enough to feel meaningful.
+  // Only fires when pitch aligns with a recruit priority that is "Very" or "Extremely".
+  function calculateIdentityRecruitingBonus(coach: any, recruit: any, actionType: string): number {
+    if (!coach?.recruitingPitch) return 0;
+    const pitch = getRecruitingPitch(coach.recruitingPitch);
+    if (!pitch) return 0;
+
+    const BASE = 0.05; // +5% additive to coach multiplier when pitch matches priority
+
+    const isEmail  = actionType === "email";
+    const isPhone  = actionType === "phone";
+    const isVisit  = actionType === "visit" || actionType === "campus_visit";
+    const isOffer  = actionType === "offer";
+    const isHCVisit = actionType === "head_coach_visit" || actionType === "hc_visit";
+
+    const highImportance = (v: string | undefined) =>
+      v === "Very" || v === "Extremely";
+
+    switch (pitch.id) {
+      case "development":
+        // Email/phone benefit — relationship-building aligns with development sell
+        if ((isEmail || isPhone) && highImportance(recruit.playerDevelopmentPriority)) return BASE;
+        break;
+      case "playing_time":
+        // Visit/offer benefit — visits close the deal when PT is the priority
+        if ((isVisit || isOffer || isHCVisit) && highImportance(recruit.playingTimePriority)) return BASE;
+        break;
+      case "prestige":
+        // Offer benefit — prestige-driven recruits respond to offers from brand programs
+        if ((isOffer || isHCVisit) && highImportance(recruit.reputationPriority)) return BASE;
+        break;
+      case "academics":
+        // Email/visit benefit — academic pitch aligns with campus culture communication
+        if ((isEmail || isVisit) && highImportance(recruit.academicsPriority)) return BASE;
+        break;
+      case "campus_life":
+        // Campus visit only — environment is experienced in person
+        if (isVisit && highImportance(recruit.collegeLifePriority)) return BASE;
+        break;
+      case "pro_path":
+        // Offer/HC visit for elite prospects who have draft ambitions
+        if ((isOffer || isHCVisit) && (recruit.starRating >= 4 || recruit.isBlueChip)) return BASE;
+        break;
+    }
+    return 0;
   }
   
   // Returns scouting reveal bonuses from the coach's philosophy statements.

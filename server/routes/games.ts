@@ -1336,6 +1336,12 @@ export function registerGameRoutes(app: Express): void {
             ?.map(p => p.statement ?? "")
             ?.filter(Boolean)
         ) ?? [];
+        const identity = {
+          offensiveIdentity: coach?.offensiveIdentity ?? "balanced",
+          pitchingIdentity:  coach?.pitchingIdentity  ?? "command",
+          recruitingPitch:   coach?.recruitingPitch   ?? "development",
+          programCulture:    coach?.programCulture    ?? "family",
+        };
 
         return {
           meter,
@@ -1360,6 +1366,7 @@ export function registerGameRoutes(app: Express): void {
           catcher: catcher ? { arm: catcher.arm ?? 50 } : null,
           style,
           philosophy,
+          identity,
           teamBA,
           teamHR,
           record: {

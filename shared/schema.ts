@@ -224,6 +224,11 @@ export const coaches = pgTable("coaches", {
   recruitingGeographyStrategy: text("recruiting_geography_strategy").notNull().default("national"),
   recruitingStyleStrategy: text("recruiting_style_strategy").notNull().default("best_available"),
   gamePhilosophyStrategy: text("game_philosophy_strategy").notNull().default("balanced"),
+  // Program Identity — four pillars that define program style and flavor
+  offensiveIdentity: text("offensive_identity").notNull().default("balanced"),
+  pitchingIdentity: text("pitching_identity").notNull().default("command"),
+  recruitingPitch: text("recruiting_pitch").notNull().default("development"),
+  programCulture: text("program_culture").notNull().default("family"),
   // Perk tree — map of perkId → true for each unlocked perk
   perks: json("perks").$type<Record<string, boolean>>().default({}),
   // Auto-pilot alert: array of CPU actions taken on behalf of this coach (cleared on dismiss)

@@ -11,6 +11,7 @@ import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyFo
 import { storage } from "./storage";
 import type { Player } from "@shared/schema";
 import type { CoachSeasonHistory } from "@shared/schema";
+import { getProgramCulture } from "@shared/programIdentity";
 
 // ── AUTH MIDDLEWARE ──────────────────────────────────────────────────────────
 
@@ -410,6 +411,16 @@ export function calculatePhilosophyRetentionBonus(coach: any): number {
   }
 
   return Math.min(0.15, bonus); // Cap at +15pp total retention bonus
+}
+
+/**
+ * Small identity-based retention bonus from the coach's program culture.
+ * Max +0.05 (5pp). Transparent, documented, and capped below philosophy bonus.
+ */
+export function calculateIdentityRetentionBonus(coach: any): number {
+  if (!coach?.programCulture) return 0;
+  const culture = getProgramCulture(coach.programCulture);
+  return culture?.retentionBonus ?? 0;
 }
 
 // ── SIGNING INTEREST THRESHOLD ───────────────────────────────────────────────

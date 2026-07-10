@@ -1030,6 +1030,16 @@ export default function WarRoomPage() {
               <span>Rivalries</span>
             </button>
           </Link>
+          <Link href={`/league/${id}/identity`} className="flex-1">
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-gold transition-colors min-h-[44px] border border-border rounded-lg"
+              data-testid="button-war-room-identity"
+            >
+              <span className="text-base leading-none">🎯</span>
+              <span>Identity</span>
+            </button>
+          </Link>
           <Link href={`/league/${id}`} className="flex-1">
             <button
               type="button"

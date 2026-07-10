@@ -15,6 +15,17 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamBadge } from "@/components/ui/team-badge";
 
+// ─── Identity icon lookups (used in coach line chips) ─────────────────────────
+const OFFENSE_ICONS: Record<string, string> = {
+  contact: "🎯", power: "💥", speed: "⚡", balanced: "⚖️",
+};
+const PITCH_ICONS: Record<string, string> = {
+  power_arms: "🔥", command: "🎯", ground_ball: "🌊", bullpen_depth: "🛡️",
+};
+const CULTURE_ICONS: Record<string, string> = {
+  family: "🤝", discipline: "⚔️", player_freedom: "🕊️", analytics: "📊", old_school: "🧢",
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PrepPitcher {
@@ -75,6 +86,12 @@ interface PrepTeamAnalysis {
   catcher: { arm: number } | null;
   style: string | null;
   philosophy: string[];
+  identity?: {
+    offensiveIdentity: string;
+    pitchingIdentity: string;
+    recruitingPitch: string;
+    programCulture: string;
+  };
   teamBA: string | null;
   teamHR: number | null;
   record: { wins: number; losses: number };
@@ -377,6 +394,25 @@ function HeaderSection({
           <span>{myTeam.coachName}{myTeam.coachArchetype ? ` · ${myTeam.coachArchetype}` : ""}</span>
           <span className="text-right">{oppTeam.coachName}{oppTeam.coachArchetype ? ` · ${oppTeam.coachArchetype}` : ""}</span>
         </div>
+        {/* Identity chips */}
+        {(myAnalysis.identity || oppAnalysis.identity) && (
+          <div className="mt-1.5 flex items-center justify-between text-[9px] text-muted-foreground/70">
+            {myAnalysis.identity && (
+              <span className="flex gap-1">
+                <span title="Offensive identity">{OFFENSE_ICONS[myAnalysis.identity.offensiveIdentity] ?? "⚖️"}</span>
+                <span title="Pitching identity">{PITCH_ICONS[myAnalysis.identity.pitchingIdentity] ?? "🎯"}</span>
+                <span title="Culture">{CULTURE_ICONS[myAnalysis.identity.programCulture] ?? "🤝"}</span>
+              </span>
+            )}
+            {oppAnalysis.identity && (
+              <span className="flex gap-1 text-right">
+                <span title="Culture">{CULTURE_ICONS[oppAnalysis.identity.programCulture] ?? "🤝"}</span>
+                <span title="Pitching identity">{PITCH_ICONS[oppAnalysis.identity.pitchingIdentity] ?? "🎯"}</span>
+                <span title="Offensive identity">{OFFENSE_ICONS[oppAnalysis.identity.offensiveIdentity] ?? "⚖️"}</span>
+              </span>
+            )}
+          </div>
+        )}
       </RetroCardContent>
     </RetroCard>
   );

@@ -20,7 +20,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, autoAssignLineup, ensureCoachTraits } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, calculateIdentityRetentionBonus, autoAssignLineup, ensureCoachTraits } from "../route-helpers";
 import { evaluatePlayerPromises, processOffseasonDepartures } from "../offseason-helpers";
 import type { TransferPortalInterest } from "@shared/schema";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
@@ -273,6 +273,8 @@ export function registerDeparturesRoutes(app: Express): void {
 
       // Philosophy retention bonus: culture/chemistry/academics philosophies improve player loyalty
       retentionChance += calculatePhilosophyRetentionBonus(userCoach);
+      // Identity culture bonus: program culture affects transfer likelihood (+2–4pp, capped via culture def)
+      retentionChance += calculateIdentityRetentionBonus(userCoach);
       retentionChance = Math.min(retentionChance, 0.98);
 
       const roll = Math.random();

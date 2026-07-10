@@ -59,6 +59,7 @@ const LeagueTickerPage = lazy(() => import("@/pages/league-ticker"));
 const CoachInboxPage = lazy(() => import("@/pages/coach-inbox"));
 const WarRoomPage = lazy(() => import("@/pages/war-room"));
 const RivalriesPage = lazy(() => import("@/pages/rivalries"));
+const IdentityPage = lazy(() => import("@/pages/identity"));
 const GamePrepPage = lazy(() => import("@/pages/game-prep"));
 
 const AuthPageLazy = lazy(() => import("@/pages/auth"));
@@ -142,6 +143,7 @@ function Router() {
           <Route path="/league/:id/ticker" component={LeagueTickerPage} />
           <Route path="/league/:id/inbox" component={CoachInboxPage} />
           <Route path="/league/:id/rivalries" component={RivalriesPage} />
+          <Route path="/league/:id/identity" component={IdentityPage} />
           <Route path="/league/:id/stats" component={StatsPage} />
           <Route path="/league/:id/digests" component={DigestFeedPage} />
           <Route path="/league/:id/team/:teamId/profile" component={ProgramProfilePage} />
