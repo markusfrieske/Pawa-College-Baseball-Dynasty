@@ -383,7 +383,7 @@ export function registerRosterRoutes(app: Express): void {
       }
 
       // Seniors cannot enter portal (they're graduating)
-      if (player.eligibility === "Sr") {
+      if (player.eligibility === "SR") {
         return res.status(400).json({ message: "Seniors cannot enter the transfer portal" });
       }
 
@@ -477,7 +477,7 @@ export function registerRosterRoutes(app: Express): void {
         const teamData = playersLeavingByTeam[player.teamId];
         if (!teamData) continue;
 
-        if (player.eligibility === "Sr") {
+        if (player.eligibility === "SR") {
           teamData.graduates.push(player);
           teamData.totalLeaving++;
         } else if (player.declaredForDraft) {
