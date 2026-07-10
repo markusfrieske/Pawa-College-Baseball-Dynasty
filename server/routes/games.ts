@@ -930,7 +930,7 @@ export function registerGameRoutes(app: Express): void {
   // review form in report-game.tsx. Images stay attached to the game/report permanently
   // for later viewing on the box score and commissioner review screens.
 
-  async function assertGameAccessForImages(req: any, res: any): Promise<{ leagueId: string; gameId: string; game: any; league: any } | null> {
+  async function assertGameAccessForImages(req: any, res: any, readOnly = false): Promise<{ leagueId: string; gameId: string; game: any; league: any } | null> {
     const leagueId = req.params.id as string;
     const gameId = req.params.gameId as string;
     const league = await storage.getLeague(leagueId);
@@ -941,10 +941,18 @@ export function registerGameRoutes(app: Express): void {
     if (!isCommissioner) {
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find((c: any) => c.userId === req.session.userId);
-      const isInvolved = coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId);
-      if (!isInvolved) {
+      if (!coach) {
         res.status(403).json({ message: "Only involved coaches or the commissioner can access screenshots for this game" });
         return null;
+      }
+      // For read-only access on completed games, any league member can view evidence.
+      // For uploads/deletes and incomplete games, only the two involved coaches.
+      if (!readOnly || !game.isComplete) {
+        const isInvolved = coach.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId);
+        if (!isInvolved) {
+          res.status(403).json({ message: "Only involved coaches or the commissioner can access screenshots for this game" });
+          return null;
+        }
       }
     }
     return { leagueId, gameId, game, league };
@@ -952,9 +960,10 @@ export function registerGameRoutes(app: Express): void {
 
   // List all screenshots uploaded for a game (grouped by category on the client),
   // viewable from both the box score view and the commissioner review screen.
+  // Read-only: any league member may view screenshots for completed games (evidence vault).
   app.get("/api/leagues/:id/games/:gameId/report-images", requireAuth, async (req, res) => {
     try {
-      const ctx = await assertGameAccessForImages(req, res);
+      const ctx = await assertGameAccessForImages(req, res, true);
       if (!ctx) return;
       const images = await storage.getGameReportImages(ctx.gameId);
       res.json(images);

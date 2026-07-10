@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { GameScreenshotUpload, useGameReportImages } from "@/components/game-screenshots";
+import { GameScreenshotUpload, GameScreenshotGallery, useGameReportImages } from "@/components/game-screenshots";
 import { OcrReviewScreen, computeReviewIssues, type FieldSource } from "@/components/ocr-review-screen";
 import type { Game, Team, Player, ScreenshotCategory } from "@shared/schema";
 import {
@@ -809,6 +809,7 @@ function ReportGameInner() {
         {phase === "submitted" && (
           <SubmittedPhase
             leagueId={id!}
+            gameId={gameId!}
             homeTeam={homeTeam}
             awayTeam={awayTeam}
             homeScore={homeScore}
@@ -1251,9 +1252,9 @@ interface ScheduleForReadyUp {
 }
 
 function SubmittedPhase({
-  leagueId, homeTeam, awayTeam, homeScore, awayScore, isAutoFinalized,
+  leagueId, gameId, homeTeam, awayTeam, homeScore, awayScore, isAutoFinalized,
 }: {
-  leagueId: string; homeTeam: Team; awayTeam: Team;
+  leagueId: string; gameId: string; homeTeam: Team; awayTeam: Team;
   homeScore: number; awayScore: number; isAutoFinalized: boolean;
 }) {
   const { data: scheduleData } = useQuery<ScheduleForReadyUp>({
@@ -1324,6 +1325,11 @@ function SubmittedPhase({
           </div>
         </div>
       )}
+
+      {/* Evidence vault — show uploaded screenshots so the reporter can verify they were saved */}
+      <div className="w-full max-w-xs">
+        <GameScreenshotGallery leagueId={leagueId} gameId={gameId} />
+      </div>
 
       <div className="flex flex-col gap-2 w-full max-w-xs">
         <Link href={`/league/${leagueId}/schedule`}>

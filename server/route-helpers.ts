@@ -75,7 +75,11 @@ export async function canAccessGameReportImage(
   if (!game || game.leagueId !== leagueId) return false;
   const coaches = await storage.getCoachesByLeague(leagueId);
   const coach = coaches.find((c: any) => c.userId === userId);
-  return !!(coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId));
+  if (!coach) return false;
+  // Completed games: any league member can view evidence screenshots (evidence vault).
+  // Incomplete/pending games: only the two involved coaches.
+  if (game.isComplete) return true;
+  return !!(coach.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId));
 }
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
