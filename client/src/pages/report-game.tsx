@@ -3,7 +3,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
 import {
-  ArrowLeft, ChevronDown, ChevronUp, Check, AlertTriangle,
+  ArrowLeft, ChevronDown, ChevronUp, Check, AlertTriangle, AlertCircle,
   CheckCircle, Clock, XCircle, Plus, Minus, ChevronRight,
   ClipboardCheck, Sparkles, Loader2,
 } from "lucide-react";
@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { GameScreenshotUpload, GameScreenshotGallery, useGameReportImages } from "@/components/game-screenshots";
-import { OcrReviewScreen, computeReviewIssues, type FieldSource } from "@/components/ocr-review-screen";
+import { OcrReviewScreen, computeReviewIssues, type FieldSource, type ReviewIssue } from "@/components/ocr-review-screen";
 import type { Game, Team, Player, ScreenshotCategory } from "@shared/schema";
 import {
   type BatterEntry, type OcrBattingPlayer, type BattingMergeResult,
@@ -751,17 +751,21 @@ function ReportGameInner() {
   const hasBoxScoreDetail = homeBatting.length > 0 || awayBatting.length > 0 || homePitching.length > 0 || awayPitching.length > 0;
   const hasOcrData = Object.keys(fieldMeta).length > 0;
   const lowConfidenceCount = Object.values(fieldMeta).filter(v => v === "low").length;
-  const reviewIssues = hasOcrData
-    ? computeReviewIssues({
-        homeScore, awayScore, showInnings, numInnings, homeInnings, awayInnings,
-        homeBatting, awayBatting, homePitching, awayPitching,
-        homeTeamName: homeTeam.abbreviation, awayTeamName: awayTeam.abbreviation,
-        lowConfidenceCount,
-      })
-    : [];
-  const reviewHardErrors = reviewIssues.filter(i => i.severity === "hard");
+  const reviewIssues = computeReviewIssues({
+    homeScore, awayScore, showInnings, numInnings, homeInnings, awayInnings,
+    homeBatting, awayBatting, homePitching, awayPitching,
+    homeTeamName: homeTeam.abbreviation, awayTeamName: awayTeam.abbreviation,
+    lowConfidenceCount,
+    homeHits, awayHits,
+  });
+  const reviewHardErrors: ReviewIssue[] = [
+    ...reviewIssues.filter(i => i.severity === "hard"),
+    ...(!hasBoxScoreDetail && !isEditMode
+      ? [{ id: "box-score-required", section: "score" as const, severity: "hard" as const, message: "Full box score (batting + pitching) is required. Add lineup data in the score step." }]
+      : []),
+  ];
   const reviewSoftIssues = reviewIssues.filter(i => i.severity === "soft");
-  const submitBlocked = hasOcrData && (reviewHardErrors.length > 0 || (reviewSoftIssues.length > 0 && !ackReviewWarnings));
+  const submitBlocked = reviewHardErrors.length > 0 || (reviewSoftIssues.length > 0 && !ackReviewWarnings);
 
   return (
     <div className="min-h-screen bg-background">
@@ -953,7 +957,7 @@ function ReportGameInner() {
               onClick={handleContinueToReview}
               data-testid="button-continue-review"
             >
-              {hasOcrData ? "Review Auto-filled Stats" : "Review & Submit"} <ChevronRight className="w-4 h-4 ml-1" />
+              {hasOcrData ? "Review Auto-filled Stats" : "Review Box Score"} <ChevronRight className="w-4 h-4 ml-1" />
             </RetroButton>
           </>
         )}
@@ -965,7 +969,7 @@ function ReportGameInner() {
               <span>
                 {hasOcrData
                   ? "Review every field before submitting — OCR is a reading aid, not a guarantee. Correct anything that looks wrong. Your reviewed data is what gets submitted."
-                  : "Review your score before submitting. You can go back to make corrections."}
+                  : "Review your box score below. Batting runs must match the final score, pitching IPs must be valid, and at least 9 batters per team. Go back to edit."}
               </span>
             </div>
             {hasOcrData ? (
@@ -1019,6 +1023,10 @@ function ReportGameInner() {
                 homeInnings={showInnings ? homeInnings : []}
                 awayInnings={showInnings ? awayInnings : []}
                 hasBoxScore={hasBoxScoreDetail}
+                issues={reviewIssues}
+                hardErrors={reviewHardErrors}
+                ackWarnings={ackReviewWarnings}
+                onChangeAckWarnings={setAckReviewWarnings}
               />
             )}
 
@@ -1711,13 +1719,17 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
   );
 }
 
-function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching, homeInnings, awayInnings, hasBoxScore }: {
+function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching, homeInnings, awayInnings, hasBoxScore, issues, hardErrors, ackWarnings, onChangeAckWarnings }: {
   homeTeam: Team; awayTeam: Team; homeScore: number; awayScore: number;
   homeHits: number; awayHits: number; homeErrors: number; awayErrors: number;
   homeBatting: BatterEntry[]; awayBatting: BatterEntry[];
   homePitching: PitcherEntry[]; awayPitching: PitcherEntry[];
   homeInnings: number[]; awayInnings: number[];
   hasBoxScore: boolean;
+  issues: ReviewIssue[];
+  hardErrors: ReviewIssue[];
+  ackWarnings: boolean;
+  onChangeAckWarnings: (v: boolean) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -1777,13 +1789,6 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
           )}
         </RetroCardContent>
       </RetroCard>
-
-      {!hasBoxScore && (
-        <div className="flex items-start gap-2 p-3 bg-muted/20 border border-border/40 rounded-lg text-xs text-muted-foreground">
-          <Check className="w-3.5 h-3.5 text-gold shrink-0 mt-0.5" />
-          <span>Score-only report. No batting or pitching details included.</span>
-        </div>
-      )}
 
       {(homeBatting.length > 0 || awayBatting.length > 0) && (
         <RetroCard>
@@ -1862,6 +1867,35 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
             )}
           </RetroCardContent>
         </RetroCard>
+      )}
+
+      {(hardErrors.length > 0 || issues.filter(i => i.severity === "soft").length > 0) && (
+        <div className="space-y-2">
+          {hardErrors.map(issue => (
+            <div key={issue.id} className="flex items-start gap-2 p-2.5 rounded text-[10px] leading-snug bg-red-900/20 border border-red-700/40 text-red-300" data-testid={`review-error-${issue.id}`}>
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>{issue.message}</span>
+            </div>
+          ))}
+          {issues.filter(i => i.severity === "soft").map(issue => (
+            <div key={issue.id} className="flex items-start gap-2 p-2.5 rounded text-[10px] leading-snug bg-yellow-900/20 border border-yellow-700/40 text-yellow-300" data-testid={`review-warning-${issue.id}`}>
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>{issue.message}</span>
+            </div>
+          ))}
+          {issues.filter(i => i.severity === "soft").length > 0 && hardErrors.length === 0 && (
+            <label className="flex items-center gap-2.5 p-2.5 border border-yellow-700/40 rounded bg-yellow-900/10 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={ackWarnings}
+                onChange={e => onChangeAckWarnings(e.target.checked)}
+                className="w-3.5 h-3.5 accent-gold"
+                data-testid="checkbox-ack-review-warnings-step"
+              />
+              <span className="text-[10px] text-yellow-200">I've reviewed the warnings above and confirm the data is correct.</span>
+            </label>
+          )}
+        </div>
       )}
     </div>
   );

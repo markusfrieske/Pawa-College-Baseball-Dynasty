@@ -18,6 +18,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
+import { validateBoxScore } from "../lib/validateBoxScore";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema } from "../route-helpers";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGame, finalizeReportedGame } from "../game-finalizer";
@@ -429,53 +430,24 @@ export function registerGameRoutes(app: Express): void {
         return res.status(400).json({ message: "homeScore and awayScore are required" });
       }
 
-      const hasFullBoxScore =
+      const hasFullBoxScore = !!(
         Array.isArray(inningScores) && inningScores.length > 0 &&
         homeBoxData?.batting?.length && homeBoxData?.pitching?.length &&
-        awayBoxData?.batting?.length && awayBoxData?.pitching?.length;
+        awayBoxData?.batting?.length && awayBoxData?.pitching?.length
+      );
 
-      if (homeScore < 0 || awayScore < 0) {
-        return res.status(400).json({ message: "Scores cannot be negative" });
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+      if (!isCommissioner && !hasFullBoxScore) {
+        return res.status(422).json({
+          message: "Full box score is required. Add batting, pitching, and inning data before submitting.",
+          validationErrors: [{ id: "box-score-required", field: "boxData", severity: "error", message: "Full box score (batting + pitching + innings) is required for coach submissions." }],
+        });
       }
 
-      if (hasFullBoxScore) {
-        if (Array.isArray(inningScores) && inningScores.length > 0) {
-          const inningHomeTotal = inningScores.reduce((sum: number, inn: number[]) => sum + (inn[1] ?? 0), 0);
-          const inningAwayTotal = inningScores.reduce((sum: number, inn: number[]) => sum + (inn[0] ?? 0), 0);
-          if (inningHomeTotal !== homeScore) {
-            return res.status(400).json({ message: `Home inning totals (${inningHomeTotal}) must match reported home score (${homeScore})` });
-          }
-          if (inningAwayTotal !== awayScore) {
-            return res.status(400).json({ message: `Away inning totals (${inningAwayTotal}) must match reported away score (${awayScore})` });
-          }
-        }
-        if (homeBoxData?.batting && Array.isArray(homeBoxData.batting)) {
-          const battingRuns = homeBoxData.batting.reduce((s: number, b: { r?: number }) => s + (b.r ?? 0), 0);
-          if (battingRuns !== homeScore) {
-            return res.status(400).json({ message: `Home batting runs (${battingRuns}) must match reported home score (${homeScore})` });
-          }
-          if (homeBoxData.batting.length < 9) {
-            return res.status(400).json({ message: `Home team requires at least 9 batters (got ${homeBoxData.batting.length})` });
-          }
-        }
-        if (awayBoxData?.batting && Array.isArray(awayBoxData.batting)) {
-          const battingRuns = awayBoxData.batting.reduce((s: number, b: { r?: number }) => s + (b.r ?? 0), 0);
-          if (battingRuns !== awayScore) {
-            return res.status(400).json({ message: `Away batting runs (${battingRuns}) must match reported away score (${awayScore})` });
-          }
-          if (awayBoxData.batting.length < 9) {
-            return res.status(400).json({ message: `Away team requires at least 9 batters (got ${awayBoxData.batting.length})` });
-          }
-        }
-        const ipRe = /^\d+(\.[012])?$/;
-        for (const pArr of [homeBoxData?.pitching, awayBoxData?.pitching]) {
-          if (!Array.isArray(pArr)) continue;
-          for (const p of pArr as Array<{ ip?: string; name?: string }>) {
-            if (p.ip && !ipRe.test(p.ip)) {
-              return res.status(400).json({ message: `Invalid IP format "${p.ip}" for ${p.name ?? "pitcher"}. Use format like "6.0" or "2.1"` });
-            }
-          }
-        }
+      const validationIssues = validateBoxScore({ homeScore, awayScore, homeHits, awayHits, inningScores, homeBoxData, awayBoxData });
+      const validationErrors = validationIssues.filter(i => i.severity === "error");
+      if (validationErrors.length > 0) {
+        return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
       }
 
       const allTeams = await storage.getTeamsByLeague(leagueId);
@@ -564,36 +536,10 @@ export function registerGameRoutes(app: Express): void {
       if (!awayBoxData || !Array.isArray(awayBoxData.pitching) || awayBoxData.pitching.length === 0) {
         return res.status(400).json({ message: "awayBoxData.pitching is required and must be a non-empty array" });
       }
-      if (homeScore < 0 || awayScore < 0) {
-        return res.status(400).json({ message: "Scores cannot be negative" });
-      }
-      const inningHomeTotal = inningScores.reduce((sum: number, inn: number[]) => sum + (inn[1] ?? 0), 0);
-      const inningAwayTotal = inningScores.reduce((sum: number, inn: number[]) => sum + (inn[0] ?? 0), 0);
-      if (inningHomeTotal !== homeScore) {
-        return res.status(400).json({ message: `Home inning totals (${inningHomeTotal}) must match reported home score (${homeScore})` });
-      }
-      if (inningAwayTotal !== awayScore) {
-        return res.status(400).json({ message: `Away inning totals (${inningAwayTotal}) must match reported away score (${awayScore})` });
-      }
-      const homeBattingRuns = homeBoxData.batting.reduce((s: number, b: { r?: number }) => s + (b.r ?? 0), 0);
-      if (homeBattingRuns !== homeScore) {
-        return res.status(400).json({ message: `Home batting runs (${homeBattingRuns}) must match reported home score (${homeScore})` });
-      }
-      if (homeBoxData.batting.length < 9) {
-        return res.status(400).json({ message: `Home team requires at least 9 batters (got ${homeBoxData.batting.length})` });
-      }
-      const awayBattingRuns = awayBoxData.batting.reduce((s: number, b: { r?: number }) => s + (b.r ?? 0), 0);
-      if (awayBattingRuns !== awayScore) {
-        return res.status(400).json({ message: `Away batting runs (${awayBattingRuns}) must match reported away score (${awayScore})` });
-      }
-      if (awayBoxData.batting.length < 9) {
-        return res.status(400).json({ message: `Away team requires at least 9 batters (got ${awayBoxData.batting.length})` });
-      }
-      const ipRe = /^\d+(\.[012])?$/;
-      for (const p of [...homeBoxData.pitching, ...awayBoxData.pitching] as Array<{ ip?: string; name?: string }>) {
-        if (p.ip && !ipRe.test(p.ip)) {
-          return res.status(400).json({ message: `Invalid IP format "${p.ip}" for ${p.name ?? "pitcher"}. Use format like "6.0" or "2.1"` });
-        }
+      const validationIssues = validateBoxScore({ homeScore, awayScore, homeHits, awayHits, inningScores, homeBoxData, awayBoxData });
+      const validationErrors = validationIssues.filter(i => i.severity === "error");
+      if (validationErrors.length > 0) {
+        return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
       }
       const updated = await storage.updateGameReport(existing.id, {
         homeScore, awayScore,

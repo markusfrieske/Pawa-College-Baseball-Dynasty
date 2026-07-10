@@ -39,10 +39,12 @@ export function computeReviewIssues(input: {
   homePitching: PitcherEntry[]; awayPitching: PitcherEntry[];
   homeTeamName: string; awayTeamName: string;
   lowConfidenceCount: number;
+  homeHits?: number; awayHits?: number;
 }): ReviewIssue[] {
   const {
     homeScore, awayScore, showInnings, numInnings, homeInnings, awayInnings,
     homeBatting, awayBatting, homePitching, awayPitching, homeTeamName, awayTeamName, lowConfidenceCount,
+    homeHits, awayHits,
   } = input;
   const issues: ReviewIssue[] = [];
 
@@ -75,6 +77,12 @@ export function computeReviewIssues(input: {
     if (homeBatting.length < 9) {
       issues.push({ id: "home-min-batters", section: "home_batting", severity: "hard", message: `${homeTeamName} needs at least 9 batters (currently ${homeBatting.length}).` });
     }
+    if (homeHits != null) {
+      const battingH = homeBatting.reduce((a, b) => a + b.h, 0);
+      if (battingH !== homeHits) {
+        issues.push({ id: "home-hits-mismatch", section: "home_batting", severity: "soft", message: `${homeTeamName} batting hit total (${battingH}) doesn't match the reported H stat (${homeHits}) — double-check hit entries.` });
+      }
+    }
   }
   if (awayBatting.length > 0) {
     const runs = awayBatting.reduce((a, b) => a + b.r, 0);
@@ -83,6 +91,12 @@ export function computeReviewIssues(input: {
     }
     if (awayBatting.length < 9) {
       issues.push({ id: "away-min-batters", section: "away_batting", severity: "hard", message: `${awayTeamName} needs at least 9 batters (currently ${awayBatting.length}).` });
+    }
+    if (awayHits != null) {
+      const battingH = awayBatting.reduce((a, b) => a + b.h, 0);
+      if (battingH !== awayHits) {
+        issues.push({ id: "away-hits-mismatch", section: "away_batting", severity: "soft", message: `${awayTeamName} batting hit total (${battingH}) doesn't match the reported H stat (${awayHits}) — double-check hit entries.` });
+      }
     }
   }
 
@@ -254,7 +268,7 @@ function Section({ label, open, onToggle, testId, badge, children }: {
   );
 }
 
-function IssueBanner({ issues, section }: { issues: ReviewIssue[]; section: ReviewIssue["section"] }) {
+export function IssueBanner({ issues, section }: { issues: ReviewIssue[]; section: ReviewIssue["section"] }) {
   const scoped = issues.filter(i => i.section === section);
   if (scoped.length === 0) return null;
   return (

@@ -832,6 +832,39 @@ function PendingReportModal({
 
   const hasBoxData = !!(report?.homeBoxData?.batting?.length && report?.awayBoxData?.batting?.length);
 
+  const reportValidationWarnings = useMemo(() => {
+    if (!report) return [];
+    const warnings: string[] = [];
+    const hb = (report.homeBoxData?.batting ?? []) as Array<Record<string, unknown>>;
+    const ab = (report.awayBoxData?.batting ?? []) as Array<Record<string, unknown>>;
+    if (hb.length > 0) {
+      const runs = hb.reduce((s, b) => s + ((b.r as number) ?? 0), 0);
+      if (runs !== (report.homeScore ?? 0)) warnings.push(`Home batting runs (${runs}) don't match reported home score (${report.homeScore})`);
+      if (hb.length < 9) warnings.push(`Home team has fewer than 9 batters listed (${hb.length})`);
+    }
+    if (ab.length > 0) {
+      const runs = ab.reduce((s, b) => s + ((b.r as number) ?? 0), 0);
+      if (runs !== (report.awayScore ?? 0)) warnings.push(`Away batting runs (${runs}) don't match reported away score (${report.awayScore})`);
+      if (ab.length < 9) warnings.push(`Away team has fewer than 9 batters listed (${ab.length})`);
+    }
+    const innings = report.inningScores;
+    if (Array.isArray(innings) && innings.length > 0) {
+      const inningHome = innings.reduce((s, inn) => s + ((inn as number[])[1] ?? 0), 0);
+      const inningAway = innings.reduce((s, inn) => s + ((inn as number[])[0] ?? 0), 0);
+      if (inningHome !== (report.homeScore ?? 0)) warnings.push(`Home inning total (${inningHome}) doesn't match score (${report.homeScore})`);
+      if (inningAway !== (report.awayScore ?? 0)) warnings.push(`Away inning total (${inningAway}) doesn't match score (${report.awayScore})`);
+    }
+    if (report.homeHits != null && hb.length > 0) {
+      const h = hb.reduce((s, b) => s + ((b.h as number) ?? 0), 0);
+      if (h !== report.homeHits) warnings.push(`Home batting hit total (${h}) doesn't match reported H stat (${report.homeHits})`);
+    }
+    if (report.awayHits != null && ab.length > 0) {
+      const h = ab.reduce((s, b) => s + ((b.h as number) ?? 0), 0);
+      if (h !== report.awayHits) warnings.push(`Away batting hit total (${h}) doesn't match reported H stat (${report.awayHits})`);
+    }
+    return warnings;
+  }, [report]);
+
   const homeTeam = game?.homeTeam;
   const awayTeam = game?.awayTeam;
   const awayScore = report?.awayScore ?? 0;
@@ -958,6 +991,17 @@ function PendingReportModal({
             )}
 
             {game && <GameScreenshotGallery leagueId={leagueId} gameId={game.id} />}
+
+            {reportValidationWarnings.length > 0 && (
+              <div className="space-y-1.5">
+                {reportValidationWarnings.map((msg, i) => (
+                  <div key={i} className="flex items-start gap-2 p-2 rounded text-[10px] leading-snug bg-yellow-900/20 border border-yellow-700/40 text-yellow-300" data-testid={`report-validation-warning-${i}`}>
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>{msg}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {report.status === "pending" && (isOpposingCoach || isCommissioner) && (
               <div className="border-t border-border/50 pt-4 flex items-center gap-3 flex-wrap">
