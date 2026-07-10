@@ -107,7 +107,37 @@ export async function applyStoryOutcomeToRecruit(
     abilities: currentAbilities,
     storyLockedAbilities: storyLocked,
   };
+
+  // Handle new outcome types
+  if (outcome.positionChange && outcome.positionChange !== recruit.position) {
+    finalUpdates.position = outcome.positionChange;
+  }
+  if (outcome.injuryWeeks && outcome.injuryWeeks > 0) {
+    // Mark recruit as injured for N weeks by storing an injury end timestamp
+    const injuryUntilWeek = (recruit as Record<string, unknown>).injuryUntilWeek;
+    const currentWeek = typeof injuryUntilWeek === 'number' ? injuryUntilWeek : 0;
+    finalUpdates.injuryUntilWeek = Math.max(currentWeek, outcome.injuryWeeks);
+  }
+  if (outcome.commitmentUncertainty && outcome.commitmentUncertainty > 0) {
+    const current = typeof (recruit as Record<string, unknown>).commitmentUncertainty === 'number'
+      ? (recruit as Record<string, unknown>).commitmentUncertainty as number
+      : 0;
+    finalUpdates.commitmentUncertainty = Math.min(100, current + outcome.commitmentUncertainty);
+  }
+  if (outcome.ratingReveal) {
+    finalUpdates.ratingRevealed = true;
+  }
+
   await storage.updateRecruit(recruit.id, finalUpdates as Parameters<typeof storage.updateRecruit>[1]);
+
+  // Handle leavePool — deactivate the recruit from the pool after writing other changes
+  if (outcome.leavePool) {
+    try {
+      await storage.updateRecruit(recruit.id, { stage: 'left_pool' } as Parameters<typeof storage.updateRecruit>[1]);
+    } catch (e) {
+      console.warn('[storylines] leavePool update failed:', e);
+    }
+  }
 
   return { ovrDelta, abilityGain, abilityRemove: abilityRemoveResult, abilityTier };
 }
@@ -318,8 +348,9 @@ export function registerStorylineRoutes(app: Express) {
         return {
           // Spread storyline_recruit columns but override identity-revealing fields
           ...sl,
-          // Override archetype with internal key only (not the human-readable name)
-          archetype: sl.archetype,
+          // Replace raw internal archetype key with the neutral public label so coaches
+          // cannot identify gem/bust/phenom/collapse archetypes from network traffic.
+          archetype: publicStoryLabel,
           // Strip legendary/tier — replaced with a non-spoiling high-interest flag
           isHighInterest: sl.isLegendary,
           isLegendary: undefined,
@@ -433,14 +464,16 @@ export function registerStorylineRoutes(app: Express) {
         return safeRecruit;
       })() : null;
 
+      const singlePublicLabel = PUBLIC_STORY_LABELS[archetypeKey] ?? "Scouting Report";
       res.json({
         ...sl,
+        archetype: singlePublicLabel,
         isHighInterest: sl.isLegendary,
         isLegendary: undefined,
         tier: undefined,
         featuredTeamName: undefined,
         recruit: publicRecruit,
-        publicStoryLabel: PUBLIC_STORY_LABELS[archetypeKey] ?? "Scouting Report",
+        publicStoryLabel: singlePublicLabel,
         publicArcFlavor: getPublicArcFlavor(archetypeKey),
         archetypeName: undefined,
         archetypeDescription: undefined,
@@ -492,7 +525,9 @@ export function registerStorylineRoutes(app: Express) {
             week: e.week,
             season: e.season,
             eventText: e.eventText,
-            archetypeAtEvent: archetypeKey,
+            // Use the neutral public label rather than the raw archetype key so coaches
+            // cannot discover gem/bust/phenom/collapse status via network traffic.
+            archetypeAtEvent: publicStoryLabelAtEvent,
             publicStoryLabelAtEvent,
             resolvedChoice: e.resolvedChoice,
             resolvedChoiceLabel: choiceMap[e.resolvedChoice!] ?? e.resolvedChoice,
@@ -503,12 +538,13 @@ export function registerStorylineRoutes(app: Express) {
         });
 
       const arcHistoryKey = sl.archetype as Archetype;
+      const arcHistoryPublicLabel = PUBLIC_STORY_LABELS[arcHistoryKey] ?? "Scouting Report";
 
       res.json({
         storylineRecruit: {
           id: sl.id,
-          archetype: sl.archetype,
-          publicStoryLabel: PUBLIC_STORY_LABELS[arcHistoryKey] ?? "Scouting Report",
+          archetype: arcHistoryPublicLabel,
+          publicStoryLabel: arcHistoryPublicLabel,
           currentArcStage: sl.currentArcStage,
           isHighInterest: sl.isLegendary,
           resolvedOvrDelta: sl.resolvedOvrDelta,
@@ -536,14 +572,15 @@ export function registerStorylineRoutes(app: Express) {
       const entries = await Promise.all(storylines.map(async (sl) => {
         const recruit = await storage.getRecruit(sl.recruitId);
         const wrapKey = sl.archetype as Archetype;
+        const publicLabel = PUBLIC_STORY_LABELS[wrapKey] ?? "Scouting Report";
         return {
           storylineRecruitId: sl.id,
           recruitId: sl.recruitId,
           firstName: recruit?.firstName ?? "Unknown",
           lastName: recruit?.lastName ?? "Recruit",
           position: recruit?.position ?? "",
-          archetype: sl.archetype,
-          publicStoryLabel: PUBLIC_STORY_LABELS[wrapKey] ?? "Scouting Report",
+          archetype: publicLabel,
+          publicStoryLabel: publicLabel,
           isHighInterest: sl.isLegendary,
           resolvedOvrDelta: sl.resolvedOvrDelta,
           committed: !!recruit?.signedTeamId,

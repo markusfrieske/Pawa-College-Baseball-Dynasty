@@ -1450,6 +1450,12 @@ export interface StoryOutcome {
   abilityGrant?: { tier: 'gold' | 'blue' | 'red' };
   // Remove a story-acquired positive ability ('random_story') or any positive story ability ('random_positive')
   abilityRemove?: 'random_story' | 'random_positive';
+  // New outcome types — applied by applyStoryOutcomeToRecruit in storyline-routes.ts
+  ratingReveal?: boolean;          // reveal recruit's true overall rating to the league
+  positionChange?: string;         // move recruit to a new position (e.g. "C", "1B")
+  injuryWeeks?: number;            // sideline recruit for N weeks (blocks recruiting actions)
+  leavePool?: boolean;             // recruit withdraws from the recruiting pool entirely
+  commitmentUncertainty?: number;  // increase commitment uncertainty by N percentage points
 }
 
 export const storylineRecruits = pgTable("storyline_recruits", {
