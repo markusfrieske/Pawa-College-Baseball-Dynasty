@@ -1,0 +1,24 @@
+Build a new mobile-first "Weekly War Room" hub that becomes the default league home experience for a coach. This screen should answer: who do I play, what changed since last advance, what must I do before readying up, and where should I spend my attention?
+Design goals:
+Make the first viewport useful on a phone without scrolling: next opponent, week/phase, ready status, pending actions.
+Use a calm dashboard layout, not a marketing page.
+Use compact cards, segmented tabs, and clear status badges.
+Avoid giant decorative hero sections. This is a daily-use league office screen.
+UX requirements:
+Top section: current season/week/phase, user's team, ready/not ready, commissioner advance status.
+Next opponent module: opponent record, conference record, last 3 games, probable starting pitcher if available, top hitter/pitcher, and whether the game needs reporting.
+"Since Last Advance" feed: final scores, commits, storyline events, injuries/departures, coach milestones.
+"Needs Attention" checklist: unplayed games, unsubmitted reports, pending report confirmations, recruiting actions remaining, scouting actions remaining, roster/departure tasks.
+Quick actions: Recruit, Schedule, Report Game, Confirm Reports, Ready Up.
+Technical requirements:
+Add a backend endpoint like GET /api/leagues/:id/war-room.
+Aggregate only data relevant to the logged-in coach unless commissioner mode is requested.
+Use the authenticated user's coach/team, never the first non-CPU team.
+Reuse existing games, reports, recruiting, storylines, league events, and readiness data.
+Add loading, empty, and error states.
+Add route and navigation entry. If there is an existing league overview page, link this prominently or make it the default landing after opening a league.
+Acceptance criteria:
+A coach in a 14-user league sees their own opponent and tasks, not another team.
+Commissioner sees league-wide blockers and can drill into problem teams.
+Mobile first viewport clearly shows "what now?"
+No data shown that spoils hidden recruit gem/bust state.

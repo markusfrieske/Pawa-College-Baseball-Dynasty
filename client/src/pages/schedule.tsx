@@ -11,7 +11,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -51,6 +51,18 @@ interface GameReport {
   awayErrors: number;
   status: string;
   disputeReason: string | null;
+}
+
+interface FullGameReport extends GameReport {
+  inningScores: number[][] | null;
+  homeBoxData: {
+    batting: Array<Record<string, unknown>>;
+    pitching: Array<Record<string, unknown>>;
+  } | null;
+  awayBoxData: {
+    batting: Array<Record<string, unknown>>;
+    pitching: Array<Record<string, unknown>>;
+  } | null;
 }
 
 interface ScheduleData {
@@ -283,6 +295,7 @@ function getSeriesOutcome(series: SeriesGroup, userTeamId: string | null): {
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
   const [boxScoreGame, setBoxScoreGame] = useState<GameWithTeams | null>(null);
+  const [reviewReportGame, setReviewReportGame] = useState<GameWithTeams | null>(null);
   const [showMyTeam, setShowMyTeam] = useState(true);
   const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
@@ -396,6 +409,7 @@ export default function SchedulePage() {
     onMatchupPreview: (gameId: string) => setMatchupPreviewGameId(gameId),
     onConfirm: (gameId: string) => confirmReportMutation.mutate(gameId),
     onDispute: (gameId: string) => { setDisputeGameId(gameId); setDisputeReason(""); },
+    onReviewReport: (game: GameWithTeams) => setReviewReportGame(game),
     isConfirming: confirmReportMutation.isPending,
     isDisputing: disputeReportMutation.isPending,
     userTeamId: data?.userTeamId ?? null,
@@ -616,6 +630,18 @@ export default function SchedulePage() {
 
       <BoxScoreModal game={boxScoreGame} leagueId={id!} onClose={() => setBoxScoreGame(null)} />
 
+      <PendingReportModal
+        leagueId={id!}
+        game={reviewReportGame}
+        userTeamId={data?.userTeamId ?? null}
+        isCommissioner={data?.isCommissioner ?? false}
+        onClose={() => setReviewReportGame(null)}
+        onConfirm={(gameId) => confirmReportMutation.mutate(gameId)}
+        onDispute={(gameId) => { setDisputeGameId(gameId); setDisputeReason(""); }}
+        isConfirming={confirmReportMutation.isPending}
+        isDisputing={disputeReportMutation.isPending}
+      />
+
       <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) { setDisputeGameId(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); } }}>
         <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-md" data-testid="dialog-dispute-reason">
           <DialogHeader>
@@ -706,6 +732,7 @@ type GameCallbacks = {
   onMatchupPreview: (gameId: string) => void;
   onConfirm: (gameId: string) => void;
   onDispute: (gameId: string) => void;
+  onReviewReport: (game: GameWithTeams) => void;
   isConfirming: boolean;
   isDisputing: boolean;
   userTeamId: string | null;
@@ -717,6 +744,266 @@ type GameCallbacks = {
   teamRecords: Map<string, { wins: number; losses: number }>;
   isUserGame: (game: GameWithTeams) => boolean;
 };
+
+function reportBatterToBoxBatter(b: Record<string, unknown>): BoxScoreBatter {
+  const ab = Number(b.ab ?? 0);
+  const h = Number(b.h ?? 0);
+  return {
+    name: String(b.name ?? ""),
+    position: String(b.position ?? ""),
+    ab, r: Number(b.r ?? 0), h,
+    doubles: Number(b.doubles ?? 0),
+    triples: Number(b.triples ?? 0),
+    hr: Number(b.hr ?? 0),
+    rbi: Number(b.rbi ?? 0),
+    bb: Number(b.bb ?? 0),
+    so: Number(b.so ?? 0),
+    sb: Number(b.sb ?? 0),
+    avg: ab > 0 ? (h / ab).toFixed(3).replace(/^0\./, ".") : ".000",
+  };
+}
+
+function reportPitcherToBoxPitcher(p: Record<string, unknown>): BoxScorePitcher {
+  const ip = String(p.ip ?? "0.0");
+  const [whole, frac] = ip.split(".");
+  const ipDec = (parseInt(whole) || 0) + (parseInt(frac) || 0) / 3;
+  const er = Number(p.er ?? 0);
+  const decision = p.win ? "W" : p.loss ? "L" : "";
+  return {
+    name: `${String(p.name ?? "")}${decision ? ` (${decision})` : ""}`,
+    ip,
+    h: Number(p.h ?? 0),
+    r: Number(p.r ?? 0),
+    er,
+    bb: Number(p.bb ?? 0),
+    so: Number(p.so ?? 0),
+    hr: Number(p.hr ?? 0),
+    era: ipDec > 0 ? (er * 9 / ipDec).toFixed(2) : "--",
+  };
+}
+
+function reportBoxToBoxScoreTeam(
+  box: { batting: Array<Record<string, unknown>>; pitching: Array<Record<string, unknown>> },
+  errors: number,
+): BoxScoreTeam {
+  const batting = box.batting.map(reportBatterToBoxBatter);
+  const pitching = box.pitching.map(reportPitcherToBoxPitcher);
+  const totals: BoxScoreTotals = {
+    ab: batting.reduce((s, b) => s + b.ab, 0),
+    r: batting.reduce((s, b) => s + b.r, 0),
+    h: batting.reduce((s, b) => s + b.h, 0),
+    doubles: batting.reduce((s, b) => s + (b.doubles ?? 0), 0),
+    triples: batting.reduce((s, b) => s + (b.triples ?? 0), 0),
+    hr: batting.reduce((s, b) => s + (b.hr ?? 0), 0),
+    rbi: batting.reduce((s, b) => s + b.rbi, 0),
+    bb: batting.reduce((s, b) => s + b.bb, 0),
+    so: batting.reduce((s, b) => s + b.so, 0),
+    sb: batting.reduce((s, b) => s + (b.sb ?? 0), 0),
+  };
+  return { batting, pitching, totals, errors };
+}
+
+function PendingReportModal({
+  leagueId, game, userTeamId, isCommissioner, onClose, onConfirm, onDispute, isConfirming, isDisputing,
+}: {
+  leagueId: string;
+  game: GameWithTeams | null;
+  userTeamId: string | null;
+  isCommissioner: boolean;
+  onClose: () => void;
+  onConfirm: (gameId: string) => void;
+  onDispute: (gameId: string) => void;
+  isConfirming: boolean;
+  isDisputing: boolean;
+}) {
+  const { data: report, isLoading } = useQuery<FullGameReport | null>({
+    queryKey: ["/api/leagues", leagueId, "games", game?.id, "report"],
+    enabled: !!game,
+    queryFn: async () => {
+      if (!game) return null;
+      const res = await fetch(`/api/leagues/${leagueId}/games/${game.id}/report`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  const isOpposingCoach = !!(report && userTeamId && report.reporterTeamId !== userTeamId &&
+    game && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId));
+
+  const hasBoxData = !!(report?.homeBoxData?.batting?.length && report?.awayBoxData?.batting?.length);
+
+  const homeTeam = game?.homeTeam;
+  const awayTeam = game?.awayTeam;
+  const awayScore = report?.awayScore ?? 0;
+  const homeScore = report?.homeScore ?? 0;
+  const awayWon = awayScore > homeScore;
+  const homeWon = homeScore > awayScore;
+
+  const homeBoxScoreTeam = (report?.homeBoxData && hasBoxData)
+    ? reportBoxToBoxScoreTeam(report.homeBoxData, report.homeErrors)
+    : null;
+  const awayBoxScoreTeam = (report?.awayBoxData && hasBoxData)
+    ? reportBoxToBoxScoreTeam(report.awayBoxData, report.awayErrors)
+    : null;
+
+  const innings = report?.inningScores ?? null;
+
+  return (
+    <Dialog open={!!game} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-pending-report">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2 flex-wrap">
+            <span>Submitted Report</span>
+            {awayTeam && homeTeam && (
+              <span className="font-normal text-muted-foreground text-xs">{awayTeam.abbreviation} @ {homeTeam.abbreviation}</span>
+            )}
+            {report && <ReportStatusBadge status={report.status as ReportStatus} />}
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-8 flex items-center justify-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Loading report...</span>
+          </div>
+        ) : !report ? (
+          <p className="text-muted-foreground text-sm py-4">Report not found.</p>
+        ) : (
+          <div className="space-y-4">
+            {innings && innings.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse" data-testid="table-pending-linescore">
+                  <thead>
+                    <tr className="border-b border-gold/30">
+                      <th className="font-pixel text-gold/80 text-left p-2 min-w-[110px]">Team</th>
+                      {innings.map((_, i) => (
+                        <th key={i} className="font-pixel text-gold/80 text-center p-2 w-7">{i + 1}</th>
+                      ))}
+                      <th className="font-pixel text-gold text-center p-2 w-8 border-l border-gold/30">R</th>
+                      <th className="font-pixel text-gold/80 text-center p-2 w-8">H</th>
+                      <th className="font-pixel text-gold/80 text-center p-2 w-8">E</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className={`border-b border-gold/20 ${awayWon ? "bg-gold/5" : ""}`}>
+                      <td className="p-2 text-foreground">
+                        <div className="flex items-center gap-2">
+                          {awayTeam && <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />}
+                          <span className={`truncate text-xs ${awayWon ? "text-gold font-bold" : ""}`}>{awayTeam?.abbreviation}</span>
+                          {awayWon && <span className="text-[8px] font-pixel text-gold">W</span>}
+                        </div>
+                      </td>
+                      {innings.map((inning, i) => (
+                        <td key={i} className="text-center p-2 text-foreground">{inning[0]}</td>
+                      ))}
+                      <td className={`text-center p-2 font-bold border-l border-gold/30 ${awayWon ? "text-gold" : "text-foreground"}`}>{awayScore}</td>
+                      <td className="text-center p-2 text-foreground">{report.awayHits}</td>
+                      <td className="text-center p-2 text-foreground">{report.awayErrors}</td>
+                    </tr>
+                    <tr className={homeWon ? "bg-gold/5" : ""}>
+                      <td className="p-2 text-foreground">
+                        <div className="flex items-center gap-2">
+                          {homeTeam && <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />}
+                          <span className={`truncate text-xs ${homeWon ? "text-gold font-bold" : ""}`}>{homeTeam?.abbreviation}</span>
+                          {homeWon && <span className="text-[8px] font-pixel text-gold">W</span>}
+                        </div>
+                      </td>
+                      {innings.map((inning, i) => (
+                        <td key={i} className="text-center p-2 text-foreground">{inning[1]}</td>
+                      ))}
+                      <td className={`text-center p-2 font-bold border-l border-gold/30 ${homeWon ? "text-gold" : "text-foreground"}`}>{homeScore}</td>
+                      <td className="text-center p-2 text-foreground">{report.homeHits}</td>
+                      <td className="text-center p-2 text-foreground">{report.homeErrors}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-6 py-3">
+                <div className="flex flex-col items-center gap-1">
+                  {awayTeam && <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />}
+                  <span className="text-[9px] text-muted-foreground">{awayTeam?.abbreviation}</span>
+                </div>
+                <div className="font-pixel text-2xl flex items-center gap-2">
+                  <span className={awayWon ? "text-gold" : "text-muted-foreground"}>{awayScore}</span>
+                  <span className="text-muted-foreground text-sm">@</span>
+                  <span className={homeWon ? "text-gold" : "text-muted-foreground"}>{homeScore}</span>
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  {homeTeam && <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />}
+                  <span className="text-[9px] text-muted-foreground">{homeTeam?.abbreviation}</span>
+                </div>
+              </div>
+            )}
+
+            {hasBoxData && homeBoxScoreTeam && awayBoxScoreTeam && (
+              <Tabs defaultValue="away" className="w-full">
+                <TabsList className="bg-[#0f1f0f] border border-gold/30 w-full grid grid-cols-2">
+                  <TabsTrigger value="away" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-pending-away">
+                    {awayTeam?.abbreviation}{awayWon && <span className="ml-1 text-gold">W</span>}
+                  </TabsTrigger>
+                  <TabsTrigger value="home" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-pending-home">
+                    {homeTeam?.abbreviation}{homeWon && <span className="ml-1 text-gold">W</span>}
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="away" className="space-y-4 mt-3">
+                  <TeamBattingTable label={awayTeam?.name ?? "Away"} team={awayBoxScoreTeam} />
+                  <TeamPitchingTable label={awayTeam?.name ?? "Away"} pitching={awayBoxScoreTeam.pitching} />
+                </TabsContent>
+                <TabsContent value="home" className="space-y-4 mt-3">
+                  <TeamBattingTable label={homeTeam?.name ?? "Home"} team={homeBoxScoreTeam} />
+                  <TeamPitchingTable label={homeTeam?.name ?? "Home"} pitching={homeBoxScoreTeam.pitching} />
+                </TabsContent>
+              </Tabs>
+            )}
+
+            {game && <GameScreenshotGallery leagueId={leagueId} gameId={game.id} />}
+
+            {report.status === "pending" && (isOpposingCoach || isCommissioner) && (
+              <div className="border-t border-border/50 pt-4 flex items-center gap-3 flex-wrap">
+                <p className="text-xs text-muted-foreground flex-1 min-w-0">
+                  {isOpposingCoach ? "Does this score match your records?" : "Review and confirm or dispute this report."}
+                </p>
+                <div className="flex gap-2 shrink-0">
+                  <RetroButton
+                    size="sm"
+                    variant="primary"
+                    onClick={() => { onConfirm(game!.id); onClose(); }}
+                    disabled={isConfirming}
+                    data-testid="button-modal-confirm-report"
+                  >
+                    <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+                  </RetroButton>
+                  <RetroButton
+                    size="sm"
+                    variant="outline"
+                    onClick={() => { onClose(); onDispute(game!.id); }}
+                    disabled={isDisputing}
+                    className="border-red-600 text-red-400 hover:bg-red-900/20"
+                    data-testid="button-modal-dispute-report"
+                  >
+                    <XCircle className="w-3 h-3 mr-1" /> Dispute
+                  </RetroButton>
+                </div>
+              </div>
+            )}
+
+            {report.status === "disputed" && (
+              <div className="flex items-start gap-2 p-3 bg-red-900/20 border border-red-800/30 rounded text-xs text-red-300">
+                <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Score Disputed</p>
+                  {report.disputeReason && <p className="mt-0.5 text-red-400/80">{report.disputeReason}</p>}
+                  <p className="mt-1 text-red-400/60">Commissioner will review and resolve.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function computeTeamRecords(games: GameWithTeams[]): Map<string, { wins: number; losses: number }> {
   const records = new Map<string, { wins: number; losses: number }>();
@@ -1106,16 +1393,23 @@ function CompactGameRow({
               <span className="text-red-300">Disputed. Commissioner will resolve.</span>
             )}
           </div>
-          {report.status === "pending" && userIsOpposingTeam && (
-            <div className="flex gap-1.5">
-              <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
-                <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+          <div className="flex gap-1.5">
+            {report.status === "pending" && (
+              <RetroButton size="sm" variant="outline" onClick={() => callbacks.onReviewReport(game)} data-testid={`button-review-report-${game.id}`} title="View full report details">
+                <Eye className="w-3 h-3" />
               </RetroButton>
-              <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
-                <XCircle className="w-3 h-3 mr-1" /> Dispute
-              </RetroButton>
-            </div>
-          )}
+            )}
+            {report.status === "pending" && userIsOpposingTeam && (
+              <>
+                <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+                  <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+                </RetroButton>
+                <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+                  <XCircle className="w-3 h-3 mr-1" /> Dispute
+                </RetroButton>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1370,16 +1664,23 @@ function StandaloneGameRow({
               </span>
             )}
           </div>
-          {report.status === "pending" && userIsOpposingTeam && (
-            <div className="flex gap-2">
-              <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
-                <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+          <div className="flex gap-2">
+            {report.status === "pending" && (
+              <RetroButton size="sm" variant="outline" onClick={() => callbacks.onReviewReport(game)} data-testid={`button-review-report-${game.id}`} title="View full report details">
+                <Eye className="w-3 h-3 mr-1" /> Review
               </RetroButton>
-              <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
-                <XCircle className="w-3 h-3 mr-1" /> Dispute
-              </RetroButton>
-            </div>
-          )}
+            )}
+            {report.status === "pending" && userIsOpposingTeam && (
+              <>
+                <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+                  <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+                </RetroButton>
+                <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+                  <XCircle className="w-3 h-3 mr-1" /> Dispute
+                </RetroButton>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
