@@ -55,6 +55,7 @@ const ChampionshipScreenPage = lazy(() => import("@/pages/championship-screen"))
 const RecordBookPage = lazy(() => import("@/pages/record-book"));
 const StatsPage = lazy(() => import("@/pages/stats"));
 const DigestFeedPage = lazy(() => import("@/pages/digest-feed"));
+const WarRoomPage = lazy(() => import("@/pages/war-room"));
 
 const AuthPageLazy = lazy(() => import("@/pages/auth"));
 const GuestWarningModalLazy = lazy(() =>
@@ -110,6 +111,7 @@ function Router() {
           <Route path="/guest" component={GuestPage} />
           <Route path="/dashboard" component={DashboardPage} />
           <Route path="/league/create" component={LeagueCreatePage} />
+          <Route path="/league/:id/war-room" component={WarRoomPage} />
           <Route path="/league/:id" component={LeagueViewPage} />
           <Route path="/league/:id/team-selection" component={TeamSelectionPage} />
           <Route path="/league/:id/setup" component={LeagueSetupPage} />

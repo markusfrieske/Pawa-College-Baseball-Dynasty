@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Home, Users, Target, Calendar, Menu, BarChart3, Newspaper,
+  Swords, Users, Target, Calendar, Menu, BarChart3, Newspaper,
   BookOpen, Sparkles, UserCircle, Settings, ShieldCheck, Trophy,
 } from "lucide-react";
 import {
@@ -44,10 +44,10 @@ export function MobileNav() {
     !!currentUser && !!league && (currentUser.id === league.commissionerId || coCommIds.includes(currentUser.id));
 
   const primaryTabs = [
-    { href: leagueBase, icon: Home, label: "Home", testId: "mobile-nav-home", exact: true },
-    { href: `${leagueBase}/recruiting`, icon: Target, label: "Recruit", testId: "mobile-nav-recruiting", exact: false },
-    { href: `${leagueBase}/schedule`, icon: Calendar, label: "Games", testId: "mobile-nav-games", exact: false },
-    { href: `${leagueBase}/roster`, icon: Users, label: "Roster", testId: "mobile-nav-roster", exact: false },
+    { href: `${leagueBase}/war-room`, icon: Swords, label: "War Room", testId: "mobile-nav-war-room", exact: false, alsoActive: leagueBase },
+    { href: `${leagueBase}/recruiting`, icon: Target, label: "Recruit", testId: "mobile-nav-recruiting", exact: false, alsoActive: undefined },
+    { href: `${leagueBase}/schedule`, icon: Calendar, label: "Games", testId: "mobile-nav-games", exact: false, alsoActive: undefined },
+    { href: `${leagueBase}/roster`, icon: Users, label: "Roster", testId: "mobile-nav-roster", exact: false, alsoActive: undefined },
   ] as const;
 
   const moreItems = [
@@ -78,8 +78,8 @@ export function MobileNav() {
         data-testid="mobile-nav"
       >
         <div className="grid grid-cols-5 h-16">
-          {primaryTabs.map(({ href, icon: Icon, label, testId, exact }) => {
-            const isActive = exact ? location === href : location.startsWith(href);
+          {primaryTabs.map(({ href, icon: Icon, label, testId, exact, alsoActive }) => {
+            const isActive = exact ? location === href : (location.startsWith(href) || (!!alsoActive && location === alsoActive));
             return (
               <Link
                 key={href}
