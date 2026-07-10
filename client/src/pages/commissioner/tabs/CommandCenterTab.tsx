@@ -112,13 +112,14 @@ export function CommandCenterTab({
 }: CommandCenterTabProps) {
   const [labelInput, setLabelInput] = useState("");
   const [showSaveForm, setShowSaveForm] = useState(false);
+  const [hasRunPreflight, setHasRunPreflight] = useState(false);
   const readySet = new Set(readyCoaches);
   const readyCount = humanCoaches.filter(c => readySet.has(c.coachId) || c.isAutoPilot).length;
 
   const {
     data: preflight,
     isFetching: isRunning,
-    refetch: runPreflight,
+    refetch: _refetchPreflight,
     dataUpdatedAt,
   } = useQuery<PreflightResult>({
     queryKey: ["/api/leagues", leagueId, "commissioner", "preflight"],
@@ -127,9 +128,15 @@ export function CommandCenterTab({
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
-    enabled: false,
-    staleTime: Infinity,
+    enabled: hasRunPreflight,
+    staleTime: 0,
+    refetchOnWindowFocus: hasRunPreflight,
   });
+
+  const runPreflight = async () => {
+    setHasRunPreflight(true);
+    await _refetchPreflight();
+  };
 
   const { data: saveStates } = useQuery<SaveStateMeta[]>({
     queryKey: ["/api/leagues", leagueId, "save-states"],

@@ -2430,11 +2430,15 @@ app.get("/api/leagues/:id/commissioner/preflight", requireAuth, async (req, res)
       return [...items.slice(0, max), `…and ${extra} more`];
     };
 
-    // coaches_ready: human coaches not ready (respect phase + autopilot)
+    // coaches_ready: human coaches not ready (respect phase + autopilot + deadline-forced)
+    const deadlinePassed = league.phaseDeadline
+      ? new Date() > new Date(league.phaseDeadline)
+      : false;
     const humanCoachEntries = coaches.filter(c => c.userId && c.teamId && humanTeamIds.has(c.teamId));
     const notReadyCoaches = humanCoachEntries.filter(c => {
       const team = teamById.get(c.teamId!);
       if (team?.isAutoPilot) return false; // autopilot always counts as ready
+      if (deadlinePassed) return false; // deadline elapsed → commissioner can force-advance; not a blocker
       if (isDeparturesPhase) return !(team?.departuresFinalized ?? false);
       if (isWalkonsPhase) return !(team?.walkonReady ?? false);
       return !(c.isReady ?? false);
