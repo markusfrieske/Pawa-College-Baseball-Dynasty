@@ -347,6 +347,7 @@ export default function RecruitingPage() {
     weekRecapData: { data: weekRecapData },
     decommitAlertsData: { data: decommitAlerts },
     autoPilotLogData: { data: autoPilotLogData, refetch: refetchAutoPilotLog },
+    battlesData: { data: battlesData },
     isPostSigningDay,
     recapWeek,
     recapSeason,
@@ -763,6 +764,7 @@ export default function RecruitingPage() {
               weeklyActionsUsed={data?.weeklyActionsUsed ?? {}}
               remainingPoints={data?.remainingPoints ?? 1}
               leagueId={id!}
+              battlesData={battlesData}
             />
           </div>
           <MobileFilterSheet

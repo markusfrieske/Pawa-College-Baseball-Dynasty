@@ -25,7 +25,12 @@ import type {
   WeekRecapData,
   DecommitAlert,
   RecruitingHistoryData,
+  BattlesData,
+  BattleRecruit,
+  CommitAnnouncement,
 } from "@/hooks/use-recruiting";
+import { DramaChips, MovementIndicator, RivalryAlertBadge } from "./drama-chips";
+import { TeamBadge } from "@/components/ui/team-badge";
 
 type TabKey = "board" | "targets" | "battles" | "needs" | "recap";
 
@@ -676,6 +681,289 @@ function MobileNeedsTab({
   );
 }
 
+// ── Recruiting Battles Panel ──────────────────────────────────────────────
+
+interface BattleRecruitCardProps {
+  battle: BattleRecruit;
+}
+
+function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
+  const stageLabel: Record<string, string> = {
+    open: "Open", top8: "Top 8", top5: "Top 5", top3: "Top 3", verbal: "Verbal"
+  };
+  const stars = "★".repeat(Math.min(battle.starRank ?? 0, 5));
+  const intensityColor =
+    battle.humanRivalCount >= 3 ? "text-red-400" :
+    battle.humanRivalCount >= 1 ? "text-orange-400" : "text-muted-foreground";
+
+  return (
+    <div
+      className={`bg-card border rounded-lg p-3 space-y-2 ${battle.rivalryAlert ? "border-orange-600/40" : "border-border"}`}
+      data-testid={`battle-card-${battle.id}`}
+    >
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-medium text-sm truncate">{battle.firstName} {battle.lastName}</span>
+            {battle.isBlueChip && (
+              <span className="text-[8px] px-1 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-600/40">Blue Chip</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
+            <span>{battle.position}</span>
+            <span className="text-gold">{stars}</span>
+            <span>{battle.homeState}</span>
+            {battle.stage !== "open" && (
+              <span className={`px-1 py-0.5 rounded text-[8px] ${
+                battle.stage === "verbal" ? "bg-amber-950/60 text-amber-300 border border-amber-600/40" :
+                battle.stage === "top3" ? "bg-yellow-950/60 text-yellow-300 border border-yellow-600/40" :
+                "bg-muted/40 text-muted-foreground border border-border"
+              }`}>
+                {stageLabel[battle.stage] ?? battle.stage}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className={`text-[10px] font-medium ${intensityColor}`}>
+            {battle.humanRivalCount > 0
+              ? `${battle.humanRivalCount} rival${battle.humanRivalCount !== 1 ? "s" : ""}`
+              : `${battle.totalActiveCount} schools`}
+          </div>
+          {battle.offersOut > 0 && (
+            <div className="text-[9px] text-muted-foreground">{battle.offersOut} offer{battle.offersOut !== 1 ? "s" : ""}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Drama chips */}
+      <DramaChips dramaTags={battle.dramaTags} maxVisible={4} />
+
+      {/* My team movement */}
+      {battle.myInterest && (
+        <div className="flex items-center gap-2 text-[9px]">
+          <span className="text-muted-foreground">My interest:</span>
+          <span className={battle.myInterest.interestLevel > 60 ? "text-emerald-400" : "text-foreground"}>
+            {battle.myInterest.interestLevel}%
+          </span>
+          <MovementIndicator delta={battle.myMovementDelta} />
+          {battle.myInterest.hasOffer && <span className="text-gold">Offered</span>}
+        </div>
+      )}
+
+      {/* Top schools strip */}
+      {battle.topSchools.length > 0 && (
+        <div className="flex flex-wrap gap-1 pt-1 border-t border-border/40">
+          {battle.topSchools.slice(0, 5).map(school => (
+            <div
+              key={school.teamId}
+              className={`flex items-center gap-0.5 text-[8px] px-1 py-0.5 rounded border ${
+                school.isMyTeam ? "border-gold/40 bg-gold/10 text-gold" :
+                school.isHuman ? "border-orange-600/30 bg-orange-950/30 text-orange-300" :
+                "border-border/40 bg-muted/20 text-muted-foreground"
+              }`}
+              title={school.teamName}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: school.primaryColor || "#888" }}
+              />
+              <span>{school.abbreviation}</span>
+              {school.movementDir === "up" && <TrendingUp className="w-2 h-2 text-emerald-400" />}
+              {school.movementDir === "down" && <TrendingDown className="w-2 h-2 text-red-400" />}
+              {school.activityLevel === "High" && <span className="text-[7px] text-orange-400">H</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CommitAnnouncementCard({ commit }: { commit: CommitAnnouncement }) {
+  const stars = "★".repeat(Math.min(commit.starRank ?? 0, 5));
+  return (
+    <div
+      className={`border rounded-lg p-3 flex items-center gap-3 ${
+        commit.isMyTeam ? "border-gold/40 bg-gold/5" : "border-border bg-card"
+      }`}
+      data-testid={`commit-card-${commit.id}`}
+    >
+      {commit.signedTeamPrimaryColor && (
+        <div
+          className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
+          style={{ backgroundColor: commit.signedTeamPrimaryColor }}
+        >
+          {commit.signedTeamAbbreviation?.slice(0, 2) ?? "?"}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="font-medium text-[11px]">{commit.firstName} {commit.lastName}</span>
+          {commit.isMyTeam && <span className="text-[8px] text-gold">Your Commit</span>}
+        </div>
+        <div className="text-[9px] text-muted-foreground">
+          <span className="text-gold">{stars}</span> {commit.position} · {commit.homeState}
+        </div>
+        {commit.signedTeamName && (
+          <div className="text-[9px] mt-0.5" style={{ color: commit.signedTeamPrimaryColor || undefined }}>
+            {commit.signedTeamName}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface RecruitingBattlesPanelProps {
+  battlesData?: BattlesData;
+  battleRecruits: RecruitWithInterest[];
+  trendsData?: TrendsData;
+  recommendationsByRecruit: Map<string, RecruitRecommendation>;
+  pipelineData?: PipelineData;
+  storylineRecruitIds: Set<string>;
+  onSelectRecruit: (r: RecruitWithInterest) => void;
+  onQuickPhone?: (recruitId: string) => void;
+  onQuickEmail?: (recruitId: string) => void;
+  pendingRecruitId?: string | null;
+  weeklyActionsUsed: Record<string, string[]>;
+  outOfActions: boolean;
+}
+
+function RecruitingBattlesPanel({
+  battlesData,
+  battleRecruits,
+  trendsData,
+  recommendationsByRecruit,
+  pipelineData,
+  storylineRecruitIds,
+  onSelectRecruit,
+  onQuickPhone,
+  onQuickEmail,
+  pendingRecruitId,
+  weeklyActionsUsed,
+  outOfActions,
+}: RecruitingBattlesPanelProps) {
+  const [showCommits, setShowCommits] = useState(true);
+  const [showWatchlist, setShowWatchlist] = useState(true);
+
+  const battles = battlesData?.battles ?? [];
+  const recentCommits = battlesData?.recentCommits ?? [];
+
+  const commitWatchBattles = battles.filter(b => b.dramaTags.includes("Commitment Watch") || b.dramaTags.includes("Decision Soon"));
+  const rivalryBattles = battles.filter(b => b.rivalryAlert && !commitWatchBattles.includes(b));
+  const otherBattles = battles.filter(b => !commitWatchBattles.includes(b) && !rivalryBattles.includes(b));
+
+  // If battlesData isn't loaded yet, fall back to filtered recruits
+  if (!battlesData) {
+    return (
+      <div className="space-y-3">
+        <p className="text-[10px] text-muted-foreground">
+          {battleRecruits.length} contested recruit{battleRecruits.length !== 1 ? "s" : ""}
+        </p>
+        <MobileRecruitList
+          recruits={battleRecruits}
+          trendsData={trendsData}
+          recommendationsByRecruit={recommendationsByRecruit}
+          positionNeeds={pipelineData?.positionNeeds}
+          storylineRecruitIds={storylineRecruitIds}
+          onSelectRecruit={onSelectRecruit}
+          emptyMessage="No contested recruits right now"
+          emptyIcon={<Flame className="w-10 h-10" />}
+          onQuickPhone={onQuickPhone}
+          onQuickEmail={onQuickEmail}
+          pendingRecruitId={pendingRecruitId}
+          weeklyActionsUsed={weeklyActionsUsed}
+          outOfActions={outOfActions}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Recent Commitments */}
+      {recentCommits.length > 0 && (
+        <div>
+          <button
+            className="flex items-center gap-1.5 text-[10px] font-pixel text-muted-foreground mb-2 w-full text-left"
+            onClick={() => setShowCommits(v => !v)}
+            data-testid="btn-toggle-commits"
+          >
+            {showCommits ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            Commitments ({recentCommits.length})
+          </button>
+          {showCommits && (
+            <div className="space-y-2">
+              {recentCommits.slice(0, 5).map(c => (
+                <CommitAnnouncementCard key={c.id} commit={c} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Commitment Watch */}
+      {commitWatchBattles.length > 0 && (
+        <div>
+          <button
+            className="flex items-center gap-1.5 text-[10px] font-pixel text-amber-400 mb-2 w-full text-left"
+            onClick={() => setShowWatchlist(v => !v)}
+            data-testid="btn-toggle-watchlist"
+          >
+            {showWatchlist ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+            Commitment Watch ({commitWatchBattles.length})
+          </button>
+          {showWatchlist && (
+            <div className="space-y-2">
+              {commitWatchBattles.map(b => (
+                <BattleRecruitCard key={b.id} battle={b} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Rivalry Alerts */}
+      {rivalryBattles.length > 0 && (
+        <div>
+          <div className="text-[10px] font-pixel text-orange-400 mb-2 flex items-center gap-1.5">
+            <Flame className="w-3 h-3" />
+            Rivalry Alerts ({rivalryBattles.length})
+          </div>
+          <div className="space-y-2">
+            {rivalryBattles.map(b => (
+              <BattleRecruitCard key={b.id} battle={b} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Rest of contested recruits */}
+      {otherBattles.length > 0 && (
+        <div>
+          <div className="text-[10px] font-pixel text-muted-foreground mb-2">
+            All Battles ({battles.length})
+          </div>
+          <div className="space-y-2">
+            {otherBattles.map(b => (
+              <BattleRecruitCard key={b.id} battle={b} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {battles.length === 0 && recentCommits.length === 0 && (
+        <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
+          <Flame className="w-10 h-10 opacity-30" />
+          <p className="text-[11px]">No heated battles yet this week</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export interface MobileRecruitingBoardProps {
   filteredRecruits: RecruitWithInterest[];
   allRecruits: RecruitWithInterest[];
@@ -697,6 +985,7 @@ export interface MobileRecruitingBoardProps {
   weeklyActionsUsed: Record<string, string[]>;
   remainingPoints: number;
   leagueId: string;
+  battlesData?: BattlesData;
 }
 
 export function MobileRecruitingBoard({
@@ -720,6 +1009,7 @@ export function MobileRecruitingBoard({
   weeklyActionsUsed,
   remainingPoints,
   leagueId,
+  battlesData,
 }: MobileRecruitingBoardProps) {
   const tabStorageKey = `recruiting-mobile-tab-${leagueId}`;
   const [activeTab, setActiveTabState] = useState<TabKey>(() => {
@@ -939,26 +1229,20 @@ export function MobileRecruitingBoard({
         )}
 
         {activeTab === "battles" && (
-          <div className="space-y-3">
-            <p className="text-[10px] text-muted-foreground">
-              {battleRecruits.length} contested recruit{battleRecruits.length !== 1 ? "s" : ""}
-            </p>
-            <MobileRecruitList
-              recruits={battleRecruits}
-              trendsData={trendsData}
-              recommendationsByRecruit={recommendationsByRecruit}
-              positionNeeds={pipelineData?.positionNeeds}
-              storylineRecruitIds={storylineRecruitIds}
-              onSelectRecruit={onSelectRecruit}
-              emptyMessage="No contested recruits right now"
-              emptyIcon={<Flame className="w-10 h-10" />}
-              onQuickPhone={handleQuickPhone}
-              onQuickEmail={handleQuickEmail}
-              pendingRecruitId={pendingRecruitId}
-              weeklyActionsUsed={weeklyActionsUsed}
-              outOfActions={outOfActions}
-            />
-          </div>
+          <RecruitingBattlesPanel
+            battlesData={battlesData}
+            battleRecruits={battleRecruits}
+            trendsData={trendsData}
+            recommendationsByRecruit={recommendationsByRecruit}
+            pipelineData={pipelineData}
+            storylineRecruitIds={storylineRecruitIds}
+            onSelectRecruit={onSelectRecruit}
+            onQuickPhone={handleQuickPhone}
+            onQuickEmail={handleQuickEmail}
+            pendingRecruitId={pendingRecruitId}
+            weeklyActionsUsed={weeklyActionsUsed}
+            outOfActions={outOfActions}
+          />
         )}
 
         {activeTab === "needs" && (

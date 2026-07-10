@@ -2016,6 +2016,193 @@ export function registerRecruitingRoutes(app: Express): void {
     }
   });
 
+  // ── Recruiting Drama: Battles endpoint ───────────────────────────────────
+  // League-wide view of most contested recruits. Public info only — no
+  // gem/bust/generational status, no hidden OVR beyond what star rating shows.
+  app.get("/api/leagues/:id/recruiting/battles", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const { userTeam } = resolveUserTeam(coaches, leagueTeams, userId);
+      if (!userTeam) return res.status(400).json({ message: "No team assigned" });
+
+      const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
+      const humanTeamIds = new Set(leagueTeams.filter(t => !t.isCpu).map(t => t.id));
+
+      const leagueRecruits = await storage.getRecruitsByLeague(league.id);
+      const allTopSchools = await storage.getRecruitTopSchoolsByLeague(league.id);
+      const allInterests = await storage.getRecruitingInterestsByLeague(league.id);
+
+      // Per-recruit aggregations
+      const topSchoolsByRecruit = new Map<string, typeof allTopSchools>();
+      for (const ts of allTopSchools) {
+        if (!topSchoolsByRecruit.has(ts.recruitId)) topSchoolsByRecruit.set(ts.recruitId, []);
+        topSchoolsByRecruit.get(ts.recruitId)!.push(ts);
+      }
+
+      const interestsByRecruit = new Map<string, typeof allInterests>();
+      for (const ri of allInterests) {
+        if (!interestsByRecruit.has(ri.recruitId)) interestsByRecruit.set(ri.recruitId, []);
+        interestsByRecruit.get(ri.recruitId)!.push(ri);
+      }
+
+      // My own interests for personalised rivalry alert
+      const myInterestsMap = new Map<string, typeof allInterests[0]>();
+      for (const ri of allInterests) {
+        if (ri.teamId === userTeam.id) myInterestsMap.set(ri.recruitId, ri);
+      }
+
+      const RIVALRY_THRESHOLD = 80;
+
+      const battles = leagueRecruits
+        .filter(r => !r.signedTeamId) // exclude already-signed
+        .map(recruit => {
+          const stage = (recruit.stage || "open").toLowerCase();
+          const schools = topSchoolsByRecruit.get(recruit.id) ?? [];
+          const interests = interestsByRecruit.get(recruit.id) ?? [];
+          const myInterest = myInterestsMap.get(recruit.id);
+
+          // Count active human rivals (not user team)
+          let humanRivalCount = 0;
+          let totalActiveCount = 0;
+          let highActivityCount = 0;
+          for (const ts of schools) {
+            if (!ts.isActive) continue;
+            const combined = (ts.interestLevel || 0) + (ts.accumulatedInterest || 0);
+            if (combined < RIVALRY_THRESHOLD) continue;
+            totalActiveCount++;
+            if ((ts.accumulatedInterest || 0) >= 20) highActivityCount++;
+            if (ts.teamId !== userTeam.id && humanTeamIds.has(ts.teamId)) humanRivalCount++;
+          }
+
+          // Teams with offers (from interests table)
+          const offersOut = interests.filter(ri => ri.hasOffer && ri.teamId !== userTeam.id).length;
+
+          // Battle score: prioritise human rivalry + late stage + heavy activity
+          const stageBonus = stage === "verbal" ? 5 : stage === "top3" ? 3 : stage === "top5" ? 2 : 0;
+          const battleScore = humanRivalCount * 3 + totalActiveCount + stageBonus + Math.min(highActivityCount, 3);
+
+          // Drama tags (league-wide perspective — no hidden data)
+          const dramaTags: string[] = [];
+          if (stage === "verbal" || stage === "top3") dramaTags.push("Decision Soon");
+          if (stage === "verbal") dramaTags.push("Commitment Watch");
+          if (highActivityCount >= 2) dramaTags.push("Visit Buzz");
+          if (humanRivalCount >= 2) dramaTags.push("Rivalry");
+          if (stage === "open" && totalActiveCount <= 1) dramaTags.push("Wide Open");
+
+          // My movement on this recruit (if I'm recruiting them)
+          let myMovementDelta: number | null = null;
+          const mySchoolEntry = schools.find(ts => ts.teamId === userTeam.id && ts.isActive);
+          if (mySchoolEntry && mySchoolEntry.previousInterestLevel != null) {
+            const current = Math.min(100, (mySchoolEntry.interestLevel || 0) + (mySchoolEntry.accumulatedInterest || 0));
+            myMovementDelta = current - mySchoolEntry.previousInterestLevel;
+            if (myMovementDelta >= 5) dramaTags.push("Rising");
+            else if (myMovementDelta <= -5) dramaTags.push("Cooling");
+          }
+
+          const rivalryAlert = humanRivalCount >= 1 && (
+            (myInterest?.interestLevel ?? 0) > 10 || !!myInterest?.isTargeted || !!myInterest?.hasOffer
+          );
+
+          // Top schools for display — show name + movement direction, no exact interest % for rivals
+          const stageCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
+          const displaySchools = schools
+            .filter(ts => ts.isActive && teamMap.has(ts.teamId))
+            .sort((a, b) => {
+              const aC = (a.interestLevel || 0) + (a.accumulatedInterest || 0);
+              const bC = (b.interestLevel || 0) + (b.accumulatedInterest || 0);
+              return bC - aC;
+            })
+            .slice(0, stageCount)
+            .map(ts => {
+              const team = teamMap.get(ts.teamId)!;
+              const combined = Math.min(100, (ts.interestLevel || 0) + (ts.accumulatedInterest || 0));
+              const delta = ts.previousInterestLevel != null ? combined - ts.previousInterestLevel : 0;
+              const isMyTeam = ts.teamId === userTeam.id;
+              return {
+                teamId: ts.teamId,
+                teamName: team.name,
+                abbreviation: team.abbreviation,
+                primaryColor: team.primaryColor,
+                isMyTeam,
+                isHuman: humanTeamIds.has(ts.teamId),
+                movementDir: delta >= 5 ? "up" : delta <= -5 ? "down" : "flat",
+                // Only reveal exact interest % for my own team
+                interestLevel: isMyTeam ? combined : null,
+                activityLevel: (ts.accumulatedInterest || 0) >= 30 ? "High" : (ts.accumulatedInterest || 0) >= 15 ? "Med" : "Low",
+              };
+            });
+
+          // Public-safe recruit fields (strip all hidden gem/bust/generational data)
+          return {
+            id: recruit.id,
+            firstName: recruit.firstName,
+            lastName: recruit.lastName,
+            position: recruit.position,
+            starRank: recruit.starRank,
+            starRating: recruit.starRating,
+            hometown: recruit.hometown,
+            homeState: recruit.homeState,
+            stage,
+            recruitType: recruit.recruitType,
+            classRank: recruit.classRank,
+            isBlueChip: recruit.isBlueChip,
+            battleScore,
+            humanRivalCount,
+            totalActiveCount,
+            offersOut,
+            dramaTags: [...new Set(dramaTags)],
+            rivalryAlert,
+            myMovementDelta,
+            myInterest: myInterest ? {
+              interestLevel: myInterest.interestLevel,
+              hasOffer: myInterest.hasOffer,
+              isTargeted: myInterest.isTargeted,
+              scoutPercentage: myInterest.scoutPercentage,
+            } : null,
+            topSchools: displaySchools,
+          };
+        })
+        .filter(b => b.battleScore > 0)
+        .sort((a, b) => b.battleScore - a.battleScore)
+        .slice(0, 30);
+
+      // Recent commitments — signed recruits from this season for announcement cards
+      const recentCommits = leagueRecruits
+        .filter(r => r.signedTeamId && r.stage === "signed")
+        .map(r => {
+          const team = teamMap.get(r.signedTeamId!);
+          return {
+            id: r.id,
+            firstName: r.firstName,
+            lastName: r.lastName,
+            position: r.position,
+            starRank: r.starRank,
+            hometown: r.hometown,
+            homeState: r.homeState,
+            signedTeamId: r.signedTeamId,
+            signedTeamName: team?.name || null,
+            signedTeamAbbreviation: team?.abbreviation || null,
+            signedTeamPrimaryColor: team?.primaryColor || null,
+            signedTeamSecondaryColor: team?.secondaryColor || null,
+            isMyTeam: r.signedTeamId === userTeam.id,
+            classRank: r.classRank,
+          };
+        })
+        .sort((a, b) => (a.starRank ?? 0) > (b.starRank ?? 0) ? -1 : 1)
+        .slice(0, 20);
+
+      res.json({ battles, recentCommits, userTeamId: userTeam.id });
+    } catch (error) {
+      console.error("Failed to fetch recruiting battles:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting battles" });
+    }
+  });
+
   // Recruiting routes
   app.get("/api/leagues/:id/recruiting", requireAuth, async (req, res) => {
     try {
@@ -2078,6 +2265,29 @@ export function registerRecruitingRoutes(app: Express): void {
         entry.teamsIn++;
         if (ri.hasOffer) entry.offersOut++;
         teamsInMap.set(ri.recruitId, entry);
+      }
+
+      // Drama layer — human rival map: recruitId -> count of *human* teams with meaningful
+      // combined interest (excl. user team). Used for rivalry alert labels.
+      const humanRivalsByRecruit = new Map<string, number>();
+      for (const ts of allLeagueTopSchools) {
+        if (ts.teamId === userTeam.id) continue;
+        if (!ts.isActive) continue;
+        const combined = (ts.interestLevel || 0) + (ts.accumulatedInterest || 0);
+        if (combined < RIVALRY_INTEREST_THRESHOLD) continue;
+        const tsTeam = teamMap.get(ts.teamId);
+        if (!tsTeam || tsTeam.isCpu) continue;
+        humanRivalsByRecruit.set(ts.recruitId, (humanRivalsByRecruit.get(ts.recruitId) || 0) + 1);
+      }
+
+      // Drama layer — visit buzz map: recruitId -> count of rival schools with meaningful
+      // accumulated interest (≥ 20), proxy for active multi-action recruiting (visits, calls).
+      const visitBuzzMap = new Map<string, number>();
+      for (const ts of allLeagueTopSchools) {
+        if (ts.teamId === userTeam.id) continue;
+        if (!ts.isActive) continue;
+        if ((ts.accumulatedInterest || 0) < 20) continue;
+        visitBuzzMap.set(ts.recruitId, (visitBuzzMap.get(ts.recruitId) || 0) + 1);
       }
 
       // Build a per-recruit map from the already-fetched allLeagueTopSchools to avoid N+1 queries
@@ -2243,6 +2453,40 @@ export function registerRecruitingRoutes(app: Express): void {
         const reputationHighWeight = reputationPri === "Extremely" || reputationPri === "Very";
         const stadiumAffinitySignal = userScoutPct >= 10 && reputationHighWeight && (userTeam.stadium || 5) >= 7;
 
+        // ── Drama layer ────────────────────────────────────────────────────────
+        // Public engagement signals. Never references isGem/isBust/isGenerational.
+        const dramaTags: string[] = [];
+        let myMovementDelta: number | null = null;
+
+        // "Rising" / "Cooling" — user's own interest moved since last weekly advance
+        const myTopSchoolEntry = storedTopSchools.find(ts => ts.teamId === userTeam.id && ts.isActive);
+        if (myTopSchoolEntry && myTopSchoolEntry.previousInterestLevel != null) {
+          const current = Math.min(100, (myTopSchoolEntry.interestLevel || 0) + (myTopSchoolEntry.accumulatedInterest || 0));
+          myMovementDelta = current - myTopSchoolEntry.previousInterestLevel;
+          if (myMovementDelta >= 5) dramaTags.push("Rising");
+          else if (myMovementDelta <= -5) dramaTags.push("Cooling");
+        }
+
+        // "Decision Soon" — late commitment stage (top3 or verbal)
+        if (stage === "verbal" || stage === "top3") dramaTags.push("Decision Soon");
+
+        // "Commitment Watch" — verbal but not yet signed
+        if (stage === "verbal" && !recruit.signedTeamId) dramaTags.push("Commitment Watch");
+
+        // "Wide Open" — early stage with few active competitors
+        const rawTeamsForBuzz = teamsInMap.get(recruit.id)?.teamsIn ?? 0;
+        if (stage === "open" && rawTeamsForBuzz <= 1) dramaTags.push("Wide Open");
+
+        // "Visit Buzz" — multiple rival programs have been actively recruiting this recruit
+        const visitBuzzCount = visitBuzzMap.get(recruit.id) || 0;
+        if (visitBuzzCount >= 2) dramaTags.push("Visit Buzz");
+
+        // "Rivalry" — at least one human rival is competing heavily + I'm in the race
+        const humanRivalsForRecruit = humanRivalsByRecruit.get(recruit.id) || 0;
+        const imActivelyRecruiting = (interest?.interestLevel ?? 0) > 10 || !!interest?.isTargeted || !!interest?.hasOffer;
+        const rivalryAlert = humanRivalsForRecruit >= 1 && imActivelyRecruiting;
+        if (rivalryAlert) dramaTags.push("Rivalry");
+
         return {
           ...maskedRecruit,
           potential: actualPotential,
@@ -2259,8 +2503,10 @@ export function registerRecruitingRoutes(app: Express): void {
           teamsIn,
           offersOut,
           stadiumAffinitySignal,
-          // Tell the client which fields are signing-day locked vs just unscouted
           signingDayLockedFields: holdbackFields,
+          dramaTags,
+          rivalryAlert,
+          myMovementDelta,
         };
       }));
 

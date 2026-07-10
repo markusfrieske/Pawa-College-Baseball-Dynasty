@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "wouter";
+import { DramaChips, MovementIndicator } from "./drama-chips";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
@@ -560,6 +561,13 @@ function RecruitRow({
                 </Tooltip>
               )}
             </div>
+            {/* Drama layer: public engagement signals (never reveals hidden gem/bust status) */}
+            {((recruit.dramaTags && recruit.dramaTags.length > 0) || recruit.myMovementDelta != null) && (
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <DramaChips dramaTags={recruit.dramaTags} maxVisible={3} testIdPrefix={`recruit-${recruit.id}-`} />
+                <MovementIndicator delta={recruit.myMovementDelta} />
+              </div>
+            )}
           </div>
         </div>
 

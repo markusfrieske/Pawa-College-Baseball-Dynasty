@@ -18,6 +18,71 @@ export interface RecruitWithInterest extends Recruit {
   offersOut?: number | null;
   signingDayLockedFields?: string[] | null;
   lastSeasonStats?: LastSeasonStats | null;
+  dramaTags?: string[] | null;
+  rivalryAlert?: boolean | null;
+  myMovementDelta?: number | null;
+}
+
+export interface BattleRecruit {
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  starRank?: number | null;
+  starRating?: number | null;
+  hometown?: string | null;
+  homeState?: string | null;
+  stage: string;
+  recruitType?: string | null;
+  classRank?: number | null;
+  isBlueChip?: boolean | null;
+  battleScore: number;
+  humanRivalCount: number;
+  totalActiveCount: number;
+  offersOut: number;
+  dramaTags: string[];
+  rivalryAlert: boolean;
+  myMovementDelta: number | null;
+  myInterest?: {
+    interestLevel: number;
+    hasOffer: boolean;
+    isTargeted: boolean;
+    scoutPercentage: number;
+  } | null;
+  topSchools: {
+    teamId: string;
+    teamName: string;
+    abbreviation: string;
+    primaryColor: string;
+    isMyTeam: boolean;
+    isHuman: boolean;
+    movementDir: "up" | "down" | "flat";
+    interestLevel: number | null;
+    activityLevel: "High" | "Med" | "Low";
+  }[];
+}
+
+export interface CommitAnnouncement {
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  starRank?: number | null;
+  hometown?: string | null;
+  homeState?: string | null;
+  signedTeamId?: string | null;
+  signedTeamName?: string | null;
+  signedTeamAbbreviation?: string | null;
+  signedTeamPrimaryColor?: string | null;
+  signedTeamSecondaryColor?: string | null;
+  isMyTeam: boolean;
+  classRank?: number | null;
+}
+
+export interface BattlesData {
+  battles: BattleRecruit[];
+  recentCommits: CommitAnnouncement[];
+  userTeamId: string;
 }
 
 export interface AutoPilotAlertEntry {
@@ -249,6 +314,12 @@ export function useRecruitingData(leagueId: string) {
     staleTime: 30000,
   });
 
+  const battlesQuery = useQuery<BattlesData>({
+    queryKey: ["/api/leagues", leagueId, "recruiting", "battles"],
+    staleTime: 60_000,
+    enabled: !!leagueId,
+  });
+
   return {
     recruitingData: dataQuery,
     pipelineData: pipelineQuery,
@@ -261,6 +332,7 @@ export function useRecruitingData(leagueId: string) {
     weekRecapData: weekRecapQuery,
     decommitAlertsData: decommitAlertsQuery,
     autoPilotLogData: autoPilotLogQuery,
+    battlesData: battlesQuery,
     isPostSigningDay,
     recapWeek,
     recapSeason,

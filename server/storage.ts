@@ -196,6 +196,7 @@ export interface IStorage {
   getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByLeagueWeek(leagueId: string, season: number, week: number): Promise<RecruitingActionsLog[]>;
+  getRecruitingActionsLogBySeason(leagueId: string, season: number): Promise<RecruitingActionsLog[]>;
   getSeasonVisitCount(teamId: string, leagueId: string, season: number): Promise<{ total: number; campusVisits: number; hcVisits: number }>;
   createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog>;
 
@@ -1067,6 +1068,14 @@ export class DatabaseStorage implements IStorage {
         eq(recruitingActionsLog.leagueId, leagueId),
         eq(recruitingActionsLog.season, season),
         eq(recruitingActionsLog.week, week),
+      ));
+  }
+
+  async getRecruitingActionsLogBySeason(leagueId: string, season: number): Promise<RecruitingActionsLog[]> {
+    return await db.select().from(recruitingActionsLog)
+      .where(and(
+        eq(recruitingActionsLog.leagueId, leagueId),
+        eq(recruitingActionsLog.season, season),
       ));
   }
 
