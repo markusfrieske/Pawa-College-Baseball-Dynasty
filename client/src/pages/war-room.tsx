@@ -2,12 +2,13 @@
  * Weekly War Room — default coach hub for a league.
  * Mobile-first. First viewport answers: who do I play, am I ready, what's blocking me?
  */
+import { useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Check, Clock, FileText, Target, UserMinus, UserPlus,
   ClipboardList, AlertTriangle, Home, Plane, Calendar, ShieldCheck,
-  ChevronRight, Trophy, History, Swords, Rss,
+  ChevronRight, Trophy, History, Swords, Rss, Newspaper,
 } from "lucide-react";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -17,6 +18,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { apiRequest } from "@/lib/queryClient";
 import { getEffectiveReady, getReadyBlockReason, type ReadyStatusEntryLike } from "@/lib/ready-status";
 import type { ReadyStatusData } from "@/pages/league-view/types";
+import { RecapModal } from "@/components/recap-modal";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -169,6 +171,7 @@ function NextGameCard({
   leagueId: string;
   data: WarRoomData;
 }) {
+  const [recapOpen, setRecapOpen] = useState(false);
   const { nextOpponent, league, userTeam } = data;
   const isGamePhase = [
     "regular_season",
@@ -364,8 +367,8 @@ function NextGameCard({
           </div>
         )}
         {isComplete && (
-          <div className="mt-3">
-            <Link href={`/league/${leagueId}/schedule`}>
+          <div className="mt-3 flex gap-2">
+            <Link href={`/league/${leagueId}/schedule`} className="flex-1">
               <RetroButton
                 variant="outline"
                 size="md"
@@ -376,9 +379,22 @@ function NextGameCard({
                 View Results
               </RetroButton>
             </Link>
+            {nextOpponent?.gameId && (
+              <RetroButton
+                variant="outline"
+                size="md"
+                className="min-h-[44px] border-gold/30 text-gold/70 hover:text-gold hover:border-gold/60"
+                data-testid="button-war-room-recap"
+                onClick={() => setRecapOpen(true)}
+              >
+                <Newspaper className="w-3.5 h-3.5 mr-1.5" />
+                Recap
+              </RetroButton>
+            )}
           </div>
         )}
       </RetroCardContent>
+      <RecapModal leagueId={leagueId} gameId={recapOpen && nextOpponent?.gameId ? nextOpponent.gameId : null} onClose={() => setRecapOpen(false)} />
     </RetroCard>
   );
 }

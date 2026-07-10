@@ -37,6 +37,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { LeagueEvent } from "@shared/schema";
+import { RecapModal } from "@/components/recap-modal";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ function relativeTime(dateInput: string | Date | null | undefined): string {
 
 // ── Event card ─────────────────────────────────────────────────────────────
 
-function TickerEventCard({ event, isNew }: { event: LeagueEvent; isNew: boolean }) {
+function TickerEventCard({ event, isNew, onViewRecap }: { event: LeagueEvent; isNew: boolean; onViewRecap?: (gameId: string) => void }) {
   const { Icon, color } = eventIcon(event.eventType);
 
   return (
@@ -145,6 +146,16 @@ function TickerEventCard({ event, isNew }: { event: LeagueEvent; isNew: boolean 
           <span className="text-[10px] text-muted-foreground/50">
             {relativeTime(event.createdAt)}
           </span>
+          {event.eventType === "GAME_RESULT" && onViewRecap && typeof (event.metadata as Record<string, unknown>)?.gameId === "string" && (
+            <button
+              type="button"
+              className="text-[10px] text-gold/70 hover:text-gold underline underline-offset-2"
+              onClick={() => onViewRecap((event.metadata as Record<string, string>).gameId)}
+              data-testid={`ticker-recap-${event.id}`}
+            >
+              Recap
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -177,6 +188,7 @@ export default function LeagueTickerPage() {
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [offset, setOffset] = useState(0);
   const [allEvents, setAllEvents] = useState<LeagueEvent[]>([]);
+  const [recapGameId, setRecapGameId] = useState<string | null>(null);
 
   // War-room meta gives us userTeam + isCommissioner
   const { data: wrData } = useQuery<WarRoomData>({
@@ -309,6 +321,7 @@ export default function LeagueTickerPage() {
                     key={event.id}
                     event={event}
                     isNew={lastReadAt !== null && new Date(event.createdAt) > lastReadAt}
+                    onViewRecap={setRecapGameId}
                   />
                 ))}
 
@@ -353,6 +366,7 @@ export default function LeagueTickerPage() {
           </Link>
         </div>
       </div>
+      <RecapModal leagueId={leagueId!} gameId={recapGameId} onClose={() => setRecapGameId(null)} />
     </div>
   );
 }

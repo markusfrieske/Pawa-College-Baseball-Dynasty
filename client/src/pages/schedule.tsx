@@ -11,10 +11,11 @@ import { QueryError } from "@/components/ui/query-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2, Shield } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2, Shield, Newspaper } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
+import { RecapModal } from "@/components/recap-modal";
 import { ReportStatusBadge, type ReportStatus } from "./report-game";
 import { GameScreenshotGallery } from "@/components/game-screenshots";
 
@@ -295,6 +296,7 @@ function getSeriesOutcome(series: SeriesGroup, userTeamId: string | null): {
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
   const [boxScoreGame, setBoxScoreGame] = useState<GameWithTeams | null>(null);
+  const [recapGameId, setRecapGameId] = useState<string | null>(null);
   const [reviewReportGame, setReviewReportGame] = useState<GameWithTeams | null>(null);
   const [showMyTeam, setShowMyTeam] = useState(true);
   const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
@@ -406,6 +408,7 @@ export default function SchedulePage() {
 
   const gameCallbacks = {
     onViewBoxScore: (game: GameWithTeams) => setBoxScoreGame(game),
+    onViewRecap: (gameId: string) => setRecapGameId(gameId),
     onMatchupPreview: (gameId: string) => setMatchupPreviewGameId(gameId),
     onConfirm: (gameId: string) => confirmReportMutation.mutate(gameId),
     onDispute: (gameId: string) => { setDisputeGameId(gameId); setDisputeReason(""); },
@@ -629,6 +632,7 @@ export default function SchedulePage() {
       </main>
 
       <BoxScoreModal game={boxScoreGame} leagueId={id!} onClose={() => setBoxScoreGame(null)} />
+      <RecapModal leagueId={id!} gameId={recapGameId} onClose={() => setRecapGameId(null)} />
 
       <PendingReportModal
         leagueId={id!}
@@ -729,6 +733,7 @@ export default function SchedulePage() {
 
 type GameCallbacks = {
   onViewBoxScore: (game: GameWithTeams) => void;
+  onViewRecap: (gameId: string) => void;
   onMatchupPreview: (gameId: string) => void;
   onConfirm: (gameId: string) => void;
   onDispute: (gameId: string) => void;
@@ -1421,9 +1426,14 @@ function CompactGameRow({
             )
           )}
           {game.isComplete && (
-            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
-              <Check className="w-3 h-3" />
-            </RetroButton>
+            <>
+              <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
+                <Check className="w-3 h-3" />
+              </RetroButton>
+              <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewRecap(game.id)} data-testid={`button-recap-${game.id}`} title="View Recap" className="border-gold/30 text-gold/70 hover:text-gold hover:border-gold/60">
+                <Newspaper className="w-3 h-3" />
+              </RetroButton>
+            </>
           )}
         </div>
       </div>
@@ -1697,15 +1707,27 @@ function StandaloneGameRow({
             </>
           )}
           {game.isComplete && (
-            <RetroButton
-              variant="outline"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); callbacks.onViewBoxScore(game); }}
-              data-testid={`button-box-score-action-${game.id}`}
-              title="View Box Score"
-            >
-              <Check className="w-3 h-3" />
-            </RetroButton>
+            <>
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); callbacks.onViewBoxScore(game); }}
+                data-testid={`button-box-score-action-${game.id}`}
+                title="View Box Score"
+              >
+                <Check className="w-3 h-3" />
+              </RetroButton>
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={(e) => { e.stopPropagation(); callbacks.onViewRecap(game.id); }}
+                data-testid={`button-recap-standalone-${game.id}`}
+                title="View Recap"
+                className="border-gold/30 text-gold/70 hover:text-gold hover:border-gold/60"
+              >
+                <Newspaper className="w-3 h-3" />
+              </RetroButton>
+            </>
           )}
         </div>
       </div>

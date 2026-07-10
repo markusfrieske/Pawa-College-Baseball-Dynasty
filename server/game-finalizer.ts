@@ -32,6 +32,7 @@ import {
 } from "./game-engine";
 import { invalidateLeague } from "./cache";
 import { hasPerk, XP_AWARDS } from "@shared/coachPerks";
+import { generateGameRecap } from "./lib/recap-generator";
 
 const WIN_XP = XP_AWARDS.WIN;
 const LOSS_XP = XP_AWARDS.LOSS;
@@ -252,6 +253,7 @@ export async function finalizeGame(
         description: `${winner?.abbreviation ?? "?"} def. ${loser?.abbreviation ?? "?"} ${winScore}-${lossScore}${suffix}`,
         season: game.season,
         week: game.week,
+        metadata: { gameId: game.id },
       });
     } catch (e) {
       console.error("[finalizeGame] league event error:", e);
@@ -265,6 +267,98 @@ export async function finalizeGame(
   if (!skipCacheInvalidation) {
     invalidateLeague(leagueId);
   }
+
+  // ── 9. Generate postgame recap (non-blocking, best-effort) ─────────────────
+  // Skip if a recap already exists (idempotent for retried finalizations).
+  generateAndStoreRecap(game, homeScore, awayScore, rawBoxScore, leagueId, opts).catch(e =>
+    console.error("[finalizeGame] recap generation error:", e),
+  );
+}
+
+/** Builds and persists a GameRecap for a completed game. */
+async function generateAndStoreRecap(
+  game: Pick<Game, "id" | "homeTeamId" | "awayTeamId" | "season" | "week" | "isConference" | "gameType">,
+  homeScore: number,
+  awayScore: number,
+  rawBoxScore: { home: any; away: any; innings?: any[] } | null,
+  leagueId: string,
+  opts: FinalizeGameOptions,
+): Promise<void> {
+  // Guard: skip if recap already exists (idempotent).
+  const existing = await storage.getGameRecap(game.id);
+  if (existing) return;
+
+  const teams = opts.leagueTeams ?? await storage.getTeamsByLeague(leagueId);
+  const homeTeam = teams.find(t => t.id === game.homeTeamId);
+  const awayTeam = teams.find(t => t.id === game.awayTeamId);
+  if (!homeTeam || !awayTeam) return;
+
+  // Gather standings impact: query winner's record after update
+  const homeWon = homeScore > awayScore;
+  const winnerTeam = homeWon ? homeTeam : awayTeam;
+  let standingsImpact: string | null = null;
+  try {
+    const allStandings = await storage.getStandingsByLeague(leagueId, game.season);
+    const winnerStandings = allStandings.find(s => s.teamId === winnerTeam.id);
+    if (winnerStandings) {
+      standingsImpact = `${winnerTeam.abbreviation} improve to ${winnerStandings.wins}-${winnerStandings.losses}`;
+      if (game.isConference) {
+        standingsImpact += ` (${winnerStandings.conferenceWins ?? 0}-${winnerStandings.conferenceLosses ?? 0} conf)`;
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Gather series status for conference series games (fri/sat/sun)
+  let seriesStatus: string | null = null;
+  const gameTypeOrder = ["friday", "saturday", "sunday"];
+  if (game.isConference && game.gameType && gameTypeOrder.includes(game.gameType)) {
+    try {
+      const allGames = await storage.getGamesByLeagueSeason(leagueId, game.season);
+      const seriesGames = allGames.filter(g =>
+        g.isComplete &&
+        g.week === game.week &&
+        ((g.homeTeamId === game.homeTeamId && g.awayTeamId === game.awayTeamId) ||
+         (g.homeTeamId === game.awayTeamId && g.awayTeamId === game.homeTeamId))
+      );
+      if (seriesGames.length > 1) {
+        const homeWins = seriesGames.filter(g => g.homeScore != null && g.awayScore != null && g.homeScore > g.awayScore).length;
+        const awayWins = seriesGames.length - homeWins;
+        const seriesWinner = homeWins > awayWins ? homeTeam : awayWins > homeWins ? awayTeam : null;
+        if (seriesWinner) {
+          seriesStatus = `${seriesWinner.abbreviation} lead series ${Math.max(homeWins, awayWins)}-${Math.min(homeWins, awayWins)}`;
+        } else {
+          seriesStatus = `Series tied ${homeWins}-${awayWins}`;
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  const recapPayload = generateGameRecap({
+    game: {
+      id: game.id,
+      leagueId,
+      homeTeamId: game.homeTeamId,
+      awayTeamId: game.awayTeamId,
+      homeTeam: { name: homeTeam.name, abbreviation: homeTeam.abbreviation, primaryColor: homeTeam.primaryColor },
+      awayTeam: { name: awayTeam.name, abbreviation: awayTeam.abbreviation, primaryColor: awayTeam.primaryColor },
+      homeScore,
+      awayScore,
+      phase: (game as any).phase ?? null,
+      gameType: game.gameType ?? null,
+      season: game.season,
+      week: game.week,
+      isConference: game.isConference ?? false,
+    },
+    boxScore: rawBoxScore ? {
+      innings: (rawBoxScore.innings as number[][] | undefined) ?? [],
+      home: rawBoxScore.home,
+      away: rawBoxScore.away,
+    } : null,
+    seriesInfo: { status: seriesStatus },
+    standingsInfo: { impact: standingsImpact },
+  });
+
+  await storage.createGameRecap(recapPayload);
 }
 
 /**

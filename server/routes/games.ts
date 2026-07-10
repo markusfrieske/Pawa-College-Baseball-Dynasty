@@ -1531,4 +1531,29 @@ export function registerGameRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to fetch game prep" });
     }
   });
+
+  // ── Game Recap ────────────────────────────────────────────────────────────
+  //   GET /api/leagues/:id/games/:gameId/recap
+  //   Returns the persisted postgame recap card. Available to any authenticated
+  //   league member. Returns 404 if the recap has not been generated yet
+  //   (e.g. game was completed before this feature shipped).
+  app.get("/api/leagues/:id/games/:gameId/recap", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId   = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const recap = await storage.getGameRecap(gameId);
+      if (!recap || recap.leagueId !== leagueId) {
+        return res.status(404).json({ message: "Recap not available for this game" });
+      }
+
+      res.json(recap);
+    } catch (error) {
+      console.error("Failed to fetch game recap:", error);
+      res.status(500).json({ message: "Failed to fetch game recap" });
+    }
+  });
 }

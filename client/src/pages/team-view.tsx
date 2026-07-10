@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { RecapModal } from "@/components/recap-modal";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -24,6 +25,7 @@ import {
   GraduationCap,
   Building2,
   Calendar,
+  Newspaper,
   History,
   TrendingUp,
   Award,
@@ -623,6 +625,7 @@ function getStarRating(overall: number): number {
 }
 
 function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }) {
+  const [recapGameId, setRecapGameId] = useState<string | null>(null);
   const games = team.games || [];
   
   const getOpponentInfo = (game: GameWithTeams) => {
@@ -665,17 +668,28 @@ function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }
                       {prefix} {opponentName}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex items-center gap-2">
                     {result ? (
-                      <div>
-                        <Badge 
-                          variant="outline" 
-                          className={result.won ? "text-green-400 border-green-400" : "text-red-400 border-red-400"}
+                      <>
+                        <div>
+                          <Badge 
+                            variant="outline" 
+                            className={result.won ? "text-green-400 border-green-400" : "text-red-400 border-red-400"}
+                          >
+                            {result.won ? "W" : "L"}
+                          </Badge>
+                          <p className="text-sm font-medium mt-1">{result.ourScore} - {result.theirScore}</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-gold/50 hover:text-gold transition-colors"
+                          title="View Recap"
+                          onClick={() => setRecapGameId(game.id)}
+                          data-testid={`button-team-recap-${game.id}`}
                         >
-                          {result.won ? "W" : "L"}
-                        </Badge>
-                        <p className="text-sm font-medium mt-1">{result.ourScore} - {result.theirScore}</p>
-                      </div>
+                          <Newspaper className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     ) : (
                       <Badge variant="outline">Upcoming</Badge>
                     )}
@@ -691,6 +705,7 @@ function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }
           </div>
         )}
       </RetroCardContent>
+      <RecapModal leagueId={leagueId} gameId={recapGameId} onClose={() => setRecapGameId(null)} />
     </RetroCard>
   );
 }

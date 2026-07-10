@@ -1808,6 +1808,72 @@ export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ i
 export type InsertLeagueEvent = z.infer<typeof insertLeagueEventSchema>;
 export type LeagueEvent = typeof leagueEvents.$inferSelect;
 
+// ── Game Recap types ────────────────────────────────────────────────────────
+export interface RecapPlayerOfGame {
+  name: string;
+  teamAbbr: string;
+  teamColor?: string;
+  statLine: string;
+  highlight: string;
+  category: "hitting" | "pitching";
+}
+
+export interface RecapHitter {
+  name: string;
+  teamAbbr: string;
+  statLine: string;
+}
+
+export interface RecapPitchingPitcher {
+  name: string;
+  teamAbbr: string;
+  ip: string;
+  er: number;
+  so: number;
+}
+
+export interface RecapPitchingLine {
+  winner?: RecapPitchingPitcher;
+  loser?: RecapPitchingPitcher;
+  save?: { name: string; teamAbbr: string; ip: string };
+}
+
+// Game Recaps — persisted postgame summary cards generated once on finalization
+export const gameRecaps = pgTable("game_recaps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull().unique().references(() => games.id),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  headline: text("headline").notNull(),
+  homeTeamName: text("home_team_name").notNull(),
+  awayTeamName: text("away_team_name").notNull(),
+  homeTeamAbbr: text("home_team_abbr").notNull(),
+  awayTeamAbbr: text("away_team_abbr").notNull(),
+  homeTeamColor: text("home_team_color"),
+  awayTeamColor: text("away_team_color"),
+  homeScore: integer("home_score").notNull(),
+  awayScore: integer("away_score").notNull(),
+  lineScore: json("line_score").$type<number[][]>(),
+  playerOfGame: json("player_of_game").$type<RecapPlayerOfGame | null>(),
+  turningPoint: text("turning_point"),
+  topHitters: json("top_hitters").$type<RecapHitter[]>(),
+  pitchingLine: json("pitching_line").$type<RecapPitchingLine | null>(),
+  standingsImpact: text("standings_impact"),
+  seriesStatus: text("series_status"),
+  badges: json("badges").$type<string[]>(),
+  statsIncomplete: boolean("stats_incomplete").notNull().default(false),
+  phase: text("phase"),
+  season: integer("season").notNull(),
+  week: integer("week").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_game_recaps_game_id").on(t.gameId),
+  index("idx_game_recaps_league_id").on(t.leagueId),
+]);
+
+export const insertGameRecapSchema = createInsertSchema(gameRecaps).omit({ id: true, createdAt: true });
+export type InsertGameRecap = z.infer<typeof insertGameRecapSchema>;
+export type GameRecap = typeof gameRecaps.$inferSelect;
+
 // Advance Digests — "Since Last Advance" digest feed for multiplayer leagues.
 // One row per advance action (weekly advance, sim-to-*, etc), capturing everything
 // that happened in the league since the previous digest window closed.

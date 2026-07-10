@@ -15,7 +15,9 @@ import {
   storylineRecruits, storylineEvents, storylineVotes,
   nilSeasonEarnings,
   coachRivalries,
+  gameRecaps,
   type CoachRivalry, type InsertCoachRivalry,
+  type GameRecap, type InsertGameRecap,
   type NilSeasonEarning, type InsertNilSeasonEarning,
   type WalkonBid, type InsertWalkonBid,
   type User, type InsertUser,
@@ -266,6 +268,11 @@ export interface IStorage {
   getClassSharesByClassId(classId: string, userId: string): Promise<RecruitingClassShare[]>;
   revokeClassShare(shareId: string, userId: string): Promise<void>;
   incrementClassShareImportCount(shareId: string): Promise<void>;
+
+  // Game recaps
+  createGameRecap(data: InsertGameRecap): Promise<GameRecap>;
+  getGameRecap(gameId: string): Promise<GameRecap | undefined>;
+  getGameRecapsByLeague(leagueId: string, limit?: number): Promise<GameRecap[]>;
 
   // Game reports (manual reporting)
   getGameReport(gameId: string): Promise<GameReport | undefined>;
@@ -1422,6 +1429,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(gameReportImages).where(eq(gameReportImages.leagueId, id));
       await tx.delete(gameReports).where(eq(gameReports.leagueId, id));
       await tx.delete(coachRivalries).where(eq(coachRivalries.leagueId, id));
+      await tx.delete(gameRecaps).where(eq(gameRecaps.leagueId, id));
       await tx.delete(games).where(eq(games.leagueId, id));
       await tx.delete(standings).where(eq(standings.leagueId, id));
       await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
@@ -1784,6 +1792,24 @@ export class DatabaseStorage implements IStorage {
     await db.update(storylineEvents)
       .set({ eventImageUrl: imageUrl })
       .where(and(eq(storylineEvents.leagueId, leagueId), eq(storylineEvents.templateId, templateId)));
+  }
+
+  // ─── Game Recaps ───────────────────────────────────────────────────────────────
+  async createGameRecap(data: InsertGameRecap): Promise<GameRecap> {
+    const [recap] = await db.insert(gameRecaps).values(data).returning();
+    return recap;
+  }
+
+  async getGameRecap(gameId: string): Promise<GameRecap | undefined> {
+    const [recap] = await db.select().from(gameRecaps).where(eq(gameRecaps.gameId, gameId));
+    return recap || undefined;
+  }
+
+  async getGameRecapsByLeague(leagueId: string, limit = 50): Promise<GameRecap[]> {
+    return db.select().from(gameRecaps)
+      .where(eq(gameRecaps.leagueId, leagueId))
+      .orderBy(desc(gameRecaps.createdAt))
+      .limit(limit);
   }
 
   // ─── Game Reports ─────────────────────────────────────────────────────────────
