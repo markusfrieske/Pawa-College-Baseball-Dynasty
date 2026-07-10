@@ -33,6 +33,7 @@ import type { GameDay } from "@shared/pitcherRest";
 import type { Player } from "@shared/schema";
 import { generateRecruitCommitNewsArticle } from "../news-engine";
 import { invalidateLeague } from "../cache";
+import { awardRecruitSignXp } from "../game-finalizer";
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import {
@@ -498,7 +499,9 @@ export function registerRecruitingRoutes(app: Express): void {
       "Old School": -2,
     };
     const archBonus = archetypeScoutBonus[coach?.archetype] || 0;
-    return Math.max(4, baseActions + skillBonus + archBonus);
+    // scout_quick_study perk: +3 scout actions per week
+    const perkBonus = (coach?.perks as Record<string, boolean> | null)?.scout_quick_study ? 3 : 0;
+    return Math.max(4, baseActions + skillBonus + archBonus + perkBonus);
   }
 
   const ARCHETYPE_PITCHER_BONUS: Record<string, number> = {
@@ -917,7 +920,10 @@ export function registerRecruitingRoutes(app: Express): void {
     const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
     // Cap at 4.5× to prevent a single email from being dominant
     const totalMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
-    const interestGain = Math.max(1, Math.round(baseGain * totalMultiplier));
+    const baseFinalGain = Math.max(1, Math.round(baseGain * totalMultiplier));
+    // rec_hustler perk: +8% to email gains
+    const perkMultiplier = (coach?.perks as Record<string, boolean> | null)?.rec_hustler ? 1.08 : 1.0;
+    const interestGain = Math.max(1, Math.round(baseFinalGain * perkMultiplier));
     return { baseGain, interestGain, matchLevel, totalMultiplier };
   }
   function computePhoneGain(recruit: any, team: any, coach: any, topics: string[]) {
@@ -931,7 +937,10 @@ export function registerRecruitingRoutes(app: Express): void {
       const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
       // Cap per-topic at 4.5× (same as email) so multi-topic calls don't stack absurdly
       const topicMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
-      const gain = Math.max(1, Math.round(baseGain * topicMultiplier));
+      const baseTopicGain = Math.max(1, Math.round(baseGain * topicMultiplier));
+      // rec_hustler perk: +8% to phone gains
+      const phonePerkMult = (coach?.perks as Record<string, boolean> | null)?.rec_hustler ? 1.08 : 1.0;
+      const gain = Math.max(1, Math.round(baseTopicGain * phonePerkMult));
       // Sanity-check each topic individually (avoids false positives from aggregate base averaging)
       assertInterestGainSane(`phone:${topic}`, gain, baseGain);
       totalInterestGain += gain;
@@ -952,7 +961,10 @@ export function registerRecruitingRoutes(app: Express): void {
     const proximityBonus = calculateProximityBonus(recruit.homeState, team.state, team);
     // Cap at 3.0× — visits already have a large base (20–35); compound extremes would eclipse everything else
     const totalMultiplier = Math.min(3.0, schoolAttrBonus * coachBonus * priorityBonus * proximityBonus);
-    const interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
+    const baseVisitGain = Math.max(5, Math.round(baseGain * totalMultiplier));
+    // rec_campus_closer perk: +15% campus/HC visit gains
+    const visitPerkMult = (coach?.perks as Record<string, boolean> | null)?.rec_campus_closer ? 1.15 : 1.0;
+    const interestGain = Math.max(5, Math.round(baseVisitGain * visitPerkMult));
     return { baseGain, interestGain, totalMultiplier };
   }
   function computeHeadCoachVisitGain(recruit: any, team: any, coach: any) {
@@ -966,7 +978,10 @@ export function registerRecruitingRoutes(app: Express): void {
     const stadiumBonus = normalizeAttrBonus(team.stadium || 5);
     // Cap at 3.0× — HC visit is the premium action; base alone (25–40) is strong
     const totalMultiplier = Math.min(3.0, coachBonus * levelBonus * priorityBonus * proximityBonus * stadiumBonus);
-    const interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
+    const baseHcGain = Math.max(5, Math.round(baseGain * totalMultiplier));
+    // rec_campus_closer perk: +15% campus/HC visit gains
+    const hcPerkMult = (coach?.perks as Record<string, boolean> | null)?.rec_campus_closer ? 1.15 : 1.0;
+    const interestGain = Math.max(5, Math.round(baseHcGain * hcPerkMult));
     return { baseGain, interestGain, totalMultiplier };
   }
   function computeOfferGain(recruit: any, team: any, coach: any) {
@@ -1704,20 +1719,9 @@ export function registerRecruitingRoutes(app: Express): void {
         await storage.updateTeam(userTeam.id, { nilSpent: (userTeam.nilSpent || 0) + nilCost });
       }
 
-      // Award XP to the coach for signing a recruit
-      const SIGN_XP_BASE = 50;
-      const starBonus = (recruit.starRank || 1) * 25; // 25 extra per star
-      const signXp = SIGN_XP_BASE + starBonus;
-      
-      const newXp = userCoach.xp + signXp;
-      const newLevel = Math.floor(newXp / 1000) + 1;
-      const skillPointsGained = newLevel > userCoach.level ? 1 : 0;
-      
-      await storage.updateCoach(userCoach.id, {
-        xp: newXp,
-        level: newLevel,
-        skillPoints: userCoach.skillPoints + skillPointsGained,
-      });
+      // Award XP to the coach for signing a recruit (star-based scale)
+      const isBlueChip = !!(recruit as any).isBlueChip;
+      await awardRecruitSignXp(userCoach.id, recruit.starRank || 1, isBlueChip);
 
       await storage.createAuditLog({
         leagueId: req.params.id as string,

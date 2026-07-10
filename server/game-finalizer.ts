@@ -31,9 +31,10 @@ import {
   enrichBoxData,
 } from "./game-engine";
 import { invalidateLeague } from "./cache";
+import { hasPerk, XP_AWARDS } from "@shared/coachPerks";
 
-const WIN_XP = 100;
-const LOSS_XP = 25;
+const WIN_XP = XP_AWARDS.WIN;
+const LOSS_XP = XP_AWARDS.LOSS;
 
 export interface CoachXpDelta {
   xp: number;
@@ -173,7 +174,11 @@ export async function finalizeGame(
     const writeXp = async (coachId: string, won: boolean): Promise<void> => {
       const coach = await storage.getCoach(coachId);
       if (!coach) return;
-      const newXp = coach.xp + (won ? WIN_XP : LOSS_XP);
+      const isConf = game.isConference && won;
+      const perkBonus = won && hasPerk(coach, "gm_tactician")
+        ? XP_AWARDS.TACTICIAN_WIN_BONUS + (isConf ? XP_AWARDS.TACTICIAN_CONF_BONUS : 0)
+        : 0;
+      const newXp = coach.xp + (won ? WIN_XP : LOSS_XP) + perkBonus;
       const newLevel = Math.floor(newXp / 1000) + 1;
       const newWins = coach.careerWins + (won ? 1 : 0);
       const newLosses = coach.careerLosses + (won ? 0 : 1);
@@ -183,7 +188,7 @@ export async function finalizeGame(
         skillPoints: coach.skillPoints + (newLevel > coach.level ? 1 : 0),
         careerWins: newWins,
         careerLosses: newLosses,
-        confWins: coach.confWins + ((game.isConference && won) ? 1 : 0),
+        confWins: coach.confWins + (isConf ? 1 : 0),
         confLosses: coach.confLosses + ((game.isConference && !won) ? 1 : 0),
         legacyScore: computeLegacyScore({ ...coach, careerWins: newWins }),
       });
@@ -255,7 +260,11 @@ export async function flushCoachXp(
   await Promise.all(Array.from(coachXpAccum.entries()).map(async ([coachId, delta]) => {
     const coach = coachMap?.get(coachId) ?? await storage.getCoach(coachId);
     if (!coach) return;
-    const newXp = coach.xp + delta.xp;
+    // Apply gm_tactician perk bonus based on accumulated win/confWin counts
+    const perkWinBonus = hasPerk(coach, "gm_tactician")
+      ? delta.wins * XP_AWARDS.TACTICIAN_WIN_BONUS + delta.confWins * XP_AWARDS.TACTICIAN_CONF_BONUS
+      : 0;
+    const newXp = coach.xp + delta.xp + perkWinBonus;
     const newLevel = Math.floor(newXp / 1000) + 1;
     const skillPointsGained = Math.max(0, newLevel - coach.level);
     const newWins = coach.careerWins + delta.wins;
@@ -270,6 +279,77 @@ export async function flushCoachXp(
       legacyScore: computeLegacyScore({ ...coach, careerWins: newWins }),
     });
   }));
+}
+
+/**
+ * Award XP for a postseason milestone. Call this wherever confChampionships /
+ * cwsAppearances / nationalChampionships are incremented on a coach.
+ *
+ * Applies gm_playoff_poise (+150 per milestone) and gm_legendary
+ * (+300 for CWS, +1 free SP for conf champ) perks automatically.
+ */
+export async function awardPostseasonXp(
+  coachId: string,
+  milestone: "conf_champ" | "cws_appearance" | "cws_win",
+): Promise<void> {
+  try {
+    const coach = await storage.getCoach(coachId);
+    if (!coach) return;
+
+    const baseXp: Record<string, number> = {
+      conf_champ: XP_AWARDS.CONF_CHAMP,
+      cws_appearance: XP_AWARDS.CWS_APPEARANCE,
+      cws_win: XP_AWARDS.CWS_WIN,
+    };
+
+    const postseasonBonus = hasPerk(coach, "gm_playoff_poise") ? XP_AWARDS.PLAYOFF_POISE_BONUS : 0;
+    const legendaryCwsBonus =
+      (milestone === "cws_appearance" || milestone === "cws_win") && hasPerk(coach, "gm_legendary")
+        ? XP_AWARDS.LEGENDARY_CWS_BONUS
+        : 0;
+    const legendarySpBonus = milestone === "conf_champ" && hasPerk(coach, "gm_legendary") ? 1 : 0;
+
+    const totalXp = (baseXp[milestone] ?? 0) + postseasonBonus + legendaryCwsBonus;
+    const newXp = coach.xp + totalXp;
+    const newLevel = Math.floor(newXp / 1000) + 1;
+    const levelSpGained = Math.max(0, newLevel - coach.level);
+
+    await storage.updateCoach(coach.id, {
+      xp: newXp,
+      level: newLevel,
+      skillPoints: coach.skillPoints + levelSpGained + legendarySpBonus,
+    });
+  } catch (e) {
+    console.error(`[awardPostseasonXp] ${milestone} coachId=${coachId}:`, e);
+  }
+}
+
+/**
+ * Award XP for signing a recruit. Uses star-based XP scale.
+ * Call after a human coach signs a recruit.
+ */
+export async function awardRecruitSignXp(
+  coachId: string,
+  starRank: number,
+  isBlueChip: boolean,
+): Promise<void> {
+  try {
+    const coach = await storage.getCoach(coachId);
+    if (!coach) return;
+    const signXp = isBlueChip
+      ? XP_AWARDS.SIGN_BLUE_CHIP
+      : (XP_AWARDS.SIGN_BY_STAR[Math.min(5, Math.max(1, starRank)) as 1 | 2 | 3 | 4 | 5] ?? XP_AWARDS.SIGN_BY_STAR[1]);
+    const newXp = coach.xp + signXp;
+    const newLevel = Math.floor(newXp / 1000) + 1;
+    const skillPointsGained = Math.max(0, newLevel - coach.level);
+    await storage.updateCoach(coach.id, {
+      xp: newXp,
+      level: newLevel,
+      skillPoints: coach.skillPoints + skillPointsGained,
+    });
+  } catch (e) {
+    console.error(`[awardRecruitSignXp] coachId=${coachId}:`, e);
+  }
 }
 
 /**

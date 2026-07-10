@@ -224,6 +224,8 @@ export const coaches = pgTable("coaches", {
   recruitingGeographyStrategy: text("recruiting_geography_strategy").notNull().default("national"),
   recruitingStyleStrategy: text("recruiting_style_strategy").notNull().default("best_available"),
   gamePhilosophyStrategy: text("game_philosophy_strategy").notNull().default("balanced"),
+  // Perk tree — map of perkId → true for each unlocked perk
+  perks: json("perks").$type<Record<string, boolean>>().default({}),
   // Auto-pilot alert: array of CPU actions taken on behalf of this coach (cleared on dismiss)
   autoPilotPendingAlert: json("auto_pilot_pending_alert").$type<Array<{
     recruitName: string;

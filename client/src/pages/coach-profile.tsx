@@ -21,6 +21,11 @@ import {
   PERSONALITY_TYPES, TRAIT_BADGES, CAREER_MILESTONES, ARCHETYPE_METADATA, PHILOSOPHY_DESCRIPTIONS,
   type TraitBadge, type CareerMilestone, type MilestoneEntry,
 } from "@shared/coachTraits";
+import {
+  COACH_PERKS, PERK_TREE_META, PERK_TREE_ORDER,
+  getPerksByTree, getCoachPerks, canUnlockPerk,
+  XP_AWARDS,
+} from "@shared/coachPerks";
 
 interface CoachData {
   coach: Coach;
@@ -1066,12 +1071,94 @@ function AttributesTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolea
   );
 }
 
+// ── Perk tree node ─────────────────────────────────────────────────────────────
+function PerkNode({
+  perk,
+  owned,
+  unlockCheck,
+  isOwnCoach,
+  onUnlock,
+  treeMeta,
+}: {
+  perk: typeof COACH_PERKS[0];
+  owned: boolean;
+  unlockCheck: { ok: boolean; reason?: string };
+  isOwnCoach: boolean;
+  onUnlock: (id: string) => void;
+  treeMeta: typeof PERK_TREE_META[string];
+}) {
+  const tierLabel = ["", "T1", "T2", "T3"][perk.tier];
+  const canUnlock = isOwnCoach && unlockCheck.ok;
+  const spLabel = `${perk.cost} SP`;
+
+  return (
+    <div
+      className={`relative rounded-lg border p-3 transition-all ${
+        owned
+          ? `${treeMeta.bgColor} ${treeMeta.borderColor} shadow-sm`
+          : canUnlock
+          ? "border-gold/50 bg-gold/5"
+          : "border-border bg-card/40 opacity-70"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2 mb-1">
+        <div className="flex items-center gap-1.5">
+          <span className={`text-[10px] font-pixel px-1 py-0.5 rounded ${treeMeta.color} bg-black/20`}>{tierLabel}</span>
+          <span className={`text-xs font-semibold ${owned ? treeMeta.color : "text-foreground"}`}>{perk.name}</span>
+        </div>
+        {owned ? (
+          <span className={`text-[10px] font-pixel ${treeMeta.color} shrink-0`}>OWNED</span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground shrink-0">{spLabel}</span>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground leading-tight mb-1.5">{perk.description}</p>
+      <p className={`text-[11px] font-medium leading-tight ${owned ? treeMeta.color : "text-gold/80"}`}>{perk.effect}</p>
+      {isOwnCoach && !owned && (
+        <div className="mt-2">
+          {canUnlock ? (
+            <RetroButton
+              size="sm"
+              variant="outline"
+              className="w-full text-xs h-7 border-gold/60 text-gold hover:bg-gold/10"
+              onClick={() => onUnlock(perk.id)}
+              data-testid={`button-unlock-perk-${perk.id}`}
+            >
+              Unlock ({spLabel})
+            </RetroButton>
+          ) : (
+            <p className="text-[11px] text-muted-foreground text-center py-1">{unlockCheck.reason}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Skills tab ────────────────────────────────────────────────────────────────
 function SkillsTab({
-  coach, isOwnCoach, onUpgrade
+  coach, isOwnCoach, leagueId, onUpgrade
 }: {
-  coach: Coach; isOwnCoach: boolean; onUpgrade?: (skill: string) => void;
+  coach: Coach; isOwnCoach: boolean; leagueId?: string; onUpgrade?: (skill: string) => void;
 }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const upgradePerkMutation = useMutation({
+    mutationFn: (perkId: string) =>
+      apiRequest("POST", `/api/leagues/${leagueId}/coach/upgrade-perk`, { perkId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "coach"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/coaches"] });
+      toast({ title: "Perk unlocked!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to unlock perk", description: err?.message ?? "Unknown error", variant: "destructive" });
+    },
+  });
+
+  const ownedPerks = getCoachPerks(coach);
+
   // Build a map from milestone id → {id, season} entry for earned milestones
   const earnedMilestoneMap = new Map<string, MilestoneEntry>(
     (Array.isArray(coach.careerMilestones)
@@ -1088,6 +1175,8 @@ function SkillsTab({
 
   const totalEarned = earnedMilestoneMap.size;
   const totalMilestones = CAREER_MILESTONES.length;
+  const totalPerksOwned = ownedPerks.size;
+  const totalPerks = COACH_PERKS.length;
 
   return (
     <div className="space-y-6">
@@ -1121,65 +1210,81 @@ function SkillsTab({
         </RetroCardContent>
       </RetroCard>
 
-      {/* Skill tree */}
+      {/* Perk trees */}
       <RetroCard variant="bordered">
         <RetroCardHeader>
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Recruiting Skill Trees</h3>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-gold" />
+              <h3 className="font-pixel text-sm">Perk Trees</h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{totalPerksOwned}/{totalPerks} unlocked</span>
+              {isOwnCoach && (
+                <Badge variant={(coach.skillPoints ?? 0) > 0 ? "default" : "outline"} className="text-xs">
+                  {coach.skillPoints ?? 0} Skill Point{(coach.skillPoints ?? 0) !== 1 ? "s" : ""}
+                </Badge>
+              )}
+            </div>
           </div>
-          {isOwnCoach && (
-            <Badge variant={coach.skillPoints > 0 ? "default" : "outline"} className="ml-4">
-              {coach.skillPoints} Skill Points
-            </Badge>
-          )}
+          <p className="text-xs text-muted-foreground mt-1">
+            Earn Skill Points by leveling up. Each level requires 1,000 XP. T1 perks cost 1 SP, T2 cost 2 SP, T3 cost 3 SP.
+          </p>
         </RetroCardHeader>
         <RetroCardContent className="p-4">
-          <div className="grid md:grid-cols-2 gap-6">
-            <SkillTreeBranch
-              name="Scouting" skillKey="scouting" level={coach.scoutingSkill}
-              color="bg-emerald-600" icon={<Target className="w-4 h-4" />}
-              effects={[
-                "Level 1-4: +3% scouting speed per level",
-                "Level 5: Unlock 'Scout Master' badge",
-                "Level 6-9: +5% scouting speed per level",
-                "Level 10: Unlock 'Elite Scout' badge",
-              ]}
-              canUpgrade={isOwnCoach && coach.skillPoints > 0} onUpgrade={onUpgrade}
-            />
-            <SkillTreeBranch
-              name="Evaluation" skillKey="evaluation" level={coach.evaluationSkill}
-              color="bg-blue-500" icon={<Shield className="w-4 h-4" />}
-              effects={[
-                "Level 1-4: Earlier gem/bust reveal per level",
-                "Level 5: Unlock 'Talent Evaluator' badge",
-                "Level 6-9: Narrower rating ranges shown",
-                "Level 10: Unlock 'Diamond Eye' badge",
-              ]}
-              canUpgrade={isOwnCoach && coach.skillPoints > 0} onUpgrade={onUpgrade}
-            />
-            <SkillTreeBranch
-              name="Pitching" skillKey="pitching" level={coach.pitchingRecruitingSkill}
-              color="bg-amber-500" icon={<Zap className="w-4 h-4" />}
-              effects={[
-                "Level 1-4: +2% pitcher interest per level",
-                "Level 5: Unlock 'Arm Whisperer' badge",
-                "Level 6-9: +3% pitcher signing bonus",
-                "Level 10: Unlock 'Pitching Factory' badge",
-              ]}
-              canUpgrade={isOwnCoach && coach.skillPoints > 0} onUpgrade={onUpgrade}
-            />
-            <SkillTreeBranch
-              name="Hitting" skillKey="hitting" level={coach.hittingRecruitingSkill}
-              color="bg-red-500" icon={<Swords className="w-4 h-4" />}
-              effects={[
-                "Level 1-4: +2% hitter interest per level",
-                "Level 5: Unlock 'Bat Magnet' badge",
-                "Level 6-9: +3% hitter signing bonus",
-                "Level 10: Unlock 'Hitting Factory' badge",
-              ]}
-              canUpgrade={isOwnCoach && coach.skillPoints > 0} onUpgrade={onUpgrade}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+            {PERK_TREE_ORDER.map(treeKey => {
+              const meta = PERK_TREE_META[treeKey];
+              const perks = getPerksByTree(treeKey);
+              return (
+                <div key={treeKey} className="space-y-2">
+                  <div className={`flex items-center gap-1.5 pb-1.5 border-b ${meta.borderColor}`}>
+                    <span className={`text-xs font-pixel ${meta.color}`}>{meta.name}</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-tight">{meta.description}</p>
+                  <div className="space-y-2 pt-1">
+                    {perks.map(perk => {
+                      const check = canUnlockPerk(coach, perk.id);
+                      return (
+                        <PerkNode
+                          key={perk.id}
+                          perk={perk}
+                          owned={ownedPerks.has(perk.id)}
+                          unlockCheck={check}
+                          isOwnCoach={isOwnCoach && !!leagueId}
+                          onUnlock={(id) => upgradePerkMutation.mutate(id)}
+                          treeMeta={meta}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* XP sources reference */}
+          <div className="mt-5 pt-4 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">XP Sources</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1">
+              {[
+                { label: "Win", value: `+${XP_AWARDS.WIN}` },
+                { label: "Loss", value: `+${XP_AWARDS.LOSS}` },
+                { label: "Conf Champ", value: `+${XP_AWARDS.CONF_CHAMP}` },
+                { label: "CWS Appearance", value: `+${XP_AWARDS.CWS_APPEARANCE}` },
+                { label: "CWS Champion", value: `+${XP_AWARDS.CWS_WIN}` },
+                { label: "Sign 5★ Recruit", value: `+${XP_AWARDS.SIGN_BY_STAR[5]}` },
+                { label: "Sign 4★ Recruit", value: `+${XP_AWARDS.SIGN_BY_STAR[4]}` },
+                { label: "Sign Blue Chip", value: `+${XP_AWARDS.SIGN_BLUE_CHIP}` },
+                { label: "Draft Pick", value: `+${XP_AWARDS.DRAFT_PICK}` },
+                { label: "Portal Retention", value: `+${XP_AWARDS.RETENTION}` },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-center text-[11px] py-0.5">
+                  <span className="text-muted-foreground">{label}</span>
+                  <span className="text-gold font-semibold">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </RetroCardContent>
       </RetroCard>
@@ -1536,7 +1641,7 @@ export default function CoachProfilePage() {
           <AttributesTab coach={coach} isOwnCoach />
         )}
         {activeTab === "skills" && (
-          <SkillsTab coach={coach} isOwnCoach onUpgrade={(skill) => upgradeSkillMutation.mutate(skill)} />
+          <SkillsTab coach={coach} isOwnCoach leagueId={id} onUpgrade={(skill) => upgradeSkillMutation.mutate(skill)} />
         )}
         {activeTab === "strategy" && (
           <StrategyTab coach={coach} isOwnCoach />
@@ -1610,7 +1715,7 @@ export function CoachProfileByIdPage() {
           <AttributesTab coach={coach} isOwnCoach={isOwnCoach} />
         )}
         {activeTab === "skills" && (
-          <SkillsTab coach={coach} isOwnCoach={isOwnCoach} />
+          <SkillsTab coach={coach} isOwnCoach={isOwnCoach} leagueId={coach.leagueId ?? undefined} />
         )}
         {activeTab === "strategy" && (
           <StrategyTab coach={coach} isOwnCoach={isOwnCoach} isCommissioner={data?.isCommissioner} />

@@ -23,6 +23,7 @@ import { finalizeAdvanceDigestSafe } from "../digest-engine";
 import { captureLeagueSaveState } from "../lib/leagueSaveState";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { evaluatePlayerPromises, processOffseasonDepartures, finalizeDeparturesInternal } from "../offseason-helpers";
+import { awardPostseasonXp } from "../game-finalizer";
 import {
   generateGameNewsArticles,
   generateCWSChampionNewsArticle,
@@ -6299,6 +6300,7 @@ export function registerSimulationRoutes(app: Express): void {
                 if (champCoach) {
                   const newConfChamp = champCoach.confChampionships + 1;
                   await storage.updateCoach(champCoach.id, { confChampionships: newConfChamp, legacyScore: computeLegacyScore({ ...champCoach, confChampionships: newConfChamp }) });
+                  await awardPostseasonXp(champCoach.id, "conf_champ");
                 }
               }
             }
@@ -6394,6 +6396,7 @@ export function registerSimulationRoutes(app: Express): void {
                   if (cwsCoach) {
                     const newCwsApp = cwsCoach.cwsAppearances + 1;
                     await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) });
+                    await awardPostseasonXp(cwsCoach.id, "cws_appearance");
                   }
                 }
               }
@@ -6456,6 +6459,7 @@ export function registerSimulationRoutes(app: Express): void {
                 if (champCoach) {
                   const newNatl = champCoach.nationalChampionships + 1;
                   await storage.updateCoach(champCoach.id, { nationalChampionships: newNatl, legacyScore: computeLegacyScore({ ...champCoach, nationalChampionships: newNatl }) });
+                  await awardPostseasonXp(champCoach.id, "cws_win");
                 }
               }
             } catch (e) { console.error("National championship coach stats error:", e); }
@@ -7305,6 +7309,7 @@ export function registerSimulationRoutes(app: Express): void {
                 if (confChampCoach) {
                   const newCC = confChampCoach.confChampionships + 1;
                   await storage.updateCoach(confChampCoach.id, { confChampionships: newCC, legacyScore: computeLegacyScore({ ...confChampCoach, confChampionships: newCC }) });
+                  await awardPostseasonXp(confChampCoach.id, "conf_champ");
                 }
               }
             }
@@ -7338,6 +7343,7 @@ export function registerSimulationRoutes(app: Express): void {
                       if (cwsCoachSim) {
                         const newCwsApp = cwsCoachSim.cwsAppearances + 1;
                         await storage.updateCoach(cwsCoachSim.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoachSim, cwsAppearances: newCwsApp }) });
+                        await awardPostseasonXp(cwsCoachSim.id, "cws_appearance");
                       }
                     }
                   }
@@ -7379,6 +7385,7 @@ export function registerSimulationRoutes(app: Express): void {
                 if (simChampCoach) {
                   const newNatl = simChampCoach.nationalChampionships + 1;
                   await storage.updateCoach(simChampCoach.id, { nationalChampionships: newNatl, legacyScore: computeLegacyScore({ ...simChampCoach, nationalChampionships: newNatl }) });
+                  await awardPostseasonXp(simChampCoach.id, "cws_win");
                 }
               }
             } catch (e) { console.error("National championship coach stats error (sim):", e); }
@@ -8032,6 +8039,7 @@ export function registerSimulationRoutes(app: Express): void {
                 if (ccChampCoach) {
                   const newCC = ccChampCoach.confChampionships + 1;
                   await storage.updateCoach(ccChampCoach.id, { confChampionships: newCC, legacyScore: computeLegacyScore({ ...ccChampCoach, confChampionships: newCC }) });
+                  await awardPostseasonXp(ccChampCoach.id, "conf_champ");
                 }
               }
             }
@@ -8064,6 +8072,7 @@ export function registerSimulationRoutes(app: Express): void {
                       if (cwsCoach2) {
                         const newCwsApp = cwsCoach2.cwsAppearances + 1;
                         await storage.updateCoach(cwsCoach2.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach2, cwsAppearances: newCwsApp }) });
+                        await awardPostseasonXp(cwsCoach2.id, "cws_appearance");
                       }
                     }
                   }

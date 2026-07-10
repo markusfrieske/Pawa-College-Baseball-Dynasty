@@ -929,7 +929,40 @@ export function registerDeparturesRoutes(app: Express): void {
     }
   });
 
-  // Upgrade a coach skill
+  // Unlock a coach perk
+  app.post("/api/leagues/:id/coach/upgrade-perk", requireAuth, async (req, res) => {
+    try {
+      const { perkId } = req.body;
+      if (typeof perkId !== "string" || !perkId) {
+        return res.status(400).json({ message: "perkId required" });
+      }
+
+      const { COACH_PERKS, canUnlockPerk } = await import("@shared/coachPerks");
+      const perk = COACH_PERKS.find(p => p.id === perkId);
+      if (!perk) return res.status(400).json({ message: "Unknown perk" });
+
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      if (!userCoach) return res.status(404).json({ message: "No coach found for this user" });
+
+      const check = canUnlockPerk(userCoach, perkId);
+      if (!check.ok) return res.status(400).json({ message: check.reason });
+
+      const currentPerks = (userCoach.perks as Record<string, boolean> | null) ?? {};
+      const updatedCoach = await storage.updateCoach(userCoach.id, {
+        perks: { ...currentPerks, [perkId]: true },
+        skillPoints: (userCoach.skillPoints || 0) - perk.cost,
+      });
+
+      res.json({ coach: updatedCoach });
+    } catch (error) {
+      console.error("Failed to unlock perk:", error);
+      res.status(500).json({ message: "Failed to unlock perk" });
+    }
+  });
+
+  // Upgrade a coach skill (legacy — kept for backward compat)
   app.post("/api/leagues/:id/coach/upgrade-skill", requireAuth, async (req, res) => {
     try {
       const { skill } = req.body;
