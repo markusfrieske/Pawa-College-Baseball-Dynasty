@@ -23,6 +23,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { ReadyStatusSection } from "./components/ReadyStatusSection";
 import { useCommissionerSimActions } from "./hooks/useCommissionerSimActions";
 import { ActionsTab } from "./tabs/ActionsTab";
+import { CommandCenterTab } from "./tabs/CommandCenterTab";
 import { SettingsTab } from "./tabs/SettingsTab";
 import { AuditLogTab } from "./tabs/AuditLogTab";
 import { InvitesTab } from "./tabs/InvitesTab";
@@ -84,6 +85,7 @@ export default function CommissionerPage() {
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [scoreboardData, setScoreboardData] = useState<InningScoreboardData | null>(null);
   const scoreboardEnabled = useScoreboardEnabled();
+  const [activeTab, setActiveTab] = useState("command-center");
   const [classSelectionOpen, setClassSelectionOpen] = useState(false);
   const [classSelectionOptions, setClassSelectionOptions] = useState<
     Array<{ id: string; name: string; recruitCount: number }>
@@ -549,9 +551,16 @@ export default function CommissionerPage() {
           </div>
         )}
 
-        <Tabs defaultValue="actions" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto">
+              <TabsTrigger
+                value="command-center"
+                className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                data-testid="tab-command-center"
+              >
+                Command
+              </TabsTrigger>
               <TabsTrigger
                 value="actions"
                 className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
@@ -617,8 +626,24 @@ export default function CommissionerPage() {
             </TabsList>
           </div>
 
+          <TabsContent value="command-center">
+            {data && (
+              <CommandCenterTab
+                leagueId={id!}
+                league={data.league}
+                readyCoaches={data.readyCoaches}
+                totalCoaches={data.totalCoaches}
+                humanCoaches={data.humanCoaches}
+                auditLogs={data.auditLogs}
+                onSwitchTab={setActiveTab}
+              />
+            )}
+          </TabsContent>
+
           <TabsContent value="actions">
             <ActionsTab
+              leagueId={id!}
+              onSwitchToCommandCenter={() => setActiveTab("command-center")}
               league={data?.league}
               onAdvanceWeek={() => advanceWeekMutation.mutate(undefined)}
               isAdvancing={advanceWeekMutation.isPending}

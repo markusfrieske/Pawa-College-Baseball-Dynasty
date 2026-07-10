@@ -66,6 +66,7 @@ export function SaveStatesTab({ leagueId }: Props) {
   const [labelInput, setLabelInput] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [confirmRestore, setConfirmRestore] = useState<SaveStateMeta | null>(null);
+  const [restoreConfirmText, setRestoreConfirmText] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data: saveStates, isLoading } = useQuery<SaveStateMeta[]>({
@@ -118,7 +119,14 @@ export function SaveStatesTab({ leagueId }: Props) {
   };
 
   const handleRestoreConfirm = () => {
-    if (confirmRestore) restoreMutation.mutate(confirmRestore.id);
+    if (confirmRestore && restoreConfirmText === "RESTORE") {
+      restoreMutation.mutate(confirmRestore.id);
+    }
+  };
+
+  const openConfirmRestore = (ss: SaveStateMeta) => {
+    setConfirmRestore(ss);
+    setRestoreConfirmText("");
   };
 
   return (
@@ -182,30 +190,48 @@ export function SaveStatesTab({ leagueId }: Props) {
       )}
 
       {confirmRestore && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <RetroCard className="max-w-sm w-full mx-4 border-red-500/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <RetroCard className="max-w-md w-full border-red-500/60">
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-pixel text-[9px] text-red-400 mb-2">CONFIRM RESTORE</p>
-                <p className="text-sm text-foreground mb-1">
-                  This will replace ALL current league data with the snapshot:
+              <div className="flex-1 min-w-0">
+                <p className="font-pixel text-[9px] text-red-400 mb-3">CONFIRM RESTORE</p>
+                <div className="rounded border border-border bg-muted/20 p-3 mb-3 space-y-1.5">
+                  <p className="text-sm font-semibold text-gold truncate">"{confirmRestore.label}"</p>
+                  <p className="text-xs text-muted-foreground">
+                    S{confirmRestore.season} W{confirmRestore.week} · {PHASE_LABELS[confirmRestore.phase] ?? confirmRestore.phase}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {TRIGGER_LABELS[confirmRestore.trigger] ?? confirmRestore.trigger}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Created: {new Date(confirmRestore.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {totalRows(confirmRestore.rowCounts).toLocaleString()} total rows
+                  </p>
+                </div>
+                <p className="text-xs text-foreground mb-1">
+                  This will replace <strong>ALL</strong> current league data with this snapshot. A pre-restore backup will be created first.
                 </p>
-                <p className="text-sm font-semibold text-gold">"{confirmRestore.label}"</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Season {confirmRestore.season}, Week {confirmRestore.week} ·{" "}
-                  {PHASE_LABELS[confirmRestore.phase] ?? confirmRestore.phase}
+                <p className="text-xs text-muted-foreground mb-2">
+                  Type <span className="font-mono font-bold text-red-400">RESTORE</span> to confirm:
                 </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  A pre-restore backup will be created automatically before rolling back.
-                </p>
+                <input
+                  className="w-full bg-background border border-red-500/50 rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-red-400 font-mono"
+                  placeholder="RESTORE"
+                  value={restoreConfirmText}
+                  onChange={e => setRestoreConfirmText(e.target.value)}
+                  autoFocus
+                  data-testid="input-restore-confirm-text"
+                />
               </div>
             </div>
             <div className="flex gap-2 justify-end">
               <RetroButton
                 size="sm"
                 variant="secondary"
-                onClick={() => setConfirmRestore(null)}
+                onClick={() => { setConfirmRestore(null); setRestoreConfirmText(""); }}
                 disabled={restoreMutation.isPending}
               >
                 Cancel
@@ -214,7 +240,7 @@ export function SaveStatesTab({ leagueId }: Props) {
                 size="sm"
                 variant="destructive"
                 onClick={handleRestoreConfirm}
-                disabled={restoreMutation.isPending}
+                disabled={restoreMutation.isPending || restoreConfirmText !== "RESTORE"}
                 data-testid="button-confirm-restore"
               >
                 {restoreMutation.isPending ? "Restoring..." : "Restore"}
@@ -320,7 +346,7 @@ export function SaveStatesTab({ leagueId }: Props) {
                     <RetroButton
                       size="sm"
                       variant="secondary"
-                      onClick={() => setConfirmRestore(ss)}
+                      onClick={() => openConfirmRestore(ss)}
                       disabled={restoreMutation.isPending}
                       data-testid={`button-restore-${ss.id}`}
                     >

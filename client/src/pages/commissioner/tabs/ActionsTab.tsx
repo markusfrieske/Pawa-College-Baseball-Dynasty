@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   FastForward,
   FileSpreadsheet,
@@ -42,7 +42,14 @@ import { PostseasonBracket } from "../components/PostseasonBracket";
 import { PhaseDeadlineControl } from "../components/PhaseDeadlineControl";
 import type { League } from "@shared/schema";
 
+interface PreflightResult {
+  canAdvance: boolean;
+  checks: Array<{ id: string; status: string; count: number }>;
+}
+
 interface ActionsTabProps {
+  leagueId?: string;
+  onSwitchToCommandCenter?: () => void;
   league?: League;
   onAdvanceWeek: () => void;
   isAdvancing: boolean;
@@ -71,6 +78,8 @@ interface ActionsTabProps {
 }
 
 export function ActionsTab({
+  leagueId,
+  onSwitchToCommandCenter,
   league,
   onAdvanceWeek,
   isAdvancing,
@@ -99,6 +108,12 @@ export function ActionsTab({
 }: ActionsTabProps) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const preflight = leagueId
+    ? qc.getQueryData<PreflightResult>(["/api/leagues", leagueId, "commissioner", "preflight"])
+    : undefined;
+  const preflightFail = preflight && !preflight.canAdvance
+    ? preflight.checks.filter(c => c.status === "fail").length
+    : 0;
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showEditTeamsDialog, setShowEditTeamsDialog] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
@@ -280,6 +295,27 @@ export function ActionsTab({
                 <Timer className="w-3.5 h-3.5 shrink-0" />
                 Deadline passed — non-ready coaches will be auto-marked ready when you advance.
               </div>
+            )}
+            {preflight === undefined ? (
+              <button
+                onClick={onSwitchToCommandCenter}
+                className="w-full mb-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-muted/40 bg-muted/10 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                data-testid="badge-preflight-not-run"
+              >
+                Preflight not run — click to check
+              </button>
+            ) : preflight.canAdvance ? (
+              <div className="mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-[10px] text-green-400 font-pixel" data-testid="badge-preflight-clear">
+                Preflight: All clear
+              </div>
+            ) : (
+              <button
+                onClick={onSwitchToCommandCenter}
+                className="w-full mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-orange-500/50 bg-orange-500/10 text-[10px] text-orange-400 font-pixel hover:bg-orange-500/20 transition-colors"
+                data-testid="badge-preflight-blockers"
+              >
+                Preflight: {preflightFail} blocker(s) — click to review
+              </button>
             )}
             <RetroButton
               variant="shimmer"

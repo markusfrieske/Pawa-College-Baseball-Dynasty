@@ -2385,6 +2385,216 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
   }
 });
 
+// Commissioner Preflight Check
+app.get("/api/leagues/:id/commissioner/preflight", requireAuth, async (req, res) => {
+  try {
+    const leagueId = req.params.id as string;
+    const userId = req.session.userId as string;
+
+    const league = await storage.getLeague(leagueId);
+    if (!league) return res.status(404).json({ message: "League not found" });
+    if (!hasCommissionerAccess(league, userId)) {
+      return res.status(403).json({ message: "Commissioner only" });
+    }
+
+    const isReportedMode = league.gameMode === "reported";
+    const currentPhase = league.currentPhase;
+    const RECRUITING_PHASES = [
+      "offseason_recruiting_1",
+      "offseason_recruiting_2",
+      "offseason_recruiting_3",
+      "offseason_recruiting_4",
+      "recruiting",
+    ];
+    const isRecruitingPhase = RECRUITING_PHASES.includes(currentPhase);
+    const isDeparturesPhase = currentPhase === "offseason_departures";
+    const isWalkonsPhase = currentPhase === "offseason_walkons";
+
+    const [teams, coaches, playerCountMap, allGames, gameReports, recruits] = await Promise.all([
+      storage.getTeamsByLeague(leagueId),
+      storage.getCoachesByLeague(leagueId),
+      storage.getPlayerCountsByLeague(leagueId),
+      storage.getGamesByLeague(leagueId),
+      storage.getGameReportsByLeague(leagueId),
+      isRecruitingPhase ? storage.getRecruitsByLeague(leagueId) : Promise.resolve([]),
+    ]);
+
+    const humanTeams = teams.filter(t => !t.isCpu);
+    const humanTeamIds = new Set(humanTeams.map(t => t.id));
+    const teamById = new Map(teams.map(t => [t.id, t]));
+
+    // Helper: truncate items list to max 5
+    const truncate = (items: string[], max = 5): string[] => {
+      if (items.length <= max) return items;
+      const extra = items.length - max;
+      return [...items.slice(0, max), `…and ${extra} more`];
+    };
+
+    // coaches_ready: human coaches not ready (respect phase + autopilot)
+    const humanCoachEntries = coaches.filter(c => c.userId && c.teamId && humanTeamIds.has(c.teamId));
+    const notReadyCoaches = humanCoachEntries.filter(c => {
+      const team = teamById.get(c.teamId!);
+      if (team?.isAutoPilot) return false; // autopilot always counts as ready
+      if (isDeparturesPhase) return !(team?.departuresFinalized ?? false);
+      if (isWalkonsPhase) return !(team?.walkonReady ?? false);
+      return !(c.isReady ?? false);
+    });
+    const coachesReadyCheck = {
+      id: "coaches_ready",
+      label: "Coaches ready",
+      status: notReadyCoaches.length === 0 ? "pass" : "fail",
+      detail: notReadyCoaches.length === 0
+        ? "All human coaches are ready to advance"
+        : `${notReadyCoaches.length} coach(es) not yet ready`,
+      count: notReadyCoaches.length,
+      items: truncate(notReadyCoaches.map(c => {
+        const team = teamById.get(c.teamId!);
+        return `${team?.name ?? c.teamId} (${c.firstName} ${c.lastName})`;
+      })),
+    };
+
+    // pending_reports (reported mode only)
+    const pendingReports = isReportedMode ? gameReports.filter(r => r.status === "pending") : [];
+    const pendingReportsCheck = {
+      id: "pending_reports",
+      label: "Pending game reports",
+      status: !isReportedMode ? "pass" : pendingReports.length === 0 ? "pass" : "fail",
+      detail: !isReportedMode
+        ? "Not applicable (simulated mode)"
+        : pendingReports.length === 0
+        ? "No pending game reports"
+        : `${pendingReports.length} report(s) awaiting review`,
+      count: pendingReports.length,
+      items: truncate(pendingReports.map(r => `Game #${r.gameId.slice(0, 8)}`)),
+    };
+
+    // disputed_reports
+    const disputedReports = isReportedMode ? gameReports.filter(r => r.status === "disputed") : [];
+    const disputedReportsCheck = {
+      id: "disputed_reports",
+      label: "Disputed reports",
+      status: !isReportedMode ? "pass" : disputedReports.length === 0 ? "pass" : "fail",
+      detail: !isReportedMode
+        ? "Not applicable (simulated mode)"
+        : disputedReports.length === 0
+        ? "No disputed reports"
+        : `${disputedReports.length} disputed report(s) need resolution`,
+      count: disputedReports.length,
+      items: truncate(disputedReports.map(r => `Game #${r.gameId.slice(0, 8)}`)),
+    };
+
+    // unreported_games: complete games with 2 human teams, no accepted report
+    let unreportedGames: typeof allGames = [];
+    if (isReportedMode) {
+      const acceptedGameIds = new Set(gameReports.filter(r => r.status === "accepted").map(r => r.gameId));
+      unreportedGames = allGames.filter(g =>
+        g.isComplete &&
+        g.homeTeamId && humanTeamIds.has(g.homeTeamId) &&
+        g.awayTeamId && humanTeamIds.has(g.awayTeamId) &&
+        !acceptedGameIds.has(g.id)
+      );
+    }
+    const unreportedGamesCheck = {
+      id: "unreported_games",
+      label: "Unreported human games",
+      status: !isReportedMode ? "pass" : unreportedGames.length === 0 ? "pass" : "warn",
+      detail: !isReportedMode
+        ? "Not applicable (simulated mode)"
+        : unreportedGames.length === 0
+        ? "All human-vs-human games have accepted reports"
+        : `${unreportedGames.length} completed game(s) missing accepted report`,
+      count: unreportedGames.length,
+      items: truncate(unreportedGames.map(g => {
+        const home = teamById.get(g.homeTeamId!)?.name ?? "?";
+        const away = teamById.get(g.awayTeamId!)?.name ?? "?";
+        return `W${g.week}: ${home} vs ${away}`;
+      })),
+    };
+
+    // roster_limits: teams with >25 players
+    const overLimitTeams = teams.filter(t => (playerCountMap.get(t.id) ?? 0) > 25 && currentPhase !== "offseason_walkons");
+    const rosterLimitsCheck = {
+      id: "roster_limits",
+      label: "Roster limits",
+      status: overLimitTeams.length === 0 ? "pass" : "fail",
+      detail: overLimitTeams.length === 0
+        ? "All rosters are within the 25-player limit"
+        : `${overLimitTeams.length} team(s) exceed the 25-player limit`,
+      count: overLimitTeams.length,
+      items: truncate(overLimitTeams.map(t => `${t.name} (${playerCountMap.get(t.id)} players)`)),
+    };
+
+    // orphan_teams: human teams with no coach assigned
+    const coachTeamIds = new Set(coaches.map(c => c.teamId).filter(Boolean));
+    const orphanTeams = humanTeams.filter(t => !coachTeamIds.has(t.id));
+    const orphanTeamsCheck = {
+      id: "orphan_teams",
+      label: "Coach assignments",
+      status: orphanTeams.length === 0 ? "pass" : "warn",
+      detail: orphanTeams.length === 0
+        ? "All human teams have a coach assigned"
+        : `${orphanTeams.length} human team(s) have no coach`,
+      count: orphanTeams.length,
+      items: truncate(orphanTeams.map(t => t.name)),
+    };
+
+    // duplicate_games: same home+away+week+season with >1 completed game
+    const gameKeys = new Map<string, number>();
+    for (const g of allGames.filter(g => g.isComplete)) {
+      const key = `${g.homeTeamId}|${g.awayTeamId}|${g.week}|${g.season}`;
+      gameKeys.set(key, (gameKeys.get(key) ?? 0) + 1);
+    }
+    const dupKeys = Array.from(gameKeys.entries()).filter(([, c]) => c > 1);
+    const duplicateGamesCheck = {
+      id: "duplicate_games",
+      label: "Duplicate games",
+      status: dupKeys.length === 0 ? "pass" : "fail",
+      detail: dupKeys.length === 0
+        ? "No duplicate game entries detected"
+        : `${dupKeys.length} duplicate game slot(s) found`,
+      count: dupKeys.length,
+      items: truncate(dupKeys.map(([key]) => {
+        const [homeId, awayId, week] = key.split("|");
+        const home = teamById.get(homeId)?.name ?? homeId;
+        const away = teamById.get(awayId)?.name ?? awayId;
+        return `W${week}: ${home} vs ${away}`;
+      })),
+    };
+
+    // recruiting_class: recruiting phase but no active recruits
+    const recruitingClassCheck = {
+      id: "recruiting_class",
+      label: "Recruiting class",
+      status: !isRecruitingPhase ? "pass" : recruits.length > 0 ? "pass" : "warn",
+      detail: !isRecruitingPhase
+        ? "Not a recruiting phase"
+        : recruits.length > 0
+        ? `${recruits.length} recruits in the active class`
+        : "No active recruiting class found",
+      count: isRecruitingPhase ? recruits.length : 0,
+      items: [] as string[],
+    };
+
+    const checks = [
+      coachesReadyCheck,
+      pendingReportsCheck,
+      disputedReportsCheck,
+      unreportedGamesCheck,
+      rosterLimitsCheck,
+      orphanTeamsCheck,
+      duplicateGamesCheck,
+      recruitingClassCheck,
+    ];
+
+    const canAdvance = !checks.some(c => c.status === "fail");
+
+    res.json({ canAdvance, checks, runAt: new Date().toISOString() });
+  } catch (error) {
+    console.error("Preflight check failed:", error);
+    res.status(500).json({ message: "Preflight check failed" });
+  }
+});
+
 // League Events (Activity Feed) routes
 app.get("/api/leagues/:id/events", requireAuth, async (req, res) => {
   try {
