@@ -1018,15 +1018,25 @@ export default function WarRoomPage() {
         {/* Since last advance feed */}
         <SinceLastAdvanceSection leagueId={id} items={sinceLastAdvance} />
 
-        {/* League hub link */}
-        <div className="mt-2 mb-4">
-          <Link href={`/league/${id}`}>
+        {/* Quick links */}
+        <div className="mt-2 mb-4 flex gap-2">
+          <Link href={`/league/${id}/rivalries`} className="flex-1">
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-gold transition-colors min-h-[44px] border border-border rounded-lg"
+              data-testid="button-war-room-rivalries"
+            >
+              <Swords className="w-4 h-4" />
+              <span>Rivalries</span>
+            </button>
+          </Link>
+          <Link href={`/league/${id}`} className="flex-1">
             <button
               type="button"
               className="w-full flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground hover:text-gold transition-colors min-h-[44px]"
               data-testid="button-war-room-full-hub"
             >
-              <span>View Full League Hub</span>
+              <span>League Hub</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </Link>

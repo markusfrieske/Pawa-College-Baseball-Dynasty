@@ -1962,3 +1962,46 @@ export const insertCoachMessageSchema = createInsertSchema(coachMessages)
   });
 export type InsertCoachMessage = z.infer<typeof insertCoachMessageSchema>;
 export type CoachMessage = typeof coachMessages.$inferSelect;
+
+// ── Coach Rivalries ───────────────────────────────────────────────────────────
+// Tracks head-to-head record between pairs of human coaches within a league.
+// coachAId is always the lexicographically smaller coach ID, ensuring exactly
+// one row per pair. Stats are from coachA's perspective; flip when viewing as coachB.
+export const coachRivalries = pgTable("coach_rivalries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  coachAId: varchar("coach_a_id").notNull().references(() => coaches.id),
+  coachBId: varchar("coach_b_id").notNull().references(() => coaches.id),
+  // Regular season game record (coachA perspective)
+  gamesPlayed: integer("games_played").notNull().default(0),
+  coachAWins: integer("coach_a_wins").notNull().default(0),
+  coachBWins: integer("coach_b_wins").notNull().default(0),
+  coachARunsScored: integer("coach_a_runs_scored").notNull().default(0),
+  coachBRunsScored: integer("coach_b_runs_scored").notNull().default(0),
+  // Postseason record
+  postseasonGames: integer("postseason_games").notNull().default(0),
+  coachAPostseasonWins: integer("coach_a_postseason_wins").notNull().default(0),
+  coachBPostseasonWins: integer("coach_b_postseason_wins").notNull().default(0),
+  // Current streak (positive = coachA on streak, negative = coachB)
+  currentStreakWinnerId: varchar("current_streak_winner_id"),
+  currentStreakLength: integer("current_streak_length").notNull().default(0),
+  // Last meeting snapshot
+  lastMeetingSeason: integer("last_meeting_season"),
+  lastMeetingWeek: integer("last_meeting_week"),
+  lastMeetingCoachAScore: integer("last_meeting_coach_a_score"),
+  lastMeetingCoachBScore: integer("last_meeting_coach_b_score"),
+  lastMeetingWinnerId: varchar("last_meeting_winner_id"),
+  // Records
+  biggestWinMargin: integer("biggest_win_margin").notNull().default(0),
+  biggestWinCoachId: varchar("biggest_win_coach_id"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("idx_coach_rivalries_pair").on(t.leagueId, t.coachAId, t.coachBId),
+  index("idx_coach_rivalries_league_id").on(t.leagueId),
+  index("idx_coach_rivalries_coach_a").on(t.coachAId),
+  index("idx_coach_rivalries_coach_b").on(t.coachBId),
+]);
+
+export const insertCoachRivalrySchema = createInsertSchema(coachRivalries).omit({ id: true, updatedAt: true });
+export type InsertCoachRivalry = z.infer<typeof insertCoachRivalrySchema>;
+export type CoachRivalry = typeof coachRivalries.$inferSelect;

@@ -202,6 +202,33 @@ export async function finalizeGame(
       xpWrites.push(writeXp(awayTeam.coachId, !homeWon));
     }
     await Promise.all(xpWrites);
+
+    // ── 5.5 Update coach rivalry (HvH games only) ──────────────────────────
+    if (homeTeam?.coachId && awayTeam?.coachId) {
+      try {
+        const [hCoach, aCoach] = await Promise.all([
+          storage.getCoach(homeTeam.coachId),
+          storage.getCoach(awayTeam.coachId),
+        ]);
+        if (hCoach?.userId && aCoach?.userId) {
+          const isPostseason =
+            game.gameType === "super_regionals" || game.gameType === "cws";
+          const aIsHome = hCoach.id < aCoach.id;
+          const [coachAId, coachBId] = aIsHome
+            ? [hCoach.id, aCoach.id]
+            : [aCoach.id, hCoach.id];
+          const aWon  = aIsHome ? homeWon : !homeWon;
+          const aRuns = aIsHome ? homeScore : awayScore;
+          const bRuns = aIsHome ? awayScore : homeScore;
+          await storage.upsertRivalryFromGame(
+            leagueId, coachAId, coachBId, aWon, aRuns, bRuns,
+            game.season, game.week, isPostseason,
+          );
+        }
+      } catch (e) {
+        console.error("[finalizeGame] rivalry update error:", e);
+      }
+    }
   }
 
   // ── 6. GAME_RESULT league event ────────────────────────────────────────────

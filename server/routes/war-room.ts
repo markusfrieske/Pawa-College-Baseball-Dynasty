@@ -254,6 +254,7 @@ export function registerWarRoomRoutes(app: Express): void {
         sinceLastAdvance,
         needsAttention,
         commissionerBlockers,
+        rivalriesUrl: `/league/${leagueId}/rivalries`,
       });
     } catch (error) {
       console.error("[war-room] Failed to load:", error);

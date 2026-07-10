@@ -14,6 +14,8 @@ import {
   coachSeasonHistory,
   storylineRecruits, storylineEvents, storylineVotes,
   nilSeasonEarnings,
+  coachRivalries,
+  type CoachRivalry, type InsertCoachRivalry,
   type NilSeasonEarning, type InsertNilSeasonEarning,
   type WalkonBid, type InsertWalkonBid,
   type User, type InsertUser,
@@ -321,6 +323,22 @@ export interface IStorage {
   hasNilEarningCategory(leagueId: string, teamId: string, category: string): Promise<boolean>;
 
   getPlayerCountsByLeague(leagueId: string): Promise<Map<string, number>>;
+
+  // Coach Rivalries
+  getRivalriesByLeague(leagueId: string): Promise<CoachRivalry[]>;
+  getRivalriesByCoach(coachId: string, leagueId: string): Promise<CoachRivalry[]>;
+  upsertRivalryFromGame(
+    leagueId: string,
+    coachAId: string,
+    coachBId: string,
+    aWon: boolean,
+    aRuns: number,
+    bRuns: number,
+    season: number,
+    week: number,
+    isPostseason: boolean,
+  ): Promise<void>;
+  deleteRivalriesByLeague(leagueId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1403,6 +1421,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(gameReportCorrections).where(eq(gameReportCorrections.leagueId, id));
       await tx.delete(gameReportImages).where(eq(gameReportImages.leagueId, id));
       await tx.delete(gameReports).where(eq(gameReports.leagueId, id));
+      await tx.delete(coachRivalries).where(eq(coachRivalries.leagueId, id));
       await tx.delete(games).where(eq(games.leagueId, id));
       await tx.delete(standings).where(eq(standings.leagueId, id));
       await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
@@ -1924,6 +1943,115 @@ export class DatabaseStorage implements IStorage {
       )
     ).limit(1);
     return !!row;
+  }
+
+  // ── Coach Rivalries ─────────────────────────────────────────────────────────
+
+  async getRivalriesByLeague(leagueId: string): Promise<CoachRivalry[]> {
+    return db.select().from(coachRivalries).where(eq(coachRivalries.leagueId, leagueId));
+  }
+
+  async getRivalriesByCoach(coachId: string, leagueId: string): Promise<CoachRivalry[]> {
+    return db.select().from(coachRivalries).where(
+      and(
+        eq(coachRivalries.leagueId, leagueId),
+        or(
+          eq(coachRivalries.coachAId, coachId),
+          eq(coachRivalries.coachBId, coachId),
+        ),
+      ),
+    );
+  }
+
+  async upsertRivalryFromGame(
+    leagueId: string,
+    coachAId: string,
+    coachBId: string,
+    aWon: boolean,
+    aRuns: number,
+    bRuns: number,
+    season: number,
+    week: number,
+    isPostseason: boolean,
+  ): Promise<void> {
+    const [existing] = await db
+      .select()
+      .from(coachRivalries)
+      .where(
+        and(
+          eq(coachRivalries.leagueId, leagueId),
+          eq(coachRivalries.coachAId, coachAId),
+          eq(coachRivalries.coachBId, coachBId),
+        ),
+      )
+      .limit(1);
+
+    const margin = Math.abs(aRuns - bRuns);
+    const winnerId = aWon ? coachAId : coachBId;
+
+    if (!existing) {
+      await db.insert(coachRivalries).values({
+        leagueId,
+        coachAId,
+        coachBId,
+        gamesPlayed: isPostseason ? 0 : 1,
+        coachAWins: isPostseason ? 0 : (aWon ? 1 : 0),
+        coachBWins: isPostseason ? 0 : (aWon ? 0 : 1),
+        coachARunsScored: isPostseason ? 0 : aRuns,
+        coachBRunsScored: isPostseason ? 0 : bRuns,
+        postseasonGames: isPostseason ? 1 : 0,
+        coachAPostseasonWins: isPostseason && aWon ? 1 : 0,
+        coachBPostseasonWins: isPostseason && !aWon ? 1 : 0,
+        currentStreakWinnerId: winnerId,
+        currentStreakLength: 1,
+        lastMeetingSeason: season,
+        lastMeetingWeek: week,
+        lastMeetingCoachAScore: aRuns,
+        lastMeetingCoachBScore: bRuns,
+        lastMeetingWinnerId: winnerId,
+        biggestWinMargin: margin,
+        biggestWinCoachId: winnerId,
+      });
+      return;
+    }
+
+    const newStreak =
+      existing.currentStreakWinnerId === winnerId
+        ? existing.currentStreakLength + 1
+        : 1;
+
+    const newBiggestMargin =
+      margin > (existing.biggestWinMargin ?? 0) ? margin : existing.biggestWinMargin;
+    const newBiggestCoach =
+      margin > (existing.biggestWinMargin ?? 0) ? winnerId : existing.biggestWinCoachId;
+
+    await db
+      .update(coachRivalries)
+      .set({
+        gamesPlayed: isPostseason ? existing.gamesPlayed : existing.gamesPlayed + 1,
+        coachAWins: isPostseason ? existing.coachAWins : existing.coachAWins + (aWon ? 1 : 0),
+        coachBWins: isPostseason ? existing.coachBWins : existing.coachBWins + (aWon ? 0 : 1),
+        coachARunsScored: isPostseason ? existing.coachARunsScored : existing.coachARunsScored + aRuns,
+        coachBRunsScored: isPostseason ? existing.coachBRunsScored : existing.coachBRunsScored + bRuns,
+        postseasonGames: isPostseason ? existing.postseasonGames + 1 : existing.postseasonGames,
+        coachAPostseasonWins: isPostseason && aWon ? existing.coachAPostseasonWins + 1 : existing.coachAPostseasonWins,
+        coachBPostseasonWins: isPostseason && !aWon ? existing.coachBPostseasonWins + 1 : existing.coachBPostseasonWins,
+        currentStreakWinnerId: winnerId,
+        currentStreakLength: newStreak,
+        lastMeetingSeason: season,
+        lastMeetingWeek: week,
+        lastMeetingCoachAScore: aRuns,
+        lastMeetingCoachBScore: bRuns,
+        lastMeetingWinnerId: winnerId,
+        biggestWinMargin: newBiggestMargin,
+        biggestWinCoachId: newBiggestCoach,
+        updatedAt: new Date(),
+      })
+      .where(eq(coachRivalries.id, existing.id));
+  }
+
+  async deleteRivalriesByLeague(leagueId: string): Promise<void> {
+    await db.delete(coachRivalries).where(eq(coachRivalries.leagueId, leagueId));
   }
 }
 
