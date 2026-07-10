@@ -731,9 +731,9 @@ export function SinceLastAdvanceFeed({ leagueId, league }: { leagueId: string; l
             </div>
           )}
 
-          <Link href={`/league/${leagueId}/record-book`}>
+          <Link href={`/league/${leagueId}/ticker`}>
             <span className="text-xs text-gold hover:underline cursor-pointer" data-testid="link-feed-see-more">
-              View full history →
+              View full ticker →
             </span>
           </Link>
         </div>

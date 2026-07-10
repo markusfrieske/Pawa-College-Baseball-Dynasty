@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Check, Clock, FileText, Target, UserMinus, UserPlus,
   ClipboardList, AlertTriangle, Home, Plane, Calendar, ShieldCheck,
-  ChevronRight, Trophy, History, Swords,
+  ChevronRight, Trophy, History, Swords, Rss,
 } from "lucide-react";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -804,9 +804,10 @@ function SinceLastAdvanceSection({
             <History className="w-4 h-4 text-gold" />
             <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">SINCE LAST ADVANCE</h3>
           </div>
-          <Link href={`/league/${leagueId}/record-book`}>
-            <span className="font-pixel text-[8px] text-muted-foreground hover:text-gold transition-colors" data-testid="link-war-room-record-book">
-              History →
+          <Link href={`/league/${leagueId}/ticker`}>
+            <span className="flex items-center gap-1 font-pixel text-[8px] text-muted-foreground hover:text-gold transition-colors" data-testid="link-war-room-ticker">
+              <Rss className="w-3 h-3" />
+              Full Feed →
             </span>
           </Link>
         </div>

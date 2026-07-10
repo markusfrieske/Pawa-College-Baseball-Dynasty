@@ -1911,3 +1911,16 @@ export const leagueSaveStates = pgTable("league_save_states", {
 
 export type LeagueSaveState = typeof leagueSaveStates.$inferSelect;
 
+// Ticker read-state — tracks when each user last viewed the league ticker per league.
+// One row per (leagueId, userId) pair.  Used to compute unread counts.
+export const tickerReads = pgTable("ticker_reads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("ticker_reads_league_user_unique").on(t.leagueId, t.userId),
+  index("idx_ticker_reads_league_id").on(t.leagueId),
+]);
+
+export type TickerRead = typeof tickerReads.$inferSelect;

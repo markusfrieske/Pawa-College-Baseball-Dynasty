@@ -4,6 +4,7 @@ import {
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   playerSeasonStats, walkonPool, walkonBids,
   leagueEvents,
+  tickerReads,
   advanceDigests,
   gameReports,
   gameReportImages,
@@ -51,7 +52,7 @@ import {
   type StorylineVote, type InsertStorylineVote,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql, gt } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -153,6 +154,20 @@ export interface IStorage {
   getLeagueEvents(leagueId: string, limit?: number, eventType?: string): Promise<LeagueEvent[]>;
   getLeagueEventsBySeason(leagueId: string, season: number, eventType?: string): Promise<LeagueEvent[]>;
   getLeagueEventsByTeam(teamId: string, eventType: string, limit?: number): Promise<LeagueEvent[]>;
+
+  // Ticker feed — filtered view of league_events with pagination and optional team filter
+  getTickerFeed(opts: {
+    leagueId: string;
+    eventTypes?: string[];
+    teamId?: string;
+    since?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<LeagueEvent[]>;
+  getTickerUnreadCount(leagueId: string, lastReadAt: Date): Promise<number>;
+  // Read-state
+  getTickerRead(leagueId: string, userId: string): Promise<import("@shared/schema").TickerRead | undefined>;
+  upsertTickerRead(leagueId: string, userId: string): Promise<void>;
 
   createAdvanceDigest(digest: InsertAdvanceDigest): Promise<AdvanceDigest>;
   getAdvanceDigestsByLeague(leagueId: string, limit?: number): Promise<AdvanceDigest[]>;
@@ -853,6 +868,58 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(leagueEvents.teamId, teamId), eq(leagueEvents.eventType, eventType)))
       .orderBy(desc(leagueEvents.createdAt))
       .limit(limit);
+  }
+
+  async getTickerFeed(opts: {
+    leagueId: string;
+    eventTypes?: string[];
+    teamId?: string;
+    since?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<LeagueEvent[]> {
+    const { leagueId, eventTypes, teamId, since, limit = 50, offset = 0 } = opts;
+    const conditions = [eq(leagueEvents.leagueId, leagueId)];
+    if (eventTypes && eventTypes.length > 0) {
+      conditions.push(inArray(leagueEvents.eventType, eventTypes));
+    }
+    if (teamId) {
+      conditions.push(eq(leagueEvents.teamId, teamId));
+    }
+    if (since) {
+      conditions.push(gt(leagueEvents.createdAt, since));
+    }
+    return await db.select().from(leagueEvents)
+      .where(and(...conditions))
+      .orderBy(desc(leagueEvents.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getTickerUnreadCount(leagueId: string, lastReadAt: Date): Promise<number> {
+    const rows = await db.select({ id: leagueEvents.id }).from(leagueEvents)
+      .where(and(
+        eq(leagueEvents.leagueId, leagueId),
+        gt(leagueEvents.createdAt, lastReadAt),
+      ))
+      .limit(99);
+    return rows.length;
+  }
+
+  async getTickerRead(leagueId: string, userId: string): Promise<import("@shared/schema").TickerRead | undefined> {
+    const [row] = await db.select().from(tickerReads)
+      .where(and(eq(tickerReads.leagueId, leagueId), eq(tickerReads.userId, userId)))
+      .limit(1);
+    return row;
+  }
+
+  async upsertTickerRead(leagueId: string, userId: string): Promise<void> {
+    await db.insert(tickerReads)
+      .values({ leagueId, userId, lastReadAt: new Date() })
+      .onConflictDoUpdate({
+        target: [tickerReads.leagueId, tickerReads.userId],
+        set: { lastReadAt: new Date() },
+      });
   }
 
   async createAdvanceDigest(digest: InsertAdvanceDigest): Promise<AdvanceDigest> {

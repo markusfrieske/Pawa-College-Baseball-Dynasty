@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
   Swords, Users, Target, Calendar, Menu, BarChart3, Newspaper,
-  BookOpen, Sparkles, UserCircle, Settings, ShieldCheck, Trophy,
+  BookOpen, Sparkles, UserCircle, Settings, ShieldCheck, Trophy, Rss,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -51,6 +51,7 @@ export function MobileNav() {
   ] as const;
 
   const moreItems = [
+    { href: `${leagueBase}/ticker`, icon: Rss, label: "League Ticker", testId: "more-nav-ticker" },
     { href: `${leagueBase}?tab=standings`, icon: BarChart3, label: "Standings", testId: "more-nav-standings" },
     { href: `${leagueBase}/stats`, icon: Trophy, label: "Stats", testId: "more-nav-stats" },
     { href: `${leagueBase}?tab=news`, icon: Newspaper, label: "News", testId: "more-nav-news" },
@@ -64,6 +65,7 @@ export function MobileNav() {
   ];
 
   const isMoreActive =
+    location === `${leagueBase}/ticker` ||
     location === `${leagueBase}/stats` ||
     location === `${leagueBase}/record-book` ||
     location === `${leagueBase}/storylines` ||
