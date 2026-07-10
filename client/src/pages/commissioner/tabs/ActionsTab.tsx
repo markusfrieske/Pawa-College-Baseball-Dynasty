@@ -1,8 +1,10 @@
 import { useState, useRef } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   FastForward,
   FileSpreadsheet,
   GraduationCap,
+  Megaphone,
   Play,
   Swords,
   Target,
@@ -14,6 +16,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
@@ -95,10 +98,31 @@ export function ActionsTab({
   toggleAutoAdvance,
 }: ActionsTabProps) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showEditTeamsDialog, setShowEditTeamsDialog] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [csvData, setCsvData] = useState("");
+  const [showBroadcast, setShowBroadcast] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+
+  const broadcastMut = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/leagues/${league?.id}/messages/broadcast`, {
+        category: "commissioner",
+        title: broadcastTitle.trim(),
+        body: broadcastBody.trim(),
+      }),
+    onSuccess: () => {
+      toast({ title: "Broadcast sent", description: "All coaches received your message." });
+      setBroadcastTitle("");
+      setBroadcastBody("");
+      setShowBroadcast(false);
+      if (league?.id) qc.invalidateQueries({ queryKey: ["/api/leagues", league.id, "messages"] });
+    },
+    onError: () => toast({ title: "Broadcast failed", description: "Could not send message.", variant: "destructive" }),
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -888,6 +912,73 @@ export function ActionsTab({
         currentDeadline={league?.phaseDeadline ? String(league.phaseDeadline) : null}
         currentPhase={league?.currentPhase || ""}
       />
+
+      {/* Broadcast to all coaches */}
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-gold" />
+            <span className="font-pixel text-[10px] text-gold">COMMISSIONER BROADCAST</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Send a message to every coach's inbox in this league.
+          </p>
+          {showBroadcast ? (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Title (max 120 chars)"
+                value={broadcastTitle}
+                onChange={e => setBroadcastTitle(e.target.value.slice(0, 120))}
+                className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+                maxLength={120}
+                data-testid="input-broadcast-title"
+              />
+              <textarea
+                placeholder="Message body (max 1000 chars)"
+                value={broadcastBody}
+                onChange={e => setBroadcastBody(e.target.value.slice(0, 1000))}
+                rows={4}
+                className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-gold"
+                maxLength={1000}
+                data-testid="input-broadcast-body"
+              />
+              <div className="flex gap-2">
+                <RetroButton
+                  variant="primary"
+                  size="sm"
+                  onClick={() => broadcastMut.mutate()}
+                  disabled={!broadcastTitle.trim() || !broadcastBody.trim() || broadcastMut.isPending}
+                  data-testid="btn-broadcast-send"
+                >
+                  <Megaphone className="w-3.5 h-3.5 mr-1.5" />
+                  {broadcastMut.isPending ? "Sending..." : "Send to All Coaches"}
+                </RetroButton>
+                <RetroButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowBroadcast(false)}
+                  data-testid="btn-broadcast-cancel"
+                >
+                  Cancel
+                </RetroButton>
+              </div>
+            </div>
+          ) : (
+            <RetroButton
+              variant="outline"
+              size="sm"
+              onClick={() => setShowBroadcast(true)}
+              data-testid="btn-broadcast-compose"
+            >
+              <Megaphone className="w-3.5 h-3.5 mr-1.5" />
+              Compose Broadcast
+            </RetroButton>
+          )}
+        </RetroCardContent>
+      </RetroCard>
     </div>
   );
 }

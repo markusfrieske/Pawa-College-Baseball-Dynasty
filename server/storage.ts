@@ -5,6 +5,7 @@ import {
   playerSeasonStats, walkonPool, walkonBids,
   leagueEvents,
   tickerReads,
+  coachMessages,
   advanceDigests,
   gameReports,
   gameReportImages,
@@ -50,6 +51,7 @@ import {
   type StorylineRecruit, type InsertStorylineRecruit,
   type StorylineEvent, type InsertStorylineEvent,
   type StorylineVote, type InsertStorylineVote,
+  type CoachMessage, type InsertCoachMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql, gt } from "drizzle-orm";
@@ -168,6 +170,23 @@ export interface IStorage {
   // Read-state
   getTickerRead(leagueId: string, userId: string): Promise<import("@shared/schema").TickerRead | undefined>;
   upsertTickerRead(leagueId: string, userId: string): Promise<void>;
+
+  // Coach Office Inbox
+  createCoachMessage(msg: InsertCoachMessage): Promise<CoachMessage>;
+  getCoachMessages(opts: {
+    leagueId: string;
+    userId: string;
+    category?: string;
+    unreadOnly?: boolean;
+    archivedOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<CoachMessage[]>;
+  getCoachMessageUnreadCount(leagueId: string, userId: string): Promise<number>;
+  markCoachMessageRead(id: string, userId: string): Promise<void>;
+  markCoachMessageArchived(id: string, userId: string): Promise<void>;
+  markAllCoachMessagesRead(leagueId: string, userId: string): Promise<void>;
+  broadcastCoachMessage(leagueId: string, msg: Omit<InsertCoachMessage, "leagueId" | "userId" | "teamId">): Promise<void>;
 
   createAdvanceDigest(digest: InsertAdvanceDigest): Promise<AdvanceDigest>;
   getAdvanceDigestsByLeague(leagueId: string, limit?: number): Promise<AdvanceDigest[]>;
@@ -920,6 +939,89 @@ export class DatabaseStorage implements IStorage {
         target: [tickerReads.leagueId, tickerReads.userId],
         set: { lastReadAt: new Date() },
       });
+  }
+
+  // ── Coach Office Inbox ──────────────────────────────────────────────────────
+  async createCoachMessage(msg: InsertCoachMessage): Promise<CoachMessage> {
+    const [m] = await db.insert(coachMessages).values(msg).returning();
+    return m;
+  }
+
+  async getCoachMessages(opts: {
+    leagueId: string;
+    userId: string;
+    category?: string;
+    unreadOnly?: boolean;
+    archivedOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<CoachMessage[]> {
+    const { leagueId, userId, category, unreadOnly, archivedOnly, limit = 50, offset = 0 } = opts;
+    return await db.select().from(coachMessages)
+      .where(and(
+        eq(coachMessages.leagueId, leagueId),
+        or(eq(coachMessages.userId, userId), isNull(coachMessages.userId)),
+        category ? eq(coachMessages.category, category) : undefined,
+        unreadOnly ? isNull(coachMessages.readAt) : undefined,
+        archivedOnly ? isNotNull(coachMessages.archivedAt) : isNull(coachMessages.archivedAt),
+      ))
+      .orderBy(desc(coachMessages.createdAt))
+      .limit(limit)
+      .offset(offset);
+  }
+
+  async getCoachMessageUnreadCount(leagueId: string, userId: string): Promise<number> {
+    const rows = await db.select({ id: coachMessages.id }).from(coachMessages)
+      .where(and(
+        eq(coachMessages.leagueId, leagueId),
+        or(eq(coachMessages.userId, userId), isNull(coachMessages.userId)),
+        isNull(coachMessages.readAt),
+        isNull(coachMessages.archivedAt),
+      ))
+      .limit(99);
+    return rows.length;
+  }
+
+  async markCoachMessageRead(id: string, userId: string): Promise<void> {
+    await db.update(coachMessages)
+      .set({ readAt: new Date() })
+      .where(and(
+        eq(coachMessages.id, id),
+        or(eq(coachMessages.userId, userId), isNull(coachMessages.userId)),
+        isNull(coachMessages.readAt),
+      ));
+  }
+
+  async markCoachMessageArchived(id: string, userId: string): Promise<void> {
+    await db.update(coachMessages)
+      .set({ archivedAt: new Date(), readAt: sql`COALESCE(read_at, NOW())` })
+      .where(and(
+        eq(coachMessages.id, id),
+        or(eq(coachMessages.userId, userId), isNull(coachMessages.userId)),
+      ));
+  }
+
+  async markAllCoachMessagesRead(leagueId: string, userId: string): Promise<void> {
+    await db.update(coachMessages)
+      .set({ readAt: new Date() })
+      .where(and(
+        eq(coachMessages.leagueId, leagueId),
+        or(eq(coachMessages.userId, userId), isNull(coachMessages.userId)),
+        isNull(coachMessages.readAt),
+        isNull(coachMessages.archivedAt),
+      ));
+  }
+
+  async broadcastCoachMessage(
+    leagueId: string,
+    msg: Omit<InsertCoachMessage, "leagueId" | "userId" | "teamId">,
+  ): Promise<void> {
+    const allCoaches = await this.getCoachesByLeague(leagueId);
+    const humanCoaches = allCoaches.filter(c => c.userId != null);
+    if (humanCoaches.length === 0) return;
+    await db.insert(coachMessages).values(
+      humanCoaches.map(c => ({ ...msg, leagueId, userId: c.userId! })),
+    );
   }
 
   async createAdvanceDigest(digest: InsertAdvanceDigest): Promise<AdvanceDigest> {

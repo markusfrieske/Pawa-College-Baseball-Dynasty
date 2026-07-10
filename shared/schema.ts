@@ -1924,3 +1924,41 @@ export const tickerReads = pgTable("ticker_reads", {
 ]);
 
 export type TickerRead = typeof tickerReads.$inferSelect;
+
+// ── Coach Office Inbox ────────────────────────────────────────────────────────
+// Per-coach in-world messages: scout notes, recruiting alerts, game reminders,
+// commissioner notes, player development updates, report confirmations.
+// userId=null on a row means it was broadcast to all coaches in the league.
+export const COACH_MESSAGE_CATEGORIES = [
+  "recruiting", "scouting", "game_prep", "reports",
+  "commissioner", "player_development", "system",
+] as const;
+export type CoachMessageCategory = typeof COACH_MESSAGE_CATEGORIES[number];
+
+export const coachMessages = pgTable("coach_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  teamId: varchar("team_id").references(() => teams.id, { onDelete: "cascade" }),
+  category: text("category").notNull().$type<CoachMessageCategory>(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  ctaLabel: text("cta_label"),
+  ctaUrl: text("cta_url"),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  readAt: timestamp("read_at"),
+  archivedAt: timestamp("archived_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_coach_messages_league_user").on(t.leagueId, t.userId),
+  index("idx_coach_messages_created_at").on(t.createdAt),
+]);
+
+export const insertCoachMessageSchema = createInsertSchema(coachMessages)
+  .omit({ id: true, createdAt: true, readAt: true, archivedAt: true })
+  .extend({
+    category: z.enum(COACH_MESSAGE_CATEGORIES),
+    metadata: z.record(z.unknown()).optional(),
+  });
+export type InsertCoachMessage = z.infer<typeof insertCoachMessageSchema>;
+export type CoachMessage = typeof coachMessages.$inferSelect;

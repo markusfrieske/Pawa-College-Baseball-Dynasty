@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Swords, Users, Target, Calendar, Menu, BarChart3, Newspaper,
   BookOpen, Sparkles, UserCircle, Settings, ShieldCheck, Trophy, Rss,
+  Inbox,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -36,6 +37,16 @@ export function MobileNav() {
     enabled: inLeagueContext,
   });
 
+  const { data: inboxCount } = useQuery<{ count: number }>({
+    queryKey: ["/api/leagues", leagueId, "messages", "unread-count"],
+    queryFn: () =>
+      fetch(`/api/leagues/${leagueId}/messages/unread-count`, { credentials: "include" })
+        .then(r => r.json()),
+    enabled: inLeagueContext && !!currentUser,
+    refetchInterval: 60_000,
+  });
+  const unreadInbox = inboxCount?.count ?? 0;
+
   if (!inLeagueContext || !leagueId) return null;
 
   const leagueBase = `/league/${leagueId}`;
@@ -51,20 +62,22 @@ export function MobileNav() {
   ] as const;
 
   const moreItems = [
-    { href: `${leagueBase}/ticker`, icon: Rss, label: "League Ticker", testId: "more-nav-ticker" },
-    { href: `${leagueBase}?tab=standings`, icon: BarChart3, label: "Standings", testId: "more-nav-standings" },
-    { href: `${leagueBase}/stats`, icon: Trophy, label: "Stats", testId: "more-nav-stats" },
-    { href: `${leagueBase}?tab=news`, icon: Newspaper, label: "News", testId: "more-nav-news" },
-    { href: `${leagueBase}/record-book`, icon: BookOpen, label: "Record Book", testId: "more-nav-record-book" },
-    { href: `${leagueBase}/storylines`, icon: Sparkles, label: "Storylines", testId: "more-nav-storylines" },
-    { href: `${leagueBase}/coach`, icon: UserCircle, label: "Coach Profile", testId: "more-nav-coach-profile" },
-    { href: `${leagueBase}/coach?tab=settings`, icon: Settings, label: "Settings", testId: "more-nav-settings" },
+    { href: `${leagueBase}/inbox`, icon: Inbox, label: "Coach Inbox", testId: "more-nav-inbox", badge: unreadInbox > 0 ? (unreadInbox > 99 ? "99+" : String(unreadInbox)) : null },
+    { href: `${leagueBase}/ticker`, icon: Rss, label: "League Ticker", testId: "more-nav-ticker", badge: null },
+    { href: `${leagueBase}?tab=standings`, icon: BarChart3, label: "Standings", testId: "more-nav-standings", badge: null },
+    { href: `${leagueBase}/stats`, icon: Trophy, label: "Stats", testId: "more-nav-stats", badge: null },
+    { href: `${leagueBase}?tab=news`, icon: Newspaper, label: "News", testId: "more-nav-news", badge: null },
+    { href: `${leagueBase}/record-book`, icon: BookOpen, label: "Record Book", testId: "more-nav-record-book", badge: null },
+    { href: `${leagueBase}/storylines`, icon: Sparkles, label: "Storylines", testId: "more-nav-storylines", badge: null },
+    { href: `${leagueBase}/coach`, icon: UserCircle, label: "Coach Profile", testId: "more-nav-coach-profile", badge: null },
+    { href: `${leagueBase}/coach?tab=settings`, icon: Settings, label: "Settings", testId: "more-nav-settings", badge: null },
     ...(isCommissioner
-      ? [{ href: `${leagueBase}/commissioner`, icon: ShieldCheck, label: "Commissioner Tools", testId: "more-nav-commissioner" }]
+      ? [{ href: `${leagueBase}/commissioner`, icon: ShieldCheck, label: "Commissioner Tools", testId: "more-nav-commissioner", badge: null }]
       : []),
   ];
 
   const isMoreActive =
+    location === `${leagueBase}/inbox` ||
     location === `${leagueBase}/ticker` ||
     location === `${leagueBase}/stats` ||
     location === `${leagueBase}/record-book` ||
@@ -97,16 +110,28 @@ export function MobileNav() {
               </Link>
             );
           })}
+          {/* More button — shows a gold dot when there are unread inbox messages */}
           <button
             type="button"
             aria-label="More"
             onClick={() => setMoreOpen(true)}
-            className={`flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors active:bg-white/5 min-h-[44px] ${
+            className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors active:bg-white/5 min-h-[44px] ${
               isMoreActive ? "text-gold" : "text-muted-foreground hover:text-foreground"
             }`}
             data-testid="mobile-nav-more"
           >
-            <Menu className="w-5 h-5" />
+            <span className="relative">
+              <Menu className="w-5 h-5" />
+              {unreadInbox > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-gold text-[8px] font-bold text-black leading-none"
+                  data-testid="badge-more-unread"
+                  aria-label={`${unreadInbox} unread messages`}
+                >
+                  {unreadInbox > 9 ? "9+" : unreadInbox}
+                </span>
+              )}
+            </span>
             <span className="text-[9px] leading-none font-medium">More</span>
           </button>
         </div>
@@ -119,7 +144,7 @@ export function MobileNav() {
             <SheetDescription className="sr-only">Additional navigation links</SheetDescription>
           </SheetHeader>
           <div className="mt-4 space-y-1">
-            {moreItems.map(({ href, icon: Icon, label, testId }) => (
+            {moreItems.map(({ href, icon: Icon, label, testId, badge }) => (
               <button
                 key={testId}
                 type="button"
@@ -131,7 +156,12 @@ export function MobileNav() {
                 data-testid={testId}
               >
                 <Icon className="w-4 h-4 text-gold flex-shrink-0" />
-                <span className="text-sm font-medium">{label}</span>
+                <span className="flex-1 text-sm font-medium">{label}</span>
+                {badge && (
+                  <span className="flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-gold text-[9px] font-bold text-black">
+                    {badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>

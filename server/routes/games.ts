@@ -20,6 +20,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { validateBoxScore } from "../lib/validateBoxScore";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema } from "../route-helpers";
+import * as coachMsg from "../lib/coachMessages";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGame, finalizeReportedGame } from "../game-finalizer";
 import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
@@ -494,6 +495,37 @@ export function registerGameRoutes(app: Express): void {
         return res.json({ ...report, autoConfirmed: true });
       }
 
+      // Notify submitter that their report is pending confirmation
+      if (req.session.userId) {
+        void coachMsg.notifyReportSubmitted({
+          leagueId,
+          userId: req.session.userId,
+          homeTeamName: homeTeam?.name ?? "Home",
+          awayTeamName: awayTeam?.name ?? "Away",
+          homeScore,
+          awayScore,
+          gameId,
+        });
+      }
+
+      // Notify the opposing coach to confirm/dispute
+      const reporterTeamId2 = coach?.teamId ?? null;
+      if (reporterTeamId2) {
+        const opposingTeamId2 =
+          reporterTeamId2 === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
+        const opposingCoach = (await storage.getCoachesByLeague(leagueId))
+          .find(c => c.teamId === opposingTeamId2 && c.userId);
+        if (opposingCoach?.userId) {
+          void coachMsg.notifyReportPending({
+            leagueId,
+            userId: opposingCoach.userId,
+            homeTeamName: homeTeam?.name ?? "Home",
+            awayTeamName: awayTeam?.name ?? "Away",
+            gameId,
+          });
+        }
+      }
+
       res.json(report);
     } catch (error) {
       console.error("Failed to create game report:", error);
@@ -701,6 +733,23 @@ export function registerGameRoutes(app: Express): void {
         season: game.season,
         week: game.week,
       });
+
+      // Inbox: notify both coaches the report is finalized
+      const allCoachesForNotify = await storage.getCoachesByLeague(leagueId);
+      for (const involvedTeamId of [game.homeTeamId, game.awayTeamId].filter(Boolean)) {
+        const ic = allCoachesForNotify.find(c => c.teamId === involvedTeamId && c.userId);
+        if (ic?.userId) {
+          void coachMsg.notifyReportFinalized({
+            leagueId,
+            userId: ic.userId,
+            homeTeamName: homeTeamForNotify?.name ?? "Home",
+            awayTeamName: awayTeamForNotify?.name ?? "Away",
+            homeScore: report.homeScore,
+            awayScore: report.awayScore,
+            gameId,
+          });
+        }
+      }
 
       invalidateLeague(leagueId);
       res.json({ message: "Report confirmed and game finalized" });

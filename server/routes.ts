@@ -52,6 +52,7 @@ import { registerSimulationRoutes, simulateGame } from "./routes/simulation";
 import { registerSaveStateRoutes } from "./routes/saveStates";
 import { registerWarRoomRoutes } from "./routes/war-room";
 import { registerTickerRoutes } from "./routes/ticker";
+import { registerCoachMessageRoutes } from "./routes/coach-messages";
 import {
   generateSchedule,
   generateRecruits,
@@ -464,6 +465,7 @@ export async function registerRoutes(
   registerSaveStateRoutes(app);
   registerWarRoomRoutes(app);
   registerTickerRoutes(app);
+  registerCoachMessageRoutes(app);
   registerObjectStorageRoutes(app);
 
   // League routes
