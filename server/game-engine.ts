@@ -8,7 +8,7 @@
  */
 
 import { storage } from "./storage";
-import type { Game, GameReport } from "@shared/schema";
+import type { Game } from "@shared/schema";
 import type { InsertPlayerSeasonStats } from "@shared/schema";
 import { GAME_TYPE_TO_DAY, ipToOuts } from "@shared/pitcherRest";
 
@@ -284,70 +284,8 @@ export async function updatePitcherRestFromBox(
   await storage.bulkUpdatePlayerRest(updates);
 }
 
-// ── Finalize a reported game ──────────────────────────────────────────────────
-
-export async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string) {
-  const { homeScore, awayScore } = report;
-  const homeBoxData = report.homeBoxData as Record<string, unknown> | null;
-  const awayBoxData = report.awayBoxData as Record<string, unknown> | null;
-  const inningScores = (report.inningScores as number[][] | null) ?? [];
-
-  const homeHits = report.homeHits ?? 0;
-  const awayHits = report.awayHits ?? 0;
-  const homeErrors = report.homeErrors ?? 0;
-  const awayErrors = report.awayErrors ?? 0;
-
-  const boxScore = {
-    innings: inningScores,
-    home: enrichBoxData(homeBoxData, homeErrors, homeScore, homeHits),
-    away: enrichBoxData(awayBoxData, awayErrors, awayScore, awayHits),
-  };
-
-  // Save score + boxScore first, but defer isComplete until after stats are written
-  await storage.updateGame(game.id, {
-    homeScore,
-    awayScore,
-    isManuallyReported: true,
-    reportedByUserId: report.reporterUserId,
-    boxScore: JSON.stringify(boxScore),
-  });
-
-  const league = await storage.getLeague(leagueId);
-  if (league) {
-    await updateStandingsForGame(leagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
-
-    const enrichedHome = boxScore.home;
-    const enrichedAway = boxScore.away;
-    if (!homeBoxData) console.warn(`[finalizeReportedGame] homeBoxData null for game ${game.id} — using enriched fallback`);
-    if (!awayBoxData) console.warn(`[finalizeReportedGame] awayBoxData null for game ${game.id} — using enriched fallback`);
-    const reportedHomeWon = homeScore > awayScore;
-    await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, enrichedHome, reportedHomeWon);
-    await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, enrichedAway, !reportedHomeWon);
-
-    await updatePitcherRestFromBox(homeBoxData, awayBoxData, game, league.currentWeek);
-
-    const leagueTeams = await storage.getTeamsByLeague(leagueId);
-    const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
-    const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
-    const homeWon = homeScore > awayScore;
-    const desc = `${awayTeam?.name || "Away"} ${awayScore}, ${homeTeam?.name || "Home"} ${homeScore} (Reported)`;
-
-    await storage.createLeagueEvent({
-      leagueId,
-      teamId: homeWon ? game.homeTeamId : game.awayTeamId,
-      teamName: homeWon ? (homeTeam?.name || null) : (awayTeam?.name || null),
-      teamAbbreviation: homeWon ? (homeTeam?.abbreviation || null) : (awayTeam?.abbreviation || null),
-      teamPrimaryColor: homeWon ? (homeTeam?.primaryColor || null) : (awayTeam?.primaryColor || null),
-      eventType: "GAME_RESULT",
-      description: desc,
-      season: game.season,
-      week: game.week,
-    });
-  }
-
-  // Mark complete only after stats + standings + pitcher rest are confirmed
-  await storage.updateGame(game.id, { isComplete: true });
-}
+// finalizeReportedGame moved to server/game-finalizer.ts to avoid circular imports.
+// Import it from there: import { finalizeReportedGame } from "./game-finalizer";
 
 // ── Conference championships generation ──────────────────────────────────────
 

@@ -20,11 +20,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema } from "../route-helpers";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
-import {
-  computeLegacyScore,
-  updateStandingsForGame,
-  finalizeReportedGame,
-} from "../game-engine";
+import { finalizeGame, finalizeReportedGame } from "../game-finalizer";
 import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
 import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
 import { ObjectStorageService, ObjectNotFoundError } from "../replit_integrations/object_storage/objectStorage";
@@ -296,53 +292,12 @@ export function registerGameRoutes(app: Express): void {
       const patchGame = await storage.getGame(patchGameId);
       if (!patchGame) return res.status(404).json({ message: "Game not found" });
 
-      const game = await storage.updateGame(patchGameId, { homeScore, awayScore, isComplete: true });
-      if (!game) return res.status(404).json({ message: "Game not found" });
-
-      await updateStandingsForGame(patchLeagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
-
       const leagueTeams = await storage.getTeamsByLeague(patchLeagueId);
-      const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
-      const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
-      const homeWon = homeScore > awayScore;
-
-      const WIN_XP = 100, LOSS_XP = 25;
-
-      if (homeTeam?.coachId) {
-        const homeCoach = await storage.getCoach(homeTeam.coachId);
-        if (homeCoach) {
-          const newXp = homeCoach.xp + (homeWon ? WIN_XP : LOSS_XP);
-          const newLevel = Math.floor(newXp / 1000) + 1;
-          const hcWins = homeCoach.careerWins + (homeWon ? 1 : 0);
-          const hcLosses = homeCoach.careerLosses + (homeWon ? 0 : 1);
-          await storage.updateCoach(homeCoach.id, {
-            xp: newXp, level: newLevel,
-            skillPoints: homeCoach.skillPoints + (newLevel > homeCoach.level ? 1 : 0),
-            careerWins: hcWins, careerLosses: hcLosses,
-            confWins: homeCoach.confWins + (game.isConference && homeWon ? 1 : 0),
-            confLosses: homeCoach.confLosses + (game.isConference && !homeWon ? 1 : 0),
-            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins }),
-          });
-        }
-      }
-
-      if (awayTeam?.coachId) {
-        const awayCoach = await storage.getCoach(awayTeam.coachId);
-        if (awayCoach) {
-          const newXp = awayCoach.xp + (homeWon ? LOSS_XP : WIN_XP);
-          const newLevel = Math.floor(newXp / 1000) + 1;
-          const acWins = awayCoach.careerWins + (homeWon ? 0 : 1);
-          const acLosses = awayCoach.careerLosses + (homeWon ? 1 : 0);
-          await storage.updateCoach(awayCoach.id, {
-            xp: newXp, level: newLevel,
-            skillPoints: awayCoach.skillPoints + (newLevel > awayCoach.level ? 1 : 0),
-            careerWins: acWins, careerLosses: acLosses,
-            confWins: awayCoach.confWins + (game.isConference && !homeWon ? 1 : 0),
-            confLosses: awayCoach.confLosses + (game.isConference && homeWon ? 1 : 0),
-            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins }),
-          });
-        }
-      }
+      await finalizeGame(patchGame, homeScore, awayScore, null, patchLeagueId, {
+        skipPlayerStats: true,
+        skipPitcherRest: true,
+        leagueTeams,
+      });
 
       await storage.createAuditLog({
         leagueId: patchLeagueId,
@@ -351,8 +306,8 @@ export function registerGameRoutes(app: Express): void {
         details: `Final: ${awayScore} - ${homeScore}`,
       });
 
-      invalidateLeague(patchLeagueId);
-      res.json(game);
+      const updatedGame = await storage.getGame(patchGameId);
+      res.json(updatedGame);
     } catch (error) {
       console.error("Failed to update game:", error);
       res.status(500).json({ message: "Failed to update game" });
