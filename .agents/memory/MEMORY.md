@@ -15,3 +15,4 @@
 - [Object storage: never trust client-supplied paths](object-storage-authz.md) — validate objectPath server-side (must resolve to a real uploaded object) before persisting/rendering, and gate the /objects/* serving route on record-level authz, not just requireAuth.
 - [drizzle-kit interactive create/rename ambiguity](drizzle-kit-interactive-prompt.md) — `db:push --force` can still hang on a create-vs-rename prompt for a genuinely new table; create it via raw SQL first, then re-run push.
 - [OCR name normalization must collapse whitespace](ocr-name-normalization.md) — a name-normalizer used for OCR dedupe/match keys must collapse internal whitespace runs, not just strip/trim, or near-identical OCR reads fail to merge.
+- [Multiplayer CPU fallback pattern](multiplayer-cpu-fallback.md) — `leagueTeams.find(t => !t.isCpu)` as a team fallback silently corrupts 14-user leagues; use `resolveUserTeam` from route-helpers instead.

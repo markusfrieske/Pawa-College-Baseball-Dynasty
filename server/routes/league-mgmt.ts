@@ -1598,8 +1598,12 @@ app.get("/api/leagues/:id/recruits/:recruitId", requireAuth, async (req, res) =>
     }
 
     // Get user's team to find their interest in this recruit
-    const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-    const userTeam = leagueTeams.find(t => !t.isCpu);
+    const [leagueTeams, coaches] = await Promise.all([
+      storage.getTeamsByLeague(req.params.id as string),
+      storage.getCoachesByLeague(req.params.id as string),
+    ]);
+    const userCoach = coaches.find(c => c.userId === req.session.userId);
+    const userTeam = userCoach?.teamId ? leagueTeams.find(t => t.id === userCoach.teamId) : undefined;
     
     let interest = null;
     if (userTeam) {

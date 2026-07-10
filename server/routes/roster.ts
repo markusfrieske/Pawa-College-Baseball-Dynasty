@@ -40,7 +40,7 @@ export function registerRosterRoutes(app: Express): void {
         const userId = req.session.userId;
         const coaches = await storage.getCoachesByLeague(req.params.id as string);
         const userCoach = coaches.find((c) => c.userId === userId);
-        team = userCoach ? leagueTeams.find((t) => t.id === userCoach.teamId) : leagueTeams.find((t) => !t.isCpu);
+        team = userCoach?.teamId ? leagueTeams.find((t) => t.id === userCoach.teamId) : undefined;
       }
       
       if (!team) {
@@ -79,7 +79,7 @@ export function registerRosterRoutes(app: Express): void {
         const coaches = await storage.getCoachesByLeague(leagueId);
         const userCoach = coaches.find(c => c.userId === userId);
         const leagueTeams = await storage.getTeamsByLeague(leagueId);
-        const userTeam = userCoach ? leagueTeams.find(t => t.id === userCoach.teamId) : leagueTeams.find(t => !t.isCpu);
+        const userTeam = userCoach?.teamId ? leagueTeams.find(t => t.id === userCoach.teamId) : undefined;
         targetTeamId = userTeam?.id;
       } else if (!isCommissioner) {
         const coaches = await storage.getCoachesByLeague(leagueId);

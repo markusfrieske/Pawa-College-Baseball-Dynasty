@@ -1,4 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
+import { resolveUserTeam } from "./route-helpers";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents } from "./storyline-routes";
@@ -489,10 +490,7 @@ export async function registerRoutes(
         const leagueTeams = teamsByLeague.get(league.id) ?? [];
         const leagueCoaches = coachesByLeague.get(league.id) ?? [];
 
-        const userCoach = leagueCoaches.find(c => c.userId === userId);
-        const userTeam = userCoach
-          ? leagueTeams.find(t => t.coachId === userCoach.id)
-          : leagueTeams.find(t => !t.isCpu);
+        const { userCoach, userTeam } = resolveUserTeam(leagueCoaches, leagueTeams, userId);
 
         // Identify commissioner's team for display to all coaches
         const commCoach = leagueCoaches.find(c => c.userId === league.commissionerId);
@@ -552,8 +550,7 @@ export async function registerRoutes(
       for (const league of userLeagues) {
         const leagueTeams = teamsByLeague.get(league.id) ?? [];
         const leagueCoaches = coachesByLeague.get(league.id) ?? [];
-        const userCoach = leagueCoaches.find((c) => c.userId === userId);
-        const userTeam = userCoach ? leagueTeams.find((t) => t.coachId === userCoach.id) : leagueTeams.find((t) => !t.isCpu);
+        const { userTeam } = resolveUserTeam(leagueCoaches, leagueTeams, userId);
         if (userTeam) userTeamByLeague.set(league.id, userTeam);
       }
 

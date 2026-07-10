@@ -26,7 +26,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber, calculateSignInterestThreshold, SIGNABLE_STAGES } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber, calculateSignInterestThreshold, SIGNABLE_STAGES, resolveUserTeam } from "../route-helpers";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
@@ -180,7 +180,7 @@ export function registerRecruitingRoutes(app: Express): void {
       const coaches = await storage.getCoachesByLeague(leagueId);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
-      const userTeam = userCoach ? leagueTeams.find(t => t.id === userCoach.teamId) : leagueTeams.find(t => !t.isCpu);
+      const userTeam = userCoach?.teamId ? leagueTeams.find(t => t.id === userCoach.teamId) : undefined;
       if (!userTeam) return res.status(400).json({ message: "No team assigned" });
 
       const [leagueRecruits, interests, allTeamActions, allLeagueInterests, allLeagueTopSchools, roster] = await Promise.all([
@@ -1475,8 +1475,11 @@ export function registerRecruitingRoutes(app: Express): void {
 
   app.post("/api/leagues/:id/recruiting/:recruitId/target", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const [leagueTeams, coaches] = await Promise.all([
+        storage.getTeamsByLeague(req.params.id as string),
+        storage.getCoachesByLeague(req.params.id as string),
+      ]);
+      const { userTeam } = resolveUserTeam(coaches, leagueTeams, req.session.userId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
@@ -1519,8 +1522,11 @@ export function registerRecruitingRoutes(app: Express): void {
   // Update recruit notes
   app.patch("/api/leagues/:id/recruiting/:recruitId/notes", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const [leagueTeams, coaches] = await Promise.all([
+        storage.getTeamsByLeague(req.params.id as string),
+        storage.getCoachesByLeague(req.params.id as string),
+      ]);
+      const { userTeam } = resolveUserTeam(coaches, leagueTeams, req.session.userId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
@@ -2008,10 +2014,7 @@ export function registerRecruitingRoutes(app: Express): void {
       const leagueTeams = await storage.getTeamsByLeague(league.id);
       const userId = req.session.userId;
       const coaches = await storage.getCoachesByLeague(league.id);
-      const userCoach = coaches.find((c) => c.userId === userId);
-      const userTeam = userCoach
-        ? leagueTeams.find((t) => t.coachId === userCoach.id)
-        : leagueTeams.find((t) => !t.isCpu);
+      const { userCoach, userTeam } = resolveUserTeam(coaches, leagueTeams, userId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
@@ -2384,7 +2387,7 @@ export function registerRecruitingRoutes(app: Express): void {
       const userId = req.session.userId;
       const coaches = await storage.getCoachesByLeague(req.params.id as string);
       const userCoach = coaches.find((c) => c.userId === userId);
-      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId) || leagueTeams.find((t) => !t.isCpu);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
@@ -2574,7 +2577,7 @@ export function registerRecruitingRoutes(app: Express): void {
       const userId = req.session.userId;
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find((c) => c.userId === userId);
-      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId) || leagueTeams.find((t) => !t.isCpu);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
 
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
@@ -2723,8 +2726,11 @@ export function registerRecruitingRoutes(app: Express): void {
   // Get recruiting actions log for a recruit
   app.get("/api/leagues/:id/recruiting/:recruitId/actions", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const [leagueTeams, coaches] = await Promise.all([
+        storage.getTeamsByLeague(req.params.id),
+        storage.getCoachesByLeague(req.params.id),
+      ]);
+      const { userTeam } = resolveUserTeam(coaches, leagueTeams, req.session.userId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });

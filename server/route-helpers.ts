@@ -38,6 +38,28 @@ export function hasCommissionerAccess(
   return coIds.includes(userId);
 }
 
+/**
+ * Resolve the team for a given user session WITHOUT falling back to the first
+ * non-CPU team.  In a multiplayer league every coach owns exactly one team;
+ * using a CPU fallback routes unmatched requests to the wrong team and
+ * corrupts cross-team data.
+ *
+ * Returns { userCoach: undefined, userTeam: undefined } when no coach is
+ * found for the user (or the coach has no team), so callers can return 400.
+ */
+export function resolveUserTeam<
+  C extends { userId?: string | null; teamId?: string | null },
+  T extends { id: string },
+>(
+  coaches: C[],
+  teams: T[],
+  userId: string | undefined,
+): { userCoach: C | undefined; userTeam: T | undefined } {
+  const userCoach = userId ? coaches.find(c => c.userId === userId) : undefined;
+  const userTeam = userCoach?.teamId ? teams.find(t => t.id === userCoach.teamId) : undefined;
+  return { userCoach, userTeam };
+}
+
 // Only the commissioner (or a co-commissioner) or a coach involved in the game
 // (home/away) may view an uploaded box-score screenshot for that game.
 export async function canAccessGameReportImage(
