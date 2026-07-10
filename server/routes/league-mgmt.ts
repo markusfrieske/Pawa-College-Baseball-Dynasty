@@ -2147,6 +2147,228 @@ app.post("/api/leagues/:id/schedule/generate", requireAuth, async (req, res) => 
   }
 });
 
+// Schedule health dashboard — commissioner only
+app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
+  try {
+    const leagueId = req.params.id as string;
+    const userId = req.session.userId as string;
+
+    const league = await storage.getLeague(leagueId);
+    if (!league) return res.status(404).json({ message: "League not found" });
+    if (!hasCommissionerAccess(league, userId)) {
+      return res.status(403).json({ message: "Commissioner only" });
+    }
+
+    const season = league.currentSeason;
+    const seasonLength = league.seasonLength || "standard";
+    const numWeeks = seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
+    const maxGamesPerWeek = seasonLength === "short" || seasonLength === "standard" ? 2 : 4;
+    const expectedGamesPerTeam = maxGamesPerWeek * numWeeks;
+
+    const [allGames, allTeams] = await Promise.all([
+      storage.getGamesByLeagueSeason(leagueId, season),
+      storage.getTeamsByLeague(leagueId),
+    ]);
+
+    const regularGames = allGames.filter(g => g.phase === "regular");
+    const humanTeamIds = new Set(allTeams.filter(t => !t.isCpu).map(t => t.id));
+    const teamById = new Map(allTeams.map(t => [t.id, t]));
+
+    const repeatThreshold = seasonLength === "short" || seasonLength === "standard" ? 2
+      : seasonLength === "medium" ? 3 : 4;
+
+    const teamStats = allTeams.map(team => {
+      const myGames = regularGames.filter(
+        g => g.homeTeamId === team.id || g.awayTeamId === team.id
+      );
+      const confGames = myGames.filter(g => g.isConference).length;
+      const oocGames = myGames.filter(g => !g.isConference).length;
+
+      const gamesByWeek = new Map<number, number>();
+      for (let w = 1; w <= numWeeks; w++) gamesByWeek.set(w, 0);
+      for (const g of myGames) {
+        const w = g.week ?? 0;
+        if (w >= 1 && w <= numWeeks) gamesByWeek.set(w, (gamesByWeek.get(w) ?? 0) + 1);
+      }
+
+      const byeWeeks = Array.from(gamesByWeek.entries())
+        .filter(([, c]) => c === 0)
+        .map(([w]) => w);
+      const overloadedWeeks = Array.from(gamesByWeek.entries())
+        .filter(([, c]) => c > maxGamesPerWeek)
+        .map(([w, c]) => ({ week: w, count: c }));
+
+      const opponentCounts = new Map<string, number>();
+      for (const g of myGames) {
+        const oppId = g.homeTeamId === team.id ? g.awayTeamId : g.homeTeamId;
+        if (oppId) opponentCounts.set(oppId, (opponentCounts.get(oppId) ?? 0) + 1);
+      }
+      const repeatOpponents = Array.from(opponentCounts.entries())
+        .filter(([, c]) => c > repeatThreshold)
+        .sort((a, b) => b[1] - a[1])
+        .map(([oppId, count]) => ({
+          opponentId: oppId,
+          opponentName: teamById.get(oppId)?.name ?? oppId,
+          count,
+        }));
+
+      const humanMatchups = myGames.filter(g => {
+        const oppId = g.homeTeamId === team.id ? g.awayTeamId : g.homeTeamId;
+        return !!oppId && humanTeamIds.has(oppId) && oppId !== team.id;
+      }).length;
+
+      return {
+        teamId: team.id,
+        teamName: team.name,
+        conferenceName: team.conferenceName || "",
+        isHuman: !team.isCpu,
+        totalGames: myGames.length,
+        confGames,
+        oocGames,
+        byeWeeks,
+        overloadedWeeks,
+        repeatOpponents,
+        humanMatchups,
+      };
+    });
+
+    const weekStats = Array.from({ length: numWeeks }, (_, i) => {
+      const week = i + 1;
+      const wGames = regularGames.filter(g => g.week === week);
+      const teamsThisWeek = new Set<string>();
+      for (const g of wGames) {
+        if (g.homeTeamId) teamsThisWeek.add(g.homeTeamId);
+        if (g.awayTeamId) teamsThisWeek.add(g.awayTeamId);
+      }
+      return {
+        week,
+        totalGames: wGames.length,
+        confGames: wGames.filter(g => g.isConference).length,
+        oocGames: wGames.filter(g => !g.isConference).length,
+        teamsWithGames: teamsThisWeek.size,
+        teamsOnBye: allTeams.length - teamsThisWeek.size,
+      };
+    });
+
+    // Human-vs-human matchup matrix (symmetric)
+    const humanTeamArr = allTeams.filter(t => !t.isCpu);
+    const humanMatchupMatrix: Record<string, Record<string, number>> = {};
+    for (const ht of humanTeamArr) {
+      humanMatchupMatrix[ht.id] = {};
+      for (const ht2 of humanTeamArr) {
+        if (ht.id !== ht2.id) humanMatchupMatrix[ht.id][ht2.id] = 0;
+      }
+    }
+    for (const g of regularGames) {
+      if (
+        g.homeTeamId && g.awayTeamId &&
+        humanTeamIds.has(g.homeTeamId) && humanTeamIds.has(g.awayTeamId)
+      ) {
+        if (humanMatchupMatrix[g.homeTeamId]) {
+          humanMatchupMatrix[g.homeTeamId][g.awayTeamId] =
+            (humanMatchupMatrix[g.homeTeamId][g.awayTeamId] ?? 0) + 1;
+        }
+        if (humanMatchupMatrix[g.awayTeamId]) {
+          humanMatchupMatrix[g.awayTeamId][g.homeTeamId] =
+            (humanMatchupMatrix[g.awayTeamId][g.homeTeamId] ?? 0) + 1;
+        }
+      }
+    }
+
+    // Warnings
+    const warnings: Array<{ severity: string; code: string; message: string }> = [];
+    const tolerance = 0.15;
+    const underTarget = teamStats.filter(t => t.totalGames < expectedGamesPerTeam * (1 - tolerance));
+    const overTarget = teamStats.filter(t => t.totalGames > expectedGamesPerTeam * (1 + tolerance));
+    const teamsWithByes = teamStats.filter(t => t.byeWeeks.length > 1);
+    const teamsWithOverloaded = teamStats.filter(t => t.overloadedWeeks.length > 0);
+    const teamsWithRepeats = teamStats.filter(t => t.repeatOpponents.length > 0);
+
+    if (underTarget.length > 0) warnings.push({
+      severity: "warning",
+      code: "GAME_COUNT_LOW",
+      message: `${underTarget.length} team(s) have significantly fewer games than the ${expectedGamesPerTeam}-game target: ${underTarget.map(t => t.teamName).join(", ")}`,
+    });
+    if (overTarget.length > 0) warnings.push({
+      severity: "warning",
+      code: "GAME_COUNT_HIGH",
+      message: `${overTarget.length} team(s) have significantly more games than expected: ${overTarget.map(t => t.teamName).join(", ")}`,
+    });
+    if (teamsWithOverloaded.length > 0) warnings.push({
+      severity: "error",
+      code: "OVERLOADED_WEEKS",
+      message: `${teamsWithOverloaded.length} team(s) have weeks with more than ${maxGamesPerWeek} games scheduled`,
+    });
+    if (teamsWithByes.length > 0) warnings.push({
+      severity: "warning",
+      code: "EXCESSIVE_BYES",
+      message: `${teamsWithByes.length} team(s) have 2 or more bye weeks: ${teamsWithByes.map(t => `${t.teamName} (${t.byeWeeks.length})`).join(", ")}`,
+    });
+    if (teamsWithRepeats.length > 0) warnings.push({
+      severity: "info",
+      code: "REPEAT_OPPONENTS",
+      message: `${teamsWithRepeats.length} team(s) face an opponent more than expected based on season length`,
+    });
+
+    if (humanTeamArr.length > 1) {
+      const hvhCounts: number[] = [];
+      for (let i = 0; i < humanTeamArr.length; i++) {
+        for (let j = i + 1; j < humanTeamArr.length; j++) {
+          hvhCounts.push(humanMatchupMatrix[humanTeamArr[i].id][humanTeamArr[j].id] ?? 0);
+        }
+      }
+      const maxHvH = Math.max(...hvhCounts);
+      const minHvH = Math.min(...hvhCounts);
+      if (maxHvH - minHvH > 2) {
+        warnings.push({
+          severity: "warning",
+          code: "HUMAN_MATCHUP_IMBALANCE",
+          message: `Human-vs-human matchup counts are imbalanced (range: ${minHvH}–${maxHvH} per pair)`,
+        });
+      }
+    }
+
+    const gameCounts = teamStats.map(t => t.totalGames);
+    const summary = {
+      minGames: gameCounts.length ? Math.min(...gameCounts) : 0,
+      maxGames: gameCounts.length ? Math.max(...gameCounts) : 0,
+      avgGames: gameCounts.length
+        ? Math.round(gameCounts.reduce((a, b) => a + b, 0) / gameCounts.length)
+        : 0,
+      teamsUnderTarget: underTarget.length,
+      teamsOverTarget: overTarget.length,
+      totalByes: teamStats.reduce((a, t) => a + t.byeWeeks.length, 0),
+      teamsWithRepeats: teamsWithRepeats.length,
+      humanVsHumanGames: regularGames.filter(
+        g => g.homeTeamId && g.awayTeamId &&
+          humanTeamIds.has(g.homeTeamId) && humanTeamIds.has(g.awayTeamId)
+      ).length,
+      hasErrors: warnings.some(w => w.severity === "error"),
+      hasWarnings: warnings.some(w => w.severity === "warning"),
+    };
+
+    res.json({
+      season,
+      seasonLength,
+      numWeeks,
+      numTeams: allTeams.length,
+      expectedGamesPerTeam,
+      maxGamesPerWeek,
+      teamStats,
+      weekStats,
+      humanMatchupMatrix,
+      humanTeamNames: Object.fromEntries(
+        humanTeamArr.map(t => [t.id, t.name])
+      ),
+      warnings,
+      summary,
+    });
+  } catch (error) {
+    console.error("Failed to compute schedule health:", error);
+    res.status(500).json({ message: "Failed to compute schedule health" });
+  }
+});
+
 // League Events (Activity Feed) routes
 app.get("/api/leagues/:id/events", requireAuth, async (req, res) => {
   try {

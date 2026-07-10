@@ -30,6 +30,7 @@ import { GameReportsTab } from "./tabs/GameReportsTab";
 import { NilOverviewTab } from "./tabs/NilOverviewTab";
 import { RosterEditorTab } from "./tabs/RosterEditorTab";
 import { SaveStatesTab } from "./tabs/SaveStatesTab";
+import { ScheduleHealthTab } from "./tabs/ScheduleHealthTab";
 import { phaseLabels } from "./helpers/phaseHelpers";
 import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 import type { HumanCoach } from "./types";
@@ -123,6 +124,21 @@ export default function CommissionerPage() {
   const { data, isLoading, isError, error } = useQuery<CommissionerData>({
     queryKey: ["/api/leagues", id, "commissioner"],
     retry: false,
+  });
+
+  const isPreseason = data?.league?.currentPhase === "preseason";
+  const { data: scheduleHealth } = useQuery<{
+    warnings: Array<{ severity: string; code: string; message: string }>;
+    summary: { hasErrors: boolean; hasWarnings: boolean };
+  }>({
+    queryKey: ["/api/leagues", id, "schedule", "health"],
+    queryFn: () =>
+      fetch(`/api/leagues/${id}/schedule/health`).then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      }),
+    enabled: isPreseason,
+    staleTime: 60_000,
   });
   const isForbidden =
     isError && error instanceof Error && error.message.startsWith("403");
@@ -499,6 +515,40 @@ export default function CommissionerPage() {
           </div>
         )}
 
+        {isPreseason && scheduleHealth?.summary?.hasErrors && (
+          <div
+            className="mb-4 p-3 rounded border border-red-500/50 bg-red-900/20 flex items-start gap-3"
+            data-testid="banner-schedule-health-error"
+          >
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-pixel text-[9px] text-red-400 mb-1">SCHEDULE ISSUES DETECTED</p>
+              <p className="text-xs text-muted-foreground">
+                The generated schedule has critical issues (e.g. overloaded weeks). Review the{" "}
+                <span className="text-gold">Schedule Health</span> tab before starting the season.
+                You can regenerate the schedule from the Actions tab.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {isPreseason && !scheduleHealth?.summary?.hasErrors && scheduleHealth?.summary?.hasWarnings && (
+          <div
+            className="mb-4 p-3 rounded border border-yellow-500/40 bg-yellow-900/20 flex items-start gap-3"
+            data-testid="banner-schedule-health-warning"
+          >
+            <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-pixel text-[9px] text-yellow-400 mb-1">SCHEDULE WARNINGS</p>
+              <p className="text-xs text-muted-foreground">
+                The schedule has minor balance warnings. Check the{" "}
+                <span className="text-gold">Schedule Health</span> tab for details before starting
+                the season.
+              </p>
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="actions" className="space-y-6">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto">
@@ -538,6 +588,13 @@ export default function CommissionerPage() {
                 data-testid="tab-nil"
               >
                 NIL
+              </TabsTrigger>
+              <TabsTrigger
+                value="schedule-health"
+                className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                data-testid="tab-schedule-health"
+              >
+                Schedule
               </TabsTrigger>
               {isPrimaryCommissioner && (
                 <TabsTrigger
@@ -622,6 +679,10 @@ export default function CommissionerPage() {
 
           <TabsContent value="nil">
             <NilOverviewTab leagueId={id!} />
+          </TabsContent>
+
+          <TabsContent value="schedule-health">
+            <ScheduleHealthTab leagueId={id!} />
           </TabsContent>
 
           {isPrimaryCommissioner && (
