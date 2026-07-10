@@ -11,7 +11,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2, Shield } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -1336,6 +1336,13 @@ function CompactGameRow({
         <div className="flex-1" />
 
         <div className="flex items-center gap-1">
+          {!game.isComplete && callbacks.isUserGame(game) && (
+            <Link href={`/league/${callbacks.leagueId}/games/${game.id}/prep`}>
+              <RetroButton variant="outline" size="sm" title="Game Prep Card" data-testid={`button-prep-${game.id}`} className="border-emerald-700/50 text-emerald-400/80 hover:text-emerald-300 hover:border-emerald-500">
+                <Shield className="w-3 h-3" />
+              </RetroButton>
+            </Link>
+          )}
           {!game.isComplete && callbacks.isUserGame(game) && !report && (
             isSeriesLocked ? (
               <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
@@ -1577,6 +1584,19 @@ function StandaloneGameRow({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          {!game.isComplete && callbacks.isUserGame(game) && (
+            <Link href={`/league/${callbacks.leagueId}/games/${game.id}/prep`} onClick={e => e.stopPropagation()}>
+              <RetroButton
+                variant="outline"
+                size="sm"
+                title="Game Prep Card"
+                data-testid={`button-prep-${game.id}`}
+                className="border-emerald-700/50 text-emerald-400/80 hover:text-emerald-300 hover:border-emerald-500"
+              >
+                <Shield className="w-3 h-3" />
+              </RetroButton>
+            </Link>
+          )}
           {!game.isComplete && isHumanVsHuman && (
             <RetroButton
               variant="outline"

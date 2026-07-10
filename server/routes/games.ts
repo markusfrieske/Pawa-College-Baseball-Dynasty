@@ -24,6 +24,12 @@ import { finalizeGame, finalizeReportedGame } from "../game-finalizer";
 import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
 import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
 import { ObjectStorageService, ObjectNotFoundError } from "../replit_integrations/object_storage/objectStorage";
+import {
+  computePitcherAvailability,
+  fullStaminaIP,
+  GAME_TYPE_TO_DAY,
+  type GameDay,
+} from "@shared/pitcherRest";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -1084,6 +1090,434 @@ export function registerGameRoutes(app: Express): void {
     } catch (error) {
       console.error("Failed to delete game report image:", error);
       res.status(500).json({ message: "Failed to delete game report image" });
+    }
+  });
+
+  // ── Game Prep Card ────────────────────────────────────────────────────────
+  //   GET /api/leagues/:id/games/:gameId/prep
+  //   Any authenticated league member may view prep data for any game.
+  //   No hidden recruit/gem/bust flags are exposed — only player ratings and
+  //   season stats that are already visible on the roster page.
+  app.get("/api/leagues/:id/games/:gameId/prep", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId   = req.params.gameId as string;
+      const userId   = req.session.userId!;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      // Parallel bulk fetch — everything we need in one round-trip.
+      const [allGames, teams, coaches, seasonStats, standingRows] = await Promise.all([
+        storage.getGamesByLeague(leagueId),
+        storage.getTeamsByLeague(leagueId),
+        storage.getCoachesByLeague(leagueId),
+        storage.getPlayerSeasonStatsBySeason(leagueId, league.currentSeason),
+        storage.getStandingsByLeague(leagueId, league.currentSeason),
+      ]);
+
+      const game = allGames.find(g => g.id === gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+
+      const homeTeam = teams.find(t => t.id === game.homeTeamId);
+      const awayTeam = teams.find(t => t.id === game.awayTeamId);
+      if (!homeTeam || !awayTeam) return res.status(404).json({ message: "Teams not found" });
+
+      // Fetch both rosters in parallel.
+      const [homePlayers, awayPlayers] = await Promise.all([
+        storage.getPlayersByTeam(homeTeam.id),
+        storage.getPlayersByTeam(awayTeam.id),
+      ]);
+
+      // Determine user's side.
+      const userCoach  = coaches.find(c => c.userId === userId);
+      const userTeamId = userCoach?.teamId ?? null;
+      const userSide: "home" | "away" | null =
+        userTeamId === homeTeam.id ? "home" :
+        userTeamId === awayTeam.id ? "away" : null;
+
+      // Indexes.
+      const standingsMap = new Map(standingRows.map(s => [s.teamId, s]));
+      const statsMap     = new Map(seasonStats.map(s => [s.playerId, s]));
+
+      // Game day slot — used for pitcher rest calculations.
+      const gameDay: GameDay = GAME_TYPE_TO_DAY[game.gameType ?? ""] ?? "FRI";
+
+      // ── Recent form (last 5 completed games for a team) ────────────────────
+      const recentFormForTeam = (teamId: string): Array<"W" | "L"> =>
+        allGames
+          .filter(g => g.isComplete && (g.homeTeamId === teamId || g.awayTeamId === teamId))
+          .sort((a, b) => (b.week ?? 0) - (a.week ?? 0))
+          .slice(0, 5)
+          .map(g => {
+            const isHome = g.homeTeamId === teamId;
+            const scored   = isHome ? (g.homeScore ?? 0) : (g.awayScore ?? 0);
+            const allowed  = isHome ? (g.awayScore ?? 0) : (g.homeScore ?? 0);
+            return scored > allowed ? "W" : "L";
+          });
+
+      // ── Team analysis ───────────────────────────────────────────────────────
+      type Player = typeof homePlayers[0];
+      const avgAttr = (arr: Player[], key: keyof Player): number =>
+        arr.length === 0
+          ? 50
+          : Math.round(arr.reduce((s, p) => s + ((p[key] as number) ?? 50), 0) / arr.length);
+
+      const analyzeTeam = (
+        teamId: string,
+        players: Player[],
+        coach: (typeof coaches)[0] | undefined,
+      ) => {
+        const pitchers  = players.filter(p => p.position === "SP" || p.position === "RP");
+        const starters  = players.filter(p => p.position === "SP");
+        const relievers = players.filter(p => p.position === "RP");
+        const hitters   = players.filter(p => p.position !== "SP" && p.position !== "RP");
+
+        // Probable starter: best available SP for this game day.
+        // Falls back to best available pitcher, then any pitcher.
+        const startPool = starters.length > 0 ? starters : pitchers;
+        const startCandidates = startPool
+          .map(p => ({
+            player: p,
+            avail: computePitcherAvailability(
+              p.lastPitchedOuts ?? 0,
+              p.lastPitchedWeek ?? null,
+              (p.lastPitchedDay as GameDay | null) ?? null,
+              p.stamina ?? 50,
+              league.currentWeek,
+              gameDay,
+            ),
+          }))
+          .sort((a, b) => {
+            // Prefer: fully available > limited > unavailable; then by OVR desc.
+            const aScore =
+              a.avail.available && !a.avail.limited ? 2 :
+              a.avail.available ?                     1 : 0;
+            const bScore =
+              b.avail.available && !b.avail.limited ? 2 :
+              b.avail.available ?                     1 : 0;
+            if (aScore !== bScore) return bScore - aScore;
+            return (b.player.overall ?? 0) - (a.player.overall ?? 0);
+          });
+
+        const topStarter = startCandidates[0] ?? null;
+        const spStats    = topStarter ? statsMap.get(topStarter.player.id) : null;
+        const spEra      = spStats && (spStats.ipOuts ?? 0) > 0
+          ? (((spStats.pEr ?? 0) * 27) / spStats.ipOuts!).toFixed(2)
+          : null;
+        const spRecord   = spStats ? `${spStats.wins ?? 0}-${spStats.losses ?? 0}` : null;
+
+        // Bullpen: top 3 relievers by OVR with availability info.
+        const bullpen = [...relievers]
+          .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0))
+          .slice(0, 3)
+          .map(p => {
+            const avail  = computePitcherAvailability(
+              p.lastPitchedOuts ?? 0,
+              p.lastPitchedWeek ?? null,
+              (p.lastPitchedDay as GameDay | null) ?? null,
+              p.stamina ?? 50,
+              league.currentWeek,
+              gameDay,
+            );
+            const pStats = statsMap.get(p.id);
+            const era    = pStats && (pStats.ipOuts ?? 0) > 0
+              ? (((pStats.pEr ?? 0) * 27) / pStats.ipOuts!).toFixed(2)
+              : null;
+            return {
+              id: p.id,
+              name: `${p.firstName} ${p.lastName}`,
+              position: p.position,
+              overall: p.overall ?? 0,
+              velocity: p.velocity ?? 0,
+              control: p.control ?? 0,
+              stuff: p.stuff ?? 0,
+              stamina: p.stamina ?? 0,
+              available: avail.available,
+              limited: avail.limited,
+              suggestedMaxIP: avail.suggestedMaxIP,
+              era,
+            };
+          });
+
+        // Top 3 hitters by OVR with stat enrichment.
+        const top3Bats = [...hitters]
+          .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0))
+          .slice(0, 3)
+          .map(p => {
+            const st = statsMap.get(p.id);
+            const ba = st && (st.ab ?? 0) > 5
+              ? ((st.h ?? 0) / st.ab!).toFixed(3).replace(/^0/, "")
+              : null;
+            return {
+              id: p.id,
+              name: `${p.firstName} ${p.lastName}`,
+              position: p.position,
+              overall: p.overall ?? 0,
+              hitForAvg: p.hitForAvg ?? 50,
+              power: p.power ?? 50,
+              speed: p.speed ?? 50,
+              starRating: p.starRating ?? 2,
+              ba,
+              hr: st?.hr ?? null,
+            };
+          });
+
+        // Weakest defensive spots: one worst-fielding player per position.
+        const posDef = new Map<string, Player>();
+        for (const p of hitters) {
+          const existing = posDef.get(p.position);
+          if (!existing || (p.fielding ?? 0) < (existing.fielding ?? 0)) {
+            posDef.set(p.position, p);
+          }
+        }
+        const weakDefense = [...posDef.entries()]
+          .sort((a, b) => (a[1].fielding ?? 50) - (b[1].fielding ?? 50))
+          .slice(0, 2)
+          .map(([pos, p]) => ({
+            position: pos,
+            name: `${p.firstName} ${p.lastName}`,
+            fielding: p.fielding ?? 50,
+            errorResistance: p.errorResistance ?? 50,
+          }));
+
+        // Catcher arm (used for Keys to Win logic).
+        const catcher = hitters.find(p => p.position === "C");
+
+        // Team batting aggregates from season stats (only if enough ABs exist).
+        const hitterStats = hitters.flatMap(p => {
+          const s = statsMap.get(p.id);
+          return s ? [s] : [];
+        });
+        const totalAB = hitterStats.reduce((s, st) => s + (st.ab ?? 0), 0);
+        const totalH  = hitterStats.reduce((s, st) => s + (st.h  ?? 0), 0);
+        const totalHR = hitterStats.reduce((s, st) => s + (st.hr ?? 0), 0);
+        const teamBA  = totalAB > 10 ? (totalH / totalAB).toFixed(3).replace(/^0/, "") : null;
+        const teamHR  = totalAB > 10 ? totalHR : null;
+
+        // ── Matchup meter (0–100 per dimension) ─────────────────────────────
+        // Batting / Power / Speed / Defense → average of hitter attributes.
+        // Starting Pitching → weighted composite of the probable starter's attrs.
+        // Bullpen → weighted composite of top relievers' attrs.
+        const spPlayer = topStarter?.player;
+        const startingPitchingScore = spPlayer
+          ? Math.round(
+              (spPlayer.velocity ?? 50) * 0.40 +
+              (spPlayer.control  ?? 50) * 0.30 +
+              (spPlayer.stamina  ?? 50) * 0.20 +
+              (spPlayer.stuff    ?? 50) * 0.10,
+            )
+          : 50;
+
+        const bullpenScore = bullpen.length === 0 ? 50 : Math.round(
+          bullpen.reduce((s, p) => s + p.velocity * 0.40 + p.control * 0.35 + p.stuff * 0.25, 0)
+          / bullpen.length,
+        );
+
+        const meter = {
+          batting:          avgAttr(hitters, "hitForAvg"),
+          power:            avgAttr(hitters, "power"),
+          speed:            avgAttr(hitters, "speed"),
+          defense:          avgAttr(hitters, "fielding"),
+          startingPitching: startingPitchingScore,
+          bullpen:          bullpenScore,
+        };
+
+        // Coach style / philosophy (only non-hidden fields).
+        const style      = coach?.archetype ?? null;
+        const philosophy = (
+          (coach?.coachingPhilosophy as Array<{ statement?: string; importance?: string }> | null)
+            ?.filter(p => p.importance === "core" || p.importance === "primary")
+            ?.slice(0, 2)
+            ?.map(p => p.statement ?? "")
+            ?.filter(Boolean)
+        ) ?? [];
+
+        return {
+          meter,
+          probableStarter: topStarter ? {
+            id: topStarter.player.id,
+            name: `${topStarter.player.firstName} ${topStarter.player.lastName}`,
+            overall:   topStarter.player.overall  ?? 0,
+            velocity:  topStarter.player.velocity  ?? 0,
+            control:   topStarter.player.control   ?? 0,
+            stamina:   topStarter.player.stamina   ?? 0,
+            stuff:     topStarter.player.stuff     ?? 0,
+            suggestedMaxIP: fullStaminaIP(topStarter.player.stamina ?? 50),
+            pitchingSuggestedMaxIP: topStarter.avail.suggestedMaxIP,
+            available: topStarter.avail.available,
+            limited:   topStarter.avail.limited,
+            era:       spEra,
+            record:    spRecord,
+          } : null,
+          bullpen,
+          top3Bats,
+          weakDefense,
+          catcher: catcher ? { arm: catcher.arm ?? 50 } : null,
+          style,
+          philosophy,
+          teamBA,
+          teamHR,
+          record: {
+            wins:   standingsMap.get(teamId)?.wins   ?? 0,
+            losses: standingsMap.get(teamId)?.losses ?? 0,
+          },
+          recentForm: recentFormForTeam(teamId),
+        };
+      };
+
+      const homeCoach = coaches.find(c => c.teamId === homeTeam.id);
+      const awayCoach = coaches.find(c => c.teamId === awayTeam.id);
+
+      const homeAnalysis = analyzeTeam(homeTeam.id, homePlayers, homeCoach);
+      const awayAnalysis = analyzeTeam(awayTeam.id, awayPlayers, awayCoach);
+
+      // ── Head-to-head history ───────────────────────────────────────────────
+      const h2hGames = allGames
+        .filter(g =>
+          g.isComplete && g.id !== game.id && (
+            (g.homeTeamId === homeTeam.id && g.awayTeamId === awayTeam.id) ||
+            (g.homeTeamId === awayTeam.id && g.awayTeamId === homeTeam.id)
+          )
+        )
+        .sort((a, b) => (b.week ?? 0) - (a.week ?? 0))
+        .slice(0, 5);
+
+      const homeH2HWins = h2hGames.filter(g =>
+        (g.homeTeamId === homeTeam.id && (g.homeScore ?? 0) > (g.awayScore ?? 0)) ||
+        (g.awayTeamId === homeTeam.id && (g.awayScore ?? 0) > (g.homeScore ?? 0))
+      ).length;
+
+      // ── Keys to Win ────────────────────────────────────────────────────────
+      //   Generated deterministically from ratings and rest status.
+      //   Perspective = user's team vs. opponent.
+      //   Falls back to home-team perspective when user is not in the game.
+      const myA   = userSide === "home" ? homeAnalysis : awayAnalysis;
+      const oppA  = userSide === "home" ? awayAnalysis : homeAnalysis;
+
+      const keys: string[] = [];
+
+      // 1. Starter availability / fatigue
+      const sp = oppA.probableStarter;
+      if (sp) {
+        if (!sp.available) {
+          keys.push("Their probable starter is unavailable — expect a bullpen game from the start");
+        } else if (sp.limited) {
+          keys.push(`Work deep counts — ${sp.name} is limited to ~${sp.pitchingSuggestedMaxIP} IP on short rest`);
+        } else if ((sp.stamina ?? 0) < 50) {
+          keys.push(`Tire out their starter — ${sp.name} runs out of gas around ${sp.suggestedMaxIP} innings`);
+        } else if ((sp.control ?? 0) < 50) {
+          keys.push(`Be patient at the plate — ${sp.name} struggles with command (${sp.control} control)`);
+        } else if ((sp.velocity ?? 0) >= 75 && (sp.control ?? 0) >= 70) {
+          keys.push(`Their ace ${sp.name} is legitimate — make contact early before he finds his rhythm`);
+        }
+      }
+
+      // 2. Running game / catcher arm
+      if (oppA.catcher && oppA.catcher.arm >= 75) {
+        keys.push(`Stay put — their catcher has an elite arm (${oppA.catcher.arm}). Do not run.`);
+      } else if (myA.meter.speed >= 65 && (oppA.catcher?.arm ?? 50) < 55) {
+        keys.push("Push the running game — you have a speed edge and their catcher's arm is exploitable");
+      }
+
+      // 3. Power threat — protect the strike zone vs. their top bat
+      const topBat = oppA.top3Bats[0];
+      if (topBat && topBat.power >= 75) {
+        keys.push(`Keep the ball in the park — ${topBat.name} (${topBat.position}) can change the game in one swing (${topBat.power} power)`);
+      }
+
+      // 4. Lineup depth — exploit the bottom of their order
+      const oppLineupAvg = oppA.top3Bats.length > 0
+        ? oppA.top3Bats.reduce((s, b) => s + b.overall, 0) / oppA.top3Bats.length
+        : 300;
+      if (oppLineupAvg > 360 && oppA.meter.batting < 55) {
+        keys.push("Their lineup falls off hard after the top — let your starter carve through the bottom third");
+      }
+
+      // 5. Bullpen edge
+      if (myA.meter.bullpen > oppA.meter.bullpen + 15) {
+        keys.push("Trust your bullpen — a late-game lead is safe with your pen advantage");
+      } else if (oppA.meter.bullpen > myA.meter.bullpen + 15) {
+        keys.push("Score early — their bullpen is strong enough to close out any late lead you chase");
+      }
+
+      // 6. Speed / contact advantage
+      if (myA.meter.speed > oppA.meter.speed + 15) {
+        keys.push("Use your speed advantage — put the ball in play and make their defense work");
+      }
+
+      // 7. Defensive weak spot to exploit
+      const weak = oppA.weakDefense[0];
+      if (weak && weak.fielding < 45) {
+        keys.push(`Attack the ${weak.position} gap — ${weak.name} is an exploitable glove (${weak.fielding} fielding)`);
+      }
+
+      // Fill to a minimum of 3 keys with generic comparative tips.
+      if (keys.length < 3 && myA.meter.batting > oppA.meter.batting + 10) {
+        keys.push("Your lineup has a clear contact advantage — make them earn every single out");
+      }
+      if (keys.length < 3 && myA.meter.startingPitching > oppA.meter.startingPitching + 10) {
+        keys.push("Your starter has the edge on the mound — give him run support early and let him work");
+      }
+      if (keys.length < 3) {
+        keys.push("Stay disciplined at the plate and execute your game plan pitch by pitch");
+      }
+
+      res.json({
+        game: {
+          id:           game.id,
+          homeTeamId:   game.homeTeamId,
+          awayTeamId:   game.awayTeamId,
+          isConference: game.isConference,
+          gameType:     game.gameType,
+          week:         game.week,
+          season:       game.season,
+          phase:        game.phase,
+          isComplete:   game.isComplete,
+        },
+        homeTeam: {
+          id:             homeTeam.id,
+          name:           homeTeam.name,
+          abbreviation:   homeTeam.abbreviation,
+          primaryColor:   homeTeam.primaryColor,
+          secondaryColor: homeTeam.secondaryColor,
+          prestige:       homeTeam.prestige,
+          mascot:         homeTeam.mascot,
+          coachName:      homeCoach ? `${homeCoach.firstName} ${homeCoach.lastName}` : "CPU Coach",
+          coachArchetype: homeCoach?.archetype ?? null,
+        },
+        awayTeam: {
+          id:             awayTeam.id,
+          name:           awayTeam.name,
+          abbreviation:   awayTeam.abbreviation,
+          primaryColor:   awayTeam.primaryColor,
+          secondaryColor: awayTeam.secondaryColor,
+          prestige:       awayTeam.prestige,
+          mascot:         awayTeam.mascot,
+          coachName:      awayCoach ? `${awayCoach.firstName} ${awayCoach.lastName}` : "CPU Coach",
+          coachArchetype: awayCoach?.archetype ?? null,
+        },
+        home:       homeAnalysis,
+        away:       awayAnalysis,
+        userSide,
+        keysToWin:  keys.slice(0, 5),
+        h2h: {
+          homeWins:    homeH2HWins,
+          awayWins:    h2hGames.length - homeH2HWins,
+          totalGames:  h2hGames.length,
+          recentGames: h2hGames.slice(0, 3).map(g => ({
+            id:         g.id,
+            week:       g.week,
+            homeScore:  g.homeScore,
+            awayScore:  g.awayScore,
+            homeTeamId: g.homeTeamId,
+            awayTeamId: g.awayTeamId,
+          })),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch game prep:", error);
+      res.status(500).json({ message: "Failed to fetch game prep" });
     }
   });
 }

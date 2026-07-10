@@ -56,6 +56,7 @@ const RecordBookPage = lazy(() => import("@/pages/record-book"));
 const StatsPage = lazy(() => import("@/pages/stats"));
 const DigestFeedPage = lazy(() => import("@/pages/digest-feed"));
 const WarRoomPage = lazy(() => import("@/pages/war-room"));
+const GamePrepPage = lazy(() => import("@/pages/game-prep"));
 
 const AuthPageLazy = lazy(() => import("@/pages/auth"));
 const GuestWarningModalLazy = lazy(() =>
@@ -129,6 +130,7 @@ function Router() {
           <Route path="/league/:id/departures" component={DeparturesPage} />
           <Route path="/league/:id/walkons" component={WalkonsPage} />
           <Route path="/league/:id/storylines" component={StorylinesPage} />
+          <Route path="/league/:id/games/:gameId/prep" component={GamePrepPage} />
           <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />
           <Route path="/league/:id/report-game/:gameId" component={ReportGamePage} />
           <Route path="/league/:id/postseason" component={PostseasonHubPage} />
