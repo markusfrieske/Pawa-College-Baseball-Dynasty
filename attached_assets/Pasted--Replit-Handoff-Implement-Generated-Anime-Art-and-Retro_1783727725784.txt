@@ -1,0 +1,731 @@
+# Replit Handoff: Implement Generated Anime Art and Retro Icons
+
+Use this document as the implementation direction for adding the already-generated art assets into the app.
+
+Do not generate new images from this prompt. The images already exist. Your job is to place them in the codebase, wire them into the right screens, crop them well on desktop/mobile, preserve readability, and make the app feel more like a premium sports game companion.
+
+## Product Goal
+
+This app is a multiplayer college baseball dynasty companion for leagues that play games in eBaseball Power Pros. The artwork should make the app feel more game-like, immersive, and emotional while keeping the actual league-management UI fast and readable.
+
+Most league members will use desktop, but every screen still needs to work well on phones.
+
+## Design Principles
+
+- Use art as atmosphere, not decoration that fights the UI.
+- Desktop should feel rich and wide, like a sports game menu.
+- Mobile should crop safely and keep the interface readable.
+- Dense tables, stat forms, roster lists, and report-entry screens should sit on solid readable panels.
+- Use image backgrounds mainly for hero areas, header bands, side panels, empty states, storyline thumbnails, modals, and major game moments.
+- Keep the retro/pixel identity as flavor, but do not make the app harder to read.
+- Do not replace normal UI icons like search, back, close, edit, upload, save, and settings. Use the generated retro icons only for game-specific concepts.
+
+## Add Asset Folders
+
+Create these folders if missing:
+
+```text
+client/src/assets/art/backgrounds/
+client/src/assets/art/backgrounds/mobile/
+client/src/assets/art/storylines/
+client/src/assets/art/icons/
+```
+
+Place the generated images into these folders. If the generated image names are different from the names below, rename the files or update the asset map accordingly.
+
+## Expected Asset Names
+
+Backgrounds:
+
+```text
+landing-hero-league-office.png
+landing-hero-league-office-mobile.png
+league-war-room.png
+league-war-room-mobile.png
+recruiting-classroom.png
+recruiting-classroom-mobile.png
+schedule-game-day-field.png
+schedule-night-game-field.png
+reporting-scorekeeper-desk.png
+reporting-scorekeeper-desk-mobile.png
+commissioner-command-center.png
+stats-archive-room.png
+postseason-championship-stadium.png
+offseason-planning-room.png
+```
+
+Storyline images:
+
+```text
+story-dorm-room.png
+story-classroom.png
+story-restaurant.png
+story-beach-showcase.png
+story-training-field.png
+story-injury-recovery.png
+story-position-change.png
+story-leaves-pool.png
+```
+
+Retro icons:
+
+```text
+icon-war-room.png
+icon-recruiting.png
+icon-schedule.png
+icon-game-report.png
+icon-ready-up.png
+icon-commissioner.png
+icon-save-state.png
+icon-storyline.png
+icon-stats.png
+icon-roster.png
+icon-standings.png
+icon-injury.png
+icon-transfer-portal.png
+icon-nil.png
+icon-championship.png
+```
+
+## Create an Asset Registry
+
+Create:
+
+```text
+client/src/lib/art-assets.ts
+```
+
+The purpose of this file is to centralize image imports and keep page code clean.
+
+It should export:
+
+```text
+artBackgrounds
+storylineArt
+retroIcons
+```
+
+Recommended structure:
+
+```ts
+export const artBackgrounds = {
+  landingHero: {
+    desktop: landingHero,
+    mobile: landingHeroMobile,
+    alt: "College baseball league office overlooking a stadium",
+    focalPoint: "center center",
+  },
+  leagueWarRoom: {
+    desktop: leagueWarRoom,
+    mobile: leagueWarRoomMobile,
+    alt: "Coach war room desk with laptop and baseball planning board",
+    focalPoint: "center center",
+  },
+};
+```
+
+For icons:
+
+```ts
+export const retroIcons = {
+  warRoom: iconWarRoom,
+  recruiting: iconRecruiting,
+  schedule: iconSchedule,
+  gameReport: iconGameReport,
+  readyUp: iconReadyUp,
+  commissioner: iconCommissioner,
+  saveState: iconSaveState,
+  storyline: iconStoryline,
+  stats: iconStats,
+  roster: iconRoster,
+  standings: iconStandings,
+  injury: iconInjury,
+  transferPortal: iconTransferPortal,
+  nil: iconNil,
+  championship: iconChampionship,
+};
+```
+
+For storylines:
+
+```ts
+export const storylineArt = {
+  personal: storyDormRoom,
+  academics: storyClassroom,
+  family: storyRestaurant,
+  showcase: storyBeachShowcase,
+  scouting: storyTrainingField,
+  injury: storyInjuryRecovery,
+  positionChange: storyPositionChange,
+  exit: storyLeavesPool,
+  default: storyTrainingField,
+};
+```
+
+## Create the ArtworkBackground Component
+
+Create:
+
+```text
+client/src/components/artwork-background.tsx
+```
+
+The component should support:
+
+```ts
+type ArtworkBackgroundProps = {
+  desktopSrc: string;
+  mobileSrc?: string;
+  alt?: string;
+  focalPoint?: string;
+  overlayStrength?: "none" | "light" | "medium" | "heavy";
+  className?: string;
+  imageClassName?: string;
+  children?: React.ReactNode;
+  priority?: boolean;
+};
+```
+
+Behavior:
+
+- Render the image as an absolutely positioned background layer.
+- Use `picture` or CSS media handling so mobile can use the mobile image when available.
+- Use `object-fit: cover`.
+- Use `object-position` from `focalPoint`.
+- Add overlay classes based on `overlayStrength`.
+- Keep children above the overlay.
+- Add `aria-hidden="true"` if the image is decorative.
+- If `alt` is provided and the image is meaningful, expose it appropriately without creating duplicate screen-reader noise.
+- Do not block pointer events.
+- Lazy-load non-hero images.
+- Use `priority` or eager loading only for the landing hero.
+
+Overlay guidance:
+
+```text
+none: no overlay
+light: subtle dark gradient, good for decorative headers
+medium: readable over most art
+heavy: for text-heavy hero sections or mobile
+```
+
+## Create an ArtPanel Component
+
+Optional but recommended:
+
+```text
+client/src/components/art-panel.tsx
+```
+
+Use it for smaller image-backed areas such as:
+
+- Storyline cards.
+- Opponent preview cards.
+- Empty states.
+- Modal headers.
+- Feature panels.
+
+Props:
+
+```ts
+type ArtPanelProps = {
+  src: string;
+  alt?: string;
+  title?: React.ReactNode;
+  children?: React.ReactNode;
+  overlayStrength?: "light" | "medium" | "heavy";
+  className?: string;
+};
+```
+
+## Screen-by-Screen Integration
+
+### 1. Landing Page
+
+File:
+
+```text
+client/src/pages/landing.tsx
+```
+
+Use:
+
+```text
+landing-hero-league-office.png
+landing-hero-league-office-mobile.png
+```
+
+Implementation:
+
+- Replace the current hero background with `ArtworkBackground`.
+- Use the desktop hero on wide screens and mobile hero on phones.
+- Keep the headline and CTAs readable with a medium or heavy overlay.
+- The page should immediately communicate: multiplayer Power Pros dynasty companion.
+- Keep the first viewport from becoming too tall. Let the next section peek below the fold.
+- Do not place key text over the busiest part of the image.
+
+Recommended hero copy:
+
+```text
+Power Pros Dynasty League Office
+Recruit, report, advance, and manage a multiplayer college baseball dynasty around games played in eBaseball Power Pros.
+```
+
+Recommended CTAs:
+
+```text
+Create League
+Join League
+Explore Demo
+```
+
+Also fix the Create League route if needed:
+
+```text
+/league/create
+```
+
+### 2. League Home / War Room
+
+File:
+
+```text
+client/src/pages/league-view.tsx
+```
+
+Use:
+
+```text
+league-war-room.png
+league-war-room-mobile.png
+icon-war-room.png
+icon-ready-up.png
+icon-game-report.png
+icon-recruiting.png
+```
+
+Implementation:
+
+- Add a War Room header at the top of the league page.
+- Use `league-war-room` as the background.
+- Build or style the first-screen modules around:
+  - Next Opponent
+  - Since Advance
+  - My Tasks
+  - League Pulse
+  - Ready Up status
+- Move the large quick-action grid lower on the page.
+- Use retro icons as module icons where they help with game feel.
+- Do not put the art behind dense standings or stat tables.
+
+Desktop:
+
+- Use the background as a wide cinematic header with UI cards over the darker/empty side.
+
+Mobile:
+
+- Use the mobile crop or a shorter header.
+- Stack modules below the art if text becomes cramped.
+
+### 3. Recruiting
+
+File:
+
+```text
+client/src/pages/recruiting.tsx
+```
+
+Use:
+
+```text
+recruiting-classroom.png
+recruiting-classroom-mobile.png
+icon-recruiting.png
+icon-storyline.png
+icon-injury.png
+icon-transfer-portal.png
+```
+
+Implementation:
+
+- Add an image-backed recruiting cockpit header.
+- Keep the primary recruiting controls on readable solid panels.
+- Use the art to create mood, not as the background behind every recruit row.
+- Add retro icons to key concepts: Board, Battles, Scout, Pipeline, Class, Storylines.
+- Use storyline thumbnails inside recruit/story cards where relevant.
+
+Mobile:
+
+- Keep filters and dense controls in drawers/sheets.
+- Do not make the header take more than necessary vertical space.
+
+### 4. Schedule / Opponent Preview
+
+File:
+
+```text
+client/src/pages/schedule.tsx
+```
+
+Use:
+
+```text
+schedule-game-day-field.png
+schedule-night-game-field.png
+icon-schedule.png
+icon-game-report.png
+icon-ready-up.png
+```
+
+Implementation:
+
+- Use `schedule-game-day-field` as the schedule page header.
+- Use `schedule-night-game-field` for postseason, rivalry, or high-stakes game preview cards if a condition exists.
+- Make current-week games and report status feel like a sports game matchup screen.
+- Use the game report icon on report/edit/confirm actions where appropriate.
+
+Do not:
+
+- Put the full image behind the whole schedule list.
+- Let week pills or game cards become unreadable.
+
+### 5. Game Reporting / OCR
+
+File:
+
+```text
+client/src/pages/report-game.tsx
+```
+
+Use:
+
+```text
+reporting-scorekeeper-desk.png
+reporting-scorekeeper-desk-mobile.png
+icon-game-report.png
+icon-stats.png
+```
+
+Implementation:
+
+- Use `reporting-scorekeeper-desk` on the first step of the reporting flow, especially screenshot upload/OCR.
+- If the app has not added OCR yet, still use this art for the upload/manual-entry intro state.
+- Keep actual stat entry tables/forms on solid panels.
+- Add a small image-backed header to the final review screen.
+- Use the report icon for the flow title and game-report cards.
+
+Mobile:
+
+- Use the mobile crop in the upload step.
+- Keep bottom submit/next actions sticky and readable.
+
+### 6. Commissioner
+
+File:
+
+```text
+client/src/pages/commissioner.tsx
+```
+
+Use:
+
+```text
+commissioner-command-center.png
+icon-commissioner.png
+icon-save-state.png
+icon-ready-up.png
+icon-game-report.png
+```
+
+Implementation:
+
+- Add a command-center hero/header at the top of the commissioner page.
+- Pair this art with the Advance Readiness and save-state/rollback sections.
+- Use the save-state icon anywhere rollback, snapshot, or fail-safe logic appears.
+- Use the commissioner icon for the main page identity.
+- Separate high-risk actions visually from normal settings.
+
+Important:
+
+- The art should make this area feel serious and safe.
+- Do not hide important advance blockers below decorative UI.
+
+### 7. Stats / Record Book / History
+
+Files likely include:
+
+```text
+client/src/pages/stats.tsx
+client/src/pages/record-book.tsx
+```
+
+Use:
+
+```text
+stats-archive-room.png
+icon-stats.png
+icon-standings.png
+icon-championship.png
+```
+
+Implementation:
+
+- Use the archive image as a header or empty state.
+- Keep all stat tables on solid high-contrast panels.
+- Use icons for section identity: stats, records, standings, awards, championships.
+
+### 8. Postseason / Championship
+
+File:
+
+```text
+client/src/pages/postseason.tsx
+```
+
+Use:
+
+```text
+postseason-championship-stadium.png
+icon-championship.png
+```
+
+Implementation:
+
+- Use this image only for postseason and championship moments.
+- Create a special event feel: bracket header, championship recap, final matchup, season wrap.
+- Use a heavier overlay for readable bracket text.
+
+### 9. Offseason / Recruiting Class Creator
+
+Files may include:
+
+```text
+client/src/pages/manage-recruiting.tsx
+client/src/pages/create-roster.tsx
+client/src/pages/roster-editor.tsx
+```
+
+Use:
+
+```text
+offseason-planning-room.png
+icon-recruiting.png
+icon-roster.png
+```
+
+Implementation:
+
+- Use the planning room image for offseason setup, class creation, roster import, and preseason prep.
+- Keep data-entry controls on clean panels.
+- Use this art to make setup feel like team-building, not admin work.
+
+### 10. Storylines
+
+Files may include:
+
+```text
+client/src/pages/storylines.tsx
+client/src/components/storyline-card.tsx
+client/src/components/recruit-storyline-card.tsx
+```
+
+Use:
+
+```text
+story-dorm-room.png
+story-classroom.png
+story-restaurant.png
+story-beach-showcase.png
+story-training-field.png
+story-injury-recovery.png
+story-position-change.png
+story-leaves-pool.png
+icon-storyline.png
+```
+
+Implementation:
+
+- Add a helper that chooses image by storyline event type.
+- Use story images as thumbnails or header art on storyline cards.
+- Do not reveal hidden gem/bust outcomes in image labels or UI text.
+
+Suggested mapping:
+
+```ts
+const storylineImageByType = {
+  personal: storylineArt.personal,
+  work_ethic: storylineArt.personal,
+  academics: storylineArt.academics,
+  eligibility: storylineArt.academics,
+  family: storylineArt.family,
+  mentor: storylineArt.family,
+  showcase: storylineArt.showcase,
+  travel_ball: storylineArt.showcase,
+  scouting: storylineArt.scouting,
+  rating_reveal: storylineArt.scouting,
+  injury: storylineArt.injury,
+  recovery: storylineArt.injury,
+  position_change: storylineArt.positionChange,
+  exit: storylineArt.exit,
+  leaves_pool: storylineArt.exit,
+  default: storylineArt.default,
+};
+```
+
+If event types are different in the codebase, map the current enum/string values to these images.
+
+## Mobile Navigation and Quick Actions
+
+Use retro icons carefully in:
+
+```text
+client/src/components/mobile-nav.tsx
+```
+
+Recommended icon usage:
+
+- War Room/Home: `icon-war-room.png`
+- Recruiting: `icon-recruiting.png`
+- Schedule/Games: `icon-schedule.png`
+- Report Game: `icon-game-report.png`
+- Commissioner: `icon-commissioner.png`
+
+Keep labels visible under icons on mobile. Do not make the bottom nav icon-only.
+
+## Performance Requirements
+
+- Convert large PNGs to WebP or AVIF if the project supports it.
+- Keep original PNGs only if needed.
+- Use responsive images for hero backgrounds.
+- Lazy-load non-critical art.
+- Avoid importing every image into the landing bundle if that increases initial load too much.
+- Consider route-level imports or a centralized registry that does not force all art into the first page bundle.
+- Set fixed dimensions/aspect ratios for image panels to avoid layout shift.
+
+Target behavior:
+
+- Landing hero loads quickly.
+- League pages do not feel sluggish.
+- Mobile does not download unnecessary desktop-size images when avoidable.
+
+## Accessibility Requirements
+
+- If an image communicates page identity, use meaningful alt text.
+- If an image is purely decorative, mark it decorative.
+- Never place text over art without enough contrast.
+- Support reduced motion.
+- Keep all buttons and controls keyboard accessible.
+- Icons must not be the only label for important actions.
+
+## Visual QA Checklist
+
+Check these viewport sizes:
+
+```text
+Desktop: 1440x900
+Desktop wide: 1920x1080
+Tablet: 768x1024
+Mobile: 430x932
+Mobile small: 375x812
+```
+
+For each screen, verify:
+
+- No important face/object is awkwardly cropped.
+- Text remains readable over art.
+- Buttons do not overlap busy art.
+- Mobile pages do not waste too much vertical space on decorative headers.
+- Dense tables/forms stay on solid readable surfaces.
+- Backgrounds do not cause horizontal overflow.
+- Icons remain recognizable at small sizes.
+- The app still feels consistent with the existing visual identity.
+
+## Final Paste-Ready Replit Prompt
+
+```text
+I already generated the anime background images and retro icons. Please implement them into the app without generating new images.
+
+Create these folders if missing:
+- client/src/assets/art/backgrounds
+- client/src/assets/art/backgrounds/mobile
+- client/src/assets/art/storylines
+- client/src/assets/art/icons
+
+Place the provided images in those folders. If the filenames differ from the manifest, either rename them or update the asset registry to match.
+
+Create `client/src/lib/art-assets.ts` to centralize imports for:
+- artBackgrounds
+- storylineArt
+- retroIcons
+
+Create `client/src/components/artwork-background.tsx`.
+It should accept desktopSrc, mobileSrc, alt, focalPoint, overlayStrength, className, imageClassName, children, and priority. It should render responsive image-backed sections with safe cropping, readable overlays, fallback colors, lazy loading for non-hero art, and no pointer-event blocking.
+
+Optionally create `client/src/components/art-panel.tsx` for smaller image-backed cards, storyline thumbnails, modal headers, and empty states.
+
+Integrate the art in these places:
+- Landing page hero: landing-hero-league-office
+- League home War Room: league-war-room
+- Recruiting cockpit: recruiting-classroom
+- Schedule/opponent previews: schedule-game-day-field and schedule-night-game-field
+- Game reporting/OCR upload step: reporting-scorekeeper-desk
+- Commissioner command center/save-state area: commissioner-command-center
+- Stats/record book/history: stats-archive-room
+- Postseason/championship: postseason-championship-stadium
+- Offseason/class creator/setup: offseason-planning-room
+- Storyline cards: choose from story-dorm-room, story-classroom, story-restaurant, story-beach-showcase, story-training-field, story-injury-recovery, story-position-change, story-leaves-pool based on event type
+
+Use retro icons only for game-specific concepts:
+- War Room
+- Recruiting
+- Schedule
+- Game Report/OCR
+- Ready Up
+- Commissioner
+- Save State/Rollback
+- Storyline
+- Stats
+- Roster
+- Standings
+- Injury
+- Transfer Portal
+- NIL/Perks
+- Championship
+
+Keep standard UI actions like close, back, edit, upload, save, search, and settings on the existing icon library.
+
+Important design constraints:
+- Do not put busy art directly behind dense tables or forms.
+- Use art mostly as hero/header bands, side panels, storyline thumbnails, modal atmosphere, and empty states.
+- Desktop should feel richer and more like a premium sports game.
+- Mobile must crop safely and keep all controls readable.
+- Keep visible labels under important icons, especially mobile navigation.
+- Use overlays so text has strong contrast.
+- Add fixed dimensions/aspect ratios to prevent layout shift.
+- Lazy-load non-critical art and avoid bloating the initial landing page bundle.
+
+Acceptance criteria:
+- The homepage immediately feels like a premium multiplayer Power Pros dynasty companion.
+- League home feels like a weekly War Room.
+- Recruiting feels like a playable weekly mode.
+- Game reporting feels screenshot/OCR-first.
+- Commissioner advance and save-state areas feel serious and safe.
+- Storyline cards use art without revealing gems, busts, commitments, or hidden outcomes.
+- Desktop and mobile layouts remain fast, readable, and usable.
+```
+
+## Recommended Implementation Order
+
+1. Add asset folders and asset registry.
+2. Build `ArtworkBackground`.
+3. Add homepage hero.
+4. Add League War Room art.
+5. Add recruiting cockpit art.
+6. Add report-game upload/OCR art.
+7. Add commissioner command-center art.
+8. Add schedule and postseason art.
+9. Add storyline thumbnails.
+10. Add stats/offseason art.
+11. Add retro icons to game-specific modules and mobile nav.
+
+This order gives the biggest quality improvement first while keeping risk controlled.
