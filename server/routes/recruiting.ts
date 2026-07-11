@@ -1068,6 +1068,9 @@ export function registerRecruitingRoutes(app: Express): void {
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
+      }
 
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -1173,6 +1176,9 @@ export function registerRecruitingRoutes(app: Express): void {
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
+      }
 
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -1276,6 +1282,9 @@ export function registerRecruitingRoutes(app: Express): void {
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
+      }
 
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -1373,6 +1382,9 @@ export function registerRecruitingRoutes(app: Express): void {
       const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
+      }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
       }
 
       const league = await storage.getLeague(req.params.id as string);
@@ -1474,6 +1486,9 @@ export function registerRecruitingRoutes(app: Express): void {
       const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
+      }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
       }
 
       const league = await storage.getLeague(req.params.id as string);
@@ -1698,6 +1713,9 @@ export function registerRecruitingRoutes(app: Express): void {
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
+      }
 
       if (recruit.signedTeamId) {
         return res.status(400).json({ message: "Recruit already signed to a team" });
@@ -1908,6 +1926,24 @@ export function registerRecruitingRoutes(app: Express): void {
       const recruits = await storage.getRecruitsByLeague(league.id);
       const signedRecruits = recruits.filter(r => r.signedTeamId);
 
+      // Batch-load analytics data for Battle Reports (no per-recruit DB fetches)
+      const [allTopSchoolsRaw, allActionsRaw] = await Promise.all([
+        storage.getRecruitTopSchoolsByLeague(league.id),
+        storage.getRecruitingActionsLogBySeason(league.id, league.currentSeason),
+      ]);
+      const teamNameMap = new Map(leagueTeams.map(t => [t.id, t.name]));
+      const topSchoolsByRecruit = new Map<string, typeof allTopSchoolsRaw>();
+      for (const ts of allTopSchoolsRaw) {
+        if (!topSchoolsByRecruit.has(ts.recruitId)) topSchoolsByRecruit.set(ts.recruitId, []);
+        topSchoolsByRecruit.get(ts.recruitId)!.push(ts);
+      }
+      const actionsByKey = new Map<string, typeof allActionsRaw>();
+      for (const a of allActionsRaw) {
+        const k = `${a.recruitId}:${a.teamId}`;
+        if (!actionsByKey.has(k)) actionsByKey.set(k, []);
+        actionsByKey.get(k)!.push(a);
+      }
+
       // Resolve the authenticated user's team so the UI can default to it
       let myTeamId: string | null = null;
       if (req.session.userId && !req.session.isGuest) {
@@ -1986,6 +2022,43 @@ export function registerRecruitingRoutes(app: Express): void {
             eyeBlack: r.eyeBlack,
             headwear: r.headwear,
             fromTeamName: r.fromTeamName,
+            recruitingResult: (() => {
+              const topSchools = (topSchoolsByRecruit.get(r.id) ?? [])
+                .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99))
+                .slice(0, 6);
+              const schoolsData = topSchools.map(ts => ({
+                rank: ts.rank ?? 0,
+                teamId: ts.teamId,
+                teamName: teamNameMap.get(ts.teamId) ?? ts.teamId,
+                interestLevel: ts.accumulatedInterest ?? 0,
+                hadOffer: (actionsByKey.get(`${r.id}:${ts.teamId}`) ?? []).some(a => a.actionType === "offer"),
+              }));
+              const winnerSchool = topSchools.find(ts => ts.teamId === r.signedTeamId);
+              const runnerUp = topSchools.find(ts => ts.teamId !== r.signedTeamId);
+              const finalInterest = winnerSchool?.accumulatedInterest ?? null;
+              const runnerUpInterest = runnerUp?.accumulatedInterest ?? null;
+              const myTeamActions = myTeamId ? (actionsByKey.get(`${r.id}:${myTeamId}`) ?? []) : [];
+              const offerAction = myTeamActions.find(a => a.actionType === "offer");
+              return {
+                finalInterest,
+                topSchools: schoolsData,
+                wonBy: (finalInterest != null && runnerUpInterest != null && finalInterest >= runnerUpInterest)
+                  ? finalInterest - runnerUpInterest : null,
+                runnerUpTeamName: runnerUp ? (teamNameMap.get(runnerUp.teamId) ?? null) : null,
+                runnerUpInterest,
+                myActions: myTeamId ? {
+                  email: myTeamActions.filter(a => a.actionType === "email").length,
+                  phone: myTeamActions.filter(a => a.actionType === "phone").length,
+                  visit: myTeamActions.some(a => a.actionType === "visit"),
+                  headCoachVisit: myTeamActions.some(a => a.actionType === "head_coach_visit"),
+                  offer: myTeamActions.some(a => a.actionType === "offer"),
+                  scout: myTeamActions.filter(a => a.actionType === "scout").length,
+                  totalGained: myTeamActions.reduce((s, a) => s + (a.interestChange ?? 0), 0),
+                } : null,
+                offerWeek: offerAction?.week ?? null,
+                nilCost: r.nilCost ?? 0,
+              };
+            })(),
           })),
         };
       });
@@ -2710,6 +2783,9 @@ export function registerRecruitingRoutes(app: Express): void {
       const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
+      }
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit not found in this league" });
       }
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);

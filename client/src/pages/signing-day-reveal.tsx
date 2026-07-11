@@ -9,7 +9,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import type { RevealRecruit } from "@/components/recruit-card";
 import { StarRating } from "@/components/ui/star-rating";
 import { PlayerAvatar } from "@/components/player-avatar";
-import { ArrowLeft, ArrowRight, Crown, Download, Trophy, ChevronRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Crown, Download, Trophy, ChevronRight, X } from "lucide-react";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
@@ -622,8 +622,133 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
   );
 }
 
+// ── BattleReportModal ──────────────────────────────────────────
+function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClose: () => void }) {
+  const r = recruit.recruitingResult;
+  if (!r) return null;
+
+  const myA = r.myActions;
+  const actionItems: { label: string; value: string | number | boolean }[] = myA ? [
+    { label: "Emails",        value: myA.email },
+    { label: "Phone Calls",   value: myA.phone },
+    { label: "Campus Visit",  value: myA.visit ? "Yes" : "No" },
+    { label: "HC Visit",      value: myA.headCoachVisit ? "Yes" : "No" },
+    { label: "Scholarship",   value: myA.offer ? "Yes" : "No" },
+    { label: "Scout Actions", value: myA.scout },
+    { label: "Total % Gained", value: myA.totalGained != null ? `${myA.totalGained.toFixed(1)}%` : "—" },
+  ] : [];
+
+  const didWin = recruit.signedTeamId != null && r.topSchools[0]?.hadOffer;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.82)" }}
+      onClick={onClose}
+      data-testid="battle-report-modal-backdrop"
+    >
+      <div
+        className="relative w-full max-w-md rounded-lg overflow-hidden"
+        style={{ background: "#0a1a0a", border: "2px solid #C4A35A44", boxShadow: "0 0 40px #C4A35A22" }}
+        onClick={e => e.stopPropagation()}
+        data-testid="battle-report-modal"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a3a1a]">
+          <div>
+            <div className="font-pixel text-[11px] text-[#C4A35A]">BATTLE REPORT</div>
+            <div className="text-xs text-gray-400 mt-0.5">{recruit.name} · {recruit.position} · {recruit.starRating}★</div>
+          </div>
+          <button
+            className="text-gray-600 hover:text-gray-300 transition-colors"
+            onClick={onClose}
+            data-testid="button-close-battle-report"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+
+          {/* Outcome banner */}
+          <div
+            className="rounded p-3 text-center"
+            style={{ background: didWin ? "#0f2a0f" : "#1a0a0a", border: `1px solid ${didWin ? "#2a6a2a" : "#6a1a1a"}` }}
+            data-testid="battle-report-outcome"
+          >
+            <div className={`font-pixel text-[13px] ${didWin ? "text-[#C4A35A]" : "text-gray-400"}`}>
+              {recruit.signedTeamId == null ? "UNSIGNED" : didWin ? "SIGNED" : "LOST"}
+            </div>
+            {r.finalInterest != null && (
+              <div className="text-[10px] text-gray-500 mt-1">
+                Final interest: {r.finalInterest.toFixed(1)}%
+                {r.wonBy != null && r.wonBy > 0 && (
+                  <span className="text-green-500 ml-2">+{r.wonBy.toFixed(1)}% ahead of #{2} school</span>
+                )}
+              </div>
+            )}
+            {r.offerWeek != null && (
+              <div className="text-[9px] text-gray-600 mt-0.5">Offer extended: Week {r.offerWeek}</div>
+            )}
+          </div>
+
+          {/* Competition breakdown */}
+          {r.topSchools.length > 0 && (
+            <div>
+              <div className="font-pixel text-[9px] text-gray-600 uppercase mb-2 tracking-wide">Top Schools</div>
+              <div className="space-y-1.5">
+                {r.topSchools.map((ts, i) => (
+                  <div
+                    key={ts.teamId}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded"
+                    style={{ background: i === 0 ? "#0f2a0f" : "#111" }}
+                    data-testid={`battle-school-${i}`}
+                  >
+                    <span className="font-pixel text-[9px] text-gray-600 w-4">#{i + 1}</span>
+                    <span className="text-xs text-white flex-1 truncate">{ts.teamName}</span>
+                    {ts.hadOffer && (
+                      <span className="text-[8px] text-[#C4A35A] border border-[#C4A35A]/30 rounded px-1 py-0.5">OFFER</span>
+                    )}
+                    <span className="font-pixel text-[9px] text-gray-400 w-12 text-right">
+                      {ts.interestLevel.toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* My actions breakdown */}
+          {myA && (
+            <div>
+              <div className="font-pixel text-[9px] text-gray-600 uppercase mb-2 tracking-wide">Your Recruiting Actions</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {actionItems.map(({ label, value }) => (
+                  <div key={label} className="flex justify-between text-xs py-0.5 border-b border-[#1a2e1a]">
+                    <span className="text-gray-500">{label}</span>
+                    <span className="text-white font-medium">{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* NIL cost */}
+          {r.nilCost > 0 && (
+            <div className="flex justify-between text-xs px-1">
+              <span className="text-gray-500">NIL Cost</span>
+              <span className="text-[#C4A35A] font-pixel text-[10px]">${r.nilCost.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── RevealCardBack ─────────────────────────────────────────────
-function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
+function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; onBattleReport?: () => void }) {
   const pitcher = isPitcher(recruit.position);
   const catcher = isCatcher(recruit.position);
 
@@ -832,6 +957,17 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
           </div>
         )}
       </div>
+
+      {/* Battle Report button — only when analytics are available */}
+      {onBattleReport && recruit.recruitingResult && (
+        <button
+          className="mx-2.5 mb-2 shrink-0 w-[calc(100%-20px)] text-[9px] text-[#C4A35A] border border-[#C4A35A]/30 rounded py-1 hover:bg-[#C4A35A]/10 transition-colors"
+          onClick={e => { e.stopPropagation(); onBattleReport(); }}
+          data-testid="button-battle-report"
+        >
+          View Battle Report
+        </button>
+      )}
     </div>
   );
 }
@@ -846,6 +982,7 @@ function RevealPortraitCard({
   signingTeamColor,
   cardWidth = 210,
   cardHeight = 290,
+  onBattleReport,
 }: {
   recruit: RevealRecruit;
   primaryColor: string;
@@ -855,6 +992,7 @@ function RevealPortraitCard({
   signingTeamColor?: string;
   cardWidth?: number;
   cardHeight?: number;
+  onBattleReport?: () => void;
 }) {
   const [flipped, setFlipped] = useState(false);
 
@@ -938,7 +1076,7 @@ function RevealPortraitCard({
             overflow: "hidden",
           }}
         >
-          <RevealCardBack recruit={recruit} />
+          <RevealCardBack recruit={recruit} onBattleReport={onBattleReport} />
         </div>
       </div>
     </div>
@@ -1297,6 +1435,7 @@ export default function SigningDayRevealPage() {
   // Per-recruit reveal state (sealed phase)
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [heroRecruit, setHeroRecruit] = useState<RevealRecruit | null>(null);
+  const [battleRecruit, setBattleRecruit] = useState<RevealRecruit | null>(null);
 
   // Gem ceremony state
   const [gemPhase, setGemPhase] = useState<GemPhase>("waiting");
@@ -1800,6 +1939,7 @@ export default function SigningDayRevealPage() {
                             disableAnimation={reducedMotion && !isThisGem}
                             cardWidth={252}
                             cardHeight={348}
+                            onBattleReport={r.recruitingResult ? () => setBattleRecruit(r) : undefined}
                           />
                         </div>
                       );
@@ -2072,6 +2212,14 @@ function PostRevealSummary({
           );
         })}
       </div>
+
+      {/* Battle Report modal */}
+      {battleRecruit && (
+        <BattleReportModal
+          recruit={battleRecruit}
+          onClose={() => setBattleRecruit(null)}
+        />
+      )}
     </div>
   );
 }

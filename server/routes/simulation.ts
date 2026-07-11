@@ -44,6 +44,7 @@ import { pool, db } from "../db";
 import { sql as drizzleSql } from "drizzle-orm";
 import { coaches as coachesTable } from "@shared/schema";
 import { calibrateRpiOvr } from "../calibrateRpiOvr";
+import { resolveRecruitSigningWinner } from "../signing-resolver";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "../pitchMixHelpers";
 import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, computePitcherAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
 import { generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents, initializeStorylineRecruits, catchUpAndResolveStorylineArcs } from "../storyline-routes";
@@ -1998,18 +1999,25 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     for (const recruit of undecidedForInterest) {
       try {
         const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
-        const eligible = interests
-          .filter(i => (i.interestLevel || 0) > 0)
-          .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
-        // Prefer a team that has made an offer; fall back to highest raw interest
-        // Also enforce NIL budget — skip teams that can't afford the recruit
+        // Canonical resolver: only award to teams with offer + threshold met + NIL budget.
+        // No fallback to no-offer teams — a team that never extended a scholarship cannot win.
         const recruitNilCost = recruit.nilCost || 0;
-        const affordableEligible = eligible.filter(i => sdCanAfford(i.teamId, recruitNilCost));
-        const target = (affordableEligible.find(i => i.hasOffer) ?? affordableEligible[0])
-          ?? (eligible.find(i => i.hasOffer) ?? eligible[0]);
-        if (target?.teamId && sdCanAfford(target.teamId, recruitNilCost)) {
-          sdChargeNil(target.teamId, recruitNilCost);
-          await storage.updateRecruit(recruit.id, { signedTeamId: target.teamId });
+        const teamMapForSd = new Map(teams.map(t => [t.id, t]));
+        const resolution = resolveRecruitSigningWinner(
+          {
+            id: recruit.id,
+            starRating: (recruit as any).starRating ?? (recruit as any).starRank ?? 3,
+            isBlueChip: (recruit as any).isBlueChip,
+            nilCost: recruitNilCost,
+            recruitType: (recruit as any).recruitType,
+          },
+          interests,
+          teamMapForSd,
+          sdCanAfford,
+        );
+        if (resolution.winnerTeamId) {
+          sdChargeNil(resolution.winnerTeamId, recruitNilCost);
+          await storage.updateRecruit(recruit.id, { signedTeamId: resolution.winnerTeamId });
         }
       } catch (e) {
         console.error(`[finalizeSigningDay] Failed to auto-commit recruit ${recruit.id}:`, e);

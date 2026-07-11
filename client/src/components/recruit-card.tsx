@@ -79,6 +79,30 @@ export interface RevealRecruit {
   scoutPct?: number;
   isFullyRevealed?: boolean;
   skinTone?: string;
+  recruitingResult?: {
+    finalInterest: number | null;
+    topSchools: Array<{
+      rank: number;
+      teamId: string;
+      teamName: string;
+      interestLevel: number;
+      hadOffer: boolean;
+    }>;
+    wonBy: number | null;
+    runnerUpTeamName: string | null;
+    runnerUpInterest: number | null;
+    myActions: {
+      email: number;
+      phone: number;
+      visit: boolean;
+      headCoachVisit: boolean;
+      offer: boolean;
+      scout: number;
+      totalGained: number;
+    } | null;
+    offerWeek: number | null;
+    nilCost: number;
+  } | null;
 }
 
 interface RecruitCardProps {

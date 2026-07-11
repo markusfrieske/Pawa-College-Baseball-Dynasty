@@ -1,0 +1,369 @@
+Problems To Fix
+1. Final Signing Day Can Award Recruits Without Offers
+Current issue:
+The final signing-day pass can fall back from "highest offered team" to "highest raw interest team." That means a coach can win a recruit without making an offer.
+Required behavior:
+A recruit should only sign with a team that has a valid offer unless the route is an explicit commissioner-only override.
+The winning team must meet the recruit's signing threshold.
+NIL budget and roster room must be checked.
+Tiebreakers must be deterministic.
+Implementation direction:
+Create one canonical server-side resolver, for example:
+type RecruitingResolution = {
+  recruitId: string;
+  winnerTeamId: string | null;
+  winnerScore: number;
+  runnerUpTeamId: string | null;
+  runnerUpScore: number;
+  wonBy: number | null;
+  eligibleTeams: Array<{
+    teamId: string;
+    teamName: string;
+    score: number;
+    hasOffer: boolean;
+    metThreshold: boolean;
+    nilAffordable: boolean;
+    rosterAllowed: boolean;
+    rank: number;
+  }>;
+  reason: string;
+};
+Use this resolver in:weekly recruiting advancement
+signing-day preview
+final signing-day finalization
+any manual signing endpoint if retained
+
+Suggested function name:
+resolveRecruitSigningWinner(...)
+Resolver rules:
+Only consider recruiting_interests rows for teams in the same league.
+Only consider teams with hasOffer === true.
+Only consider teams that meet the recruit's current signing threshold.
+Only consider teams that can afford NIL.
+Only consider teams that have roster room.
+Sort by:final interest score descending
+hasOffer first, though all eligible should have offer
+higher board rank priority if present
+better recruit/team fit score if available
+earlier offer/action timestamp if available
+stable team ID as final deterministic tiebreak
+
+Do not use random selection for final signing.
+2. Manual /sign Endpoint Is Too Permissive
+Current issue:
+The manual recruit sign endpoint checks only basic roster/NIL/already-signed conditions.
+Required behavior:
+Choose one:
+Remove the endpoint from normal user flow.
+Or make it commissioner-only.
+Or make it call the canonical winner resolver and only allow the resolved winner to sign.
+Minimum required checks:
+Authenticated user is a coach in the league.
+Recruit belongs to the league.
+Team belongs to the league.
+Current phase allows signing.
+Team has offered the recruit.
+Team meets threshold.
+Team is the resolved winner.
+Recruit is not already signed.
+3. Recruiting Routes Need Strict League and Team Guards
+Current issue:
+Several routes load a recruit by ID but do not verify that the recruit belongs to the league in the URL.
+Required behavior:
+Every recruiting mutation must use a shared guard.
+Create a helper similar to:
+async function getRecruitingActionContext(req, res, options) {
+  // loads league
+  // loads coach for req.session.userId
+  // loads team from coach.teamId
+  // loads recruit
+  // verifies coach.leagueId === league.id
+  // verifies team.leagueId === league.id
+  // verifies recruit.leagueId === league.id
+  // verifies current phase if mutation
+  // returns { league, coach, team, recruit }
+}
+Use it in:
+scout
+bulk-scout
+phone
+email
+visit
+head-coach-visit
+offer
+target
+notes
+board-rank
+sign, if retained
+recruit detail routes where user-specific interest is shown
+Remove fallback logic like:
+leagueTeams.find(t => !t.isCpu)
+For a 14-human league, this is dangerous. If the user has no team, return 403 or 400.
+4. Make Recruiting Writes Atomic and Idempotent
+Current issue:
+Recruiting interest rows and action counters are updated using read-modify-write patterns. This can break when 14 users or multiple tabs submit actions at the same time.
+Required behavior:
+Add unique constraints:
+CREATE UNIQUE INDEX IF NOT EXISTS recruiting_interests_recruit_team_unique
+ON recruiting_interests (recruit_id, team_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS recruit_top_schools_recruit_team_unique
+ON recruit_top_schools (recruit_id, team_id);
+Update Drizzle schema to use uniqueIndex, not only index.
+Add migration file.
+Replace read-then-insert interest creation with upsert.
+Use SQL atomic increments for:coaches.scoutActionsUsed
+coaches.recruitActionsUsed
+recruiting_interests.interestLevel
+recruit_top_schools.accumulatedInterest
+
+Bulk scout already has the correct idea with an atomic SQL increment. Reuse that pattern.
+For weekly duplicate limits:
+Phone: max 1 per recruit per team per week.
+Email: max 1 per recruit per team per week.
+Visit: max 1 per recruit per team per season.
+Head coach visit: max 1 per recruit per team per season.
+Offer: max 1 per recruit per team.
+Use database-backed idempotency where practical. At minimum, re-check after insert failure and return a clean 409/400 instead of double-counting.
+5. Enforce Recruiting Phase on Mutations
+Recruiting actions should only work during active recruiting phases unless explicitly allowed.
+Allowed active recruiting phases:
+[
+  "offseason_recruiting_1",
+  "offseason_recruiting_2",
+  "offseason_recruiting_3",
+  "offseason_recruiting_4"
+]
+Signing reveal completion should only work after signing day results exist.
+Manual signing, if retained, should only work during:
+["offseason_signing_day"]
+or be commissioner-only/admin-only.
+6. Signing Day Reveal Needs Competitive Analytics
+Current issue:
+The reveal API returns player ratings and team data but not the recruiting battle result.
+Add server-computed fields to each revealed recruit:
+recruitingResult: {
+  winnerTeamId: string;
+  winnerTeamName: string;
+  winnerScore: number;
+  runnerUpTeamId: string | null;
+  runnerUpTeamName: string | null;
+  runnerUpScore: number | null;
+  wonBy: number | null;
+  finalRank: number;
+  finalTopSchools: Array<{
+    rank: number;
+    teamId: string;
+    teamName: string;
+    score: number;
+    hasOffer: boolean;
+    offered: boolean;
+  }>;
+  actionBreakdown: {
+    scout: number;
+    email: number;
+    phone: number;
+    visit: number;
+    headCoachVisit: number;
+    offer: number;
+    totalActions: number;
+    totalInterestGained: number;
+  };
+  timeline: Array<{
+    week: number;
+    actionType: string;
+    interestChange: number;
+    notes: string | null;
+  }>;
+  offerWeek: number | null;
+  campusVisitUsed: boolean;
+  headCoachVisitUsed: boolean;
+  nilCost: number;
+  fitSummary: string;
+}
+How to compute:
+Use recruiting_interests for final scores and offers.
+Use recruiting_actions_log for action breakdown and timeline.
+Use recruit_top_schools as supporting display data, not the sole source of truth.
+wonBy = winnerScore - runnerUpScore.
+If no runner-up, wonBy = null and display "Uncontested".
+The reveal should make it obvious:
+Who won the player.
+How many points they won by.
+Who finished second.
+Whether an offer mattered.
+Which actions created the gap.
+Whether the player was a clean win, close battle, late flip, or uncontested signing.
+7. Upgrade The Flip Card Into A Deep Dive
+Current state:
+The front/back card is visually strong and shows OVR, POT, attributes, common abilities, and special abilities. It is not yet a full analytical report.
+Required UX:
+After the user flips a signed recruit card, show a deeper analytical panel. This can be:
+an expanded card back if it fits cleanly
+a modal/drawer opened from the flipped card
+a two-step flip where the card flips, then "View Report" opens the full deep dive
+Recommended structure:
+Header:
+Name
+Position
+B/T handedness
+hometown/state
+stars
+national rank
+position rank
+recruit type
+OVR
+POT grade
+
+Ratings:
+primary attributes
+common abilities
+special abilities
+pitch mix for pitchers
+catcher ability for catchers
+trajectory/work ethic/coachability if available
+
+Recruiting result:
+signed with team
+winner score
+runner-up score
+won by X points
+offer week
+NIL cost
+final top schools
+
+Action analytics:
+total actions used
+total interest gained
+phone/email/visit/HCV/offer breakdown
+timeline by week
+
+Fit summary:
+why the recruit signed
+strongest pitch factor
+roster need fit
+risk flags if any
+
+Design direction:
+Keep the cinematic card reveal.
+Do not hide the useful info behind tiny text.
+Use clear data sections.
+Use badges/chips for close win, blowout, uncontested, late flip, blue chip, gem, bust, transfer, JUCO.
+Use responsive layout so it works on mobile and desktop.
+8. Improve Reveal Responsiveness and Accessibility
+Current issue:
+The My Class grid uses a hard-coded four-column layout.
+Required behavior:
+Replace hard-coded card grid with responsive CSS:
+gridTemplateColumns: "repeat(auto-fit, minmax(220px, 252px))"
+or an equivalent Tailwind layout.
+Make flip cards keyboard accessible:
+role="button" or actual <button>
+tabIndex={0}
+aria-pressed={flipped}
+Enter/Space toggles flip
+visible focus ring
+
+Keep prefers-reduced-motion support.
+
+9. Add Tests
+Add tests that prove the fixes work.
+Minimum tests:
+Cross-league recruit ID is rejected:
+Create League A and League B.
+Try to use a League B recruit ID in League A recruiting action URL.
+Expect 403 or 400.
+Confirm no interest row was created for the wrong league.
+
+No team fallback:
+Use a logged-in user without a coach/team in the league.
+Hit recruiting page/action endpoints.
+Expect rejection.
+Confirm no first non-CPU team data leaks.
+
+Offer required:
+Generate a recruit with positive interest but no offer.
+Advance to signing day.
+Confirm the recruit does not sign with that team due only to raw interest.
+
+Highest offered eligible team wins:
+Two human teams recruit the same player.
+Both offer.
+Team A has higher interest.
+Advance signing day.
+Confirm Team A signs recruit.
+Confirm reveal says won by correct point margin.
+
+Duplicate action protection:
+Submit two phone calls for same recruit/team/week concurrently.
+Confirm only one succeeds or only one is counted.
+Confirm points are not double spent.
+
+Signing reveal analytics:
+After signing day, call /api/leagues/:id/signing-day-reveal.
+Confirm each signed recruit has recruitingResult.
+Confirm wonBy equals winnerScore - runnerUpScore.
+Confirm action breakdown matches recruiting_actions_log.
+
+UI reveal:
+Visit signing day reveal page.
+Flip a card.
+Confirm OVR, POT, ratings, won-by margin, runner-up, and action timeline are visible.
+
+Prefer Playwright/API tests using existing helper patterns in:
+tests/helpers/api.ts
+tests/smoke/03-recruiting.spec.ts
+tests/e2e/14-team-standard.test.ts
+Suggested Implementation Order
+Phase 1: Guard Rails
+Add shared recruiting context helper.
+Replace all first-non-CPU fallbacks in recruiting routes.
+Add recruit league ownership checks.
+Add current phase checks.
+Add tests for cross-league ID and no-team fallback.
+Stop and run tests.
+Phase 2: Atomic Recruiting Writes
+Add unique DB indexes/migration.
+Update Drizzle schema.
+Add upsert helper for recruiting interests.
+Add atomic increment helper for coach action counters.
+Add atomic increment helper for interest/top-school accumulated interest.
+Harden duplicate weekly action handling.
+Add concurrent duplicate action test.
+Stop and run tests.
+Phase 3: Canonical Signing Resolver
+Implement resolveRecruitSigningWinner.
+Replace final signing-day fallback logic.
+Replace signing-day preview logic.
+Harden or remove manual /sign.
+Ensure weekly advance uses same resolver or the same rule set.
+Add tests for offer-required and winner-margin behavior.
+Stop and run tests.
+Phase 4: Reveal Analytics API
+Add recruitingResult to signing reveal API.
+Compute final top schools, winner margin, runner-up, action breakdown, and timeline server-side.
+Update TypeScript interfaces.
+Add API tests.
+Stop and run tests.
+Phase 5: Cinematic Reveal Deep Dive
+Keep the existing cinematic sequence.
+Add a data-rich detail view after flip.
+Make card flip keyboard accessible.
+Make grid responsive.
+Add UI test for flipped card details.
+Stop and run tests.
+Acceptance Criteria
+The work is complete only when:
+No recruiting route falls back to the first non-CPU team.
+A user without a team cannot see or mutate another team's recruiting state.
+A recruit from another league cannot be mutated through this league's URL.
+Duplicate concurrent actions cannot double-spend points.
+Recruiting interest rows are unique per recruit/team.
+Top-school rows are unique per recruit/team.
+Final signing day uses the same winner rules as preview and weekly advancement.
+Recruits cannot be won without a valid offer unless using an explicit commissioner-only override.
+Reveal API includes winner score, runner-up score, won-by margin, final top schools, action breakdown, and timeline.
+Flipped reveal card or detail panel shows all ratings and the recruiting battle analytics.
+The reveal works on desktop and mobile.
+Keyboard users can flip/open the card.
+Tests cover the above.

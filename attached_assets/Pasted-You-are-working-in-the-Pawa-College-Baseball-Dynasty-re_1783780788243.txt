@@ -1,0 +1,38 @@
+You are working in the Pawa College Baseball Dynasty repo.
+
+Please implement the recruiting audit fixes below with production-quality code, focused tests, and minimal unrelated refactoring.
+
+Core objectives:
+
+1. Make recruiting actions safe for 14 simultaneous human users.
+2. Ensure all recruiting mutations are scoped to the authenticated coach's own team.
+3. Ensure all recruit IDs belong to the league in the URL before mutating anything.
+4. Remove all fail-open fallback behavior that uses the first non-CPU team.
+5. Make signing logic consistent across weekly advancement, signing-day preview, manual signing, and final signing day.
+6. Require a valid offer and the appropriate signing threshold before a team can win a recruit unless the action is a clearly labeled commissioner-only debug/admin override.
+7. Add deterministic winner resolution with tiebreakers.
+8. Add final signing analytics to the reveal API: won by points, runner-up, final scores, top schools, action breakdown, timeline, NIL cost, offer week, visits, and reason/fit summary.
+9. Upgrade the Signing Day Reveal flip-card experience into a deep data view after the card flips.
+10. Add tests for multi-user recruiting, duplicate submits, cross-league recruit IDs, and signing reveal analytics.
+
+Do not fake the analytics on the client. The server must compute and return the final recruiting result data.
+
+Before making changes:
+
+- Run the existing test/check commands if dependencies are installed.
+- Inspect the latest source files, especially:
+  - server/routes.ts
+  - server/storage.ts
+  - shared/schema.ts
+  - client/src/pages/signing-day-reveal.tsx
+  - client/src/components/recruit-card.tsx
+  - tests/smoke/03-recruiting.spec.ts
+  - tests/e2e/14-team-standard.test.ts
+  - tests/e2e/season-flow.test.ts
+
+After making changes:
+
+- Run npm run check.
+- Run npm run test:smoke if available.
+- Add or update tests so the issues below are covered.
+- Report exactly what changed, which tests passed, and any remaining risks.
