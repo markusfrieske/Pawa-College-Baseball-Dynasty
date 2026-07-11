@@ -1,0 +1,668 @@
+# 14-User Multiplayer League Test Plan
+
+Repository: `https://github.com/markusfrieske/Pawa-College-Baseball-Dynasty`
+
+Purpose: run a comprehensive 14-person multiplayer test for a full college baseball dynasty league, including recruiting, regular season games, stats, standings, College World Series, playoff bracket, and championship completion.
+
+This plan is written as a Replit runbook. Use a dedicated test database and do not run this against production data.
+
+## 1. Test Goals
+
+The test should prove that:
+
+- A 14-user league can be created and completed.
+- Every user owns exactly one team.
+- All games simulate correctly.
+- Team and player stats update correctly.
+- Standings reflect real game results.
+- Recruiting works when 14 users compete for the same player pool.
+- Smart multi-user decisions do not corrupt state.
+- The College World Series / playoff bracket generates correctly.
+- Bracket advancement works through the championship.
+- The final champion is recorded correctly.
+- Invalid or duplicate actions are rejected safely.
+- No user can affect another user's team.
+- Logs and database records remain consistent from league creation through season completion.
+
+## 2. Replit Setup
+
+1. Import the repo into Replit:
+
+   ```text
+   https://github.com/markusfrieske/Pawa-College-Baseball-Dynasty
+   ```
+
+2. Create a dedicated test branch:
+
+   ```bash
+   git checkout -b test/14-user-league-simulation
+   ```
+
+3. Configure a test database only.
+
+4. Add Replit Secrets as needed:
+
+   ```text
+   DATABASE_URL=<test database url>
+   SESSION_SECRET=<test session secret>
+   JWT_SECRET=<test jwt secret if used>
+   NODE_ENV=test
+   ```
+
+5. Confirm the app starts successfully in Replit.
+
+6. Confirm you can reset or reseed the test database.
+
+7. Confirm server logs are visible while testing.
+
+## 3. Recommended Test Commands
+
+If these commands already exist, use them. If they do not exist, create equivalent scripts using the app's current seed and test utilities.
+
+```bash
+npm run test:reset-db
+npm run test:seed-14-league
+npm run test:smoke
+npm run test:recruiting-14-users
+npm run test:regular-season
+npm run test:postseason
+npm run test:championship
+npm run test:integrity
+```
+
+If this is not a Node app, adapt the command names to the app's stack.
+
+## 4. Test Accounts
+
+Create 14 separate user accounts:
+
+```text
+coach01@test.local
+coach02@test.local
+coach03@test.local
+coach04@test.local
+coach05@test.local
+coach06@test.local
+coach07@test.local
+coach08@test.local
+coach09@test.local
+coach10@test.local
+coach11@test.local
+coach12@test.local
+coach13@test.local
+coach14@test.local
+```
+
+Use the same temporary password for all accounts if allowed:
+
+```text
+TestPassword123!
+```
+
+Each user should own exactly one team.
+
+Validation:
+
+- No user owns multiple teams.
+- No team has multiple owners.
+- No team is unowned.
+- Every account can log in.
+- Every account sees only its assigned team.
+- Logging out and switching users does not leak session data.
+
+## 5. Team Strategy Profiles
+
+Use different behavior for each coach so the test represents real multiplayer decision making.
+
+```text
+Coach 01: targets best overall recruits
+Coach 02: targets pitchers only
+Coach 03: targets hitters only
+Coach 04: targets high-potential recruits
+Coach 05: targets local or regional recruits
+Coach 06: spreads points evenly
+Coach 07: focuses all points on 2-3 recruits
+Coach 08: reacts to other teams' recruiting pressure
+Coach 09: waits and makes late offers
+Coach 10: over-recruits one position
+Coach 11: balances roster needs
+Coach 12: targets undervalued recruits
+Coach 13: intentionally attacks contested recruits
+Coach 14: avoids competition and makes conservative choices
+```
+
+## 6. Phase 1: Smoke Test
+
+Run this before the full simulation.
+
+Steps:
+
+1. Reset the database.
+2. Seed or create 14 users.
+3. Assign 14 teams.
+4. Start a new league.
+5. Log in as each user.
+6. Confirm each dashboard loads.
+7. Confirm each user can view:
+   - Team dashboard
+   - Roster
+   - Schedule
+   - Standings
+   - Recruiting board
+   - Stats
+   - League page
+   - Postseason page, if visible
+
+Pass criteria:
+
+- All 14 users can log in.
+- All 14 dashboards load.
+- Every user sees the correct team.
+- No server errors appear in Replit logs.
+
+## 7. Phase 2: Initial League State Validation
+
+Validate the initial state before simulating anything.
+
+Check:
+
+- 14 teams exist.
+- 14 users exist.
+- Every team has one owner.
+- Every team has valid roster data.
+- Every player has a unique ID.
+- Every team has a schedule.
+- No team plays itself.
+- No duplicate game IDs exist.
+- Every game has valid home and away teams.
+- Standings start at `0-0`.
+- Player stats start at zero.
+- Team stats start at zero.
+- Recruiting class exists.
+- Recruit IDs are unique.
+- No recruit is already committed unless intended by game rules.
+
+Suggested database checks:
+
+```sql
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM teams;
+SELECT COUNT(*) FROM games;
+SELECT COUNT(*) FROM players;
+SELECT COUNT(*) FROM recruits;
+```
+
+Duplicate checks:
+
+```sql
+SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;
+SELECT id, COUNT(*) FROM players GROUP BY id HAVING COUNT(*) > 1;
+SELECT id, COUNT(*) FROM games GROUP BY id HAVING COUNT(*) > 1;
+SELECT id, COUNT(*) FROM recruits GROUP BY id HAVING COUNT(*) > 1;
+```
+
+Ownership checks:
+
+```sql
+SELECT team_id, COUNT(*) FROM users GROUP BY team_id HAVING COUNT(*) > 1;
+SELECT teams.id
+FROM teams
+LEFT JOIN users ON users.team_id = teams.id
+WHERE users.id IS NULL;
+```
+
+Adjust table and column names to match the app schema.
+
+## 8. Phase 3: 14-User Recruiting Simulation
+
+This is the most important multiplayer test.
+
+For each recruiting week:
+
+1. Log in as Coach 01.
+2. View the recruiting board.
+3. Make decisions using Coach 01's strategy profile.
+4. Save recruiting actions.
+5. Log out.
+6. Repeat for Coaches 02 through 14.
+7. Advance the recruiting week.
+8. Validate results.
+9. Repeat until the recruiting period ends.
+
+Recruiting validation:
+
+- Users cannot spend more points than allowed.
+- Users cannot submit negative points.
+- Users cannot assign points to invalid recruits.
+- Users cannot recruit for another team.
+- Users cannot change another user's recruiting board.
+- Recruits can receive interest from multiple teams.
+- Contested recruits resolve correctly.
+- Commitments go to the correct team.
+- Lost recruits are marked correctly.
+- Recruiting points reset or carry over according to game rules.
+- Repeated submit clicks do not duplicate actions.
+- Browser refresh after submit does not double-spend points.
+- Actions submitted after week advancement are rejected.
+- UI state matches database state.
+
+Concurrency test:
+
+1. Open 14 browser sessions, incognito windows, or test browser contexts.
+2. Log in as one coach per session.
+3. Have all coaches submit recruiting actions within 30-60 seconds.
+4. Immediately advance the recruiting week.
+5. Check for:
+   - Missing actions
+   - Duplicate actions
+   - Over-budget spending
+   - Incorrect commitments
+   - Incorrect team IDs
+   - Server errors
+
+Pass criteria:
+
+- All submitted recruiting actions are recorded once.
+- No invalid budget states exist.
+- No recruit commitment is duplicated.
+- No team receives another team's recruit unless the game rules support transfers or flips.
+
+## 9. Phase 4: Regular Season Game Simulation
+
+Run the full regular season.
+
+For each scheduled game day or week:
+
+1. Confirm upcoming games are listed correctly.
+2. Simulate all scheduled games.
+3. Confirm each game receives one final result.
+4. Confirm each completed game has a winner and loser.
+5. Confirm team records update.
+6. Confirm player stats update.
+7. Confirm team stats update.
+8. Confirm standings update.
+9. Confirm box scores render.
+10. Confirm users can view their own results.
+11. Advance to the next game day or week.
+
+Game validation:
+
+- No game simulates twice unless explicitly allowed.
+- No completed game is missing a score.
+- No completed game is missing a winning team.
+- No impossible final score exists.
+- No tied final score exists unless ties are allowed.
+- Winning team receives exactly one win.
+- Losing team receives exactly one loss.
+- Standings match completed game results.
+- Player stat totals match box score totals.
+- Team stat totals match player stat totals where applicable.
+- Injuries, fatigue, rotation, or lineup effects work if the app has them.
+
+Manual spot checks:
+
+1. Pick 3 teams after several weeks.
+2. Count their completed games manually.
+3. Compare manual totals to:
+   - Team page
+   - Standings page
+   - Database standings
+   - League dashboard
+
+Pass criteria:
+
+- Regular season can complete.
+- Every game result is valid.
+- Standings match game results.
+- No server errors appear during simulation.
+
+## 10. Phase 5: Stats Validation
+
+After several weeks and again after the regular season, validate stats.
+
+Team stats:
+
+- Wins
+- Losses
+- Runs scored
+- Runs allowed
+- Win percentage
+- Streak
+- Home record, if tracked
+- Away record, if tracked
+- Conference or division record, if tracked
+
+Player stats:
+
+- At-bats
+- Hits
+- Batting average
+- Home runs
+- RBI
+- Runs
+- Walks
+- Strikeouts
+- Innings pitched
+- Earned runs
+- ERA
+- Pitching strikeouts
+- Pitching walks
+- Wins and losses for pitchers, if tracked
+
+Invalid stat checks:
+
+- No negative stats.
+- No impossible stat totals.
+- No duplicate stat rows for the same player and game.
+- No player has stats assigned to the wrong team.
+- Season totals equal the sum of game logs.
+- Box score totals match game totals.
+- UI stats match database stats.
+
+Critical rule:
+
+Game logs should be the source of truth. Season totals should equal aggregated game logs.
+
+## 11. Phase 6: Standings and Tiebreakers
+
+Create or identify ties during the regular season.
+
+Test:
+
+- Two teams with the same record.
+- Three or more teams with the same record.
+- Head-to-head tiebreaker, if supported.
+- Run differential tiebreaker, if supported.
+- Conference or division tiebreaker, if supported.
+- Final standings lock after the regular season.
+
+Validate:
+
+- Standings order is correct.
+- Playoff seeding uses the same ordering as standings.
+- No team is skipped.
+- No team appears twice.
+- UI standings and playoff bracket agree.
+
+Pass criteria:
+
+- Tied teams are ordered according to app rules.
+- Playoff seeding is explainable and consistent.
+
+## 12. Phase 7: College World Series / Playoff Bracket
+
+At the end of the regular season:
+
+1. Advance to postseason.
+2. Generate the College World Series or playoff bracket.
+3. Verify the correct teams qualified.
+4. Verify seed order.
+5. Verify the bracket page renders for all users.
+6. Verify eliminated or non-qualified teams have correct access.
+7. Simulate the first round.
+8. Verify winners advance.
+9. Verify losers are eliminated.
+10. Simulate each remaining round.
+11. Verify the championship matchup is produced correctly.
+
+Bracket validation:
+
+- Each qualifying team appears once.
+- No non-qualifying team appears unless rules allow it.
+- Every matchup has two teams.
+- Winners move to the correct next slot.
+- Losers stop advancing.
+- Bracket does not regenerate incorrectly after refresh.
+- Bracket does not change after games have been played unless intentionally reset by an admin.
+- All users see the same bracket state.
+
+Pass criteria:
+
+- Bracket generates correctly.
+- Every round advances correctly.
+- Championship matchup is valid.
+
+## 13. Phase 8: Championship Test
+
+For the championship:
+
+1. Simulate or play the championship game.
+2. Confirm the final score.
+3. Confirm the champion is saved.
+4. Confirm runner-up is saved if tracked.
+5. Confirm final game stats are included in season totals.
+6. Confirm league history is updated.
+7. Confirm dashboard or championship page updates.
+8. Confirm no more postseason games are available after the champion is crowned.
+
+Pass criteria:
+
+- Exactly one champion exists.
+- Champion matches the final game winner.
+- Final bracket is locked.
+- Final standings are preserved.
+- Final stats are preserved.
+- Recruiting data is not corrupted by season completion.
+
+## 14. Phase 9: Abuse, Permissions, and Race Condition Tests
+
+Run these intentionally.
+
+Recruiting:
+
+- Same user opens two tabs and submits recruiting changes at the same time.
+- User submits recruiting while admin advances the week.
+- User submits negative recruiting points.
+- User submits more points than allowed.
+- User targets an invalid recruit ID.
+- User attempts to recruit for another team.
+
+Games:
+
+- Two sessions try to simulate the same game.
+- User refreshes while game simulation is running.
+- User attempts to edit a completed game.
+- User attempts to simulate a game not involving their team if permissions forbid it.
+
+Postseason:
+
+- User attempts to advance postseason before regular season ends.
+- User attempts to regenerate the bracket after games have been played.
+- User attempts to simulate an eliminated team's game.
+- User attempts to create duplicate championship results.
+
+Expected result:
+
+- Invalid actions are rejected.
+- Duplicate actions are ignored or safely blocked.
+- No partial writes occur.
+- No corrupted standings occur.
+- No corrupted recruiting records occur.
+- Clear error messages or safe no-op behavior occurs.
+- Server logs contain no unhandled exceptions.
+
+## 15. Phase 10: Replit Load Test
+
+Run a realistic load test inside Replit.
+
+Minimum scenario:
+
+- 14 logged-in users.
+- 14 dashboards open.
+- 14 users viewing recruiting.
+- 14 users submitting recruiting actions.
+- Admin or commissioner advancing weeks.
+- Full regular season simulation.
+- Full playoff bracket simulation.
+- Championship simulation.
+
+Watch:
+
+- Replit CPU usage.
+- Replit memory usage.
+- Server logs.
+- Database latency.
+- Failed requests.
+- Timeout errors.
+- Slow pages.
+
+Recommended tools if available:
+
+- Playwright for browser automation.
+- `autocannon` for endpoint pressure testing in Node apps.
+- App-specific integration tests for database integrity.
+
+Example endpoint pressure test:
+
+```bash
+npx autocannon -c 14 -d 60 http://localhost:3000
+```
+
+Adjust the port and endpoint to match the Replit app.
+
+## 16. Automation Recommendation
+
+Add a full-season automated test runner if one does not already exist.
+
+Target command:
+
+```bash
+npm run test:full-14-user-season
+```
+
+Suggested flow:
+
+1. Reset database.
+2. Seed 14 users.
+3. Seed 14 teams.
+4. Start league.
+5. Run smoke checks.
+6. Simulate recruiting week by week.
+7. Validate recruiting integrity.
+8. Simulate regular season.
+9. Validate stats and standings.
+10. Generate postseason bracket.
+11. Simulate College World Series.
+12. Simulate championship.
+13. Validate champion.
+14. Export report.
+
+The automated test should fail if:
+
+- Any server error occurs.
+- Any duplicate game result exists.
+- Any duplicate stat record exists.
+- Any duplicate recruit commitment exists.
+- Any team has an incorrect record.
+- Any user modifies another user's team.
+- Any bracket slot is invalid.
+- The champion does not match the championship game winner.
+
+## 17. Final Pass Criteria
+
+The test passes only if all of the following are true:
+
+- 14 users complete the full test without account leakage.
+- Every user controls only their own team.
+- Recruiting works under direct competition.
+- Recruiting budgets are enforced.
+- Commitments are assigned correctly.
+- All regular season games simulate.
+- Game results are valid.
+- Player stats update correctly.
+- Team stats update correctly.
+- Standings match actual game results.
+- Tiebreakers behave according to app rules.
+- College World Series / playoff bracket generates correctly.
+- Winners advance correctly.
+- Losers are eliminated correctly.
+- Championship records correctly.
+- Exactly one champion is saved.
+- Final stats and standings are preserved.
+- Invalid actions are rejected.
+- No duplicate games, stats, commitments, or championship records exist.
+- Replit logs show no unhandled exceptions.
+
+## 18. Test Report Template
+
+Copy this section at the end of the run and fill it out.
+
+```text
+Test date:
+Tester:
+Git branch:
+Git commit:
+Replit URL:
+Database used:
+
+Users created:
+Teams created:
+Games scheduled:
+Games simulated:
+Recruiting weeks simulated:
+Postseason teams:
+Champion:
+Runner-up:
+
+Smoke test result:
+Recruiting test result:
+Regular season result:
+Stats validation result:
+Standings validation result:
+Tiebreaker validation result:
+College World Series result:
+Championship result:
+Race condition result:
+Load test result:
+
+Failed checks:
+
+Server errors:
+
+Database integrity issues:
+
+Screenshots captured:
+
+Fixes needed:
+
+Final result:
+PASS / FAIL
+```
+
+## 19. Quick Manual Checklist
+
+Use this as a fast tracker during the run.
+
+```text
+[ ] Replit app starts
+[ ] Test database configured
+[ ] 14 users created
+[ ] 14 teams assigned
+[ ] All users can log in
+[ ] Each user sees correct team
+[ ] Initial standings are clean
+[ ] Recruiting board loads
+[ ] All users submit recruiting actions
+[ ] Recruiting week advances
+[ ] Recruiting commitments are correct
+[ ] Regular season games simulate
+[ ] Box scores render
+[ ] Player stats update
+[ ] Team stats update
+[ ] Standings update
+[ ] Tiebreakers checked
+[ ] Regular season completes
+[ ] Playoff bracket generates
+[ ] Bracket seeds are correct
+[ ] First round advances
+[ ] Later rounds advance
+[ ] Championship matchup appears
+[ ] Championship simulates
+[ ] Champion is recorded
+[ ] Final stats preserved
+[ ] Final standings preserved
+[ ] Invalid actions rejected
+[ ] No duplicate records found
+[ ] No server errors found
+[ ] Test report completed
+```
