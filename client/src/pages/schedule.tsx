@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -521,6 +523,14 @@ export default function SchedulePage() {
           )}
         </div>
       </header>
+
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.scheduleDay.desktop}
+        mobileSrc={artBackgrounds.scheduleDay.mobile}
+        focalPoint="center bottom"
+        overlayStrength="heavy"
+        className="h-28 sm:h-40"
+      />
 
       <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
         {exhibitionGames.length > 0 && activeKey === "spring_training" && (

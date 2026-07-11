@@ -35,6 +35,8 @@ import type { Player } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { StoryEngineHub } from "@/components/story-engine-hub";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 
 import type { LeagueDetails, TeamWithCoach, DashboardOverview, AuctionOutcome, StorylineWidgetItem } from "./league-view/types";
 import { HOME_TAB_VALUES, STORYLINE_VOTE_CALLOUT_PHASES } from "./league-view/types";
@@ -411,6 +413,14 @@ export default function LeagueViewPage() {
           <SeasonProgressBar phase={league.currentPhase} />
         </div>
       </header>
+
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.leagueWarRoom.desktop}
+        mobileSrc={artBackgrounds.leagueWarRoom.mobile}
+        focalPoint="center top"
+        overlayStrength="heavy"
+        className="h-36 sm:h-48"
+      />
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />

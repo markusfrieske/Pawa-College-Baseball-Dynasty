@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { parseErrorMessage } from "@/lib/errorUtils";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -739,6 +741,14 @@ export default function RecruitingPage() {
           })()}
         </div>
       </header>
+
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.recruiting.desktop}
+        mobileSrc={artBackgrounds.recruiting.mobile}
+        focalPoint="center center"
+        overlayStrength="heavy"
+        className="h-28 sm:h-40"
+      />
 
       {isMobile ? (
         <>

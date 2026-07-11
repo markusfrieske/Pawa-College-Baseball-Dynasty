@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { ArtPanel } from "@/components/art-panel";
+import { getStorylineArt } from "@/lib/art-assets";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -229,8 +231,24 @@ function NewsSubTab({ leagueId }: { leagueId: string }) {
 
 function NewsArticle({ item }: { item: DynastyNews }) {
   const journalist = item.journalist ? journalistInfo[item.journalist] : null;
+  const artSrc = getStorylineArt(item.category);
   return (
-    <div className="bg-muted/30 rounded-lg p-4 border border-border/50" data-testid={`card-news-${item.id}`}>
+    <div className="bg-muted/30 rounded-lg border border-border/50 overflow-hidden" data-testid={`card-news-${item.id}`}>
+      <div
+        className="relative h-16 sm:h-20 overflow-hidden"
+        aria-hidden="true"
+      >
+        <img
+          src={artSrc}
+          alt=""
+          aria-hidden
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+          style={{ objectPosition: "center center" }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-background/80 pointer-events-none" />
+      </div>
+      <div className="p-4">
       <div className="flex items-start gap-3 mb-2">
         {journalist ? (
           <img
@@ -284,6 +302,7 @@ function NewsArticle({ item }: { item: DynastyNews }) {
         </div>
       )}
       <p className="text-sm text-foreground/90 whitespace-pre-wrap pl-[52px] leading-relaxed">{item.content}</p>
+      </div>
     </div>
   );
 }

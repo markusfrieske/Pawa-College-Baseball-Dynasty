@@ -35,6 +35,8 @@ import { ScheduleHealthTab } from "./tabs/ScheduleHealthTab";
 import { phaseLabels } from "./helpers/phaseHelpers";
 import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 import type { HumanCoach } from "./types";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 
 interface CommissionerData {
   league: League;
@@ -454,6 +456,14 @@ export default function CommissionerPage() {
           </div>
         </div>
       </header>
+
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.commissioner.desktop}
+        mobileSrc={artBackgrounds.commissioner.mobile}
+        focalPoint="center center"
+        overlayStrength="heavy"
+        className="h-32 sm:h-44"
+      />
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6">

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo, Component, type ReactNode, type E
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 import {
   ArrowLeft, ChevronDown, ChevronUp, Check, AlertTriangle, AlertCircle,
   CheckCircle, Clock, XCircle, Plus, Minus, ChevronRight,
@@ -807,6 +809,14 @@ function ReportGameInner() {
           </div>
         </div>
       </header>
+
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.reporting.desktop}
+        mobileSrc={artBackgrounds.reporting.mobile}
+        focalPoint="center center"
+        overlayStrength="heavy"
+        className="h-24 sm:h-36"
+      />
 
       <main className="container mx-auto px-4 py-5 max-w-lg space-y-4 pb-20 md:pb-8">
 

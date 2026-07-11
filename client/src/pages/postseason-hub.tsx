@@ -6,6 +6,8 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trophy, ArrowLeft, Star, ChevronRight } from "lucide-react";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -759,6 +761,14 @@ export default function PostseasonHubPage() {
           </Badge>
         )}
       </div>
+
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.postseason.desktop}
+        mobileSrc={artBackgrounds.postseason.mobile}
+        focalPoint="center top"
+        overlayStrength="heavy"
+        className="h-36 sm:h-52"
+      />
 
       {isLoading && (
         <div className="p-4 space-y-4">

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BarChart } from "lucide-react";
+import { ArtworkBackground } from "@/components/artwork-background";
+import { artBackgrounds } from "@/lib/art-assets";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -129,6 +131,13 @@ export default function StatsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <ArtworkBackground
+        desktopSrc={artBackgrounds.stats.desktop}
+        mobileSrc={artBackgrounds.stats.mobile}
+        focalPoint="center center"
+        overlayStrength="heavy"
+        className="h-28 sm:h-40"
+      />
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-3">
           <Link href={`/league/${leagueId}`}>
