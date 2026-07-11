@@ -227,7 +227,7 @@ export function ProgramChangesCard({ league, myTeam }: { league: LeagueDetails; 
   );
 }
 
-export function OffseasonSummary({ league }: { league: LeagueDetails }) {
+export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; myTeam: TeamWithCoach | undefined | null }) {
   const isOffseasonPhase = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"].includes(league.currentPhase);
 
   const { data: historyData } = useQuery<{
@@ -250,9 +250,7 @@ export function OffseasonSummary({ league }: { league: LeagueDetails }) {
   });
 
   if (!isOffseasonPhase) return null;
-
-  const userTeam = league.teams?.find(t => !t.isCpu);
-  if (!userTeam) return null;
+  if (!myTeam) return null;
 
   let graduated: any[] = [];
   let drafted: any[] = [];
@@ -260,7 +258,7 @@ export function OffseasonSummary({ league }: { league: LeagueDetails }) {
   let currentSeasonDepartures: any[] = [];
 
   if (league.currentPhase === "offseason_departures" && pendingData?.teams) {
-    const teamData = Object.values(pendingData.teams).find((t: any) => t.teamId === userTeam.id) as any;
+    const teamData = Object.values(pendingData.teams).find((t: any) => t.teamId === myTeam.id) as any;
     if (teamData) {
       graduated = (teamData.graduates || []).map((p: any) => ({ ...p, departureType: "graduated" }));
       drafted = (teamData.draftDeclarations || []).map((p: any) => ({ ...p, departureType: "draft" }));
@@ -269,7 +267,7 @@ export function OffseasonSummary({ league }: { league: LeagueDetails }) {
     }
   } else {
     currentSeasonDepartures = historyData?.history?.filter(
-      h => h.teamId === userTeam.id && h.departedSeason === league.currentSeason
+      h => h.teamId === myTeam.id && h.departedSeason === league.currentSeason
     ) || [];
     graduated = currentSeasonDepartures.filter(h => h.departureType === "graduated");
     drafted = currentSeasonDepartures.filter(h => h.departureType === "draft");

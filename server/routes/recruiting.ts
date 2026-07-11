@@ -27,6 +27,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, potentialGradeToNumber, calculateSignInterestThreshold, SIGNABLE_STAGES, resolveUserTeam } from "../route-helpers";
+import { resolveRecruitSigningWinner } from "../signing-resolver";
 import { getRecruitingPitch, getProgramCulture } from "@shared/programIdentity";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
@@ -1776,6 +1777,33 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
+      // ── Canonical winner check ─────────────────────────────────────────────
+      // Load all interests for this recruit and confirm this team is the leading
+      // eligible program. Prevents a lower-interest team from stealing a recruit
+      // by posting /sign before the actual leader does in a multiplayer league.
+      const allInterestsForSign = await storage.getRecruitingInterestsByRecruit(recruit.id);
+      const resolverTeamMap = new Map(leagueTeams.map(t => [t.id, t]));
+      const signResolution = resolveRecruitSigningWinner(
+        { id: recruit.id, starRating: recruit.starRating || recruit.starRank || 3, isBlueChip: !!recruit.isBlueChip, nilCost: nilCost },
+        allInterestsForSign.map(i => ({ teamId: i.teamId, interestLevel: i.interestLevel, hasOffer: i.hasOffer ?? false })),
+        resolverTeamMap,
+        (teamId, cost) => {
+          const t = resolverTeamMap.get(teamId);
+          return !!t && ((t.nilBudget ?? 0) - (t.nilSpent ?? 0)) >= cost;
+        }
+      );
+      if (signResolution.winnerTeamId !== userTeam.id) {
+        return res.status(409).json({
+          message: signResolution.winnerTeamId
+            ? `${signResolution.winnerTeamName} is currently leading this recruit. Continue recruiting to close the gap before signing.`
+            : "Your program is not currently the leading eligible offer for this recruit.",
+          winnerTeamName: signResolution.winnerTeamName,
+          winnerScore: signResolution.winnerScore,
+          yourScore: interest.interestLevel ?? 0,
+          margin: signResolution.winnerScore != null ? signResolution.winnerScore - (interest.interestLevel ?? 0) : null,
+        });
+      }
+
       // Sign the recruit
       const updatedRecruit = await storage.updateRecruit(recruit.id, {
         signedTeamId: userTeam.id,
@@ -2039,6 +2067,12 @@ export function registerRecruitingRoutes(app: Express): void {
               const runnerUpInterest = runnerUp?.accumulatedInterest ?? null;
               const myTeamActions = myTeamId ? (actionsByKey.get(`${r.id}:${myTeamId}`) ?? []) : [];
               const offerAction = myTeamActions.find(a => a.actionType === "offer");
+              const viewerOutcome: "won" | "not_winner" | "no_team" = myTeamId != null
+                ? (r.signedTeamId === myTeamId ? "won" : "not_winner")
+                : "no_team";
+              const viewerRank = myTeamId
+                ? (schoolsData.findIndex(ts => ts.teamId === myTeamId) + 1 || null)
+                : null;
               return {
                 finalInterest,
                 topSchools: schoolsData,
@@ -2057,6 +2091,8 @@ export function registerRecruitingRoutes(app: Express): void {
                 } : null,
                 offerWeek: offerAction?.week ?? null,
                 nilCost: r.nilCost ?? 0,
+                viewerOutcome,
+                viewerRank,
               };
             })(),
           })),
@@ -2097,12 +2133,28 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(403).json({ message: "Not a member of this league" });
       }
 
-      const teamId = req.query.teamId as string | undefined;
+      let teamId = req.query.teamId as string | undefined;
+      const leagueTeamsForReveal = await storage.getTeamsByLeague(league.id);
+
+      // Authorization: commissioners may reveal any team or all teams at once;
+      // regular coaches may only complete their own team's reveal.
+      const isRevealCommissioner = league.commissionerId === userId ||
+        (Array.isArray(league.coCommissionerIds) && (league.coCommissionerIds as string[]).includes(userId ?? ""));
+      if (!isRevealCommissioner) {
+        const callerCoach = leagueCoaches.find(c => c.userId === userId);
+        const callerTeamId = callerCoach?.teamId ?? null;
+        if (!callerTeamId) {
+          return res.status(403).json({ message: "No team assigned" });
+        }
+        if (teamId && teamId !== callerTeamId) {
+          return res.status(403).json({ message: "Cannot complete another team's reveal" });
+        }
+        teamId = callerTeamId;
+      }
 
       // Validate teamId belongs to this league if provided
       if (teamId) {
-        const leagueTeams = await storage.getTeamsByLeague(league.id);
-        const validTeam = leagueTeams.some(t => t.id === teamId);
+        const validTeam = leagueTeamsForReveal.some(t => t.id === teamId);
         if (!validTeam) {
           return res.status(400).json({ message: "Team not found in this league" });
         }

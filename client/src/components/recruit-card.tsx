@@ -102,6 +102,8 @@ export interface RevealRecruit {
     } | null;
     offerWeek: number | null;
     nilCost: number;
+    viewerOutcome?: "won" | "not_winner" | "no_team";
+    viewerRank?: number | null;
   } | null;
 }
 

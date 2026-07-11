@@ -638,7 +638,7 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
     { label: "Total % Gained", value: myA.totalGained != null ? `${myA.totalGained.toFixed(1)}%` : "—" },
   ] : [];
 
-  const didWin = recruit.signedTeamId != null && r.topSchools[0]?.hadOffer;
+  const didWin = r.viewerOutcome === "won";
 
   return (
     <div
@@ -1115,8 +1115,8 @@ function SealedCard({
     <div
       className="group cursor-pointer select-none"
       style={{
-        width: "160px",
-        height: "220px",
+        width: "200px",
+        height: "280px",
         flexShrink: 0,
         position: "relative",
         borderRadius: "8px",

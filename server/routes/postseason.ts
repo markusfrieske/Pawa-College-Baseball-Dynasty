@@ -14,6 +14,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess } from "../route-helpers";
+import { resolveRecruitSigningWinner } from "../signing-resolver";
 import type { Game } from "../../shared/schema";
 import { cacheGet, cacheSet, leagueCacheKey } from "../cache";
 
@@ -1091,8 +1092,8 @@ export function registerPostseasonRoutes(app: Express): void {
       if (!league) return res.status(404).json({ message: "League not found" });
 
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
-      const targetTeam = teamId ? leagueTeams.find(t => t.id === teamId) : leagueTeams.find(t => !t.isCpu);
-      if (!targetTeam) return res.status(404).json({ message: "Team not found" });
+      const targetTeam = teamId ? leagueTeams.find(t => t.id === teamId) : null;
+      if (!targetTeam) return res.status(404).json({ message: "Team not found — teamId query param required" });
 
       const seasons: { season: number; wins: number; losses: number; runsScored: number; runsAllowed: number; avgOverall: number; rosterSize: number }[] = [];
 
@@ -1268,13 +1269,16 @@ export function registerPostseasonRoutes(app: Express): void {
         !r.signedTeamId && ["top3", "top5", "verbal"].includes(r.stage || "open")
       );
 
+      // Build NIL remaining map from teams for resolver canAfford checks
+      const nilRemainingMap = new Map(teams.map(t => [t.id, (t.nilBudget || 0) - (t.nilSpent || 0)]));
+
       const previewRecruits = await Promise.all(undecided.map(async (recruit) => {
         const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
         // Sort all positive-interest entries by interest level descending
         const allSortedInterests = interests
           .filter(i => (i.interestLevel || 0) > 0)
           .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
-        // Show top 2 for the schools display
+        // Show top 2 contenders for the schools display
         const topInterests = allSortedInterests.slice(0, 2).map(i => ({
           teamId: i.teamId,
           teamName: teamsMap.get(i.teamId)?.name || "Unknown",
@@ -1283,17 +1287,21 @@ export function registerPostseasonRoutes(app: Express): void {
           interestLevel: i.interestLevel || 0,
           hasOffer: i.hasOffer || false,
         }));
-        // committingTo mirrors finalization order: highest-interest team with offer,
-        // falling back to highest raw interest — searched across ALL interest entries
-        // (not just top 2) so a lower-ranked team with an offer is not missed.
-        const committingToRaw = allSortedInterests.find(i => i.hasOffer) ?? allSortedInterests[0] ?? null;
-        const committingTo = committingToRaw ? {
-          teamId: committingToRaw.teamId,
-          teamName: teamsMap.get(committingToRaw.teamId)?.name || "Unknown",
-          teamAbbr: teamsMap.get(committingToRaw.teamId)?.abbreviation || "???",
-          primaryColor: teamsMap.get(committingToRaw.teamId)?.primaryColor || "#888",
-          interestLevel: committingToRaw.interestLevel || 0,
-          hasOffer: committingToRaw.hasOffer || false,
+        // Use canonical resolver for committingTo — same logic as updateRecruitStages/finalizeSigningDay
+        const resolution = resolveRecruitSigningWinner(
+          { id: recruit.id, starRating: recruit.starRating || 3, isBlueChip: recruit.isBlueChip ?? false, nilCost: recruit.nilCost ?? 0 },
+          interests.map(i => ({ teamId: i.teamId, interestLevel: i.interestLevel, hasOffer: i.hasOffer ?? false })),
+          teamsMap,
+          (teamId, cost) => (nilRemainingMap.get(teamId) ?? 0) >= cost,
+        );
+        const committingToTeamId = resolution.winnerTeamId;
+        const committingTo = committingToTeamId ? {
+          teamId: committingToTeamId,
+          teamName: teamsMap.get(committingToTeamId)?.name || "Unknown",
+          teamAbbr: teamsMap.get(committingToTeamId)?.abbreviation || "???",
+          primaryColor: teamsMap.get(committingToTeamId)?.primaryColor || "#888",
+          interestLevel: resolution.winnerScore ?? 0,
+          hasOffer: true,
         } : null;
         return {
           id: recruit.id,

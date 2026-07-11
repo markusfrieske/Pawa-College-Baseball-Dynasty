@@ -32,6 +32,7 @@ import { accumulatePlayerStats, updatePitcherRestFromBox } from "../game-engine"
 import { calibrateRpiOvr } from "../calibrateRpiOvr";
 import { pool } from "../db";
 import type { AdvanceDigestCategories } from "@shared/schema";
+import { resolveRecruitSigningWinner } from "../signing-resolver";
 
 const settingsSchema = z.object({
   auditLogPublic: z.boolean().optional(),
@@ -77,6 +78,11 @@ export async function updateRecruitStages(leagueId: string, week: number) {
   // so concurrent promises within Promise.all see accurate remaining budgets.
   const nilSpentByTeam = new Map<string, number>(
     allLeagueTeams.map(t => [t.id, t.nilSpent || 0])
+  );
+  const teamMap = new Map(allLeagueTeams.map(t => [t.id, t]));
+  // Track in-flight commits so concurrent Promise.all promises see accurate roster projections
+  const teamCommitsMap = new Map<string, number>(
+    allLeagueTeams.map(t => [t.id, recruits.filter(r => r.signedTeamId === t.id).length])
   );
 
   // Parallelize per-recruit processing — each recruit's DB writes are independent
@@ -169,25 +175,28 @@ export async function updateRecruitStages(leagueId: string, week: number) {
       await storage.updateRecruit(recruit.id, { stage: newStage });
       
       if (newStage === "verbal") {
-        const topSchool = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
-        if (topSchool && topSchool.interestLevel >= signInterest) {
-          const teamRoster = playersByTeam.get(topSchool.teamId) ?? [];
-          const teamCommits = recruits.filter(r => r.signedTeamId === topSchool.teamId).length;
-          const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
-          const portal = teamRoster.filter(p => p.inTransferPortal).length;
-          const rosterOk = teamRoster.length - departing - portal + teamCommits + 1 <= 30;
-          const nilCost = recruit.nilCost || 0;
-          const prevNilSpent = nilSpentByTeam.get(topSchool.teamId) || 0;
-          const topSchoolObj = allLeagueTeams.find(t => t.id === topSchool.teamId);
-          const nilAffordable = (topSchoolObj?.nilBudget || 0) - prevNilSpent >= nilCost;
-          if (rosterOk && nilAffordable) {
-            // Claim NIL budget synchronously before first await — safe in Promise.all context
-            nilSpentByTeam.set(topSchool.teamId, prevNilSpent + nilCost);
-            await storage.updateRecruit(recruit.id, { 
-              stage: "signed",
-              signedTeamId: topSchool.teamId,
-            });
-            await storage.updateTeam(topSchool.teamId, { nilSpent: nilSpentByTeam.get(topSchool.teamId) });
+        const verbalResolution = resolveRecruitSigningWinner(
+          { id: recruit.id, starRating: starRating, isBlueChip: isBlueChip, nilCost: recruit.nilCost ?? 0 },
+          allInterests.map(i => ({ teamId: i.teamId, interestLevel: i.interestLevel, hasOffer: i.hasOffer ?? false })),
+          teamMap,
+          (teamId, cost) => {
+            const prevSpent = nilSpentByTeam.get(teamId) ?? 0;
+            const t = teamMap.get(teamId);
+            return !!t && ((t.nilBudget ?? 0) - prevSpent) >= cost;
+          }
+        );
+        if (verbalResolution.winnerTeamId) {
+          const winnerId = verbalResolution.winnerTeamId;
+          const winnerRoster = playersByTeam.get(winnerId) ?? [];
+          const inFlightCommits = teamCommitsMap.get(winnerId) ?? 0;
+          const departing = winnerRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
+          const portal = winnerRoster.filter(p => p.inTransferPortal).length;
+          if (winnerRoster.length - departing - portal + inFlightCommits + 1 <= 30) {
+            const nilCost = recruit.nilCost ?? 0;
+            nilSpentByTeam.set(winnerId, (nilSpentByTeam.get(winnerId) ?? 0) + nilCost);
+            teamCommitsMap.set(winnerId, inFlightCommits + 1);
+            await storage.updateRecruit(recruit.id, { stage: "signed", signedTeamId: winnerId });
+            await storage.updateTeam(winnerId, { nilSpent: nilSpentByTeam.get(winnerId) });
           }
         }
       }
@@ -195,25 +204,28 @@ export async function updateRecruitStages(leagueId: string, week: number) {
     
     let justSigned = false;
     if (currentStage === "verbal") {
-      const signingSchool = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
-      if (signingSchool && signingSchool.interestLevel >= signInterest) {
-        const teamRoster = playersByTeam.get(signingSchool.teamId) ?? [];
-        const teamCommits = recruits.filter(r => r.signedTeamId === signingSchool.teamId).length;
-        const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
-        const portal = teamRoster.filter(p => p.inTransferPortal).length;
-        const rosterOk = teamRoster.length - departing - portal + teamCommits + 1 <= 30;
-        const nilCost = recruit.nilCost || 0;
-        const prevNilSpent = nilSpentByTeam.get(signingSchool.teamId) || 0;
-        const signingTeamObj = allLeagueTeams.find(t => t.id === signingSchool.teamId);
-        const nilAffordable = (signingTeamObj?.nilBudget || 0) - prevNilSpent >= nilCost;
-        if (rosterOk && nilAffordable) {
-          // Claim NIL budget synchronously before first await — safe in Promise.all context
-          nilSpentByTeam.set(signingSchool.teamId, prevNilSpent + nilCost);
-          await storage.updateRecruit(recruit.id, { 
-            stage: "signed",
-            signedTeamId: signingSchool.teamId,
-          });
-          await storage.updateTeam(signingSchool.teamId, { nilSpent: nilSpentByTeam.get(signingSchool.teamId) });
+      const alreadyVerbalResolution = resolveRecruitSigningWinner(
+        { id: recruit.id, starRating: starRating, isBlueChip: isBlueChip, nilCost: recruit.nilCost ?? 0 },
+        allInterests.map(i => ({ teamId: i.teamId, interestLevel: i.interestLevel, hasOffer: i.hasOffer ?? false })),
+        teamMap,
+        (teamId, cost) => {
+          const prevSpent = nilSpentByTeam.get(teamId) ?? 0;
+          const t = teamMap.get(teamId);
+          return !!t && ((t.nilBudget ?? 0) - prevSpent) >= cost;
+        }
+      );
+      if (alreadyVerbalResolution.winnerTeamId) {
+        const winnerId = alreadyVerbalResolution.winnerTeamId;
+        const winnerRoster = playersByTeam.get(winnerId) ?? [];
+        const inFlightCommits = teamCommitsMap.get(winnerId) ?? 0;
+        const departing = winnerRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
+        const portal = winnerRoster.filter(p => p.inTransferPortal).length;
+        if (winnerRoster.length - departing - portal + inFlightCommits + 1 <= 30) {
+          const nilCost = recruit.nilCost ?? 0;
+          nilSpentByTeam.set(winnerId, (nilSpentByTeam.get(winnerId) ?? 0) + nilCost);
+          teamCommitsMap.set(winnerId, inFlightCommits + 1);
+          await storage.updateRecruit(recruit.id, { stage: "signed", signedTeamId: winnerId });
+          await storage.updateTeam(winnerId, { nilSpent: nilSpentByTeam.get(winnerId) });
           justSigned = true;
         }
       }

@@ -322,6 +322,44 @@ app.use((req, res, next) => {
         );
       });
 
+      // ── recruiting-interests-unique-v1 ──────────────────────────────────
+      // Dedupe recruiting_interests (keep row with highest interest per
+      // recruit/team pair) then add a UNIQUE INDEX so ON CONFLICT DO UPDATE
+      // upserts are safe in concurrent multiplayer leagues.
+      await onceAfter('recruiting-interests-unique-v1', async () => {
+        await pool.query(`
+          DELETE FROM recruiting_interests
+          WHERE id NOT IN (
+            SELECT DISTINCT ON (recruit_id, team_id) id
+            FROM recruiting_interests
+            ORDER BY recruit_id, team_id, interest_level DESC, id
+          )
+        `);
+        await pool.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS uq_recruiting_interests_recruit_team
+          ON recruiting_interests (recruit_id, team_id)
+        `);
+        console.log("[startup-migration] recruiting-interests-unique-v1: deduped + UNIQUE INDEX added");
+      });
+
+      // ── recruit-top-schools-unique-v1 ──────────────────────────────────
+      // Same treatment for recruit_top_schools.
+      await onceAfter('recruit-top-schools-unique-v1', async () => {
+        await pool.query(`
+          DELETE FROM recruit_top_schools
+          WHERE id NOT IN (
+            SELECT DISTINCT ON (recruit_id, team_id) id
+            FROM recruit_top_schools
+            ORDER BY recruit_id, team_id, interest_level DESC, id
+          )
+        `);
+        await pool.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS uq_recruit_top_schools_recruit_team
+          ON recruit_top_schools (recruit_id, team_id)
+        `);
+        console.log("[startup-migration] recruit-top-schools-unique-v1: deduped + UNIQUE INDEX added");
+      });
+
     } catch (e) {
       console.error("[startup-migrations] sequential runner failed:", e);
     }

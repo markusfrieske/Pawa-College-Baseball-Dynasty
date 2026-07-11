@@ -203,8 +203,8 @@ export default function LeagueViewPage() {
     );
   }
 
-  const userTeam = league.teams?.find(t => !t.isCpu);
   const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id);
+  const userTeam = myTeam ?? league.teams?.find(t => !t.isCpu);
   const myCoach = myTeam?.coach ?? null;
   const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
   const isPrimaryCommissioner = !!currentUser && currentUser.id === league.commissionerId;
@@ -634,7 +634,7 @@ export default function LeagueViewPage() {
 
         <SinceLastAdvanceWidget leagueId={league.id} />
 
-        <OffseasonSummary league={league} />
+        <OffseasonSummary league={league} myTeam={myTeam} />
 
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">

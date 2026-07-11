@@ -57,7 +57,7 @@ import {
   type StorylineVote, type InsertStorylineVote,
   type CoachMessage, type InsertCoachMessage,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql, gt } from "drizzle-orm";
 
 export interface IStorage {
@@ -720,7 +720,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRecruitingInterest(insertInterest: InsertRecruitingInterest): Promise<RecruitingInterest> {
-    const [interest] = await db.insert(recruitingInterests).values(insertInterest).returning();
+    const [interest] = await db.insert(recruitingInterests)
+      .values(insertInterest)
+      .onConflictDoUpdate({
+        target: [recruitingInterests.recruitId, recruitingInterests.teamId],
+        set: {
+          interestLevel: sql`LEAST(100, recruiting_interests.interest_level + EXCLUDED.interest_level)`,
+        },
+      })
+      .returning();
     return interest;
   }
 
@@ -1146,15 +1154,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools> {
-    const [created] = await db.insert(recruitTopSchools).values(topSchool).returning();
-    return created;
+    const [created] = await db.insert(recruitTopSchools)
+      .values(topSchool)
+      .onConflictDoNothing()
+      .returning();
+    if (created) return created;
+    const [existing] = await db.select().from(recruitTopSchools)
+      .where(and(eq(recruitTopSchools.recruitId, topSchool.recruitId), eq(recruitTopSchools.teamId, topSchool.teamId)));
+    return existing;
   }
 
   async batchCreateRecruitTopSchools(topSchoolsData: InsertRecruitTopSchools[]): Promise<void> {
     if (topSchoolsData.length === 0) return;
     const CHUNK = 200;
     for (let i = 0; i < topSchoolsData.length; i += CHUNK) {
-      await db.insert(recruitTopSchools).values(topSchoolsData.slice(i, i + CHUNK));
+      await db.insert(recruitTopSchools).values(topSchoolsData.slice(i, i + CHUNK)).onConflictDoNothing();
     }
   }
 
