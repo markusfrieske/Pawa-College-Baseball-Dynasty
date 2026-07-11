@@ -1,0 +1,539 @@
+# Replit Handoff: Modern Game Website Homepage Pass
+
+Use this as the implementation brief for improving the homepage so it better represents the actual game/app.
+
+The homepage currently has a strong visual direction, but the words and screenshots still make the product feel like a generic college baseball management sim. The real product is more specific and more compelling:
+
+> A multiplayer college baseball dynasty league office for people who play games in eBaseball Power Pros, then recruit, report scores, track stats, manage storylines, and advance seasons together.
+
+The homepage should feel like a modern game website: visual, confident, specific, and built around the actual weekly loop.
+
+## Current Issues to Fix
+
+### 1. The hero copy is too generic
+
+Current copy:
+
+```text
+College Baseball Dynasty
+The most immersive college baseball management sim. Recruit real talent, build your program, and compete against real coaches in a persistent league.
+```
+
+This is not wrong, but it undersells the unique product. It does not clearly communicate:
+
+- Multiplayer league companion.
+- Games are played externally in Power Pros.
+- Weekly recruiting is the main game loop.
+- Scores/box scores are reported after games.
+- Commissioners can safely advance/rollback seasons.
+
+Replace with a more specific game-site hero:
+
+```text
+Power Pros Dynasty League Office
+Run an online college baseball dynasty around games played in eBaseball Power Pros. Recruit all week, play your series, report the box score, and advance the league together.
+```
+
+Alternative if we want to avoid leading with the Power Pros name:
+
+```text
+College Baseball Dynasty HQ
+The online league office for multiplayer college baseball dynasties: recruit, schedule, report scores, track stats, and advance seasons with real coaches.
+```
+
+Recommended CTA buttons:
+
+```text
+Create League
+Join League
+Explore Demo
+```
+
+Secondary quick links should be:
+
+```text
+View Demo League
+Browse Rosters
+Create Recruiting Class
+```
+
+Do not make "Try as Guest" the strongest secondary CTA; "Explore Demo" feels more modern and product-led.
+
+### 2. The homepage should show the weekly loop earlier
+
+The current homepage talks about rosters, recruiting, and league competition, but it does not immediately show how someone actually uses the app.
+
+Add a first section after the hero:
+
+```text
+Your Week in the Dynasty
+1. Check your War Room
+2. Recruit and scout prospects
+3. Play your games in Power Pros
+4. Upload or enter the box score
+5. Ready up and advance safely
+```
+
+Make this section visual, with 5 horizontal steps on desktop and stacked cards on mobile.
+
+### 3. Replace the conference ticker
+
+Current ticker only lists conferences. That feels like a database site, not a living game.
+
+Replace it with a live-style league ticker:
+
+```text
+FINAL: Oklahoma 6, North Carolina 4
+REPORT PENDING: LSU vs Texas A&M
+COMMITMENT: 4-star SS chooses Coastal Carolina
+UPSET ALERT: #18 Oregon State falls in extras
+ADVANCE READY: 11/14 coaches locked in
+STORYLINE: Summer showcase stock rising
+```
+
+This makes the app feel alive even before users sign in.
+
+### 4. Remove gem/bust spoiler language
+
+The homepage currently says things like:
+
+```text
+generational gem
+generational bust
+Blue Chips, Gems, and Busts hidden in every class
+```
+
+That conflicts with the desired storyline/recruiting design. The site should sell uncertainty without spoiling labels.
+
+Replace with:
+
+```text
+Every recruit starts uncertain. Scouting, storylines, showcases, injuries, and position changes reveal the player over time.
+```
+
+And:
+
+```text
+Some players rise, some fade, and some change paths completely before signing day.
+```
+
+### 5. Screenshots should show the actual companion-app loop
+
+Current homepage screenshots:
+
+```text
+pipeline.jpg
+player-card.jpg
+commissioner.jpg
+rankings.jpg
+```
+
+These are useful, but the homepage needs screenshots that tell the story of the app.
+
+Recommended screenshot set:
+
+1. **League War Room**
+   - Shows next opponent, tasks, ready-up, league pulse.
+   - Filename suggestion: `war-room.jpg`
+
+2. **Recruiting Cockpit**
+   - Shows board/battles/scouting/storyline uncertainty.
+   - Existing `pipeline.jpg` can remain if no better screenshot exists.
+   - Filename suggestion: `recruiting-cockpit.jpg`
+
+3. **Game Reporting**
+   - Shows screenshot upload/OCR/manual correction/box score workflow.
+   - This is essential because it explains how Power Pros games connect to the app.
+   - Filename suggestion: `game-reporting.jpg`
+
+4. **Schedule / My Games**
+   - Shows opponent preview and report status.
+   - Filename suggestion: `schedule-my-games.jpg`
+
+5. **Commissioner Safety**
+   - Shows advance readiness, reports pending, save-state/rollback.
+   - Existing `commissioner.jpg` can remain if updated.
+   - Filename suggestion: `commissioner-safety.jpg`
+
+6. **Stats / Record Book**
+   - Shows league leaders, box score history, player stats, or records.
+   - Filename suggestion: `stats-record-book.jpg`
+
+Optional:
+
+7. **Storylines**
+   - Shows recruit/player event cards without revealing hidden gem/bust status.
+   - Filename suggestion: `storylines.jpg`
+
+### 6. The homepage currently repeats itself
+
+There are multiple feature blocks that say similar things:
+
+- Why College Baseball Dynasty
+- Two-column image cards
+- Real Results, Real Competition
+- Why Coaches Choose Us
+- Feature Deep-Dives
+- Stats Banner
+
+This can feel long and old-school SaaS. A modern game homepage should be tighter and more cinematic.
+
+Recommended section order:
+
+1. Hero
+2. Live League Ticker
+3. Your Week in the Dynasty
+4. Feature Showcase with screenshots
+5. Multiplayer League Tools
+6. Recruiting and Storylines
+7. Power Pros Game Reporting
+8. Commissioner Safety and Save States
+9. Stats, Records, and History
+10. Final CTA
+11. Footer
+
+## Recommended New Homepage Copy
+
+### Hero
+
+```text
+Power Pros Dynasty League Office
+
+Run an online college baseball dynasty around games played in eBaseball Power Pros. Recruit all week, play your series, report the box score, and advance the league together.
+
+Create League
+Join League
+Explore Demo
+```
+
+Hero badges:
+
+```text
+Multiplayer Dynasty
+Recruiting War Room
+Box Score Reporting
+Safe Commissioner Advance
+```
+
+### Weekly Loop Section
+
+```text
+Your Week in the Dynasty
+
+Every advance creates a new set of decisions. Check your matchup, scout your board, play your games, submit results, and lock in when your program is ready.
+```
+
+Step cards:
+
+```text
+1. War Room
+See your opponent, league pulse, open tasks, and ready status.
+
+2. Recruiting
+Spend your weekly actions on scouting, pitches, battles, and storylines.
+
+3. Play the Games
+Play your series in Power Pros with the league schedule as your guide.
+
+4. Report the Box Score
+Upload screenshots or enter the final line score, batting, and pitching stats.
+
+5. Advance Safely
+Commissioners review readiness, disputes, and save states before moving forward.
+```
+
+### Feature Showcase
+
+```text
+Built Around the League Night Ritual
+
+This is not just a roster database. It is the weekly home base for every coach in your online dynasty.
+```
+
+Screenshot cards:
+
+```text
+League War Room
+Your matchup, tasks, reports, recruiting pressure, and league news in one place.
+
+Recruiting Cockpit
+Scout uncertain prospects, track battles, react to storylines, and build your class.
+
+Game Reporting
+Turn played Power Pros games into verified box scores, team stats, and league history.
+
+Commissioner Safety
+Advance with confidence using readiness checks, reports, audit logs, and save states.
+```
+
+### Recruiting Section
+
+```text
+Recruiting That Feels Like a Game
+
+Prospects are not solved on day one. Storylines, scouting, showcases, injuries, position changes, and coach choices shape what each player becomes.
+```
+
+Bullets:
+
+```text
+Hidden ratings reveal through scouting and events.
+Recruiting battles update across the league.
+Players can rise, fall, change positions, or leave the pool.
+Classes carry long-term consequences into future seasons.
+```
+
+### Game Reporting Section
+
+```text
+Connect the Field to the League
+
+Play the games in Power Pros, then bring the result back into the dynasty. Reports become standings, player stats, records, and storylines.
+```
+
+Bullets:
+
+```text
+Line score and box score entry.
+Screenshot evidence for league trust.
+Commissioner review for disputes.
+Stats flow into leaderboards, player pages, and history.
+```
+
+If OCR is implemented or planned:
+
+```text
+Screenshot upload and OCR-assisted stat capture.
+```
+
+If OCR is not implemented yet:
+
+```text
+Designed for screenshot upload and OCR-assisted stat capture.
+```
+
+### Commissioner Safety Section
+
+```text
+Advance Without Fear
+
+Multiplayer leagues need trust. Commissioners can see who is ready, what is missing, what changed, and whether a rollback point exists before advancing.
+```
+
+Bullets:
+
+```text
+Ready-up tracking.
+Pending report and dispute review.
+Advance audit trail.
+Save-state snapshots and rollback confidence.
+Co-commissioner support.
+```
+
+### Stats / History Section
+
+```text
+Every Week Becomes History
+
+Standings, leaders, player cards, records, postseason runs, and recruiting classes build a league story that lasts season after season.
+```
+
+Bullets:
+
+```text
+Team and player stat tracking.
+Power rankings and trends.
+Season awards and records.
+Postseason brackets and champions.
+```
+
+### Final CTA
+
+```text
+Start the League Your Group Keeps Talking About
+
+Create a dynasty, invite coaches, play your games, and let the app handle the league office.
+
+Create League
+Explore Demo
+```
+
+## Visual and Layout Direction
+
+Make the homepage feel more like a modern game site:
+
+- Use large cinematic screenshots with short captions.
+- Use fewer, stronger sections.
+- Use actual app screenshots, not generic stat claims.
+- Use the generated hero/game art as atmosphere.
+- Use motion subtly: ticker, screenshot carousel, hover transitions.
+- Use stronger contrast and larger type for marketing copy.
+- Reduce tiny pixel text in body sections.
+- Keep pixel font for logo, badges, and flavor labels.
+- Use readable modern sans-serif for paragraph copy and CTAs.
+- Use desktop-first wide layouts, but keep mobile stacked and clean.
+
+Avoid:
+
+- Too many equal-weight feature cards.
+- Long paragraphs.
+- Dense stat claims too early.
+- Gem/bust spoiler language.
+- Newsletter form unless it actually works.
+- Donate CTA in the primary marketing path.
+
+## Specific Code Fixes
+
+### Fix broken create league footer link
+
+Current footer link:
+
+```text
+/create-league
+```
+
+Use:
+
+```text
+/league/create
+```
+
+### Rename CTAs
+
+Use:
+
+```text
+Create League
+Join League
+Explore Demo
+```
+
+Instead of:
+
+```text
+Start Your Dynasty
+Try as Guest
+```
+
+### Update screenshot carousel data
+
+Replace the old demo phases with:
+
+```ts
+const DEMO_PHASES = [
+  {
+    label: "WAR ROOM",
+    context: "league.week",
+    img: "/screenshots/war-room.jpg",
+    alt: "League War Room showing next opponent, tasks, and ready status",
+    sub: "Know what matters this week",
+  },
+  {
+    label: "RECRUITING",
+    context: "league.recruiting",
+    img: "/screenshots/recruiting-cockpit.jpg",
+    alt: "Recruiting cockpit showing prospects and scouting decisions",
+    sub: "Build your class under uncertainty",
+  },
+  {
+    label: "GAME REPORTING",
+    context: "league.reporting",
+    img: "/screenshots/game-reporting.jpg",
+    alt: "Game reporting screen showing box score entry",
+    sub: "Turn played games into league history",
+  },
+  {
+    label: "COMMISSIONER",
+    context: "league.advance",
+    img: "/screenshots/commissioner-safety.jpg",
+    alt: "Commissioner safety screen showing readiness and advance checks",
+    sub: "Advance with confidence",
+  },
+];
+```
+
+If those screenshots do not exist yet, use the closest current screenshots temporarily:
+
+```text
+pipeline.jpg -> recruiting
+commissioner.jpg -> commissioner safety
+rankings.jpg -> league pulse/stats
+postseason.jpg -> postseason/history
+```
+
+But capture the missing War Room, Game Reporting, Schedule, and Stats screenshots as soon as the screens are present.
+
+## Paste-Ready Replit Prompt
+
+```text
+Please modernize the homepage so it feels like a premium game website and better represents the actual multiplayer app.
+
+Do not rebuild the entire app. Focus on `client/src/pages/landing.tsx` and related public screenshots/assets.
+
+Main positioning:
+The product is not just a generic college baseball sim. It is a multiplayer college baseball dynasty league office for groups who play games in eBaseball Power Pros, then use the app for recruiting, scheduling, score reporting, stats, storylines, ready-up, commissioner advance, and save-state safety.
+
+Hero changes:
+- Change headline to: "Power Pros Dynasty League Office"
+- Change supporting copy to: "Run an online college baseball dynasty around games played in eBaseball Power Pros. Recruit all week, play your series, report the box score, and advance the league together."
+- Change CTAs to: Create League, Join League, Explore Demo.
+- Use the best generated baseball hero image available.
+- Keep text readable with a cinematic overlay.
+- Keep the next section peeking below the first viewport on desktop and mobile.
+
+Replace the static conference ticker with a live-style league ticker:
+- FINAL: Oklahoma 6, North Carolina 4
+- REPORT PENDING: LSU vs Texas A&M
+- COMMITMENT: 4-star SS chooses Coastal Carolina
+- UPSET ALERT: #18 Oregon State falls in extras
+- ADVANCE READY: 11/14 coaches locked in
+- STORYLINE: Summer showcase stock rising
+
+Add a section called "Your Week in the Dynasty" with five steps:
+1. War Room: See your opponent, league pulse, open tasks, and ready status.
+2. Recruiting: Spend your weekly actions on scouting, pitches, battles, and storylines.
+3. Play the Games: Play your series in Power Pros with the league schedule as your guide.
+4. Report the Box Score: Upload screenshots or enter the final line score, batting, and pitching stats.
+5. Advance Safely: Commissioners review readiness, disputes, and save states before moving forward.
+
+Tighten the rest of the homepage into fewer, stronger sections:
+1. Hero
+2. Live League Ticker
+3. Your Week in the Dynasty
+4. Screenshot Feature Showcase
+5. Recruiting and Storylines
+6. Power Pros Game Reporting
+7. Commissioner Safety and Save States
+8. Stats, Records, and League History
+9. Final CTA
+10. Footer
+
+Screenshot direction:
+- Use screenshots that show the actual app loop, not just generic features.
+- Preferred screenshots: War Room, Recruiting Cockpit, Game Reporting, Schedule/My Games, Commissioner Safety, Stats/Record Book, Storylines.
+- If missing, keep current screenshots temporarily but name the intended screenshot slots clearly.
+
+Copy rules:
+- Remove "generational gem", "generational bust", and any direct gem/bust spoiler language.
+- Replace with uncertainty language: "Some players rise, some fade, and some change paths before signing day."
+- Mention screenshot upload/OCR as "designed for screenshot upload and OCR-assisted stat capture" if OCR is not fully implemented yet.
+- Keep paragraphs short and punchy like a modern game site.
+
+Visual rules:
+- Use larger, cleaner marketing type.
+- Keep pixel font for logo, badges, and short flavor labels only.
+- Use readable modern text for body copy and CTAs.
+- Use cinematic screenshots, not lots of equal-weight cards.
+- Remove or de-emphasize the newsletter form unless it is wired.
+- Move donate/support out of the primary marketing path.
+- Fix the footer Create League link to `/league/create`.
+
+Acceptance criteria:
+- The homepage immediately communicates multiplayer Power Pros dynasty companion.
+- A new visitor understands the weekly loop within 10 seconds.
+- Screenshots represent the actual app: War Room, recruiting, reporting, commissioner, stats/history.
+- The page feels more like a modern game website than a SaaS/database landing page.
+- No hidden recruit outcomes are spoiled in marketing copy.
+- Desktop looks cinematic and mobile remains readable.
+```
+
