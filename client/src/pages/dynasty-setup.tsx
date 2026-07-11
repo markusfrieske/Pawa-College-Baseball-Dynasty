@@ -153,8 +153,10 @@ export default function DynastySetupPage() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "war-room"] });
       toast({ title: "Dynasty Started!", description: "Let the games begin!" });
-      setLocation(`/league/${id}`);
+      setLocation(`/league/${id}/war-room`);
     },
     onError: (err: Error) => toast({ title: "Error", description: parseErrorMessage(err), variant: "destructive" }),
   });

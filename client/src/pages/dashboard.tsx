@@ -5,7 +5,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot, Share2, Gem, TrendingUp, TrendingDown, Scale, Wind, ShieldCheck, Zap, Gauge, Shuffle, AlertOctagon, Sprout } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot, Share2, Gem, TrendingUp, TrendingDown, Scale, Wind, ShieldCheck, Zap, Gauge, Shuffle, AlertOctagon, Sprout, ChevronRight, Swords, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -62,114 +62,135 @@ export default function DashboardPage() {
     queryKey: ["/api/saved-recruiting-classes"],
   });
 
+  const activeLeagues = leagues?.filter(l => l.currentPhase !== "dynasty_setup") ?? [];
+  const setupLeagues = leagues?.filter(l => l.currentPhase === "dynasty_setup") ?? [];
+
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <header className="border-b border-border bg-background/95">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 cursor-pointer" data-testid="link-home-logo">
-            <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center">
-              <span className="text-forest-dark font-pixel text-xs">CBD</span>
+            <div className="w-9 h-9 bg-gold rounded flex items-center justify-center shrink-0">
+              <span className="text-forest-dark font-pixel text-[9px]">CBD</span>
             </div>
-            <span className="font-pixel text-gold text-sm hidden sm:block">
-              パワプロ College Baseball Dynasty
+            <span className="font-pixel text-gold text-[11px] hidden sm:block leading-tight">
+              College Baseball Dynasty
             </span>
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {user && (
-              <span className="text-muted-foreground text-sm hidden sm:block">
+              <span className="text-muted-foreground text-xs hidden sm:block truncate max-w-[180px]">
                 {user.email}
               </span>
             )}
             <Link href="/">
               <RetroButton variant="outline" size="sm" data-testid="button-logout">
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5" />
               </RetroButton>
             </Link>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Dynasties */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="font-pixel text-gold text-xl mb-2">Your Dynasties</h1>
-            <p className="text-muted-foreground text-sm">
-              Manage your dynasties and join new ones
-            </p>
+      {/* ── Hero bar ────────────────────────────────────────────────────────── */}
+      <div className="border-b border-border bg-gold/5">
+        <div className="container mx-auto px-4 py-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="font-pixel text-gold text-lg sm:text-xl mb-1">SELECT DYNASTY</h1>
+              <p className="text-muted-foreground text-xs">
+                {leagues && leagues.length > 0
+                  ? `${leagues.length} dynasty${leagues.length !== 1 ? " files" : " file"} — choose one to continue`
+                  : "No dynasty files found — create your first"}
+              </p>
+            </div>
+            <Link href="/league/create">
+              <RetroButton data-testid="button-create-dynasty" className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Dynasty
+              </RetroButton>
+            </Link>
           </div>
-          <Link href="/league/create">
-            <RetroButton data-testid="button-create-dynasty">
-              <Plus className="w-4 h-4 mr-2" />
-              New Dynasty
-            </RetroButton>
-          </Link>
         </div>
+      </div>
 
+      <main className="container mx-auto px-4 py-6 space-y-10 pb-16">
+
+        {/* ── Dynasty Files (Active) ────────────────────────────────────────── */}
         {isLoading ? (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
             {[1, 2].map((i) => (
-              <RetroCard key={i}>
-                <Skeleton className="h-6 w-48 mb-4" />
-                <Skeleton className="h-20 w-full" />
+              <RetroCard key={i} className="animate-pulse">
+                <Skeleton className="h-5 w-40 mb-3" />
+                <Skeleton className="h-24 w-full" />
               </RetroCard>
             ))}
           </div>
-        ) : leagues && leagues.length > 0 ? (
-          <div className="grid md:grid-cols-2 gap-6">
-            {leagues.map((league) => (
-              <LeagueCard key={league.id} league={league} userId={user?.id} />
-            ))}
+        ) : activeLeagues.length > 0 ? (
+          <div>
+            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3">Active Dynasties</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {activeLeagues.map((league) => (
+                <LeagueCard key={league.id} league={league} userId={user?.id} />
+              ))}
+            </div>
           </div>
-        ) : (
+        ) : !isLoading && setupLeagues.length === 0 ? (
           <EmptyState />
+        ) : null}
+
+        {/* ── Setup Files ──────────────────────────────────────────────────── */}
+        {setupLeagues.length > 0 && (
+          <div>
+            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3">Pending Setup</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {setupLeagues.map((league) => (
+                <LeagueCard key={league.id} league={league} userId={user?.id} />
+              ))}
+            </div>
+          </div>
         )}
 
-        {/* Saved Rosters */}
-        <div className="mt-10">
-          <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-rosters">Your Rosters</h2>
-          {rostersLoading ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              {[1, 2].map((i) => (
-                <RetroCard key={i}>
-                  <Skeleton className="h-6 w-48 mb-4" />
-                  <Skeleton className="h-16 w-full" />
-                </RetroCard>
-              ))}
-            </div>
-          ) : savedRosters.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              {savedRosters.map((roster) => (
-                <SavedRosterCard key={roster.id} roster={roster} />
-              ))}
-            </div>
-          ) : (
-            <RosterEmptyState />
-          )}
-        </div>
+        {/* ── Saved Rosters ────────────────────────────────────────────────── */}
+        {(savedRosters.length > 0 || rostersLoading) && (
+          <div>
+            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3" data-testid="section-rosters">Roster Files</p>
+            {rostersLoading ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {[1, 2].map((i) => (
+                  <RetroCard key={i}><Skeleton className="h-16 w-full" /></RetroCard>
+                ))}
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {savedRosters.map((roster) => (
+                  <SavedRosterCard key={roster.id} roster={roster} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Saved Recruiting Classes */}
-        <div className="mt-10">
-          <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-recruiting">Your Recruiting Classes</h2>
-          {classesLoading ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              {[1, 2].map((i) => (
-                <RetroCard key={i}>
-                  <Skeleton className="h-6 w-48 mb-4" />
-                  <Skeleton className="h-16 w-full" />
-                </RetroCard>
-              ))}
-            </div>
-          ) : savedRecruitingClasses.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-6">
-              {savedRecruitingClasses.map((rc) => (
-                <SavedRecruitingClassCard key={rc.id} rc={rc} />
-              ))}
-            </div>
-          ) : (
-            <RecruitingEmptyState />
-          )}
-        </div>
+        {/* ── Saved Recruiting Classes ─────────────────────────────────────── */}
+        {(savedRecruitingClasses.length > 0 || classesLoading) && (
+          <div>
+            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3" data-testid="section-recruiting">Recruiting Class Files</p>
+            {classesLoading ? (
+              <div className="grid md:grid-cols-2 gap-4">
+                {[1, 2].map((i) => (
+                  <RetroCard key={i}><Skeleton className="h-16 w-full" /></RetroCard>
+                ))}
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 gap-4">
+                {savedRecruitingClasses.map((rc) => (
+                  <SavedRecruitingClassCard key={rc.id} rc={rc} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
@@ -451,7 +472,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
   return (
     <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-league-${league.id}`}>
       <RetroCardHeader className="flex items-center justify-between gap-4">
-        <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
+        <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}/war-room`} className="truncate cursor-pointer hover:text-gold transition-colors">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="truncate">{league.name}</span>
             {isPrimaryCommissioner ? (
@@ -576,9 +597,10 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
         );
       })()}
 
-      <Link href={`/league/${league.id}`} className="cursor-pointer">
+      <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}/war-room`} className="cursor-pointer block">
         <RetroCardContent>
-          <div className="flex items-center gap-4 mb-4">
+          {/* Team info row */}
+          <div className="flex items-center gap-3 mb-4">
             {league.userTeam ? (
               <>
                 <TeamBadge
@@ -586,42 +608,66 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
                   primaryColor={league.userTeam.primaryColor}
                   secondaryColor={league.userTeam.secondaryColor}
                   name={league.userTeam.name}
+                  size="lg"
                 />
-                <div>
-                  <p className="font-medium text-foreground">
-                    {league.userTeam.name} {league.userTeam.mascot}
+                <div className="flex-1 min-w-0">
+                  <p className="font-pixel text-foreground text-[10px] sm:text-xs truncate leading-tight">
+                    {league.userTeam.name}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-[10px] text-muted-foreground truncate">
                     {league.userTeam.city}, {league.userTeam.state}
                   </p>
                 </div>
               </>
             ) : (
-              <div className="text-muted-foreground text-sm">
-                No team selected yet
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Users className="w-4 h-4" />
+                <span>No team selected yet</span>
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-              <p className="text-xs text-muted-foreground">
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="bg-muted/30 rounded p-2 text-center border border-border/50">
+              <p className="font-pixel text-gold text-[10px] leading-none mb-1">
+                {league.currentSeason > 0 ? `S${league.currentSeason}` : "PRE"}
+              </p>
+              <p className="text-[9px] text-muted-foreground">Season</p>
+            </div>
+            <div className="bg-muted/30 rounded p-2 text-center border border-border/50">
+              <p className="font-pixel text-foreground text-[10px] leading-none mb-1">
+                {`W${league.currentWeek}`}
+              </p>
+              <p className="text-[9px] text-muted-foreground">Week</p>
+            </div>
+            <div className="bg-muted/30 rounded p-2 text-center border border-border/50">
+              <p className="font-pixel text-foreground text-[10px] leading-none mb-1">
                 {league.teams?.length || 0}/{league.maxTeams}
               </p>
+              <p className="text-[9px] text-muted-foreground">Teams</p>
             </div>
-            <div>
-              <Calendar className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-              <p className="text-xs text-muted-foreground">
-                Week {league.currentWeek}
-              </p>
-            </div>
-            <div>
-              <Trophy className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-              <p className="text-xs text-muted-foreground">
-                {phaseLabels[league.currentPhase] || league.currentPhase}
-              </p>
-            </div>
+          </div>
+
+          {/* Phase + CTA row */}
+          <div className="flex items-center justify-between gap-2">
+            <span className={`inline-flex items-center gap-1.5 font-pixel text-[8px] px-2 py-1 rounded border ${
+              league.currentPhase === "dynasty_setup"
+                ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10"
+                : ["regular_season", "conference_championship", "super_regionals", "cws"].includes(league.currentPhase)
+                ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/10"
+                : "border-gold/40 text-gold bg-gold/10"
+            }`}>
+              {league.currentPhase === "dynasty_setup" ? (
+                <><Star className="w-2.5 h-2.5" />SETUP</>
+              ) : (
+                <><Swords className="w-2.5 h-2.5" />{(phaseLabels[league.currentPhase] || league.currentPhase).toUpperCase()}</>
+              )}
+            </span>
+            <span className="flex items-center gap-1 text-xs text-gold font-pixel text-[9px] group-hover:gap-2 transition-all">
+              {league.currentPhase === "dynasty_setup" ? "RESUME SETUP" : "CONTINUE"}
+              <ChevronRight className="w-3.5 h-3.5" />
+            </span>
           </div>
         </RetroCardContent>
       </Link>

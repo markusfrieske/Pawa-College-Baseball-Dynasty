@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { TrendingUp, TrendingDown, Minus, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Lock } from "lucide-react";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { LetterGrade } from "@/components/ui/letter-grade";
 import { 
@@ -106,9 +106,9 @@ export function CompetingSchoolsList({
 
 export function SeeUponSigningBadge() {
   return (
-    <span className="flex items-center gap-1 text-[9px] text-amber-400 font-pixel border border-amber-400/40 bg-amber-400/10 rounded px-1.5 py-0.5 whitespace-nowrap">
-      <AlertTriangle className="w-3 h-3 shrink-0" />
-      See Upon Signing
+    <span className="flex items-center gap-1 text-[9px] text-amber-400 font-pixel border border-amber-400/40 bg-amber-400/10 rounded px-1.5 py-0.5 whitespace-nowrap" title="Revealed on Signing Day">
+      <Lock className="w-3 h-3 shrink-0" />
+      <span className="hidden sm:inline">See Upon Signing</span>
     </span>
   );
 }
