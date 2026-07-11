@@ -1,0 +1,786 @@
+# Signing Day Reveal UX/UI Plan
+
+Use this as the product/design brief for improving the end-of-season cinematic recruiting class reveal.
+
+This should be one of the most exciting moments in the entire app. It is the first time coaches see the full truth of their signed recruits: ratings, potential, tools, special abilities, positions, and long-term upside. The experience should feel like a premium sports-game pack opening, signing day ceremony, and shareable recruiting flex all at once.
+
+## Product Goal
+
+Make Signing Day Reveal feel special enough that coaches:
+
+- Slow down and watch it.
+- Screenshot their class.
+- Share individual player cards.
+- Compare classes with other league members.
+- Feel rewarded for a full season of recruiting decisions.
+
+The reveal should answer:
+
+```text
+How good is my class?
+Who is my best player?
+Did I find a future star?
+Did I miss on anyone?
+How do I stack up against the league?
+What should I brag about?
+```
+
+## Current Code Foundation
+
+There is already a strong starting point in:
+
+```text
+client/src/pages/signing-day-reveal.tsx
+```
+
+Existing useful pieces:
+
+- Cinematic phase machine: `idle`, `buildup`, `burst`, `cards`.
+- Fireworks and burst effects.
+- `RevealCardFront`.
+- `RevealCardBack`.
+- `RevealPortraitCard`.
+- Tabs: My Class, All Teams, All Recruits.
+- Class summary stats.
+- Download Class Photo.
+- Reduced motion handling.
+
+The current foundation is functional, but it needs a more deliberate ceremony. Right now it reaches the final grid too quickly. It should feel like opening a pack: mystery first, reveal second, celebration third, shareable recap last.
+
+## Core UX Flow
+
+### Phase 1: Signing Day Lobby
+
+Before the reveal begins, show a full-screen ceremony lobby.
+
+Content:
+
+```text
+Signing Day
+Season 2027 Recruiting Class
+Your class is sealed. Open your letters to reveal the future of your program.
+```
+
+Primary CTA:
+
+```text
+Start Reveal
+```
+
+Secondary actions:
+
+```text
+Skip to Results
+Reduced Motion
+View League Classes
+```
+
+Visual:
+
+- Outdoor campus/baseball field background.
+- Desk/table or bulletin board with sealed letters.
+- Team logo/badge.
+- Coach's team color used in lights, border glow, confetti.
+
+Why:
+
+This gives players anticipation before the cards appear.
+
+### Phase 2: Sealed Letter Grid
+
+Show every signed recruit as a sealed Letter of Intent card before revealing the actual player.
+
+The attached screenshots with silhouette cards are the right idea.
+
+Card front before reveal:
+
+- Paper/envelope design.
+- Silhouette portrait.
+- Position hidden or shown depending on desired suspense.
+- Star rarity hinted by border/foil, not exact OVR.
+- Team color stamp.
+- "Signed" stamp.
+- No full ratings yet.
+
+Recommended sealed card types:
+
+```text
+Standard Letter
+Silver Letter
+Gold Letter
+Rainbow/Foil Letter
+Program Changer Letter
+```
+
+Important:
+
+- Do not reveal everything at once.
+- Cards should enter in rows with slight stagger.
+- Allow players to click individual cards or press "Reveal All".
+
+Controls:
+
+```text
+Reveal One
+Reveal All
+Auto Reveal
+Skip Animation
+```
+
+Desktop layout:
+
+- 5 cards across if room allows.
+- Cinematic 16:9 stage.
+
+Mobile layout:
+
+- 2 cards across.
+- Horizontal pack carousel optional.
+- Sticky controls at bottom.
+
+### Phase 3: Pack Opening Reveal
+
+When a card is selected:
+
+1. Card lifts slightly.
+2. Border glow intensifies based on tier.
+3. Quick flash/foil sweep.
+4. Card flips.
+5. Position, name, stars, OVR, potential, and portrait reveal in sequence.
+6. If the player is high-impact, pause on a spotlight moment.
+
+Reveal order inside a card:
+
+```text
+Position -> Name -> Stars -> OVR -> Potential -> Top Tool -> Special Ability
+```
+
+Do not dump all stats immediately. Let the important beats land.
+
+Recommended timing:
+
+```text
+0.0s Card lift
+0.2s Foil sweep
+0.5s Flip
+0.8s Position/name
+1.1s Stars
+1.4s OVR count-up
+1.8s Potential grade
+2.1s Top tool / special ability
+```
+
+For reduced motion:
+
+- Instantly reveal with a simple fade.
+- No screen flash.
+- No rapid scale/pulse.
+
+### Phase 4: Hero Spotlight for Special Players
+
+If a player is elite, show a special full-screen spotlight before returning to the grid.
+
+Trigger conditions:
+
+```text
+5-star recruit
+Top 25 class rank
+OVR 500+
+Potential A or higher
+Generational player
+Highest-rated player in user's class
+Best player at a position
+Storyline player with major outcome
+```
+
+Spotlight content:
+
+```text
+Program Changer
+Noah Lewis
+P · 5-Star · #3 National
+612 OVR · A Potential
+Top Tool: Velocity
+Special Ability: Strike Thrower
+```
+
+Share CTA:
+
+```text
+Save Player Card
+```
+
+Important language note:
+
+- Avoid making "bust" a big public shame label on the front of the card.
+- If a player underperforms expectations, use terms like:
+  - Developmental
+  - Risky Projection
+  - Needs Time
+  - Raw Tools
+  - Late Bloomer
+
+If the game logic still tracks gem/bust internally, reveal it more tastefully:
+
+```text
+Evaluation: Exceeded Projection
+Evaluation: Matched Projection
+Evaluation: Developmental Projection
+```
+
+### Phase 5: Final Class Poster
+
+After all cards are revealed, show a shareable class poster.
+
+This is the screenshot moment.
+
+Poster content:
+
+- Team name and badge.
+- Season.
+- National class rank.
+- Conference class rank if available.
+- Total commits.
+- Average OVR.
+- Star breakdown.
+- Blue chips / transfers / JUCO / storyline recruits.
+- Top recruit.
+- Best pitcher.
+- Best hitter.
+- Biggest riser / best value.
+- Full card grid.
+
+Primary CTA:
+
+```text
+Download Class Poster
+```
+
+Secondary CTA:
+
+```text
+Copy Share Link
+View League Rankings
+Replay Reveal
+```
+
+Recommended poster formats:
+
+```text
+Desktop wide: 1600x900
+Social square: 1200x1200
+Mobile story: 1080x1920
+```
+
+If only one export is implemented first, use 1600x900.
+
+## Card Design Direction
+
+The card should feel more premium than a normal app card. It should look collectible.
+
+### Card Front Anatomy
+
+Top:
+
+- Position badge.
+- National rank or position rank.
+- Star rating.
+- Team color strip.
+
+Middle:
+
+- Large player avatar/portrait.
+- Foil background based on card tier.
+- Subtle baseball field, sky, or diamond texture.
+
+Bottom:
+
+- Player name.
+- Hometown/state.
+- B/T or T/H.
+- OVR block.
+- Potential grade.
+- Top tool badge.
+
+Footer:
+
+- Recruit type: HS, JUCO, Transfer, Storyline.
+- Signing team abbreviation if viewing league-wide.
+
+### Card Back Anatomy
+
+The back should be for people who want to inspect the player.
+
+Sections:
+
+```text
+Player Summary
+Primary Tools
+Common Abilities
+Special Abilities
+Pitch Mix or Hitting Profile
+Recruiting Story
+Projection
+```
+
+For pitchers:
+
+- Velocity
+- Control
+- Stamina
+- Stuff
+- Pitch mix
+- Pitching special abilities
+
+For hitters:
+
+- Contact
+- Power
+- Speed
+- Arm
+- Fielding
+- Trajectory
+- Hitting/baserunning/defense abilities
+
+### Card Tiers
+
+Use visual tiers so coaches instantly feel rarity.
+
+#### Standard
+
+For lower-rated or normal players.
+
+Visual:
+
+- Matte paper texture.
+- Light blue/cream background.
+- Simple border.
+
+#### Impact
+
+For 4-star or strong OVR players.
+
+Visual:
+
+- Silver/gold edge.
+- Soft sparkle.
+- Better gradient.
+
+#### Blue Chip
+
+For high-star/high-rank players.
+
+Visual:
+
+- Blue/gold trim.
+- Stronger glow.
+- Animated star sweep.
+
+#### Program Changer
+
+For 5-star, top-ranked, or elite OVR players.
+
+Visual:
+
+- Gold foil.
+- Spotlight reveal.
+- Firework burst.
+- Larger OVR count-up.
+
+#### Generational
+
+For true rare outcomes.
+
+Visual:
+
+- Rainbow/iridescent foil.
+- Full-screen pause.
+- Unique sound cue if audio exists.
+- "Program Changer" or "Generational Talent" label.
+
+Do not overuse this tier. It should feel rare.
+
+## Suggested Card Copy
+
+Use short, punchy labels.
+
+Good labels:
+
+```text
+Program Changer
+Blue Chip
+Impact Freshman
+Immediate Contributor
+Raw Tools
+High Ceiling
+Two-Way Watch
+Storyline Recruit
+Transfer Impact
+JUCO Ready
+Developmental Projection
+Exceeded Projection
+```
+
+Avoid front-of-card labels:
+
+```text
+BUST
+GEN BUST
+BAD
+FAILED
+```
+
+Those can exist in internal logic, but they are not shareable or fun as big card-front labels.
+
+## Screen Layout
+
+### Desktop
+
+Use desktop as the premium target.
+
+Recommended layout:
+
+- Full-screen 16:9 ceremony stage.
+- Cards arranged in a 5x2 or 4x3 grid depending on class size.
+- Hero spotlight overlay centered.
+- Class summary panel on the right or top.
+- Controls bottom center.
+
+Desktop card sizes:
+
+```text
+Sealed cards: 160x220
+Revealed grid cards: 210x290
+Hero card: 340x470
+Poster cards: 180x250
+```
+
+### Mobile
+
+Mobile should be usable, but not try to show everything at once.
+
+Recommended mobile layout:
+
+- One-card spotlight carousel.
+- "Next Reveal" button.
+- Class summary collapses below.
+- Final poster can be scrollable or exportable.
+
+Mobile card sizes:
+
+```text
+Sealed cards: 44vw x 60vw
+Hero card: min(84vw, 340px)
+Grid: 2 columns
+```
+
+## Interaction Details
+
+### Reveal Modes
+
+Add three modes:
+
+```text
+Cinematic
+Quick Reveal
+Instant Results
+```
+
+Cinematic:
+
+- Full pack-opening sequence.
+- Best for first watch.
+
+Quick Reveal:
+
+- Faster animations.
+- One card every 0.5s.
+
+Instant Results:
+
+- Show final class poster immediately.
+
+### Replay
+
+Add:
+
+```text
+Replay Reveal
+```
+
+This should replay locally without changing backend reveal state.
+
+### Share
+
+Add:
+
+```text
+Download Class Poster
+Download Player Card
+Copy Share Link
+```
+
+If share links are not ready, implement download first.
+
+### Comparison
+
+After reveal, add:
+
+```text
+Compare League Classes
+```
+
+This should lead into All Teams rankings.
+
+## Visual Effects
+
+Use effects with restraint.
+
+Good:
+
+- Foil sweep.
+- Card lift.
+- Card flip.
+- OVR count-up.
+- Border glow.
+- Confetti/fireworks.
+- Spotlight for elite cards.
+- Sparkles around high-tier cards.
+
+Avoid:
+
+- Constant flashing.
+- Too much screen shake.
+- Animations that make text unreadable.
+- Overusing rainbow effects.
+- Huge effects for average players.
+
+Rarity effect mapping:
+
+```text
+Standard: soft flip, no burst
+Impact: silver shimmer
+Blue Chip: blue/gold glow
+Program Changer: gold burst + OVR count-up
+Generational: spotlight + rainbow foil + fireworks
+Developmental surprise: subtle red/amber evaluation badge, no shame animation
+```
+
+## Audio Optional
+
+If audio is used, keep it optional and muted by default if the app already has global music controls.
+
+Suggested cues:
+
+- Card hover: soft paper rustle.
+- Reveal flip: short whoosh.
+- 4-star/impact: sparkle hit.
+- 5-star/program changer: crowd swell.
+- Final class poster: camera shutter.
+
+Respect existing music/volume settings.
+
+## Data Requirements
+
+The page already receives rich `RevealRecruit` data.
+
+Useful card fields:
+
+- `firstName`
+- `lastName`
+- `position`
+- `starRating`
+- `overall`
+- `potential`
+- `classRank`
+- `positionRank`
+- `homeState`
+- `hometown`
+- `batHand`
+- `throwHand`
+- `recruitType`
+- `fromTeamName`
+- `isBlueChip`
+- `isGem`
+- `isBust`
+- `isGenerationalGem`
+- `isGenerationalBust`
+- `abilities`
+- numeric attributes
+- pitch mix fields
+
+Additional derived fields to add in frontend:
+
+```ts
+cardTier
+topTool
+projectionLabel
+revealPriority
+shareSubtitle
+```
+
+Example tier function:
+
+```ts
+function getRevealTier(recruit: RevealRecruit) {
+  if (recruit.isGenerationalGem && recruit.gemBustRevealed) return "generational";
+  if (recruit.starRating >= 5 || recruit.overall >= 550) return "program-changer";
+  if (recruit.isBlueChip || recruit.starRating >= 4 || recruit.overall >= 450) return "blue-chip";
+  if (recruit.overall >= 350) return "impact";
+  return "standard";
+}
+```
+
+Example projection label:
+
+```ts
+function getProjectionLabel(recruit: RevealRecruit) {
+  if (recruit.isGenerationalGem && recruit.gemBustRevealed) return "Program Changer";
+  if (recruit.isGem && recruit.gemBustRevealed) return "Exceeded Projection";
+  if (recruit.isBust && recruit.gemBustRevealed) return "Developmental Projection";
+  if (recruit.recruitType === "TRANSFER") return "Transfer Impact";
+  if (recruit.recruitType === "JUCO") return "JUCO Ready";
+  if (recruit.recruitType === "STORYLINE") return "Storyline Recruit";
+  return "Signed Recruit";
+}
+```
+
+## Concrete Code Direction
+
+Primary file:
+
+```text
+client/src/pages/signing-day-reveal.tsx
+```
+
+Recommended additions:
+
+```text
+RevealIntroLobby
+SealedRecruitCard
+RevealStage
+HeroRevealSpotlight
+ClassPoster
+ShareActions
+RevealModeControls
+```
+
+Recommended refactor:
+
+- Keep `RevealCardFront`, `RevealCardBack`, and `RevealPortraitCard`, but redesign their markup/styling.
+- Move card tier helpers into a small local helper section or `client/src/lib/reveal-card-utils.ts`.
+- Keep `useReducedMotion`.
+- Keep `Download Class Photo`, but make the exported section look like a designed poster.
+
+## Replit Implementation Prompt
+
+```text
+Please improve the Signing Day Reveal experience so it feels like a premium sports-game pack opening and class reveal.
+
+Main file:
+- client/src/pages/signing-day-reveal.tsx
+
+Current foundation:
+- The page already has a cinematic phase machine, fireworks, RevealCardFront, RevealCardBack, RevealPortraitCard, My Class / All Teams / All Recruits tabs, and Download Class Photo.
+- Keep the useful data fetching and backend behavior.
+- Do not break the `/api/leagues/:id/signing-day-reveal` flow or reveal-complete POST.
+
+Goal:
+Make this the big end-of-season recruiting payoff. Coaches should want to watch it, screenshot it, and share their class.
+
+UX flow to implement:
+1. Signing Day Lobby
+   - Full-screen intro before reveal.
+   - Team badge, season, class count.
+   - Copy: "Your class is sealed. Open your letters to reveal the future of your program."
+   - Buttons: Start Reveal, Skip to Results, Reduced Motion if applicable.
+
+2. Sealed Letter Grid
+   - Before full ratings are shown, display every signed recruit as a sealed Letter of Intent card.
+   - Cards should look like signed documents/envelopes with silhouette portraits and team-color stamps.
+   - Use visual rarity hints through borders/foil, but do not show OVR yet.
+   - Allow individual click-to-reveal and Reveal All.
+
+3. Individual Pack Reveal
+   - On reveal, the card lifts, glows, flips, and reveals details in sequence:
+     Position -> Name -> Stars -> OVR -> Potential -> Top Tool -> Special Ability.
+   - OVR should count up quickly for high-tier players.
+   - Keep reduced-motion mode simple and instant.
+
+4. Hero Spotlight
+   - For elite recruits, pause on a larger hero card overlay.
+   - Trigger for 5-star, top-25 class rank, OVR 500+, A potential, generational player, or best player in class.
+   - Add CTA: Save Player Card.
+
+5. Final Class Poster
+   - After all cards reveal, show a designed shareable class poster.
+   - Include team name, season, class rank, commits, average OVR, star breakdown, top recruit, top pitcher/hitter, best value, and full card grid.
+   - Buttons: Download Class Poster, Replay Reveal, View League Rankings.
+
+Card design:
+- Make cards feel collectible and polished.
+- Use tier styles:
+  standard, impact, blue-chip, program-changer, generational.
+- Front should include position, rank, stars, avatar, name, hometown/state, OVR, potential, top tool, recruit type.
+- Back should include full attribute/tools breakdown, special abilities, pitch mix or hitting profile, and projection.
+- Keep player avatar large and centered.
+- Use team color accents, foil shimmer, border glows, and clean hierarchy.
+
+Language:
+- Do not put "BUST" or "GEN BUST" as a big public front-card label.
+- If a player underperforms projection, use "Developmental Projection" or "Raw Tools".
+- Use positive/shareable labels like Program Changer, Blue Chip, Impact Freshman, Exceeded Projection, Storyline Recruit, Transfer Impact, JUCO Ready.
+
+Desktop:
+- Optimize for desktop first.
+- Use a wide cinematic stage.
+- Sealed cards can be 5 across when space allows.
+- Hero card should be large and centered.
+
+Mobile:
+- Keep it usable.
+- Use 2-column sealed grid or one-card carousel.
+- Sticky reveal controls at bottom.
+- Avoid tiny text.
+
+Share/export:
+- Improve Download Class Photo into Download Class Poster.
+- Export should look intentionally designed at 1600x900 if possible.
+- Add Save Player Card for hero spotlight if feasible.
+
+Effects:
+- Use foil sweep, card flip, border glow, OVR count-up, fireworks, and spotlight.
+- Do not overdo flashing or screen shake.
+- Respect prefers-reduced-motion.
+
+Acceptance criteria:
+- First-time reveal feels like a pack opening, not just a static grid.
+- Players do not see full ratings until cards are revealed.
+- The final class poster is screenshot/share-worthy.
+- Elite recruits create a special moment.
+- Average/developmental recruits still look polished.
+- The page remains readable on desktop and mobile.
+- Reduced-motion users can complete the reveal without heavy animation.
+```
+
+## Priority Implementation Order
+
+1. Add Signing Day Lobby.
+2. Add sealed Letter of Intent cards.
+3. Add click-to-reveal state per recruit.
+4. Upgrade card visual design and tier styling.
+5. Add hero spotlight for elite recruits.
+6. Redesign final My Class view as a shareable poster.
+7. Add Save Player Card.
+8. Improve All Teams rankings and league comparison.
+9. Add optional sound cues if desired.
+
+## Final Design North Star
+
+This should feel like the league's version of opening packs on reveal night:
+
+```text
+Mystery -> suspense -> reveal -> celebration -> bragging rights
+```
+
+If a coach lands a monster class, the screen should make them feel it.
