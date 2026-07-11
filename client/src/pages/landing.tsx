@@ -167,7 +167,6 @@ export default function LandingPage() {
                 style={{
                   fontSize: "clamp(1.6rem, 4.5vw, 3.5rem)",
                   textShadow: "0 2px 16px rgba(0,0,0,0.95), 0 4px 32px rgba(0,0,0,0.8), 0 0 40px rgba(196,163,90,0.35)",
-                  WebkitTextStroke: "1px rgba(0,0,0,0.6)",
                 }}
               >
                 Power Pros<br />
