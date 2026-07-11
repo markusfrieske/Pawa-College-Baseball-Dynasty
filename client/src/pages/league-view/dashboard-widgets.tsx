@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Calendar, Play, ChevronRight, Home, Plane, FileText, ClipboardList, Target,
   UserMinus, UserPlus, Check, Clock, Settings, Trophy, AlertTriangle, History,
-  TrendingUp, TrendingDown, Bell, Zap, Star, Swords,
+  TrendingUp, TrendingDown, Bell, Zap, Star, Swords, Building2, Users,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { LeagueEvent, AdvanceDigest } from "@shared/schema";
@@ -802,6 +802,378 @@ export function SinceLastAdvanceWidget({ leagueId }: { leagueId: string }) {
         </div>
       </div>
     </RetroCard>
+  );
+}
+
+// ============ PROGRAM SNAPSHOT PANEL ============
+
+export function ProgramSnapshotPanel({
+  overview, userTeam, leagueId,
+}: {
+  overview: DashboardOverview;
+  userTeam: TeamWithCoach | undefined;
+  leagueId: string;
+}) {
+  const wins = userTeam?.standings?.wins ?? 0;
+  const losses = userTeam?.standings?.losses ?? 0;
+  const confWins = userTeam?.standings?.conferenceWins ?? 0;
+  const confLosses = userTeam?.standings?.conferenceLosses ?? 0;
+
+  return (
+    <RetroCard data-testid="panel-program-snapshot">
+      <RetroCardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-gold" />
+            <h3 className="font-pixel text-gold text-[9px]">PROGRAM</h3>
+          </div>
+          {userTeam && (
+            <Link href={`/league/${leagueId}/team/${userTeam.id}`}>
+              <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">View →</span>
+            </Link>
+          )}
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <div>
+            <p className="font-pixel text-[8px] text-muted-foreground mb-1">RECORD</p>
+            <p className="text-2xl font-bold text-gold leading-none">{wins}-{losses}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Conf: {confWins}-{confLosses}</p>
+          </div>
+          <div>
+            <p className="font-pixel text-[8px] text-muted-foreground mb-1">AVG OVR</p>
+            <p className="text-2xl font-bold leading-none">{Math.round(overview.averageOverall)}</p>
+            <div className="flex gap-1 mt-0.5 flex-wrap">
+              {overview.hitGrade && (
+                <span className="font-pixel text-[7px] px-1 py-0.5 rounded bg-blue-500/20 text-blue-300">H:{overview.hitGrade}</span>
+              )}
+              {overview.pitchGrade && (
+                <span className="font-pixel text-[7px] px-1 py-0.5 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
+              )}
+              {overview.fieldGrade && (
+                <span className="font-pixel text-[7px] px-1 py-0.5 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
+              )}
+            </div>
+          </div>
+        </div>
+        {overview.topPlayer && (
+          <div className="pt-2 border-t border-border/50" data-testid="text-top-player">
+            <p className="font-pixel text-[8px] text-muted-foreground mb-1">TOP PLAYER</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium truncate mr-2">{overview.topPlayer.name}</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-xs text-muted-foreground">({overview.topPlayer.position})</span>
+                <span className="text-gold font-bold">{overview.topPlayer.overall}</span>
+              </div>
+            </div>
+          </div>
+        )}
+        {overview.top5Players && overview.top5Players.length > 1 && (
+          <div className="mt-1.5 space-y-1">
+            {overview.top5Players.slice(1, 3).map((p, i) => (
+              <div key={i} className="flex items-center justify-between text-xs text-muted-foreground">
+                <span className="truncate mr-2">{p.name} <span className="text-[9px]">({p.position})</span></span>
+                <span className="shrink-0">{p.overall}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+// ============ ROSTER HEALTH PANEL ============
+
+export function RosterHealthPanel({
+  overview, leagueId,
+}: {
+  overview: DashboardOverview;
+  leagueId: string;
+}) {
+  const eligOrder = ["FR", "SO", "JR", "SR"];
+  const eligMap = overview.eligibility ?? {};
+  const atRisk = overview.positionsAtRisk ?? [];
+
+  return (
+    <RetroCard data-testid="panel-roster-health">
+      <RetroCardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-gold" />
+            <h3 className="font-pixel text-gold text-[9px]">ROSTER DEPTH</h3>
+          </div>
+          <Link href={`/league/${leagueId}/roster`}>
+            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Manage →</span>
+          </Link>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="flex items-center justify-between mb-2.5">
+          <div>
+            <p className="font-pixel text-[8px] text-muted-foreground">ROSTER</p>
+            <p className="text-2xl font-bold leading-none">
+              {overview.rosterSize}<span className="text-muted-foreground text-sm">/25</span>
+            </p>
+          </div>
+          <div className="flex gap-3">
+            {eligOrder.map(e => {
+              const count = eligMap[e] ?? 0;
+              if (count === 0) return null;
+              return (
+                <div key={e} className="text-center">
+                  <p className="font-pixel text-[7px] text-muted-foreground">{e}</p>
+                  <p className="font-bold text-sm leading-tight">{count}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        {atRisk.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/50" data-testid="list-positions-at-risk">
+            <span className="font-pixel text-[8px] text-red-400 self-center">THIN:</span>
+            {atRisk.map(pos => (
+              <span key={pos} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">
+                {pos}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[10px] text-green-400 pt-2 border-t border-border/50">Healthy depth across all positions</p>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+// ============ RECRUITING SNAPSHOT PANEL ============
+
+export function RecruitingSnapshotPanel({
+  overview, league, leagueId,
+}: {
+  overview: DashboardOverview;
+  league: LeagueDetails;
+  leagueId: string;
+}) {
+  const remaining = overview.nilBudget - overview.nilSpent;
+  const fmt = (v: number) => {
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+    return `$${v}`;
+  };
+  const isRecruitingPhase = league.currentPhase.startsWith("offseason_recruiting") || league.currentPhase === "offseason_signing_day";
+
+  return (
+    <RetroCard data-testid="panel-recruiting-snapshot">
+      <RetroCardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-gold" />
+            <h3 className="font-pixel text-gold text-[9px]">RECRUITING</h3>
+          </div>
+          <Link href={`/league/${leagueId}/recruiting`}>
+            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Board →</span>
+          </Link>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div>
+            <p className="font-pixel text-[8px] text-muted-foreground">SIGNED</p>
+            <p className="text-2xl font-bold text-gold leading-none">{overview.recruitingSigned}</p>
+            {overview.recruitingInterested > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">{overview.recruitingInterested} interested</p>
+            )}
+          </div>
+          <div>
+            <p className="font-pixel text-[8px] text-muted-foreground">NIL LEFT</p>
+            <p className="text-2xl font-bold leading-none">{fmt(remaining)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">of {fmt(overview.nilBudget)}</p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2 border-t border-border/50">
+          {isRecruitingPhase && (
+            <Link href={`/league/${leagueId}/recruiting`} className="flex-1">
+              <span className="block text-center text-[10px] text-gold py-1 border border-gold/30 rounded cursor-pointer hover:bg-gold/5 transition-colors" data-testid="link-recruit-now">
+                Scout Now
+              </span>
+            </Link>
+          )}
+          <Link href={`/league/${leagueId}/commits`} className="flex-1">
+            <span className="block text-center text-[10px] text-muted-foreground hover:text-gold py-1 border border-border/50 rounded cursor-pointer hover:bg-card/80 transition-colors" data-testid="link-class-board">
+              Class Board
+            </span>
+          </Link>
+        </div>
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+// ============ STANDINGS PREVIEW PANEL ============
+
+export function StandingsPreviewPanel({
+  league, userTeam, leagueId,
+}: {
+  league: LeagueDetails;
+  userTeam: TeamWithCoach | undefined;
+  leagueId: string;
+}) {
+  const userConfId = userTeam?.conferenceId;
+  const conf = userConfId ? (league.conferences ?? []).find(c => c.id === userConfId) : null;
+  const confTeams = conf
+    ? [...(league.teams ?? [])]
+        .filter(t => t.conferenceId === userConfId)
+        .sort((a, b) => {
+          const aw = a.standings?.wins ?? 0;
+          const bw = b.standings?.wins ?? 0;
+          if (bw !== aw) return bw - aw;
+          return (a.standings?.losses ?? 0) - (b.standings?.losses ?? 0);
+        })
+        .slice(0, 6)
+    : [];
+
+  const fallbackTeams = !conf
+    ? [...(league.teams ?? [])]
+        .sort((a, b) => (b.standings?.wins ?? 0) - (a.standings?.wins ?? 0))
+        .slice(0, 5)
+    : [];
+
+  const displayTeams = conf ? confTeams : fallbackTeams;
+  const headerLabel = conf
+    ? (conf.name.length > 18 ? "CONF STANDINGS" : conf.name.toUpperCase())
+    : "LEAGUE";
+
+  if (displayTeams.length === 0) return null;
+
+  return (
+    <RetroCard data-testid="panel-standings-preview">
+      <RetroCardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Trophy className="w-4 h-4 text-gold shrink-0" />
+            <h3 className="font-pixel text-gold text-[9px] truncate">{headerLabel}</h3>
+          </div>
+          <Link href={`/league/${leagueId}?tab=standings`}>
+            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer shrink-0">Full →</span>
+          </Link>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="space-y-1">
+          {displayTeams.map((team, idx) => {
+            const isUser = team.id === userTeam?.id;
+            return (
+              <div
+                key={team.id}
+                className={`flex items-center gap-2 px-1.5 py-1 rounded ${isUser ? "bg-gold/10 border border-gold/20" : ""}`}
+                data-testid={`row-standing-${team.id}`}
+              >
+                <span className={`font-pixel text-[8px] w-4 text-center shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>{idx + 1}</span>
+                <TeamBadge
+                  abbreviation={team.abbreviation}
+                  primaryColor={team.primaryColor}
+                  secondaryColor={team.secondaryColor}
+                  name={team.name}
+                  size="xs"
+                />
+                <span className={`flex-1 text-xs truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>
+                  {team.abbreviation}
+                </span>
+                <span className={`font-pixel text-[8px] shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>
+                  {team.standings?.wins ?? 0}-{team.standings?.losses ?? 0}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+// ============ NAV DOCK ============
+
+export function NavDock({
+  leagueId, userTeam, isCommissioner, storylinePendingVotes, showLineupBanner,
+}: {
+  leagueId: string;
+  userTeam: TeamWithCoach | undefined;
+  isCommissioner: boolean;
+  storylinePendingVotes: number;
+  showLineupBanner: boolean;
+}) {
+  const groups: { label: string; links: { href: string; label: string; badge?: number | string | null }[] }[] = [
+    {
+      label: "MY TEAM",
+      links: [
+        { href: `/league/${leagueId}/roster`, label: "Roster" },
+        { href: `/league/${leagueId}/roster?view=depth&sub=lineup`, label: "Lineup", badge: showLineupBanner ? "!" : null },
+        { href: `/league/${leagueId}/coach`, label: "Coach" },
+        { href: `/league/${leagueId}/team/${userTeam?.id ?? ""}`, label: "School" },
+      ],
+    },
+    {
+      label: "SEASON",
+      links: [
+        { href: `/league/${leagueId}/schedule`, label: "Schedule" },
+        { href: `/league/${leagueId}/stats`, label: "Stats" },
+        { href: `/league/${leagueId}/postseason`, label: "Postseason" },
+        { href: `/league/${leagueId}/archive`, label: "Archive" },
+      ],
+    },
+    {
+      label: "RECRUITING",
+      links: [
+        { href: `/league/${leagueId}/recruiting`, label: "Board" },
+        { href: `/league/${leagueId}/commits`, label: "Commits" },
+        { href: `/league/${leagueId}/storylines`, label: "Storylines", badge: storylinePendingVotes > 0 ? storylinePendingVotes : null },
+      ],
+    },
+    {
+      label: "LEAGUE",
+      links: [
+        { href: `/league/${leagueId}/record-book`, label: "Records" },
+        { href: `/league/${leagueId}/ticker`, label: "Ticker" },
+        ...(isCommissioner ? [{ href: `/league/${leagueId}/commissioner`, label: "Commissioner" }] : []),
+      ],
+    },
+  ];
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden mb-6" data-testid="nav-dock">
+      <div className="bg-gold/5 px-3 py-1.5 border-b border-border">
+        <span className="font-pixel text-gold text-[8px]">QUICK NAV</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4">
+        {groups.map((group, gi) => (
+          <div
+            key={group.label}
+            className={`p-3 ${gi % 2 !== 0 ? "border-l border-border" : ""} ${gi >= 2 ? "border-t border-border sm:border-t-0" : ""} ${gi > 0 && gi % 2 === 0 ? "sm:border-l sm:border-border" : ""}`}
+          >
+            <p className="font-pixel text-[7px] text-muted-foreground mb-2">{group.label}</p>
+            <div className="space-y-0.5">
+              {group.links.map(link => (
+                <Link key={link.href} href={link.href}>
+                  <div
+                    className="flex items-center justify-between py-1 px-1.5 rounded hover:bg-gold/10 transition-colors cursor-pointer group"
+                    data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  >
+                    <span className="text-sm text-foreground/80 group-hover:text-gold transition-colors">{link.label}</span>
+                    {link.badge != null && link.badge !== false && (
+                      <span className="min-w-[16px] h-4 flex items-center justify-center rounded-full bg-gold text-forest-dark font-pixel text-[7px] px-1 animate-pulse">
+                        {link.badge}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

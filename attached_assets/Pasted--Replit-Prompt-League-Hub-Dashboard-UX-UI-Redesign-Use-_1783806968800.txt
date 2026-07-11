@@ -1,0 +1,550 @@
+# Replit Prompt: League Hub Dashboard UX/UI Redesign
+
+Use this prompt for the main League Hub page in `markusfrieske/Pawa-College-Baseball-Dynasty`.
+
+## Clarification
+
+When redesigning the dashboard, the target is the League Hub: the main page coaches land on after entering a league.
+
+This should become the coach's daily/weekly command center, not just a grid of navigation tiles. Recruiting has its own dedicated UX prompt, but the League Hub must surface the most important recruiting, roster, schedule, readiness, storyline, and league-state information so coaches know what to do next.
+
+## Product Direction
+
+The League Hub should feel like a PC/Steam sports management dashboard:
+
+- desktop-first
+- information-rich
+- fast to scan
+- designed for repeated weekly use
+- visually polished but not marketing-like
+- action-oriented
+- responsive enough for mobile without becoming stripped down
+
+The coach should open the League Hub and immediately understand:
+
+1. What phase/week are we in?
+2. What do I need to do before advancing?
+3. What is urgent?
+4. How is my program doing?
+5. What is happening around the league?
+6. Where should I go next?
+
+## Current Issue
+
+The current League Hub has useful pieces, but it feels more like stacked alerts plus a navigation tile grid:
+
+- readiness is oversized and repeated
+- the coach action queue is too shallow
+- navigation tiles dominate the page
+- important program context is low on the page
+- there is not enough "coach briefing" intelligence
+- desktop space is not used like a real management dashboard
+- mobile should keep the same coaching information, not just collapse into a thin list
+
+## Relevant Files To Inspect First
+
+Start by auditing:
+
+- `client/src/pages/league-view.tsx`
+- `client/src/pages/league-view/tabs/waiting-on-widget.tsx`
+- `client/src/pages/league-view/tabs/offseason-widgets.tsx`
+- `client/src/pages/league-view/tabs/*`
+- `client/src/pages/dashboard.tsx`
+- `client/src/pages/war-room.tsx`
+- `client/src/lib/ready-status.ts`
+- `client/src/components/ui/*`
+- any API route that powers league overview, readiness, standings, recruiting summary, roster summary, and schedule
+
+## Main Design Goal
+
+Turn the League Hub into a coach cockpit.
+
+Suggested page structure:
+
+```text
+League Hub
+├─ Top Command Bar
+│  ├─ team identity
+│  ├─ season / week / phase
+│  ├─ record
+│  ├─ next game
+│  ├─ readiness state
+│  └─ commissioner/advance controls when allowed
+│
+├─ Coach Briefing
+│  ├─ critical actions
+│  ├─ upcoming deadlines
+│  ├─ recommended next move
+│  └─ ready-up status
+│
+├─ Main Dashboard Grid
+│  ├─ Program Snapshot
+│  ├─ Next Game / Schedule
+│  ├─ Roster Health
+│  ├─ Recruiting Snapshot
+│  ├─ League Standings
+│  ├─ Storylines
+│  ├─ Recent Activity / Ticker
+│  ├─ Postseason / CWS Race
+│  └─ Commissioner Tools, if applicable
+│
+└─ Navigation Dock
+   ├─ core destinations
+   └─ compact status badges
+```
+
+## Desktop Layout
+
+Use a 12-column dashboard layout.
+
+Recommended desktop arrangement:
+
+- Top full-width command bar.
+- Left/main column: Coach Briefing and primary weekly actions.
+- Center/main column: next game, roster/recruiting status, program snapshot.
+- Right rail: league pulse, standings, storylines, ticker, deadlines.
+- Bottom: compact navigation dock or grouped navigation sections.
+
+Do not let navigation tiles consume the whole first screen. Navigation should support the dashboard, not replace it.
+
+## Mobile Layout
+
+Mobile should preserve the same information hierarchy.
+
+Recommended mobile arrangement:
+
+- sticky compact command bar
+- "Next Up" action card
+- coach action queue
+- collapsible dashboard modules
+- horizontally scrollable quick nav
+- bottom navigation or compact module jump list
+
+Mobile must not strip out the coach briefing, roster/recruiting context, readiness status, or league pulse.
+
+## Required Modules
+
+### 1. Top Command Bar
+
+Always visible near the top.
+
+Show:
+
+- team badge / team name
+- league name
+- current season
+- current week
+- current phase
+- team record
+- conference record
+- next game/opponent if available
+- ready state
+- commissioner badge/actions if applicable
+
+Actions:
+
+- ready up / unready
+- commissioner advance button, only if allowed
+- quick link to settings/commissioner if commissioner
+
+Avoid multiple repeated ready-up blocks. One strong ready control is enough, with supporting details in the action queue.
+
+### 2. Coach Briefing / Next Up
+
+This should be the emotional and functional center of the page.
+
+Show 3-6 prioritized items:
+
+- report score
+- ready up
+- set lineup
+- thin roster warning
+- recruiting points unused
+- scout points unused
+- storyline votes pending
+- departures not finalized
+- walk-on bids pending
+- next game needs attention
+- signing day reveal available
+
+Each item should include:
+
+- title
+- short reason
+- urgency
+- destination
+- completion state
+- clear call-to-action
+
+Example:
+
+```text
+Next Up
+1. Set Lineup - 2 open lineup slots before next game
+2. Recruit This Week - 8 recruiting points unused
+3. Vote on Storylines - 3 votes pending
+4. Ready Up - league waiting on your team
+```
+
+### 3. Program Snapshot
+
+A compact summary of the user's program.
+
+Show:
+
+- record
+- conference record
+- streak
+- conference rank
+- national/ranking indicator if available
+- prestige
+- facilities
+- roster size
+- team overall
+- recent form
+
+This replaces the current low-information stat tiles with a richer, more useful program view.
+
+### 4. Next Game / Schedule Module
+
+Show:
+
+- next opponent
+- home/away
+- opponent record
+- game week/date/phase
+- projected matchup strength
+- last game result
+- quick links to schedule, lineup, report score
+
+If no next game:
+
+- show current phase objective instead
+- for offseason, show next offseason milestone
+
+### 5. Roster Health Module
+
+Show:
+
+- roster size
+- position shortages
+- thin positions
+- injuries/fatigue/rest warnings if available
+- seniors/departures count
+- lineup completeness
+- pitching rotation readiness
+- quick links to roster and lineup
+
+This should make "Thin Roster Depth" actionable, not just a warning.
+
+### 6. Recruiting Snapshot Module
+
+This is not the full recruiting board. It is a hub summary.
+
+Show:
+
+- commits count
+- class rank
+- avg star / avg OVR
+- top commit
+- open offers
+- targets
+- recruiting points remaining
+- scout points remaining
+- urgent recruiting actions
+- hot battles
+- NIL remaining
+
+Actions:
+
+- go to Recruiting Board
+- go to War Room
+- go to Commits
+
+If desktop War Room is missing, add a visible War Room entry here and in navigation.
+
+### 7. League Standings / Race Module
+
+Show:
+
+- conference standings preview
+- user's rank
+- top 3 teams
+- games back
+- postseason/CWS race status where relevant
+
+Actions:
+
+- open full standings/stats
+- open postseason when active
+
+### 8. Storylines Module
+
+Show:
+
+- votes pending
+- active storyline recruits/events
+- recent decisions
+- urgent storyline deadlines
+- badge count
+
+Actions:
+
+- vote now
+- open storylines
+
+### 9. League Pulse / Activity Feed
+
+Show recent league activity:
+
+- game results
+- signings
+- roster moves
+- storyline events
+- commissioner actions
+- rankings/standings shifts
+- CWS/postseason events
+
+Make it compact and scannable. It should make the league feel alive.
+
+### 10. Commissioner Module
+
+Only for commissioner/co-commissioner.
+
+Show:
+
+- who is ready
+- who is blocking advance
+- phase advance status
+- pending score reports
+- autopilot/force advance needs
+- quick advance controls
+- invite/settings links
+
+This should not dominate non-commissioner views.
+
+### 11. Navigation Dock
+
+Replace the large tile wall with a more efficient navigation system.
+
+Group links:
+
+- Team: Coach, School, Roster, Lineup
+- Season: Schedule, Stats, Standings, Postseason
+- Recruiting: Recruiting, War Room, Commits, Storylines
+- League: Record Book, Archive, Commissioner
+
+Each nav item can show small status badges:
+
+- pending storylines
+- recruiting points unused
+- scores to report
+- ready needed
+- signing day available
+
+Navigation should be visible and convenient, but not the main content.
+
+## Information Hierarchy
+
+Prioritize content like this:
+
+1. Current phase and team identity
+2. Required actions before advance
+3. Next game / current phase objective
+4. Program health
+5. Recruiting health
+6. League pulse
+7. Navigation
+
+## Visual Direction
+
+Keep the game's identity, but make the League Hub cleaner and more structured.
+
+Guidelines:
+
+- compact dashboard panels
+- strong section headers
+- clear action hierarchy
+- readable numbers
+- badges for urgency/status
+- icons for modules
+- no oversized empty panels
+- no redundant ready buttons
+- no giant tile grid as primary content
+- no marketing hero
+- avoid nested cards
+- avoid text clipping on mobile
+
+The current green/gold retro identity can stay, but the layout should feel like a modern sports management command screen.
+
+## Example First View On Desktop
+
+The first viewport should include:
+
+- top command bar
+- coach briefing / next up
+- next game/current phase module
+- program snapshot
+- recruiting snapshot
+- league pulse or standings preview
+
+The coach should not need to scroll just to understand what matters this week.
+
+## Example First View On Mobile
+
+The first mobile viewport should include:
+
+- compact team/phase header
+- ready state
+- top next action
+- condensed program/recruiting snapshot
+- quick nav chips
+
+Below that:
+
+- expandable Coach Briefing
+- Roster Health
+- Recruiting Snapshot
+- League Pulse
+- Standings
+- Storylines
+
+## UX Details
+
+### Ready-Up
+
+Ready-up should be a single clear control.
+
+Show:
+
+- current ready state
+- blockers
+- what completing ready means
+- league readiness count
+
+Avoid showing a small ready button and a huge ready button at the same time.
+
+### Coach Action Queue
+
+Make it smarter:
+
+- prioritize by urgency
+- group by phase
+- show completion
+- show why it matters
+- give direct action buttons
+- include "optional but recommended" actions separately
+
+### Empty States
+
+Use meaningful empty states:
+
+- no games: show current phase goal
+- no recruits signed: show recruiting next step
+- no storylines: show "no active votes"
+- no standings yet: show preseason summary
+
+### Commissioner State
+
+Commissioner controls should be powerful but contained.
+
+The commissioner should see:
+
+- readiness blockers
+- advance eligibility
+- force advance/autopilot context
+- invite/setup warnings
+
+Regular coaches should not see commissioner clutter.
+
+## Acceptance Criteria
+
+### Desktop
+
+- League Hub is the primary coach home page.
+- First viewport gives a useful coach briefing.
+- Navigation tiles no longer dominate the page.
+- Ready-up is clear and not duplicated.
+- Coach Action Queue is actionable and prioritized.
+- Program, roster, recruiting, schedule, standings, storylines, and league activity are all represented.
+- War Room is visible as a recruiting destination.
+- Commissioner controls appear only when relevant.
+- Layout works at 1440x900 and 1920x1080.
+
+### Mobile
+
+- Same information hierarchy is preserved.
+- Coach can understand what to do next from the first screen.
+- Modules collapse/reflow cleanly.
+- Quick nav remains available.
+- No core dashboard information is removed.
+- Text and controls do not overlap.
+- Layout works at 360x800, 390x844, 414x896, and 430x932.
+
+## Tests To Add
+
+Add Playwright tests for:
+
+- League Hub desktop first viewport contains:
+  - command bar
+  - coach briefing
+  - next game/current phase
+  - program snapshot
+  - recruiting snapshot
+  - league pulse or standings
+- ready-up appears once as the primary ready control
+- action queue shows pending blockers
+- War Room link exists on desktop
+- commissioner-only module appears for commissioner
+- commissioner module does not appear for regular coach
+- mobile first viewport contains:
+  - compact command bar
+  - next action
+  - ready state
+  - snapshots
+  - quick nav
+- screenshot checks at:
+  - 360x800
+  - 390x844
+  - 414x896
+  - 430x932
+  - 1440x900
+  - 1920x1080
+
+## Manual QA Checklist
+
+1. Open a preseason league as a regular coach.
+2. Confirm the League Hub explains the current phase and next action.
+3. Open a regular-season league with games.
+4. Confirm next game, record, roster health, and standings appear.
+5. Open an offseason recruiting phase.
+6. Confirm recruiting snapshot, War Room entry, and action queue are useful.
+7. Open as commissioner.
+8. Confirm readiness blockers and advance controls appear.
+9. Open as non-commissioner.
+10. Confirm commissioner tools are hidden.
+11. Test mobile widths and confirm all core modules are still available.
+
+## Commands To Run
+
+```bash
+npm run check
+npx playwright test tests/e2e/league-hub-dashboard.test.ts
+npx playwright test tests/e2e/mobile-league-hub.test.ts
+```
+
+If these tests do not exist yet, create them.
+
+## Final Replit Response Required
+
+Return:
+
+- files changed
+- modules added or redesigned
+- before/after screenshots or screenshot test paths
+- desktop viewport verification
+- mobile viewport verification
+- exact commands run
+- remaining UX gaps, if any
+
+Do not call this done if the League Hub still feels like a tile launcher. It should feel like the coach's main command center.

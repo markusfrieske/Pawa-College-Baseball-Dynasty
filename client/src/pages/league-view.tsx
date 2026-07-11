@@ -9,26 +9,18 @@ import { RetroCard } from "@/components/ui/retro-card";
 import { QueryError } from "@/components/ui/query-error";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { TeamBadge } from "@/components/ui/team-badge";
 import {
   ArrowLeft,
   Trophy,
-  Users,
-  Target,
   Calendar,
   Settings,
-  Award,
   X,
-  Building2,
   AlertTriangle,
   Zap,
-  BarChart,
   ScrollText,
-  Swords,
-  BookOpen,
-  ClipboardList,
   Crown,
   LogOut,
-  History as HistoryIcon,
 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { Player } from "@shared/schema";
@@ -40,13 +32,16 @@ import { artBackgrounds } from "@/lib/art-assets";
 
 import type { LeagueDetails, TeamWithCoach, DashboardOverview, AuctionOutcome, StorylineWidgetItem } from "./league-view/types";
 import { HOME_TAB_VALUES, STORYLINE_VOTE_CALLOUT_PHASES } from "./league-view/types";
-import { formatNil } from "./league-view/helpers";
 import { LeagueViewSkeleton } from "./league-view/tabs/skeleton";
 import { PhaseGuidanceBanner, SeasonProgressBar } from "./league-view/tabs/phase-banners";
 import { NotificationCenter, PhaseDeadline } from "./league-view/tabs/notification-center";
 import { WaitingOnWidget } from "./league-view/tabs/waiting-on-widget";
 import { WalkonAuctionSummaryModal } from "./league-view/tabs/walkon-auction-modal";
-import { QuickActionCard, WeeklyOpponentCard, PrimaryPhaseCTA, CoachActionQueue, SinceLastAdvanceFeed, SinceLastAdvanceWidget } from "./league-view/dashboard-widgets";
+import {
+  WeeklyOpponentCard, PrimaryPhaseCTA, CoachActionQueue, SinceLastAdvanceFeed,
+  SinceLastAdvanceWidget, ProgramSnapshotPanel, RosterHealthPanel,
+  RecruitingSnapshotPanel, StandingsPreviewPanel, NavDock,
+} from "./league-view/dashboard-widgets";
 import { RosterStrengthCard } from "./league-view/roster-strength-card";
 import { ActivityFeed, StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
 import { SigningDaySummaryCard, ProgramChangesCard, OffseasonSummary } from "./league-view/tabs/offseason-widgets";
@@ -161,7 +156,6 @@ export default function LeagueViewPage() {
     }
   }, [league?.teams, currentUser?.id, setAtmosphereBurstColor]);
 
-  // Auction results: auto-open summary modal for coaches who missed the live resolution
   const hasAuctionResults = !!league?.lastWalkonAuction && league?.currentPhase !== "offseason_walkons";
   const auctionSeenKey = `walkon-auction-seen-${id}-s${league?.currentSeason}`;
   const { data: auctionResultsData } = useQuery<{ results: AuctionOutcome[] }>({
@@ -178,9 +172,7 @@ export default function LeagueViewPage() {
     } catch {}
   }, [auctionResultsData, auctionSeenKey]);
 
-  if (isLoading) {
-    return <LeagueViewSkeleton />;
-  }
+  if (isLoading) return <LeagueViewSkeleton />;
 
   if (leagueIsError) {
     return (
@@ -251,17 +243,17 @@ export default function LeagueViewPage() {
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
     preseason: "Spring",
-    spring_training: "Spring",
+    spring_training: "Spring Training",
     regular_season: "Regular Season",
-    conference_championship: "Conference Championship",
+    conference_championship: "Conf. Champs",
     super_regionals: "Super Regionals",
     cws: "College World Series",
     offseason: "Offseason",
     offseason_departures: "Players Leaving",
-    offseason_recruiting_1: "Offseason Recruiting (Week 1)",
-    offseason_recruiting_2: "Offseason Recruiting (Week 2)",
-    offseason_recruiting_3: "Offseason Recruiting (Week 3)",
-    offseason_recruiting_4: "Offseason Recruiting (Week 4)",
+    offseason_recruiting_1: "Recruiting Wk 1",
+    offseason_recruiting_2: "Recruiting Wk 2",
+    offseason_recruiting_3: "Recruiting Wk 3",
+    offseason_recruiting_4: "Recruiting Wk 4",
     offseason_signing_day: "Decision Day",
     offseason_walkons: "Cuts & Walk-Ons",
   };
@@ -272,163 +264,176 @@ export default function LeagueViewPage() {
 
   return (
     <div className="min-h-screen bg-background">
+
+      {/* ─── LEAVE LEAGUE DIALOG ─────────────────────────────────────── */}
+      <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-gold text-sm">Leave Dynasty?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to leave <strong>{league.name}</strong>? Your team ({myTeam?.name}) will become CPU-controlled. This cannot be undone.
+              {isCommissioner && (
+                <span className="block mt-2 text-amber-400">You are the commissioner. Transfer the role before leaving.</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => leagueMut.mutate(myCoach!.id)}
+              disabled={leagueMut.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-leave-league"
+            >
+              {leagueMut.isPending ? "Leaving..." : "Leave Dynasty"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ─── COMMAND BAR ─────────────────────────────────────────────── */}
       <header className="border-b border-border">
         <div className="h-[2px] w-full" style={{ background: "rgb(var(--atm-accent) / 0.55)" }} aria-hidden="true" />
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-3 mb-3 min-w-0">
+        <div className="container mx-auto px-4 py-3">
+          {/* Identity row */}
+          <div className="flex items-center gap-3 min-w-0">
             <Link href="/dashboard" className="text-muted-foreground hover:text-gold transition-colors shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-pixel text-gold text-base sm:text-lg truncate">{league.name}</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>S{league.currentSeason} W{league.currentWeek}</span>
-            </div>
-            <div className="flex items-center gap-1.5 shrink-0" data-testid="text-current-phase">
-              <Trophy className="w-3.5 h-3.5 text-gold" />
-              <Badge variant="outline" className="font-pixel text-[7px] sm:text-[8px] text-gold border-gold/40 bg-gold/10 whitespace-nowrap">
-                {phaseLabels[league.currentPhase]}
-              </Badge>
-            </div>
-            {userTeam?.standings && (
-              <div className="flex items-center gap-1.5 shrink-0" data-testid="text-user-team-record">
-                <span className="text-gold font-medium">
-                  {userTeam.name}: {userTeam.standings.wins ?? 0}-{userTeam.standings.losses ?? 0}
-                </span>
-              </div>
-            )}
-            {(() => {
-              const commTeam = league.teams?.find(t => t.coach?.userId === league.commissionerId);
-              const commLabel = commTeam?.abbreviation ?? "COMM";
-              const coCommTeams = coCommIds.map(uid => league.teams?.find(t => t.coach?.userId === uid)).filter(Boolean);
-              return (
-                <>
-                  <div className="flex items-center gap-1 shrink-0" data-testid="badge-commissioner-identity">
-                    <Crown className="w-3 h-3 text-gold" />
-                    <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">
-                      {isPrimaryCommissioner ? "COMMISSIONER" : `COMM: ${commLabel}`}
-                    </Badge>
-                  </div>
-                  {coCommTeams.length > 0 && coCommIds.some(uid => uid !== currentUser?.id) && (
-                    coCommTeams.map(t => (
-                      t && t.coach?.userId !== currentUser?.id && (
-                        <div key={t.id} className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-identity-${t.id}`}>
-                          <Crown className="w-3 h-3 text-blue-400" />
-                          <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">
-                            DEL: {t.abbreviation}
-                          </Badge>
-                        </div>
-                      )
-                    ))
-                  )}
-                  {!isPrimaryCommissioner && isCommissioner && (
-                    <div className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
-                      <Crown className="w-3 h-3 text-blue-400" />
-                      <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-            {canShowRecap && (
-              <button
-                onClick={() => { setRecapSeason(recapSeasonNum); setShowRecap(true); }}
-                className="flex items-center gap-1 text-gold/70 hover:text-gold transition-colors shrink-0"
-                data-testid="button-season-recap"
-              >
-                <ScrollText className="w-3.5 h-3.5" />
-                <span className="text-[10px]">Recap</span>
-              </button>
-            )}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Users className="w-3.5 h-3.5" />
-              <span>{league.teams?.length || 0}/{league.maxTeams} Teams</span>
-            </div>
-            {league.progressionEnabled ? (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-pixel text-[7px] sm:text-[8px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
-                title="Player attributes grow between seasons based on potential and team facilities"
-                data-testid="badge-progression-on"
-              >
-                <Zap className="w-2.5 h-2.5" />
-                PROGRESSION ON
-              </span>
-            ) : (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-pixel text-[7px] sm:text-[8px] bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
-                title="Player attributes do not change between seasons in this league"
-                data-testid="badge-progression-off"
-              >
-                <Zap className="w-2.5 h-2.5" />
-                PROGRESSION OFF
-              </span>
-            )}
-          </div>
-          {league.phaseDeadline && (
-            <PhaseDeadline deadline={league.phaseDeadline} />
-          )}
-          <div className="flex items-center justify-end gap-2 mt-2">
-            {canLeave && (
-              <RetroButton
-                variant="outline"
+
+            {userTeam && (
+              <TeamBadge
+                abbreviation={userTeam.abbreviation}
+                primaryColor={userTeam.primaryColor}
+                secondaryColor={userTeam.secondaryColor}
+                name={userTeam.name}
                 size="sm"
-                onClick={() => setShowLeaveConfirm(true)}
-                data-testid="button-leave-league"
-                className="border-red-500/40 text-red-400 hover:bg-red-500/10"
-              >
-                <LogOut className="w-3.5 h-3.5 mr-1" />
-                Leave
-              </RetroButton>
+                className="shrink-0"
+              />
             )}
-            <NotificationCenter leagueId={id!} />
+
+            <div className="flex-1 min-w-0">
+              <h1 className="font-pixel text-gold text-sm sm:text-base truncate leading-tight" data-testid="text-league-name">
+                {league.name}
+              </h1>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
+                <div className="flex items-center gap-1 shrink-0">
+                  <Calendar className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">S{league.currentSeason} W{league.currentWeek}</span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10 whitespace-nowrap"
+                  data-testid="text-current-phase"
+                >
+                  {phaseLabels[league.currentPhase]}
+                </Badge>
+                {userTeam?.standings && (
+                  <span className="text-xs text-gold font-medium shrink-0" data-testid="text-user-team-record">
+                    {userTeam.standings.wins ?? 0}–{userTeam.standings.losses ?? 0}
+                  </span>
+                )}
+                {isPrimaryCommissioner ? (
+                  <span className="flex items-center gap-1 shrink-0" data-testid="badge-commissioner-identity">
+                    <Crown className="w-3 h-3 text-gold" />
+                    <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMM</Badge>
+                  </span>
+                ) : isCommissioner ? (
+                  <span className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
+                    <Crown className="w-3 h-3 text-blue-400" />
+                    <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
+                  </span>
+                ) : null}
+                {league.progressionEnabled ? (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
+                    title="Player attributes grow between seasons"
+                    data-testid="badge-progression-on"
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    PROG
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-[7px] bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
+                    title="Player attributes do not change between seasons"
+                    data-testid="badge-progression-off"
+                  >
+                    <Zap className="w-2.5 h-2.5" />
+                    NO PROG
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Right-side controls */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {canShowRecap && (
+                <button
+                  onClick={() => { setRecapSeason(recapSeasonNum); setShowRecap(true); }}
+                  className="text-gold/70 hover:text-gold transition-colors p-1"
+                  data-testid="button-season-recap"
+                  title="Season Recap"
+                >
+                  <ScrollText className="w-4 h-4" />
+                </button>
+              )}
+              {isCommissioner && (
+                <Link href={`/league/${id}/commissioner`}>
+                  <RetroButton variant="outline" size="sm" data-testid="button-commissioner-shortcut" className="hidden sm:flex">
+                    <Settings className="w-3.5 h-3.5 mr-1" />
+                    Comm
+                  </RetroButton>
+                </Link>
+              )}
+              {canLeave && (
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLeaveConfirm(true)}
+                  data-testid="button-leave-league"
+                  className="border-red-500/40 text-red-400 hover:bg-red-500/10 p-1 sm:px-2"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </RetroButton>
+              )}
+              <NotificationCenter leagueId={id!} />
+            </div>
           </div>
 
-          <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
-            <AlertDialogContent className="bg-card border-border">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="font-pixel text-gold text-sm">Leave Dynasty?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to leave <strong>{league.name}</strong>? Your team ({myTeam?.name}) will become CPU-controlled. This cannot be undone.
-                  {isCommissioner && (
-                    <span className="block mt-2 text-amber-400">You are the commissioner. Transfer the role before leaving.</span>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => leagueMut.mutate(myCoach!.id)}
-                  disabled={leagueMut.isPending}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  data-testid="button-confirm-leave-league"
-                >
-                  {leagueMut.isPending ? "Leaving..." : "Leave Dynasty"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
+          {league.phaseDeadline && <PhaseDeadline deadline={league.phaseDeadline} />}
           <SeasonProgressBar phase={league.currentPhase} />
         </div>
       </header>
 
+      {/* ─── ARTWORK BANNER ──────────────────────────────────────────── */}
       <ArtworkBackground
         desktopSrc={artBackgrounds.leagueWarRoom.desktop}
         mobileSrc={artBackgrounds.leagueWarRoom.mobile}
         focalPoint="center top"
         overlayStrength="heavy"
-        className="h-36 sm:h-48"
+        className="h-24 sm:h-32"
       />
 
-      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-        <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
+      {/* ─── AUCTION MODAL ───────────────────────────────────────────── */}
+      {showAuctionModal && auctionResultsData?.results && (
+        <WalkonAuctionSummaryModal
+          outcomes={auctionResultsData.results}
+          onDismiss={() => {
+            setShowAuctionModal(false);
+            try { localStorage.setItem(auctionSeenKey, "1"); } catch {}
+          }}
+        />
+      )}
 
-        <WaitingOnWidget leagueId={id!} league={league} pendingVoteCount={storylinePendingVotes} />
+      <main className="container mx-auto px-4 py-4 pb-20 md:pb-6">
 
+        {/* Digest strip — full width, collapsed chip row */}
+        <SinceLastAdvanceWidget leagueId={league.id} />
+
+        {/* Lineup alert — inline, dismissible */}
         {showLineupBanner && (
-          <div className="flex items-center gap-3 px-4 py-3 mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30" data-testid="banner-lineup-incomplete">
+          <div className="flex items-center gap-3 px-4 py-2.5 mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30" data-testid="banner-lineup-incomplete">
             <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <span className="text-yellow-300 text-sm font-medium">Lineup incomplete</span>
@@ -454,188 +459,104 @@ export default function LeagueViewPage() {
           </div>
         )}
 
-        {showAuctionModal && auctionResultsData?.results && (
-          <WalkonAuctionSummaryModal
-            outcomes={auctionResultsData.results}
-            onDismiss={() => {
-              setShowAuctionModal(false);
-              try { localStorage.setItem(auctionSeenKey, "1"); } catch {}
-            }}
-          />
-        )}
+        {/* ═══════════════════════════════════════════════════════════
+            COCKPIT GRID — 3-column on desktop, stacked on mobile
+            Left  (4): Readiness + Action queue + Storylines
+            Center(5): Phase context + Next game + Program + Roster
+            Right (3): Recruiting + Standings + League pulse
+        ═══════════════════════════════════════════════════════════ */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
 
-        <PrimaryPhaseCTA
-          leagueId={id!}
-          league={league}
-          myTeam={myTeam}
-          currentUserId={currentUser?.id}
-          isCommissioner={isCommissioner}
-          lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
-        />
-
-        <WeeklyOpponentCard leagueId={id!} league={league} myTeam={myTeam} />
-
-        <CoachActionQueue
-          leagueId={id!}
-          league={league}
-          myTeam={myTeam}
-          currentUserId={currentUser?.id}
-          overview={overview}
-          lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
-          lineupDetail={[
-            ownBattingIncomplete ? `Batting ${ownBattingAssigned}/9` : null,
-            ownPitchingIncomplete ? `Rotation ${ownRotationAssigned}/4` : null,
-          ].filter(Boolean).join(" · ")}
-          isCommissioner={isCommissioner}
-        />
-
-        <SinceLastAdvanceFeed leagueId={id!} league={league} />
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3 mb-6">
-          <QuickActionCard
-            href={`/league/${id}/coach`}
-            icon={<Award className="w-6 h-6" />}
-            title="Coach"
-            subtitle="View your career"
-          />
-          <QuickActionCard
-            href={`/league/${id}/team/${userTeam?.id || ''}`}
-            icon={<Building2 className="w-6 h-6" />}
-            title="School"
-            subtitle="Your program"
-          />
-          <QuickActionCard
-            href={`/league/${id}/roster`}
-            icon={<Users className="w-6 h-6" />}
-            title="Roster"
-            subtitle="Manage your team"
-          />
-          <QuickActionCard
-            href={`/league/${id}/roster?view=depth&sub=lineup`}
-            icon={<ClipboardList className="w-6 h-6" />}
-            title="Lineup"
-            subtitle="Set batting order"
-            badge={showLineupBanner ? "!" : undefined}
-          />
-          <QuickActionCard
-            href={`/league/${id}/schedule`}
-            icon={<Calendar className="w-6 h-6" />}
-            title="Schedule"
-            subtitle="View games"
-          />
-          <QuickActionCard
-            href={`/league/${id}/recruiting`}
-            icon={<Target className="w-6 h-6" />}
-            title="Recruiting"
-            subtitle="Scout players"
-          />
-          <QuickActionCard
-            href={`/league/${id}/commits`}
-            icon={<Trophy className="w-6 h-6" />}
-            title="Commits"
-            subtitle="Class leaderboard"
-          />
-          <QuickActionCard
-            href={`/league/${id}/storylines`}
-            icon={<Swords className="w-6 h-6" />}
-            title="Storylines"
-            subtitle="Vote on arcs"
-            badge={storylinePendingVotes || undefined}
-          />
-          <QuickActionCard
-            href={`/league/${id}/stats`}
-            icon={<BarChart className="w-6 h-6" />}
-            title="Stats"
-            subtitle="Season leaders"
-          />
-          <QuickActionCard
-            href={`/league/${id}/record-book`}
-            icon={<BookOpen className="w-6 h-6" />}
-            title="Record Book"
-            subtitle="Dynasty records"
-          />
-          <QuickActionCard
-            href={`/league/${id}/archive`}
-            icon={<HistoryIcon className="w-6 h-6" />}
-            title="Archive"
-            subtitle="Season history"
-          />
-          <QuickActionCard
-            href={`/league/${id}/postseason`}
-            icon={<Crown className="w-6 h-6" />}
-            title="Postseason"
-            subtitle="Bracket & history"
-          />
-          {isCommissioner && (
-            <QuickActionCard
-              href={`/league/${id}/commissioner`}
-              icon={<Settings className="w-6 h-6" />}
-              title="Commissioner"
-              subtitle="Dynasty settings"
+          {/* ── LEFT COLUMN: Readiness + Actions ─────────────────── */}
+          <div className="lg:col-span-4 space-y-4">
+            <WaitingOnWidget
+              leagueId={id!}
+              league={league}
+              pendingVoteCount={storylinePendingVotes}
             />
-          )}
+
+            <PrimaryPhaseCTA
+              leagueId={id!}
+              league={league}
+              myTeam={myTeam}
+              currentUserId={currentUser?.id}
+              isCommissioner={isCommissioner}
+              lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
+            />
+
+            <CoachActionQueue
+              leagueId={id!}
+              league={league}
+              myTeam={myTeam}
+              currentUserId={currentUser?.id}
+              overview={overview}
+              lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
+              lineupDetail={[
+                ownBattingIncomplete ? `Batting ${ownBattingAssigned}/9` : null,
+                ownPitchingIncomplete ? `Rotation ${ownRotationAssigned}/4` : null,
+              ].filter(Boolean).join(" · ")}
+              isCommissioner={isCommissioner}
+            />
+
+            <StorylinesDashboardWidget leagueId={id!} />
+
+            {/* Offseason-specific summary cards */}
+            <SigningDaySummaryCard league={league} myTeam={myTeam} />
+            <ProgramChangesCard league={league} myTeam={myTeam} />
+            <OffseasonSummary league={league} myTeam={myTeam} />
+          </div>
+
+          {/* ── CENTER COLUMN: Game context + Program ────────────── */}
+          <div className="lg:col-span-5 space-y-4">
+            <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
+
+            <WeeklyOpponentCard leagueId={id!} league={league} myTeam={myTeam} />
+
+            {overview && (
+              <>
+                <ProgramSnapshotPanel
+                  overview={overview}
+                  userTeam={userTeam}
+                  leagueId={id!}
+                />
+                <RosterHealthPanel
+                  overview={overview}
+                  leagueId={id!}
+                />
+              </>
+            )}
+          </div>
+
+          {/* ── RIGHT COLUMN: Recruiting + Standings + Pulse ─────── */}
+          <div className="lg:col-span-3 space-y-4">
+            {overview && (
+              <RecruitingSnapshotPanel
+                overview={overview}
+                league={league}
+                leagueId={id!}
+              />
+            )}
+
+            <StandingsPreviewPanel
+              league={league}
+              userTeam={userTeam}
+              leagueId={id!}
+            />
+
+            <SinceLastAdvanceFeed leagueId={id!} league={league} />
+          </div>
         </div>
 
-        {overview && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <RetroCard className="p-3" data-testid="card-overview-record">
-              <div className="text-center">
-                <p className="font-pixel text-[8px] text-muted-foreground mb-1">RECORD</p>
-                <p className="text-xl font-bold text-gold">
-                  {userTeam?.standings?.wins || 0}-{userTeam?.standings?.losses || 0}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Conf: {userTeam?.standings?.conferenceWins || 0}-{userTeam?.standings?.conferenceLosses || 0}
-                </p>
-              </div>
-            </RetroCard>
+        {/* ─── NAVIGATION DOCK ─────────────────────────────────────── */}
+        <NavDock
+          leagueId={id!}
+          userTeam={userTeam}
+          isCommissioner={isCommissioner}
+          storylinePendingVotes={storylinePendingVotes}
+          showLineupBanner={showLineupBanner}
+        />
 
-            <RetroCard className="p-3" data-testid="card-overview-roster">
-              <div className="text-center">
-                <p className="font-pixel text-[8px] text-muted-foreground mb-1">ROSTER</p>
-                <p className="text-xl font-bold">{overview.rosterSize}/25</p>
-                {overview.positionsAtRisk.length > 0 ? (
-                  <p className="text-[10px] text-red-400">
-                    Thin: {overview.positionsAtRisk.join(", ")}
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-green-400">Healthy depth</p>
-                )}
-              </div>
-            </RetroCard>
-
-            <RetroCard className="p-3" data-testid="card-overview-nil">
-              <div className="text-center">
-                <p className="font-pixel text-[8px] text-muted-foreground mb-1">NIL BUDGET</p>
-                <p className="text-xl font-bold text-gold">
-                  {formatNil(overview.nilBudget - overview.nilSpent)}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  of {formatNil(overview.nilBudget)} total
-                </p>
-              </div>
-            </RetroCard>
-
-            <RetroCard className="p-3" data-testid="card-overview-recruiting">
-              <div className="text-center">
-                <p className="font-pixel text-[8px] text-muted-foreground mb-1">RECRUITING</p>
-                <p className="text-xl font-bold">{overview.recruitingSigned}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  Signed{overview.recruitingInterested > 0 ? ` | ${overview.recruitingInterested} interested` : ""}
-                </p>
-              </div>
-            </RetroCard>
-          </div>
-        )}
-
-        <SigningDaySummaryCard league={league} myTeam={myTeam} />
-
-        <ProgramChangesCard league={league} myTeam={myTeam} />
-
-        <SinceLastAdvanceWidget leagueId={league.id} />
-
-        <OffseasonSummary league={league} myTeam={myTeam} />
-
+        {/* ─── DETAIL TABS (deep-dive views) ───────────────────────── */}
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
@@ -663,8 +584,16 @@ export default function LeagueViewPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="prospects">
-            <ProspectsTab leagueId={league.id} currentSeason={league.currentSeason ?? 1} />
+          <TabsContent value="news">
+            <ActivityFeed leagueId={league.id} />
+            <div className="mt-4">
+              <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
+            </div>
+            {overview && (
+              <div className="mt-4">
+                <RosterStrengthCard overview={overview} leagueId={league.id} />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="standings">
@@ -679,17 +608,8 @@ export default function LeagueViewPage() {
             <RankingsTab league={league} />
           </TabsContent>
 
-          <TabsContent value="news">
-            <ActivityFeed leagueId={league.id} />
-            <StorylinesDashboardWidget leagueId={league.id} />
-            <div className="mt-4">
-              <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
-            </div>
-            {overview && (
-              <div className="mt-4">
-                <RosterStrengthCard overview={overview} leagueId={league.id} />
-              </div>
-            )}
+          <TabsContent value="prospects">
+            <ProspectsTab leagueId={league.id} currentSeason={league.currentSeason ?? 1} />
           </TabsContent>
 
           <TabsContent value="awards">
