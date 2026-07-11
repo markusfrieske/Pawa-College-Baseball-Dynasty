@@ -231,20 +231,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Hero feature badges — right side */}
-            <div className="absolute top-1/4 right-6 sm:right-10 hidden xl:flex xl:flex-col gap-2 z-20">
-              {[
-                { label: "Multiplayer Dynasty", sub: "Real coaches, real stakes" },
-                { label: "Recruiting War Room", sub: "Fog-of-war scouting" },
-                { label: "Box Score Reporting", sub: "Power Pros integration" },
-                { label: "Safe Commissioner Advance", sub: "Audit trail + save states" },
-              ].map((b) => (
-                <div key={b.label} className="bg-card/90 border border-border/60 backdrop-blur-sm px-4 py-2.5 rounded-sm shadow-xl max-w-[200px]">
-                  <div className="font-pixel text-[8px] text-gold tracking-widest mb-0.5">{b.label}</div>
-                  <div className="text-[10px] text-muted-foreground leading-snug">{b.sub}</div>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 text-muted-foreground/40 animate-bounce">
