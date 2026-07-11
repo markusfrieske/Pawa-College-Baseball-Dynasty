@@ -202,7 +202,8 @@ export interface IStorage {
   getRecruitingActionsLogByLeagueWeek(leagueId: string, season: number, week: number): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogBySeason(leagueId: string, season: number): Promise<RecruitingActionsLog[]>;
   getSeasonVisitCount(teamId: string, leagueId: string, season: number): Promise<{ total: number; campusVisits: number; hcVisits: number }>;
-  createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog>;
+  createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog | undefined>;
+  atomicSpendRecruitPoints(coachId: string, cost: number, maxAllowed: number): Promise<boolean>;
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
   getRecruitTopSchoolsByLeague(leagueId: string): Promise<RecruitTopSchools[]>;
@@ -1125,9 +1126,22 @@ export class DatabaseStorage implements IStorage {
     return { total: campusVisits + hcVisits, campusVisits, hcVisits };
   }
 
-  async createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog> {
-    const [log] = await db.insert(recruitingActionsLog).values(action).returning();
-    return log;
+  async createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog | undefined> {
+    const [log] = await db.insert(recruitingActionsLog)
+      .values(action)
+      .onConflictDoNothing()
+      .returning();
+    return log ?? undefined;
+  }
+
+  async atomicSpendRecruitPoints(coachId: string, cost: number, maxAllowed: number): Promise<boolean> {
+    const { rowCount } = await pool.query(
+      `UPDATE coaches
+       SET recruit_actions_used = recruit_actions_used + $1
+       WHERE id = $2 AND recruit_actions_used + $1 <= $3`,
+      [cost, coachId, maxAllowed],
+    );
+    return (rowCount ?? 0) > 0;
   }
 
   async getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]> {

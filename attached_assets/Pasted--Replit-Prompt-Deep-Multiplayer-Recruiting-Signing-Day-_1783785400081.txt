@@ -1,0 +1,547 @@
+# Replit Prompt: Deep Multiplayer Recruiting + Signing Day Fix Plan
+
+Use this prompt in Replit for the latest `markusfrieske/Pawa-College-Baseball-Dynasty` repo.
+
+Audit source: latest ZIP reviewed locally on July 11, 2026. The code already contains several good fixes: `server/signing-resolver.ts`, cross-league recruit guards on main recruiting actions, no first-human fallback in `resolveUserTeam`, fuller Signing Day cards, and a starter `script/14-user-test.ts`. Do not throw those away. Build on them.
+
+## Goal
+
+Make the app safe and convincing for a 14-human multiplayer league:
+
+- all recruiting actions must be isolated to the correct coach/team/league
+- simultaneous recruiting actions must not double-spend points, duplicate logs, or corrupt interest
+- manual signing and automatic Signing Day resolution must use one canonical signing engine
+- Signing Day preview/reveal/battle reports must explain the real signing result with correct margins
+- the cinematic reveal must show a rich player deep dive after the card flip
+- desktop is the primary target because this is intended to become a PC/Steam game; mobile must keep the same recruiting information and decisions without becoming a stripped-down experience
+- the 14-user script must simulate smart coaches competing, not just basic smoke traffic
+- final verification must cover games, stats, standings, CWS, playoffs, championship, offseason, recruiting, reveal, and season rollover
+
+## High Priority Findings To Fix
+
+### P0: Manual `/sign` can let a lower-ranked eligible team steal a recruit
+
+Current manual signing checks only the caller's own offer, stage, threshold, roster, and NIL budget, then signs immediately.
+
+Relevant files:
+
+- `server/routes/recruiting.ts` around `1695-1788`
+- `server/signing-resolver.ts` around `69-151`
+- `server/route-helpers.ts` around `431-451`
+
+Problem:
+
+If Team A has 95 interest and Team B has 70 interest, both with offers and thresholds met, Team B can call `/sign` first and win. That contradicts the canonical resolver, which says highest eligible interest wins.
+
+Fix:
+
+- In manual `/sign`, load all interests for the recruit.
+- Call `resolveRecruitSigningWinner`.
+- Only allow the sign if `resolution.winnerTeamId === userTeam.id`.
+- Return a useful 400/409 response if the coach is eligible but not the winner, including current score, leader score, and margin.
+- Add a test where a lower-interest eligible team attempts `/sign` and is rejected.
+
+### P0: Recruiting interest rows are not unique or atomic
+
+Current schema uses plain indexes, not unique constraints.
+
+Relevant files:
+
+- `shared/schema.ts` around `834-854`
+- `shared/schema.ts` around `931-944`
+- `migrations/0008_fix_composite_indexes.sql`
+- `server/storage.ts` around `722-729`
+- `server/routes/recruiting.ts` around `1105-1117`, `1212-1224`, `1315-1327`, `1419-1430`, `1504-1527`
+
+Problem:
+
+In a 14-user league, duplicate requests or retries can create duplicate `recruiting_interests` / `recruit_top_schools` rows for the same recruit/team. Current code does read-then-insert or read-then-update. That is not safe under concurrent requests.
+
+Fix:
+
+- Add cleanup migration before constraints:
+  - merge duplicate `recruiting_interests` by `(recruit_id, team_id)`
+  - keep max `interest_level`, max scout ranges, `BOOL_OR(has_offer)`, `BOOL_OR(is_targeted)`, best board rank, merged notes where reasonable
+  - merge duplicate `recruit_top_schools` by `(recruit_id, team_id)` and keep highest combined interest / best rank
+- Change schema indexes to unique indexes:
+  - `recruiting_interests(recruit_id, team_id)`
+  - `recruit_top_schools(recruit_id, team_id)`
+- Add storage helpers instead of open-coded read/update:
+  - `upsertRecruitingInterestDelta(recruitId, teamId, delta, patch)`
+  - `upsertRecruitTopSchoolDelta(recruitId, teamId, delta)`
+  - use `ON CONFLICT DO UPDATE`
+  - increment interest as `LEAST(100, existing + delta)`
+- Replace all recruiting action handlers and CPU recruiting logic with these helpers.
+
+### P0: Action caps and action logs are race-prone
+
+Relevant files:
+
+- `server/routes/recruiting.ts` around `1080-1143`, `1188-1249`, `1301-1350`, `1402-1454`, `1499-1552`, `2766-2942`
+- `shared/schema.ts` around `899-914`
+- `server/storage.ts` around `1120-1122`
+
+Problem:
+
+The server checks existing actions, then inserts a log, then updates coach point usage. Two quick requests can both pass the check. This can create duplicate weekly emails/phone calls, duplicate visits, duplicate offers, or overspent weekly points.
+
+Fix:
+
+- Add DB-level uniqueness for action rules:
+  - one email per recruit/team/week/season
+  - one phone per recruit/team/week/season
+  - one campus visit per recruit/team/season
+  - one head coach visit per recruit/team/season
+  - one offer per recruit/team/season or rely on interest unique + `has_offer`, but still protect the action log
+- Update coach action usage atomically:
+  - `UPDATE coaches SET recruit_actions_used = recruit_actions_used + cost WHERE id = $id AND recruit_actions_used + cost <= max`
+  - if no row updated, reject with "not enough points"
+- Prefer wrapping each recruiting action in a DB transaction.
+- Make repeated client retries idempotent where possible, or return a clear `409 already_used`.
+- Add tests that fire `Promise.all` duplicate requests for the same action and verify only one succeeds, only one log row exists, and points are charged once.
+
+### P0: Weekly `updateRecruitStages` still has a separate signing engine
+
+Relevant file:
+
+- `server/routes/league-mgmt.ts` around `47-283`
+
+Problem:
+
+`finalizeSigningDay` uses `resolveRecruitSigningWinner`, but weekly stage progression still calculates signing independently. It uses its own offer filtering, thresholds, NIL budget map, and roster checks. This means manual signing, weekly auto-sign, preview, and final signing can disagree.
+
+Additional risk:
+
+`updateRecruitStages` processes recruits with `Promise.all`. It computes `teamCommits` from the initial recruit list, so multiple recruits can sign to the same team in the same pass while each thinks the roster has room.
+
+Fix:
+
+- Extend `resolveRecruitSigningWinner` to accept optional `canFitRoster(teamId)` and return `allEntries` with reason codes:
+  - `hasOffer`
+  - `metThreshold`
+  - `nilAffordable`
+  - `rosterEligible`
+  - `rank`
+  - `marginToWinner`
+- Use that resolver in:
+  - manual `/sign`
+  - `updateRecruitStages`
+  - `finalizeSigningDay`
+  - Signing Day preview
+  - Signing Day reveal analytics
+- Process signing decisions with per-team roster/NIL reservations, not stale counts.
+- Add tests for:
+  - two recruits signing to same nearly-full team cannot exceed roster cap
+  - lower offer team wins only when higher-interest team has no offer or fails threshold/NIL/roster
+  - resolver result matches persisted `signedTeamId`
+
+### P1: Signing Day preview can show the wrong committing team
+
+Relevant file:
+
+- `server/routes/postseason.ts` around `1254-1318`
+
+Problem:
+
+Preview still says the likely commitment is the highest-interest team with an offer, falling back to highest raw interest. It ignores canonical threshold, NIL, roster, and final resolver behavior.
+
+Fix:
+
+- Replace preview logic with `resolveRecruitSigningWinner`.
+- Show:
+  - projected winner
+  - winner score
+  - runner-up score
+  - margin
+  - ineligible leader reason, if applicable
+  - top 3-5 schools with offer/threshold/NIL/roster flags
+- Never imply a no-offer team will sign the recruit.
+
+### P1: Signing Day reveal battle report can show incorrect margins/outcomes
+
+Relevant files:
+
+- `server/routes/recruiting.ts` around `1919-2061`
+- `client/src/components/recruit-card.tsx` around `82-105`
+- `client/src/pages/signing-day-reveal.tsx` around `625-747`
+
+Problem:
+
+Reveal analytics currently use `recruit_top_schools` sorted by rank and `accumulatedInterest`, not canonical `recruiting_interests` / resolver data. The signed team may be absent from top schools, the runner-up may be ineligible, and `wonBy` can be null or wrong.
+
+Also, client outcome logic uses:
+
+```ts
+const didWin = recruit.signedTeamId != null && r.topSchools[0]?.hadOffer;
+```
+
+That does not actually check whether the viewer's team won.
+
+Fix:
+
+- The reveal API should return a canonical `recruitingResult` generated from the resolver:
+  - `winnerTeamId`, `winnerTeamName`, `winnerScore`
+  - `runnerUpTeamId`, `runnerUpTeamName`, `runnerUpScore`
+  - `wonBy`
+  - `rawClosestTeam` and `rawClosestMargin` if different from eligible runner-up
+  - `viewerTeamId`, `viewerOutcome: "won" | "lost" | "not_in_battle"`
+  - `viewerScore`, `viewerRank`, `viewerMargin`
+  - `allBattleEntries` with score, threshold, offer, NIL, roster, eligibility, reason
+  - `actionBreakdown` for viewer and, if appropriate after signing day, all top competing teams
+- Client battle report should use `viewerOutcome`, not infer from top school ordering.
+- Display "Won by X points over [Runner-Up]" using resolver margin.
+- If only one eligible team exists, show "Only eligible offer" plus closest raw challenger and why that challenger was ineligible.
+
+### P1: Any league member can complete another team's reveal
+
+Relevant file:
+
+- `server/routes/recruiting.ts` around `2087-2116`
+
+Problem:
+
+The complete endpoint checks league membership and validates the provided `teamId`, but it does not require that the `teamId` belongs to the caller. A coach can mark another coach's signed recruits as revealed. With no `teamId`, a league member can reveal everyone.
+
+Fix:
+
+- If caller is commissioner/co-commissioner, allow all-team completion.
+- If caller is a regular coach:
+  - ignore arbitrary `teamId`, or require it equals the caller's team
+  - reject attempts to reveal any other team
+  - disallow no-`teamId` all-team completion
+- Add tests for coach A trying to complete coach B's reveal.
+
+### P1: Cinematic reveal back side is rich, but the small sealed-phase card can clip it
+
+Relevant files:
+
+- `client/src/pages/signing-day-reveal.tsx` around `751-970`
+- `client/src/pages/signing-day-reveal.tsx` around `1771-1778`
+- `client/src/pages/signing-day-reveal.tsx` around `1935-1942`
+
+Current state:
+
+The full class card size is `252x348` and includes primary attributes, common abilities, special abilities, OVR, potential, badges, and a Battle Report button. That is the right direction.
+
+Problem:
+
+During the sealed reveal phase the same full back is rendered into `160x220`, which is likely too small for the full analytical layout. This can make the flip feel cinematic but not actually readable.
+
+Fix:
+
+- In sealed phase, after a card is opened, either:
+  - render a simplified small back and provide a "Deep Dive" modal, or
+  - use the larger `252x348` card once revealed
+- Full class cards should keep the full data-dense back.
+- Battle Report should open from the card back and should be the analytical deep dive.
+- Add Playwright screenshot checks for:
+  - mobile sealed reveal
+  - desktop sealed reveal
+  - flipped full class card
+  - battle report modal
+  - reduced motion mode
+
+### P1: Mobile recruiting is not feature-equivalent to desktop
+
+Relevant files to inspect first:
+
+- `client/src/pages/war-room.tsx`
+- `client/src/components/recruiting/mobile-board.tsx`
+- `client/src/components/recruiting/recruit-row.tsx`
+- `client/src/components/recruiting/recruit-detail-modal.tsx`
+- `client/src/hooks/use-recruiting.ts`
+- `tests/e2e/mobile-filter-board.test.ts`
+
+Product direction:
+
+The game should be optimized for desktop first because the long-term target is a PC game that can release on Steam. Desktop should remain the richest, most efficient version of the experience.
+
+Mobile should not be a simplified or different recruiting game. It should expose the same decision-critical information and actions as desktop, adapted into a phone-friendly layout.
+
+Problem:
+
+The current mobile recruiting view appears to strip too much information and has a different layout from desktop, making real recruiting decisions hard or impossible on mobile. Coaches need to see the same board context, filters, rankings, interest, scouting, actions, NIL, rival pressure, and player details.
+
+Fix:
+
+- Treat desktop recruiting as the source of truth for information architecture.
+- Redesign mobile as a responsive version of the same experience, not a separate reduced feature.
+- Mobile recruiting must include:
+  - same recruit list data as desktop
+  - same filters and sorting
+  - same target/board rank controls
+  - same scout, email, phone, visit, HCV, and offer actions
+  - same remaining points, action costs, visit caps, target caps, and NIL budget
+  - same interest/stage/offer/scouting progress
+  - same top schools/rival pressure indicators
+  - same recommended action or war-room decision help
+  - same recruit detail modal/deep dive
+  - clear disabled states with the same reasons desktop gives
+- Use responsive layout patterns:
+  - desktop: dense table/board with side panels
+  - tablet: two-column board + detail drawer
+  - mobile: full-width cards with expandable sections, sticky filter/action bars, bottom-sheet details, and horizontal stat chips where useful
+- Do not hide core data behind tiny icons with no labels.
+- Do not remove filters or actions from mobile.
+- Do not make mobile card text so small that it is unreadable.
+- Verify at common phone widths: 360, 390, 414, and 430 px.
+
+### P2: The existing 14-user test is useful but too shallow
+
+Relevant file:
+
+- `script/14-user-test.ts` around `468-513`
+
+Problem:
+
+The script creates 14 users and does some good league flow checks, but recruiting competition mostly sends emails. It does not make smart weekly decisions, offer/visit/head-coach-visit strategically, test NIL pressure, test lower-ranked manual signing rejection, or verify reveal analytics.
+
+Also this duplicate commitment query is not meaningful:
+
+```sql
+SELECT id, COUNT(DISTINCT signed_team_id)
+FROM recruits
+GROUP BY id
+HAVING COUNT(DISTINCT signed_team_id) > 1
+```
+
+Since `id` is unique, this cannot catch much. The real checks should focus on duplicate interest rows, duplicate action logs, roster/NIL/point caps, and resolver correctness.
+
+Fix:
+
+- Upgrade the script into a smart 14-coach simulation.
+- Add direct DB checks listed below.
+- Fail hard if no recruits sign; do not treat that as a warning for the comprehensive test.
+
+### P2: Remaining client/server fallbacks can still pick the first human team
+
+Relevant files:
+
+- `client/src/pages/league-view.tsx` around `206`
+- `client/src/pages/league-view/tabs/offseason-widgets.tsx` around `254`
+- `server/routes/postseason.ts` around `1094`
+
+Problem:
+
+Some views still default to `league.teams.find(t => !t.isCpu)`. In a 14-user league that can show the wrong team unless a specific team id is supplied.
+
+Fix:
+
+- Prefer server-returned `myTeamId` / authenticated coach team.
+- If no viewer team exists, show a neutral league view instead of guessing.
+
+## Required Implementation Plan
+
+### Phase 1: Database safety
+
+1. Add migrations to dedupe and enforce uniqueness:
+   - `recruiting_interests(recruit_id, team_id)`
+   - `recruit_top_schools(recruit_id, team_id)`
+   - action log uniqueness for weekly/season-limited action types
+2. Add atomic storage helpers for:
+   - interest upsert + increment
+   - top-school upsert + increment
+   - coach point spend
+   - action-log insert once
+3. Replace all recruiting action handlers with transaction-safe helpers.
+
+### Phase 2: One signing engine
+
+1. Expand `resolveRecruitSigningWinner`.
+2. Use it everywhere signing or projected signing appears:
+   - manual `/sign`
+   - `updateRecruitStages`
+   - `finalizeSigningDay`
+   - `/signing-day-preview`
+   - `/signing-day-reveal`
+3. Add resolver-driven tests for offers, thresholds, NIL, roster, tie-breaks, and manual lower-team rejection.
+
+### Phase 3: Signing Day reveal data deep dive
+
+1. Replace reveal analytics with canonical resolver output.
+2. Add a rich `BattleReport` payload:
+   - final winning score
+   - winning margin
+   - runner-up
+   - viewer rank and score
+   - threshold needed
+   - offer/NIL/roster status
+   - action breakdown
+   - decisive edge summary
+3. Update TypeScript types in `client/src/components/recruit-card.tsx`.
+4. Update `BattleReportModal` to display the real outcome and all analytical details.
+
+### Phase 4: Cinematic reveal UX polish
+
+Keep the current concept: sealed Letter of Intent, card flip, hero spotlight for elite recruits, class poster, Battle Report.
+
+Improve it:
+
+- Full card back after flip must show:
+  - OVR and potential
+  - star rating, class rank, position rank
+  - all core ratings for the player type
+  - all common abilities
+  - special abilities
+  - handedness, hometown/state, recruit type
+  - NIL cost and projection label
+- Battle Report modal must show the recruiting battle, not just a small summary.
+- On small cards/mobile, avoid squeezing all details into unreadable space. Use the modal for the deep dive.
+- Avoid using "BUST" as the main celebratory language. Current "Raw Tools" / "Developmental Projection" direction is better.
+
+### Phase 5: Desktop-first recruiting UX and mobile parity
+
+Design target:
+
+- Desktop remains the premium PC/Steam experience: dense, fast, keyboard/mouse friendly, and information-rich.
+- Mobile is the same recruiting system reorganized for a narrow screen, not a reduced version.
+
+Implementation requirements:
+
+- Audit the desktop recruiting board and list every field/action/filter it exposes.
+- Audit mobile recruiting and identify every missing field/action/filter.
+- Rebuild mobile recruiting so every desktop recruiting decision can be made on mobile:
+  - evaluate player quality
+  - compare targets
+  - manage board rank
+  - scout
+  - pitch by email/phone
+  - schedule campus/head coach visits
+  - offer scholarships
+  - understand NIL fit
+  - understand rival competition
+  - see why an action is disabled
+- Prefer shared components/data mappers so desktop and mobile cannot drift again.
+- Use sticky mobile controls:
+  - top sticky search/filter/sort bar
+  - bottom sticky selected-recruit action tray or detail drawer
+  - expandable recruit cards for dense information
+- Keep desktop optimized:
+  - no loss of table density
+  - no mobile-first oversized cards on PC
+  - preserve keyboard/mouse ergonomics
+  - support wide desktop layouts cleanly
+
+Acceptance criteria:
+
+- A coach can complete a full recruiting week from a phone without switching to desktop.
+- Every desktop recruiting action is available on mobile.
+- Every decision-critical desktop field has a mobile representation.
+- Mobile and desktop call the same API routes and produce the same logs/state changes.
+- Playwright screenshots prove there is no overlapping text or clipped controls at 360, 390, 414, 430, 768, 1440, and 1920 px widths.
+
+### Phase 6: Smart 14-user recruiting simulation
+
+Upgrade `script/14-user-test.ts` or create `script/14-user-recruiting-gauntlet.ts`.
+
+Each simulated coach should have a strategy:
+
+- top overall
+- pitchers only
+- hitters only
+- high potential
+- local recruits
+- high academics
+- NIL aggressive
+- conservative budget
+- under-recruited gems
+- contested-star chaser
+- late closer
+- roster-need optimizer
+- transfer/JUCO focused
+- balanced board
+
+For each recruiting week:
+
+1. Fetch each user's board.
+2. Build/update a top 8-12 board based on strategy, needs, scouting, interest, rank, NIL budget, and rival activity.
+3. Spend points intelligently:
+   - scout unknown high-upside recruits
+   - email/phone using pitch topics that match recruit priorities and school strengths
+   - visit/HCV top targets when allowed
+   - offer when interest/rival pressure makes it smart
+4. Send actions with `Promise.all` plus random jitter to simulate real multiplayer traffic.
+5. Include intentional double-click/retry tests for a few actions.
+6. Advance weeks and repeat until Signing Day.
+7. Verify signings, reveal analytics, offseason, walk-ons, and Season 2.
+
+Direct DB assertions:
+
+- no duplicate `recruiting_interests(recruit_id, team_id)`
+- no duplicate `recruit_top_schools(recruit_id, team_id)`
+- no duplicate weekly email/phone action rows
+- no duplicate season visit/HCV rows
+- no team exceeds weekly recruiting/scouting points
+- no team exceeds visit caps
+- no team exceeds target cap
+- no signed recruit violates offer/threshold/NIL/roster rules
+- every signed recruit's `signedTeamId` equals resolver winner
+- no human team roster exceeds cap after signing day
+- reveal `wonBy` equals resolver margin
+- reveal viewer outcome matches actual signed team
+- all games complete correctly
+- standings W/L totals match completed games
+- postseason bracket has valid teams and one champion
+- dynasty history records champion and runner-up
+- Season 2 generated correctly
+
+### Phase 7: Tests to add or update
+
+Minimum tests:
+
+- `tests/unit/recruit-signing-integrity.test.ts`
+  - lower eligible manual signer rejected when another eligible team leads
+  - canonical resolver tie-break
+  - ineligible no-offer leader cannot win
+  - NIL-ineligible leader cannot win
+  - roster-ineligible leader cannot win
+- new concurrency tests
+  - duplicate email request only logs once and charges once
+  - duplicate offer request only logs once and preserves one interest row
+  - simultaneous actions cannot overspend coach points
+- reveal tests
+  - battle report `wonBy` matches resolver
+  - viewer win/loss state is correct
+  - reveal complete cannot mark another team's class
+- Playwright UI tests
+  - Signing Day reveal desktop
+  - Signing Day reveal mobile
+  - card flip exposes ratings
+  - battle report contains margin, runner-up, threshold, offer, NIL, and action breakdown
+  - recruiting board desktop at 1440 and 1920 px
+  - recruiting board mobile at 360, 390, 414, and 430 px
+  - mobile can scout, email, phone, visit, offer, target, rank, filter, sort, and open the full recruit detail
+  - mobile and desktop show the same decision-critical recruiting fields
+
+## Commands To Run In Replit
+
+Run all of these before calling the work done:
+
+```bash
+npm run check
+npx playwright test tests/unit/recruit-signing-integrity.test.ts
+npx playwright test tests/smoke/03-recruiting.spec.ts
+npx playwright test tests/smoke/02-full-season.spec.ts
+npx playwright test tests/e2e/season-flow.test.ts
+npx tsx script/14-user-test.ts
+```
+
+If you create a new gauntlet script:
+
+```bash
+npx tsx script/14-user-recruiting-gauntlet.ts
+```
+
+## Final Replit Response Required
+
+Return:
+
+- files changed
+- migrations added
+- tests added
+- exact commands run
+- pass/fail output summary
+- 14-user simulation JSON/log path
+- any remaining known risk
+
+Do not stop after UI polish. The main success condition is that a 14-human league can recruit at the same time, sign players correctly, reveal analytically correct results, play a full season, complete CWS/championship, and roll into the next season without corrupted data.

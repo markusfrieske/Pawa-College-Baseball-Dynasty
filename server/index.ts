@@ -342,6 +342,29 @@ app.use((req, res, next) => {
         console.log("[startup-migration] recruiting-interests-unique-v1: deduped + UNIQUE INDEX added");
       });
 
+      // ── action-log-weekly-unique-v1 ─────────────────────────────────────
+      // One email + one phone call per (recruit, team, season, week).
+      // Partial index covers only the weekly-limited action types.
+      await onceAfter('action-log-weekly-unique-v1', async () => {
+        await pool.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS uq_action_log_weekly
+          ON recruiting_actions_log (recruit_id, team_id, season, week, action_type)
+          WHERE action_type IN ('email', 'phone')
+        `);
+        console.log("[startup-migration] action-log-weekly-unique-v1: weekly email/phone unique index added");
+      });
+
+      // ── action-log-seasonal-unique-v1 ────────────────────────────────────
+      // One campus visit, one head-coach visit, one offer per (recruit, team, season).
+      await onceAfter('action-log-seasonal-unique-v1', async () => {
+        await pool.query(`
+          CREATE UNIQUE INDEX IF NOT EXISTS uq_action_log_seasonal
+          ON recruiting_actions_log (recruit_id, team_id, season, action_type)
+          WHERE action_type IN ('visit', 'head_coach_visit', 'offer')
+        `);
+        console.log("[startup-migration] action-log-seasonal-unique-v1: seasonal visit/HCV/offer unique index added");
+      });
+
       // ── recruit-top-schools-unique-v1 ──────────────────────────────────
       // Same treatment for recruit_top_schools.
       await onceAfter('recruit-top-schools-unique-v1', async () => {

@@ -1103,8 +1103,24 @@ export function registerRecruitingRoutes(app: Express): void {
       });
       const totalInterestGain = pitchResults.reduce((s, pr) => s + pr.gain, 0);
 
+      // ── Gate: log action atomically before touching interest or points ────
+      // ON CONFLICT DO NOTHING enforces one phone per (recruit, team, week).
+      const topicSummary = pitchResults.map(p => `${p.topic} (${p.matchLevel}, +${p.gain}%)`).join(", ");
+      const phoneLogged = await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "phone",
+        interestChange: totalInterestGain,
+        notes: `Phone call: ${topicSummary}`,
+      });
+      if (!phoneLogged) {
+        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      
       if (!interest) {
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1125,23 +1141,8 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      // Per-topic sanity checks already run inside computePhoneGain; no aggregate check needed here.
-      const topicSummary = pitchResults.map(p => `${p.topic} (${p.matchLevel}, +${p.gain}%)`).join(", ");
-      await storage.createRecruitingAction({
-        recruitId: req.params.recruitId as string,
-        teamId: userTeam.id,
-        leagueId: req.params.id as string,
-        week: league.currentWeek,
-        season: league.currentSeason,
-        actionType: "phone",
-        interestChange: totalInterestGain,
-        notes: `Phone call: ${topicSummary}`,
-      });
-
       if (userCoach) {
-        await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + phoneCost,
-        });
+        await storage.atomicSpendRecruitPoints(userCoach.id, phoneCost, maxRecruitingActions);
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + phoneCost);
@@ -1210,8 +1211,22 @@ export function registerRecruitingRoutes(app: Express): void {
       const interestGain = Math.max(1, Math.round(rawEmailGain * emailTopicMod));
       assertInterestGainSane("email", interestGain, baseGain);
 
+      // ── Gate: log action atomically before touching interest or points ────
+      const emailLogged = await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "email",
+        interestChange: interestGain,
+        notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
+      });
+      if (!emailLogged) {
+        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      
       if (!interest) {
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1233,21 +1248,8 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      await storage.createRecruitingAction({
-        recruitId: req.params.recruitId as string,
-        teamId: userTeam.id,
-        leagueId: req.params.id as string,
-        week: league.currentWeek,
-        season: league.currentSeason,
-        actionType: "email",
-        interestChange: interestGain,
-        notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
-      });
-
       if (userCoach) {
-        await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
-        });
+        await storage.atomicSpendRecruitPoints(userCoach.id, 1, maxRecruitingActions);
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
@@ -1313,8 +1315,22 @@ export function registerRecruitingRoutes(app: Express): void {
       const { baseGain, interestGain, totalMultiplier } = computeVisitGain(recruit, userTeam, userCoach);
       assertInterestGainSane("visit", interestGain, baseGain);
 
+      // ── Gate: log action atomically before touching interest or points ────
+      const visitLogged = await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "visit",
+        interestChange: interestGain,
+        notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
+      });
+      if (!visitLogged) {
+        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      
       if (!interest) {
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1335,21 +1351,8 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      await storage.createRecruitingAction({
-        recruitId: req.params.recruitId as string,
-        teamId: userTeam.id,
-        leagueId: req.params.id as string,
-        week: league.currentWeek,
-        season: league.currentSeason,
-        actionType: "visit",
-        interestChange: interestGain,
-        notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
-      });
-
       if (userCoach) {
-        await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: actionsUsed + actionCost,
-        });
+        await storage.atomicSpendRecruitPoints(userCoach.id, actionCost, maxRecruitingActions);
       }
 
       const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
@@ -1417,8 +1420,22 @@ export function registerRecruitingRoutes(app: Express): void {
       const interestGain = Math.max(5, Math.round(rawHcvGain * hcvPrestigeMod));
       assertInterestGainSane("head_coach_visit", interestGain, baseGain);
 
+      // ── Gate: log action atomically before touching interest or points ────
+      const hcvLogged = await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "head_coach_visit",
+        interestChange: interestGain,
+        notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
+      });
+      if (!hcvLogged) {
+        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      
       if (!interest) {
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1439,21 +1456,8 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      await storage.createRecruitingAction({
-        recruitId: req.params.recruitId as string,
-        teamId: userTeam.id,
-        leagueId: req.params.id as string,
-        week: league.currentWeek,
-        season: league.currentSeason,
-        actionType: "head_coach_visit",
-        interestChange: interestGain,
-        notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
-      });
-
       if (userCoach) {
-        await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: actionsUsed + actionCost,
-        });
+        await storage.atomicSpendRecruitPoints(userCoach.id, actionCost, maxRecruitingActions);
       }
 
       const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
@@ -1502,16 +1506,36 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
 
-      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      
       const { baseGain, interestGain: rawOfferGain } = computeOfferGain(recruit, userTeam, userCoach);
       // TRANSFER recruit: playing time depth modifier applies (offer triggers playingTime priority)
       const offerTransferPlayers = recruit.recruitType === "TRANSFER" ? await storage.getPlayersByTeam(userTeam.id) : [];
       const offerPlayingTimeMod = computePlayingTimeMod(recruit, offerTransferPlayers);
       const interestGain = Math.max(2, Math.round(rawOfferGain * offerPlayingTimeMod));
       assertInterestGainSane("offer", interestGain, baseGain);
-      
-      if (!interest) {
+
+      // Check if already offered (before the action-log gate, so we give a clear 400)
+      const existingOfferInterest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
+      if (existingOfferInterest?.hasOffer) {
+        return res.status(400).json({ message: "Already offered scholarship" });
+      }
+
+      // ── Gate: log action atomically before touching interest or points ────
+      const offerLogged = await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "offer",
+        interestChange: interestGain,
+        notes: `Offered scholarship (+${interestGain}% interest)`,
+      });
+      if (!offerLogged) {
+        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
+      }
+
+      let interest: typeof existingOfferInterest;
+      if (!existingOfferInterest) {
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
@@ -1519,11 +1543,8 @@ export function registerRecruitingRoutes(app: Express): void {
           hasOffer: true,
         });
       } else {
-        if (interest.hasOffer) {
-          return res.status(400).json({ message: "Already offered scholarship" });
-        }
-        interest = await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+        interest = await storage.updateRecruitingInterest(existingOfferInterest.id, {
+          interestLevel: Math.min(100, (existingOfferInterest.interestLevel || 0) + interestGain),
           hasOffer: true,
         });
       }
@@ -1537,21 +1558,8 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      await storage.createRecruitingAction({
-        recruitId: req.params.recruitId as string,
-        teamId: userTeam.id,
-        leagueId: req.params.id as string,
-        week: league.currentWeek,
-        season: league.currentSeason,
-        actionType: "offer",
-        interestChange: interestGain,
-        notes: `Offered scholarship (+${interestGain}% interest)`,
-      });
-
       if (userCoach) {
-        await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
-        });
+        await storage.atomicSpendRecruitPoints(userCoach.id, 1, maxRecruitingActions);
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
