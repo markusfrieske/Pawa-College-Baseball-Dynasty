@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -63,6 +63,20 @@ export default function LeagueCreatePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Auto-create a guest session if the user arrives here without any session
+  // (e.g. clicking "Create League" directly from the landing page or dashboard)
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" }).then(res => {
+      if (res.status === 401) {
+        fetch("/api/auth/guest", { method: "POST", credentials: "include" }).then(guestRes => {
+          if (guestRes.ok) {
+            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+          }
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
 
   const totalAvailableTeams = useMemo(() => {
     return selectedConferences.reduce((sum, confId) => {
