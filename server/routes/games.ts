@@ -1172,10 +1172,11 @@ export function registerGameRoutes(app: Express): void {
         players: Player[],
         coach: (typeof coaches)[0] | undefined,
       ) => {
-        const pitchers  = players.filter(p => p.position === "SP" || p.position === "RP");
-        const starters  = players.filter(p => p.position === "SP");
-        const relievers = players.filter(p => p.position === "RP");
-        const hitters   = players.filter(p => p.position !== "SP" && p.position !== "RP");
+        const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
+        const pitchers  = players.filter(p => PITCHER_POSITIONS.has(p.position));
+        const starters  = players.filter(p => p.position === "SP" || p.position === "P");
+        const relievers = players.filter(p => p.position === "RP" || p.position === "CL" || p.position === "LHP" || p.position === "RHP");
+        const hitters   = players.filter(p => !PITCHER_POSITIONS.has(p.position));
 
         // Probable starter: best available SP for this game day.
         // Falls back to best available pitcher, then any pitcher.
