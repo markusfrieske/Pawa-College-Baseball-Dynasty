@@ -939,7 +939,6 @@ export const recruitTopSchools = pgTable("recruit_top_schools", {
   accumulatedInterest: integer("accumulated_interest").notNull().default(0), // Total interest accumulated from recruiting actions
   previousInterestLevel: integer("previous_interest_level"), // Snapshot of combined interest before last week advance (for gain highlight)
 }, (t) => [
-  uniqueIndex("uq_recruit_top_schools_recruit_team").on(t.recruitId, t.teamId),
   index("idx_recruit_top_schools_team_id").on(t.teamId),
 ]);
 
