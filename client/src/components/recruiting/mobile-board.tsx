@@ -2,24 +2,23 @@ import { useState, useMemo } from "react";
 import {
   Target, Flame, Users, ClipboardList, Star as StarIcon,
   TrendingUp, TrendingDown, Minus, Search, AlertTriangle, X,
-  Eye, Phone, Mail, MapPin, GraduationCap, Crown, Building2, Skull, Gem,
-  ChevronRight, ChevronDown, ChevronUp, Loader2, Zap,
+  Eye, Phone, Mail, GraduationCap, Crown, Building2, Skull, Gem,
+  ChevronRight, ChevronDown, ChevronUp, Loader2, Zap, DollarSign, Check,
 } from "lucide-react";
 import { StarRating } from "@/components/ui/star-rating";
 import { PositionBadge } from "@/components/ui/position-badge";
-import { Badge } from "@/components/ui/badge";
 import { RetroInput } from "@/components/ui/retro-input";
-import { Progress } from "@/components/ui/progress";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   getInterestLabel,
   getInterestBarColor,
   RECOMMENDED_ACTION_META,
-  type RecruitWithInterest,
   type RecruitRecommendation,
 } from "@/lib/recruitingUtils";
 import type {
+  RecruitWithInterest,
   PipelineData,
   TrendsData,
   WeekRecapData,
@@ -30,7 +29,6 @@ import type {
   CommitAnnouncement,
 } from "@/hooks/use-recruiting";
 import { DramaChips, MovementIndicator, RivalryAlertBadge } from "./drama-chips";
-import { TeamBadge } from "@/components/ui/team-badge";
 
 type TabKey = "board" | "targets" | "battles" | "needs" | "recap";
 
@@ -42,21 +40,6 @@ const PITCH_TOPICS = [
   { key: "collegeLife", label: "College Life" },
 ] as const;
 
-interface MobileRecruitCardProps {
-  recruit: RecruitWithInterest;
-  trend?: { trend: "up" | "down" | "flat"; recentGain: number };
-  recommendation?: RecruitRecommendation;
-  positionNeed?: boolean;
-  isStoryline?: boolean;
-  onSelect: () => void;
-  onQuickPhone?: () => void;
-  onQuickEmail?: () => void;
-  isPending?: boolean;
-  phonedThisWeek?: boolean;
-  emailedThisWeek?: boolean;
-  outOfActions?: boolean;
-}
-
 const STAGE_BADGE: Record<string, { label: string; textColor: string; borderColor: string }> = {
   open:   { label: "Open",   textColor: "text-gray-400",    borderColor: "border-gray-500/40" },
   top8:   { label: "Top 8",  textColor: "text-blue-400",    borderColor: "border-blue-500/40" },
@@ -66,6 +49,167 @@ const STAGE_BADGE: Record<string, { label: string; textColor: string; borderColo
   signed: { label: "Signed", textColor: "text-gold",        borderColor: "border-gold/40" },
 };
 
+// ── Action availability helpers ──────────────────────────────────────────────
+
+interface ActionState {
+  premiumActionsUsed: Record<string, string[]>;
+  weeklyActionsUsed: Record<string, string[]>;
+  remainingPoints: number;
+  remainingScoutPoints: number;
+  seasonVisitCount: { total: number; campusVisits: number; hcVisits: number };
+  nilRemaining?: number;
+  recruitPointCosts: Record<string, { visit: number; headCoachVisit: number }>;
+}
+
+function getDisabledReason(
+  action: "scout" | "phone" | "email" | "visit" | "hcv" | "offer" | "target",
+  recruit: RecruitWithInterest,
+  state: ActionState
+): string | null {
+  const isSigned = recruit.stage === "signed";
+  const isVerbal = recruit.stage === "verbal";
+
+  if (isSigned) return "Already signed";
+
+  const used = state.premiumActionsUsed?.[recruit.id] ?? [];
+  const weekly = state.weeklyActionsUsed?.[recruit.id] ?? [];
+
+  if (action === "scout") {
+    const pct = recruit.interest?.scoutPercentage ?? 0;
+    if (pct >= 100) return "Fully scouted";
+    if (state.remainingScoutPoints <= 0) return "No scout points";
+    return null;
+  }
+
+  if (action === "phone") {
+    if (weekly.includes("phone")) return "Called this week";
+    if (state.remainingPoints <= 0) return "No action points";
+    return null;
+  }
+
+  if (action === "email") {
+    if (weekly.includes("email")) return "Emailed this week";
+    if (state.remainingPoints <= 0) return "No action points";
+    return null;
+  }
+
+  if (action === "visit") {
+    if (used.includes("visit")) return "Already visited";
+    if (state.seasonVisitCount.total >= 20) return "Visit cap reached (20)";
+    const cost = state.recruitPointCosts?.[recruit.id]?.visit ?? 2;
+    if (state.remainingPoints < cost) return `Need ${cost} pts`;
+    return null;
+  }
+
+  if (action === "hcv") {
+    if (used.includes("head_coach_visit")) return "Already HCV'd";
+    if (state.seasonVisitCount.total >= 20) return "Visit cap reached (20)";
+    const cost = state.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2;
+    if (state.remainingPoints < cost) return `Need ${cost} pts`;
+    return null;
+  }
+
+  if (action === "offer") {
+    if (recruit.interest?.hasOffer) return "Offer already out";
+    if (isVerbal) return "Already verbal";
+    const nilCost = recruit.nilCost;
+    if (nilCost && state.nilRemaining !== undefined && Math.ceil(nilCost * 1.25) > state.nilRemaining) {
+      return "Over NIL budget";
+    }
+    return null;
+  }
+
+  if (action === "target") {
+    return null;
+  }
+
+  return null;
+}
+
+// ── Disabled action button ───────────────────────────────────────────────────
+
+function ActionBtn({
+  icon,
+  label,
+  done,
+  disabled,
+  disabledReason,
+  pending,
+  onClick,
+  colorClass,
+  testId,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  done?: boolean;
+  disabled: boolean;
+  disabledReason?: string | null;
+  pending?: boolean;
+  onClick: () => void;
+  colorClass: string;
+  testId?: string;
+}) {
+  const btn = (
+    <button
+      className={`flex-1 flex items-center justify-center gap-1 text-[10px] font-medium py-1.5 rounded border transition-colors min-w-0 ${
+        done
+          ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/5"
+          : disabled || pending
+          ? "border-border/40 text-muted-foreground/40 cursor-not-allowed"
+          : `${colorClass} hover:opacity-90 active:opacity-75`
+      }`}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!disabled && !pending) onClick();
+      }}
+      disabled={disabled || pending}
+      data-testid={testId}
+    >
+      {pending ? (
+        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+      ) : done ? (
+        <Check className="w-3 h-3 shrink-0" />
+      ) : (
+        <span className="shrink-0">{icon}</span>
+      )}
+      <span className="truncate">{done ? "Done" : label}</span>
+    </button>
+  );
+
+  if (disabled && disabledReason) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{btn}</TooltipTrigger>
+        <TooltipContent side="top" className="text-[11px]">
+          {disabledReason}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+  return btn;
+}
+
+// ── Mobile recruit card ──────────────────────────────────────────────────────
+
+interface MobileRecruitCardProps {
+  recruit: RecruitWithInterest;
+  trend?: { trend: "up" | "down" | "flat"; recentGain: number };
+  recommendation?: RecruitRecommendation;
+  positionNeed?: boolean;
+  isStoryline?: boolean;
+  onSelect: () => void;
+  actionState?: ActionState;
+  onQuickPhone?: () => void;
+  onQuickEmail?: () => void;
+  onQuickScout?: () => void;
+  onQuickVisit?: () => void;
+  onQuickHcv?: () => void;
+  onQuickOffer?: () => void;
+  onQuickTarget?: () => void;
+  isPending?: boolean;
+  pendingAction?: string | null;
+}
+
 function MobileRecruitCard({
   recruit,
   trend,
@@ -73,12 +217,16 @@ function MobileRecruitCard({
   positionNeed,
   isStoryline,
   onSelect,
+  actionState,
   onQuickPhone,
   onQuickEmail,
+  onQuickScout,
+  onQuickVisit,
+  onQuickHcv,
+  onQuickOffer,
+  onQuickTarget,
   isPending = false,
-  phonedThisWeek = false,
-  emailedThisWeek = false,
-  outOfActions = false,
+  pendingAction,
 }: MobileRecruitCardProps) {
   const [expanded, setExpanded] = useState(false);
   const interest = recruit.interest;
@@ -89,6 +237,8 @@ function MobileRecruitCard({
   const stage = recruit.stage ?? "open";
   const isSigned = stage === "signed";
   const stageBadge = STAGE_BADGE[stage] ?? STAGE_BADGE.open;
+  const isTargeted = recruit.interest?.isTargeted ?? false;
+  const hasOffer = recruit.interest?.hasOffer ?? false;
 
   const ovrStr = (() => {
     const min = interest?.minOverall;
@@ -119,9 +269,29 @@ function MobileRecruitCard({
     ? "text-red-400"
     : "text-muted-foreground";
 
-  const hasQuickActions = !!(onQuickPhone || onQuickEmail);
-  const canPhone = !phonedThisWeek && !outOfActions && !!onQuickPhone;
-  const canEmail = !emailedThisWeek && !outOfActions && !!onQuickEmail;
+  // Action availability
+  const phoneDisabled = !actionState ? false : !!getDisabledReason("phone", recruit, actionState);
+  const emailDisabled = !actionState ? false : !!getDisabledReason("email", recruit, actionState);
+  const scoutDisabled = !actionState ? false : !!getDisabledReason("scout", recruit, actionState);
+  const visitDisabled = !actionState ? false : !!getDisabledReason("visit", recruit, actionState);
+  const hcvDisabled = !actionState ? false : !!getDisabledReason("hcv", recruit, actionState);
+  const offerDisabled = !actionState ? false : !!getDisabledReason("offer", recruit, actionState);
+
+  const phoneReason = actionState ? getDisabledReason("phone", recruit, actionState) : null;
+  const emailReason = actionState ? getDisabledReason("email", recruit, actionState) : null;
+  const scoutReason = actionState ? getDisabledReason("scout", recruit, actionState) : null;
+  const visitReason = actionState ? getDisabledReason("visit", recruit, actionState) : null;
+  const hcvReason = actionState ? getDisabledReason("hcv", recruit, actionState) : null;
+  const offerReason = actionState ? getDisabledReason("offer", recruit, actionState) : null;
+
+  const phonedThisWeek = actionState?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false;
+  const emailedThisWeek = actionState?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false;
+  const alreadyVisited = actionState?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false;
+  const alreadyHcv = actionState?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false;
+  const fullyScoutd = (scoutPct >= 100);
+
+  const nilCost = recruit.nilCost;
+  const nilAffordable = !actionState?.nilRemaining || !nilCost || Math.ceil(nilCost * 1.25) <= actionState.nilRemaining;
 
   return (
     <div
@@ -140,8 +310,11 @@ function MobileRecruitCard({
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onSelect()}
     >
-      {/* Row 1: Stars + rank + badges + trend */}
+      {/* Row 1: Stars + rank + badges + trend + target indicator */}
       <div className="flex items-center gap-1.5 flex-wrap">
+        {isTargeted && (
+          <Target className="w-3 h-3 text-gold shrink-0" />
+        )}
         {recruit.starRating > 0 ? (
           <StarRating rating={recruit.starRating} size="sm" />
         ) : (
@@ -170,6 +343,12 @@ function MobileRecruitCard({
         )}
         {positionNeed && (
           <span className="text-[10px] font-pixel text-red-400 border border-red-500/40 px-1 rounded">NEED</span>
+        )}
+        {hasOffer && (
+          <span className="text-[10px] font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">OFFER</span>
+        )}
+        {nilCost && !nilAffordable && (
+          <DollarSign className="w-3 h-3 text-red-400 shrink-0" />
         )}
         <div className="ml-auto">
           <TrendIcon className={`w-3.5 h-3.5 ${trendColor}`} />
@@ -202,7 +381,7 @@ function MobileRecruitCard({
         </div>
       </div>
 
-      {/* Row 4: Scout / OVR / Pipeline stage / expand toggle */}
+      {/* Row 4: Scout / OVR / stage / expand toggle */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] text-muted-foreground">
@@ -224,71 +403,158 @@ function MobileRecruitCard({
               {actionMeta.label}
             </span>
           )}
-          {hasQuickActions ? (
-            <button
-              className="p-0.5 text-muted-foreground hover:text-gold transition-colors"
-              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
-              aria-label={expanded ? "Collapse actions" : "Expand actions"}
-              data-testid={`mobile-card-expand-${recruit.id}`}
-            >
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          ) : (
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-          )}
+          <button
+            className="p-0.5 text-muted-foreground hover:text-gold transition-colors"
+            onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+            aria-label={expanded ? "Collapse actions" : "Expand actions"}
+            data-testid={`mobile-card-expand-${recruit.id}`}
+          >
+            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
-      {/* Row 5: Quick actions (expanded) */}
-      {expanded && hasQuickActions && (
+      {/* Row 5: Expanded quick actions */}
+      {expanded && (
         <div
-          className="flex items-center gap-2 pt-1 border-t border-border/40"
+          className="flex flex-col gap-2 pt-1 border-t border-border/40"
           onClick={(e) => e.stopPropagation()}
         >
-          {onQuickPhone && (
-            <button
-              className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded border transition-colors ${
-                canPhone && !isPending
-                  ? "border-blue-500/50 text-blue-400 hover:bg-blue-500/10 active:bg-blue-500/20"
-                  : "border-border/40 text-muted-foreground/50 cursor-not-allowed"
-              }`}
-              onClick={() => canPhone && !isPending && onQuickPhone()}
-              disabled={!canPhone || isPending}
-              data-testid={`mobile-card-phone-${recruit.id}`}
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Phone className="w-3.5 h-3.5" />
-              )}
-              {phonedThisWeek ? "Called" : "Call"}
-            </button>
+          {/* NIL info if available */}
+          {nilCost && scoutPct >= 50 && (
+            <div className={`flex items-center gap-1.5 text-[10px] px-1.5 py-1 rounded border ${nilAffordable ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}`}>
+              <DollarSign className="w-3 h-3 shrink-0" />
+              <span>NIL: ${nilCost >= 1000000 ? `${(nilCost / 1000000).toFixed(1)}M` : nilCost >= 1000 ? `${Math.round(nilCost / 1000)}K` : nilCost}</span>
+              {!nilAffordable && <span className="ml-auto">Over budget</span>}
+            </div>
           )}
-          {onQuickEmail && (
-            <button
-              className={`flex-1 flex items-center justify-center gap-1.5 text-[11px] font-medium py-1.5 rounded border transition-colors ${
-                canEmail && !isPending
-                  ? "border-purple-500/50 text-purple-400 hover:bg-purple-500/10 active:bg-purple-500/20"
-                  : "border-border/40 text-muted-foreground/50 cursor-not-allowed"
-              }`}
-              onClick={() => canEmail && !isPending && onQuickEmail()}
-              disabled={!canEmail || isPending}
-              data-testid={`mobile-card-email-${recruit.id}`}
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Mail className="w-3.5 h-3.5" />
-              )}
-              {emailedThisWeek ? "Emailed" : "Email"}
-            </button>
+
+          {/* Top schools snippet */}
+          {recruit.topSchools && recruit.topSchools.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground">Top:</span>
+              {recruit.topSchools.slice(0, 3).map((s) => (
+                <span
+                  key={s.teamId}
+                  className="text-[10px] font-medium px-1 rounded"
+                  style={{ color: `#${s.primaryColor?.replace("#", "") || "888"}` }}
+                >
+                  {s.abbreviation}
+                </span>
+              ))}
+            </div>
           )}
+
+          {/* Action row 1: Scout + Target + Phone + Email */}
+          <div className="flex gap-1.5">
+            {onQuickScout && (
+              <ActionBtn
+                icon={<Eye className="w-3 h-3" />}
+                label="Scout"
+                done={fullyScoutd}
+                disabled={scoutDisabled}
+                disabledReason={scoutReason}
+                pending={isPending && pendingAction === "scout"}
+                onClick={onQuickScout}
+                colorClass="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/10"
+                testId={`mobile-card-scout-${recruit.id}`}
+              />
+            )}
+            {onQuickTarget && (
+              <ActionBtn
+                icon={isTargeted ? <Check className="w-3 h-3" /> : <Target className="w-3 h-3" />}
+                label={isTargeted ? "Targeted" : "Target"}
+                done={false}
+                disabled={isSigned}
+                disabledReason={isSigned ? "Already signed" : null}
+                pending={isPending && pendingAction === "target"}
+                onClick={onQuickTarget}
+                colorClass={isTargeted ? "border-gold/50 text-gold hover:bg-gold/10" : "border-muted-foreground/40 text-muted-foreground hover:border-gold/40 hover:text-gold"}
+                testId={`mobile-card-target-${recruit.id}`}
+              />
+            )}
+          </div>
+
+          {/* Action row 2: Phone + Email */}
+          <div className="flex gap-1.5">
+            {onQuickPhone && (
+              <ActionBtn
+                icon={<Phone className="w-3 h-3" />}
+                label={phonedThisWeek ? "Called" : "Call"}
+                done={phonedThisWeek}
+                disabled={phoneDisabled}
+                disabledReason={phoneReason}
+                pending={isPending && pendingAction === "phone"}
+                onClick={onQuickPhone}
+                colorClass="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                testId={`mobile-card-phone-${recruit.id}`}
+              />
+            )}
+            {onQuickEmail && (
+              <ActionBtn
+                icon={<Mail className="w-3 h-3" />}
+                label={emailedThisWeek ? "Emailed" : "Email"}
+                done={emailedThisWeek}
+                disabled={emailDisabled}
+                disabledReason={emailReason}
+                pending={isPending && pendingAction === "email"}
+                onClick={onQuickEmail}
+                colorClass="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
+                testId={`mobile-card-email-${recruit.id}`}
+              />
+            )}
+          </div>
+
+          {/* Action row 3: Visit + HCV + Offer */}
+          <div className="flex gap-1.5">
+            {onQuickVisit && (
+              <ActionBtn
+                icon={<Building2 className="w-3 h-3" />}
+                label={alreadyVisited ? "Visited" : "Visit"}
+                done={alreadyVisited}
+                disabled={visitDisabled}
+                disabledReason={visitReason}
+                pending={isPending && pendingAction === "visit"}
+                onClick={onQuickVisit}
+                colorClass="border-teal-500/50 text-teal-400 hover:bg-teal-500/10"
+                testId={`mobile-card-visit-${recruit.id}`}
+              />
+            )}
+            {onQuickHcv && (
+              <ActionBtn
+                icon={<Crown className="w-3 h-3" />}
+                label={alreadyHcv ? "HCV Done" : "HC Visit"}
+                done={alreadyHcv}
+                disabled={hcvDisabled}
+                disabledReason={hcvReason}
+                pending={isPending && pendingAction === "hcv"}
+                onClick={onQuickHcv}
+                colorClass="border-violet-500/50 text-violet-400 hover:bg-violet-500/10"
+                testId={`mobile-card-hcv-${recruit.id}`}
+              />
+            )}
+            {onQuickOffer && (
+              <ActionBtn
+                icon={<GraduationCap className="w-3 h-3" />}
+                label={hasOffer ? "Offered" : "Offer"}
+                done={hasOffer}
+                disabled={offerDisabled}
+                disabledReason={offerReason}
+                pending={isPending && pendingAction === "offer"}
+                onClick={onQuickOffer}
+                colorClass="border-gold/50 text-gold hover:bg-gold/10"
+                testId={`mobile-card-offer-${recruit.id}`}
+              />
+            )}
+          </div>
+
+          {/* Details link */}
           <button
-            className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground border border-border/40 rounded py-1.5 px-2 hover:border-gold/50 hover:text-gold transition-colors shrink-0"
+            className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground border border-border/40 rounded py-1.5 hover:border-gold/50 hover:text-gold transition-colors w-full"
             onClick={onSelect}
             data-testid={`mobile-card-details-${recruit.id}`}
           >
-            Details
+            Full Profile
             <ChevronRight className="w-3 h-3" />
           </button>
         </div>
@@ -296,6 +562,8 @@ function MobileRecruitCard({
     </div>
   );
 }
+
+// ── Mobile recruit list ──────────────────────────────────────────────────────
 
 interface MobileRecruitListProps {
   recruits: RecruitWithInterest[];
@@ -306,11 +574,16 @@ interface MobileRecruitListProps {
   onSelectRecruit: (r: RecruitWithInterest) => void;
   emptyMessage?: string;
   emptyIcon?: React.ReactNode;
+  actionState?: ActionState;
   onQuickPhone?: (recruitId: string) => void;
   onQuickEmail?: (recruitId: string) => void;
+  onQuickScout?: (recruitId: string) => void;
+  onQuickVisit?: (recruitId: string) => void;
+  onQuickHcv?: (recruitId: string) => void;
+  onQuickOffer?: (recruitId: string) => void;
+  onQuickTarget?: (recruitId: string) => void;
   pendingRecruitId?: string | null;
-  weeklyActionsUsed?: Record<string, string[]>;
-  outOfActions?: boolean;
+  pendingActionType?: string | null;
 }
 
 function MobileRecruitList({
@@ -322,11 +595,16 @@ function MobileRecruitList({
   onSelectRecruit,
   emptyMessage = "No recruits found",
   emptyIcon,
+  actionState,
   onQuickPhone,
   onQuickEmail,
+  onQuickScout,
+  onQuickVisit,
+  onQuickHcv,
+  onQuickOffer,
+  onQuickTarget,
   pendingRecruitId,
-  weeklyActionsUsed,
-  outOfActions,
+  pendingActionType,
 }: MobileRecruitListProps) {
   if (recruits.length === 0) {
     return (
@@ -348,17 +626,23 @@ function MobileRecruitList({
           positionNeed={positionNeeds?.find((p) => p.position === recruit.position)?.need}
           isStoryline={storylineRecruitIds.has(recruit.id)}
           onSelect={() => onSelectRecruit(recruit)}
+          actionState={actionState}
           onQuickPhone={onQuickPhone ? () => onQuickPhone(recruit.id) : undefined}
           onQuickEmail={onQuickEmail ? () => onQuickEmail(recruit.id) : undefined}
+          onQuickScout={onQuickScout ? () => onQuickScout(recruit.id) : undefined}
+          onQuickVisit={onQuickVisit ? () => onQuickVisit(recruit.id) : undefined}
+          onQuickHcv={onQuickHcv ? () => onQuickHcv(recruit.id) : undefined}
+          onQuickOffer={onQuickOffer ? () => onQuickOffer(recruit.id) : undefined}
+          onQuickTarget={onQuickTarget ? () => onQuickTarget(recruit.id) : undefined}
           isPending={pendingRecruitId === recruit.id}
-          phonedThisWeek={weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false}
-          emailedThisWeek={weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false}
-          outOfActions={outOfActions}
+          pendingAction={pendingRecruitId === recruit.id ? pendingActionType : null}
         />
       ))}
     </div>
   );
 }
+
+// ── Recap tab ────────────────────────────────────────────────────────────────
 
 interface MobileRecapTabProps {
   weekRecapData?: WeekRecapData;
@@ -424,7 +708,6 @@ function MobileRecapTab({
 
   return (
     <div className="space-y-4 pb-4">
-      {/* Decommit alerts */}
       {visibleDecommits.map((alert) => {
         const isPositive = alert.metadata?.alertType === "gain";
         const recruitId = alert.metadata?.recruitId ?? null;
@@ -472,7 +755,6 @@ function MobileRecapTab({
         );
       })}
 
-      {/* Week recap */}
       {weekRecapData && (weekRecapData.myRecruits.length > 0 || weekRecapData.hotMissed.length > 0) && (
         <div className="bg-card border border-border rounded-lg p-3 space-y-3">
           <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">
@@ -546,7 +828,6 @@ function MobileRecapTab({
         </div>
       )}
 
-      {/* Recent action history */}
       {displayActions.length > 0 && (
         <div className="bg-card border border-border rounded-lg p-3 space-y-2">
           <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">
@@ -580,6 +861,8 @@ function MobileRecapTab({
   );
 }
 
+// ── Needs tab ────────────────────────────────────────────────────────────────
+
 interface MobileNeedsTabProps {
   filteredRecruits: RecruitWithInterest[];
   pipelineData?: PipelineData;
@@ -587,11 +870,16 @@ interface MobileNeedsTabProps {
   recommendationsByRecruit: Map<string, RecruitRecommendation>;
   storylineRecruitIds: Set<string>;
   onSelectRecruit: (r: RecruitWithInterest) => void;
+  actionState?: ActionState;
   onQuickPhone?: (recruitId: string) => void;
   onQuickEmail?: (recruitId: string) => void;
+  onQuickScout?: (recruitId: string) => void;
+  onQuickVisit?: (recruitId: string) => void;
+  onQuickHcv?: (recruitId: string) => void;
+  onQuickOffer?: (recruitId: string) => void;
+  onQuickTarget?: (recruitId: string) => void;
   pendingRecruitId?: string | null;
-  weeklyActionsUsed?: Record<string, string[]>;
-  outOfActions?: boolean;
+  pendingActionType?: string | null;
 }
 
 function MobileNeedsTab({
@@ -601,11 +889,16 @@ function MobileNeedsTab({
   recommendationsByRecruit,
   storylineRecruitIds,
   onSelectRecruit,
+  actionState,
   onQuickPhone,
   onQuickEmail,
+  onQuickScout,
+  onQuickVisit,
+  onQuickHcv,
+  onQuickOffer,
+  onQuickTarget,
   pendingRecruitId,
-  weeklyActionsUsed,
-  outOfActions,
+  pendingActionType,
 }: MobileNeedsTabProps) {
   const needs = pipelineData?.positionNeeds?.filter((p) => p.need) ?? [];
   const [selectedPos, setSelectedPos] = useState<string | null>(null);
@@ -629,7 +922,6 @@ function MobileNeedsTab({
 
   return (
     <div className="space-y-4 pb-4">
-      {/* Position needs summary chips */}
       <div>
         <p className="text-[10px] font-pixel text-muted-foreground mb-2 uppercase">Position Needs</p>
         <div className="flex flex-wrap gap-2">
@@ -660,8 +952,6 @@ function MobileNeedsTab({
           ))}
         </div>
       </div>
-
-      {/* Recruits matching needs */}
       <MobileRecruitList
         recruits={needsRecruits}
         trendsData={trendsData}
@@ -671,21 +961,24 @@ function MobileNeedsTab({
         onSelectRecruit={onSelectRecruit}
         emptyMessage={selectedPos ? `No ${selectedPos} recruits in your current board` : "No recruits matching position needs"}
         emptyIcon={<Users className="w-10 h-10" />}
+        actionState={actionState}
         onQuickPhone={onQuickPhone}
         onQuickEmail={onQuickEmail}
+        onQuickScout={onQuickScout}
+        onQuickVisit={onQuickVisit}
+        onQuickHcv={onQuickHcv}
+        onQuickOffer={onQuickOffer}
+        onQuickTarget={onQuickTarget}
         pendingRecruitId={pendingRecruitId}
-        weeklyActionsUsed={weeklyActionsUsed}
-        outOfActions={outOfActions}
+        pendingActionType={pendingActionType}
       />
     </div>
   );
 }
 
-// ── Recruiting Battles Panel ──────────────────────────────────────────────
+// ── Battles panel ────────────────────────────────────────────────────────────
 
-interface BattleRecruitCardProps {
-  battle: BattleRecruit;
-}
+interface BattleRecruitCardProps { battle: BattleRecruit }
 
 function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
   const stageLabel: Record<string, string> = {
@@ -697,84 +990,59 @@ function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
     battle.humanRivalCount >= 1 ? "text-orange-400" : "text-muted-foreground";
 
   return (
-    <div
-      className={`bg-card border rounded-lg p-3 space-y-2 ${battle.rivalryAlert ? "border-orange-600/40" : "border-border"}`}
-      data-testid={`battle-card-${battle.id}`}
-    >
-      {/* Header row */}
+    <div className="bg-card border border-border/60 rounded-lg p-3 space-y-2" data-testid={`mobile-battle-card-${battle.id}`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-medium text-sm truncate">{battle.firstName} {battle.lastName}</span>
-            {battle.isBlueChip && (
-              <span className="text-[8px] px-1 py-0.5 rounded bg-blue-900/50 text-blue-300 border border-blue-600/40">Blue Chip</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
-            <span>{battle.position}</span>
-            <span className="text-gold">{stars}</span>
-            <span>{battle.homeState}</span>
-            {battle.stage !== "open" && (
-              <span className={`px-1 py-0.5 rounded text-[8px] ${
-                battle.stage === "verbal" ? "bg-amber-950/60 text-amber-300 border border-amber-600/40" :
-                battle.stage === "top3" ? "bg-yellow-950/60 text-yellow-300 border border-yellow-600/40" :
-                "bg-muted/40 text-muted-foreground border border-border"
-              }`}>
-                {stageLabel[battle.stage] ?? battle.stage}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="text-right shrink-0">
-          <div className={`text-[10px] font-medium ${intensityColor}`}>
-            {battle.humanRivalCount > 0
-              ? `${battle.humanRivalCount} rival${battle.humanRivalCount !== 1 ? "s" : ""}`
-              : `${battle.totalActiveCount} schools`}
-          </div>
-          {battle.offersOut > 0 && (
-            <div className="text-[9px] text-muted-foreground">{battle.offersOut} offer{battle.offersOut !== 1 ? "s" : ""}</div>
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          {battle.starRank && battle.starRank > 0 && (
+            <span className="text-gold text-[10px] shrink-0">{stars}</span>
+          )}
+          <PositionBadge position={battle.position} />
+          <span className="text-sm font-semibold text-foreground truncate">
+            {battle.firstName} {battle.lastName}
+          </span>
+          {battle.isBlueChip && (
+            <span className="text-[10px] font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">CHIP</span>
           )}
         </div>
-      </div>
-
-      {/* Drama chips */}
-      <DramaChips dramaTags={battle.dramaTags} maxVisible={4} />
-
-      {/* My team movement */}
-      {battle.myInterest && (
-        <div className="flex items-center gap-2 text-[9px]">
-          <span className="text-muted-foreground">My interest:</span>
-          <span className={battle.myInterest.interestLevel > 60 ? "text-emerald-400" : "text-foreground"}>
-            {battle.myInterest.interestLevel}%
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`text-[10px] font-medium ${intensityColor}`}>
+            {battle.humanRivalCount} rival{battle.humanRivalCount !== 1 ? "s" : ""}
           </span>
-          <MovementIndicator delta={battle.myMovementDelta} />
-          {battle.myInterest.hasOffer && <span className="text-gold">Offered</span>}
+          {battle.rivalryAlert && <RivalryAlertBadge />}
         </div>
-      )}
-
-      {/* Top schools strip */}
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-pixel px-1.5 py-0.5 rounded border border-gray-500/40 text-gray-400">
+          {stageLabel[battle.stage] ?? battle.stage}
+        </span>
+        {battle.myInterest && (
+          <span className="text-[10px] text-foreground">
+            My interest: <span className="font-medium text-gold">{battle.myInterest.interestLevel}%</span>
+          </span>
+        )}
+        {battle.myMovementDelta != null && battle.myMovementDelta !== 0 && (
+          <MovementIndicator delta={battle.myMovementDelta} />
+        )}
+      </div>
       {battle.topSchools.length > 0 && (
-        <div className="flex flex-wrap gap-1 pt-1 border-t border-border/40">
-          {battle.topSchools.slice(0, 5).map(school => (
-            <div
-              key={school.teamId}
-              className={`flex items-center gap-0.5 text-[8px] px-1 py-0.5 rounded border ${
-                school.isMyTeam ? "border-gold/40 bg-gold/10 text-gold" :
-                school.isHuman ? "border-orange-600/30 bg-orange-950/30 text-orange-300" :
-                "border-border/40 bg-muted/20 text-muted-foreground"
-              }`}
-              title={school.teamName}
-            >
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {battle.topSchools.slice(0, 4).map((s) => (
+            <div key={s.teamId} className="flex items-center gap-1">
               <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: school.primaryColor || "#888" }}
-              />
-              <span>{school.abbreviation}</span>
-              {school.movementDir === "up" && <TrendingUp className="w-2 h-2 text-emerald-400" />}
-              {school.movementDir === "down" && <TrendingDown className="w-2 h-2 text-red-400" />}
-              {school.activityLevel === "High" && <span className="text-[7px] text-orange-400">H</span>}
+                className={`text-[10px] font-medium ${s.isMyTeam ? "underline underline-offset-2" : ""}`}
+                style={{ color: `#${s.primaryColor?.replace("#", "") || "888"}` }}
+              >
+                {s.abbreviation}
+              </span>
+              {s.movementDir === "up" && <TrendingUp className="w-2.5 h-2.5 text-green-400" />}
+              {s.movementDir === "down" && <TrendingDown className="w-2.5 h-2.5 text-red-400" />}
             </div>
           ))}
+        </div>
+      )}
+      {battle.dramaTags.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          <DramaChips dramaTags={battle.dramaTags} />
         </div>
       )}
     </div>
@@ -782,35 +1050,25 @@ function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
 }
 
 function CommitAnnouncementCard({ commit }: { commit: CommitAnnouncement }) {
-  const stars = "★".repeat(Math.min(commit.starRank ?? 0, 5));
   return (
     <div
-      className={`border rounded-lg p-3 flex items-center gap-3 ${
-        commit.isMyTeam ? "border-gold/40 bg-gold/5" : "border-border bg-card"
+      className={`rounded-lg border p-2.5 flex items-center gap-3 ${
+        commit.isMyTeam ? "border-gold/40 bg-gold/5" : "border-border/60"
       }`}
-      data-testid={`commit-card-${commit.id}`}
+      data-testid={`mobile-commit-card-${commit.id}`}
     >
-      {commit.signedTeamPrimaryColor && (
-        <div
-          className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold text-white"
-          style={{ backgroundColor: commit.signedTeamPrimaryColor }}
-        >
-          {commit.signedTeamAbbreviation?.slice(0, 2) ?? "?"}
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="font-medium text-[11px]">{commit.firstName} {commit.lastName}</span>
-          {commit.isMyTeam && <span className="text-[8px] text-gold">Your Commit</span>}
-        </div>
-        <div className="text-[9px] text-muted-foreground">
-          <span className="text-gold">{stars}</span> {commit.position} · {commit.homeState}
-        </div>
-        {commit.signedTeamName && (
-          <div className="text-[9px] mt-0.5" style={{ color: commit.signedTeamPrimaryColor || undefined }}>
-            {commit.signedTeamName}
-          </div>
-        )}
+      <GraduationCap className={`w-4 h-4 shrink-0 ${commit.isMyTeam ? "text-gold" : "text-muted-foreground"}`} />
+      <div className="min-w-0">
+        <p className="text-[12px] font-semibold text-foreground truncate">
+          {commit.firstName} {commit.lastName}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          {commit.position}
+          {commit.signedTeamName && (
+            <span className={commit.isMyTeam ? "text-gold" : ""}> → {commit.signedTeamAbbreviation || commit.signedTeamName}</span>
+          )}
+          {commit.classRank && <span className="ml-2">#{commit.classRank}</span>}
+        </p>
       </div>
     </div>
   );
@@ -824,11 +1082,11 @@ interface RecruitingBattlesPanelProps {
   pipelineData?: PipelineData;
   storylineRecruitIds: Set<string>;
   onSelectRecruit: (r: RecruitWithInterest) => void;
+  actionState?: ActionState;
   onQuickPhone?: (recruitId: string) => void;
   onQuickEmail?: (recruitId: string) => void;
   pendingRecruitId?: string | null;
-  weeklyActionsUsed: Record<string, string[]>;
-  outOfActions: boolean;
+  pendingActionType?: string | null;
 }
 
 function RecruitingBattlesPanel({
@@ -839,72 +1097,54 @@ function RecruitingBattlesPanel({
   pipelineData,
   storylineRecruitIds,
   onSelectRecruit,
+  actionState,
   onQuickPhone,
   onQuickEmail,
   pendingRecruitId,
-  weeklyActionsUsed,
-  outOfActions,
+  pendingActionType,
 }: RecruitingBattlesPanelProps) {
-  const [showCommits, setShowCommits] = useState(true);
   const [showWatchlist, setShowWatchlist] = useState(true);
 
   const battles = battlesData?.battles ?? [];
   const recentCommits = battlesData?.recentCommits ?? [];
 
-  const commitWatchBattles = battles.filter(b => b.dramaTags.includes("Commitment Watch") || b.dramaTags.includes("Decision Soon"));
-  const rivalryBattles = battles.filter(b => b.rivalryAlert && !commitWatchBattles.includes(b));
-  const otherBattles = battles.filter(b => !commitWatchBattles.includes(b) && !rivalryBattles.includes(b));
-
-  // If battlesData isn't loaded yet, fall back to filtered recruits
-  if (!battlesData) {
-    return (
-      <div className="space-y-3">
-        <p className="text-[10px] text-muted-foreground">
-          {battleRecruits.length} contested recruit{battleRecruits.length !== 1 ? "s" : ""}
-        </p>
-        <MobileRecruitList
-          recruits={battleRecruits}
-          trendsData={trendsData}
-          recommendationsByRecruit={recommendationsByRecruit}
-          positionNeeds={pipelineData?.positionNeeds}
-          storylineRecruitIds={storylineRecruitIds}
-          onSelectRecruit={onSelectRecruit}
-          emptyMessage="No contested recruits right now"
-          emptyIcon={<Flame className="w-10 h-10" />}
-          onQuickPhone={onQuickPhone}
-          onQuickEmail={onQuickEmail}
-          pendingRecruitId={pendingRecruitId}
-          weeklyActionsUsed={weeklyActionsUsed}
-          outOfActions={outOfActions}
-        />
-      </div>
-    );
-  }
+  const hotBattles = battles.filter(b => b.battleScore >= 3 || b.rivalryAlert);
+  const commitWatchBattles = battles.filter(b => b.myInterest?.isTargeted && b.stage === "top3");
+  const rivalryBattles = battles.filter(b => b.rivalryAlert && !hotBattles.includes(b));
+  const otherBattles = battles.filter(
+    b => !hotBattles.includes(b) && !commitWatchBattles.includes(b) && !rivalryBattles.includes(b)
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Recent Commitments */}
-      {recentCommits.length > 0 && (
+    <div className="space-y-4 pb-4">
+      {hotBattles.length > 0 && (
         <div>
-          <button
-            className="flex items-center gap-1.5 text-[10px] font-pixel text-muted-foreground mb-2 w-full text-left"
-            onClick={() => setShowCommits(v => !v)}
-            data-testid="btn-toggle-commits"
-          >
-            {showCommits ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-            Commitments ({recentCommits.length})
-          </button>
-          {showCommits && (
-            <div className="space-y-2">
-              {recentCommits.slice(0, 5).map(c => (
-                <CommitAnnouncementCard key={c.id} commit={c} />
-              ))}
-            </div>
-          )}
+          <div className="text-[10px] font-pixel text-red-400 mb-2 flex items-center gap-1.5">
+            <Flame className="w-3 h-3" />
+            Hot Battles ({hotBattles.length})
+          </div>
+          <div className="space-y-2">
+            {hotBattles.map(b => (
+              <BattleRecruitCard key={b.id} battle={b} />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Commitment Watch */}
+      {recentCommits.length > 0 && (
+        <div>
+          <div className="text-[10px] font-pixel text-gold mb-2 flex items-center gap-1.5">
+            <GraduationCap className="w-3 h-3" />
+            Recent Commits ({recentCommits.length})
+          </div>
+          <div className="space-y-2">
+            {recentCommits.slice(0, 5).map(c => (
+              <CommitAnnouncementCard key={c.id} commit={c} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {commitWatchBattles.length > 0 && (
         <div>
           <button
@@ -925,7 +1165,6 @@ function RecruitingBattlesPanel({
         </div>
       )}
 
-      {/* Rivalry Alerts */}
       {rivalryBattles.length > 0 && (
         <div>
           <div className="text-[10px] font-pixel text-orange-400 mb-2 flex items-center gap-1.5">
@@ -940,7 +1179,6 @@ function RecruitingBattlesPanel({
         </div>
       )}
 
-      {/* Rest of contested recruits */}
       {otherBattles.length > 0 && (
         <div>
           <div className="text-[10px] font-pixel text-muted-foreground mb-2">
@@ -964,6 +1202,8 @@ function RecruitingBattlesPanel({
   );
 }
 
+// ── Main mobile board ────────────────────────────────────────────────────────
+
 export interface MobileRecruitingBoardProps {
   filteredRecruits: RecruitWithInterest[];
   allRecruits: RecruitWithInterest[];
@@ -980,12 +1220,22 @@ export interface MobileRecruitingBoardProps {
   onDismissDecommit: (id: string) => void;
   onPhone: (recruitId: string, pitchTopic?: string) => void;
   onEmail: (recruitId: string, pitchTopic?: string) => void;
+  onScout?: (recruitId: string) => void;
+  onVisit?: (recruitId: string) => void;
+  onHeadCoachVisit?: (recruitId: string) => void;
+  onOffer?: (recruitId: string) => void;
+  onTarget?: (recruitId: string) => void;
   isPhoning: boolean;
   isEmailing: boolean;
-  weeklyActionsUsed: Record<string, string[]>;
-  remainingPoints: number;
+  isScouting?: boolean;
+  isVisiting?: boolean;
+  isHeadCoachVisiting?: boolean;
+  isOffering?: boolean;
+  isTargeting?: boolean;
+  actionState: ActionState;
   leagueId: string;
   battlesData?: BattlesData;
+  activeFilterChips?: string[];
 }
 
 export function MobileRecruitingBoard({
@@ -1004,12 +1254,22 @@ export function MobileRecruitingBoard({
   onDismissDecommit,
   onPhone,
   onEmail,
+  onScout,
+  onVisit,
+  onHeadCoachVisit,
+  onOffer,
+  onTarget,
   isPhoning,
   isEmailing,
-  weeklyActionsUsed,
-  remainingPoints,
+  isScouting,
+  isVisiting,
+  isHeadCoachVisiting,
+  isOffering,
+  isTargeting,
+  actionState,
   leagueId,
   battlesData,
+  activeFilterChips = [],
 }: MobileRecruitingBoardProps) {
   const tabStorageKey = `recruiting-mobile-tab-${leagueId}`;
   const [activeTab, setActiveTabState] = useState<TabKey>(() => {
@@ -1022,12 +1282,16 @@ export function MobileRecruitingBoard({
     sessionStorage.setItem(tabStorageKey, tab);
   }
   const [boardSearch, setBoardSearch] = useState("");
-  const [pendingAction, setPendingAction] = useState<{ recruitId: string; type: "phone" | "email" } | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    recruitId: string;
+    type: "phone" | "email" | "scout" | "visit" | "hcv" | "offer" | "target";
+  } | null>(null);
   const [showTopicSheet, setShowTopicSheet] = useState(false);
   const [lastActioningId, setLastActioningId] = useState<string | null>(null);
+  const [lastActionType, setLastActionType] = useState<string | null>(null);
 
-  const outOfActions = remainingPoints <= 0;
-  const isPendingAny = isPhoning || isEmailing;
+  const outOfActions = actionState.remainingPoints <= 0;
+  const isPendingAny = isPhoning || isEmailing || isScouting || isVisiting || isHeadCoachVisiting || isOffering || isTargeting;
 
   function handleQuickPhone(recruitId: string) {
     setPendingAction({ recruitId, type: "phone" });
@@ -1039,9 +1303,40 @@ export function MobileRecruitingBoard({
     setShowTopicSheet(true);
   }
 
+  function handleQuickScout(recruitId: string) {
+    setLastActioningId(recruitId);
+    setLastActionType("scout");
+    onScout?.(recruitId);
+  }
+
+  function handleQuickVisit(recruitId: string) {
+    setLastActioningId(recruitId);
+    setLastActionType("visit");
+    onVisit?.(recruitId);
+  }
+
+  function handleQuickHcv(recruitId: string) {
+    setLastActioningId(recruitId);
+    setLastActionType("hcv");
+    onHeadCoachVisit?.(recruitId);
+  }
+
+  function handleQuickOffer(recruitId: string) {
+    setLastActioningId(recruitId);
+    setLastActionType("offer");
+    onOffer?.(recruitId);
+  }
+
+  function handleQuickTarget(recruitId: string) {
+    setLastActioningId(recruitId);
+    setLastActionType("target");
+    onTarget?.(recruitId);
+  }
+
   function handleTopicSelect(topic?: string) {
     if (!pendingAction) return;
     setLastActioningId(pendingAction.recruitId);
+    setLastActionType(pendingAction.type);
     setShowTopicSheet(false);
     if (pendingAction.type === "phone") {
       onPhone(pendingAction.recruitId, topic);
@@ -1116,6 +1411,24 @@ export function MobileRecruitingBoard({
     },
   ];
 
+  const sharedListProps = {
+    trendsData,
+    recommendationsByRecruit,
+    positionNeeds: pipelineData?.positionNeeds,
+    storylineRecruitIds,
+    onSelectRecruit,
+    actionState,
+    onQuickPhone: handleQuickPhone,
+    onQuickEmail: handleQuickEmail,
+    onQuickScout: onScout ? handleQuickScout : undefined,
+    onQuickVisit: onVisit ? handleQuickVisit : undefined,
+    onQuickHcv: onHeadCoachVisit ? handleQuickHcv : undefined,
+    onQuickOffer: onOffer ? handleQuickOffer : undefined,
+    onQuickTarget: onTarget ? handleQuickTarget : undefined,
+    pendingRecruitId,
+    pendingActionType: lastActionType,
+  };
+
   return (
     <div className="flex flex-col">
       {/* Sticky tab bar */}
@@ -1173,34 +1486,45 @@ export function MobileRecruitingBoard({
                 />
               </div>
               <RetroButton
-                variant="outline"
+                variant={activeFilterChips.length > 0 ? "primary" : "outline"}
                 size="sm"
                 onClick={onOpenFilterSheet}
-                className="h-9 shrink-0"
+                className="h-9 shrink-0 relative"
                 data-testid="mobile-board-filter-btn"
               >
                 <Search className="w-3.5 h-3.5 mr-1" />
                 Filter
+                {activeFilterChips.length > 0 && (
+                  <span className="ml-1 text-[9px] bg-background/30 px-1 rounded font-bold">
+                    {activeFilterChips.length}
+                  </span>
+                )}
               </RetroButton>
             </div>
+
+            {/* Active filter chips */}
+            {activeFilterChips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5" data-testid="mobile-active-filter-chips">
+                {activeFilterChips.map((chip) => (
+                  <span
+                    key={chip}
+                    className="text-[10px] bg-gold/10 border border-gold/40 text-gold px-2 py-0.5 rounded-full font-medium"
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <p className="text-[10px] text-muted-foreground">
               {boardRecruits.length} recruit{boardRecruits.length !== 1 ? "s" : ""}
               {boardSearch && ` matching "${boardSearch}"`}
             </p>
             <MobileRecruitList
               recruits={boardRecruits}
-              trendsData={trendsData}
-              recommendationsByRecruit={recommendationsByRecruit}
-              positionNeeds={pipelineData?.positionNeeds}
-              storylineRecruitIds={storylineRecruitIds}
-              onSelectRecruit={onSelectRecruit}
               emptyMessage={boardSearch ? "No recruits match your search" : "No recruits match current filters"}
               emptyIcon={<Target className="w-10 h-10" />}
-              onQuickPhone={handleQuickPhone}
-              onQuickEmail={handleQuickEmail}
-              pendingRecruitId={pendingRecruitId}
-              weeklyActionsUsed={weeklyActionsUsed}
-              outOfActions={outOfActions}
+              {...sharedListProps}
             />
           </div>
         )}
@@ -1212,18 +1536,9 @@ export function MobileRecruitingBoard({
             </p>
             <MobileRecruitList
               recruits={targetRecruits}
-              trendsData={trendsData}
-              recommendationsByRecruit={recommendationsByRecruit}
-              positionNeeds={pipelineData?.positionNeeds}
-              storylineRecruitIds={storylineRecruitIds}
-              onSelectRecruit={onSelectRecruit}
               emptyMessage="No recruits targeted yet"
               emptyIcon={<StarIcon className="w-10 h-10" />}
-              onQuickPhone={handleQuickPhone}
-              onQuickEmail={handleQuickEmail}
-              pendingRecruitId={pendingRecruitId}
-              weeklyActionsUsed={weeklyActionsUsed}
-              outOfActions={outOfActions}
+              {...sharedListProps}
             />
           </div>
         )}
@@ -1237,11 +1552,11 @@ export function MobileRecruitingBoard({
             pipelineData={pipelineData}
             storylineRecruitIds={storylineRecruitIds}
             onSelectRecruit={onSelectRecruit}
+            actionState={actionState}
             onQuickPhone={handleQuickPhone}
             onQuickEmail={handleQuickEmail}
             pendingRecruitId={pendingRecruitId}
-            weeklyActionsUsed={weeklyActionsUsed}
-            outOfActions={outOfActions}
+            pendingActionType={lastActionType}
           />
         )}
 
@@ -1249,15 +1564,7 @@ export function MobileRecruitingBoard({
           <MobileNeedsTab
             filteredRecruits={filteredRecruits}
             pipelineData={pipelineData}
-            trendsData={trendsData}
-            recommendationsByRecruit={recommendationsByRecruit}
-            storylineRecruitIds={storylineRecruitIds}
-            onSelectRecruit={onSelectRecruit}
-            onQuickPhone={handleQuickPhone}
-            onQuickEmail={handleQuickEmail}
-            pendingRecruitId={pendingRecruitId}
-            weeklyActionsUsed={weeklyActionsUsed}
-            outOfActions={outOfActions}
+            {...sharedListProps}
           />
         )}
 
@@ -1274,7 +1581,7 @@ export function MobileRecruitingBoard({
         )}
       </div>
 
-      {/* Pitch topic picker — bottom sheet */}
+      {/* Pitch topic picker bottom sheet */}
       <Sheet open={showTopicSheet} onOpenChange={(open) => { if (!open) { setShowTopicSheet(false); setPendingAction(null); } }}>
         <SheetContent side="bottom" className="pb-8">
           <SheetHeader className="mb-4">

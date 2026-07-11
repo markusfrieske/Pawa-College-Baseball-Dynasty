@@ -78,6 +78,7 @@ import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbP
 import { useRecruitingData, useRecruitingActions } from "@/hooks/use-recruiting";
 import { MobileFilterSheet } from "@/components/recruiting/mobile-filter-sheet";
 import { MobileRecruitingBoard } from "@/components/recruiting/mobile-board";
+import { RecruitingCommandCenter } from "@/components/recruiting/command-center";
 import { RecruitRow } from "@/components/recruiting/recruit-row";
 import { RecruitDetailModal } from "@/components/recruiting/recruit-detail-modal";
 import { CompareModal } from "@/components/recruiting/compare-modal";
@@ -248,6 +249,10 @@ export default function RecruitingPage() {
   const [showTopAvailable, setShowTopAvailable] = useState<boolean>((sf.showTopAvailable as boolean) ?? false);
   const [showContested, setShowContested] = useState<boolean>((sf.showContested as boolean) ?? false);
   const [showStory, setShowStory] = useState<boolean>((sf.showStory as boolean) ?? false);
+  const [showOfferedOnly, setShowOfferedOnly] = useState<boolean>((sf.showOfferedOnly as boolean) ?? false);
+  const [showInStateOnly, setShowInStateOnly] = useState<boolean>((sf.showInStateOnly as boolean) ?? false);
+  const [showAffordableOnly, setShowAffordableOnly] = useState<boolean>((sf.showAffordableOnly as boolean) ?? false);
+  const [showHighRivalPressure, setShowHighRivalPressure] = useState<boolean>((sf.showHighRivalPressure as boolean) ?? false);
   const [showHistory, setShowHistory] = useState(false);
   const [actionResultModal, setActionResultModal] = useState<{
     title: string;
@@ -289,8 +294,12 @@ export default function RecruitingPage() {
       showContested,
       showStory,
       searchQuery,
+      showOfferedOnly,
+      showInStateOnly,
+      showAffordableOnly,
+      showHighRivalPressure,
     }));
-  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, showContested, showStory, searchQuery]);
+  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, showContested, showStory, searchQuery, showOfferedOnly, showInStateOnly, showAffordableOnly, showHighRivalPressure]);
 
   const toggleCompare = (recruit: RecruitWithInterest) => {
     if (compareRecruits.find(r => r.id === recruit.id)) {
@@ -521,6 +530,8 @@ export default function RecruitingPage() {
     }
   }, [unreadAutoPilotLog.length]);
 
+  const nilRemaining = data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined;
+
   const filteredRecruits = sortRecruits(
     filterRecruits(data?.recruits || [], {
       searchQuery,
@@ -537,6 +548,11 @@ export default function RecruitingPage() {
       sortBy,
       pipelineFilter,
       teamState: pipelineData?.teamState,
+      showOfferedOnly,
+      showInStateOnly,
+      showAffordableOnly,
+      showHighRivalPressure,
+      nilRemaining,
     }),
     sortBy,
     trendsData,
@@ -662,12 +678,21 @@ export default function RecruitingPage() {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-              <div className="flex items-baseline gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
                 {pipelineData?.totalClassSize != null && (
                   <span className="text-xs text-muted-foreground" data-testid="text-class-size">
                     {pipelineData.totalClassSize} Recruits
                     {pipelineData.teamCount > 0 && ` — ${pipelineData.teamCount} Teams`}
+                  </span>
+                )}
+                {leagueData && (
+                  <span
+                    className="text-[10px] font-pixel text-muted-foreground border border-border/50 rounded px-2 py-0.5 bg-black/20"
+                    data-testid="text-recruiting-week-phase"
+                  >
+                    Wk {leagueData.currentWeek} · S{leagueData.currentSeason}
+                    {leagueData.currentPhase ? ` · ${leagueData.currentPhase.replace(/_/g, " ")}` : ""}
                   </span>
                 )}
               </div>
@@ -769,12 +794,48 @@ export default function RecruitingPage() {
               onDismissDecommit={dismissDecommit}
               onPhone={(recruitId, pitchTopic) => phoneMutation.mutate({ recruitId, pitchTopic }, phoneCallbacks)}
               onEmail={(recruitId, pitchTopic) => emailMutation.mutate({ recruitId, pitchTopic }, emailCallbacks)}
+              onScout={(recruitId) => scoutMutation.mutate(recruitId, scoutCallbacks)}
+              onVisit={(recruitId) => visitMutation.mutate(recruitId, visitCallbacks)}
+              onHeadCoachVisit={(recruitId) => headCoachVisitMutation.mutate(recruitId, headCoachVisitCallbacks)}
+              onOffer={(recruitId) => offerMutation.mutate(recruitId, offerCallbacks)}
+              onTarget={(recruitId) => targetMutation.mutate(recruitId, targetCallbacks)}
               isPhoning={phoneMutation.isPending}
               isEmailing={emailMutation.isPending}
-              weeklyActionsUsed={data?.weeklyActionsUsed ?? {}}
-              remainingPoints={data?.remainingPoints ?? 1}
+              isScouting={scoutMutation.isPending}
+              isVisiting={visitMutation.isPending}
+              isHeadCoachVisiting={headCoachVisitMutation.isPending}
+              isOffering={offerMutation.isPending}
+              isTargeting={targetMutation.isPending}
+              actionState={{
+                premiumActionsUsed: data?.premiumActionsUsed ?? {},
+                weeklyActionsUsed: weekDataFresh ? (data?.weeklyActionsUsed ?? {}) : {},
+                remainingPoints: data?.remainingPoints ?? 1,
+                remainingScoutPoints: data?.remainingScoutPoints ?? 1,
+                seasonVisitCount: data?.seasonVisitCount ?? { total: 0, campusVisits: 0, hcVisits: 0 },
+                nilRemaining,
+                recruitPointCosts: data?.recruitPointCosts ?? {},
+              }}
               leagueId={id!}
               battlesData={battlesData}
+              activeFilterChips={(() => {
+                const chips: string[] = [];
+                if (positionFilter !== "all") chips.push(positionFilter);
+                if (starFilter !== "all") chips.push(starFilter.replace("star", "★").replace("stars", "★"));
+                if (typeFilter !== "all") chips.push(typeFilter);
+                if (stateFilter !== "all") chips.push(stateFilter);
+                if (sortBy !== "classRank") chips.push(`Sort: ${sortBy}`);
+                if (showWatchlistOnly) chips.push("Watchlist");
+                if (showTopAvailable) chips.push("Top Available");
+                if (showTeamNeeds) chips.push("Needs");
+                if (showPipeline) chips.push("Pipeline");
+                if (showContested) chips.push("Contested");
+                if (showStory) chips.push("Story");
+                if (showOfferedOnly) chips.push("Offered");
+                if (showInStateOnly) chips.push("In-State");
+                if (showAffordableOnly) chips.push("Affordable");
+                if (showHighRivalPressure) chips.push("High Rivals");
+                return chips;
+              })()}
             />
           </div>
           <MobileFilterSheet
@@ -788,6 +849,8 @@ export default function RecruitingPage() {
             setTypeFilter={setTypeFilter}
             stateFilter={stateFilter}
             setStateFilter={setStateFilter}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
             showWatchlistOnly={showWatchlistOnly}
             setShowWatchlistOnly={setShowWatchlistOnly}
             showTopAvailable={showTopAvailable}
@@ -800,13 +863,23 @@ export default function RecruitingPage() {
             setShowContested={setShowContested}
             showStory={showStory}
             setShowStory={setShowStory}
+            showOfferedOnly={showOfferedOnly}
+            setShowOfferedOnly={setShowOfferedOnly}
+            showInStateOnly={showInStateOnly}
+            setShowInStateOnly={setShowInStateOnly}
+            showAffordableOnly={showAffordableOnly}
+            setShowAffordableOnly={setShowAffordableOnly}
+            showHighRivalPressure={showHighRivalPressure}
+            setShowHighRivalPressure={setShowHighRivalPressure}
             filteredRecruitsCount={filteredRecruits.length}
             positionOptions={positionOptions}
             starOptions={starOptions}
+            sortOptions={sortOptions}
             stateOptions={[
               { label: "All States", value: "all" },
               ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
             ]}
+            teamState={pipelineData?.teamState}
             onReset={() => {
               skipPersistRef.current = true;
               localStorage.removeItem(`recruiting-filters-${id}`);
@@ -814,18 +887,31 @@ export default function RecruitingPage() {
               setStarFilter("all");
               setTypeFilter("all");
               setStateFilter("all");
+              setSortBy("classRank");
               setShowWatchlistOnly(false);
               setShowTopAvailable(false);
               setShowTeamNeeds(false);
               setShowPipeline(false);
               setShowContested(false);
               setShowStory(false);
+              setShowOfferedOnly(false);
+              setShowInStateOnly(false);
+              setShowAffordableOnly(false);
+              setShowHighRivalPressure(false);
               setShowFilterSheet(false);
             }}
           />
         </>
       ) : (
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
+        <RecruitingCommandCenter
+          recruitingData={data}
+          battlesData={battlesData}
+          pipelineData={pipelineData}
+          recommendationsData={recommendationsData}
+          allRecruits={data?.recruits ?? []}
+          onSelectRecruit={setSelectedRecruit}
+        />
         {recommendationsData && (
           <RetroCard className="mb-6">
             <button
@@ -1142,6 +1228,8 @@ export default function RecruitingPage() {
               setTypeFilter={setTypeFilter}
               stateFilter={stateFilter}
               setStateFilter={setStateFilter}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
               showWatchlistOnly={showWatchlistOnly}
               setShowWatchlistOnly={setShowWatchlistOnly}
               showTopAvailable={showTopAvailable}
@@ -1154,13 +1242,23 @@ export default function RecruitingPage() {
               setShowContested={setShowContested}
               showStory={showStory}
               setShowStory={setShowStory}
+              showOfferedOnly={showOfferedOnly}
+              setShowOfferedOnly={setShowOfferedOnly}
+              showInStateOnly={showInStateOnly}
+              setShowInStateOnly={setShowInStateOnly}
+              showAffordableOnly={showAffordableOnly}
+              setShowAffordableOnly={setShowAffordableOnly}
+              showHighRivalPressure={showHighRivalPressure}
+              setShowHighRivalPressure={setShowHighRivalPressure}
               filteredRecruitsCount={filteredRecruits.length}
               positionOptions={positionOptions}
               starOptions={starOptions}
+              sortOptions={sortOptions}
               stateOptions={[
                 { label: "All States", value: "all" },
                 ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
               ]}
+              teamState={pipelineData?.teamState}
               onReset={() => {
                 skipPersistRef.current = true;
                 localStorage.removeItem(`recruiting-filters-${id}`);
@@ -1168,12 +1266,17 @@ export default function RecruitingPage() {
                 setStarFilter("all");
                 setTypeFilter("all");
                 setStateFilter("all");
+                setSortBy("classRank");
                 setShowWatchlistOnly(false);
                 setShowTopAvailable(false);
                 setShowTeamNeeds(false);
                 setShowPipeline(false);
                 setShowContested(false);
                 setShowStory(false);
+                setShowOfferedOnly(false);
+                setShowInStateOnly(false);
+                setShowAffordableOnly(false);
+                setShowHighRivalPressure(false);
                 setShowFilterSheet(false);
               }}
             />

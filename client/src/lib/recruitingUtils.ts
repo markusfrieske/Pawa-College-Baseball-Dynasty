@@ -215,6 +215,11 @@ export function filterRecruits(
     sortBy: string;
     pipelineFilter: string | null;
     teamState?: string;
+    showOfferedOnly?: boolean;
+    showInStateOnly?: boolean;
+    showAffordableOnly?: boolean;
+    showHighRivalPressure?: boolean;
+    nilRemaining?: number;
   }
 ): RecruitWithInterest[] {
   return recruits.filter(r => {
@@ -237,6 +242,12 @@ export function filterRecruits(
       if (!needPositions.includes(r.position)) return false;
       if (r.signedTeamId) return false;
     }
+    if (filters.showOfferedOnly && !r.interest?.hasOffer) return false;
+    if (filters.showInStateOnly && filters.teamState && r.homeState !== filters.teamState) return false;
+    if (filters.showAffordableOnly && r.nilCost != null && filters.nilRemaining != null) {
+      if (Math.ceil(r.nilCost * 1.25) > filters.nilRemaining) return false;
+    }
+    if (filters.showHighRivalPressure && !(r.teamsIn && r.teamsIn >= 2)) return false;
     if (filters.sortBy === "interest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     if (filters.sortBy === "myInterest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     
