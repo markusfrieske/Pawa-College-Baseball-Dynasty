@@ -1,0 +1,643 @@
+# Replit Prompt: Recruiting UX/UI Overhaul - Desktop War Room + Mobile Parity
+
+Use this as a focused design and implementation prompt for the recruiting experience in `markusfrieske/Pawa-College-Baseball-Dynasty`.
+
+## Product Direction
+
+This game should be optimized first for desktop because the long-term goal is a PC/Steam release. Desktop should feel like a serious college baseball recruiting command center: dense, fast, analytical, keyboard/mouse friendly, and built for repeated weekly use.
+
+Mobile should not be a stripped-down or separate recruiting mode. Mobile must contain the same decision-critical information, filters, actions, and recruiting intelligence as desktop, reorganized into a phone-friendly layout.
+
+Current issue: mobile recruiting is too condensed and removes too much context, making it difficult or impossible to recruit properly. Also, desktop needs a stronger War Room/dashboard experience that helps coaches make smart decisions instead of forcing them to manually scan everything.
+
+## Core Goal
+
+Reimagine recruiting as a unified Recruiting Hub with:
+
+- a rich desktop War Room dashboard
+- a desktop recruiting board/table for power users
+- a mobile recruiting board with full feature parity
+- shared data and components so mobile and desktop cannot drift apart
+- clear weekly decision support: who to scout, who to call, who to offer, who is slipping, who is affordable, who fits roster needs
+
+## Non-Negotiables
+
+- Desktop remains the premium PC experience.
+- Mobile must allow a coach to complete a full recruiting week without switching to desktop.
+- Mobile must include every core desktop recruiting action.
+- Mobile must include every decision-critical desktop field.
+- Do not make a separate reduced mobile recruiting system.
+- Do not hide essential information only because the screen is narrow.
+- Do not use tiny unreadable text to force desktop density onto mobile.
+- Prefer responsive reflow, expandable sections, sticky bars, drawers, and bottom sheets.
+
+## Relevant Files To Inspect First
+
+Start by auditing these files and any related components they import:
+
+- `client/src/pages/war-room.tsx`
+- `client/src/components/recruiting/mobile-board.tsx`
+- `client/src/components/recruiting/recruit-row.tsx`
+- `client/src/components/recruiting/recruit-detail-modal.tsx`
+- `client/src/components/recruiting/compare-modal.tsx`
+- `client/src/components/recruiting/recruiting-shared.tsx`
+- `client/src/hooks/use-recruiting.ts`
+- `client/src/pages/recruit-profile.tsx`
+- `client/src/pages/league-view.tsx`
+- `client/src/pages/dashboard.tsx`
+- `tests/e2e/mobile-filter-board.test.ts`
+
+## UX Principle: Progressive Disclosure, Not Information Removal
+
+Desktop can show more information at once. Mobile can show information in layers.
+
+That means:
+
+- desktop uses tables, side panels, pinned columns, hover details, and multi-panel dashboards
+- mobile uses expandable cards, sticky controls, tabs, bottom sheets, accordions, and action trays
+- both show the same underlying information and support the same actions
+
+Mobile should feel like the same game, not a companion app.
+
+## Desktop Recruiting Hub / War Room
+
+Create or redesign the desktop War Room as the main weekly recruiting dashboard.
+
+### Layout
+
+Use a desktop-first dashboard layout:
+
+- top command header
+- left recruiting board / priority list
+- right contextual detail panel
+- bottom or side modules for intelligence and weekly planning
+- dense but readable cards, not oversized marketing panels
+
+Suggested desktop structure:
+
+```text
+Recruiting Hub
+├─ Command Header
+│  ├─ Week / Phase / Season
+│  ├─ Recruiting points remaining
+│  ├─ Scout points remaining
+│  ├─ Visit cap used
+│  ├─ NIL remaining
+│  ├─ Current class rank / commits / avg OVR
+│  └─ Ready status / advance readiness
+│
+├─ War Room Dashboard
+│  ├─ Recommended Actions
+│  ├─ Hot Battles
+│  ├─ At-Risk Targets
+│  ├─ Best Fits
+│  ├─ Roster Needs
+│  ├─ NIL Watch
+│  ├─ Visit Planner
+│  ├─ Offer Board
+│  └─ Recent Recruiting Activity
+│
+├─ Recruiting Board
+│  ├─ table/list of recruits
+│  ├─ filters
+│  ├─ sorting
+│  ├─ board rank
+│  ├─ target toggle
+│  └─ quick action buttons
+│
+└─ Recruit Detail Panel
+   ├─ full scouting profile
+   ├─ ratings/ranges
+   ├─ abilities
+   ├─ top schools
+   ├─ rival activity
+   ├─ pitch priorities
+   ├─ NIL cost and affordability
+   ├─ action history
+   └─ recommended next action
+```
+
+### War Room Modules
+
+Build the War Room as practical decision support, not decoration.
+
+#### 1. Weekly Command Header
+
+Show:
+
+- current phase and week
+- recruiting points used/remaining
+- scout points used/remaining
+- visits used this season
+- head coach visits used
+- NIL budget remaining
+- commits count
+- projected roster size
+- target count
+- ready status
+
+This header should be sticky on desktop and mobile.
+
+#### 2. Recommended Actions
+
+A ranked list of the highest-value next actions.
+
+Each recommendation should include:
+
+- recruit name
+- position
+- star rating
+- current interest
+- action: scout, email, phone, visit, HCV, offer, hold
+- expected reason
+- urgency
+- cost
+- risk if ignored
+
+Examples:
+
+- "Offer now: rival offer + Top 3 stage"
+- "Phone call: high fit, trailing by 8"
+- "Scout: high upside but low certainty"
+- "Visit: 5-star pitcher, late-stage battle"
+- "Hold: already contacted this week"
+
+#### 3. Hot Battles
+
+Show contested recruits where multiple teams are active.
+
+Fields:
+
+- recruit
+- user interest
+- leader
+- margin
+- top 3 schools
+- offers out
+- recent rival actions
+- current stage
+- recommended counter move
+
+#### 4. At-Risk Targets
+
+Show recruits where the coach is losing ground.
+
+Fields:
+
+- recruit
+- current rank
+- leader
+- gap
+- recent trend
+- stage
+- has offer?
+- recommended action
+
+#### 5. Best Fits
+
+Surface undervalued or high-fit recruits.
+
+Factors:
+
+- roster need
+- recruit quality
+- proximity
+- school strengths
+- coach archetype
+- pitch priority match
+- NIL affordability
+- low rival pressure
+
+#### 6. Roster Needs
+
+Show next-year roster needs by position group.
+
+Include:
+
+- current players
+- seniors/departures
+- commits
+- projected depth
+- recommended target count
+- shortage warnings
+
+Position groups:
+
+- pitchers
+- catchers
+- infield
+- outfield
+- utility/depth
+
+#### 7. NIL Watch
+
+Show budget pressure.
+
+Include:
+
+- NIL remaining
+- committed NIL
+- top targets by NIL cost
+- unaffordable recruits
+- value targets
+- warning when offers would exceed budget
+
+#### 8. Visit Planner
+
+Show:
+
+- visits used / cap
+- recruits already visited
+- best visit candidates
+- head coach visit candidates
+- visit cost by recruit
+- recommended week to use visit
+
+#### 9. Offer Board
+
+Show:
+
+- recruits with offer
+- recruits ready for offer
+- recruits who should not be offered yet
+- no-offer leaders who could steal attention but should not be signable
+- offer urgency
+
+#### 10. Recent Activity
+
+Show a timeline:
+
+- user's actions
+- rival actions, where public/allowed
+- stage changes
+- decommits
+- commitments
+- recruiting news
+
+## Desktop Recruiting Board Requirements
+
+Desktop board should be dense and analytical.
+
+Each row should expose:
+
+- target state
+- board rank
+- name
+- position
+- star rating
+- class rank
+- position rank
+- type: HS, JUCO, Transfer, Storyline
+- home state / hometown
+- current stage
+- user interest
+- trend
+- scout percentage
+- OVR range
+- star range
+- potential range or grade if revealed
+- key ratings / top tool
+- ability count / revealed abilities
+- NIL cost
+- NIL affordability
+- top schools / leader
+- rival pressure
+- offer status
+- weekly actions used
+- visit/HCV used
+- recommended next action
+- quick actions
+
+Desktop filters/sorts must include:
+
+- search
+- position
+- recruit type
+- star rating
+- stage
+- interest range
+- scout range
+- targeted only
+- offered only
+- unaffordable hidden/shown
+- local/in-state
+- roster need
+- top schools includes me
+- high rival pressure
+- potential/gem indicators where known
+- NIL cost range
+- sorting by board rank, star, OVR, interest, trend, fit, NIL value, position need, class rank
+
+## Mobile Recruiting Requirements
+
+Mobile must use the same data and support the same workflows.
+
+### Mobile Layout
+
+Recommended mobile layout:
+
+```text
+Sticky Top Bar
+├─ Week / phase
+├─ points remaining
+├─ scout points
+├─ NIL
+└─ filter button
+
+Segmented Tabs
+├─ Board
+├─ War Room
+├─ Battles
+├─ Needs
+└─ Activity
+
+Recruit Cards
+├─ compact summary always visible
+├─ expandable analytics section
+├─ quick action row
+└─ open detail bottom sheet
+
+Sticky Bottom Action Tray
+├─ selected recruit
+├─ best next action
+├─ scout/email/phone/visit/offer
+└─ disabled reason if blocked
+```
+
+### Mobile Recruit Card
+
+Collapsed card must show:
+
+- board rank / target
+- name
+- position
+- stars
+- recruit type
+- home state
+- stage
+- user interest
+- scout %
+- offer status
+- NIL cost/affordability
+- leader or top school
+- recommended next action
+
+Expanded card must show:
+
+- OVR/star range
+- potential/trajectory if available
+- key ratings or top tools
+- abilities revealed
+- pitch priorities
+- top schools
+- rival pressure
+- weekly action status
+- visit/HCV status
+- notes / board rank controls
+- action history summary
+
+### Mobile Detail Bottom Sheet
+
+The bottom sheet should contain the full recruit profile:
+
+- header with player identity
+- full scouting information
+- ratings/ranges
+- abilities
+- pitch priorities
+- fit analysis
+- roster impact
+- NIL info
+- top schools/rival actions
+- recommended next action
+- complete action controls
+- notes and board rank
+
+Use tabs inside the bottom sheet if needed:
+
+- Profile
+- Ratings
+- Battle
+- Actions
+- Notes
+
+### Mobile Filters
+
+Filters must not disappear on mobile.
+
+Use a full-screen filter drawer or bottom sheet containing every desktop filter:
+
+- search
+- position
+- type
+- stars
+- stage
+- interest
+- scout %
+- targeted/offered
+- NIL
+- roster need
+- rival pressure
+- local/in-state
+- sort mode
+
+Show active filter chips above the list.
+
+### Mobile Actions
+
+Every desktop action must be available on mobile:
+
+- target / untarget
+- set board rank
+- scout
+- email
+- phone
+- campus visit
+- head coach visit
+- offer scholarship
+- open compare
+- edit notes
+
+Every disabled action must explain why:
+
+- not enough points
+- already used this week
+- visit already used
+- season visit cap reached
+- insufficient NIL
+- recruit already signed
+- wrong phase
+
+## Shared Data / Component Architecture
+
+Avoid two separate recruiting products.
+
+Implement a shared data layer:
+
+- `useRecruiting()` returns a complete board model
+- desktop and mobile consume the same normalized recruit view model
+- recommendation logic is shared
+- action availability logic is shared
+- disabled reason logic is shared
+- filters/sorts are shared
+
+Suggested shared model:
+
+```ts
+type RecruitingBoardRecruit = {
+  id: string;
+  identity: RecruitIdentity;
+  rankings: RecruitRankings;
+  scouting: ScoutingSummary;
+  ratings: RatingsSummary;
+  interest: InterestSummary;
+  battle: BattleSummary;
+  nil: NilSummary;
+  rosterFit: RosterFitSummary;
+  actions: ActionAvailability;
+  recommendation: RecommendedAction;
+};
+```
+
+This prevents desktop showing data that mobile cannot access.
+
+## Reimagined Recruiting Dashboard Information Hierarchy
+
+Priority order for what coaches need to know:
+
+1. What do I need this week?
+2. Who am I trying to sign?
+3. Who am I about to lose?
+4. Who can I afford?
+5. Who fits my roster?
+6. Who needs scouting before I spend points?
+7. Which action gives the best return?
+8. What did rivals do?
+9. Am I ready to advance?
+
+The dashboard should answer those questions without making the user open 20 recruit profiles.
+
+## Visual Design Direction
+
+Desktop:
+
+- utility-first dashboard
+- compact panels
+- data tables
+- readable density
+- clear hierarchy
+- no oversized marketing hero
+- no decorative clutter
+- strong contrast
+- sticky headers
+- pinned key columns where useful
+
+Mobile:
+
+- same visual language as desktop
+- larger tap targets
+- card summaries
+- expandable sections
+- sticky top/bottom controls
+- bottom sheets
+- no cramped table squeezed onto phone
+- no missing actions
+- no unreadable microtext
+
+## Acceptance Criteria
+
+### Desktop
+
+- War Room exists and is useful on desktop.
+- A coach can decide a complete recruiting plan from the War Room.
+- Desktop recruiting board still supports power-user scanning and sorting.
+- No information currently needed for recruiting is removed.
+- The layout works at 1440 and 1920 px widths.
+
+### Mobile
+
+- A coach can complete a full recruiting week from mobile.
+- Mobile exposes the same actions as desktop.
+- Mobile exposes the same decision-critical fields as desktop.
+- Mobile filters and sorting match desktop.
+- Mobile recruit detail has full analytical depth.
+- Text does not overlap or clip.
+- Controls are tappable.
+- Disabled actions explain why.
+- Mobile works at 360, 390, 414, and 430 px widths.
+
+### Cross-Platform
+
+- Desktop and mobile use the same APIs.
+- Desktop and mobile use the same action availability logic.
+- Desktop and mobile generate the same logs/state changes.
+- Mobile should not get stale when desktop fields change.
+
+## Tests To Add
+
+Add Playwright tests for:
+
+- desktop War Room loads and displays all core modules
+- desktop board can filter, sort, target, rank, scout, email, phone, visit, offer
+- mobile board displays the same recruit count as desktop for the same filters
+- mobile filter drawer includes every desktop filter
+- mobile can target and board-rank a recruit
+- mobile can scout a recruit
+- mobile can email and phone a recruit
+- mobile can schedule visit/HCV when eligible
+- mobile can offer when eligible
+- mobile shows disabled reasons when ineligible
+- mobile opens full recruit detail bottom sheet
+- mobile War Room shows recommended actions, hot battles, roster needs, NIL watch
+- screenshot checks at:
+  - 360x800
+  - 390x844
+  - 414x896
+  - 430x932
+  - 768x1024
+  - 1440x900
+  - 1920x1080
+
+## Manual QA Checklist
+
+Run through this as a human coach:
+
+1. Open desktop recruiting.
+2. Use War Room to identify top recommended actions.
+3. Filter to pitchers.
+4. Target three recruits.
+5. Set board ranks.
+6. Scout one recruit.
+7. Email one recruit.
+8. Phone one recruit.
+9. Schedule a visit.
+10. Offer a scholarship.
+11. Open recruit detail and verify ratings, priorities, NIL, top schools, and action history.
+12. Switch to mobile width.
+13. Repeat every step without using desktop.
+14. Confirm the same data and action results appear on both views.
+
+## Commands To Run
+
+```bash
+npm run check
+npx playwright test tests/e2e/mobile-filter-board.test.ts
+npx playwright test tests/e2e/recruiting-ux-parity.test.ts
+npx playwright test tests/e2e/war-room-dashboard.test.ts
+```
+
+If those new test names do not exist yet, create them.
+
+## Final Replit Response Required
+
+Return:
+
+- files changed
+- new/reworked components
+- desktop War Room modules added
+- mobile parity changes made
+- screenshots or screenshot test paths
+- exact test commands run
+- any remaining UX gaps
+
+Do not call this done unless mobile recruiting can actually be used to run a full recruiting week with the same decisions and actions available on desktop.
