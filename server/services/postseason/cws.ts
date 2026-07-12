@@ -5,16 +5,24 @@
  * Bracket A: CWS seeds 1, 4, 5, 8
  * Bracket B: CWS seeds 2, 3, 6, 7
  *
- * Each bracket (4-team DE):
- *   WBR1: (s1 vs s4), (s2 vs s3) — 2 games
- *   LBR1: (2 WBR1 losers play) — 1 game
- *   WBR2: (2 WBR1 winners play) — 1 game (WB final)
- *   LBR2: (LBR1 winner vs WBR2 loser) — 1 game
- *   BracketFinal: (WBR2 winner vs LBR2 winner) — 1 game → bracket champion
+ * True 4-team double-elimination per bracket:
+ *   WBR1:  (s1 vs s4), (s2 vs s3)   [2 games — "cws_opening"]
+ *   WBR2:  WBR1 winners meet         [1 game — "cws_winners"]
+ *   LBR1:  WBR1 losers meet          [1 game — "cws_elimination"]
+ *   LBR2:  WBR2 loser vs LBR1 winner [1 game — "cws_elimination"]
+ *   BF1:   WBR2 winner vs LBR2 winner [1 game — "cws_bracket_final"]
+ *   BF2:   IF BF1 won by LBR2 winner, play again [1 game — "cws_bracket_final"]
+ *   → Bracket champion (must lose twice to be eliminated from CWS before champion)
  *
- * CWS Final: best-of-3 between Bracket A and Bracket B champions.
+ * CWS Final: best-of-3 between Bracket A and Bracket B champions. ["cws_finals"]
  *
- * This module handles bracket logic and game creation only — no simulation.
+ * Phase step canonical values (set on league.currentPhaseStep):
+ *   cws_opening      — WBR1 active
+ *   cws_winners      — WBR2 created
+ *   cws_elimination  — LBR rounds created
+ *   cws_bracket_final — BF game(s) created
+ *   cws_finals       — CWS Final active
+ *   cws_complete     — champion determined
  */
 import { storage } from "../../storage";
 import { assignCWSBracketLanes } from "./selection";
@@ -29,7 +37,7 @@ function l(g: { homeScore: number | null; awayScore: number | null; homeTeamId: 
 }
 
 function bracketGames(
-  games: { bracketType: string | null; bracketRound: number | null; bracketSide?: string | null; isComplete: boolean; homeScore: number | null; awayScore: number | null; homeTeamId: string; awayTeamId: string }[],
+  games: AnyGame[],
   bracket: BracketId,
   side: "W" | "L" | "BF",
   round?: number
@@ -40,9 +48,7 @@ function bracketGames(
   );
 }
 
-function allDone(
-  games: { isComplete: boolean }[]
-): boolean {
+function allDone(games: { isComplete: boolean }[]): boolean {
   return games.length > 0 && games.every(g => g.isComplete);
 }
 
@@ -97,7 +103,7 @@ export async function initializeFSCWSBrackets(
     }
   }
 
-  await storage.updateLeague(leagueId, { currentPhaseStep: "cws_bracket_wbr1" });
+  await storage.updateLeague(leagueId, { currentPhaseStep: "cws_opening" });
 }
 
 type AnyGame = {
@@ -145,6 +151,8 @@ export async function advanceFSCWSBracket(
       bracketType: "cws_final",
       bracketRound: 1,
     });
+    // Persist series record for the CWS final
+    await storage.upsertCWSFinalSeries(leagueId, season, bracketChamps.A, bracketChamps.B);
     await storage.updateLeague(leagueId, { currentPhaseStep: "cws_finals" });
     return { done: false };
   }
@@ -201,15 +209,44 @@ async function advanceSingleBracket(
   const wbr2 = bracketGames(allGames, bracket, "W", 2);
   const lbr1 = bracketGames(allGames, bracket, "L", 1);
   const lbr2 = bracketGames(allGames, bracket, "L", 2);
-  const bf = bracketGames(allGames, bracket, "BF", 1);
+  const bf1 = bracketGames(allGames, bracket, "BF", 1);
+  const bf2 = bracketGames(allGames, bracket, "BF", 2);
 
-  // Bracket final complete → return champion
-  if (allDone(bf)) {
-    return w(bf[0]);
+  // True double-elimination: bracket final BF1 + optional BF2
+  // BF2 exists if LB winner won BF1 (WB winner now has 1 loss — must play again)
+  if (allDone(bf1)) {
+    const bf1Winner = w(bf1[0]);
+    // Identify WB champion (won WBR2)
+    const wbChamp = wbr2.length > 0 && wbr2[0].isComplete ? w(wbr2[0]) : null;
+
+    if (wbChamp && bf1Winner === wbChamp) {
+      // WB champion won BF1 outright → bracket champion
+      return wbChamp;
+    }
+
+    // LB champion won BF1 → WB champion has 1 loss now, need BF2
+    if (bf2.length === 0) {
+      const lbChamp = wbChamp ? (bf1Winner === wbChamp ? null : bf1Winner) : bf1Winner;
+      if (wbChamp && lbChamp) {
+        await storage.createGame({
+          leagueId, season, week: 0,
+          homeTeamId: wbChamp, awayTeamId: lbChamp,
+          phase: "cws",
+          bracketType: `cws_${bracket}_BF`,
+          bracketRound: 2,
+        });
+      }
+      return null;
+    }
+
+    if (allDone(bf2)) {
+      return w(bf2[0]);
+    }
+    return null; // BF2 in progress
   }
 
   // Any incomplete game → wait
-  const allBracketGames = [...wbr1, ...wbr2, ...lbr1, ...lbr2, ...bf];
+  const allBracketGames = [...wbr1, ...wbr2, ...lbr1, ...lbr2, ...bf1, ...bf2];
   if (allBracketGames.some(g => !g.isComplete)) return null;
 
   // WBR1 done → create WBR2 + LBR1
@@ -235,41 +272,37 @@ async function advanceSingleBracket(
         bracketRound: 1,
       });
     }
+    await storage.updateLeague(leagueId, { currentPhaseStep: "cws_winners" });
     return null;
   }
 
   // WBR2 + LBR1 done → create LBR2
   if (allDone(wbr2) && allDone(lbr1) && lbr2.length === 0) {
-    const wbr2Loser = wbr2.length > 0 ? l(wbr2[0]) : null;
-    const lbr1Winner = lbr1.length > 0 ? w(lbr1[0]) : null;
-    if (wbr2Loser && lbr1Winner) {
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: lbr1Winner, awayTeamId: wbr2Loser,
-        phase: "cws",
-        bracketType: `cws_${bracket}_L`,
-        bracketRound: 2,
-      });
-    }
+    const wbr2Loser = l(wbr2[0]);
+    const lbr1Winner = w(lbr1[0]);
+    await storage.createGame({
+      leagueId, season, week: 0,
+      homeTeamId: lbr1Winner, awayTeamId: wbr2Loser,
+      phase: "cws",
+      bracketType: `cws_${bracket}_L`,
+      bracketRound: 2,
+    });
+    await storage.updateLeague(leagueId, { currentPhaseStep: "cws_elimination" });
     return null;
   }
 
-  // LBR2 + WBR2 done → create bracket final
-  if (allDone(lbr2) && allDone(wbr2) && bf.length === 0) {
-    const wbr2Winner = wbr2.length > 0 ? w(wbr2[0]) : null;
-    const lbr2Winner = lbr2.length > 0 ? w(lbr2[0]) : null;
-    if (wbr2Winner && lbr2Winner) {
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: wbr2Winner, awayTeamId: lbr2Winner,
-        phase: "cws",
-        bracketType: `cws_${bracket}_BF`,
-        bracketRound: 1,
-      });
-      await storage.updateLeague(leagueId, {
-        currentPhaseStep: `cws_bracket_${bracket.toLowerCase()}_final`
-      });
-    }
+  // LBR2 + WBR2 done → create bracket final (BF1)
+  if (allDone(lbr2) && allDone(wbr2) && bf1.length === 0) {
+    const wbr2Winner = w(wbr2[0]);
+    const lbr2Winner = w(lbr2[0]);
+    await storage.createGame({
+      leagueId, season, week: 0,
+      homeTeamId: wbr2Winner, awayTeamId: lbr2Winner,
+      phase: "cws",
+      bracketType: `cws_${bracket}_BF`,
+      bracketRound: 1,
+    });
+    await storage.updateLeague(leagueId, { currentPhaseStep: "cws_bracket_final" });
     return null;
   }
 

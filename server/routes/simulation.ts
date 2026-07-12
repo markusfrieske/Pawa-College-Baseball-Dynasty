@@ -6573,7 +6573,7 @@ export function registerSimulationRoutes(app: Express): void {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
             return { game, result };
           }));
-          await batchFinalizeGames(confGameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches);
+          await batchFinalizeGames(confGameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches, league.dynastyPreset === "full_season" ? { skipStandings: true } : undefined);
           console.timeEnd("[advance-perf] conf-champ-games");
           // Extract user's conf champ game if they played one
           if (simUserTeamId && !userTeamGame) {

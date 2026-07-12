@@ -1,12 +1,19 @@
 /**
  * National field selection for Full Season postseason.
- * - 12 automatic bids (conference champions, one per conference)
- * - 4 at-large bids (highest selection score among non-champions)
- * - All 16 seeded by selection score
- * - Results stored idempotently in postseason_entries
+ *
+ * Selection rules:
+ *   - 1 automatic bid per conference (conference champion)
+ *   - Remaining spots (target 16 total) filled by best at-large teams
+ *     by selection score, excluding already-qualified auto-bid teams
+ *   - All 16 seeded 1-16 by selection score (best score = seed 1)
+ *
+ * Minimum field: if fewer than 4 qualifying teams exist, aborts gracefully.
+ * Results stored idempotently in postseason_entries.
  */
 import { storage } from "../../storage";
 import type { PostseasonEntry } from "../../../shared/schema";
+
+const TARGET_FIELD_SIZE = 16;
 
 function computeSelectionScore(
   wins: number,
@@ -32,13 +39,18 @@ export async function selectAndSeedNationalField(
 ): Promise<PostseasonEntry[]> {
   // Idempotency: if entries already exist for this league/season, return them
   const existing = await storage.getPostseasonEntriesByLeague(leagueId, season);
-  if (existing.length >= 16) {
+  if (existing.length >= 1) {
     return existing;
   }
 
   const allGames = await storage.getGamesByLeague(leagueId);
   const leagueTeams = await storage.getTeamsByLeague(leagueId);
   const standingsList = await storage.getStandingsByLeague(leagueId, season);
+
+  if (leagueTeams.length < 4) {
+    console.warn(`[fs-selection] Not enough teams (${leagueTeams.length}) to run national selection.`);
+    return [];
+  }
 
   // Determine conference champions from completed CC games
   const ccGames = allGames.filter(
@@ -48,7 +60,7 @@ export async function selectAndSeedNationalField(
     ccGames.map(g => (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId)
   );
 
-  // Score all teams
+  // Score ALL teams
   const scoredTeams = leagueTeams.map(t => {
     const s = standingsList.find(st => st.teamId === t.id);
     const wins = s?.wins ?? 0;
@@ -62,17 +74,18 @@ export async function selectAndSeedNationalField(
     return { teamId: t.id, score, wins, losses, isAutoChamp };
   });
 
-  // Separate auto bids and at-large candidates
+  // Auto-bids: all conference champions (one per conf, from completed CC games)
   const autoChamps = scoredTeams
     .filter(t => t.isAutoChamp)
     .sort((a, b) => b.score - a.score);
 
-  const atLargeCandidates = scoredTeams
+  // At-large: best non-champions by score, fill remaining spots up to TARGET_FIELD_SIZE
+  const atLargePool = scoredTeams
     .filter(t => !t.isAutoChamp)
     .sort((a, b) => b.score - a.score);
 
-  // Take top 4 at-large (or fewer if not enough teams)
-  const atLargeSelection = atLargeCandidates.slice(0, 4);
+  const atLargeNeeded = Math.max(0, TARGET_FIELD_SIZE - autoChamps.length);
+  const atLargeSelection = atLargePool.slice(0, atLargeNeeded);
 
   // Combine and sort by score for seeding
   const allSelected = [
@@ -80,14 +93,19 @@ export async function selectAndSeedNationalField(
     ...atLargeSelection.map(t => ({ ...t, qualType: "at_large" as const })),
   ].sort((a, b) => b.score - a.score);
 
-  // Assign national seeds 1-16
+  if (allSelected.length < 4) {
+    console.warn(`[fs-selection] Only ${allSelected.length} teams qualified — too few for postseason. Skipping.`);
+    return [];
+  }
+
+  // Assign national seeds 1-N (up to TARGET_FIELD_SIZE)
   const entries: PostseasonEntry[] = [];
-  for (let i = 0; i < allSelected.length && i < 16; i++) {
+  const atLargeRank = new Map<string, number>();
+  atLargeSelection.forEach((t, i) => atLargeRank.set(t.teamId, i + 1));
+
+  for (let i = 0; i < allSelected.length; i++) {
     const t = allSelected[i];
     const nationalSeed = i + 1;
-    // Bracket lane: seeds 1,4,5,8,9,12,13,16 → A; 2,3,6,7,10,11,14,15 → B
-    // For SR 16-team: bracket assignment isn't needed yet (assigned at CWS for 8 SR winners)
-    // bracketLane is filled when CWS entries are created
     const entry = await storage.upsertPostseasonEntry({
       leagueId,
       season,
@@ -97,13 +115,14 @@ export async function selectAndSeedNationalField(
       selectionScore: t.score,
       selectionReason: t.qualType === "auto_bid"
         ? `Conference Champion (${(t.score * 100).toFixed(1)} sel)`
-        : `At-Large #${atLargeSelection.findIndex(x => x.teamId === t.teamId) + 1} (${(t.score * 100).toFixed(1)} sel)`,
+        : `At-Large #${atLargeRank.get(t.teamId) ?? 0} (${(t.score * 100).toFixed(1)} sel)`,
       seed: nationalSeed,
       status: "active",
     });
     entries.push(entry);
   }
 
+  console.log(`[fs-selection] Selected ${entries.length} teams: ${autoChamps.length} auto-bids + ${atLargeSelection.length} at-large`);
   return entries;
 }
 
