@@ -73,16 +73,23 @@ export async function cleanupStaleLeagues(
     await client.query("BEGIN");
     try {
       // 2. Leaf tables scoped only by team_id (no league_id column of their own).
+      //    player_promises must come before players (player_promises.player_id → players.id).
       if (teamIds.length > 0) {
         await client.query(`DELETE FROM transfer_portal_interests WHERE team_id = ANY($1::varchar[])`, [teamIds]);
         await client.query(`DELETE FROM recruiting_interests WHERE team_id = ANY($1::varchar[])`, [teamIds]);
         await client.query(`DELETE FROM recruit_top_schools WHERE team_id = ANY($1::varchar[])`, [teamIds]);
         await client.query(`DELETE FROM storyline_votes WHERE team_id = ANY($1::varchar[])`, [teamIds]);
+        // player_promises.player_id → players.id: must be before players
+        await client.query(`DELETE FROM player_promises WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
         await client.query(`DELETE FROM players WHERE team_id = ANY($1::varchar[])`, [teamIds]);
       }
 
       // 3. Tables that reference other league-scoped tables (must go before
       //    their referenced table is deleted).
+      //    game_report_corrections refs game_reports.id AND games.id — must precede both.
+      await client.query(`DELETE FROM game_report_corrections WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
+      //    game_report_images refs games.id — must precede games.
+      await client.query(`DELETE FROM game_report_images WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM game_reports WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> games
       // storyline_events.storyline_recruit_id FK means events must be deleted
       // before storyline_recruits (storyline_votes already deleted above by team_id).
@@ -91,21 +98,24 @@ export async function cleanupStaleLeagues(
       await client.query(`DELETE FROM coach_season_history WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> coaches
       await client.query(`DELETE FROM recruiting_actions_log WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> recruits, teams
 
-      // 4. Remaining tables directly scoped by league_id, referencing teams.
+      // 4. Remaining tables directly scoped by league_id, referencing teams/games.
       await client.query(`DELETE FROM nil_season_earnings WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM recruiting_class_snapshots WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM player_history WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
-      await client.query(`DELETE FROM player_promises WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM player_season_stats WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM league_invites WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM league_events WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM standings WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
-      // game_recaps.game_id FK must be deleted before games
+      // game_recaps.game_id FK must be deleted before games.
       await client.query(`DELETE FROM game_recaps WHERE game_id IN (SELECT id FROM games WHERE league_id = ANY($1::varchar[]))`, [leagueIds]);
-      await client.query(`DELETE FROM games WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // after game_reports, game_recaps
+      await client.query(`DELETE FROM games WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // after game_reports, game_recaps, game_report_corrections, game_report_images
       await client.query(`DELETE FROM walkon_bids WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM walkon_pool WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // signed_team_id -> teams
       await client.query(`DELETE FROM scouts WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
+      // coach_messages refs leagues + teams; coach_rivalries refs coaches + leagues.
+      // Both must precede coaches (step 6) and leagues (step 7).
+      await client.query(`DELETE FROM coach_messages WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
+      await client.query(`DELETE FROM coach_rivalries WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
 
       // 5. Recruits (after everything referencing recruit_id is gone).
       //    storyline_events was already deleted in step 3 (before storyline_recruits).
@@ -113,9 +123,13 @@ export async function cleanupStaleLeagues(
       await client.query(`DELETE FROM dynasty_news WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM audit_logs WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM advance_digests WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
+      // These tables reference leagues only (via league_id) — must precede leagues deletion.
+      await client.query(`DELETE FROM league_news_posts WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
+      await client.query(`DELETE FROM league_save_states WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
+      await client.query(`DELETE FROM ticker_reads WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
 
-      // 6. Coaches (after coach_season_history is gone), then teams (after
-      //    every table referencing team_id is gone), then conferences.
+      // 6. Coaches (after coach_season_history/coach_rivalries/coach_messages are gone),
+      //    then teams (after every table referencing team_id is gone), then conferences.
       await client.query(`DELETE FROM coaches WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM teams WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM conferences WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
