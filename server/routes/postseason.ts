@@ -1839,4 +1839,80 @@ export function registerPostseasonRoutes(app: Express): void {
   });
   // ────────────────────────────────────────────────────────────────────────────
 
+  // FS Postseason: national field entries + SR/CWS series state
+  app.get("/api/leagues/:id/fs-postseason", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const season = Number(req.query.season as string) || league.currentSeason;
+      const [entries, srSeries, cwsSeries, leagueTeams, standingsList] = await Promise.all([
+        storage.getPostseasonEntriesByLeague(leagueId, season),
+        storage.getPostseasonSeriesByLeague(leagueId, season, "super_regionals"),
+        storage.getPostseasonSeriesByLeague(leagueId, season, "cws_bracket"),
+        storage.getTeamsByLeague(leagueId),
+        storage.getStandingsByLeague(leagueId, season),
+      ]);
+
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, {
+        id: t.id,
+        name: t.name,
+        abbreviation: t.abbreviation,
+        primaryColor: t.primaryColor,
+        secondaryColor: t.secondaryColor,
+      }]));
+
+      const enrichEntry = (e: any) => {
+        const st = standingsList.find(s => s.teamId === e.teamId);
+        return {
+          ...e,
+          team: teamMap[e.teamId] ?? null,
+          wins: st?.wins ?? 0,
+          losses: st?.losses ?? 0,
+        };
+      };
+
+      const enrichSeries = (s: any) => ({
+        ...s,
+        homeTeam: teamMap[s.homeTeamId] ?? null,
+        awayTeam: teamMap[s.awayTeamId] ?? null,
+        winner: s.winnerId ? teamMap[s.winnerId] ?? null : null,
+      });
+
+      // Also grab CWS games for bracket visualization
+      const allGames = await storage.getGamesByLeague(leagueId);
+      const cwsGames = allGames
+        .filter(g => g.phase === "cws" && g.season === season)
+        .map(g => ({
+          id: g.id,
+          homeTeamId: g.homeTeamId,
+          awayTeamId: g.awayTeamId,
+          homeScore: g.homeScore,
+          awayScore: g.awayScore,
+          isComplete: g.isComplete,
+          bracketType: g.bracketType,
+          bracketRound: g.bracketRound,
+          bracketSide: g.bracketSide,
+          homeTeam: teamMap[g.homeTeamId] ?? null,
+          awayTeam: teamMap[g.awayTeamId] ?? null,
+        }));
+
+      res.json({
+        season,
+        entries: entries.sort((a, b) => (a.nationalSeed ?? 99) - (b.nationalSeed ?? 99)).map(enrichEntry),
+        srSeries: srSeries.sort((a, b) => (a.round ?? 0) - (b.round ?? 0)).map(enrichSeries),
+        cwsSeries: cwsSeries.map(enrichSeries),
+        cwsGames,
+        currentPhase: league.currentPhase,
+        currentPhaseStep: league.currentPhaseStep,
+      });
+    } catch (error) {
+      console.error("FS postseason error:", error);
+      res.status(500).json({ message: "Failed to fetch FS postseason data" });
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────────
+
 }

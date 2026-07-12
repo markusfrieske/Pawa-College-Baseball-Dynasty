@@ -2134,14 +2134,24 @@ export type InsertPostseasonTournament = typeof postseason_tournaments.$inferIns
 
 export const postseason_entries = pgTable("postseason_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tournamentId: varchar("tournament_id").notNull().references(() => postseason_tournaments.id),
+  tournamentId: varchar("tournament_id").references(() => postseason_tournaments.id),
   teamId: varchar("team_id").notNull(),
   seed: integer("seed"),
   bracket: text("bracket"), // "winners" | "losers" | null
   status: text("status").notNull().default("active"), // "active" | "eliminated" | "champion"
+  // FS postseason fields (used when tournamentId is null)
+  leagueId: varchar("league_id"),
+  season: integer("season"),
+  qualificationType: text("qualification_type"), // "auto_bid" | "at_large"
+  nationalSeed: integer("national_seed"), // 1-16
+  selectionScore: real("selection_score"),
+  selectionReason: text("selection_reason"),
+  bracketLane: text("bracket_lane"), // "A" | "B" for CWS bracket assignment
 }, (t) => [
   index("idx_ps_entries_tournament").on(t.tournamentId),
   index("idx_ps_entries_team").on(t.teamId),
+  index("idx_ps_entries_league_season").on(t.leagueId, t.season),
+  uniqueIndex("idx_ps_entries_league_season_team").on(t.leagueId, t.season, t.teamId),
 ]);
 
 export type PostseasonEntry = typeof postseason_entries.$inferSelect;
@@ -2149,20 +2159,30 @@ export type InsertPostseasonEntry = typeof postseason_entries.$inferInsert;
 
 export const postseason_series = pgTable("postseason_series", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tournamentId: varchar("tournament_id").notNull().references(() => postseason_tournaments.id),
+  tournamentId: varchar("tournament_id").references(() => postseason_tournaments.id),
   homeTeamId: varchar("home_team_id"),
   awayTeamId: varchar("away_team_id"),
-  round: integer("round").notNull(),
-  bracketSlot: text("bracket_slot"), // "WBR1", "LBR1", etc.
+  round: integer("round").notNull().default(1),
+  bracketSlot: text("bracket_slot"), // "SR1"-"SR8", "CWS-A-WBR1", etc.
   homeScore: integer("home_score"),
   awayScore: integer("away_score"),
   winnerId: varchar("winner_id"),
   isComplete: boolean("is_complete").notNull().default(false),
   gameNumber: integer("game_number").notNull().default(1),
   playedAt: timestamp("played_at"),
+  // FS postseason fields
+  leagueId: varchar("league_id"),
+  season: integer("season"),
+  stage: text("stage"), // "super_regionals" | "cws_bracket" | "cws_final"
+  bestOf: integer("best_of").default(3),
+  homeWins: integer("home_wins").notNull().default(0),
+  awayWins: integer("away_wins").notNull().default(0),
+  seriesStatus: text("series_status").notNull().default("pending"), // "pending" | "in_progress" | "complete"
 }, (t) => [
   index("idx_ps_series_tournament").on(t.tournamentId),
   index("idx_ps_series_bracket_slot").on(t.tournamentId, t.bracketSlot),
+  index("idx_ps_series_league_season").on(t.leagueId, t.season),
+  uniqueIndex("idx_ps_series_league_season_slot").on(t.leagueId, t.season, t.stage, t.bracketSlot),
 ]);
 
 export type PostseasonSeries = typeof postseason_series.$inferSelect;

@@ -18,6 +18,8 @@ import {
   coachRivalries,
   gameRecaps,
   leagueNewsPosts,
+  postseason_entries,
+  postseason_series,
   type LeagueNewsPost, type InsertLeagueNewsPost,
   type CoachRivalry, type InsertCoachRivalry,
   type GameRecap, type InsertGameRecap,
@@ -60,6 +62,8 @@ import {
   type StorylineVote, type InsertStorylineVote,
   type CoachMessage, type InsertCoachMessage,
   type LeagueJob, type InsertLeagueJob,
+  type PostseasonEntry, type InsertPostseasonEntry,
+  type PostseasonSeries, type InsertPostseasonSeries,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql, gt } from "drizzle-orm";
@@ -370,6 +374,16 @@ export interface IStorage {
   updateLeagueJob(id: string, data: Partial<LeagueJob>): Promise<LeagueJob | undefined>;
   getPendingLeagueJobs(): Promise<LeagueJob[]>;
   getOrphanedLeagueJobs(): Promise<LeagueJob[]>;
+
+  // FS Postseason: entries (national seeding) and series (best-of-N tracking)
+  getPostseasonEntriesByLeague(leagueId: string, season: number): Promise<PostseasonEntry[]>;
+  getPostseasonEntryByTeam(leagueId: string, season: number, teamId: string): Promise<PostseasonEntry | undefined>;
+  upsertPostseasonEntry(data: Omit<InsertPostseasonEntry, "id"> & { leagueId: string; season: number; teamId: string }): Promise<PostseasonEntry>;
+  updatePostseasonEntry(id: string, data: Partial<PostseasonEntry>): Promise<PostseasonEntry | undefined>;
+  getPostseasonSeriesByLeague(leagueId: string, season: number, stage?: string): Promise<PostseasonSeries[]>;
+  createPostseasonSeries(data: Omit<InsertPostseasonSeries, "id"> & { leagueId: string; season: number }): Promise<PostseasonSeries>;
+  updatePostseasonSeries(id: string, data: Partial<PostseasonSeries>): Promise<PostseasonSeries | undefined>;
+  upsertCWSFinalSeries(leagueId: string, season: number, teamAId: string, teamBId: string): Promise<PostseasonSeries>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2528,6 +2542,115 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(league_jobs)
       .where(eq(league_jobs.status, "running"))
       .orderBy(asc(league_jobs.createdAt));
+  }
+
+  // ── FS Postseason entries ──────────────────────────────────────────────────
+
+  async getPostseasonEntriesByLeague(leagueId: string, season: number): Promise<PostseasonEntry[]> {
+    return db.select().from(postseason_entries)
+      .where(and(eq(postseason_entries.leagueId, leagueId), eq(postseason_entries.season, season)))
+      .orderBy(asc(postseason_entries.nationalSeed));
+  }
+
+  async getPostseasonEntryByTeam(leagueId: string, season: number, teamId: string): Promise<PostseasonEntry | undefined> {
+    const [entry] = await db.select().from(postseason_entries)
+      .where(and(
+        eq(postseason_entries.leagueId, leagueId),
+        eq(postseason_entries.season, season),
+        eq(postseason_entries.teamId, teamId),
+      ));
+    return entry ?? undefined;
+  }
+
+  async upsertPostseasonEntry(data: Omit<InsertPostseasonEntry, "id"> & { leagueId: string; season: number; teamId: string }): Promise<PostseasonEntry> {
+    const [entry] = await db.insert(postseason_entries)
+      .values(data)
+      .onConflictDoUpdate({
+        target: [postseason_entries.leagueId, postseason_entries.season, postseason_entries.teamId],
+        set: {
+          nationalSeed: data.nationalSeed,
+          qualificationType: data.qualificationType,
+          selectionScore: data.selectionScore,
+          selectionReason: data.selectionReason,
+          bracketLane: data.bracketLane,
+          seed: data.seed,
+          status: data.status,
+        },
+      })
+      .returning();
+    return entry;
+  }
+
+  async updatePostseasonEntry(id: string, data: Partial<PostseasonEntry>): Promise<PostseasonEntry | undefined> {
+    const [entry] = await db.update(postseason_entries).set(data).where(eq(postseason_entries.id, id)).returning();
+    return entry ?? undefined;
+  }
+
+  // ── FS Postseason series ───────────────────────────────────────────────────
+
+  async getPostseasonSeriesByLeague(leagueId: string, season: number, stage?: string): Promise<PostseasonSeries[]> {
+    const conds = [
+      eq(postseason_series.leagueId, leagueId),
+      eq(postseason_series.season, season),
+    ];
+    if (stage) conds.push(eq(postseason_series.stage, stage));
+    return db.select().from(postseason_series).where(and(...conds));
+  }
+
+  async createPostseasonSeries(data: Omit<InsertPostseasonSeries, "id"> & { leagueId: string; season: number }): Promise<PostseasonSeries> {
+    const [series] = await db.insert(postseason_series)
+      .values(data)
+      .onConflictDoNothing()
+      .returning();
+    if (!series) {
+      // Row already exists — return it
+      const existing = await db.select().from(postseason_series)
+        .where(and(
+          eq(postseason_series.leagueId, data.leagueId),
+          eq(postseason_series.season, data.season),
+          eq(postseason_series.stage, data.stage!),
+          eq(postseason_series.bracketSlot, data.bracketSlot!),
+        ))
+        .limit(1);
+      return existing[0];
+    }
+    return series;
+  }
+
+  async updatePostseasonSeries(id: string, data: Partial<PostseasonSeries>): Promise<PostseasonSeries | undefined> {
+    const [series] = await db.update(postseason_series).set(data).where(eq(postseason_series.id, id)).returning();
+    return series ?? undefined;
+  }
+
+  async upsertCWSFinalSeries(leagueId: string, season: number, teamAId: string, teamBId: string): Promise<PostseasonSeries> {
+    const [series] = await db.insert(postseason_series)
+      .values({
+        leagueId,
+        season,
+        stage: "cws_final",
+        bracketSlot: "CWS-FINAL",
+        homeTeamId: teamAId,
+        awayTeamId: teamBId,
+        bestOf: 3,
+        homeWins: 0,
+        awayWins: 0,
+        seriesStatus: "in_progress",
+        round: 1,
+      })
+      .onConflictDoNothing()
+      .returning();
+    if (!series) {
+      const [existing] = await db.select().from(postseason_series)
+        .where(and(
+          eq(postseason_series.leagueId, leagueId),
+          eq(postseason_series.season, season),
+          eq(postseason_series.stage, "cws_final"),
+          eq(postseason_series.bracketSlot, "CWS-FINAL"),
+        ))
+        .limit(1);
+      return existing;
+    }
+    return series;
   }
 }
 

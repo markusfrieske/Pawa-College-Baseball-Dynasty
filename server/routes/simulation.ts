@@ -77,6 +77,7 @@ import {
   calculatePhilosophyRetentionBonus,
 } from "../route-helpers";
 import { updateRecruitStages } from "./league-mgmt";
+import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
 
 // ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
 // These are duplicated at module scope so simulation.ts (which runs CPU
@@ -6642,7 +6643,13 @@ export function registerSimulationRoutes(app: Express): void {
             }
           } catch (e) { console.error("Conf champ coach stats error:", e); }
 
-          await generateSuperRegionalBracket(leagueId, league.currentSeason);
+          if (league.dynastyPreset === "full_season") {
+            // FS: run national selection committee, seed all 16, generate 8 best-of-3 series
+            await selectAndSeedNationalField(leagueId, league.currentSeason);
+            await generateFSSuperRegionals(leagueId, league.currentSeason);
+          } else {
+            await generateSuperRegionalBracket(leagueId, league.currentSeason);
+          }
           
           const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "super_regionals", currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
@@ -6657,7 +6664,31 @@ export function registerSimulationRoutes(app: Express): void {
             g.phase === "super_regionals" && g.season === league.currentSeason && !g.isComplete &&
             (g.homeTeamId === simUserTeamId || g.awayTeamId === simUserTeamId)
           ).map((g: any) => g.id) : [] as string[];
-          const srResult = await advanceSuperRegionals(leagueId, league.currentSeason);
+
+          let srResult: { done: boolean; champion1?: string; champion2?: string; allWinners?: string[]; isFSResult?: boolean };
+          if (league.dynastyPreset === "full_season") {
+            // FS: simulate all incomplete SR games then advance bracket state
+            const fsIncomplete = (await storage.getGamesByLeague(leagueId)).filter((g: any) =>
+              g.phase === "super_regionals" && g.season === league.currentSeason && !g.isComplete
+            );
+            if (fsIncomplete.length > 0) {
+              const fsSimResults = await Promise.all(fsIncomplete.map(async (game: any) => {
+                const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
+                return { game, result };
+              }));
+              await batchFinalizeGames(fsSimResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches, { skipStandings: true });
+            }
+            const bracketResult = await advanceFSSRBracket(leagueId, league.currentSeason);
+            srResult = {
+              done: bracketResult.done,
+              champion1: bracketResult.winners[0],
+              champion2: bracketResult.winners[1],
+              allWinners: bracketResult.winners,
+              isFSResult: true,
+            };
+          } else {
+            srResult = await advanceSuperRegionals(leagueId, league.currentSeason);
+          }
           // Extract the user's just-completed SR game
           if (!userTeamGame && srPreSnap.length > 0) {
             try {
@@ -6717,7 +6748,38 @@ export function registerSimulationRoutes(app: Express): void {
             return res.json({ ...updatedLeague, userTeamGame });
           }
           
-          if (srResult.done && srResult.champion1 && srResult.champion2) {
+          if (srResult.done && srResult.isFSResult && (srResult.allWinners?.length ?? 0) > 0) {
+            // FS: 8 SR winners → initialize two CWS brackets
+            const allWinners = srResult.allWinners ?? [];
+            // Sort by entry national seed to get CWS seed order (lower nationalSeed = better CWS seed)
+            const entries = await storage.getPostseasonEntriesByLeague(leagueId, league.currentSeason);
+            const cwsOrdered = allWinners
+              .map(tId => ({ tId, seed: entries.find(e => e.teamId === tId)?.nationalSeed ?? 99 }))
+              .sort((a, b) => a.seed - b.seed)
+              .map(x => x.tId);
+            await initializeFSCWSBrackets(leagueId, league.currentSeason, cwsOrdered);
+            // Track cwsAppearances for all 8 teams' coaches
+            try {
+              for (const cwsTeamId of allWinners) {
+                const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId);
+                if (cwsTeamEntry?.coachId) {
+                  const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId);
+                  if (cwsCoach) {
+                    const newCwsApp = cwsCoach.cwsAppearances + 1;
+                    await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) });
+                    await awardPostseasonXp(cwsCoach.id, "cws_appearance");
+                  }
+                }
+              }
+            } catch (e) { console.error("CWS appearances coach stats error:", e); }
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws", currentWeek: nextWeek });
+            await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: `${allWinners.length} teams advance to the College World Series!` });
+            sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+              .catch(e => console.error("[digest] sr-complete hook:", e));
+            return res.json({ ...updatedLeague, userTeamGame });
+          }
+
+          if (srResult.done && !srResult.isFSResult && srResult.champion1 && srResult.champion2) {
             await storage.createGame({
               leagueId, season: league.currentSeason, week: 0,
               homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
@@ -6758,7 +6820,24 @@ export function registerSimulationRoutes(app: Express): void {
             g.phase === "cws" && g.season === league.currentSeason && !g.isComplete &&
             (g.homeTeamId === simUserTeamId || g.awayTeamId === simUserTeamId)
           ).map((g: any) => g.id) : [] as string[];
-          const cwsResult = await advanceCWS(leagueId, league.currentSeason);
+
+          let cwsResult: { done: boolean; champion?: string; runnerUp?: string };
+          if (league.dynastyPreset === "full_season") {
+            // FS: simulate all incomplete CWS games then advance bracket state machine
+            const fsIncomplete = (await storage.getGamesByLeague(leagueId)).filter((g: any) =>
+              g.phase === "cws" && g.season === league.currentSeason && !g.isComplete
+            );
+            if (fsIncomplete.length > 0) {
+              const fsSimResults = await Promise.all(fsIncomplete.map(async (game: any) => {
+                const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
+                return { game, result };
+              }));
+              await batchFinalizeGames(fsSimResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches, { skipStandings: true });
+            }
+            cwsResult = await advanceFSCWSBracket(leagueId, league.currentSeason);
+          } else {
+            cwsResult = await advanceCWS(leagueId, league.currentSeason);
+          }
           // Extract the user's just-completed CWS game
           if (!userTeamGame && cwsPreSnap.length > 0) {
             try {
@@ -7994,9 +8073,14 @@ export function registerSimulationRoutes(app: Express): void {
               const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId), game.week);
               return { game, result };
             }));
-            await batchFinalizeGames(fsccSimResults, leagueId, currentLeague.currentSeason, new Map<string, CoachXpDelta>(), fsTeams, undefined, { skipCoachXp: true });
+            await batchFinalizeGames(fsccSimResults, leagueId, currentLeague.currentSeason, new Map<string, CoachXpDelta>(), fsTeams, undefined, { skipCoachXp: true, skipStandings: currentLeague.dynastyPreset === "full_season" });
             console.timeEnd("[advance-perf] fs-conf-champ-games");
-            await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
+            if (currentLeague.dynastyPreset === "full_season") {
+              await selectAndSeedNationalField(leagueId, currentLeague.currentSeason);
+              await generateFSSuperRegionals(leagueId, currentLeague.currentSeason);
+            } else {
+              await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
+            }
             currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
             continue;
           }
@@ -8004,21 +8088,44 @@ export function registerSimulationRoutes(app: Express): void {
           if (phase === "super_regionals") {
             let srDone = false;
             let srIter = 0;
-            let srChampion1: string | undefined;
-            let srChampion2: string | undefined;
-            while (!srDone && srIter < 20) {
+            let srAllWinners: string[] = [];
+            while (!srDone && srIter < 30) {
               srIter++;
-              const srResult = await advanceSuperRegionals(leagueId, currentLeague.currentSeason);
-              srDone = srResult.done;
-              if (srDone) {
-                srChampion1 = srResult.champion1;
-                srChampion2 = srResult.champion2;
+              if (currentLeague.dynastyPreset === "full_season") {
+                // For FS, simulate pending games then advance bracket state
+                const fsIncomplete = (await storage.getGamesByLeague(leagueId)).filter((g: any) =>
+                  g.phase === "super_regionals" && g.season === currentLeague.currentSeason && !g.isComplete
+                );
+                if (fsIncomplete.length > 0) {
+                  await Promise.all(fsIncomplete.map(async (game: any) => {
+                    const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
+                    const box = JSON.parse(result.boxScore);
+                    await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, { skipCoachXp: true, skipStandings: true, skipCacheInvalidation: true });
+                  }));
+                }
+                const bracketResult = await advanceFSSRBracket(leagueId, currentLeague.currentSeason);
+                srDone = bracketResult.done;
+                if (srDone) srAllWinners = bracketResult.winners;
+              } else {
+                const srResult = await advanceSuperRegionals(leagueId, currentLeague.currentSeason);
+                srDone = srResult.done;
+                if (srDone) {
+                  srAllWinners = [srResult.champion1, srResult.champion2].filter(Boolean) as string[];
+                }
               }
             }
-            if (srChampion1 && srChampion2) {
+            if (currentLeague.dynastyPreset === "full_season" && srAllWinners.length > 0) {
+              const fsEntries = await storage.getPostseasonEntriesByLeague(leagueId, currentLeague.currentSeason);
+              const fsCwsOrdered = srAllWinners
+                .map(tId => ({ tId, seed: fsEntries.find(e => e.teamId === tId)?.nationalSeed ?? 99 }))
+                .sort((a, b) => a.seed - b.seed)
+                .map(x => x.tId);
+              await initializeFSCWSBrackets(leagueId, currentLeague.currentSeason, fsCwsOrdered);
+              currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
+            } else if (srAllWinners.length >= 2) {
               await storage.createGame({
                 leagueId, season: currentLeague.currentSeason, week: 0,
-                homeTeamId: srChampion1, awayTeamId: srChampion2,
+                homeTeamId: srAllWinners[0], awayTeamId: srAllWinners[1],
                 phase: "cws",
               });
               currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
@@ -8036,10 +8143,25 @@ export function registerSimulationRoutes(app: Express): void {
           if (phase === "cws") {
             let cwsDone = false;
             let cwsIter = 0;
-            while (!cwsDone && cwsIter < 10) {
+            while (!cwsDone && cwsIter < 20) {
               cwsIter++;
-              const cwsResult = await advanceCWS(leagueId, currentLeague.currentSeason);
-              cwsDone = cwsResult.done;
+              if (currentLeague.dynastyPreset === "full_season") {
+                const fsIncomplete = (await storage.getGamesByLeague(leagueId)).filter((g: any) =>
+                  g.phase === "cws" && g.season === currentLeague.currentSeason && !g.isComplete
+                );
+                if (fsIncomplete.length > 0) {
+                  await Promise.all(fsIncomplete.map(async (game: any) => {
+                    const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
+                    const box = JSON.parse(result.boxScore);
+                    await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, { skipCoachXp: true, skipStandings: true, skipCacheInvalidation: true });
+                  }));
+                }
+                const fsCwsResult = await advanceFSCWSBracket(leagueId, currentLeague.currentSeason);
+                cwsDone = fsCwsResult.done;
+              } else {
+                const cwsResult = await advanceCWS(leagueId, currentLeague.currentSeason);
+                cwsDone = cwsResult.done;
+              }
               if (cwsDone) break;
             }
             await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
