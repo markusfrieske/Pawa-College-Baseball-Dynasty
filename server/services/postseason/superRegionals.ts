@@ -35,9 +35,6 @@ export async function generateFSSuperRegionals(
   leagueId: string,
   season: number
 ): Promise<void> {
-  const existingSeries = await storage.getPostseasonSeriesByLeague(leagueId, season, "super_regionals");
-  if (existingSeries.length >= 1) return; // already generated
-
   const entries = await storage.getPostseasonEntriesByLeague(leagueId, season);
   const seeded = entries
     .filter(e => e.nationalSeed != null)
@@ -49,6 +46,10 @@ export async function generateFSSuperRegionals(
   }
 
   const pairs = getSRPairs(seeded);
+
+  // Idempotency: skip only if all expected series already exist (not on partial writes)
+  const existingSeries = await storage.getPostseasonSeriesByLeague(leagueId, season, "super_regionals");
+  if (existingSeries.length >= pairs.length) return; // fully generated
 
   for (const pair of pairs) {
     await storage.createPostseasonSeries({

@@ -37,11 +37,10 @@ export async function selectAndSeedNationalField(
   leagueId: string,
   season: number
 ): Promise<PostseasonEntry[]> {
-  // Idempotency: if entries already exist for this league/season, return them
-  const existing = await storage.getPostseasonEntriesByLeague(leagueId, season);
-  if (existing.length >= 1) {
-    return existing;
-  }
+  // NOTE: do not early-return on existing.length > 0.
+  // A prior call may have written partial data. upsertPostseasonEntry is
+  // idempotent (ON CONFLICT), so we always run the full selection and
+  // backfill any missing rows.
 
   const allGames = await storage.getGamesByLeague(leagueId);
   const leagueTeams = await storage.getTeamsByLeague(leagueId);

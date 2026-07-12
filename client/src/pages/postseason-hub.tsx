@@ -718,6 +718,249 @@ function StatsPanel({ stats }: { stats: PostseasonData["stats"] }) {
   );
 }
 
+// ─── FS postseason types ────────────────────────────────────────────────────
+
+interface FSSeries {
+  id: string;
+  bracketSlot: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeWins: number;
+  awayWins: number;
+  seriesStatus: string;
+  winnerId?: string;
+  homeTeam: { name: string; abbreviation: string } | null;
+  awayTeam: { name: string; abbreviation: string } | null;
+  winner: { name: string; abbreviation: string } | null;
+}
+
+interface FSEntry {
+  teamId: string;
+  nationalSeed: number;
+  qualificationType: string;
+  selectionReason: string;
+  team: { name: string; abbreviation: string; primaryColor: string } | null;
+  wins: number;
+  losses: number;
+}
+
+interface FSCWSGame {
+  id: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  isComplete: boolean;
+  bracketType: string | null;
+  bracketRound: number | null;
+  bracketSide?: string | null;
+  homeTeam: { name: string; abbreviation: string } | null;
+  awayTeam: { name: string; abbreviation: string } | null;
+}
+
+interface FSPostseasonPayload {
+  season: number;
+  entries: FSEntry[];
+  srSeries: FSSeries[];
+  cwsSeries: FSSeries[];
+  cwsGames: FSCWSGame[];
+  currentPhase: string;
+  currentPhaseStep: string | null;
+}
+
+// ─── FS-specific components ─────────────────────────────────────────────────
+
+function FSSRSeriesView({ srSeries }: { srSeries: FSSeries[] }) {
+  return (
+    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+      {srSeries.map(s => {
+        const isDone = s.seriesStatus === "complete";
+        const hw = s.winner && s.winner.name === s.homeTeam?.name;
+        const aw = s.winner && s.winner.name === s.awayTeam?.name;
+        return (
+          <div
+            key={s.id}
+            className={`bg-muted/30 rounded p-2 border text-[10px] ${isDone ? "border-border" : "border-gold/30"}`}
+            data-testid={`fs-sr-series-${s.bracketSlot}`}
+          >
+            <p className="text-[7px] font-pixel text-gold/70 uppercase mb-1">{s.bracketSlot}</p>
+            <div className={`flex items-center justify-between py-0.5 ${hw ? "text-gold" : ""}`}>
+              <span className="truncate flex-1">{s.homeTeam?.abbreviation || "TBD"}</span>
+              <span className="font-pixel ml-1 text-xs">{s.homeWins}</span>
+            </div>
+            <div className="border-t border-border/30 my-0.5" />
+            <div className={`flex items-center justify-between py-0.5 ${aw ? "text-gold" : ""}`}>
+              <span className="truncate flex-1">{s.awayTeam?.abbreviation || "TBD"}</span>
+              <span className="font-pixel ml-1 text-xs">{s.awayWins}</span>
+            </div>
+            <p className={`text-[7px] text-center font-pixel mt-0.5 ${isDone ? "text-gold" : "text-muted-foreground"}`}>
+              {isDone && s.winner ? `${s.winner.abbreviation} wins` : "Bo3"}
+            </p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function FSCWSMiniGame({ g, label }: { g: FSCWSGame; label: string }) {
+  const hw = g.isComplete && (g.homeScore ?? 0) > (g.awayScore ?? 0);
+  const aw = g.isComplete && (g.awayScore ?? 0) > (g.homeScore ?? 0);
+  return (
+    <div className="bg-muted/20 rounded p-1.5 border border-border/50">
+      <p className="text-[6px] font-pixel text-muted-foreground uppercase mb-0.5">{label}</p>
+      <div className={`flex justify-between text-[9px] ${hw ? "text-gold" : aw ? "text-muted-foreground/60" : ""}`}>
+        <span className="truncate">{g.homeTeam?.abbreviation || "TBD"}</span>
+        <span className="font-pixel ml-1">{g.isComplete ? g.homeScore : "–"}</span>
+      </div>
+      <div className={`flex justify-between text-[9px] ${aw ? "text-gold" : hw ? "text-muted-foreground/60" : ""}`}>
+        <span className="truncate">{g.awayTeam?.abbreviation || "TBD"}</span>
+        <span className="font-pixel ml-1">{g.isComplete ? g.awayScore : "–"}</span>
+      </div>
+    </div>
+  );
+}
+
+function FSCWSBracketView({ bracketId, games }: { bracketId: "A" | "B"; games: FSCWSGame[] }) {
+  const g = (side: string, round: number) =>
+    games.filter(x => x.bracketType === `cws_${bracketId}_${side}` && x.bracketRound === round);
+
+  const wbr1 = g("W", 1);
+  const wbr2 = g("W", 2);
+  const lbr1 = g("L", 1);
+  const lbr2 = g("L", 2);
+  const bf1 = g("BF", 1);
+  const bf2 = g("BF", 2);
+
+  const gameWinner = (x: FSCWSGame) =>
+    x.isComplete ? ((x.homeScore ?? 0) > (x.awayScore ?? 0) ? x.homeTeam : x.awayTeam) : null;
+
+  const wbr2Winner = wbr2[0]?.isComplete ? gameWinner(wbr2[0]) : null;
+  const bf1Winner = bf1[0]?.isComplete ? gameWinner(bf1[0]) : null;
+  const bf2Winner = bf2[0]?.isComplete ? gameWinner(bf2[0]) : null;
+  const bracketChamp = bf2Winner ?? (bf1Winner && wbr2Winner && bf1Winner.name === wbr2Winner.name ? wbr2Winner : null);
+
+  if ([...wbr1, ...wbr2, ...lbr1, ...lbr2, ...bf1, ...bf2].length === 0) {
+    return <p className="text-[9px] text-muted-foreground font-pixel text-center py-2">Awaiting bracket</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {wbr1.length > 0 && (
+        <div>
+          <p className="text-[7px] font-pixel text-gold/70 uppercase mb-0.5">WBR1</p>
+          <div className="space-y-1">
+            {wbr1.map(x => <FSCWSMiniGame key={x.id} g={x} label={x.bracketSide ?? "WBR1"} />)}
+          </div>
+        </div>
+      )}
+      {(wbr2.length > 0 || lbr1.length > 0) && (
+        <div className="grid grid-cols-2 gap-1">
+          {wbr2.length > 0 && (
+            <div>
+              <p className="text-[7px] font-pixel text-gold/70 uppercase mb-0.5">WBR2</p>
+              {wbr2.map(x => <FSCWSMiniGame key={x.id} g={x} label="WBR2" />)}
+            </div>
+          )}
+          {lbr1.length > 0 && (
+            <div>
+              <p className="text-[7px] font-pixel text-amber-400/70 uppercase mb-0.5">LBR1</p>
+              {lbr1.map(x => <FSCWSMiniGame key={x.id} g={x} label="LBR1" />)}
+            </div>
+          )}
+        </div>
+      )}
+      {lbr2.length > 0 && (
+        <div>
+          <p className="text-[7px] font-pixel text-amber-400/70 uppercase mb-0.5">LBR2</p>
+          {lbr2.map(x => <FSCWSMiniGame key={x.id} g={x} label="LBR2" />)}
+        </div>
+      )}
+      {bf1.length > 0 && (
+        <div>
+          <p className="text-[7px] font-pixel text-gold uppercase mb-0.5">Bracket Final</p>
+          <div className="space-y-1">
+            {bf1.map(x => <FSCWSMiniGame key={x.id} g={x} label="BF1" />)}
+            {bf2.map(x => <FSCWSMiniGame key={x.id} g={x} label="BF2 (If Nec.)" />)}
+          </div>
+        </div>
+      )}
+      {bracketChamp && (
+        <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center">
+          <p className="text-[6px] font-pixel text-muted-foreground">BRACKET {bracketId} CHAMP</p>
+          <p className="text-gold font-pixel text-[9px]">{bracketChamp.abbreviation}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FSCWSView({ cwsGames }: { cwsGames: FSCWSGame[] }) {
+  const finalGames = cwsGames.filter(g => g.bracketType === "cws_final");
+  const finalWins: Record<string, number> = {};
+  for (const g of finalGames.filter(g => g.isComplete)) {
+    const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+    finalWins[wId] = (finalWins[wId] ?? 0) + 1;
+  }
+  const cwsChampId = Object.entries(finalWins).find(([, w]) => w >= 2)?.[0];
+  const g1 = finalGames[0];
+  const homeId = g1?.homeTeamId;
+  const awayId = g1?.awayTeamId;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid md:grid-cols-2 gap-4">
+        <div>
+          <p className="font-pixel text-[9px] text-gold mb-2 uppercase">Bracket A (Seeds 1,4,5,8)</p>
+          <FSCWSBracketView bracketId="A" games={cwsGames} />
+        </div>
+        <div>
+          <p className="font-pixel text-[9px] text-gold mb-2 uppercase">Bracket B (Seeds 2,3,6,7)</p>
+          <FSCWSBracketView bracketId="B" games={cwsGames} />
+        </div>
+      </div>
+
+      {finalGames.length > 0 && g1 && (
+        <div className="border-t border-gold/20 pt-3">
+          <p className="font-pixel text-[9px] text-gold uppercase text-center mb-2">CWS Final (Best of 3)</p>
+          <div className="flex items-center justify-center gap-6 py-2 border border-border/30 rounded bg-muted/20 mb-3">
+            <div className="text-right">
+              <span className="text-sm font-medium">{g1.homeTeam?.abbreviation || "TBD"}</span>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center gap-2 font-pixel text-xl">
+                <span className={(finalWins[homeId] ?? 0) >= 2 ? "text-gold" : "text-muted-foreground"}>
+                  {finalWins[homeId] ?? 0}
+                </span>
+                <span className="text-muted-foreground text-sm">–</span>
+                <span className={(finalWins[awayId] ?? 0) >= 2 ? "text-gold" : "text-muted-foreground"}>
+                  {finalWins[awayId] ?? 0}
+                </span>
+              </div>
+            </div>
+            <div className="text-left">
+              <span className="text-sm font-medium">{g1.awayTeam?.abbreviation || "TBD"}</span>
+            </div>
+          </div>
+          {finalGames.map((g, i) => <FSCWSMiniGame key={g.id} g={g} label={`Game ${i + 1}`} />)}
+          {cwsChampId && (() => {
+            const champTeam = finalGames.find(g => g.homeTeamId === cwsChampId)?.homeTeam
+              ?? finalGames.find(g => g.awayTeamId === cwsChampId)?.awayTeam;
+            return champTeam ? (
+              <div className="mt-3 bg-gold/10 border border-gold/30 rounded p-3 text-center">
+                <Trophy className="w-6 h-6 text-gold mx-auto mb-1" />
+                <p className="font-pixel text-gold text-xs" data-testid="text-cws-champion">
+                  {champTeam.name} — CWS Champion!
+                </p>
+              </div>
+            ) : null;
+          })()}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main page ─────────────────────────────────────────────────────────────
 
 export default function PostseasonHubPage() {
@@ -728,10 +971,25 @@ export default function PostseasonHubPage() {
     enabled: !!leagueId,
   });
 
+  const { data: league } = useQuery<{ id: string; dynastyPreset?: string }>({
+    queryKey: ["/api/leagues", leagueId],
+    enabled: !!leagueId,
+  });
+
+  const isFS = league?.dynastyPreset === "full_season";
+
+  const { data: fsData } = useQuery<FSPostseasonPayload>({
+    queryKey: ["/api/leagues", leagueId, "fs-postseason"],
+    enabled: !!leagueId && isFS,
+    refetchInterval: 5000,
+  });
+
   const hasData = data && (
     data.conferenceChampionships.length > 0 ||
     data.superRegionals.length > 0 ||
-    data.cws.length > 0
+    data.cws.length > 0 ||
+    (isFS && (fsData?.srSeries?.length ?? 0) > 0) ||
+    (isFS && (fsData?.cwsGames?.length ?? 0) > 0)
   );
 
   return (
@@ -836,8 +1094,20 @@ export default function PostseasonHubPage() {
               </section>
             )}
 
-            {/* Super Regionals Bracket */}
-            {data.superRegionals.length > 0 && (
+            {/* Super Regionals */}
+            {isFS && fsData && fsData.srSeries.length > 0 ? (
+              <section>
+                <h2 className="font-pixel text-xs text-gold mb-3 flex items-center gap-2">
+                  <Trophy className="w-3.5 h-3.5" />
+                  Super Regionals
+                </h2>
+                <RetroCard>
+                  <RetroCardContent>
+                    <FSSRSeriesView srSeries={fsData.srSeries} />
+                  </RetroCardContent>
+                </RetroCard>
+              </section>
+            ) : data.superRegionals.length > 0 && !isFS ? (
               <section>
                 <h2 className="font-pixel text-xs text-gold mb-3 flex items-center gap-2">
                   <Trophy className="w-3.5 h-3.5" />
@@ -859,8 +1129,6 @@ export default function PostseasonHubPage() {
                           />
                         );
                       })}
-                      {/* Fallback: no winners or losers typed games exist (e.g. only legacy
-                          grand_final rows, or bracketType was never written) */}
                       {!data.superRegionals.some(g => g.bracketType === "winners" || g.bracketType === "losers") && (
                         <div className="grid sm:grid-cols-2 gap-3">
                           {data.superRegionals.map(g => (
@@ -872,10 +1140,22 @@ export default function PostseasonHubPage() {
                   </RetroCardContent>
                 </RetroCard>
               </section>
-            )}
+            ) : null}
 
             {/* College World Series */}
-            {data.cws.length > 0 && (
+            {isFS && fsData && fsData.cwsGames.length > 0 ? (
+              <section>
+                <h2 className="font-pixel text-xs text-gold mb-3 flex items-center gap-2">
+                  <Trophy className="w-3.5 h-3.5" />
+                  College World Series
+                </h2>
+                <RetroCard>
+                  <RetroCardContent>
+                    <FSCWSView cwsGames={fsData.cwsGames} />
+                  </RetroCardContent>
+                </RetroCard>
+              </section>
+            ) : data.cws.length > 0 && !isFS ? (
               <section>
                 <h2 className="font-pixel text-xs text-gold mb-3 flex items-center gap-2">
                   <Trophy className="w-3.5 h-3.5" />
@@ -884,6 +1164,44 @@ export default function PostseasonHubPage() {
                 <RetroCard>
                   <RetroCardContent>
                     <CWSSection games={data.cws} seeds={data.seeds || []} />
+                  </RetroCardContent>
+                </RetroCard>
+              </section>
+            ) : null}
+
+            {/* FS: national seeding table (inline when sidebar would be empty) */}
+            {isFS && fsData && fsData.entries.length > 0 && (
+              <section>
+                <h2 className="font-pixel text-xs text-gold mb-3 flex items-center gap-2">
+                  <Star className="w-3.5 h-3.5" />
+                  National Selection ({fsData.entries.length} teams)
+                </h2>
+                <RetroCard>
+                  <RetroCardContent>
+                    <div className="grid sm:grid-cols-2 gap-1">
+                      {fsData.entries.map(e => (
+                        <div
+                          key={e.teamId}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded bg-muted/20 border border-border/30"
+                          data-testid={`fs-national-seed-${e.nationalSeed}`}
+                        >
+                          <span className="text-[10px] font-pixel text-gold w-5 flex-shrink-0">{e.nationalSeed}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs truncate">{e.team?.name ?? "—"}</p>
+                            <p className="text-[8px] text-muted-foreground">{e.wins}-{e.losses}</p>
+                          </div>
+                          <span
+                            className={`text-[7px] font-pixel flex-shrink-0 px-1 rounded ${
+                              e.qualificationType === "auto_bid"
+                                ? "text-gold bg-gold/10"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {e.qualificationType === "auto_bid" ? "AUTO" : "AL"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </RetroCardContent>
                 </RetroCard>
               </section>

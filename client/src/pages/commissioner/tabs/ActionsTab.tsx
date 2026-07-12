@@ -280,6 +280,7 @@ export function ActionsTab({
         <PostseasonBracket
           leagueId={league?.id || ""}
           phase={league?.currentPhase || ""}
+          dynastyPreset={league?.dynastyPreset ?? undefined}
         />
       )}
 
