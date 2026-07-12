@@ -1,0 +1,642 @@
+# Replit Prompt: UCLA Default Roster Ratings Final Pitcher Patch
+
+Use this prompt in Replit against the latest repo.
+
+## Goal
+
+Apply the final UCLA default/base roster patch from the last eight pitcher screenshots. This patch should update pitcher ratings, pitcher common abilities, special abilities, displayed velocity targets, and pitch mix/levels.
+
+This is a roster-data update only. Do not redesign UI, recruiting, schedules, simulation logic, league logic, or player identities.
+
+## Target File
+
+Primary target:
+
+```text
+server/bigTenBatch3.ts
+```
+
+UCLA is inside:
+
+```ts
+BIG_TEN_BATCH3_ROSTERS["UCLA"]
+```
+
+Also inspect before editing:
+
+```text
+server/pitchMixHelpers.ts
+client/src/lib/playerUtils.ts
+shared/abilities.ts
+```
+
+## Hard Rules
+
+- Only update the eight UCLA pitchers listed in this prompt.
+- Do not change non-UCLA teams.
+- Do not change names, class/eligibility, jersey numbers, hometown, home state, handedness, or potential unless the existing repo has a clear typo and the screenshot confirms it.
+- Do not change Batch 1 or Batch 2 players unless a duplicated pitcher appears in this final patch.
+- Do not blindly set raw `velocity` to screenshot KMH values. The repo stores `velocity` as an internal 1-99 rating.
+- Do not change `stuff` unless the existing roster/OVR system requires it. The screenshots show velocity, control, stamina, pitch mix, common abilities, and special abilities.
+- Keep TypeScript formatting consistent with the surrounding roster entries.
+
+## Velocity Conversion
+
+The repo stores pitcher `velocity` as a 1-99 internal rating and displays it as KMH through `velocityToKMH()`:
+
+```ts
+velocityToMPH(rating) = round(82 + ((rating - 1) * 20) / 98)
+velocityToKMH(rating) = round(velocityToMPH(rating) * 1.60934)
+```
+
+Use the internal `velocity` value that displays closest to the screenshot KMH.
+
+Recommended internal values with the current converter:
+
+| Screenshot KMH | Recommended internal `velocity` | Display result |
+|---:|---:|---:|
+| 141 | 28 | 142 KMH |
+| 152 | 63 | 153 KMH |
+| 153 | 65 | 153 KMH |
+| 155 | 73 | 156 KMH |
+| 156 | 75 | 156 KMH |
+| 159 | 84 | 159 KMH |
+| 163 | 94 | 163 KMH |
+
+Notes:
+
+- 152 KMH is not exactly displayable with the current rounded converter; 151 or 153 are the closest.
+- 155 KMH is not exactly displayable; 154 or 156 are the closest.
+- 141 KMH is not exactly displayable; 140 or 142 are the closest.
+- If exact KMH display matters, update the conversion/display model separately and regression-test every roster/recruit display that uses velocity.
+
+## Pitch Mix Field Order
+
+`pitchMix(1, [...])` uses this secondary pitch order:
+
+```ts
+pitchMix(1, [pitch2S, pitchSL, pitchCB, pitchCH, pitchCT, pitchSNK, pitchSPL, pitchFK, pitchSFF, pitchSHU])
+```
+
+Returned fields:
+
+```text
+pitchFB, pitch2S, pitchSL, pitchCB, pitchCH, pitchCT, pitchSNK, pitchSPL, pitchVSL, pitchFK, pitchSFF, pitchSHU
+```
+
+Important:
+
+- `pitchFB` is binary. Fastball quality comes from `velocity`, `stuff`, and common abilities.
+- `pitch2S`, `pitchFK`, and `pitchSFF` are binary in the helper.
+- Most other pitch types use levels `0-7`.
+- Match the screenshot pitch diagrams as closely as possible.
+
+## Grade Conversion
+
+Use this grade-to-number mapping unless the repo already has a canonical mapping:
+
+| Grade | Value |
+|---|---:|
+| S | 90 |
+| A | 80 |
+| B | 70 |
+| C | 60 |
+| D | 50 |
+| E | 40 |
+| F | 30 |
+
+## Pitcher Common Ability Mapping
+
+Use the repo's existing pitcher profile/display mapping if it already exists. If there is no canonical mapping, use this:
+
+| Screenshot Label | Suggested Roster Field |
+|---|---|
+| 対ピンチ | `clutch` |
+| 対左打者 | `vsLHP` |
+| 打たれ強さ | `grit` |
+| ケガしにくさ | existing injury-resistance field if present |
+| ノビ | `heater` |
+| クイック | `agile` |
+| 回復 | `recovery` |
+
+Do not overwrite one field with two different concepts. If `ケガしにくさ` is not supported for pitchers as its own field, leave a note rather than corrupting another common rating.
+
+## Final Patch Players
+
+### 1. Angel Cervantes
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Angel"
+lastName: "Cervantes"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 65 // screenshot target: 153 KMH
+control: 60
+stamina: 49
+```
+
+Common abilities:
+
+```ts
+clutch: 60        // 対ピンチ C
+vsLHP: 70         // 対左打者 B
+grit: 50          // 打たれ強さ D, if this is repo mapping
+heater: 60        // ノビ C
+agile: 50         // クイック D
+recovery: 60      // 回復 C
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Cutter / カットボール: present, low level
+- SFF: present
+- Sinker / シンカー: present
+- Circle change / サークルチェンジ: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [0, 0, 0, 0, 1, 3, 0, 0, 1, 0])
+// If supported outside pitchMix helper, also set circle change field: pitchCCH: 2 or 3
+```
+
+Special abilities:
+
+```ts
+abilities: ["Strikeout", "Release", "Guts", "Inside Pitch", "Pace", "Fireman"]
+```
+
+Japanese source labels:
+
+- キレ○
+- 奪三振
+- リリース○
+- 闘志
+- 内角攻め
+- 回またぎ○
+- 火消し
+- 力配分
+
+If the repo has direct mappings for `キレ○` or `力配分`, use them. Existing likely closest matches include `Sharpness`, `Straddle`, `Fireman`, and `Strength Distribution`.
+
+### 2. Easton Hawk
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Easton"
+lastName: "Hawk"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 73 // screenshot target: 155 KMH; current converter displays 156 KMH
+control: 66
+stamina: 60
+```
+
+Common abilities:
+
+```ts
+clutch: 50        // 対ピンチ D
+vsLHP: 50         // 対左打者 D
+grit: 60          // 打たれ強さ C, if this is repo mapping
+heater: 60        // ノビ C
+agile: 40         // クイック E
+recovery: 50      // 回復 D
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Two-seam fastball / ツーシームファスト: present if supported
+- Cutball / カットボール: present
+- H-slider / Hスライダー: present
+- Circle change / サークルチェンジ: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [1, 0, 0, 0, 1, 0, 0, 0, 0, 0])
+// If supported outside pitchMix helper, also set H-slider and circle-change fields.
+```
+
+Special abilities:
+
+```ts
+abilities: ["Sharpness", "Groundball Pitcher", "Crossfire"]
+```
+
+Japanese source labels:
+
+- ジャイロボール
+- 打球反応○
+- クロスファイヤー
+
+If `Gyroball` and a fielding-reaction pitcher ability are available, prefer those direct mappings. Otherwise use the closest valid pitcher abilities already in `shared/abilities.ts`.
+
+### 3. Landon Stump
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Landon"
+lastName: "Stump"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 65 // screenshot target: 153 KMH
+control: 65
+stamina: 71
+```
+
+Common abilities:
+
+```ts
+clutch: 60        // 対ピンチ C
+vsLHP: 50         // 対左打者 D
+grit: 40          // 打たれ強さ E, if this is repo mapping
+heater: 40        // ノビ E
+agile: 60         // クイック C
+recovery: 60      // 回復 C
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Two-seam fastball / ツーシームファスト: present
+- Shooter / シュート: present if supported
+- Cutball / カットボール: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [1, 0, 0, 0, 1, 0, 0, 0, 0, 2])
+```
+
+Special abilities:
+
+```ts
+abilities: ["Strikeout", "vs. Strong Batters"]
+```
+
+Japanese source labels:
+
+- 奪三振
+- 対強打者○
+
+### 4. Zach Strickland
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Zach"
+lastName: "Strickland"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 63 // screenshot target: 152 KMH; current converter displays 153 KMH
+control: 78
+stamina: 45
+```
+
+Common abilities:
+
+```ts
+clutch: 50        // 対ピンチ D
+vsLHP: 50         // 対左打者 D
+grit: 50          // 打たれ強さ D, if this is repo mapping
+heater: 50        // ノビ D
+agile: 60         // クイック C
+recovery: 50      // 回復 D
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- H-shoot / Hシュート: present if supported
+- SFF: present
+- Drop curve / ドロップカーブ: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [0, 0, 0, 0, 0, 0, 0, 0, 1, 2])
+// If supported outside pitchMix helper, use H-shoot/drop-curve specific fields instead of closest classic fields.
+```
+
+Special abilities:
+
+```ts
+abilities: ["Sharpness", "Escape Pitch", "Low Ball", "Strong Starter"]
+```
+
+Japanese source labels:
+
+- ジャイロボール
+- 逃げ球
+- 低め○
+- ストライク先行
+
+### 5. Logan Reddemann
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Logan"
+lastName: "Reddemann"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 94 // screenshot target: 163 KMH
+control: 88
+stamina: 88
+```
+
+Common abilities:
+
+```ts
+clutch: 50        // 対ピンチ D
+vsLHP: 50         // 対左打者 D
+grit: 60          // 打たれ強さ C, if this is repo mapping
+heater: 50        // ノビ D
+agile: 60         // クイック C
+recovery: 50      // 回復 D
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Two-seam fastball / ツーシームファスト: present
+- Cutball / カットボール: present
+- Fork / フォーク: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [1, 0, 0, 0, 1, 0, 0, 5, 0, 0])
+```
+
+Special abilities:
+
+```ts
+abilities: ["Heavy Ball", "Straddle", "Strong Starter", "Groundball Pitcher"]
+```
+
+Japanese source labels:
+
+- 重い球
+- 緊急登板○
+- ストライク先行
+- ゴロピッチャー
+
+### 6. Wylan Moss
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Wylan"
+lastName: "Moss"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 84 // screenshot target: 159 KMH
+control: 71
+stamina: 85
+```
+
+Common abilities:
+
+```ts
+clutch: 50        // 対ピンチ D
+vsLHP: 40         // 対左打者 E
+grit: 50          // 打たれ強さ D, if this is repo mapping
+heater: 60        // ノビ C
+agile: 50         // クイック D
+recovery: 60      // 回復 C
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Two-seam fastball / ツーシームファスト: present
+- Slider / スライダー: present
+- SFF: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [1, 3, 0, 0, 0, 0, 0, 0, 1, 0])
+```
+
+Special abilities:
+
+```ts
+abilities: ["Sharpness", "Escape Pitch", "Strikeout", "Constant Speed", "Groundball Pitcher"]
+```
+
+Japanese source labels:
+
+- キレ○
+- 逃げ球
+- 奪三振
+- 球速安定
+- ゴロピッチャー
+
+### 7. Michael Barnett
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Michael"
+lastName: "Barnett"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 75 // screenshot target: 156 KMH
+control: 72
+stamina: 73
+```
+
+Common abilities:
+
+```ts
+clutch: 50        // 対ピンチ D
+vsLHP: 50         // 対左打者 D
+grit: 50          // 打たれ強さ D, if this is repo mapping
+heater: 50        // ノビ D
+agile: 50         // クイック D
+recovery: 60      // 回復 C
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Two-seam fastball / ツーシームファスト: present
+- Cutball / カットボール: present
+- Circle change / サークルチェンジ: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [1, 0, 0, 0, 1, 0, 0, 0, 0, 0])
+// If supported outside pitchMix helper, also set circle change field.
+```
+
+Special abilities:
+
+```ts
+abilities: ["Heavy Ball", "Escape Pitch", "Release", "Winner's Luck", "Fireman", "Poker Face"]
+```
+
+Japanese source labels:
+
+- 重い球
+- 逃げ球
+- リリース○
+- 勝ち運
+- 火消し
+- 調子安定
+
+### 8. Ian May
+
+Update existing UCLA pitcher:
+
+```ts
+firstName: "Ian"
+lastName: "May"
+```
+
+Pitcher ratings:
+
+```ts
+velocity: 28 // screenshot target: 141 KMH; current converter displays 142 KMH
+control: 63
+stamina: 54
+```
+
+Common abilities:
+
+```ts
+clutch: 50        // 対ピンチ D
+vsLHP: 60         // 対左打者 C
+grit: 50          // 打たれ強さ D, if this is repo mapping
+heater: 50        // ノビ D
+agile: 50         // クイック D
+recovery: 50      // 回復 D
+```
+
+Pitch mix target from screenshot:
+
+- Fastball/straight: present
+- Two-seam fastball / ツーシームファスト: present
+- Cutball / カットボール: present
+- Circle change / サークルチェンジ: present
+
+Recommended starting point, then verify visually:
+
+```ts
+...pitchMix(1, [1, 0, 0, 0, 1, 0, 0, 0, 0, 0])
+// If supported outside pitchMix helper, also set circle change field.
+```
+
+Special abilities:
+
+```ts
+abilities: ["Release", "Winner's Luck", "Crossfire", "vs. Strong Batters", "Inside Pitch", "Staredown"]
+```
+
+Japanese source labels:
+
+- リリース○
+- 勝ち運
+- クロスファイヤー
+- 対強打者○
+- 内角攻め
+- 要所○
+
+## Ability Registry Notes
+
+Before saving final edits:
+
+1. Check `shared/abilities.ts`.
+2. Use existing ability names exactly when possible.
+3. Do not create duplicate concepts under slightly different names.
+4. If a Japanese label has no exact existing ability, use the closest valid existing ability and note it in the completion summary.
+5. Only add a new global ability if the game design actually needs that concept everywhere.
+
+Likely existing mappings:
+
+| Japanese Label | Existing Ability Candidate |
+|---|---|
+| 奪三振 | `Strikeout` |
+| 逃げ球 | `Escape Pitch` |
+| リリース○ | `Release` |
+| 低め○ | `Low Ball` |
+| 緩急○ | `Pace` |
+| 重い球 | `Heavy Ball` |
+| 勝ち運 | `Winner's Luck` |
+| 火消し | `Fireman` |
+| クロスファイヤー | `Crossfire` |
+| 対強打者○ | `vs. Strong Batters` |
+| 内角攻め | `Inside Pitch` |
+| ゴロピッチャー | `Groundball Pitcher` |
+| 球速安定 | `Constant Speed` |
+| 調子安定 | `Poker Face` |
+| 球持ち○ | `Tunneling` or nearest deception ability |
+| ストライク先行 | `Strong Starter` if no direct command-first ability exists |
+| 回またぎ○ | `Straddle` |
+| 力配分 | `Strength Distribution` |
+
+## Verification Checklist
+
+After editing:
+
+- Run the repo's normal check command:
+
+```bash
+npm run check
+```
+
+- Start the app and open UCLA roster/player profiles.
+- Verify all eight final-patch pitchers display the intended control/stamina/common ratings.
+- Verify velocity display targets:
+  - Angel Cervantes: 153 KMH
+  - Easton Hawk: closest to 155 KMH
+  - Landon Stump: 153 KMH
+  - Zach Strickland: closest to 152 KMH
+  - Logan Reddemann: 163 KMH
+  - Wylan Moss: 159 KMH
+  - Michael Barnett: 156 KMH
+  - Ian May: closest to 141 KMH
+- Verify pitch diagrams show the intended pitch types and levels.
+- Verify Batch 1 and Batch 2 UCLA updates were not regressed.
+- Verify no non-UCLA roster entries changed.
+- Verify no invalid ability names appear in the UI.
+
+## Completion Summary Format
+
+When done, report:
+
+- Files changed.
+- Eight final-patch UCLA pitchers updated.
+- Any Japanese ability labels that required closest-match mappings.
+- Any velocity values that cannot display exactly under the current converter.
+- Test/check command result.
