@@ -1170,9 +1170,15 @@ export async function registerRoutes(
 
         // Use canonical conference sizes when available; fall back to equal-split for custom configurations.
         const confTargets = (() => {
-          // If all conferences in this league are canonical (known sizes), use those directly.
+          // If all conferences in this league are canonical (known sizes), use those directly —
+          // but only when the canonical totals actually match the league size. A small dynasty
+          // that happens to use real conference names (e.g. 14 teams across SEC/Big Ten/ACC)
+          // should fall through to the equal-split logic instead of enforcing full-size counts.
           const allCanonical = conferences.every(c => CONF_SIZE_MAP.has(c.name));
-          if (allCanonical) {
+          const canonicalTotal = allCanonical
+            ? conferences.reduce((s, c) => s + CONF_SIZE_MAP.get(c.name)!, 0)
+            : 0;
+          if (allCanonical && canonicalTotal === league.maxTeams) {
             return conferences.map(c => CONF_SIZE_MAP.get(c.name)!);
           }
           // Special case: 14-team / 3-conf → 6+4+4 (legacy default)
