@@ -73,6 +73,7 @@ export interface RealPlayer {
   batHand?: string;
   generational?: boolean;
   protectedAttrs?: (keyof RealPlayer)[];
+  protectedAbilities?: string[];
 }
 
 const SCALE_ATTRS: (keyof RealPlayer)[] = [
@@ -276,8 +277,15 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
       }
 
       // 2. Gate gold abilities: strip gold if OVR (with abilities) < 500.
+      //    Protected abilities bypass the gate entirely — they are removed before gating
+      //    and restored at the front afterward, so the gate never substitutes them.
       const ovrForGating = calculateOVR({ ...calibrated });
-      const gatedAbilities = enforceGoldOvrGate(calibrated.abilities ?? [], calibrated.position, ovrForGating);
+      const protectedSet = new Set(p.protectedAbilities ?? []);
+      const abilitiesForGating = (calibrated.abilities ?? []).filter(a => !protectedSet.has(a));
+      const gatedNonProtected = enforceGoldOvrGate(abilitiesForGating, calibrated.position, ovrForGating);
+      const gatedAbilities = protectedSet.size > 0
+        ? [...(p.protectedAbilities ?? []), ...gatedNonProtected]
+        : gatedNonProtected;
       calibrated = { ...calibrated, abilities: gatedAbilities };
 
       // 3. Elite speedster running/stealing boost: OVR > 500 + speed ≥ 90 → S-grade running/stealing.

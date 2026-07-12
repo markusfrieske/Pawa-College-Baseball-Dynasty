@@ -687,6 +687,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       trajectory: 3, hitForAvg: 73, power: 71, speed: 75, arm: 70, fielding: 60, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 60, vsLHP: 50, grit: 50, stealing: 60, running: 60, throwing: 60, recovery: 50, wRISP: 68, vsLefty: 66, poise: 64, heater: 0, agile: 54,
       abilities: ["Wide Angle Cannon", "Power Hitter", "Resilient", "Laser Beam", "Defensive Artisan"], potential: "A", catcherAbility: null,
+      protectedAbilities: ["Wide Angle Cannon"],
       protectedAttrs: UCLA_SCREENSHOT_HITTER_PROTECTED_ATTRS,
       throwHand: "L", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
