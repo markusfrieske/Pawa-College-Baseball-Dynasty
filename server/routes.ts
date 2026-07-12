@@ -10,7 +10,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
 import { FULL_SEASON_TOTAL, FULL_SEASON_CONF_NAMES, FULL_SEASON_RULES, CONF_SIZE_MAP, CONFERENCE_CATALOG } from "@shared/catalog";
-import { FULL_SEASON_RULES_SNAPSHOT } from "@shared/leagueRules";
+import { FULL_SEASON_RULES_SNAPSHOT, leagueRulesSnapshotSchema } from "@shared/leagueRules";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
@@ -692,7 +692,7 @@ export async function registerRoutes(
         dynastyPreset:      preset ?? "custom",
         catalogVersion:     isFullSeason ? FULL_SEASON_RULES.catalogVersion : undefined,
         rulesVersion:       isFullSeason ? 1 : undefined,
-        rulesSnapshot:      isFullSeason ? FULL_SEASON_RULES_SNAPSHOT : undefined,
+        rulesSnapshot:      isFullSeason ? leagueRulesSnapshotSchema.parse(FULL_SEASON_RULES_SNAPSHOT) : undefined,
       });
 
       // Create conferences — use all 12 for full_season, otherwise selected or default N

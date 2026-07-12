@@ -5,7 +5,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Star, ArrowLeft, TrendingUp, Check, Camera, Globe, Settings, Lock } from "lucide-react";
@@ -81,6 +81,28 @@ export default function LeagueCreatePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch the live catalog from the API so the client always reflects the server's
+  // authoritative conference/team list, falling back to the static import if the
+  // request is still in flight.
+  const { data: catalogData } = useQuery<{
+    conferences: Array<{ id: string; name: string; size: number }>;
+    totalTeams: number;
+    catalogVersion: string;
+  }>({ queryKey: ["/api/catalog"] });
+
+  const liveConferences = catalogData
+    ? catalogData.conferences.map(c => ({
+        id: c.id,
+        name: c.name,
+        teams: c.size,
+        abbr: CONF_DISPLAY[c.name]?.abbr ?? c.name.slice(0, 4).toUpperCase(),
+        fullName: CONF_DISPLAY[c.name]?.fullName ?? c.name,
+        primaryColor: CONF_DISPLAY[c.name]?.primaryColor ?? "#333333",
+        secondaryColor: CONF_DISPLAY[c.name]?.secondaryColor ?? "#ffffff",
+      }))
+    : availableConferences;
+  const liveTotalTeams = catalogData?.totalTeams ?? FULL_SEASON_TOTAL;
+
   // Auto-create a guest session if the user arrives here without any session
   // (e.g. clicking "Create League" directly from the landing page or dashboard)
   useEffect(() => {
@@ -97,10 +119,10 @@ export default function LeagueCreatePage() {
 
   const totalAvailableTeams = useMemo(() => {
     return selectedConferences.reduce((sum, confId) => {
-      const conf = availableConferences.find(c => c.id === confId);
+      const conf = liveConferences.find(c => c.id === confId);
       return sum + (conf?.teams || 0);
     }, 0);
-  }, [selectedConferences]);
+  }, [selectedConferences, liveConferences]);
 
   const teamCountOptions = useMemo(() => {
     const confCount = selectedConferences.length;
@@ -121,7 +143,7 @@ export default function LeagueCreatePage() {
         ? prev.filter(c => c !== confId)
         : [...prev, confId];
       const newTotal = next.reduce((sum, id) => {
-        const conf = availableConferences.find(c => c.id === id);
+        const conf = liveConferences.find(c => c.id === id);
         return sum + (conf?.teams || 0);
       }, 0);
       const confCount = next.length;
@@ -184,7 +206,7 @@ export default function LeagueCreatePage() {
     if (mode === "full_season") {
       createLeagueMutation.mutate({
         name: name.trim(),
-        maxTeams: FULL_SEASON_TOTAL,
+        maxTeams: liveTotalTeams,
         cpuDifficulty,
         selectedConferences: ALL_CONFERENCE_IDS,
         seasonLength: "full_season",
@@ -292,7 +314,7 @@ export default function LeagueCreatePage() {
                   </span>
                 </div>
                 <div className="grid grid-cols-6 gap-2">
-                  {availableConferences.map(conf => {
+                  {liveConferences.map(conf => {
                     const isSelected = selectedConferences.includes(conf.id);
                     return (
                       <button

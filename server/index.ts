@@ -1271,6 +1271,84 @@ app.use((req, res, next) => {
     }
   })();
 
+  // ── full-season-schema-v1 ──────────────────────────────────────────────────
+  // Ensures the Full Season columns and tables exist for existing DBs that were
+  // created before this migration ran (applied via raw SQL earlier; this startup
+  // migration is the permanent idempotent record of that work).
+  (() => {
+    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v1'`)
+      .then(({ rowCount }) => {
+        if ((rowCount ?? 0) > 0) {
+          console.log("[startup-migration] full-season-schema-v1: already applied, skipping");
+          return;
+        }
+        return pool.query(`
+          -- Add Full Season columns to leagues table (no-ops if they already exist)
+          ALTER TABLE leagues
+            ADD COLUMN IF NOT EXISTS rules_version integer DEFAULT NULL,
+            ADD COLUMN IF NOT EXISTS current_phase_step text DEFAULT NULL;
+
+          -- Postseason tournament tracking tables
+          CREATE TABLE IF NOT EXISTS postseason_tournaments (
+            id text PRIMARY KEY,
+            league_id text NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+            season integer NOT NULL,
+            tournament_type text NOT NULL,
+            status text NOT NULL DEFAULT 'pending',
+            metadata jsonb,
+            created_at timestamp DEFAULT now()
+          );
+          CREATE INDEX IF NOT EXISTS idx_pst_league_season ON postseason_tournaments (league_id, season);
+
+          CREATE TABLE IF NOT EXISTS postseason_entries (
+            id text PRIMARY KEY,
+            tournament_id text NOT NULL REFERENCES postseason_tournaments(id) ON DELETE CASCADE,
+            team_id text NOT NULL,
+            seed integer,
+            bracket_position text,
+            is_eliminated boolean DEFAULT false,
+            metadata jsonb
+          );
+          CREATE INDEX IF NOT EXISTS idx_pse_tournament ON postseason_entries (tournament_id);
+
+          CREATE TABLE IF NOT EXISTS postseason_series (
+            id text PRIMARY KEY,
+            tournament_id text NOT NULL REFERENCES postseason_tournaments(id) ON DELETE CASCADE,
+            home_entry_id text REFERENCES postseason_entries(id),
+            away_entry_id text REFERENCES postseason_entries(id),
+            round integer NOT NULL,
+            series_type text NOT NULL DEFAULT 'best_of_3',
+            status text NOT NULL DEFAULT 'scheduled',
+            winner_entry_id text,
+            metadata jsonb
+          );
+          CREATE INDEX IF NOT EXISTS idx_pss_tournament ON postseason_series (tournament_id);
+
+          CREATE TABLE IF NOT EXISTS league_jobs (
+            id text PRIMARY KEY,
+            league_id text NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+            job_type text NOT NULL,
+            status text NOT NULL DEFAULT 'pending',
+            payload jsonb,
+            result jsonb,
+            error_message text,
+            created_at timestamp DEFAULT now(),
+            updated_at timestamp DEFAULT now()
+          );
+          CREATE INDEX IF NOT EXISTS idx_lj_league_status ON league_jobs (league_id, status);
+        `).then(() => {
+          return pool.query(`
+            INSERT INTO _startup_migrations (key)
+            VALUES ('full-season-schema-v1')
+            ON CONFLICT (key) DO NOTHING
+          `);
+        }).then(() => {
+          console.log("[startup-migration] full-season-schema-v1: Full Season columns and tables ensured");
+        });
+      })
+      .catch(e => console.warn("[startup-migration] full-season-schema-v1 failed:", e));
+  })();
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

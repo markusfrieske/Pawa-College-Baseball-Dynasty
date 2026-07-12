@@ -1182,14 +1182,23 @@ app.patch("/api/leagues/:id/settings", requireAuth, async (req, res) => {
     if (!result.success) {
       return res.status(400).json({ message: "Invalid settings data" });
     }
-    
+
+    // Full Season preset: certain settings are locked at dynasty creation and cannot be changed.
+    const isFullSeason = (league as any).dynastyPreset === "full_season";
+    if (isFullSeason && result.data.gameMode !== undefined && result.data.gameMode !== "simulated") {
+      return res.status(409).json({
+        message: "Full Season dynasties are locked to Simulated game mode and cannot be switched to Reported mode.",
+      });
+    }
+
     const updateData: Record<string, any> = {};
     if (result.data.auditLogPublic !== undefined) updateData.auditLogPublic = result.data.auditLogPublic;
     if (result.data.cpuDifficulty !== undefined) updateData.cpuDifficulty = result.data.cpuDifficulty;
     if (result.data.cpuRecruitingAggression !== undefined) updateData.cpuRecruitingAggression = result.data.cpuRecruitingAggression;
     if (result.data.emailDigestsEnabled !== undefined) updateData.emailDigestsEnabled = result.data.emailDigestsEnabled;
     if (result.data.showReadyNamesToAll !== undefined) updateData.showReadyNamesToAll = result.data.showReadyNamesToAll;
-    if (result.data.gameMode !== undefined) updateData.gameMode = result.data.gameMode;
+    // Only allow gameMode changes on non-full_season leagues (locked above).
+    if (result.data.gameMode !== undefined && !isFullSeason) updateData.gameMode = result.data.gameMode;
     const updated = await storage.updateLeague(req.params.id as string, updateData);
     res.json(updated);
   } catch (error) {

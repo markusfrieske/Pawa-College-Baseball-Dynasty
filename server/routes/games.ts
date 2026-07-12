@@ -675,6 +675,9 @@ export function registerGameRoutes(app: Express): void {
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode." });
+      }
 
       const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
@@ -775,6 +778,9 @@ export function registerGameRoutes(app: Express): void {
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode." });
+      }
 
       const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
@@ -865,6 +871,9 @@ export function registerGameRoutes(app: Express): void {
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode." });
+      }
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can force-finalize a game report" });
       }
@@ -938,6 +947,11 @@ export function registerGameRoutes(app: Express): void {
     const gameId = req.params.gameId as string;
     const league = await storage.getLeague(leagueId);
     if (!league) { res.status(404).json({ message: "League not found" }); return null; }
+    // Full Season leagues are always simulated — screenshot uploads are not supported.
+    if (!readOnly && (league as any).dynastyPreset === "full_season") {
+      res.status(409).json({ message: "Game report images are not available in Full Season mode. Games are auto-simulated." });
+      return null;
+    }
     const game = await storage.getGame(gameId);
     if (!game || game.leagueId !== leagueId) { res.status(404).json({ message: "Game not found in this league" }); return null; }
     const isCommissioner = hasCommissionerAccess(league, req.session.userId);
