@@ -54,6 +54,7 @@ import { registerWarRoomRoutes } from "./routes/war-room";
 import { registerTickerRoutes } from "./routes/ticker";
 import { registerCoachMessageRoutes } from "./routes/coach-messages";
 import { registerRivalryRoutes } from "./routes/rivalries";
+import { registerNewsRoutes } from "./routes/news";
 import { registerIdentityRoutes } from "./routes/identity";
 import {
   generateSchedule,
@@ -469,6 +470,7 @@ export async function registerRoutes(
   registerTickerRoutes(app);
   registerCoachMessageRoutes(app);
   registerRivalryRoutes(app);
+  registerNewsRoutes(app);
   registerIdentityRoutes(app);
   registerObjectStorageRoutes(app);
 

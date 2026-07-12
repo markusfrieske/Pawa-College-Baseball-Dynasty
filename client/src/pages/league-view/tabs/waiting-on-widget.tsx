@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { InningScoreboard, useScoreboardEnabled, type InningScoreboardData } from "@/components/inning-scoreboard";
 import {
   Users, Check, ChevronRight, Play, Clock, Trophy, Vote, Award, Star, Skull, ScrollText, Diamond,
+  CalendarClock, Pencil,
 } from "lucide-react";
 import type { LeagueDetails, ReadyStatusData } from "../types";
 import { STORYLINE_VOTE_CALLOUT_PHASES } from "../types";
@@ -316,6 +317,28 @@ export function WaitingOnWidget({
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
 
+  // Advance schedule state
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [scheduleInput, setScheduleInput] = useState("");
+  const [scheduleNote, setScheduleNote] = useState("");
+  // Live clock for countdown
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const scheduleAdvanceMut = useMutation({
+    mutationFn: () => apiRequest("PUT", `/api/leagues/${leagueId}/advance-schedule`, {
+      nextAdvanceAt: scheduleInput ? new Date(scheduleInput).toISOString() : null,
+      advanceScheduleNote: scheduleNote || null,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      setShowScheduleDialog(false);
+    },
+  });
+
   const { data: user } = useQuery<{ id: string; email: string }>({
     queryKey: ["/api/auth/me"],
   });
@@ -556,7 +579,7 @@ export function WaitingOnWidget({
         {/* Deadline / autopilot warning — mirrors commissioner page placement */}
         {readyData?.phaseDeadline && !allReady && (() => {
           const deadline = new Date(readyData.phaseDeadline!);
-          const diffMs = deadline.getTime() - Date.now();
+          const diffMs = deadline.getTime() - now;
           const passed = diffMs <= 0;
           const timeLeft = passed
             ? "Deadline passed — auto-ready will apply on next advance"
@@ -570,6 +593,75 @@ export function WaitingOnWidget({
             >
               <Clock className="w-3 h-3 shrink-0" />
               <span>{timeLeft}</span>
+            </div>
+          );
+        })()}
+
+        {/* Scheduled next advance countdown */}
+        {(() => {
+          const nextAt = (league as any).nextAdvanceAt;
+          const note = (league as any).advanceScheduleNote as string | null;
+          if (!nextAt && !note && !isCommissioner) return null;
+          const deadline = nextAt ? new Date(nextAt) : null;
+          const diffMs = deadline ? deadline.getTime() - now : null;
+          const passed = diffMs != null && diffMs <= 0;
+          const fmt = (ms: number) => {
+            const s = Math.floor(ms / 1000);
+            const m = Math.floor(s / 60);
+            const h = Math.floor(m / 60);
+            const d = Math.floor(h / 24);
+            if (d > 0) return `${d}d ${h % 24}h`;
+            if (h > 0) return `${h}h ${m % 60}m`;
+            return `${m}m ${s % 60}s`;
+          };
+          return (
+            <div className="mt-3 pt-2 border-t border-border/30" data-testid="advance-schedule-section">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <CalendarClock className="w-3 h-3 text-gold/70 shrink-0" />
+                  <span className="font-pixel text-[7px] text-muted-foreground">NEXT ADVANCE</span>
+                </div>
+                {isCommissioner && (
+                  <button
+                    onClick={() => {
+                      setScheduleInput(nextAt ? new Date(nextAt).toISOString().slice(0, 16) : "");
+                      setScheduleNote(note ?? "");
+                      setShowScheduleDialog(true);
+                    }}
+                    className="text-[9px] text-gold/50 hover:text-gold transition-colors flex items-center gap-0.5"
+                    data-testid="button-edit-advance-schedule"
+                  >
+                    <Pencil className="w-2.5 h-2.5" />
+                    Edit
+                  </button>
+                )}
+              </div>
+              {deadline && !passed && diffMs != null && (
+                <p className="text-sm font-bold text-gold mt-0.5" data-testid="text-advance-countdown">
+                  {fmt(diffMs)}
+                </p>
+              )}
+              {deadline && passed && (
+                <p className="text-[10px] text-amber-400 mt-0.5">Advance due — waiting on commissioner</p>
+              )}
+              {deadline && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {deadline.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
+                  {deadline.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
+                </p>
+              )}
+              {note && (
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5 italic">{note}</p>
+              )}
+              {!deadline && !note && isCommissioner && (
+                <button
+                  onClick={() => { setScheduleInput(""); setScheduleNote(""); setShowScheduleDialog(true); }}
+                  className="text-[10px] text-gold/50 hover:text-gold transition-colors mt-0.5"
+                  data-testid="button-set-advance-schedule"
+                >
+                  + Set schedule for coaches
+                </button>
+              )}
             </div>
           );
         })()}
@@ -597,6 +689,61 @@ export function WaitingOnWidget({
             advanceMutation.mutate();
           }}
         />
+
+        {/* Advance Schedule Dialog */}
+        <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+          <DialogContent className="bg-card border-border max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="font-pixel text-gold text-[10px]">SET ADVANCE SCHEDULE</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div>
+                <label className="font-pixel text-[8px] text-muted-foreground block mb-1.5">NEXT ADVANCE DATE/TIME (EST)</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleInput}
+                  onChange={e => setScheduleInput(e.target.value)}
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
+                  data-testid="input-schedule-datetime"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Visible to all coaches as a countdown timer</p>
+              </div>
+              <div>
+                <label className="font-pixel text-[8px] text-muted-foreground block mb-1.5">SCHEDULE NOTE (optional)</label>
+                <input
+                  value={scheduleNote}
+                  onChange={e => setScheduleNote(e.target.value)}
+                  maxLength={200}
+                  placeholder="e.g. Mon/Wed/Fri 9pm EST"
+                  className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
+                  data-testid="input-schedule-note"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                {scheduleInput && (
+                  <button
+                    onClick={() => { setScheduleInput(""); scheduleAdvanceMut.mutate(); }}
+                    className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors"
+                    data-testid="button-clear-schedule"
+                  >
+                    Clear schedule
+                  </button>
+                )}
+                <div className="ml-auto flex gap-2">
+                  <RetroButton variant="outline" size="sm" onClick={() => setShowScheduleDialog(false)}>Cancel</RetroButton>
+                  <RetroButton
+                    size="sm"
+                    disabled={scheduleAdvanceMut.isPending}
+                    onClick={() => scheduleAdvanceMut.mutate()}
+                    data-testid="button-save-schedule"
+                  >
+                    {scheduleAdvanceMut.isPending ? "Saving..." : "Save"}
+                  </RetroButton>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <InningScoreboard
           open={showScoreboard}

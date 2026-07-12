@@ -39,10 +39,13 @@ import { WaitingOnWidget } from "./league-view/tabs/waiting-on-widget";
 import { WalkonAuctionSummaryModal } from "./league-view/tabs/walkon-auction-modal";
 import {
   WeeklyOpponentCard, PrimaryPhaseCTA, CoachActionQueue, SinceLastAdvanceFeed,
-  SinceLastAdvanceWidget, ProgramSnapshotPanel, RosterHealthPanel,
+  SinceLastAdvanceWidget, ProgramSnapshotPanel,
   RecruitingSnapshotPanel, StandingsPreviewPanel, NavDock,
 } from "./league-view/dashboard-widgets";
-import { RosterStrengthCard } from "./league-view/roster-strength-card";
+import {
+  LeagueTickerBanner, StatsLeadersPanel, PowerRankingsWidget,
+  TopProspectsWidget, LeagueNewsPanel, MergedRosterPanel,
+} from "./league-view/hub-panels";
 import { ActivityFeed, StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
 import { SigningDaySummaryCard, ProgramChangesCard, OffseasonSummary } from "./league-view/tabs/offseason-widgets";
 import { SeasonRecapDialog } from "./league-view/tabs/season-recap-dialog";
@@ -428,6 +431,9 @@ export default function LeagueViewPage() {
 
       <main className="container mx-auto px-4 py-4 pb-20 md:pb-6">
 
+        {/* Live ticker — scrolling league events */}
+        <LeagueTickerBanner leagueId={league.id} />
+
         {/* Digest strip — full width, collapsed chip row */}
         <SinceLastAdvanceWidget leagueId={league.id} />
 
@@ -519,7 +525,7 @@ export default function LeagueViewPage() {
                   userTeam={userTeam}
                   leagueId={id!}
                 />
-                <RosterHealthPanel
+                <MergedRosterPanel
                   overview={overview}
                   leagueId={id!}
                 />
@@ -545,6 +551,13 @@ export default function LeagueViewPage() {
 
             <SinceLastAdvanceFeed leagueId={id!} league={league} />
           </div>
+        </div>
+
+        {/* ─── STATS / RANKINGS / PROSPECTS ROW ───────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <StatsLeadersPanel leagueId={id!} />
+          <PowerRankingsWidget leagueId={id!} />
+          <TopProspectsWidget leagueId={id!} />
         </div>
 
         {/* ─── NAVIGATION DOCK ─────────────────────────────────────── */}
@@ -585,15 +598,13 @@ export default function LeagueViewPage() {
           </div>
 
           <TabsContent value="news">
-            <ActivityFeed leagueId={league.id} />
+            <LeagueNewsPanel leagueId={league.id} isCommissioner={isCommissioner} />
+            <div className="mt-4">
+              <ActivityFeed leagueId={league.id} />
+            </div>
             <div className="mt-4">
               <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
             </div>
-            {overview && (
-              <div className="mt-4">
-                <RosterStrengthCard overview={overview} leagueId={league.id} />
-              </div>
-            )}
           </TabsContent>
 
           <TabsContent value="standings">

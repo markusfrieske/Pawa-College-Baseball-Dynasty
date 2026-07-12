@@ -49,6 +49,8 @@ export const leagues = pgTable("leagues", {
   // change from legacy leagues. "reported" = coaches upload screenshots / manually enter
   // box scores via the Report Game flow instead of auto-simulation.
   gameMode: text("game_mode").notNull().default("simulated"),
+  nextAdvanceAt: timestamp("next_advance_at"),
+  advanceScheduleNote: text("advance_schedule_note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -2075,3 +2077,21 @@ export const coachRivalries = pgTable("coach_rivalries", {
 export const insertCoachRivalrySchema = createInsertSchema(coachRivalries).omit({ id: true, updatedAt: true });
 export type InsertCoachRivalry = z.infer<typeof insertCoachRivalrySchema>;
 export type CoachRivalry = typeof coachRivalries.$inferSelect;
+
+// League News Posts — commissioner-authored blog posts for the hub
+export const leagueNewsPosts = pgTable("league_news_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  commissionerId: varchar("commissioner_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  subtitle: text("subtitle"),
+  body: text("body").notNull(),
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_league_news_posts_league").on(t.leagueId),
+]);
+
+export const insertLeagueNewsPostSchema = createInsertSchema(leagueNewsPosts).omit({ id: true, createdAt: true });
+export type InsertLeagueNewsPost = z.infer<typeof insertLeagueNewsPostSchema>;
+export type LeagueNewsPost = typeof leagueNewsPosts.$inferSelect;

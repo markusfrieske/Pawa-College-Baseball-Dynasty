@@ -16,6 +16,8 @@ import {
   nilSeasonEarnings,
   coachRivalries,
   gameRecaps,
+  leagueNewsPosts,
+  type LeagueNewsPost, type InsertLeagueNewsPost,
   type CoachRivalry, type InsertCoachRivalry,
   type GameRecap, type InsertGameRecap,
   type NilSeasonEarning, type InsertNilSeasonEarning,
@@ -347,6 +349,10 @@ export interface IStorage {
     isPostseason: boolean,
   ): Promise<void>;
   deleteRivalriesByLeague(leagueId: string): Promise<void>;
+
+  getLeagueNewsPosts(leagueId: string): Promise<LeagueNewsPost[]>;
+  createLeagueNewsPost(data: InsertLeagueNewsPost): Promise<LeagueNewsPost>;
+  deleteLeagueNewsPost(id: string, leagueId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1463,6 +1469,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
       await tx.delete(leagueInvites).where(eq(leagueInvites.leagueId, id));
       await tx.delete(dynastyNews).where(eq(dynastyNews.leagueId, id));
+      await tx.delete(leagueNewsPosts).where(eq(leagueNewsPosts.leagueId, id));
       await tx.delete(scouts).where(eq(scouts.leagueId, id));
       await tx.delete(teams).where(eq(teams.leagueId, id));
       await tx.delete(conferences).where(eq(conferences.leagueId, id));
@@ -2106,6 +2113,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRivalriesByLeague(leagueId: string): Promise<void> {
     await db.delete(coachRivalries).where(eq(coachRivalries.leagueId, leagueId));
+  }
+
+  async getLeagueNewsPosts(leagueId: string): Promise<LeagueNewsPost[]> {
+    return db.select().from(leagueNewsPosts)
+      .where(eq(leagueNewsPosts.leagueId, leagueId))
+      .orderBy(desc(leagueNewsPosts.createdAt))
+      .limit(20);
+  }
+
+  async createLeagueNewsPost(data: InsertLeagueNewsPost): Promise<LeagueNewsPost> {
+    const [post] = await db.insert(leagueNewsPosts).values(data).returning();
+    return post;
+  }
+
+  async deleteLeagueNewsPost(id: string, leagueId: string): Promise<void> {
+    await db.delete(leagueNewsPosts)
+      .where(and(eq(leagueNewsPosts.id, id), eq(leagueNewsPosts.leagueId, leagueId)));
   }
 }
 
