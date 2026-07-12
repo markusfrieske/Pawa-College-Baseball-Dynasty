@@ -477,6 +477,9 @@ function ConfChampSection({
 }
 
 // ─── Conference Championship Bracket ───────────────────────────────────────
+// Renders one card per conference, in a responsive grid.
+// Scales from 1 column (mobile) → 2 → 3 → 4 columns as the viewport widens,
+// which comfortably fits 12 conference matchups without horizontal overflow.
 
 function ConfChampBracket({
   games,
@@ -488,7 +491,7 @@ function ConfChampBracket({
   if (games.length === 0) return null;
 
   return (
-    <div className="flex items-start gap-6 overflow-x-auto pb-2 flex-wrap sm:flex-nowrap">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {games.map(game => {
         const winnerId = getWinner(game);
         const winnerTeam = winnerId
@@ -498,10 +501,10 @@ function ConfChampBracket({
         const confName = game.homeTeam?.conferenceName || "Conference";
 
         return (
-          <div key={game.id} className="flex items-center gap-2 flex-shrink-0">
+          <div key={game.id} className="flex items-start gap-2">
             {/* Matchup column */}
-            <div className="flex flex-col gap-1">
-              <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center truncate max-w-[130px]">
+            <div className="flex flex-col gap-1 flex-1 min-w-0">
+              <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center truncate">
                 {confName}
               </p>
               <BracketNode game={game} seeds={seeds} />
@@ -514,7 +517,7 @@ function ConfChampBracket({
             <div className="flex flex-col flex-shrink-0">
               <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center">SR Bound</p>
               {winnerId ? (
-                <div className="border border-gold/30 rounded bg-gold/10 px-2 py-2 min-w-[80px] text-center">
+                <div className="border border-gold/30 rounded bg-gold/10 px-2 py-2 min-w-[72px] text-center">
                   {winnerSeed ? (
                     <>
                       <span className="text-[9px] font-pixel text-gold mr-1">{winnerSeed.seed}</span>
@@ -528,7 +531,7 @@ function ConfChampBracket({
                   )}
                 </div>
               ) : (
-                <div className="border border-border/50 rounded bg-muted/20 px-2 py-2 min-w-[80px] text-center">
+                <div className="border border-border/50 rounded bg-muted/20 px-2 py-2 min-w-[72px] text-center">
                   <p className="text-[10px] font-pixel text-muted-foreground">TBD</p>
                 </div>
               )}

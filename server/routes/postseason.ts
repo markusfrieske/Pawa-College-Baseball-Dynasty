@@ -115,15 +115,25 @@ export function registerPostseasonRoutes(app: Express): void {
 
       // Canonical seeded list (conf champs first, then at-large by win%)
       const seededList = buildSeededTeams(leagueTeams, standingsList, confChampionIds);
-      const seededIds  = seededList.map(t => t.team.id);
 
-      const enrichGame = (g: any) => ({
-        ...g,
-        homeTeam: teamMap[g.homeTeamId],
-        awayTeam: teamMap[g.awayTeamId],
-        homeSeed: seededIds.indexOf(g.homeTeamId) + 1,
-        awaySeed: seededIds.indexOf(g.awayTeamId) + 1,
-      });
+      // SR field: top 16 teams. Seeds 1-16 are meaningful; teams outside this
+      // set return seed 0 (hidden by the UI's "> 0" guard). This prevents CC
+      // game cards from displaying large, confusing seed numbers (e.g. 87 vs 112)
+      // in a 149-team league where most teams are outside the SR bracket.
+      const SR_FIELD = seededList.slice(0, Math.min(16, seededList.length));
+      const srFieldIds = SR_FIELD.map(t => t.team.id);
+
+      const enrichGame = (g: any) => {
+        const homeIdx = srFieldIds.indexOf(g.homeTeamId);
+        const awayIdx = srFieldIds.indexOf(g.awayTeamId);
+        return {
+          ...g,
+          homeTeam: teamMap[g.homeTeamId],
+          awayTeam: teamMap[g.awayTeamId],
+          homeSeed: homeIdx >= 0 ? homeIdx + 1 : 0,
+          awaySeed: awayIdx >= 0 ? awayIdx + 1 : 0,
+        };
+      };
       
       const enrichedSR = srGames.map(enrichGame).sort((a: any, b: any) => {
         if (a.bracketSide !== b.bracketSide) return (a.bracketSide || "A") < (b.bracketSide || "B") ? -1 : 1;
@@ -131,8 +141,8 @@ export function registerPostseasonRoutes(app: Express): void {
         return 0;
       });
 
-      // Seeding table for the hub page sidebar
-      const seedsTable = seededList.map((t: any, idx: number) => {
+      // Seeding table for the hub page sidebar — only the 16 teams in the SR field.
+      const seedsTable = SR_FIELD.map((t: any, idx: number) => {
         const s = standingsList.find(st => st.teamId === t.team.id);
         return {
           seed: idx + 1,
