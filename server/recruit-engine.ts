@@ -126,7 +126,32 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     const rounds = generateRoundRobin(confTeams);
     let weekRounds: Matchup[][] = [];
 
-    if (seasonLength === "long" || seasonLength === "full_season") {
+    if (isFullSeason) {
+      // ── Full-season conference schedule (14 weeks) ─────────────────────────
+      // Target: ~40 conference games per team (13–14 3-game series).
+      //
+      // Per-conference series targets by size:
+      //   ≤14 opponents (8,10,11,12,13,14-team confs): double the round-robin
+      //     (home + away copy) so teams play each opponent at least once, with
+      //     repeat opponents filling remaining weeks. Slice to 14 weeks.
+      //     • 8-team (7 rds):  doubled=14, slice=14 → 14 series per team ✓
+      //     • 10-team (9 rds): doubled=18, slice=14 → 14 series per team ✓
+      //     • 12-team (11 rds): doubled=22, slice=14 → 14 series per team ✓
+      //     • 14-team (13 rds): doubled=26, slice=14 → 14 series per team ✓
+      //   >14 opponents (16,17-team confs): more rounds than weeks → skip
+      //     doubling; slice the raw round-robin to 14 for a partial round-robin.
+      //     This guarantees every team plays at least 14/15 = 93% of conference
+      //     opponents (well above the 60% minimum for large conferences).
+      //     Odd (17-team with phantom): ~13 real series per team after byes.
+      if (rounds.length <= numWeeks) {
+        // Small/mid conferences: double for home & away variety, then fill
+        const reversedRounds = rounds.map(round => round.map(m => ({ home: m.away, away: m.home })));
+        weekRounds = [...rounds, ...reversedRounds];
+      } else {
+        // Large conferences (16–17 teams): partial round-robin via slicing
+        weekRounds = Array.from(rounds);
+      }
+    } else if (seasonLength === "long") {
       const reversedRounds = rounds.map(round => round.map(m => ({ home: m.away, away: m.home })));
       weekRounds = [...rounds, ...reversedRounds];
     } else {
@@ -284,7 +309,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     const oocPairs: Matchup[] = [];
     const conferences = Array.from(confMap.keys());
 
-    if (isFullSeason && interleavedTeamsFull.length >= 2) {
+    if (isFullSeason && confArraysFull.length >= 2 && interleavedTeamsFull.length >= 2) {
       // ── Full-season fast OOC matching ──────────────────────────────────────
       // Strategy: rotate the interleaved list by (week × rotStep) each week,
       // then pair rotated[1+i] with rotated[1+i+half].
@@ -588,12 +613,12 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     console.log(`[schedule-validation] OK — team game counts: min=${minGames} max=${maxGames} target=${targetGamesPerTeam}`);
   }
 
-  // Hard total-game check for full_season: total games must be within ±5 per team
-  // of the expected value (numTeams × targetGamesPerTeam / 2).
-  // Each game is counted once in totalGames but touches two teams, hence the /2.
+  // Hard total-game check for full_season: total games must be within ±5 absolute
+  // of numTeams × targetGamesPerTeam / 2. A deviation larger than ±5 indicates
+  // the top-up or OOC matching failed to meet the schedule contract.
   if (isFullSeason) {
     const expectedTotal = Math.round(leagueTeams.length * targetGamesPerTeam / 2);
-    const toleranceGames = leagueTeams.length; // ±1 per team = generous but meaningful
+    const toleranceGames = 5; // ±5 absolute (per task requirement)
     const diff = totalGames - expectedTotal;
     if (Math.abs(diff) > toleranceGames) {
       console.error(
