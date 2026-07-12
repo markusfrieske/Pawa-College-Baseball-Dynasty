@@ -22,7 +22,7 @@
  */
 
 import { storage } from "./storage";
-import type { Game, GameReport, Team } from "@shared/schema";
+import type { Game, GameReport, Team, InsertPlayerSeasonStats } from "@shared/schema";
 import {
   updateStandingsForGame,
   accumulatePlayerStats,
@@ -503,4 +503,232 @@ export async function finalizeReportedGame(report: GameReport, game: Game, leagu
     eventDescriptionSuffix: "(Reported)",
     skipCacheInvalidation: true,  // caller (games.ts) calls invalidateLeague after
   });
+}
+
+// ── Internal helper: build player stat records from a single box without DB writes ──
+
+async function buildPlayerStatsForBox(
+  leagueId: string,
+  season: number,
+  teamId: string,
+  boxData: any,
+  teamWon?: boolean,
+): Promise<InsertPlayerSeasonStats[]> {
+  if (!boxData) return [];
+  let bd = boxData;
+
+  // Resolve fake_ IDs (defensive — engine usually emits real IDs in advance path)
+  const hasFakeIds =
+    (bd.batting  || []).some((b: any) => b.playerId?.startsWith("fake_")) ||
+    (bd.pitching || []).some((p: any) => p.playerId?.startsWith("fake_"));
+  if (hasFakeIds) {
+    const teamPlayers = await storage.getPlayersByTeam(teamId);
+    const nameToId = new Map<string, string>();
+    for (const pl of teamPlayers) nameToId.set(`${pl.firstName} ${pl.lastName}`.toLowerCase(), pl.id);
+    const resolve = (entry: any): any => {
+      if (!entry.playerId?.startsWith("fake_")) return entry;
+      const realId = nameToId.get((entry.name || "").toLowerCase());
+      return realId ? { ...entry, playerId: realId } : { ...entry, playerId: null };
+    };
+    bd = { ...bd, batting: (bd.batting || []).map(resolve), pitching: (bd.pitching || []).map(resolve) };
+  }
+
+  const statsMap = new Map<string, InsertPlayerSeasonStats>();
+
+  if (bd.batting) {
+    for (const b of bd.batting) {
+      if (!b.playerId || b.playerId.startsWith("fake_")) continue;
+      statsMap.set(b.playerId, {
+        playerId: b.playerId, playerName: b.name, teamId, leagueId, season, position: b.position,
+        games: 1, ab: b.ab || 0, r: b.r || 0, h: b.h || 0,
+        doubles: b.doubles || 0, triples: b.triples || 0, hr: b.hr || 0,
+        rbi: b.rbi || 0, bb: b.bb || 0, hbp: b.hbp || 0, so: b.so || 0,
+        sb: b.sb || 0, cs: b.cs || 0,
+        exitVeloTotal: b.exitVelo || 0, barrels: b.barrels || 0,
+        ballsInPlay: b.ballsInPlay || 0, hardHits: b.hardHits || 0,
+        putouts: b.putouts || 0, assists: b.assists || 0,
+        fieldingErrors: b.fieldingErrors || 0, totalChances: b.totalChances || 0, wpa: 0,
+        pitchingGames: 0, wins: 0, losses: 0, ipOuts: 0,
+        pHits: 0, pRuns: 0, pEr: 0, pBb: 0, pSo: 0, pHr: 0,
+        totalPitches: 0, whiffs: 0, spinRateTotal: 0,
+      });
+    }
+  }
+
+  // Determine winning / losing pitcher
+  let winningPitcherId: string | null = null;
+  let losingPitcherId: string | null = null;
+  if (teamWon !== undefined && Array.isArray(bd.pitching)) {
+    if (teamWon) {
+      for (const p of bd.pitching) {
+        if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+        winningPitcherId = p.playerId;
+      }
+    } else {
+      let maxEr = -1; let firstPid: string | null = null;
+      for (const p of bd.pitching) {
+        if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+        if (firstPid === null) firstPid = p.playerId;
+        if ((p.er || 0) > maxEr) { maxEr = p.er || 0; losingPitcherId = p.playerId; }
+      }
+      if (losingPitcherId === null) losingPitcherId = firstPid;
+    }
+  }
+
+  if (bd.pitching) {
+    for (const p of bd.pitching) {
+      if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+      const [whole, frac] = String(p.ip).split(".");
+      const totalOuts = (parseInt(whole) || 0) * 3 + Math.min(parseInt(frac) || 0, 2);
+      const isWin = p.playerId === winningPitcherId;
+      const isLoss = p.playerId === losingPitcherId;
+      const ex = statsMap.get(p.playerId);
+      if (ex) {
+        ex.pitchingGames = 1; ex.ipOuts = totalOuts;
+        ex.pHits = p.h || 0; ex.pRuns = p.r || 0; ex.pEr = p.er || 0;
+        ex.pBb = p.bb || 0; ex.pSo = p.so || 0; ex.pHr = p.hr || 0;
+        ex.totalPitches = p.totalPitches || 0; ex.whiffs = p.whiffs || 0;
+        ex.spinRateTotal = p.spinRate || 0;
+        if (isWin) ex.wins = 1;
+        if (isLoss) ex.losses = 1;
+      } else {
+        statsMap.set(p.playerId, {
+          playerId: p.playerId, playerName: p.name, teamId, leagueId, season, position: "P",
+          games: 1, ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0,
+          rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0, cs: 0,
+          exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
+          putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0, wpa: 0,
+          pitchingGames: 1, wins: isWin ? 1 : 0, losses: isLoss ? 1 : 0, ipOuts: totalOuts,
+          pHits: p.h || 0, pRuns: p.r || 0, pEr: p.er || 0,
+          pBb: p.bb || 0, pSo: p.so || 0, pHr: p.hr || 0,
+          totalPitches: p.totalPitches || 0, whiffs: p.whiffs || 0, spinRateTotal: p.spinRate || 0,
+        });
+      }
+    }
+  }
+
+  return Array.from(statsMap.values());
+}
+
+/**
+ * Batch-finalise all games for a single week-advance tick.
+ *
+ * Replaces N×(standings SELECT×2 + standings UPDATE×2 + playerStats SELECT×N + playerStats UPDATE×N)
+ * with three bulk SQL calls:
+ *   1. ONE batchUpdateGames      — update scores + is_complete for all games
+ *   2. ONE batchIncrementStandings — sum all deltas per team, then single UPDATE
+ *   3. ONE batchUpsertPlayerSeasonStats — pre-aggregate per player, fetch existing once, batch UPDATE/INSERT
+ *   4. Pitcher rest — parallel (light, only updates pitchers per game)
+ *   5. Coach XP    — accumulated into coachXpAccum map (zero extra DB writes)
+ */
+export async function batchFinalizeGames(
+  results: Array<{
+    game: Pick<Game, "id" | "homeTeamId" | "awayTeamId" | "season" | "week" | "isConference" | "gameType">;
+    result: { homeScore: number; awayScore: number; boxScore: string };
+  }>,
+  leagueId: string,
+  season: number,
+  coachXpAccum: Map<string, CoachXpDelta>,
+  leagueTeams: Team[],
+): Promise<void> {
+  if (results.length === 0) return;
+
+  // ── 1. Batch update game scores + isComplete ──────────────────────────────
+  await storage.batchUpdateGames(
+    results.map(({ game, result }) => ({
+      id: game.id,
+      homeScore: result.homeScore,
+      awayScore: result.awayScore,
+      boxScore: result.boxScore,
+    }))
+  );
+
+  // ── 2. Batch increment standings — aggregate all deltas in memory first ────
+  const standingDeltas = new Map<string, {
+    wins: number; losses: number; confWins: number; confLosses: number;
+    runsScored: number; runsAllowed: number;
+  }>();
+  for (const { game, result } of results) {
+    const homeWon = result.homeScore > result.awayScore;
+    const isConf  = game.isConference ?? false;
+    const hd = standingDeltas.get(game.homeTeamId) ??
+      { wins: 0, losses: 0, confWins: 0, confLosses: 0, runsScored: 0, runsAllowed: 0 };
+    hd.wins      += homeWon ? 1 : 0;
+    hd.losses    += homeWon ? 0 : 1;
+    hd.confWins  += (isConf && homeWon)  ? 1 : 0;
+    hd.confLosses+= (isConf && !homeWon) ? 1 : 0;
+    hd.runsScored += result.homeScore;
+    hd.runsAllowed+= result.awayScore;
+    standingDeltas.set(game.homeTeamId, hd);
+
+    const ad = standingDeltas.get(game.awayTeamId) ??
+      { wins: 0, losses: 0, confWins: 0, confLosses: 0, runsScored: 0, runsAllowed: 0 };
+    ad.wins      += homeWon ? 0 : 1;
+    ad.losses    += homeWon ? 1 : 0;
+    ad.confWins  += (isConf && !homeWon) ? 1 : 0;
+    ad.confLosses+= (isConf && homeWon)  ? 1 : 0;
+    ad.runsScored += result.awayScore;
+    ad.runsAllowed+= result.homeScore;
+    standingDeltas.set(game.awayTeamId, ad);
+  }
+  await storage.batchIncrementStandings(
+    leagueId, season,
+    Array.from(standingDeltas.entries()).map(([teamId, d]) => ({ teamId, ...d }))
+  );
+
+  // ── 3. Batch upsert player stats — collect from all game boxes at once ────
+  const allPlayerStats: InsertPlayerSeasonStats[] = [];
+  for (const { game, result } of results) {
+    try {
+      const box = JSON.parse(result.boxScore);
+      const homeWon = result.homeScore > result.awayScore;
+      const [homeStats, awayStats] = await Promise.all([
+        buildPlayerStatsForBox(leagueId, season, game.homeTeamId, box.home, homeWon),
+        buildPlayerStatsForBox(leagueId, season, game.awayTeamId, box.away, !homeWon),
+      ]);
+      allPlayerStats.push(...homeStats, ...awayStats);
+    } catch (e) {
+      console.error("[batchFinalizeGames] box parse error:", e);
+    }
+  }
+  if (allPlayerStats.length > 0) {
+    await storage.batchUpsertPlayerSeasonStats(allPlayerStats);
+  }
+
+  // ── 4. Pitcher rest (parallel — fast, only touches pitcher rows) ──────────
+  await Promise.all(
+    results.map(async ({ game, result }) => {
+      try {
+        const box = JSON.parse(result.boxScore);
+        await updatePitcherRestFromBox(box.home, box.away, game);
+      } catch { /* non-critical */ }
+    })
+  );
+
+  // ── 5. Coach XP accumulation (zero DB writes — caller flushes once after) ─
+  for (const { game, result } of results) {
+    const homeWon = result.homeScore > result.awayScore;
+    const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
+    const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
+    if (homeTeam?.coachId) {
+      const acc = coachXpAccum.get(homeTeam.coachId) ??
+        { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+      acc.xp     += homeWon ? WIN_XP : LOSS_XP;
+      acc.wins   += homeWon ? 1 : 0;
+      acc.losses += homeWon ? 0 : 1;
+      acc.confWins  += (game.isConference && homeWon)  ? 1 : 0;
+      acc.confLosses+= (game.isConference && !homeWon) ? 1 : 0;
+      coachXpAccum.set(homeTeam.coachId, acc);
+    }
+    if (awayTeam?.coachId) {
+      const acc = coachXpAccum.get(awayTeam.coachId) ??
+        { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+      acc.xp     += homeWon ? LOSS_XP : WIN_XP;
+      acc.wins   += homeWon ? 0 : 1;
+      acc.losses += homeWon ? 1 : 0;
+      acc.confWins  += (game.isConference && !homeWon) ? 1 : 0;
+      acc.confLosses+= (game.isConference && homeWon)  ? 1 : 0;
+      coachXpAccum.set(awayTeam.coachId, acc);
+    }
+  }
 }

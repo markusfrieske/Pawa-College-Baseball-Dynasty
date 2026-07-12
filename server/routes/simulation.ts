@@ -66,7 +66,7 @@ import {
   updateStandingsForGame,
   computeLegacyScore,
 } from "../game-engine";
-import { finalizeGame, flushCoachXp, type CoachXpDelta } from "../game-finalizer";
+import { finalizeGame, flushCoachXp, batchFinalizeGames, type CoachXpDelta } from "../game-finalizer";
 import {
   requireAuth,
   hasCommissionerAccess,
@@ -6385,6 +6385,8 @@ export function registerSimulationRoutes(app: Express): void {
       ));
 
       // ============ AUTO-SIMULATE REGULAR SEASON GAMES ============
+      const advanceWallStart = Date.now();
+
       setAdvanceProgress(leagueId, "game_sim", 60);
       const seasonGames = await storage.getGamesByLeagueSeason(leagueId, league.currentSeason);
       // During preseason, skip regular season games — only exhibition games run below.
@@ -6406,10 +6408,10 @@ export function registerSimulationRoutes(app: Express): void {
       // Fetch prior completed games BEFORE simulation so H2H records are accurate
       const priorCompletedGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
 
+      // ── Simulate all regular-season games in parallel (pure CPU, no DB writes) ──
       console.time("[advance-perf] game-sim");
       const gameResults = await Promise.all(incompleteGames.map(async (game) => {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
-        await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
         return { game, result };
       }));
       console.timeEnd("[advance-perf] game-sim");
@@ -6467,11 +6469,16 @@ export function registerSimulationRoutes(app: Express): void {
 
       const coachXpAccum = new Map<string, CoachXpDelta>();
 
-      // Parallelize standings/stats/pitcher-rest/coach-XP accumulation — each game is independent
-      // Exhibition games included: count for overall W/L but not conference record (isConference=false)
+      // ── Batch-finalise regular season games: ONE SQL call each for game updates,
+      // standings, and player stats. Exhibition games are few — use finalizeGame.
       setAdvanceProgress(leagueId, "standings", 80);
       console.time("[advance-perf] standings-and-stats");
-      await Promise.all([...gameResults, ...exhibitionGameResults].map(async ({ game, result }) => {
+      try {
+        await batchFinalizeGames(gameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim);
+      } catch (e) { console.error("[advance-week] batchFinalizeGames error:", e); }
+
+      // Exhibition games: counted for overall W/L but not conference record
+      await Promise.all(exhibitionGameResults.map(async ({ game, result }) => {
         try {
           const box = JSON.parse(result.boxScore);
           await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, {
@@ -6480,9 +6487,17 @@ export function registerSimulationRoutes(app: Express): void {
             skipLeagueEvent: true,
             skipCacheInvalidation: true,
           });
-        } catch (e) { console.error("[advance-week] game finalizer error:", e); }
+        } catch (e) { console.error("[advance-week] exhibition finalizer error:", e); }
       }));
       console.timeEnd("[advance-perf] standings-and-stats");
+
+      // Wall-clock timing guard — warn if a single week-advance exceeds threshold
+      const advanceWallMs = Date.now() - advanceWallStart;
+      if (advanceWallMs > 10_000) {
+        console.warn(`[advance-perf] SLOW ADVANCE: ${gameResults.length} games took ${advanceWallMs}ms (>10s) for league ${leagueId}`);
+      } else {
+        console.log(`[advance-perf] Advance complete: ${gameResults.length} games in ${advanceWallMs}ms for league ${leagueId}`);
+      }
 
       await flushCoachXp(coachXpAccum, coaches);
 

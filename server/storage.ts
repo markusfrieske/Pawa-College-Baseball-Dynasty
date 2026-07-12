@@ -138,6 +138,7 @@ export interface IStorage {
   createGame(game: InsertGame): Promise<Game>;
   batchCreateGames(gamesData: InsertGame[]): Promise<Game[]>;
   updateGame(id: string, data: Partial<Game>): Promise<Game | undefined>;
+  batchUpdateGames(updates: Array<{id: string; homeScore: number; awayScore: number; boxScore: string}>): Promise<void>;
 
   getStandingsByLeague(leagueId: string, season: number): Promise<Standings[]>;
   getAllStandingsByLeague(leagueId: string): Promise<Standings[]>;
@@ -145,6 +146,8 @@ export interface IStorage {
   createStandings(standings: InsertStandings): Promise<Standings>;
   updateStandings(id: string, data: Partial<Standings>): Promise<Standings | undefined>;
   incrementStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number, isConference?: boolean): Promise<void>;
+  batchIncrementStandings(leagueId: string, season: number, deltas: Array<{teamId: string; wins: number; losses: number; confWins: number; confLosses: number; runsScored: number; runsAllowed: number}>): Promise<void>;
+  batchUpsertPlayerSeasonStats(records: InsertPlayerSeasonStats[]): Promise<void>;
 
   getAuditLogsByLeague(leagueId: string): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
@@ -795,6 +798,29 @@ export class DatabaseStorage implements IStorage {
     return game || undefined;
   }
 
+  async batchUpdateGames(updates: Array<{id: string; homeScore: number; awayScore: number; boxScore: string}>): Promise<void> {
+    if (updates.length === 0) return;
+    const CHUNK = 500;
+    for (let i = 0; i < updates.length; i += CHUNK) {
+      const chunk = updates.slice(i, i + CHUNK);
+      await pool.query(
+        `UPDATE games AS g SET
+           home_score  = u.hs::int,
+           away_score  = u.aws::int,
+           box_score   = u.bs,
+           is_complete = true
+         FROM (
+           SELECT unnest($1::text[]) AS gid,
+                  unnest($2::int[])  AS hs,
+                  unnest($3::int[])  AS aws,
+                  unnest($4::text[]) AS bs
+         ) AS u
+         WHERE g.id = u.gid`,
+        [chunk.map(u => u.id), chunk.map(u => u.homeScore), chunk.map(u => u.awayScore), chunk.map(u => u.boxScore)]
+      );
+    }
+  }
+
   async getStandingsByLeague(leagueId: string, season: number): Promise<Standings[]> {
     return await db.select().from(standings)
       .where(and(eq(standings.leagueId, leagueId), eq(standings.season, season)));
@@ -846,6 +872,260 @@ export class DatabaseStorage implements IStorage {
       runsScored: sql`${standings.runsScored} + ${awayScore}`,
       runsAllowed: sql`${standings.runsAllowed} + ${homeScore}`,
     }).where(eq(standings.id, awayRow.id));
+  }
+
+  async batchIncrementStandings(
+    leagueId: string,
+    season: number,
+    deltas: Array<{teamId: string; wins: number; losses: number; confWins: number; confLosses: number; runsScored: number; runsAllowed: number}>,
+  ): Promise<void> {
+    if (deltas.length === 0) return;
+    await pool.query(
+      `UPDATE standings AS s SET
+         wins              = s.wins + u.w::int,
+         losses            = s.losses + u.l::int,
+         conference_wins   = s.conference_wins + u.cw::int,
+         conference_losses = s.conference_losses + u.cl::int,
+         runs_scored       = s.runs_scored + u.rs::int,
+         runs_allowed      = s.runs_allowed + u.ra::int
+       FROM (
+         SELECT unnest($1::text[]) AS tid,
+                unnest($2::int[])  AS w,
+                unnest($3::int[])  AS l,
+                unnest($4::int[])  AS cw,
+                unnest($5::int[])  AS cl,
+                unnest($6::int[])  AS rs,
+                unnest($7::int[])  AS ra
+       ) AS u
+       WHERE s.team_id   = u.tid
+         AND s.league_id = $8
+         AND s.season    = $9`,
+      [
+        deltas.map(d => d.teamId),
+        deltas.map(d => d.wins),
+        deltas.map(d => d.losses),
+        deltas.map(d => d.confWins),
+        deltas.map(d => d.confLosses),
+        deltas.map(d => d.runsScored),
+        deltas.map(d => d.runsAllowed),
+        leagueId,
+        season,
+      ]
+    );
+  }
+
+  async batchUpsertPlayerSeasonStats(records: InsertPlayerSeasonStats[]): Promise<void> {
+    if (records.length === 0) return;
+
+    // Pre-aggregate: same player can appear in multiple game boxes (plays 4 games/week).
+    // Group by (leagueId, season), then merge by playerId within each group.
+    type GroupKey = string;
+    const groups = new Map<GroupKey, Map<string, InsertPlayerSeasonStats>>();
+    for (const r of records) {
+      const key: GroupKey = `${r.leagueId}:${r.season}`;
+      let group = groups.get(key);
+      if (!group) { group = new Map(); groups.set(key, group); }
+      const ex = group.get(r.playerId);
+      if (!ex) {
+        group.set(r.playerId, { ...r });
+      } else {
+        ex.games          = (ex.games          ?? 0) + (r.games          ?? 0);
+        ex.ab             = (ex.ab             ?? 0) + (r.ab             ?? 0);
+        ex.r              = (ex.r              ?? 0) + (r.r              ?? 0);
+        ex.h              = (ex.h              ?? 0) + (r.h              ?? 0);
+        ex.doubles        = (ex.doubles        ?? 0) + (r.doubles        ?? 0);
+        ex.triples        = (ex.triples        ?? 0) + (r.triples        ?? 0);
+        ex.hr             = (ex.hr             ?? 0) + (r.hr             ?? 0);
+        ex.rbi            = (ex.rbi            ?? 0) + (r.rbi            ?? 0);
+        ex.bb             = (ex.bb             ?? 0) + (r.bb             ?? 0);
+        ex.hbp            = (ex.hbp            ?? 0) + (r.hbp            ?? 0);
+        ex.so             = (ex.so             ?? 0) + (r.so             ?? 0);
+        ex.sb             = (ex.sb             ?? 0) + (r.sb             ?? 0);
+        ex.cs             = (ex.cs             ?? 0) + (r.cs             ?? 0);
+        ex.exitVeloTotal  = (ex.exitVeloTotal  ?? 0) + (r.exitVeloTotal  ?? 0);
+        ex.barrels        = (ex.barrels        ?? 0) + (r.barrels        ?? 0);
+        ex.ballsInPlay    = (ex.ballsInPlay    ?? 0) + (r.ballsInPlay    ?? 0);
+        ex.hardHits       = (ex.hardHits       ?? 0) + (r.hardHits       ?? 0);
+        ex.pitchingGames  = (ex.pitchingGames  ?? 0) + (r.pitchingGames  ?? 0);
+        ex.wins           = (ex.wins           ?? 0) + (r.wins           ?? 0);
+        ex.losses         = (ex.losses         ?? 0) + (r.losses         ?? 0);
+        ex.ipOuts         = (ex.ipOuts         ?? 0) + (r.ipOuts         ?? 0);
+        ex.pHits          = (ex.pHits          ?? 0) + (r.pHits          ?? 0);
+        ex.pRuns          = (ex.pRuns          ?? 0) + (r.pRuns          ?? 0);
+        ex.pEr            = (ex.pEr            ?? 0) + (r.pEr            ?? 0);
+        ex.pBb            = (ex.pBb            ?? 0) + (r.pBb            ?? 0);
+        ex.pSo            = (ex.pSo            ?? 0) + (r.pSo            ?? 0);
+        ex.pHr            = (ex.pHr            ?? 0) + (r.pHr            ?? 0);
+        ex.totalPitches   = (ex.totalPitches   ?? 0) + (r.totalPitches   ?? 0);
+        ex.whiffs         = (ex.whiffs         ?? 0) + (r.whiffs         ?? 0);
+        ex.spinRateTotal  = (ex.spinRateTotal  ?? 0) + (r.spinRateTotal  ?? 0);
+        ex.putouts        = (ex.putouts        ?? 0) + (r.putouts        ?? 0);
+        ex.assists        = (ex.assists        ?? 0) + (r.assists        ?? 0);
+        ex.fieldingErrors = (ex.fieldingErrors ?? 0) + (r.fieldingErrors ?? 0);
+        ex.totalChances   = (ex.totalChances   ?? 0) + (r.totalChances   ?? 0);
+        ex.wpa            = (ex.wpa            ?? 0) + (r.wpa            ?? 0);
+      }
+    }
+
+    for (const [groupKey, playerMap] of groups) {
+      const [leagueId, seasonStr] = groupKey.split(":");
+      const season = parseInt(seasonStr, 10);
+      const allRecs = Array.from(playerMap.values());
+      if (allRecs.length === 0) continue;
+
+      const playerIds = allRecs.map(r => r.playerId);
+
+      // Fetch all existing rows in one query
+      const existingRows = await db.select()
+        .from(playerSeasonStats)
+        .where(and(
+          inArray(playerSeasonStats.playerId, playerIds),
+          eq(playerSeasonStats.leagueId, leagueId),
+          eq(playerSeasonStats.season, season),
+        ));
+      const existingById = new Map(existingRows.map(r => [r.playerId, r]));
+
+      const toInsert: InsertPlayerSeasonStats[] = [];
+      type UpdateRow = { dbId: string; delta: InsertPlayerSeasonStats };
+      const toUpdate: UpdateRow[] = [];
+
+      for (const rec of allRecs) {
+        const ex = existingById.get(rec.playerId);
+        if (ex) {
+          toUpdate.push({ dbId: ex.id, delta: rec });
+        } else {
+          toInsert.push(rec);
+        }
+      }
+
+      // Batch INSERT new rows (chunks of 100)
+      const INSERT_CHUNK = 100;
+      for (let i = 0; i < toInsert.length; i += INSERT_CHUNK) {
+        await db.insert(playerSeasonStats).values(toInsert.slice(i, i + INSERT_CHUNK));
+      }
+
+      // Batch UPDATE existing rows via unnest (chunks of 500)
+      const UPDATE_CHUNK = 500;
+      for (let i = 0; i < toUpdate.length; i += UPDATE_CHUNK) {
+        const chunk = toUpdate.slice(i, i + UPDATE_CHUNK);
+        const d = chunk.map(u => u.delta);
+        await pool.query(
+          `UPDATE player_season_stats AS s SET
+             games           = s.games + u.games::int,
+             ab              = s.ab + u.ab::int,
+             r               = s.r + u.rv::int,
+             h               = s.h + u.h::int,
+             doubles         = s.doubles + u.doubles::int,
+             triples         = s.triples + u.triples::int,
+             hr              = s.hr + u.hr::int,
+             rbi             = s.rbi + u.rbi::int,
+             bb              = s.bb + u.bb::int,
+             hbp             = s.hbp + u.hbp::int,
+             so              = s.so + u.so::int,
+             sb              = s.sb + u.sb::int,
+             cs              = s.cs + u.cs::int,
+             exit_velo_total = s.exit_velo_total + u.evt::real,
+             barrels         = s.barrels + u.barrels::int,
+             balls_in_play   = s.balls_in_play + u.bip::int,
+             hard_hits       = s.hard_hits + u.hh::int,
+             pitching_games  = s.pitching_games + u.pg::int,
+             wins            = s.wins + u.wins::int,
+             losses          = s.losses + u.losses::int,
+             ip_outs         = s.ip_outs + u.ipo::int,
+             p_hits          = s.p_hits + u.ph::int,
+             p_runs          = s.p_runs + u.pr::int,
+             p_er            = s.p_er + u.per::int,
+             p_bb            = s.p_bb + u.pbb::int,
+             p_so            = s.p_so + u.pso::int,
+             p_hr            = s.p_hr + u.phr::int,
+             total_pitches   = s.total_pitches + u.tp::int,
+             whiffs          = s.whiffs + u.whiffs::int,
+             spin_rate_total = s.spin_rate_total + u.srt::real,
+             putouts         = s.putouts + u.putouts::int,
+             assists         = s.assists + u.assists::int,
+             fielding_errors = s.fielding_errors + u.fe::int,
+             total_chances   = s.total_chances + u.tc::int,
+             wpa             = s.wpa + u.wpa::real
+           FROM (
+             SELECT unnest($1::text[])  AS did,
+                    unnest($2::int[])   AS games,
+                    unnest($3::int[])   AS ab,
+                    unnest($4::int[])   AS rv,
+                    unnest($5::int[])   AS h,
+                    unnest($6::int[])   AS doubles,
+                    unnest($7::int[])   AS triples,
+                    unnest($8::int[])   AS hr,
+                    unnest($9::int[])   AS rbi,
+                    unnest($10::int[])  AS bb,
+                    unnest($11::int[])  AS hbp,
+                    unnest($12::int[])  AS so,
+                    unnest($13::int[])  AS sb,
+                    unnest($14::int[])  AS cs,
+                    unnest($15::real[]) AS evt,
+                    unnest($16::int[])  AS barrels,
+                    unnest($17::int[])  AS bip,
+                    unnest($18::int[])  AS hh,
+                    unnest($19::int[])  AS pg,
+                    unnest($20::int[])  AS wins,
+                    unnest($21::int[])  AS losses,
+                    unnest($22::int[])  AS ipo,
+                    unnest($23::int[])  AS ph,
+                    unnest($24::int[])  AS pr,
+                    unnest($25::int[])  AS per,
+                    unnest($26::int[])  AS pbb,
+                    unnest($27::int[])  AS pso,
+                    unnest($28::int[])  AS phr,
+                    unnest($29::int[])  AS tp,
+                    unnest($30::int[])  AS whiffs,
+                    unnest($31::real[]) AS srt,
+                    unnest($32::int[])  AS putouts,
+                    unnest($33::int[])  AS assists,
+                    unnest($34::int[])  AS fe,
+                    unnest($35::int[])  AS tc,
+                    unnest($36::real[]) AS wpa
+           ) AS u
+           WHERE s.id = u.did`,
+          [
+            chunk.map(u => u.dbId),
+            d.map(x => x.games ?? 0),
+            d.map(x => x.ab ?? 0),
+            d.map(x => x.r ?? 0),
+            d.map(x => x.h ?? 0),
+            d.map(x => x.doubles ?? 0),
+            d.map(x => x.triples ?? 0),
+            d.map(x => x.hr ?? 0),
+            d.map(x => x.rbi ?? 0),
+            d.map(x => x.bb ?? 0),
+            d.map(x => x.hbp ?? 0),
+            d.map(x => x.so ?? 0),
+            d.map(x => x.sb ?? 0),
+            d.map(x => x.cs ?? 0),
+            d.map(x => x.exitVeloTotal ?? 0),
+            d.map(x => x.barrels ?? 0),
+            d.map(x => x.ballsInPlay ?? 0),
+            d.map(x => x.hardHits ?? 0),
+            d.map(x => x.pitchingGames ?? 0),
+            d.map(x => x.wins ?? 0),
+            d.map(x => x.losses ?? 0),
+            d.map(x => x.ipOuts ?? 0),
+            d.map(x => x.pHits ?? 0),
+            d.map(x => x.pRuns ?? 0),
+            d.map(x => x.pEr ?? 0),
+            d.map(x => x.pBb ?? 0),
+            d.map(x => x.pSo ?? 0),
+            d.map(x => x.pHr ?? 0),
+            d.map(x => x.totalPitches ?? 0),
+            d.map(x => x.whiffs ?? 0),
+            d.map(x => x.spinRateTotal ?? 0),
+            d.map(x => x.putouts ?? 0),
+            d.map(x => x.assists ?? 0),
+            d.map(x => x.fieldingErrors ?? 0),
+            d.map(x => x.totalChances ?? 0),
+            d.map(x => x.wpa ?? 0),
+          ]
+        );
+      }
+    }
   }
 
   async getAuditLogsByLeague(leagueId: string): Promise<AuditLog[]> {
