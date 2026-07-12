@@ -162,6 +162,8 @@ export const FIELDER_BLUE_ABILITIES: Ability[] = [
   { name: "Laser Beam", description: "Speed of thrown balls will be increased and their trajectory low", tier: "blue", category: "fielder", positions: ["OF"] },
   { name: "Predicament", description: "The more strikes the batter has in the at-bat, the more their abilities will increase", tier: "blue", category: "fielder" },
   { name: "Bad Ball Hitter", description: "Batter will be able to reach balls outside of the strikezone", tier: "blue", category: "fielder" },
+  { name: "Blocking", description: "Catcher is skilled at blocking pitches in the dirt", tier: "blue", category: "fielder", positions: ["C"] },
+  { name: "Framing", description: "Catcher's receiving skill makes borderline pitches more likely to be called strikes", tier: "blue", category: "fielder", positions: ["C"] },
 ];
 
 export const FIELDER_RED_ABILITIES: Ability[] = [

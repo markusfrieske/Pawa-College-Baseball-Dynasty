@@ -1,0 +1,279 @@
+# Replit Prompt: League Hub Seasonal Banner System
+
+Use this prompt in Replit after uploading the six generated League Hub banner images.
+
+## Goal
+
+Replace the static League Hub hero/banner image with a seasonal banner system that changes as the dynasty progresses. The images should feel like a sports video game homepage: cinematic, hand-drawn anime style, bright when appropriate, and crop-safe on desktop and mobile.
+
+The current issue to avoid: the banner should not have a heavy dark gradient on the left side. It can use a subtle bottom overlay for text/ticker readability, but the artwork itself should remain visible and vibrant.
+
+## Banner Assets
+
+Upload these six files into the project:
+
+```text
+client/public/images/league-hub-banners/league-hub-banner-spring-training-v1.png
+client/public/images/league-hub-banners/league-hub-banner-week-1-5-friday-night-v1.png
+client/public/images/league-hub-banners/league-hub-banner-conference-championship-trophy-room-v1.png
+client/public/images/league-hub-banners/league-hub-banner-super-regionals-press-conference-v1.png
+client/public/images/league-hub-banners/league-hub-banner-college-world-series-omaha-aerial-v1.png
+client/public/images/league-hub-banners/league-hub-banner-offseason-board-room-v1.png
+```
+
+Use public paths like:
+
+```ts
+"/images/league-hub-banners/league-hub-banner-spring-training-v1.png"
+```
+
+Do not base64-inline these images.
+
+## Season Phase Mapping
+
+Create a single helper function or metadata map that chooses the correct banner based on the league/dynasty state.
+
+Recommended mapping:
+
+| League State | Banner |
+|---|---|
+| Spring Training / preseason / before Week 1 | `league-hub-banner-spring-training-v1.png` |
+| Regular Season Weeks 1-5 | `league-hub-banner-week-1-5-friday-night-v1.png` |
+| Conference Championship | `league-hub-banner-conference-championship-trophy-room-v1.png` |
+| Super Regionals | `league-hub-banner-super-regionals-press-conference-v1.png` |
+| College World Series | `league-hub-banner-college-world-series-omaha-aerial-v1.png` |
+| Offseason / recruiting reset / roster management offseason | `league-hub-banner-offseason-board-room-v1.png` |
+| Unknown/fallback | `league-hub-banner-spring-training-v1.png` |
+
+If the current app has different phase names, map the existing names to these visual states rather than inventing new backend states.
+
+Example helper shape:
+
+```ts
+type LeagueHubBannerKey =
+  | "springTraining"
+  | "regularSeason"
+  | "conferenceChampionship"
+  | "superRegionals"
+  | "collegeWorldSeries"
+  | "offseason";
+
+const LEAGUE_HUB_BANNERS = {
+  springTraining: {
+    src: "/images/league-hub-banners/league-hub-banner-spring-training-v1.png",
+    alt: "Spring training coach office overlooking a baseball stadium",
+    desktopPosition: "center 48%",
+    mobilePosition: "center 50%",
+  },
+  regularSeason: {
+    src: "/images/league-hub-banners/league-hub-banner-week-1-5-friday-night-v1.png",
+    alt: "Friday night college baseball stadium under the lights",
+    desktopPosition: "center 48%",
+    mobilePosition: "center 50%",
+  },
+  conferenceChampionship: {
+    src: "/images/league-hub-banners/league-hub-banner-conference-championship-trophy-room-v1.png",
+    alt: "Conference championship trophy room",
+    desktopPosition: "42% 50%",
+    mobilePosition: "45% 50%",
+  },
+  superRegionals: {
+    src: "/images/league-hub-banners/league-hub-banner-super-regionals-press-conference-v1.png",
+    alt: "Super Regionals press conference podium with camera flashes",
+    desktopPosition: "center 50%",
+    mobilePosition: "48% 50%",
+  },
+  collegeWorldSeries: {
+    src: "/images/league-hub-banners/league-hub-banner-college-world-series-omaha-aerial-v1.png",
+    alt: "College World Series championship stadium aerial",
+    desktopPosition: "center 48%",
+    mobilePosition: "center 50%",
+  },
+  offseason: {
+    src: "/images/league-hub-banners/league-hub-banner-offseason-board-room-v1.png",
+    alt: "Offseason baseball operations board room with depth charts",
+    desktopPosition: "center 50%",
+    mobilePosition: "center 50%",
+  },
+} as const;
+```
+
+Example resolver:
+
+```ts
+function getLeagueHubBannerKey(leagueState: any): LeagueHubBannerKey {
+  const phase = String(leagueState?.phase ?? leagueState?.seasonPhase ?? "").toLowerCase();
+  const week = Number(leagueState?.week ?? leagueState?.currentWeek ?? 0);
+  const round = String(leagueState?.postseasonRound ?? leagueState?.round ?? "").toLowerCase();
+
+  if (phase.includes("offseason")) return "offseason";
+  if (phase.includes("spring") || phase.includes("preseason")) return "springTraining";
+  if (round.includes("college world series") || round.includes("cws")) return "collegeWorldSeries";
+  if (round.includes("super regional")) return "superRegionals";
+  if (round.includes("conference") || phase.includes("conference championship")) return "conferenceChampionship";
+  if (phase.includes("regular") && week >= 1 && week <= 5) return "regularSeason";
+
+  return "springTraining";
+}
+```
+
+Adjust field names to match the real app state. Keep this logic centralized so future banners can be added without editing the League Hub component repeatedly.
+
+## Cropping Rules
+
+Use the images as real responsive hero art, not background tiles.
+
+Requirements:
+
+- Use `object-fit: cover`.
+- Never stretch the image.
+- Never use `background-size: 100% 100%`.
+- Preserve the full width feeling on desktop.
+- Keep important subject matter from being cropped on mobile.
+- Keep the ticker under the hero image, not covering the most detailed part of the image.
+- The hero should show a hint of the page below on normal desktop screens.
+
+Recommended hero dimensions:
+
+```css
+.league-hub-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 220px;
+  height: clamp(240px, 24vw, 380px);
+  border-bottom: 1px solid rgba(202, 168, 84, 0.28);
+  background: #102414;
+}
+
+.league-hub-hero__image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: var(--banner-position, center center);
+}
+
+.league-hub-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(8, 18, 10, 0.04), rgba(8, 18, 10, 0.26)),
+    linear-gradient(to top, rgba(8, 18, 10, 0.28), rgba(8, 18, 10, 0));
+}
+
+@media (max-width: 768px) {
+  .league-hub-hero {
+    height: clamp(190px, 46vw, 260px);
+  }
+
+  .league-hub-hero__image {
+    object-position: var(--banner-position-mobile, center center);
+  }
+}
+```
+
+Important: do not add a left-side black gradient. If text readability is needed, use a subtle bottom overlay or a small localized panel behind the text only.
+
+## React Integration Pattern
+
+Inside the League Hub component:
+
+```tsx
+const bannerKey = getLeagueHubBannerKey(leagueState);
+const banner = LEAGUE_HUB_BANNERS[bannerKey];
+
+return (
+  <section
+    className="league-hub-hero"
+    style={{
+      "--banner-position": banner.desktopPosition,
+      "--banner-position-mobile": banner.mobilePosition,
+    } as React.CSSProperties}
+  >
+    <img
+      className="league-hub-hero__image"
+      src={banner.src}
+      alt={banner.alt}
+      loading="eager"
+      decoding="async"
+    />
+  </section>
+);
+```
+
+If the app uses Tailwind instead of CSS files, keep the same behavior with utility classes and inline `objectPosition`.
+
+## League Ticker Placement
+
+Place the league ticker directly below the hero image:
+
+```tsx
+<LeagueHubHero />
+<LeagueTicker />
+```
+
+Ticker requirements:
+
+- Full-width strip directly under the image.
+- Should feel connected to the banner but not cover it.
+- Use the same phase-aware news items as the dashboard when possible.
+- Do not duplicate the same information in multiple nearby modules.
+- On mobile, ticker should remain horizontally scrollable or marquee-style without crushing text.
+
+## Performance Requirements
+
+- Use `.png` files for now, but consider converting to `.webp` later if bundle/page weight becomes an issue.
+- Because these are in `public`, they should not increase JS bundle size.
+- Use `loading="eager"` only for the currently visible League Hub hero image.
+- Do not preload all six banners unless performance testing shows it is necessary.
+- Optionally prefetch the likely next phase image after first render.
+
+Example optional prefetch:
+
+```ts
+function prefetchImage(src: string) {
+  const img = new Image();
+  img.src = src;
+}
+```
+
+## QA Checklist
+
+Test these states manually:
+
+- Spring Training shows bright coach office/stadium image.
+- Week 1 shows Friday night stadium image.
+- Week 5 still shows Friday night stadium image.
+- Conference Championship shows trophy room image.
+- Super Regionals shows press conference image.
+- College World Series shows Omaha-style aerial image.
+- Offseason shows board room image.
+- Unknown state falls back to Spring Training.
+
+Viewport checks:
+
+- Desktop 1920x1080.
+- Desktop 1366x768.
+- Tablet width around 768px.
+- Mobile width around 390px.
+
+Visual checks:
+
+- No heavy dark gradient on the left side.
+- No image stretching.
+- No awkward object cropping.
+- No dashboard boxes colliding with the hero/ticker.
+- Ticker sits under the image.
+- The League Hub still feels like the coach homepage, not a marketing landing page.
+
+## Completion Summary
+
+When done, report:
+
+- Files added.
+- League Hub files changed.
+- Phase mapping implemented.
+- Any app state names used for phase detection.
+- Screenshots or QA notes for desktop and mobile.
