@@ -70,7 +70,7 @@ export default function LeagueViewPage() {
 
   const requestedTab = new URLSearchParams(search).get("tab");
   const [homeTab, setHomeTab] = useState(
-    requestedTab && HOME_TAB_VALUES.has(requestedTab) ? requestedTab : "news"
+    requestedTab && HOME_TAB_VALUES.has(requestedTab) ? requestedTab : "standings"
   );
   useEffect(() => {
     if (requestedTab && HOME_TAB_VALUES.has(requestedTab)) {
@@ -619,6 +619,16 @@ export default function LeagueViewPage() {
           </div>
         </div>
 
+        {/* ─── LEAGUE NEWSROOM ──────────────────────────────────────── */}
+        <div className="mt-4">
+          <NewsroomPanel
+            leagueId={league.id}
+            isCommissioner={isCommissioner}
+            myTeamId={myTeam?.id}
+            phase={league.currentPhase}
+          />
+        </div>
+
         {/* ─── STATS / RANKINGS / PROSPECTS ROW ───────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
           <StatsLeadersPanel leagueId={id!} />
@@ -639,9 +649,6 @@ export default function LeagueViewPage() {
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
-              <TabsTrigger value="news" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-news">
-                News
-              </TabsTrigger>
               <TabsTrigger value="standings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
                 <span className="hidden sm:inline">Standings</span>
                 <span className="sm:hidden">Stand</span>
@@ -666,14 +673,6 @@ export default function LeagueViewPage() {
               </TabsTrigger>
             </TabsList>
           </div>
-
-          <TabsContent value="news">
-            <NewsroomPanel
-              leagueId={league.id}
-              isCommissioner={isCommissioner}
-              myTeamId={myTeam?.id}
-            />
-          </TabsContent>
 
           <TabsContent value="standings">
             <StandingsTab league={league} />

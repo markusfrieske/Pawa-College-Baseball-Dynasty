@@ -7,7 +7,7 @@
  * - LeagueNewsPanel: commissioner blog posts + post form
  * - MergedRosterPanel: Roster Depth + Roster Strength combined
  */
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -15,18 +15,15 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Newspaper, TrendingUp, BarChart2, Users, Star, Trash2,
-  PlusCircle, Image, ChevronRight, Activity, Swords,
+  PlusCircle, Image, ChevronRight, Activity, Swords, Zap,
 } from "lucide-react";
 import { PlayerProfileCard } from "@/components/player-profile-card";
-import { StoryEngineHub } from "@/components/story-engine-hub";
-import { ActivityFeed } from "./tabs/activity-widgets";
 import { apiRequest } from "@/lib/queryClient";
-import type { Player } from "@shared/schema";
-import type { DashboardOverview, LeagueDetails } from "./types";
-import { STAR_COLORS, STAR_TEXT_COLORS } from "./helpers";
+import type { Player, LeagueEvent } from "@shared/schema";
+import type { DashboardOverview, LeagueDetails, ReadyStatusData, StorylineWidgetItem } from "./types";
+import { STAR_COLORS, STAR_TEXT_COLORS, formatRelativeTime } from "./helpers";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -694,62 +691,505 @@ export function MergedRosterPanel({
   );
 }
 
-// ─── Newsroom Panel (unified news + activity + storylines) ───────────────────
+// ─── Newsroom Panel (full-width dashboard module) ────────────────────────────
+
+const PHASE_LABEL: Record<string, string> = {
+  preseason:               "Preseason",
+  spring_training:         "Spring Training",
+  regular_season:          "Regular Season",
+  conference_championship: "Conf. Championship",
+  super_regionals:         "Super Regionals",
+  cws:                     "College World Series",
+  offseason:               "Offseason",
+  recruiting:              "Recruiting",
+  signing_day:             "Signing Day",
+  offseason_walkons:       "Walk-On Phase",
+};
+
+const NR_EVENT_CHIP: Record<string, { label: string; cls: string }> = {
+  GAME_RESULT:       { label: "FINAL",    cls: "text-green-400 bg-green-500/15 border-green-500/30" },
+  RIVALRY_RESULT:    { label: "RIVALRY",  cls: "text-amber-400 bg-amber-500/15 border-amber-500/30" },
+  SIGNING:           { label: "COMMIT",   cls: "text-blue-400 bg-blue-500/15 border-blue-500/30" },
+  TRANSFER:          { label: "TRANSFER", cls: "text-cyan-400 bg-cyan-500/15 border-cyan-500/30" },
+  DRAFT:             { label: "DRAFT",    cls: "text-purple-400 bg-purple-500/15 border-purple-500/30" },
+  AWARD:             { label: "AWARD",    cls: "text-amber-400 bg-amber-500/15 border-amber-500/30" },
+  PHASE_CHANGE:      { label: "ADVANCE",  cls: "text-gold bg-gold/15 border-gold/30" },
+  ROSTER_CUT:        { label: "CUT",      cls: "text-red-400 bg-red-500/15 border-red-500/30" },
+  WALKON:            { label: "WALK-ON",  cls: "text-emerald-400 bg-emerald-500/15 border-emerald-500/30" },
+  STORYLINE:         { label: "VOTE",     cls: "text-amber-300 bg-amber-400/15 border-amber-400/30" },
+  STORYLINE_ABILITY: { label: "STORY",    cls: "text-yellow-400 bg-yellow-500/15 border-yellow-500/30" },
+};
+
+const NR_FILTERS = [
+  { key: "ALL",                              label: "All" },
+  { key: "SIGNING",                          label: "Commits" },
+  { key: "GAME_RESULT,RIVALRY_RESULT",       label: "Games" },
+  { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Roster" },
+  { key: "AWARD,PHASE_CHANGE",               label: "League" },
+  { key: "STORYLINE,STORYLINE_ABILITY",      label: "Storylines" },
+] as const;
+type NrFilterKey = (typeof NR_FILTERS)[number]["key"];
 
 export function NewsroomPanel({
-  leagueId, isCommissioner, myTeamId,
-}: { leagueId: string; isCommissioner: boolean; myTeamId?: string }) {
-  const [tab, setTab] = useState("commissioner");
+  leagueId, isCommissioner, myTeamId, phase,
+}: { leagueId: string; isCommissioner: boolean; myTeamId?: string; phase?: string }) {
+  const [tab, setTab] = useState("posts");
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [postTitle, setPostTitle] = useState("");
+  const [postSubtitle, setPostSubtitle] = useState("");
+  const [postBody, setPostBody] = useState("");
+  const [postImageUrl, setPostImageUrl] = useState("");
+  const [actFilter, setActFilter] = useState<NrFilterKey>("ALL");
+  const qc = useQueryClient();
+
+  const { data: newsData, isLoading: newsLoading } = useQuery<NewsResp>({
+    queryKey: ["/api/leagues", leagueId, "news"],
+    staleTime: 30000,
+  });
+  const { data: rawEvents = [], isLoading: eventsLoading } = useQuery<LeagueEvent[]>({
+    queryKey: ["/api/leagues", leagueId, "events"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/events`, { credentials: "include" });
+      return res.json();
+    },
+    staleTime: 30000,
+  });
+  const { data: storylinesResp } = useQuery<{ storylines: StorylineWidgetItem[] }>({
+    queryKey: ["/api/leagues", leagueId, "storylines"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/storylines`, { credentials: "include" });
+      if (!res.ok) return { storylines: [] };
+      const json = await res.json();
+      return Array.isArray(json) ? { storylines: json } : json;
+    },
+    staleTime: 60000,
+  });
+  const { data: readyData } = useQuery<ReadyStatusData>({
+    queryKey: ["/api/leagues", leagueId, "ready-status"],
+    staleTime: 30000,
+  });
+
+  const createMut = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/news`, {
+      title: postTitle, subtitle: postSubtitle || undefined,
+      body: postBody, imageUrl: postImageUrl || undefined,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] });
+      setPostTitle(""); setPostSubtitle(""); setPostBody(""); setPostImageUrl("");
+      setShowPostForm(false);
+    },
+  });
+  const deleteMut = useMutation({
+    mutationFn: (pid: string) => apiRequest("DELETE", `/api/leagues/${leagueId}/news/${pid}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] }),
+  });
+
+  const posts = newsData?.posts ?? [];
+  const storylines = storylinesResp?.storylines ?? [];
+  const pendingVotes = storylines.filter(s => !!s.activeEvent && !s.myVote).length;
+  const phaseLabel = phase ? (PHASE_LABEL[phase] ?? phase.replace(/_/g, " ")) : "—";
+  const readyCount = readyData?.readyCount ?? 0;
+  const humanCount = Math.max(readyData?.humanCount ?? 1, 1);
+  const latestSigning = rawEvents.find(e => e.eventType === "SIGNING");
+  const filteredEvents = actFilter === "ALL"
+    ? rawEvents
+    : rawEvents.filter(e => actFilter.split(",").includes(e.eventType));
+
+  const TABS = [
+    { key: "posts",      label: "Posts",      badge: 0 },
+    { key: "activity",   label: "Activity",   badge: 0 },
+    { key: "storylines", label: "Storylines", badge: pendingVotes },
+  ];
 
   return (
-    <div data-testid="newsroom-panel">
-      <div className="flex items-center gap-2 mb-4">
-        <Newspaper className="w-4 h-4 text-gold" />
-        <h2 className="font-pixel text-gold text-[10px]">LEAGUE NEWSROOM</h2>
-      </div>
+    <RetroCard className="border-gold/15" data-testid="newsroom-panel" style={{ minHeight: 320 }}>
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <div className="overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
-          <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
-            <TabsTrigger
-              value="commissioner"
-              className="font-pixel text-[8px] whitespace-nowrap px-2.5 data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
-              data-testid="newsroom-tab-commissioner"
-            >
-              <Newspaper className="w-3 h-3 mr-1" />
-              Posts
-            </TabsTrigger>
-            <TabsTrigger
-              value="activity"
-              className="font-pixel text-[8px] whitespace-nowrap px-2.5 data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
-              data-testid="newsroom-tab-activity"
-            >
-              <Activity className="w-3 h-3 mr-1" />
-              Activity
-            </TabsTrigger>
-            <TabsTrigger
-              value="storylines"
-              className="font-pixel text-[8px] whitespace-nowrap px-2.5 data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
-              data-testid="newsroom-tab-storylines"
-            >
-              <Swords className="w-3 h-3 mr-1" />
-              Storylines
-            </TabsTrigger>
-          </TabsList>
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <RetroCardHeader>
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex items-center gap-2">
+            <Newspaper className="w-4 h-4 text-gold" />
+            <h2 className="font-pixel text-gold text-[10px]">LEAGUE NEWSROOM</h2>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Segmented tab buttons */}
+            <div className="flex border border-border rounded-md overflow-hidden">
+              {TABS.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  data-testid={`newsroom-tab-${t.key}`}
+                  className={`relative px-2.5 py-1 font-pixel text-[7px] whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                    tab === t.key
+                      ? "bg-gold text-forest-dark"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  }`}
+                >
+                  {t.label}
+                  {t.badge > 0 && (
+                    <span className="min-w-[14px] h-[14px] rounded-full bg-red-500 text-white font-pixel text-[7px] flex items-center justify-center px-0.5 animate-pulse">
+                      {t.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            {isCommissioner && (
+              <RetroButton
+                size="sm"
+                variant="outline"
+                onClick={() => { setTab("posts"); setShowPostForm(v => !v); }}
+                className="border-gold/40 text-gold hover:bg-gold/10 text-[9px] whitespace-nowrap"
+                data-testid="button-toggle-news-form"
+              >
+                <PlusCircle className="w-3 h-3 mr-1" />
+                Post
+              </RetroButton>
+            )}
+          </div>
         </div>
+      </RetroCardHeader>
 
-        <TabsContent value="commissioner">
-          <LeagueNewsPanel leagueId={leagueId} isCommissioner={isCommissioner} />
-        </TabsContent>
+      <RetroCardContent>
+        {/* ── Post creation form ──────────────────────────────────────────── */}
+        {showPostForm && isCommissioner && (
+          <div className="mb-4 p-3 bg-background/50 border border-gold/20 rounded-lg space-y-2.5" data-testid="form-news-post">
+            <p className="font-pixel text-[8px] text-gold">NEW POST</p>
+            <input
+              value={postTitle}
+              onChange={e => setPostTitle(e.target.value)}
+              maxLength={120}
+              placeholder="Headline..."
+              className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
+              data-testid="input-news-title"
+            />
+            <input
+              value={postSubtitle}
+              onChange={e => setPostSubtitle(e.target.value)}
+              maxLength={200}
+              placeholder="Subheadline (optional)..."
+              className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
+              data-testid="input-news-subtitle"
+            />
+            <textarea
+              value={postBody}
+              onChange={e => setPostBody(e.target.value)}
+              maxLength={5000}
+              rows={4}
+              placeholder="Write your post..."
+              className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50 resize-none"
+              data-testid="input-news-body"
+            />
+            <div className="flex justify-end gap-2">
+              <RetroButton variant="outline" size="sm" onClick={() => setShowPostForm(false)}>Cancel</RetroButton>
+              <RetroButton
+                size="sm"
+                disabled={!postTitle.trim() || !postBody.trim() || createMut.isPending}
+                onClick={() => createMut.mutate()}
+                data-testid="button-submit-news-post"
+              >
+                {createMut.isPending ? "Posting..." : "Publish"}
+              </RetroButton>
+            </div>
+          </div>
+        )}
 
-        <TabsContent value="activity">
-          <ActivityFeed leagueId={leagueId} />
-        </TabsContent>
+        {/* ── Body: main feed + league pulse rail ─────────────────────────── */}
+        <div className="flex gap-0">
 
-        <TabsContent value="storylines">
-          <StoryEngineHub leagueId={leagueId} teamId={myTeamId} />
-        </TabsContent>
-      </Tabs>
-    </div>
+          {/* ── MAIN CONTENT ─────────────────────────────────────────── */}
+          <div className="flex-1 min-w-0 min-h-[220px]" data-testid="newsroom-feed">
+
+            {/* POSTS TAB ─────────────────────────────────────────────── */}
+            {tab === "posts" && (
+              newsLoading ? (
+                <div className="space-y-2">{[0, 1, 2].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
+              ) : posts.length === 0 ? (
+                <div className="py-4 space-y-3" data-testid="newsroom-posts-empty">
+                  <div className="text-center py-2">
+                    <p className="text-[11px] text-muted-foreground">No posts yet</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">{phaseLabel} is underway</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {pendingVotes > 0 && (
+                      <Link href={`/league/${leagueId}/storylines`}>
+                        <span className="flex items-center gap-1 text-[9px] px-2 py-1 rounded border border-gold/30 bg-gold/5 text-gold cursor-pointer hover:bg-gold/10 transition-colors" data-testid="chip-pending-votes">
+                          <Zap className="w-2.5 h-2.5" /> {pendingVotes} storyline vote{pendingVotes !== 1 ? "s" : ""} pending
+                        </span>
+                      </Link>
+                    )}
+                    <span className="text-[9px] px-2 py-1 rounded border border-border/40 text-muted-foreground">
+                      {readyCount}/{humanCount} coaches ready
+                    </span>
+                  </div>
+                  {isCommissioner && (
+                    <div>
+                      <p className="font-pixel text-[7px] text-muted-foreground/60 mb-1.5">SUGGESTED POSTS</p>
+                      <div className="flex flex-wrap gap-2">
+                        {["Preseason prediction", "Recruiting rumor", "Season recap", "Commissioner note"].map(prompt => (
+                          <button
+                            key={prompt}
+                            onClick={() => { setPostTitle(prompt); setShowPostForm(true); }}
+                            className="text-[9px] px-2 py-1 rounded border border-border/40 text-muted-foreground hover:border-gold/40 hover:text-gold transition-colors"
+                            data-testid={`chip-post-prompt-${prompt.toLowerCase().replace(/\s+/g, "-")}`}
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2" data-testid="newsroom-posts-list">
+                  {posts.map(post => (
+                    <div
+                      key={post.id}
+                      className="border border-border/40 rounded-lg overflow-hidden bg-card/20 hover:border-gold/30 transition-colors"
+                      data-testid={`newsroom-post-${post.id}`}
+                    >
+                      <button
+                        className="w-full text-left p-3"
+                        onClick={() => setExpandedPostId(expandedPostId === post.id ? null : post.id)}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="font-pixel text-[7px] text-gold/60 border border-gold/20 rounded px-1">POST</span>
+                              <span className="text-[9px] text-muted-foreground">{fmtDate(post.createdAt)}</span>
+                            </div>
+                            <p className="font-pixel text-[9px] text-foreground leading-snug truncate">{post.title}</p>
+                            {post.subtitle && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{post.subtitle}</p>
+                            )}
+                          </div>
+                          {isCommissioner && (
+                            <button
+                              onClick={e => { e.stopPropagation(); deleteMut.mutate(post.id); }}
+                              className="text-red-400/40 hover:text-red-400 transition-colors shrink-0 p-1"
+                              data-testid={`button-delete-post-${post.id}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </button>
+                      {expandedPostId === post.id && (
+                        <div className="px-3 pb-3 border-t border-border/30">
+                          {post.imageUrl && (
+                            <div className="h-32 overflow-hidden rounded bg-background/40 mb-2 mt-2">
+                              <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <p className="text-[11px] text-foreground/80 leading-relaxed whitespace-pre-wrap mt-2">{post.body}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* ACTIVITY TAB ──────────────────────────────────────────── */}
+            {tab === "activity" && (
+              <div data-testid="newsroom-activity">
+                <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                  {NR_FILTERS.map(f => (
+                    <button
+                      key={f.key}
+                      onClick={() => setActFilter(f.key as NrFilterKey)}
+                      data-testid={`newsroom-filter-${f.key.toLowerCase().replace(/[,]/g, "-")}`}
+                      className={`px-2 py-0.5 rounded text-[9px] font-pixel border transition-colors ${
+                        actFilter === f.key
+                          ? "bg-gold/20 text-gold border-gold/50"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {eventsLoading ? (
+                  <div className="space-y-2">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+                ) : filteredEvents.length === 0 ? (
+                  <div className="py-6 text-center" data-testid="newsroom-activity-empty">
+                    <Activity className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-[11px] text-muted-foreground">No activity yet</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">{phaseLabel} — activity appears after coaches recruit, post, or advance</p>
+                  </div>
+                ) : (
+                  <div className="space-y-0.5 max-h-72 overflow-y-auto pr-1" data-testid="newsroom-activity-list">
+                    {filteredEvents.map(ev => {
+                      const chip = NR_EVENT_CHIP[ev.eventType] ?? { label: ev.eventType.slice(0, 6), cls: "text-muted-foreground bg-muted border-border" };
+                      return (
+                        <div
+                          key={ev.id}
+                          className="flex items-start gap-2 px-2 py-2 rounded hover:bg-card/50 transition-colors"
+                          data-testid={`newsroom-event-${ev.id}`}
+                        >
+                          <span className={`shrink-0 font-pixel text-[7px] px-1 py-0.5 rounded border whitespace-nowrap mt-0.5 ${chip.cls}`}>
+                            {chip.label}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[11px] text-foreground/80 leading-snug">{ev.description}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {ev.teamName && (
+                                <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{ev.teamName}</span>
+                              )}
+                              <span className="text-[9px] text-muted-foreground ml-auto shrink-0">{formatRelativeTime(ev.createdAt)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STORYLINES TAB ─────────────────────────────────────────── */}
+            {tab === "storylines" && (
+              <div data-testid="newsroom-storylines">
+                {storylines.length === 0 ? (
+                  <div className="py-6 text-center" data-testid="newsroom-storylines-empty">
+                    <Swords className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-[11px] text-muted-foreground">No active storylines</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-1">Storylines unlock during recruiting as recruits advance</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2" data-testid="newsroom-storylines-list">
+                    {pendingVotes > 0 && (
+                      <div className="px-3 py-2 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-3.5 h-3.5 text-gold" />
+                          <span className="font-pixel text-[9px] text-gold">{pendingVotes} vote{pendingVotes !== 1 ? "s" : ""} pending</span>
+                        </div>
+                        <Link href={`/league/${leagueId}/storylines`}>
+                          <RetroButton size="sm" variant="outline" className="border-gold/40 text-gold text-[8px]" data-testid="newsroom-vote-cta">
+                            Vote now <ChevronRight className="w-3 h-3 ml-1" />
+                          </RetroButton>
+                        </Link>
+                      </div>
+                    )}
+                    {storylines.slice(0, 5).map(sl => {
+                      const hasVote = !!sl.activeEvent && !sl.myVote;
+                      const arcPct = Math.min(((sl.currentArcStage ?? 0) / Math.max(sl.totalEvents ?? 4, 1)) * 100, 100);
+                      return (
+                        <Link key={sl.id} href={`/league/${leagueId}/storylines`}>
+                          <div
+                            className={`px-3 py-2 rounded-md border transition-all cursor-pointer ${hasVote ? "bg-gold/5 border-gold/30 hover:bg-gold/10" : "bg-muted/20 border-border/40 hover:border-gold/30 hover:bg-muted/30"}`}
+                            data-testid={`newsroom-storyline-${sl.id}`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              {sl.isLegendary && <Star className="w-3 h-3 text-gold shrink-0" />}
+                              <span className="text-[11px] font-medium truncate flex-1 text-foreground/80">
+                                {sl.recruit?.firstName} {sl.recruit?.lastName}
+                                {sl.recruit?.position && <span className="text-muted-foreground text-[9px] ml-1">({sl.recruit.position})</span>}
+                              </span>
+                              {hasVote ? (
+                                <span className="flex items-center gap-0.5 text-[9px] text-gold font-pixel shrink-0"><Zap className="w-2.5 h-2.5" /> VOTE</span>
+                              ) : sl.resolvedOvrDelta ? (
+                                <span className={`text-[9px] font-pixel shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                  {(sl.resolvedOvrDelta ?? 0) > 0 ? "+" : ""}{sl.resolvedOvrDelta} OVR
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-1 bg-background/60 rounded-full overflow-hidden">
+                                <div className="h-full bg-gold/40 rounded-full" style={{ width: `${arcPct}%` }} />
+                              </div>
+                              <span className="text-[9px] text-muted-foreground shrink-0">Wk {sl.currentArcStage ?? 0}</span>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                    {storylines.length > 5 && (
+                      <Link href={`/league/${leagueId}/storylines`}>
+                        <p className="text-[10px] text-muted-foreground text-center hover:text-gold transition-colors pt-1" data-testid="newsroom-more-storylines">
+                          +{storylines.length - 5} more arcs on the War Board
+                        </p>
+                      </Link>
+                    )}
+                    <div className="pt-1">
+                      <Link href={`/league/${leagueId}/storylines`}>
+                        <RetroButton size="sm" variant="outline" className="w-full border-border/50 text-[9px]" data-testid="newsroom-warboard-btn">
+                          <Swords className="w-3 h-3 mr-1.5" /> Open War Board
+                        </RetroButton>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── LEAGUE PULSE SIDE RAIL ───────────────────────────────── */}
+          <div
+            className="hidden lg:flex flex-col gap-3 w-[210px] shrink-0 ml-5 pl-5 border-l border-border/30"
+            data-testid="newsroom-pulse"
+          >
+            <p className="font-pixel text-[8px] text-muted-foreground/50 uppercase tracking-wider">League Pulse</p>
+
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Ready</span>
+                <span className={`font-pixel text-[9px] ${readyCount >= humanCount ? "text-emerald-400" : "text-gold"}`}>
+                  {readyCount}/{humanCount}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Votes pending</span>
+                <span className={`font-pixel text-[9px] ${pendingVotes > 0 ? "text-gold animate-pulse" : "text-muted-foreground"}`}>
+                  {pendingVotes}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Phase</span>
+                <span className="text-[10px] text-foreground/70 text-right max-w-[100px] leading-snug">{phaseLabel}</span>
+              </div>
+              <div className="pt-2 border-t border-border/30">
+                <p className="text-[9px] text-muted-foreground/60 mb-0.5">Latest signing</p>
+                <p className="text-[10px] text-foreground/60 leading-snug line-clamp-2">
+                  {latestSigning ? latestSigning.description : "None yet"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 mt-auto pt-3 border-t border-border/30">
+              {isCommissioner && (
+                <button
+                  onClick={() => { setTab("posts"); setShowPostForm(true); }}
+                  className="w-full text-left flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-gold transition-colors py-0.5"
+                  data-testid="pulse-action-post"
+                >
+                  <PlusCircle className="w-3 h-3 shrink-0" /> Post an update
+                </button>
+              )}
+              {pendingVotes > 0 && (
+                <Link href={`/league/${leagueId}/storylines`}>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gold hover:underline py-0.5 cursor-pointer" data-testid="pulse-action-vote">
+                    <Zap className="w-3 h-3 shrink-0" /> Vote on storylines
+                  </div>
+                </Link>
+              )}
+              <Link href={`/league/${leagueId}/recruiting`}>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-gold transition-colors py-0.5 cursor-pointer" data-testid="pulse-action-recruit">
+                  <ChevronRight className="w-3 h-3 shrink-0" /> Recruiting board
+                </div>
+              </Link>
+              <Link href={`/league/${leagueId}/schedule`}>
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-gold transition-colors py-0.5 cursor-pointer" data-testid="pulse-action-schedule">
+                  <ChevronRight className="w-3 h-3 shrink-0" /> Schedule
+                </div>
+              </Link>
+            </div>
+          </div>
+
+        </div>
+      </RetroCardContent>
+    </RetroCard>
   );
 }

@@ -1,0 +1,186 @@
+# Replit Prompt: Homepage Hero Copy Update
+
+Use this prompt in Replit against the latest repo.
+
+## Goal
+
+Update the homepage hero copy to better explain the game and make the first screen feel more polished, exciting, and clear.
+
+Remove the current `Open Beta` wording from the top badge.
+
+## Target Area
+
+Update the homepage / landing page hero shown on the public entry screen.
+
+Look for files/components related to:
+
+```text
+Home
+Landing
+Homepage
+Hero
+Index
+```
+
+Likely frontend paths may include:
+
+```text
+client/src/pages/
+client/src/components/
+client/src/App.tsx
+```
+
+Use the existing component structure and styling. This is a copy/content update, not a full redesign.
+
+## Top Badge Copy
+
+Replace the current badge copy:
+
+```text
+Season 2026 • Open Beta
+```
+
+with:
+
+```text
+Season 2026
+```
+
+Keep the online users badge:
+
+```text
+Users Online: {count}
+```
+
+If the app currently shows the count dynamically, keep it dynamic.
+
+## Hero Title
+
+Use:
+
+```text
+Power Pros
+College Baseball
+Dynasty
+```
+
+If the current layout stacks each phrase on its own line, preserve that structure.
+
+Do not use:
+
+```text
+Power Pros Dynasty League Office
+```
+
+## Hero Body Copy
+
+Replace the current paragraph with this copy:
+
+```text
+Build a solo or multiplayer college baseball dynasty with 3,700+ players across 149 schools. Recruit every week, manage your roster, play or report your series, track stats and standings, and chase the College World Series across 20 seasons.
+
+Play it as a full dynasty sim, or use it as a companion hub for running a friends league in eBaseball Power Pros 2026-2027. Recruiting, schedules, box scores, standings, postseason history, and league management all live in one place.
+```
+
+If the hero area does not have room for two paragraphs on smaller screens, keep the full text on desktop and use this shorter mobile version:
+
+```text
+Build a solo or multiplayer college baseball dynasty with 3,700+ players across 149 schools. Recruit, manage your roster, play or report games, and chase the College World Series across 20 seasons.
+```
+
+## Optional Tagline
+
+If there is room for a small supporting line above the buttons, add:
+
+```text
+Recruit the future. Run the league. Chase Omaha.
+```
+
+Do not add this if it causes crowding or text overlap.
+
+## Primary Buttons
+
+Use these two primary hero buttons:
+
+```text
+Get Started
+View Rosters
+```
+
+Expected behavior:
+
+- `Get Started` should route to the existing sign-up/login/get-started flow.
+- `View Rosters` should route to the roster viewer or public roster page.
+
+Use the existing route names in the app. Do not invent new pages if the routes already exist.
+
+## Secondary Links
+
+Below the primary buttons, show compact secondary links:
+
+```text
+View Leagues
+Create Recruiting Class
+Donate
+```
+
+Expected behavior:
+
+- `View Leagues` routes to the public leagues list or league selection page.
+- `Create Recruiting Class` routes to the recruiting class generator/wizard if it exists.
+- `Donate` routes to the existing donation/support link if present.
+
+If a route does not exist yet, leave the link hidden or disabled with a TODO comment. Do not create a broken link.
+
+## Layout / Readability Requirements
+
+The current hero image is visually strong, so the copy must remain readable on top of it.
+
+Requirements:
+
+- Keep text left-aligned.
+- Do not place the text inside a large card.
+- Use subtle text shadow if needed.
+- Avoid a heavy black overlay that hides the background art.
+- Make sure the body copy does not collide with the character art.
+- Desktop headline can remain large and stacked.
+- Mobile headline should scale down enough that it does not overflow.
+- Do not use negative letter spacing.
+
+Suggested mobile handling:
+
+```css
+font-size: clamp(2.5rem, 12vw, 5rem);
+line-height: 0.95;
+```
+
+Only use this if it fits the existing styling system.
+
+## QA Checklist
+
+Test:
+
+- Desktop 1366x768.
+- Desktop 1920x1080.
+- Mobile width around 390px.
+
+Verify:
+
+- `Open Beta` is gone.
+- `Season 2026` remains.
+- Users online count still works.
+- Title reads `Power Pros College Baseball Dynasty`.
+- Body copy is readable.
+- Buttons route correctly.
+- Secondary links are not broken.
+- No text overlaps the character art or screen edge.
+
+## Completion Summary
+
+When done, report:
+
+- Files changed.
+- Final hero title/body copy used.
+- Button/link routes used.
+- Any secondary links hidden because routes do not exist.
+- Desktop/mobile QA result.

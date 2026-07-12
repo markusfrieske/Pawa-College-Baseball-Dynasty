@@ -195,7 +195,7 @@ export interface SigningDayData {
   };
 }
 
-export const HOME_TAB_VALUES = new Set(["prospects", "standings", "teams", "rankings", "news", "awards", "history"]);
+export const HOME_TAB_VALUES = new Set(["prospects", "standings", "teams", "rankings", "awards", "history"]);
 
 export const NEXT_GAME_PHASES = new Set(["regular_season", "conference_championship", "super_regionals", "cws"]);
 
