@@ -206,6 +206,34 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
   const teamConfByeWeeks = new Map<string, Set<number>>();
   for (const t of leagueTeams) teamConfByeWeeks.set(t.id, new Set<number>());
 
+  // ── Full-season fast OOC precomputation ───────────────────────────────────
+  // The standard backtracking matchOOC() is fine for small custom leagues but
+  // would recurse 74 levels deep for 149 teams (N/2 pairs per week × 14 weeks).
+  // For full_season we precompute a conference-interleaved team order so the
+  // per-week OOC matching degrades to a simple O(N) index-pair operation.
+  //
+  // Interleaving: slot = [c0[0], c1[0], ..., c11[0], c0[1], c1[1], ...]
+  // Same-conference teams are ~numConfs positions apart in the list.
+  // Pairing index i with i+N/2: the conference offset is (N/2) % numConfs.
+  // With N=149, numConfs=12 → N/2=74, 74 % 12 = 2, so pairs are always 2+
+  // conferences apart — guaranteed cross-conference for nearly every pair.
+  const isFullSeason = seasonLength === "full_season";
+  const confArraysFull: (typeof leagueTeams)[] = [];
+  const interleavedTeamsFull: (typeof leagueTeams[0])[] = [];
+  const confByTeamIdFull = new Map<string, string>();
+  if (isFullSeason) {
+    for (const [cid, teams] of Array.from(confMap)) {
+      confArraysFull.push(teams);
+      for (const t of teams) confByTeamIdFull.set(t.id, cid);
+    }
+    const maxSlot = Math.max(...confArraysFull.map(c => c.length));
+    for (let slot = 0; slot < maxSlot; slot++) {
+      for (const conf of confArraysFull) {
+        if (slot < conf.length) interleavedTeamsFull.push(conf[slot]);
+      }
+    }
+  }
+
   let totalGames = 0;
   for (let week = 0; week < numWeeks; week++) {
     const weekConfSeries: Matchup[] = [];
@@ -256,7 +284,43 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     const oocPairs: Matchup[] = [];
     const conferences = Array.from(confMap.keys());
 
-    if (conferences.length >= 2) {
+    if (isFullSeason && interleavedTeamsFull.length >= 2) {
+      // ── Full-season fast OOC matching ──────────────────────────────────────
+      // Strategy: rotate the interleaved list by (week × rotStep) each week,
+      // then pair rotated[1+i] with rotated[1+i+half].
+      //   • rotated[0] is the weekly bye team (rotates through all 149 over time).
+      //   • The interleaved ordering guarantees index i and i+half are from
+      //     conferences that are (half % numConfs) = 74 % 12 = 2 apart → always
+      //     different for the vast majority of pairings.
+      //   • 149 is prime, so rotStep=numConfs+1=13 is coprime to N → the offset
+      //     cycles through all 149 positions, giving variety across 14 weeks.
+      // Same-conference residual pairs (near array boundaries) are skipped; the
+      // top-up loop below fills those deficits with extra OOC midweek games.
+      const N = interleavedTeamsFull.length; // 149
+      const numConfsFull = confArraysFull.length; // 12
+      const rotStep = numConfsFull + 1; // 13 — coprime to 149
+      const offset = (week * rotStep) % N;
+      const rotated = offset === 0
+        ? interleavedTeamsFull
+        : [...interleavedTeamsFull.slice(offset), ...interleavedTeamsFull.slice(0, offset)];
+
+      // rotated[0] is the weekly bye; pair rotated[1..half] with rotated[half+1..N-1]
+      const half = Math.floor((N - 1) / 2); // 74 for N=149
+      for (let i = 0; i < half; i++) {
+        const t1 = rotated[1 + i];
+        const t2 = rotated[1 + i + half];
+        if (!t1 || !t2) continue;
+        // Skip same-conference pairings (top-up loop handles deficit)
+        if (confByTeamIdFull.get(t1.id) === confByTeamIdFull.get(t2.id)) continue;
+        const isHome = Math.random() > 0.5;
+        oocPairs.push(isHome ? { home: t1, away: t2 } : { home: t2, away: t1 });
+        if (!oocSeasonHistory.has(t1.id)) oocSeasonHistory.set(t1.id, new Set());
+        if (!oocSeasonHistory.has(t2.id)) oocSeasonHistory.set(t2.id, new Set());
+        oocSeasonHistory.get(t1.id)!.add(t2.id);
+        oocSeasonHistory.get(t2.id)!.add(t1.id);
+      }
+    } else if (conferences.length >= 2) {
+      // ── Standard backtracking OOC matching (custom leagues, up to ~20 teams) ──
       // Build conference lookup once per league (idempotent across weeks)
       const confByTeamId = new Map<string, string>();
       for (const [cid, teams] of Array.from(confMap)) {
@@ -522,6 +586,27 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     );
   } else {
     console.log(`[schedule-validation] OK — team game counts: min=${minGames} max=${maxGames} target=${targetGamesPerTeam}`);
+  }
+
+  // Hard total-game check for full_season: total games must be within ±5 per team
+  // of the expected value (numTeams × targetGamesPerTeam / 2).
+  // Each game is counted once in totalGames but touches two teams, hence the /2.
+  if (isFullSeason) {
+    const expectedTotal = Math.round(leagueTeams.length * targetGamesPerTeam / 2);
+    const toleranceGames = leagueTeams.length; // ±1 per team = generous but meaningful
+    const diff = totalGames - expectedTotal;
+    if (Math.abs(diff) > toleranceGames) {
+      console.error(
+        `[schedule-validation] FULL_SEASON HARD CHECK: total games ${totalGames} is` +
+        ` outside ±${toleranceGames} of expected ${expectedTotal} (diff=${diff > 0 ? '+' : ''}${diff}).` +
+        ` This may indicate a top-up or OOC matching failure.`
+      );
+    } else {
+      console.log(
+        `[schedule-validation] full_season total games OK: ${totalGames}` +
+        ` (expected ~${expectedTotal}, diff=${diff > 0 ? '+' : ''}${diff})`
+      );
+    }
   }
 
   console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games (batched ${pendingGames.length} game inserts)`);
