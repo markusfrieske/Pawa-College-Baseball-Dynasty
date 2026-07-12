@@ -239,6 +239,7 @@ export interface IStorage {
   deleteTransferPortalInterestsByPlayer(playerId: string): Promise<void>;
 
   deletePlayer(id: string): Promise<void>;
+  deletePlayersByTeam(teamId: string): Promise<void>;
   batchDeletePlayers(ids: string[]): Promise<void>;
   createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory>;
   batchCreatePlayerHistories(records: InsertPlayerHistory[]): Promise<void>;
@@ -1683,6 +1684,15 @@ export class DatabaseStorage implements IStorage {
     await db.delete(transferPortalInterests).where(eq(transferPortalInterests.playerId, id));
     await db.delete(playerPromises).where(eq(playerPromises.playerId, id));
     await db.delete(players).where(eq(players.id, id));
+  }
+
+  async deletePlayersByTeam(teamId: string): Promise<void> {
+    const teamPlayers = await db.select({ id: players.id }).from(players).where(eq(players.teamId, teamId));
+    if (teamPlayers.length === 0) return;
+    const ids = teamPlayers.map(p => p.id);
+    await db.delete(transferPortalInterests).where(inArray(transferPortalInterests.playerId, ids));
+    await db.delete(playerPromises).where(inArray(playerPromises.playerId, ids));
+    await db.delete(players).where(eq(players.teamId, teamId));
   }
 
   async batchDeletePlayers(ids: string[]): Promise<void> {

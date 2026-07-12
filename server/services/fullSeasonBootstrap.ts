@@ -91,22 +91,31 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   console.log(`[bootstrap:${leagueId}] Teams: ${leagueTeams.length}`);
 
   // ── Checkpoint 4: Players ─────────────────────────────────────────────────
+  // Idempotency guarantee: delete-before-regenerate per team.
+  // A team with 0 players → generate fresh.
+  // A team with 1-24 players (partial crash) → delete all then regenerate.
+  // A team with exactly 25 players → skip (already complete).
+  // Deleting before re-inserting ensures a restart after a partial write
+  // always converges to a consistent 25-player state without duplicates.
   await updateProgress(jobId, 20, "Building rosters");
   const league = await storage.getLeague(leagueId);
   const progressionEnabled = league?.progressionEnabled ?? true;
 
   const confNameById = new Map(conferences.map(c => [c.id, c.name]));
 
-  // Determine which teams still need players
+  // Determine which teams need player generation; clean up partial writes first.
   const teamsNeedingPlayers: typeof leagueTeams = [];
   for (const team of leagueTeams) {
     const existingPlayers = await storage.getPlayersByTeam(team.id);
-    if (existingPlayers.length < EXPECTED_PLAYERS_PER_TEAM) {
-      teamsNeedingPlayers.push(team);
+    if (existingPlayers.length === EXPECTED_PLAYERS_PER_TEAM) continue; // already done
+    if (existingPlayers.length > 0) {
+      // Partial write from a prior crashed run — delete before regenerating.
+      await storage.deletePlayersByTeam(team.id);
     }
+    teamsNeedingPlayers.push(team);
   }
 
-  // Process teams in parallel batches of 8 to balance speed and DB pressure
+  // Process teams in parallel batches of 8 to balance speed and DB pressure.
   const BATCH_SIZE = 8;
   for (let i = 0; i < teamsNeedingPlayers.length; i += BATCH_SIZE) {
     const batch = teamsNeedingPlayers.slice(i, i + BATCH_SIZE);
@@ -139,15 +148,24 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   console.log(`[bootstrap:${leagueId}] Coaches assigned`);
 
   // ── Checkpoint 6: Recruiting Class ───────────────────────────────────────
+  // Idempotency guarantee: check EXACT expected count.
+  // A partial write (crash mid-class-generation) leaves existingRecruits.length > 0
+  // but < recruitCount.  In that case, delete the partial class and regenerate
+  // in full.  Skipping only when the count matches exactly prevents silently
+  // serving a truncated class on bootstrap resume.
   await updateProgress(jobId, 58, "Generating recruiting class");
+  const recruitCount = getRecruitPoolSize(leagueTeams.length);
   const existingRecruits = await storage.getRecruitsByLeague(leagueId);
-  if (existingRecruits.length === 0) {
-    const recruitCount = getRecruitPoolSize(leagueTeams.length);
+  if (existingRecruits.length === recruitCount) {
+    console.log(`[bootstrap:${leagueId}] Recruiting class: already complete (${existingRecruits.length} recruits)`);
+  } else {
+    if (existingRecruits.length > 0) {
+      // Partial class from a prior crashed run — delete before regenerating.
+      await storage.deleteRecruitsByLeague(leagueId);
+    }
     const vintage = await generateRecruits(leagueId, recruitCount, true);
     await storage.updateLeague(leagueId, { currentClassVintage: vintage });
     console.log(`[bootstrap:${leagueId}] Recruiting class: ${recruitCount} recruits generated`);
-  } else {
-    console.log(`[bootstrap:${leagueId}] Recruiting class: already exists (${existingRecruits.length} recruits)`);
   }
 
   // ── Checkpoint 7: Schedule ────────────────────────────────────────────────
