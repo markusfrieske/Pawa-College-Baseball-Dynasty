@@ -118,7 +118,7 @@ export default function TeamSelectionPage() {
   const queryClient = useQueryClient();
 
   const [selectedTeamNames, setSelectedTeamNames] = useState<Set<string>>(new Set());
-  const [teamSort, setTeamSort] = useState("name");
+  const [teamSort, setTeamSort] = useState("rank");
   const [focusedTeam, setFocusedTeam] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<TeamSelectionData>({
