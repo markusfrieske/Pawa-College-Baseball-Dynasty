@@ -16,6 +16,9 @@
  */
 
 import { storage } from "../storage";
+import { db } from "../db";
+import { games } from "../../shared/schema";
+import { eq, and } from "drizzle-orm";
 import {
   getTeamsForConference,
   generateCpuCoaches,
@@ -128,11 +131,15 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   }
   console.log(`[bootstrap:${leagueId}] Players: generated for ${teamsNeedingPlayers.length} teams`);
 
-  // Auto-assign lineups for all teams that needed player generation
-  if (teamsNeedingPlayers.length > 0) {
-    await updateProgress(jobId, 48, "Assigning lineups");
-    for (const team of leagueTeams) {
-      const teamPlayers = await storage.getPlayersByTeam(team.id);
+  // Auto-assign lineups — independently idempotent per team.
+  // A team has a complete lineup if ≥ 9 players have battingOrder set.
+  // This check is independent of teamsNeedingPlayers so a crash after player
+  // generation but before lineup assignment is correctly repaired on resume.
+  await updateProgress(jobId, 48, "Assigning lineups");
+  for (const team of leagueTeams) {
+    const teamPlayers = await storage.getPlayersByTeam(team.id);
+    const assignedCount = teamPlayers.filter(p => p.battingOrder != null).length;
+    if (assignedCount < 9) {
       await autoAssignLineup(teamPlayers, team.id);
     }
   }
@@ -169,13 +176,15 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   }
 
   // ── Checkpoint 7: Schedule ────────────────────────────────────────────────
+  // Transaction guarantee: the delete + bulk-insert runs inside a single DB
+  // transaction so a crash mid-insert leaves 0 games (not a partial set).
+  // On the next resume, 0 games triggers a clean regeneration.
   await updateProgress(jobId, 65, "Creating schedule");
   const existingGames = await storage.getGamesByLeagueSeason(leagueId, 1);
-  const regularGames = existingGames.filter((g: any) => g.phase === "regular");
-  if (regularGames.length !== EXPECTED_TOTAL_GAMES) {
-    if (regularGames.length > 0) {
-      console.warn(`[bootstrap:${leagueId}] Partial schedule found (${regularGames.length} games), deleting and regenerating`);
-      await storage.deleteRegularGamesByLeagueSeason(leagueId, 1);
+  const existingRegular = existingGames.filter((g: any) => g.phase === "regular");
+  if (existingRegular.length !== EXPECTED_TOTAL_GAMES) {
+    if (existingRegular.length > 0) {
+      console.warn(`[bootstrap:${leagueId}] Partial schedule found (${existingRegular.length} games), deleting and regenerating`);
     }
 
     const currentTeams = await storage.getTeamsByLeague(leagueId);
@@ -193,10 +202,20 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
     });
 
     await updateProgress(jobId, 72, "Creating schedule");
-    await storage.batchCreateGames(scheduleGames);
-    console.log(`[bootstrap:${leagueId}] Schedule: ${scheduleGames.length} games created`);
+
+    // Atomic: delete any existing regular games + insert all new ones in one transaction.
+    const GAME_CHUNK = 500;
+    await db.transaction(async (tx) => {
+      await tx.delete(games).where(
+        and(eq(games.leagueId, leagueId), eq(games.season, 1), eq(games.phase, "regular"))
+      );
+      for (let i = 0; i < scheduleGames.length; i += GAME_CHUNK) {
+        await tx.insert(games).values(scheduleGames.slice(i, i + GAME_CHUNK));
+      }
+    });
+    console.log(`[bootstrap:${leagueId}] Schedule: ${scheduleGames.length} games created (transactional)`);
   } else {
-    console.log(`[bootstrap:${leagueId}] Schedule: already exists (${regularGames.length} games)`);
+    console.log(`[bootstrap:${leagueId}] Schedule: already exists (${existingRegular.length} games)`);
   }
 
   // Exhibition games (spring training)

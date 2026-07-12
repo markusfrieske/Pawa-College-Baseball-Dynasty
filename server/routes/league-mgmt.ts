@@ -2392,6 +2392,33 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
           message: `Full Season: ${sameConfOocGames.length} OOC game(s) involve teams from the same conference`,
         });
       }
+      // Standings contamination: standings wins/losses must not exceed what's
+      // possible from completed regular-season games (no exhibition/postseason bleed).
+      const fsStandings = await storage.getStandingsByLeague(leagueId, season);
+      const regWins = new Map<string, number>();
+      const regLosses = new Map<string, number>();
+      for (const g of regularGames) {
+        if (g.homeScore == null || g.awayScore == null) continue; // not completed
+        const homeWon = g.homeScore > g.awayScore;
+        const hId = g.homeTeamId ?? "";
+        const aId = g.awayTeamId ?? "";
+        regWins.set(hId, (regWins.get(hId) ?? 0) + (homeWon ? 1 : 0));
+        regLosses.set(hId, (regLosses.get(hId) ?? 0) + (homeWon ? 0 : 1));
+        regWins.set(aId, (regWins.get(aId) ?? 0) + (homeWon ? 0 : 1));
+        regLosses.set(aId, (regLosses.get(aId) ?? 0) + (homeWon ? 1 : 0));
+      }
+      const contaminatedTeams = fsStandings.filter(s => {
+        const rw = regWins.get(s.teamId) ?? 0;
+        const rl = regLosses.get(s.teamId) ?? 0;
+        return (s.wins ?? 0) > rw || (s.losses ?? 0) > rl;
+      });
+      if (contaminatedTeams.length > 0) {
+        warnings.push({
+          severity: "error",
+          code: "FS_STANDINGS_CONTAMINATION",
+          message: `${contaminatedTeams.length} team(s) have standings totals exceeding their regular-season game results (possible exhibition/postseason contamination)`,
+        });
+      }
     }
     const teamsWithByes = teamStats.filter(t => t.byeWeeks.length > 1);
     const teamsWithOverloaded = teamStats.filter(t => t.overloadedWeeks.length > 0);
