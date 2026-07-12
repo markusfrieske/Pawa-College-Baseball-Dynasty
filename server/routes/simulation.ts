@@ -6473,9 +6473,7 @@ export function registerSimulationRoutes(app: Express): void {
       // standings, and player stats. Exhibition games are few — use finalizeGame.
       setAdvanceProgress(leagueId, "standings", 80);
       console.time("[advance-perf] standings-and-stats");
-      try {
-        await batchFinalizeGames(gameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim);
-      } catch (e) { console.error("[advance-week] batchFinalizeGames error:", e); }
+      await batchFinalizeGames(gameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches);
 
       // Exhibition games: counted for overall W/L but not conference record
       await Promise.all(exhibitionGameResults.map(async ({ game, result }) => {

@@ -880,6 +880,29 @@ export class DatabaseStorage implements IStorage {
     deltas: Array<{teamId: string; wins: number; losses: number; confWins: number; confLosses: number; runsScored: number; runsAllowed: number}>,
   ): Promise<void> {
     if (deltas.length === 0) return;
+
+    // Defensive: ensure a standings row exists for every team before updating.
+    // Rows should be pre-created at season start, but missing rows (data drift /
+    // migration edge cases) would cause silent no-ops in the batch UPDATE.
+    const teamIds = deltas.map(d => d.teamId);
+    const existing = await db
+      .select({ teamId: standings.teamId })
+      .from(standings)
+      .where(
+        and(
+          inArray(standings.teamId, teamIds),
+          eq(standings.leagueId, leagueId),
+          eq(standings.season, season),
+        )
+      );
+    const existingTeamIds = new Set(existing.map(r => r.teamId));
+    const missing = deltas.filter(d => !existingTeamIds.has(d.teamId));
+    if (missing.length > 0) {
+      await db.insert(standings).values(
+        missing.map(d => ({ leagueId, teamId: d.teamId, season }))
+      );
+    }
+
     await pool.query(
       `UPDATE standings AS s SET
          wins              = s.wins + u.w::int,

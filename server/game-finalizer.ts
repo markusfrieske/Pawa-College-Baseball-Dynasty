@@ -22,7 +22,7 @@
  */
 
 import { storage } from "./storage";
-import type { Game, GameReport, Team, InsertPlayerSeasonStats } from "@shared/schema";
+import type { Game, GameReport, Team, InsertPlayerSeasonStats, Coach } from "@shared/schema";
 import {
   updateStandingsForGame,
   accumulatePlayerStats,
@@ -275,8 +275,8 @@ export async function finalizeGame(
   );
 }
 
-/** Builds and persists a GameRecap for a completed game. */
-async function generateAndStoreRecap(
+/** Builds and persists a GameRecap for a completed game. Exported for batch callers. */
+export async function generateAndStoreRecap(
   game: Pick<Game, "id" | "homeTeamId" | "awayTeamId" | "season" | "week" | "isConference" | "gameType">,
   homeScore: number,
   awayScore: number,
@@ -630,6 +630,7 @@ export async function batchFinalizeGames(
   season: number,
   coachXpAccum: Map<string, CoachXpDelta>,
   leagueTeams: Team[],
+  coaches?: Coach[],
 ): Promise<void> {
   if (results.length === 0) return;
 
@@ -706,6 +707,7 @@ export async function batchFinalizeGames(
   );
 
   // ── 5. Coach XP accumulation (zero DB writes — caller flushes once after) ─
+  const coachById = coaches ? new Map(coaches.map(c => [c.id, c])) : new Map<string, Coach>();
   for (const { game, result } of results) {
     const homeWon = result.homeScore > result.awayScore;
     const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
@@ -730,5 +732,38 @@ export async function batchFinalizeGames(
       acc.confLosses+= (game.isConference && homeWon)  ? 1 : 0;
       coachXpAccum.set(awayTeam.coachId, acc);
     }
+
+    // ── 5.5 Rivalry updates — HvH games only (same logic as finalizeGame) ───
+    if (homeTeam?.coachId && awayTeam?.coachId) {
+      const hCoach = coachById.get(homeTeam.coachId);
+      const aCoach = coachById.get(awayTeam.coachId);
+      if (hCoach?.userId && aCoach?.userId) {
+        const isPostseason =
+          game.gameType === "super_regionals" || game.gameType === "cws";
+        const aIsHome = hCoach.id < aCoach.id;
+        const [coachAId, coachBId] = aIsHome
+          ? [hCoach.id, aCoach.id]
+          : [aCoach.id, hCoach.id];
+        const aWon  = aIsHome ? homeWon : !homeWon;
+        const aRuns = aIsHome ? result.homeScore : result.awayScore;
+        const bRuns = aIsHome ? result.awayScore : result.homeScore;
+        storage.upsertRivalryFromGame(
+          leagueId, coachAId, coachBId, aWon, aRuns, bRuns,
+          game.season, game.week, isPostseason,
+        ).catch(e => console.error("[batchFinalizeGames] rivalry update error:", e));
+      }
+    }
+  }
+
+  // ── 9. Fire-and-forget recap generation per game (best-effort) ────────────
+  for (const { game, result } of results) {
+    try {
+      const box = JSON.parse(result.boxScore);
+      generateAndStoreRecap(game, result.homeScore, result.awayScore, box, leagueId, {
+        leagueTeams,
+        skipLeagueEvent: true,
+        skipCacheInvalidation: true,
+      }).catch(e => console.error("[batchFinalizeGames] recap error:", e));
+    } catch { /* non-critical */ }
   }
 }
