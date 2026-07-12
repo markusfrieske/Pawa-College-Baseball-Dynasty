@@ -26,7 +26,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Player } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { StoryEngineHub } from "@/components/story-engine-hub";
 import { ArtworkBackground } from "@/components/artwork-background";
 import { artBackgrounds } from "@/lib/art-assets";
 
@@ -44,9 +43,9 @@ import {
 } from "./league-view/dashboard-widgets";
 import {
   LeagueTickerBanner, StatsLeadersPanel, PowerRankingsWidget,
-  TopProspectsWidget, LeagueNewsPanel, MergedRosterPanel,
+  TopProspectsWidget, MergedRosterPanel, NewsroomPanel,
 } from "./league-view/hub-panels";
-import { ActivityFeed, StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
+import { StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
 import { SigningDaySummaryCard, ProgramChangesCard, OffseasonSummary } from "./league-view/tabs/offseason-widgets";
 import { SeasonRecapDialog } from "./league-view/tabs/season-recap-dialog";
 import { StandingsTab } from "./league-view/tabs/StandingsTab";
@@ -459,10 +458,10 @@ export default function LeagueViewPage() {
         />
       )}
 
-      <main className="container mx-auto px-4 py-4 pb-20 md:pb-6">
+      {/* Live ticker — full-bleed, immediately below hero */}
+      <LeagueTickerBanner leagueId={league.id} />
 
-        {/* Live ticker — scrolling league events */}
-        <LeagueTickerBanner leagueId={league.id} />
+      <main className="container mx-auto px-4 py-4 pb-20 md:pb-6">
 
         {/* Digest strip — full width, collapsed chip row */}
         <SinceLastAdvanceWidget leagueId={league.id} />
@@ -501,7 +500,7 @@ export default function LeagueViewPage() {
             Center(5): Phase context + Next game + Program + Roster
             Right (3): Recruiting + Standings + League pulse
         ═══════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6 items-start">
 
           {/* ── LEFT COLUMN: Readiness + Actions ─────────────────── */}
           <div className="lg:col-span-4 space-y-4">
@@ -555,6 +554,12 @@ export default function LeagueViewPage() {
                   userTeam={myTeam ?? undefined}
                   leagueId={id!}
                 />
+                {/* ── Roster composition ──────────────────────────────── */}
+                <div className="flex items-center gap-2 -mb-1 mt-1">
+                  <div className="flex-1 h-px bg-border/40" />
+                  <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase tracking-wider">Roster</span>
+                  <div className="flex-1 h-px bg-border/40" />
+                </div>
                 <MergedRosterPanel
                   overview={overview}
                   leagueId={id!}
@@ -632,13 +637,11 @@ export default function LeagueViewPage() {
           </div>
 
           <TabsContent value="news">
-            <LeagueNewsPanel leagueId={league.id} isCommissioner={isCommissioner} />
-            <div className="mt-4">
-              <ActivityFeed leagueId={league.id} />
-            </div>
-            <div className="mt-4">
-              <StoryEngineHub leagueId={league.id} teamId={myTeam?.id} />
-            </div>
+            <NewsroomPanel
+              leagueId={league.id}
+              isCommissioner={isCommissioner}
+              myTeamId={myTeam?.id}
+            />
           </TabsContent>
 
           <TabsContent value="standings">

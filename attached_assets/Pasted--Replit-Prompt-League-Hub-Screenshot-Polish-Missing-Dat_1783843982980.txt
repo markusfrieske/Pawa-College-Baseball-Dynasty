@@ -1,0 +1,528 @@
+# Replit Prompt: League Hub Screenshot Polish + Missing Data Modules
+
+## Context
+
+The League Hub / War Room consolidation is closer, but the latest screenshots still show important UX and data problems:
+
+- Large empty space in the dashboard grid.
+- Empty space under Top MLB Prospects.
+- Top MLB Prospects rows are not clickable.
+- Power Rankings teams are not clickable.
+- Quick Nav boxes collide and have uneven sizing.
+- League News and Dynasty News duplicate each other visually and functionally.
+- Storyline module is too shallow for how important recruit storylines are.
+- Program and Roster modules overlap conceptually.
+- Recruiting module is too small for one of the core game loops.
+- There is no strong upcoming matchup / game prep module on the League Hub.
+- The League Ticker still is not implemented in the intended place/style. It should sit directly under the main hero image like the homepage ticker.
+
+Fix this as a focused League Hub polish pass.
+
+## Primary Files To Audit
+
+Start here:
+
+```text
+client/src/pages/league-view.tsx
+client/src/pages/league-view/hub-panels.tsx
+client/src/pages/league-view/dashboard-widgets.tsx
+client/src/pages/league-view/tabs/activity-widgets.tsx
+client/src/pages/league-view/tabs/ProspectsTab.tsx
+client/src/components/story-engine-hub.tsx
+client/src/pages/game-prep.tsx
+client/src/pages/landing.tsx
+client/src/App.tsx
+server/routes/news.ts
+server/routes/games.ts
+server/routes.ts
+```
+
+Useful existing routes/components:
+
+```text
+/league/:id/games/:gameId/prep
+/league/:id/team/:teamId
+/league/:id/team/:teamId/profile
+/league/:id/recruit/:recruitId
+/api/leagues/:id/players/:playerId
+PlayerProfileCard
+ProspectsTab
+GamePrepPage
+```
+
+Do not invent new pages if existing profile/prep surfaces can be reused.
+
+## Issue 0: League Ticker Under Hero Image
+
+The League Hub needs a horizontal ticker directly under the main image/hero at the top, matching the homepage ticker style shown in `client/src/pages/landing.tsx`.
+
+The current League Hub has `LeagueTickerBanner` in `client/src/pages/league-view/hub-panels.tsx`, and `client/src/pages/league-view.tsx` currently renders it inside the main content area. That is not the intended implementation.
+
+Fix requirements:
+
+- Move the ticker so it sits immediately below the main hero/background image and above the dashboard modules.
+- Match the homepage ticker visual language:
+  - full-width horizontal strip
+  - dark translucent background
+  - subtle top/bottom border
+  - continuously scrolling text
+  - pause on hover
+  - small colored category labels like `FINAL`, `COMMITMENT`, `REPORT PENDING`, `STORYLINE`
+  - diamond/separator marks between items
+- Power it with real league data, not hardcoded homepage demo data.
+- Use `/api/leagues/:leagueId/ticker` or the existing ticker/feed endpoint.
+- If no real events exist yet, show a tasteful fallback row such as upcoming phase, next game, pending reports, or "No league activity yet" without creating a large empty block.
+- Make the whole ticker or a "Full Ticker" segment link to:
+
+```text
+/league/:leagueId/ticker
+```
+
+- Do not duplicate this ticker again lower on the page as another League Pulse panel. The top ticker is the ambient headline strip; the lower Newsroom/League Pulse section can show deeper detail.
+
+Implementation notes:
+
+- Reuse the homepage ticker animation from `client/src/pages/landing.tsx`.
+- Rework `LeagueTickerBanner` so it maps event types to ticker labels/colors instead of joining all descriptions under a generic `LEAGUE` label.
+- Suggested event label mapping:
+
+```text
+GAME_RESULT / RIVALRY_RESULT -> FINAL
+SIGNING -> COMMITMENT
+SCORE_REPORT_PENDING / pending report metadata -> REPORT PENDING
+STORYLINE / STORYLINE_ABILITY -> STORYLINE
+AWARD -> AWARD
+PHASE_CHANGE -> ADVANCE
+TRANSFER / DECOMMIT -> ROSTER
+```
+
+Acceptance:
+
+- On the League Hub, the ticker appears immediately under the hero image.
+- It visually resembles the homepage ticker in spacing, movement, color-coded labels, and separators.
+- It uses live league events where available.
+- It links to the full ticker page.
+- It does not create vertical dead space when no events exist.
+
+## Issue 1: Empty Dashboard Space
+
+The screenshots show large dead space beside/under Roster, Standings, Power Rankings, and Top MLB Prospects. This makes the hub feel unfinished.
+
+Fix requirements:
+
+- Do not let short cards stretch vertically just because neighboring cards are taller.
+- Add `items-start` to grid rows where equal-height stretching creates empty card bottoms.
+- Remove arbitrary `min-height` values that create blank panels.
+- If a module needs a fixed height, fill the full space with meaningful content.
+- Rebalance the main grid so right-column modules do not leave a huge empty hole when they have little content.
+- Promote important modules, especially Recruiting and Game Prep, into the empty space instead of leaving the grid blank.
+
+Preferred structure:
+
+```text
+Top: Header + Hero Briefing
+
+Main row:
+  Left/center: Upcoming Matchup / Game Prep
+  Right: Readiness + Commissioner/Blockers
+
+Second row:
+  Large Recruiting Command Center
+  Program Identity
+  Roster Health
+
+Third row:
+  League Pulse / Newsroom
+  Storylines
+  Standings / Power Rankings / Prospects
+
+Bottom:
+  Compact grouped Quick Nav
+```
+
+Acceptance:
+
+- At `1440x900`, there should be no giant blank rectangle in the main League Hub viewport.
+- At `1920x1080`, modules should feel intentionally arranged, not stretched or randomly stacked.
+- Cards should either size to their content or use the extra space for useful data.
+
+## Issue 2: Top MLB Prospects Empty Space + Clickability
+
+Current code in `TopProspectsWidget` renders prospect rows as plain `div`s. The rows should be interactive.
+
+Fix requirements:
+
+- Make each prospect row clickable.
+- Since these are roster players, not recruits, do not send them to `/recruit/:id`.
+- Reuse the pattern from `client/src/pages/league-view/tabs/ProspectsTab.tsx`:
+  - store `selectedPlayerId`
+  - fetch `/api/leagues/:leagueId/players/:playerId`
+  - open `PlayerProfileCard`
+- If a lighter implementation is preferred, clicking can navigate to the player's team page with the player highlighted, but the best UX is an in-place player profile modal.
+- Add hover/focus styles so rows clearly behave like buttons.
+- Add keyboard support with `button` semantics or accessible links.
+- Remove or fill the empty bottom area under prospects.
+
+Suggested content to fill the card if there is extra room:
+
+- "Rising" prospect: biggest OVR jump if available.
+- Draft-eligible count.
+- Top team by prospect count.
+- Link to full Top 100.
+- Compact "Hitter / Pitcher / Two-way" filters.
+
+Acceptance:
+
+- Clicking a hitter prospect opens a player profile or navigates to a player/team detail surface.
+- Clicking a pitcher prospect does the same.
+- The card no longer has a large blank bottom area.
+- Rows have `data-testid` values for click testing.
+
+## Issue 3: Power Rankings Teams Are Not Clickable
+
+Current `PowerRankingsWidget` renders ranking rows as plain `div`s.
+
+Fix requirements:
+
+- Wrap each row with a link to:
+
+```text
+/league/:leagueId/team/:teamId
+```
+
+or, if the profile page is more appropriate:
+
+```text
+/league/:leagueId/team/:teamId/profile
+```
+
+- Preserve the existing ranking styling.
+- Add hover/focus states.
+- Make the whole row clickable, not just the team name.
+
+Acceptance:
+
+- Every rendered power ranking row has a valid team route.
+- Clicking a row opens that team.
+- No row links to an empty or malformed team route.
+
+## Issue 4: Quick Nav Boxes Collide And Have Uneven Sizes
+
+The Quick Nav currently still reads like a tile wall. In the screenshots, boxes collide visually, sizes differ, and badges/spacing feel unstable.
+
+Fix requirements:
+
+- Replace the large `QuickActionCard` grid with a compact grouped navigation dock.
+- Use stable dimensions:
+  - same height per nav item
+  - same icon size
+  - same label/subtitle treatment
+  - badges contained inside the tile, not floating across row boundaries
+- Do not use separate top/bottom grids with different sizing logic.
+- Use grouped sections instead:
+
+```text
+Team: Coach, School, Roster, Lineup
+Season: Schedule, Stats, Standings, Record Book
+Recruiting: Recruiting, Commits, Transfer Portal, Walk-ons
+League: Storylines, Ticker, Archive, Postseason
+Admin: Commissioner, Settings
+```
+
+Desktop layout:
+
+- Use compact pills/buttons or small equal tiles.
+- Prefer `grid-template-columns: repeat(auto-fit, minmax(120px, 1fr))`.
+- Use `min-w-0`, `truncate`, and consistent `min-h`.
+
+Mobile layout:
+
+- Use a horizontal grouped dock or stacked groups.
+- No overflow.
+- No colliding badges.
+
+Acceptance:
+
+- Quick Nav items are evenly balanced.
+- No boxes overlap at `390px`, `768px`, `1440px`, or `1920px`.
+- Text does not overflow.
+- Items that need `myTeam.id` are hidden or disabled when no team exists.
+
+## Issue 5: League News And Dynasty News Are Duplicate Displays
+
+The screenshots show:
+
+```text
+League News
+Activity Feed
+Dynasty News
+```
+
+stacked as separate empty/near-empty panels. This is too much duplicate "news" surface.
+
+Design the content model clearly:
+
+- **League News**: manual commissioner posts.
+- **Dynasty News**: generated articles/story coverage.
+- **Activity Feed**: structured event log.
+
+Do not show them as three large empty cards in a row.
+
+Fix requirements:
+
+- Create one unified **Newsroom / League Pulse** section.
+- Use tabs or filters:
+
+```text
+All
+Commissioner Posts
+Dynasty Stories
+Activity
+Recruiting
+Games
+Storylines
+```
+
+- Keep one post button if commissioners can post.
+- Keep one compact empty state if there is no content.
+- Do not render both "League News" and "Dynasty News" as separate full panels on the same screen.
+- If `StoryEngineHub` remains, separate the storyline controls from the dynasty-news article list.
+
+Acceptance:
+
+- The News tab does not show three stacked empty panels.
+- There is one clear news/pulse section.
+- Manual posts and generated dynasty stories remain available, but are not visually duplicated.
+
+## Issue 6: Storyline Module Is Underwhelming
+
+Recruit storylines are a major differentiator. The current widget mostly shows counts and a few names.
+
+Fix requirements:
+
+Redesign `StorylinesDashboardWidget` into a richer "Storyline War Board."
+
+Show:
+
+- Pending vote count.
+- Most urgent active event.
+- Recruit name, position, star rating, archetype/personality if available.
+- Event title or short prompt.
+- Vote choices summary.
+- Vote counts by option.
+- My vote state.
+- Arc stage/progress.
+- Legendary/high-impact badge.
+- Known consequences such as OVR delta, trait change, interest shift, or risk/reward if available.
+- CTA to vote.
+
+Interaction:
+
+- Clicking an active storyline should open the Storylines page or a focused detail if supported.
+- If multiple votes are pending, show the top 2-3 with enough context to know why they matter.
+
+Acceptance:
+
+- The module feels analytical, not just a count card.
+- A coach can understand what storyline needs attention without leaving the hub.
+- Pending votes are obvious.
+
+## Issue 7: Program And Roster Need Clear Separation
+
+Program and Roster currently overlap because Program shows record/OVR/top players, while Roster also shows player strength.
+
+Split them cleanly.
+
+### Program Identity Module
+
+Program should be about the school/program, not mostly the player list.
+
+Show:
+
+- Team logo/badge.
+- Team name and abbreviation.
+- Primary/secondary colors.
+- Conference.
+- Coach name.
+- Coach archetype/strategy if available.
+- Program prestige.
+- Facilities/school/fanbase/recruiting pipeline if available.
+- Location/region if available.
+- Stadium/ballpark if available.
+- NIL budget/program resources if appropriate.
+- Historical identity such as championships, CWS appearances, rivalry, or record book link.
+
+If fields do not exist yet, add them to the view model or show tasteful placeholders until the data is built.
+
+### Roster Health Module
+
+Roster should be about players and team composition.
+
+Show:
+
+- Roster size.
+- Position depth.
+- Lineup completion.
+- Rotation completion.
+- Top players.
+- Average OVR.
+- Hitting/pitching/fielding grades.
+- Star distribution.
+- Draft risk or departures risk if available.
+
+Move top-player detail out of Program and into Roster.
+
+Acceptance:
+
+- Program no longer feels like a duplicate roster card.
+- Roster no longer has to carry school identity.
+- Both modules have a clear reason to exist.
+
+## Issue 8: Recruiting Module Is Too Small
+
+Recruiting is one of the most important parts of the game. The Hub should treat it as a core command center, especially during recruiting phases.
+
+Fix requirements:
+
+- Make Recruiting a larger, more central module.
+- During recruiting phases, it should be one of the dominant modules on the page.
+- Outside recruiting phases, it can become compact but still informative.
+
+Show:
+
+- Recruiting phase/week.
+- Class rank.
+- Signed commits.
+- Open scholarship/roster slots if applicable.
+- NIL budget/remaining.
+- Recruiting points remaining.
+- Scout points remaining.
+- Top active targets.
+- Hot battles.
+- Leads/trails if data exists.
+- Storyline recruits tied to recruiting.
+- Recent commit/lost recruit.
+- Clear CTA: Scout, Allocate Points, View Board, Commits.
+
+If the current `DashboardOverview` does not expose enough recruiting data, extend the API response instead of leaving the module shallow.
+
+Acceptance:
+
+- The module gives coaches enough recruiting context to make decisions from the hub.
+- It is not just "signed + NIL left."
+- It visibly has more weight than minor secondary modules.
+
+## Issue 9: Missing Upcoming Matchup / Game Prep Module
+
+The League Hub needs a strong upcoming game card.
+
+Current `WeeklyOpponentCard` exists, and `GamePrepPage` already exists at:
+
+```text
+/league/:id/games/:gameId/prep
+```
+
+But the Hub does not make the game prep workflow prominent enough.
+
+Fix requirements:
+
+- Redesign the upcoming matchup card as a **Matchup / Game Prep** module.
+- Add a direct Game Prep CTA linking to:
+
+```text
+/league/:leagueId/games/:gameId/prep
+```
+
+- Keep Report/Simulate/View Recap actions when relevant.
+
+Show:
+
+- Opponent.
+- Home/away/neutral.
+- Records.
+- Rankings.
+- Conference/OOC.
+- Recent form.
+- Projected starters if available.
+- Team strengths/weaknesses.
+- Top opponent hitter/pitcher.
+- Rivalry or ranked matchup markers.
+- Game prep button.
+
+If no user team game exists:
+
+- Show bye week.
+- Or for commissioner/no-team view, show the league game of the week.
+
+Acceptance:
+
+- During regular season/postseason phases, coaches see a clear upcoming matchup module.
+- Game Prep is one click from the Hub.
+- The matchup card uses real scouting/prep data where available.
+
+## Issue 10: Overall Hub Composition
+
+After the above changes, rebalance the page.
+
+Suggested order:
+
+```text
+1. Header / briefing hero
+2. Matchup + Game Prep
+3. Readiness / blockers
+4. Recruiting command center
+5. Roster health
+6. Program identity
+7. Storyline war board
+8. Standings / power rankings / prospects
+9. Newsroom / league pulse
+10. Compact quick nav
+```
+
+Do not let low-value empty modules appear above high-value gameplay modules.
+
+## Testing Requirements
+
+Add or update Playwright tests.
+
+Minimum scenarios:
+
+1. Top MLB Prospects rows are clickable and open a player profile modal or valid player/team detail surface.
+2. Power Rankings rows link to valid team pages.
+3. Quick Nav boxes have consistent dimensions and do not overlap at desktop and mobile widths.
+4. Newsroom does not render separate empty "League News" and "Dynasty News" panels stacked together.
+5. Storyline module shows pending vote detail, not only counts.
+6. Program module shows school/program identity fields.
+7. Roster module shows player/depth fields.
+8. Recruiting module shows class/target/points/budget context.
+9. Upcoming matchup module includes a Game Prep link when an upcoming game exists.
+10. No large blank card bottoms or dead empty grid zones in desktop screenshots.
+11. League ticker appears directly under the hero image and matches the homepage-style scrolling strip.
+
+Run:
+
+```bash
+npm run check
+npm test
+npx playwright test tests/e2e/league-hub-dashboard.test.ts
+npx playwright test tests/e2e/mobile-league-hub.test.ts
+```
+
+If these exact tests do not exist, create focused tests for this polish pass.
+
+## Final Response Required From Replit
+
+When finished, report:
+
+1. Files changed.
+2. How empty dashboard space was removed.
+3. How prospects became clickable.
+4. How power rankings became clickable.
+5. How Quick Nav sizing/collision was fixed.
+6. How League News / Dynasty News / Activity Feed were consolidated.
+7. What changed in Storylines.
+8. What changed in Program vs Roster.
+9. What changed in Recruiting.
+10. How Game Prep was added to the Hub.
+11. How the League Ticker was implemented under the hero image.
+12. Tests run and screenshots captured.

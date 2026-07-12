@@ -15,12 +15,16 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Newspaper, TrendingUp, BarChart2, Users, Star, Trash2,
-  PlusCircle, Image, BarChart, ChevronRight,
+  PlusCircle, Image, ChevronRight, Activity, Swords,
 } from "lucide-react";
+import { PlayerProfileCard } from "@/components/player-profile-card";
+import { StoryEngineHub } from "@/components/story-engine-hub";
+import { ActivityFeed } from "./tabs/activity-widgets";
 import { apiRequest } from "@/lib/queryClient";
+import type { Player } from "@shared/schema";
 import type { DashboardOverview, LeagueDetails } from "./types";
 import { STAR_COLORS, STAR_TEXT_COLORS } from "./helpers";
 
@@ -49,41 +53,55 @@ function fmtDate(iso: string) {
 interface TickerEvent { id: string; description: string; eventType: string; }
 interface TickerResp { events: TickerEvent[]; }
 
+const TICKER_TAG: Record<string, { tag: string; color: string }> = {
+  GAME_RESULT:       { tag: "FINAL",       color: "text-green-400" },
+  RIVALRY_RESULT:    { tag: "RIVALRY",     color: "text-amber-400" },
+  SIGNING:           { tag: "COMMITMENT",  color: "text-blue-400" },
+  TRANSFER:          { tag: "TRANSFER",    color: "text-cyan-400" },
+  DRAFT:             { tag: "DRAFT",       color: "text-purple-400" },
+  AWARD:             { tag: "AWARD",       color: "text-amber-400" },
+  PHASE_CHANGE:      { tag: "ADVANCE",     color: "text-gold" },
+  ROSTER_CUT:        { tag: "CUT",         color: "text-red-400" },
+  WALKON:            { tag: "WALK-ON",     color: "text-emerald-400" },
+  STORYLINE:         { tag: "STORYLINE",   color: "text-purple-400" },
+  STORYLINE_ABILITY: { tag: "STORYLINE",   color: "text-purple-400" },
+};
+
 export function LeagueTickerBanner({ leagueId }: { leagueId: string }) {
   const { data } = useQuery<TickerResp>({
     queryKey: ["/api/leagues", leagueId, "ticker"],
     staleTime: 60000,
   });
 
-  const events = data?.events ?? [];
+  const events = (data?.events ?? []).slice(0, 20);
   if (events.length === 0) return null;
 
-  const text = events
-    .slice(0, 20)
-    .map(e => e.description)
-    .join("   ·   ");
+  const items = [...events, ...events];
 
   return (
     <div
-      className="overflow-hidden border-y border-border/40 bg-card/40 py-1.5 mb-4"
+      className="border-y border-border bg-card/30 py-2.5 overflow-hidden"
       data-testid="league-ticker-banner"
-      style={{ mask: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)" }}
     >
       <style>{`
         @keyframes hub-ticker {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }
         }
-        .hub-ticker-track { animation: hub-ticker 60s linear infinite; }
+        .hub-ticker-track { animation: hub-ticker 60s linear infinite; display: flex; width: max-content; }
         .hub-ticker-track:hover { animation-play-state: paused; }
       `}</style>
-      <div className="hub-ticker-track flex whitespace-nowrap gap-0">
-        {[text, text].map((t, i) => (
-          <span key={i} className="flex items-center gap-6 px-8">
-            <span className="font-pixel text-[8px] text-gold/70">LEAGUE</span>
-            <span className="text-xs text-foreground/70">{t}</span>
-          </span>
-        ))}
+      <div className="hub-ticker-track whitespace-nowrap">
+        {items.map((e, i) => {
+          const cfg = TICKER_TAG[e.eventType] ?? { tag: "NEWS", color: "text-muted-foreground" };
+          return (
+            <span key={i} className="flex items-center gap-3 px-6 whitespace-nowrap">
+              <span className={`font-pixel text-[8px] tracking-widest ${cfg.color}`}>{cfg.tag}</span>
+              <span className="text-[11px] text-muted-foreground/70">{e.description}</span>
+              <span className="text-gold/20">◆</span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -241,25 +259,26 @@ export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
               const isUser = r.teamId === data?.userTeamId;
               const delta = r.rankDelta ?? 0;
               return (
-                <div
-                  key={r.teamId}
-                  className={`flex items-center gap-2 py-1 px-1.5 rounded text-xs ${isUser ? "bg-gold/10 border border-gold/20" : "hover:bg-card/60"}`}
-                  data-testid={`rank-row-${r.teamId}`}
-                >
-                  <span className="font-pixel text-[8px] text-muted-foreground w-4 text-right shrink-0">{r.rank}</span>
-                  {delta !== 0 && (
-                    <span className={`font-pixel text-[7px] shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {delta > 0 ? "▲" : "▼"}
-                    </span>
-                  )}
-                  <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
-                    style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
-                  >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
-                  <span className={`flex-1 truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
-                  <span className="text-muted-foreground text-[10px] shrink-0">{Math.round(r.avgOvr)}</span>
-                  <span className={`font-pixel text-[8px] ${color} w-5 text-right shrink-0`}>{grade}</span>
-                </div>
+                <Link key={r.teamId} href={`/league/${leagueId}/team/${r.teamId}`}>
+                  <div
+                    className={`flex items-center gap-2 py-1 px-1.5 rounded text-xs cursor-pointer transition-colors ${isUser ? "bg-gold/10 border border-gold/20 hover:bg-gold/15" : "hover:bg-card/80 hover:border hover:border-border/60"}`}
+                    data-testid={`rank-row-${r.teamId}`}
+                  >
+                    <span className="font-pixel text-[8px] text-muted-foreground w-4 text-right shrink-0">{r.rank}</span>
+                    {delta !== 0 && (
+                      <span className={`font-pixel text-[7px] shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                        {delta > 0 ? "▲" : "▼"}
+                      </span>
+                    )}
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
+                      style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
+                    >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
+                    <span className={`flex-1 truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
+                    <span className="text-muted-foreground text-[10px] shrink-0">{Math.round(r.avgOvr)}</span>
+                    <span className={`font-pixel text-[8px] ${color} w-5 text-right shrink-0`}>{grade}</span>
+                  </div>
+                </Link>
               );
             })}
           </div>
@@ -278,70 +297,98 @@ interface ProspectRow {
 interface TopPlayersResp { hitters: ProspectRow[]; pitchers: ProspectRow[]; }
 
 export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+
   const { data, isLoading } = useQuery<TopPlayersResp>({
     queryKey: ["/api/leagues", leagueId, "top-players"],
     staleTime: 120000,
   });
 
+  const { data: selectedPlayer } = useQuery<Player>({
+    queryKey: ["/api/leagues", leagueId, "players", selectedPlayerId],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/players/${selectedPlayerId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch player");
+      return res.json();
+    },
+    enabled: !!selectedPlayerId,
+  });
+
   const hitters = (data?.hitters ?? []).slice(0, 8);
   const pitchers = (data?.pitchers ?? []).slice(0, 8);
 
+  const allProspects = [...(data?.hitters ?? []), ...(data?.pitchers ?? [])];
+  const selectedProspect = selectedPlayerId ? allProspects.find(p => p.id === selectedPlayerId) : null;
+
+  const ProspectRow = ({ p, i, accentClass }: { p: ProspectRow; i: number; accentClass: string }) => (
+    <button
+      key={p.id}
+      className="w-full flex items-center gap-1.5 text-xs py-0.5 px-1 rounded hover:bg-card/60 cursor-pointer transition-colors text-left"
+      onClick={() => setSelectedPlayerId(p.id)}
+      data-testid={`prospect-row-${p.id}`}
+    >
+      <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+      <span
+        className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
+        style={{ backgroundColor: `#${p.teamPrimaryColor ?? "4a4a4a"}22`, color: `#${p.teamPrimaryColor ?? "C4A35A"}`, border: `1px solid #${p.teamPrimaryColor ?? "4a4a4a"}44` }}
+      >{p.teamAbbreviation?.slice(0, 2) ?? "—"}</span>
+      <span className="truncate text-foreground/80 flex-1">{p.firstName[0]}. {p.lastName}</span>
+      <span className="text-[9px] text-muted-foreground shrink-0">{p.position}</span>
+      <span className={`${accentClass} font-bold shrink-0 ml-1`}>{p.overall}</span>
+    </button>
+  );
+
   return (
-    <RetroCard data-testid="panel-top-prospects">
-      <RetroCardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Star className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px]">TOP MLB PROSPECTS</h3>
+    <>
+      <RetroCard data-testid="panel-top-prospects">
+        <RetroCardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Star className="w-4 h-4 text-gold" />
+              <h3 className="font-pixel text-gold text-[9px]">TOP MLB PROSPECTS</h3>
+            </div>
+            <Link href={`/league/${leagueId}?tab=prospects`}>
+              <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Top 100 →</span>
+            </Link>
           </div>
-          <Link href={`/league/${leagueId}?tab=prospects`}>
-            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Top 100 →</span>
-          </Link>
-        </div>
-      </RetroCardHeader>
-      <RetroCardContent>
-        {isLoading ? (
-          <div className="space-y-1.5">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}</div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="font-pixel text-[7px] text-sky-400 mb-1.5">HITTERS</p>
-              <div className="space-y-1">
-                {hitters.map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-1.5 text-xs" data-testid={`prospect-hitter-${i}`}>
-                    <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
-                    <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
-                      style={{ backgroundColor: `#${p.teamPrimaryColor ?? "4a4a4a"}22`, color: `#${p.teamPrimaryColor ?? "C4A35A"}`, border: `1px solid #${p.teamPrimaryColor ?? "4a4a4a"}44` }}
-                    >{p.teamAbbreviation?.slice(0, 2) ?? "—"}</span>
-                    <span className="truncate text-foreground/80 flex-1">{p.firstName[0]}. {p.lastName}</span>
-                    <span className="text-[9px] text-muted-foreground shrink-0">{p.position}</span>
-                    <span className="text-gold font-bold shrink-0 ml-1">{p.overall}</span>
-                  </div>
-                ))}
+        </RetroCardHeader>
+        <RetroCardContent>
+          {isLoading ? (
+            <div className="space-y-1.5">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}</div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="font-pixel text-[7px] text-sky-400 mb-1.5">HITTERS</p>
+                <div className="space-y-0.5">
+                  {hitters.map((p, i) => (
+                    <ProspectRow key={p.id} p={p} i={i} accentClass="text-gold" />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="font-pixel text-[7px] text-purple-400 mb-1.5">PITCHERS</p>
+                <div className="space-y-0.5">
+                  {pitchers.map((p, i) => (
+                    <ProspectRow key={p.id} p={p} i={i} accentClass="text-purple-400" />
+                  ))}
+                </div>
               </div>
             </div>
-            <div>
-              <p className="font-pixel text-[7px] text-purple-400 mb-1.5">PITCHERS</p>
-              <div className="space-y-1">
-                {pitchers.map((p, i) => (
-                  <div key={p.id} className="flex items-center gap-1.5 text-xs" data-testid={`prospect-pitcher-${i}`}>
-                    <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
-                    <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
-                      style={{ backgroundColor: `#${p.teamPrimaryColor ?? "4a4a4a"}22`, color: `#${p.teamPrimaryColor ?? "C4A35A"}`, border: `1px solid #${p.teamPrimaryColor ?? "4a4a4a"}44` }}
-                    >{p.teamAbbreviation?.slice(0, 2) ?? "—"}</span>
-                    <span className="truncate text-foreground/80 flex-1">{p.firstName[0]}. {p.lastName}</span>
-                    <span className="text-[9px] text-muted-foreground shrink-0">{p.position}</span>
-                    <span className="text-purple-400 font-bold shrink-0 ml-1">{p.overall}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </RetroCardContent>
-    </RetroCard>
+          )}
+        </RetroCardContent>
+      </RetroCard>
+
+      {/* Player Profile Card Modal */}
+      {selectedPlayerId && selectedPlayer && (
+        <PlayerProfileCard
+          player={selectedPlayer}
+          open={true}
+          leagueId={leagueId}
+          teamPrimaryColor={selectedProspect?.teamPrimaryColor ?? undefined}
+          onClose={() => setSelectedPlayerId(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -644,5 +691,65 @@ export function MergedRosterPanel({
         )}
       </RetroCardContent>
     </RetroCard>
+  );
+}
+
+// ─── Newsroom Panel (unified news + activity + storylines) ───────────────────
+
+export function NewsroomPanel({
+  leagueId, isCommissioner, myTeamId,
+}: { leagueId: string; isCommissioner: boolean; myTeamId?: string }) {
+  const [tab, setTab] = useState("commissioner");
+
+  return (
+    <div data-testid="newsroom-panel">
+      <div className="flex items-center gap-2 mb-4">
+        <Newspaper className="w-4 h-4 text-gold" />
+        <h2 className="font-pixel text-gold text-[10px]">LEAGUE NEWSROOM</h2>
+      </div>
+
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <div className="overflow-x-auto -mx-4 px-4 pb-1 scrollbar-hide">
+          <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
+            <TabsTrigger
+              value="commissioner"
+              className="font-pixel text-[8px] whitespace-nowrap px-2.5 data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+              data-testid="newsroom-tab-commissioner"
+            >
+              <Newspaper className="w-3 h-3 mr-1" />
+              Posts
+            </TabsTrigger>
+            <TabsTrigger
+              value="activity"
+              className="font-pixel text-[8px] whitespace-nowrap px-2.5 data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+              data-testid="newsroom-tab-activity"
+            >
+              <Activity className="w-3 h-3 mr-1" />
+              Activity
+            </TabsTrigger>
+            <TabsTrigger
+              value="storylines"
+              className="font-pixel text-[8px] whitespace-nowrap px-2.5 data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+              data-testid="newsroom-tab-storylines"
+            >
+              <Swords className="w-3 h-3 mr-1" />
+              Storylines
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="commissioner">
+          <LeagueNewsPanel leagueId={leagueId} isCommissioner={isCommissioner} />
+        </TabsContent>
+
+        <TabsContent value="activity">
+          <ActivityFeed leagueId={leagueId} />
+        </TabsContent>
+
+        <TabsContent value="storylines">
+          <StoryEngineHub leagueId={leagueId} teamId={myTeamId} />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

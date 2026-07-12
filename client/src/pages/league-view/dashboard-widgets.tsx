@@ -34,7 +34,7 @@ function QuickActionCard({
   const showBadge = badge != null && badge !== 0 && badge !== "";
   return (
     <Link href={href}>
-      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer h-full relative" data-testid={`card-action-${title.toLowerCase()}`}>
+      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer relative min-h-[72px]" data-testid={`card-action-${title.toLowerCase()}`}>
         {showBadge && (
           <span
             className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-gold text-forest-dark font-pixel text-[7px] px-1 z-10 animate-pulse"
@@ -43,7 +43,7 @@ function QuickActionCard({
             {badge}
           </span>
         )}
-        <div className="flex flex-col items-center text-center gap-1 py-1">
+        <div className="flex flex-col items-center justify-center text-center gap-1 py-2 h-full">
           <div className="text-gold">{icon}</div>
           <h3 className="font-pixel text-[9px] text-foreground leading-tight">{title}</h3>
           <p className="text-[8px] text-muted-foreground leading-tight hidden sm:block">{subtitle}</p>
