@@ -1,0 +1,305 @@
+# Replit Prompt: Fix UCLA Screenshot Ratings Being Scaled After Import
+
+Use this prompt after the UCLA roster screenshot rating updates have been applied.
+
+## Problem
+
+The UCLA screenshot ratings were intended to be the **final displayed ratings** on the player card.
+
+Right now, the app is treating those screenshot values as raw/base roster inputs, then applying the real-roster calibration pipeline on top of them. This inflates the player card ratings.
+
+Example: Cashel Dugger should show the screenshot values, but currently displays inflated values like:
+
+```text
+Contact 89
+Power 78
+Speed 89
+Arm 98
+Fielding 99
+Error 99
+OVR 685
+```
+
+That is wrong. Dugger's final card should match the screenshot targets, not a scaled version of them.
+
+## Root Cause
+
+Inspect:
+
+```text
+server/realRosters.ts
+server/rosterScaleFactors.ts
+server/bigTenBatch3.ts
+```
+
+In `server/realRosters.ts`, real rosters are calibrated through:
+
+```ts
+scalePlayer(...)
+applyGlobalAdjustments(...)
+normalizeCommonAbilities(...)
+```
+
+UCLA currently has a team multiplier in `server/rosterScaleFactors.ts`:
+
+```ts
+"UCLA": 1.302632
+```
+
+That means a screenshot value like `hitForAvg: 70` becomes roughly `91`, then may be capped to `89`. Catchers also receive extra global boosts:
+
+```ts
+fielding * 1.15
+errorResistance * 1.15
+arm * 1.10
+catcherAbility * 1.20
+```
+
+So setting Dugger's source values to the screenshot targets causes exactly the inflated card we are seeing.
+
+## Correct Fix
+
+Do **not** lower the UCLA screenshot values manually as a workaround.
+
+The screenshot values should stay in `server/bigTenBatch3.ts` as the desired final ratings.
+
+Use the existing `protectedAttrs` mechanism so those screenshot-driven fields bypass:
+
+- UCLA team scaling.
+- Catcher global boosts.
+- Pitcher/common ability floors.
+- Common ability normalization rewrites.
+- Elite speedster running/stealing auto-boosts.
+
+`protectedAttrs` already has the intended semantics in `scalePlayer`:
+
+```ts
+// Protected attrs bypass scaling entirely — raw value is the exact in-game value.
+```
+
+## Implementation Direction
+
+In `server/bigTenBatch3.ts`, add reusable protected-attribute arrays near the top of the file, after imports:
+
+```ts
+const UCLA_SCREENSHOT_HITTER_PROTECTED_ATTRS: (keyof RealPlayer)[] = [
+  "trajectory",
+  "hitForAvg",
+  "power",
+  "speed",
+  "arm",
+  "fielding",
+  "errorResistance",
+  "clutch",
+  "vsLHP",
+  "grit",
+  "stealing",
+  "running",
+  "throwing",
+  "recovery",
+];
+
+const UCLA_SCREENSHOT_CATCHER_PROTECTED_ATTRS: (keyof RealPlayer)[] = [
+  ...UCLA_SCREENSHOT_HITTER_PROTECTED_ATTRS,
+  "catcherAbility",
+];
+
+const UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS: (keyof RealPlayer)[] = [
+  "velocity",
+  "control",
+  "stamina",
+  "clutch",
+  "vsLHP",
+  "grit",
+  "heater",
+  "agile",
+  "recovery",
+];
+```
+
+Then add the correct `protectedAttrs` array to every UCLA player updated from screenshots:
+
+```ts
+protectedAttrs: UCLA_SCREENSHOT_CATCHER_PROTECTED_ATTRS,
+```
+
+or:
+
+```ts
+protectedAttrs: UCLA_SCREENSHOT_HITTER_PROTECTED_ATTRS,
+```
+
+or:
+
+```ts
+protectedAttrs: UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS,
+```
+
+Only protect fields that were intentionally set from screenshots. If a pitcher screenshot mapping uses `wRISP`, `vsLefty`, or `poise` instead of `clutch`, `vsLHP`, or another common field, include those fields in that player's protected array too.
+
+## Dugger Regression Target
+
+Use Cashel Dugger as the first verification case.
+
+After calibration, the final player card should display the screenshot values:
+
+```ts
+trajectory: 3
+hitForAvg: 70
+power: 60
+speed: 79
+arm: 90
+fielding: 92
+errorResistance: 70
+clutch: 60        // C
+vsLHP: 50         // D
+grit: 70          // B / injury resistance
+stealing: 50      // D
+running: 50       // D
+throwing: 80      // A
+recovery: 50      // D
+catcherAbility: 80 // A
+```
+
+Special abilities should remain:
+
+```ts
+abilities: ["Spray Hitter", "Resilient", "Laser Beam", "Blocking", "Framing"]
+```
+
+Dugger should no longer show:
+
+```text
+Contact 89
+Fielding 99
+Error 99
+OVR 685
+```
+
+The exact OVR can be recalculated by the app, but it should be in the neighborhood of the original screenshot, not inflated by roster scaling.
+
+## Apply To All UCLA Screenshot Players
+
+Apply this protection to every UCLA player whose ratings came from the screenshot batches:
+
+Batch 1:
+
+- Cashel Dugger
+- Kasen Khansarinia
+- Aiden Aguayo
+- Dominic Cadiz
+- Roman Martin
+- Phoenix Call
+- Roch Cholowsky
+- Mulivai Levu
+
+Batch 2:
+
+- Trey Gudoy
+- Aidan Espinoza
+- Payton Brennan
+- Dean West
+- Jarrod Hocking
+- Elai Iwanaga
+- Justin Lee
+- Cal Randall
+
+Final pitcher patch:
+
+- Angel Cervantes
+- Easton Hawk
+- Landon Stump
+- Zach Strickland
+- Logan Reddemann
+- Wylan Moss
+- Michael Barnett
+- Ian May
+
+If another UCLA screenshot player was added separately, protect that player too.
+
+## Pitcher Velocity Warning
+
+For pitchers, the screenshot KMH values are display targets. The repo stores `velocity` as an internal 1-99 rating, then converts to KMH in the UI.
+
+Protect the internal `velocity` value that was chosen to render the target KMH. Do not protect a raw KMH value like `153`.
+
+Example:
+
+```ts
+velocity: 65 // displays about 153 KMH
+protectedAttrs: UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS
+```
+
+Without protection, UCLA's `1.302632` multiplier will inflate that internal velocity and display the wrong KMH.
+
+## Do Not Use These Fixes
+
+Do not solve this by:
+
+- Dividing all screenshot values by `1.302632`.
+- Setting all UCLA source values artificially low.
+- Removing UCLA from national scaling globally without understanding the impact on non-screenshot UCLA players.
+- Changing the player profile card to display uncalibrated raw data.
+- Disabling roster scaling for every team.
+
+The safest fix is per-player/per-attribute protection for screenshot-authored values.
+
+## Optional Hardening
+
+If this problem could happen again, add a comment above the UCLA block:
+
+```ts
+// UCLA screenshot-authored ratings are final in-game ratings.
+// protectedAttrs prevents real-roster calibration from scaling them again.
+```
+
+Also consider adding a tiny sanity test or debug script that loads `ALL_REAL_ROSTERS["UCLA"]` and verifies Dugger's final calibrated values.
+
+Example test expectation:
+
+```ts
+const dugger = ALL_REAL_ROSTERS["UCLA"].find(
+  p => p.firstName === "Cashel" && p.lastName === "Dugger"
+);
+
+expect(dugger?.hitForAvg).toBe(70);
+expect(dugger?.power).toBe(60);
+expect(dugger?.speed).toBe(79);
+expect(dugger?.arm).toBe(90);
+expect(dugger?.fielding).toBe(92);
+expect(dugger?.errorResistance).toBe(70);
+expect(dugger?.catcherAbility).toBe(80);
+```
+
+## Verification Checklist
+
+After implementing:
+
+1. Run:
+
+```bash
+npm run check
+```
+
+2. Start the app and open UCLA's roster.
+3. Open Cashel Dugger's player card.
+4. Confirm the final displayed card values match the screenshot target values.
+5. Spot-check at least:
+   - Roch Cholowsky
+   - Roman Martin
+   - Trey Gudoy
+   - Logan Reddemann
+   - Wylan Moss
+6. Confirm pitcher velocity display did not get inflated.
+7. Confirm special abilities did not disappear due to invalid names.
+8. Confirm non-UCLA teams still use normal roster calibration.
+
+## Completion Summary
+
+When done, report:
+
+- Files changed.
+- Whether `protectedAttrs` was added for all UCLA screenshot-updated players.
+- Dugger before/after final displayed values.
+- Any UCLA screenshot player that could not be protected cleanly.
+- Test/check result.
