@@ -1,0 +1,462 @@
+# Replit Prompt: Update UCLA Default Roster Ratings From Screenshots - Batch 1
+
+## Goal
+
+Update the base/default UCLA roster so the first batch of UCLA players matches the provided PowerPros-style screenshots.
+
+Only update:
+
+- Numeric player attributes.
+- Common ability grades/fields.
+- Special abilities.
+
+Do **not** change:
+
+- Player names.
+- Positions.
+- Eligibility/class.
+- Jersey numbers.
+- Hometown/home state.
+- Bat/throw handedness.
+- Potential.
+- Pitch mix.
+- Pitcher-specific ratings for non-pitchers.
+- Team metadata.
+- Any non-UCLA players.
+
+## Target File
+
+The UCLA default roster is in:
+
+```text
+server/bigTenBatch3.ts
+```
+
+Target section:
+
+```ts
+"UCLA": [
+  ...
+]
+```
+
+The existing UCLA player identities are already present. Match players by `lastName` and, when useful, `firstName`.
+
+## Important Batch Scope
+
+Apply this prompt to the first 8 unique players from the screenshots:
+
+1. Cashel Dugger
+2. Kasen Khansarinia
+3. Aiden Aguayo
+4. Dominic Cadiz
+5. Roman Martin
+6. Phoenix Call
+7. Roch Cholowsky
+8. Mulivai Levu
+
+The provided screenshots also include Trey Gudoy twice. Do **not** apply Gudoy in this batch unless explicitly asked; he should be handled in the next batch with the remaining UCLA screenshots.
+
+## Field Mapping
+
+Use this mapping from screenshot labels to roster fields:
+
+```text
+弾道             -> trajectory
+ミート           -> hitForAvg
+パワー           -> power
+走力             -> speed
+肩力             -> arm
+守備力           -> fielding
+捕球             -> errorResistance
+
+チャンス         -> clutch
+対左投手         -> vsLHP
+キャッチャー     -> catcherAbility
+ケガしにくさ     -> grit
+盗塁             -> stealing
+走塁             -> running
+送球             -> throwing
+回復             -> recovery
+```
+
+Use exact numeric values for main attributes.
+
+For common ability grades that are shown as letters only, use the repo's existing common-grade conversion if one exists. If no canonical conversion exists, use these numeric anchors so the displayed grades match:
+
+```text
+S = 90
+A = 80
+B = 70
+C = 60
+D = 50
+E = 40
+F = 30
+```
+
+For players without `catcherAbility`, keep `catcherAbility: null` unless the screenshot has a catcher grade.
+
+## Special Ability Mapping
+
+Use existing ability names from `shared/abilities.ts` when possible.
+
+Preferred mappings:
+
+```text
+広角打法             -> Spray Hitter
+逆境○               -> Resilient
+レーザービーム       -> Laser Beam
+ブロッキング         -> Blocking
+フレーミング○        -> Framing
+固め打ち             -> Multi-Hit
+バント職人           -> Bunt Artisan
+決勝打               -> Final Hit
+パワーヒッター       -> Power Hitter
+流し打ち             -> Opposite Field Hitter
+満塁男               -> Bases Loaded Slugger
+ムード○             -> Good Mood
+リベンジ             -> Revenge
+ヘッドスライディング -> Head Sliding
+内野安打○           -> Good Infield Hit
+魔術師               -> Magician
+アベレージヒッター   -> Contact Hitter
+インコースヒッター   -> Inside Hitter
+対ストレート○       -> vs. Fastballs
+サヨナラ男           -> Walkoff Hitter
+粘り打ち             -> Tough Out
+```
+
+If an ability does not currently exist in `shared/abilities.ts`, do not silently replace it with an unrelated ability. Add the missing ability definition only if the app requires ability metadata to render/validate it. Keep mechanics minimal and consistent with nearby blue/gold fielder abilities.
+
+## Player Updates
+
+### 1. Cashel Dugger
+
+Match:
+
+```ts
+firstName: "Cashel"
+lastName: "Dugger"
+```
+
+Set:
+
+```ts
+trajectory: 3,
+hitForAvg: 70,
+power: 60,
+speed: 79,
+arm: 90,
+fielding: 92,
+errorResistance: 70,
+
+clutch: 60,          // C
+vsLHP: 50,           // D
+catcherAbility: 80,  // A
+grit: 70,            // B
+stealing: 50,        // D
+running: 50,         // D
+throwing: 80,        // A
+recovery: 50,        // D
+
+abilities: [
+  "Spray Hitter",
+  "Resilient",
+  "Laser Beam",
+  "Blocking",
+  "Framing"
+]
+```
+
+Keep all pitcher fields at `0` and keep the existing identity fields unchanged.
+
+### 2. Kasen Khansarinia
+
+Match:
+
+```ts
+firstName: "Kasen"
+lastName: "Khansarinia"
+```
+
+Set:
+
+```ts
+trajectory: 1,
+hitForAvg: 52,
+power: 41,
+speed: 79,
+arm: 74,
+fielding: 53,
+errorResistance: 42,
+
+clutch: 50,          // D
+vsLHP: 50,           // D
+catcherAbility: 50,  // D
+grit: 50,            // D
+stealing: 70,        // B
+running: 80,         // A
+throwing: 50,        // D
+recovery: 50,        // D
+
+abilities: [
+  "Framing"
+]
+```
+
+### 3. Aiden Aguayo
+
+Match:
+
+```ts
+firstName: "Aiden"
+lastName: "Aguayo"
+```
+
+Set:
+
+```ts
+trajectory: 2,
+hitForAvg: 61,
+power: 59,
+speed: 74,
+arm: 65,
+fielding: 65,
+errorResistance: 60,
+
+clutch: 60,          // C
+vsLHP: 40,           // E
+catcherAbility: null,
+grit: 50,            // D
+stealing: 50,        // D
+running: 40,         // E
+throwing: 60,        // C
+recovery: 40,        // E
+
+abilities: [
+  "Multi-Hit"
+]
+```
+
+### 4. Dominic Cadiz
+
+Match:
+
+```ts
+firstName: "Dominic"
+lastName: "Cadiz"
+```
+
+Set:
+
+```ts
+trajectory: 3,
+hitForAvg: 64,
+power: 58,
+speed: 73,
+arm: 66,
+fielding: 65,
+errorResistance: 68,
+
+clutch: 40,          // E
+vsLHP: 60,           // C
+catcherAbility: null,
+grit: 50,            // D
+stealing: 50,        // D
+running: 40,         // E
+throwing: 60,        // C
+recovery: 60,        // C
+
+abilities: [
+  "Bunt Artisan",
+  "Final Hit"
+]
+```
+
+### 5. Roman Martin
+
+Match:
+
+```ts
+firstName: "Roman"
+lastName: "Martin"
+```
+
+Set:
+
+```ts
+trajectory: 3,
+hitForAvg: 82,
+power: 75,
+speed: 78,
+arm: 82,
+fielding: 80,
+errorResistance: 73,
+
+clutch: 40,          // E
+vsLHP: 60,           // C
+catcherAbility: null,
+grit: 50,            // D
+stealing: 50,        // D
+running: 40,         // E
+throwing: 70,        // B
+recovery: 50,        // D
+
+abilities: [
+  "Power Hitter",
+  "Spray Hitter",
+  "Opposite Field Hitter",
+  "Bases Loaded Slugger",
+  "Good Mood",
+  "Revenge",
+  "Head Sliding"
+]
+```
+
+### 6. Phoenix Call
+
+Match:
+
+```ts
+firstName: "Phoenix"
+lastName: "Call"
+```
+
+Set:
+
+```ts
+trajectory: 3,
+hitForAvg: 50,
+power: 53,
+speed: 83,
+arm: 52,
+fielding: 54,
+errorResistance: 37,
+
+clutch: 40,          // E
+vsLHP: 40,           // E
+catcherAbility: null,
+grit: 50,            // D
+stealing: 50,        // D
+running: 50,         // D
+throwing: 60,        // C
+recovery: 60,        // C
+
+abilities: [
+  "Good Infield Hit",
+  "Head Sliding"
+]
+```
+
+### 7. Roch Cholowsky
+
+Match:
+
+```ts
+firstName: "Roch"
+lastName: "Cholowsky"
+```
+
+Set:
+
+```ts
+trajectory: 3,
+hitForAvg: 82,
+power: 83,
+speed: 80,
+arm: 87,
+fielding: 80,
+errorResistance: 83,
+
+clutch: 60,          // C
+vsLHP: 50,           // D
+catcherAbility: null,
+grit: 70,            // B
+stealing: 40,        // E
+running: 50,         // D
+throwing: 60,        // C
+recovery: 70,        // B
+
+abilities: [
+  "Magician",
+  "Contact Hitter",
+  "Spray Hitter",
+  "Multi-Hit",
+  "Bases Loaded Slugger",
+  "Inside Hitter",
+  "vs. Fastballs",
+  "Walkoff Hitter"
+]
+```
+
+### 8. Mulivai Levu
+
+Match:
+
+```ts
+firstName: "Mulivai"
+lastName: "Levu"
+```
+
+Set:
+
+```ts
+trajectory: 4,
+hitForAvg: 82,
+power: 90,
+speed: 72,
+arm: 63,
+fielding: 64,
+errorResistance: 81,
+
+clutch: 50,          // D
+vsLHP: 40,           // E
+catcherAbility: null,
+grit: 50,            // D
+stealing: 50,        // D
+running: 50,         // D
+throwing: 60,        // C
+recovery: 50,        // D
+
+abilities: [
+  "Multi-Hit",
+  "Tough Out",
+  "Bases Loaded Slugger",
+  "Good Mood"
+]
+```
+
+## Validation Requirements
+
+After editing, run:
+
+```bash
+npm run check
+```
+
+Also search/verify:
+
+```bash
+rg -n '"UCLA"|Dugger|Khansarinia|Aguayo|Cadiz|Martin|Call|Cholowsky|Levu' server/bigTenBatch3.ts
+```
+
+Manual verification:
+
+- Confirm only UCLA entries changed.
+- Confirm only the 8 listed players changed.
+- Confirm no pitcher pitch mixes changed.
+- Confirm no identity fields changed.
+- Confirm no `potential` values changed.
+- Confirm ability names compile and pass validation.
+- Confirm the displayed common ability letters match the screenshots.
+
+## Final Response Required From Replit
+
+When done, report:
+
+1. Files changed.
+2. The 8 UCLA players updated.
+3. Whether any new ability definitions were added.
+4. Any ability names that required mapping from Japanese labels.
+5. Test/check command results.
+6. Any fields intentionally not changed because they were outside this prompt's scope.
