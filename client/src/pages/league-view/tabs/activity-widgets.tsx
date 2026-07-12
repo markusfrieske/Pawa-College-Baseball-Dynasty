@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -8,12 +8,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { LeagueEvent } from "@shared/schema";
 import {
   Swords, ChevronRight, Star, Zap, Activity, Filter, Pen, Trophy, GitMerge,
-  GraduationCap, Award, Calendar, FileX, UserCheck, Sparkles,
+  GraduationCap, Award, Calendar, FileX, UserCheck, Sparkles, Check, Loader2,
 } from "lucide-react";
 import type { StorylineWidgetItem } from "../types";
 import { formatRelativeTime } from "../helpers";
+import { apiRequest } from "@/lib/queryClient";
+
+type VoteChoice = "A" | "B" | "C" | "D";
 
 export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
+  const queryClient = useQueryClient();
+  const [submittingChoice, setSubmittingChoice] = useState<VoteChoice | null>(null);
+  const [voteError, setVoteError] = useState<string | null>(null);
+
   const { data: storylinesResp, isLoading } = useQuery<{ storylines: StorylineWidgetItem[] }>({
     queryKey: ["/api/leagues", leagueId, "storylines"],
     queryFn: async () => {
@@ -25,6 +32,23 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
     staleTime: 60000,
   });
   const storylines = storylinesResp?.storylines ?? [];
+
+  const voteMutation = useMutation({
+    mutationFn: async ({ eventId, choice }: { eventId: string; choice: VoteChoice }) => {
+      setSubmittingChoice(choice);
+      setVoteError(null);
+      return apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${eventId}/vote`, { choice });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
+    },
+    onError: (err: Error) => {
+      setVoteError(err.message ?? "Vote failed — try again");
+    },
+    onSettled: () => {
+      setSubmittingChoice(null);
+    },
+  });
 
   const activityScore = (s: StorylineWidgetItem) => {
     const totalVotes = s.voteCounts
@@ -49,6 +73,8 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
     const sign = delta > 0 ? "+" : "";
     return `${sign}${delta} OVR`;
   };
+
+  const CHOICE_LABELS: VoteChoice[] = ["A", "B", "C", "D"];
 
   return (
     <RetroCard variant="bordered" className="mb-3" data-testid="storylines-dashboard-widget">
@@ -86,41 +112,118 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
           </div>
         </div>
 
-        {/* Active vote callout (first unvoted) */}
-        {pendingVote.length > 0 && pendingVote[0].activeEvent && (
-          <Link href={`/league/${leagueId}/storylines`}>
-            <div className="mb-3 px-3 py-2.5 bg-gold/10 border border-gold/40 rounded-lg cursor-pointer hover:bg-gold/15 transition-colors" data-testid="widget-pending-vote-callout">
+        {/* Active vote callout — in-widget voting (first unvoted storyline) */}
+        {pendingVote.length > 0 && pendingVote[0].activeEvent && (() => {
+          const sl = pendingVote[0];
+          const ev = sl.activeEvent!;
+          const choices = CHOICE_LABELS.filter(c => ev[`choice${c}` as keyof typeof ev]);
+          const isVoting = voteMutation.isPending;
+          return (
+            <div className="mb-3 px-3 py-2.5 bg-gold/10 border border-gold/40 rounded-lg" data-testid="widget-pending-vote-callout">
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3 h-3 text-gold shrink-0" />
+                  <span className="font-pixel text-[8px] text-gold">VOTE PENDING</span>
+                  {sl.isLegendary && <Star className="w-3 h-3 text-gold shrink-0" />}
+                </div>
+                <Link href={`/league/${leagueId}/storylines`}>
+                  <span className="text-[9px] text-muted-foreground hover:text-gold transition-colors cursor-pointer underline-offset-2 hover:underline" data-testid="link-war-board-from-callout">
+                    Full view
+                  </span>
+                </Link>
+              </div>
+
+              {/* Recruit meta */}
               <div className="flex items-center gap-2 mb-1.5">
-                <Zap className="w-3 h-3 text-gold shrink-0" />
-                <span className="font-pixel text-[8px] text-gold">VOTE PENDING</span>
-                {pendingVote[0].isLegendary && <Star className="w-3 h-3 text-gold shrink-0" />}
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold text-foreground">
-                  {pendingVote[0].recruit?.firstName} {pendingVote[0].recruit?.lastName}
+                <span className="text-xs font-semibold text-foreground" data-testid="widget-vote-recruit-name">
+                  {sl.recruit?.firstName} {sl.recruit?.lastName}
                 </span>
-                {pendingVote[0].recruit?.position && (
-                  <span className="font-pixel text-[8px] text-muted-foreground">{pendingVote[0].recruit.position}</span>
+                {sl.recruit?.position && (
+                  <span className="font-pixel text-[8px] text-muted-foreground">{sl.recruit.position}</span>
                 )}
-                {pendingVote[0].recruit?.starRank && (
-                  <span className="text-[9px] text-gold">{starLabel(pendingVote[0].recruit.starRank)}</span>
+                {sl.recruit?.starRank && (
+                  <span className="text-[9px] text-gold">{starLabel(sl.recruit.starRank)}</span>
                 )}
               </div>
-              <p className="text-[10px] text-foreground/70 leading-relaxed line-clamp-2">
-                {pendingVote[0].activeEvent.eventText}
+
+              {/* Event prompt */}
+              <p className="text-[10px] text-foreground/70 leading-relaxed mb-2.5" data-testid="widget-vote-event-text">
+                {ev.eventText}
               </p>
-              {pendingVote[0].voteCounts && Object.keys(pendingVote[0].voteCounts).length > 0 && (
-                <div className="flex gap-2 mt-2">
-                  {Object.entries(pendingVote[0].voteCounts).map(([choice, count]) => (
-                    <span key={choice} className="text-[9px] px-1.5 py-0.5 rounded bg-background/50 border border-border/60 text-muted-foreground">
-                      {choice}: {count}
-                    </span>
-                  ))}
+
+              {/* Vote buttons */}
+              {choices.length > 0 ? (
+                <div className="flex flex-col gap-1.5" data-testid="widget-vote-buttons">
+                  {choices.map((c) => {
+                    const choiceText = ev[`choice${c}` as keyof typeof ev] as string;
+                    const isThis = submittingChoice === c;
+                    return (
+                      <button
+                        key={c}
+                        disabled={isVoting}
+                        onClick={() => voteMutation.mutate({ eventId: ev.id, choice: c })}
+                        data-testid={`widget-vote-choice-${c}`}
+                        className={`w-full flex items-start gap-2 px-2.5 py-2 rounded border text-left transition-all ${
+                          isVoting && !isThis
+                            ? "opacity-40 cursor-not-allowed border-border/30 bg-background/30"
+                            : "border-gold/30 bg-background/40 hover:bg-gold/10 hover:border-gold/60 cursor-pointer"
+                        }`}
+                      >
+                        <span className={`font-pixel text-[9px] shrink-0 mt-0.5 w-4 ${isThis ? "text-gold" : "text-muted-foreground"}`}>
+                          {isThis ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            c
+                          )}
+                        </span>
+                        <span className="text-[10px] text-foreground/80 leading-snug line-clamp-2">{choiceText}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Fallback if choice text not in widget data — navigate to War Board */
+                <Link href={`/league/${leagueId}/storylines`}>
+                  <div className="flex items-center gap-1.5 text-[10px] text-gold hover:underline cursor-pointer">
+                    <Zap className="w-3 h-3" /> Cast your vote on the War Board
+                  </div>
+                </Link>
+              )}
+
+              {/* Vote counts (live) */}
+              {sl.voteCounts && Object.values(sl.voteCounts).some(v => v > 0) && (
+                <div className="flex gap-2 mt-2 pt-2 border-t border-gold/20">
+                  {Object.entries(sl.voteCounts)
+                    .filter(([, count]) => count > 0)
+                    .map(([choice, count]) => (
+                      <span key={choice} className="text-[9px] px-1.5 py-0.5 rounded bg-background/50 border border-border/60 text-muted-foreground">
+                        {choice}: {count}
+                      </span>
+                    ))}
                 </div>
               )}
+
+              {/* Error message */}
+              {voteError && (
+                <p className="mt-2 text-[9px] text-red-400" data-testid="widget-vote-error">{voteError}</p>
+              )}
             </div>
-          </Link>
-        )}
+          );
+        })()}
+
+        {/* Already-voted callout for first storyline that has a vote */}
+        {pendingVote.length === 0 && storylines.some(s => s.activeEvent && s.myVote) && (() => {
+          const sl = storylines.find(s => s.activeEvent && s.myVote)!;
+          return (
+            <div className="mb-3 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2" data-testid="widget-vote-cast-confirm">
+              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="text-[10px] text-emerald-400">
+                Voted <strong>{sl.myVote}</strong> on {sl.recruit?.firstName} {sl.recruit?.lastName}'s storyline
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Active arcs list */}
         {mostActive.length > 0 && (

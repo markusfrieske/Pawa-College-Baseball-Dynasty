@@ -118,6 +118,10 @@ export interface StorylineWidgetItem {
     eventText: string;
     resolvedChoice?: string | null;
     ovrDelta?: number | null;
+    choiceA?: string | null;
+    choiceB?: string | null;
+    choiceC?: string | null;
+    choiceD?: string | null;
   } | null;
   voteCounts?: Record<string, number>;
   myVote?: string | null;

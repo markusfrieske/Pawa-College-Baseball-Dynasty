@@ -100,7 +100,9 @@ export async function cleanupStaleLeagues(
       await client.query(`DELETE FROM league_invites WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM league_events WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM standings WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
-      await client.query(`DELETE FROM games WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // after game_reports
+      // game_recaps.game_id FK must be deleted before games
+      await client.query(`DELETE FROM game_recaps WHERE game_id IN (SELECT id FROM games WHERE league_id = ANY($1::varchar[]))`, [leagueIds]);
+      await client.query(`DELETE FROM games WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // after game_reports, game_recaps
       await client.query(`DELETE FROM walkon_bids WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM walkon_pool WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // signed_team_id -> teams
       await client.query(`DELETE FROM scouts WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
