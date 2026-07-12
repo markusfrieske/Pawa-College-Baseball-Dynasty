@@ -148,7 +148,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 text-gold/80 text-[10px] font-pixel tracking-wider"
                   style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
                 >
-                  <span className="text-gold">◆</span> SEASON 2026 · OPEN BETA <span className="text-gold">◆</span>
+                  <span className="text-gold">◆</span> SEASON 2026 <span className="text-gold">◆</span>
                 </div>
                 {onlineData !== undefined && (
                   <div
@@ -170,26 +170,41 @@ export default function LandingPage() {
                 }}
               >
                 Power Pros<br />
-                <span className="ml-4 sm:ml-6">Dynasty</span><br />
-                <span className="ml-8 sm:ml-12">League Office</span>
+                <span className="ml-4 sm:ml-6">College Baseball</span><br />
+                <span className="ml-8 sm:ml-12">Dynasty</span>
               </h1>
 
-              <p
+              <div
                 className="text-white/90 text-lg leading-relaxed max-w-md mb-10"
                 style={{ textShadow: "0 1px 8px rgba(0,0,0,0.95), 0 2px 20px rgba(0,0,0,0.85)" }}
               >
-                Run an online college baseball dynasty around games played in eBaseball Power Pros. Recruit all week, play your series, report the box score, and advance the league together.
+                <p className="hidden sm:block mb-3">
+                  Build a solo or multiplayer college baseball dynasty with 3,700+ players across 149 schools. Recruit every week, manage your roster, play or report your series, track stats and standings, and chase the College World Series across 20 seasons.
+                </p>
+                <p className="hidden sm:block">
+                  Play it as a full dynasty sim, or use it as a companion hub for running a friends league in eBaseball Power Pros 2026-2027. Recruiting, schedules, box scores, standings, postseason history, and league management all live in one place.
+                </p>
+                <p className="sm:hidden">
+                  Build a college baseball dynasty with 3,700+ players across 149 schools. Recruit, manage your roster, report your series, and chase the College World Series.
+                </p>
+              </div>
+
+              <p
+                className="hidden sm:block font-pixel text-gold/60 text-[9px] tracking-widest mb-5"
+                style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+              >
+                Recruit the future. Run the league. Chase Omaha.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/league/create">
+                <Link href="/register">
                   <RetroButton variant="shimmer" size="lg" className="w-full sm:w-auto px-10 flex items-center gap-2" data-testid="button-get-started">
-                    Create League <ArrowRight className="w-4 h-4" />
+                    Get Started <ArrowRight className="w-4 h-4" />
                   </RetroButton>
                 </Link>
-                <Link href="/guest">
-                  <RetroButton variant="outline" size="lg" className="w-full sm:w-auto px-10" data-testid="button-guest-mode">
-                    Explore Demo
+                <Link href="/roster-viewer">
+                  <RetroButton variant="outline" size="lg" className="w-full sm:w-auto px-10" data-testid="button-view-rosters">
+                    View Rosters
                   </RetroButton>
                 </Link>
               </div>
@@ -198,16 +213,10 @@ export default function LandingPage() {
                 className="flex flex-wrap gap-4 text-xs text-white/70"
                 style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
               >
-                <Link href="/roster-viewer">
-                  <button className="flex items-center gap-1.5 hover:text-gold transition-colors font-medium" data-testid="button-view-ncaa-rosters">
-                    <Database className="w-3.5 h-3.5 text-gold" /> View Demo League
-                  </button>
-                </Link>
-                <Link href="/roster-viewer">
-                  <button className="flex items-center gap-1.5 hover:text-gold transition-colors" data-testid="button-browse-rosters">
-                    <ClipboardList className="w-3.5 h-3.5" /> Browse Rosters
-                  </button>
-                </Link>
+                {/* TODO: add /leagues route */}
+                <button className="flex items-center gap-1.5 text-white/30 cursor-not-allowed" disabled data-testid="button-view-leagues">
+                  <Database className="w-3.5 h-3.5" /> View Leagues
+                </button>
                 {isLoggedIn && leaguesLoading && !leagues ? (
                   <button className="flex items-center gap-1 text-muted-foreground cursor-wait" disabled data-testid="button-open-recruiting-wizard-loading">
                     <div className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
@@ -228,6 +237,10 @@ export default function LandingPage() {
                     </button>
                   </Link>
                 )}
+                {/* TODO: add donate link */}
+                <button className="flex items-center gap-1.5 text-white/30 cursor-not-allowed" disabled data-testid="button-donate">
+                  <DollarSign className="w-3.5 h-3.5" /> Donate
+                </button>
               </div>
             </div>
 
