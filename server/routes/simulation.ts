@@ -6757,21 +6757,29 @@ export function registerSimulationRoutes(app: Express): void {
               .map(tId => ({ tId, seed: entries.find(e => e.teamId === tId)?.nationalSeed ?? 99 }))
               .sort((a, b) => a.seed - b.seed)
               .map(x => x.tId);
+            // Check for CWS games BEFORE calling init — used as "already applied" sentinel for coach XP
+            const preInitCWSGames = (await storage.getGamesByLeague(leagueId)).filter(
+              (g: any) => g.phase === "cws" && g.season === league.currentSeason
+            );
+            const cwsAlreadyInitialized = preInitCWSGames.length > 0;
             await initializeFSCWSBrackets(leagueId, league.currentSeason, cwsOrdered);
-            // Track cwsAppearances for all 8 teams' coaches
-            try {
-              for (const cwsTeamId of allWinners) {
-                const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId);
-                if (cwsTeamEntry?.coachId) {
-                  const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId);
-                  if (cwsCoach) {
-                    const newCwsApp = cwsCoach.cwsAppearances + 1;
-                    await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) });
-                    await awardPostseasonXp(cwsCoach.id, "cws_appearance");
+            // Guard: only award coach XP/appearances once (first initialization).
+            // On retry after a partial failure, CWS games already exist so we skip.
+            if (!cwsAlreadyInitialized) {
+              try {
+                for (const cwsTeamId of allWinners) {
+                  const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId);
+                  if (cwsTeamEntry?.coachId) {
+                    const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId);
+                    if (cwsCoach) {
+                      const newCwsApp = cwsCoach.cwsAppearances + 1;
+                      await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) });
+                      await awardPostseasonXp(cwsCoach.id, "cws_appearance");
+                    }
                   }
                 }
-              }
-            } catch (e) { console.error("CWS appearances coach stats error:", e); }
+              } catch (e) { console.error("CWS appearances coach stats error:", e); }
+            }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: `${allWinners.length} teams advance to the College World Series!` });
             sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)

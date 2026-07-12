@@ -30,7 +30,11 @@ function getSRPairs(
   return pairs;
 }
 
-/** Generate all 8 SR series records and G1 games. Idempotent. */
+/**
+ * Generate all 8 SR series records and G1 games.
+ * Idempotent: checks each series and G1 game individually before inserting,
+ * so a partial prior run is safely backfilled on retry.
+ */
 export async function generateFSSuperRegionals(
   leagueId: string,
   season: number
@@ -47,36 +51,49 @@ export async function generateFSSuperRegionals(
 
   const pairs = getSRPairs(seeded);
 
-  // Idempotency: skip only if all expected series already exist (not on partial writes)
+  // Fetch existing series + games once up front for O(n) lookup
   const existingSeries = await storage.getPostseasonSeriesByLeague(leagueId, season, "super_regionals");
-  if (existingSeries.length >= pairs.length) return; // fully generated
+  const allGames = await storage.getGamesByLeague(leagueId);
+  const srGames = allGames.filter(
+    (g: any) => g.phase === "super_regionals" && g.season === season && g.bracketType === "bof3"
+  );
 
   for (const pair of pairs) {
-    await storage.createPostseasonSeries({
-      leagueId,
-      season,
-      stage: "super_regionals",
-      bracketSlot: pair.slot,
-      homeTeamId: pair.homeTeamId,
-      awayTeamId: pair.awayTeamId,
-      bestOf: 3,
-      homeWins: 0,
-      awayWins: 0,
-      seriesStatus: "pending",
-      round: pair.seriesIndex,
-    });
+    // Per-series idempotency: only create if this slot doesn't exist yet
+    const seriesExists = existingSeries.some(s => s.bracketSlot === pair.slot);
+    if (!seriesExists) {
+      await storage.createPostseasonSeries({
+        leagueId,
+        season,
+        stage: "super_regionals",
+        bracketSlot: pair.slot,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        bestOf: 3,
+        homeWins: 0,
+        awayWins: 0,
+        seriesStatus: "pending",
+        round: pair.seriesIndex,
+      });
+    }
 
-    await storage.createGame({
-      leagueId,
-      season,
-      week: 0,
-      homeTeamId: pair.homeTeamId,
-      awayTeamId: pair.awayTeamId,
-      phase: "super_regionals",
-      bracketType: "bof3",
-      bracketRound: pair.seriesIndex,
-      bracketSide: "G1",
-    });
+    // Per-game idempotency: only create G1 if no game exists for this seriesIndex+G1
+    const g1Exists = srGames.some(
+      (g: any) => g.bracketRound === pair.seriesIndex && g.bracketSide === "G1"
+    );
+    if (!g1Exists) {
+      await storage.createGame({
+        leagueId,
+        season,
+        week: 0,
+        homeTeamId: pair.homeTeamId,
+        awayTeamId: pair.awayTeamId,
+        phase: "super_regionals",
+        bracketType: "bof3",
+        bracketRound: pair.seriesIndex,
+        bracketSide: "G1",
+      });
+    }
   }
 }
 
@@ -92,7 +109,7 @@ export async function advanceFSSRBracket(
 ): Promise<{ done: boolean; winners: string[] }> {
   const allGames = await storage.getGamesByLeague(leagueId);
   const srGames = allGames.filter(
-    g => g.phase === "super_regionals" && g.season === season && g.bracketType === "bof3"
+    (g: any) => g.phase === "super_regionals" && g.season === season && g.bracketType === "bof3"
   );
   const allSeries = await storage.getPostseasonSeriesByLeague(leagueId, season, "super_regionals");
 
@@ -104,8 +121,8 @@ export async function advanceFSSRBracket(
   for (const series of allSeries) {
     const seriesIndex = series.round ?? parseInt((series.bracketSlot ?? "SR1").replace("SR", ""));
     const seriesGames = srGames
-      .filter(g => g.bracketRound === seriesIndex)
-      .sort((a, b) => (a.bracketSide ?? "G1").localeCompare(b.bracketSide ?? "G1"));
+      .filter((g: any) => g.bracketRound === seriesIndex)
+      .sort((a: any, b: any) => (a.bracketSide ?? "G1").localeCompare(b.bracketSide ?? "G1"));
 
     // Count wins from completed games
     let homeWins = 0;
@@ -144,12 +161,19 @@ export async function advanceFSSRBracket(
     }
 
     // Should we create the next game?
-    const completedCount = seriesGames.filter(g => g.isComplete).length;
-    const hasIncomplete = seriesGames.some(g => !g.isComplete);
+    const completedCount = seriesGames.filter((g: any) => g.isComplete).length;
+    const hasIncomplete = seriesGames.some((g: any) => !g.isComplete);
     if (hasIncomplete) continue; // still waiting for current game
 
     const nextGameNum = completedCount + 1;
     if (nextGameNum > 3) continue; // shouldn't happen
+
+    // Check if next game already exists (idempotent)
+    const nextSide = `G${nextGameNum}`;
+    const nextGameExists = srGames.some(
+      (g: any) => g.bracketRound === seriesIndex && g.bracketSide === nextSide
+    );
+    if (nextGameExists) continue;
 
     // G1: home = highSeed, G2: home = lowSeed, G3: home = highSeed
     const homeTeamId = nextGameNum === 2 ? awayId : homeId;
@@ -163,7 +187,7 @@ export async function advanceFSSRBracket(
       phase: "super_regionals",
       bracketType: "bof3",
       bracketRound: seriesIndex,
-      bracketSide: `G${nextGameNum}`,
+      bracketSide: nextSide,
     });
   }
 

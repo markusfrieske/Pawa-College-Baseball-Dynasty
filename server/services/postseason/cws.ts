@@ -177,56 +177,72 @@ async function syncCWSBracketSeriesFromGames(
 
 /**
  * Initialize CWS brackets. Creates WBR1 games + series records for both brackets.
- * Idempotent: no-ops if games already exist for this season.
+ * Idempotent: checks each individual WBR1 game/series by bracketType+bracketSide
+ * before inserting, so a partial prior run is safely backfilled on retry.
  */
 export async function initializeFSCWSBrackets(
   leagueId: string,
   season: number,
   srWinnersInSeedOrder: string[]
 ): Promise<void> {
-  const existing = (await storage.getGamesByLeague(leagueId)).filter(
-    g => g.phase === "cws" && g.season === season
+  // Fetch existing CWS games once for per-slot existence checks
+  const existingGames = (await storage.getGamesByLeague(leagueId)).filter(
+    (g: any) => g.phase === "cws" && g.season === season
   );
-  if (existing.length > 0) return;
 
   const [s1, s2, s3, s4, s5, s6, s7, s8] = srWinnersInSeedOrder;
   // Bracket A: seeds 1,4,5,8; Bracket B: 2,3,6,7
   const aTeams = [s1, s4, s5, s8].filter(Boolean);
   const bTeams = [s2, s3, s6, s7].filter(Boolean);
 
+  // Always (re-)write lane assignments — upsert is idempotent
   const cwsSeedOrder = srWinnersInSeedOrder.map((teamId, i) => ({ teamId, cwsSeed: i + 1 }));
   await assignCWSBracketLanes(leagueId, season, cwsSeedOrder);
 
   for (const [bracket, teams] of [["A", aTeams], ["B", bTeams]] as [BracketId, string[]][]) {
     if (teams.length < 2) continue;
     const [t1, t2, t3, t4] = teams;
+    const bt = `cws_${bracket}_W`;
 
-    // WBR1 game 1: bracket seed 1 vs bracket seed 4
-    if (t1 && t4) {
+    // WBR1 game 1 — create only if not already present
+    const wbr1aExists = existingGames.some(
+      (g: any) => g.bracketType === bt && g.bracketRound === 1 && g.bracketSide === "WBR1a"
+    );
+    if (!wbr1aExists && t1 && t4) {
       await storage.createGame({
         leagueId, season, week: 0,
         homeTeamId: t1, awayTeamId: t4,
         phase: "cws",
-        bracketType: `cws_${bracket}_W`,
+        bracketType: bt,
         bracketRound: 1,
         bracketSide: "WBR1a",
       });
+    }
+    if (t1 && t4) {
+      // upsertCWSBracketSeries is always safe (ON CONFLICT path)
       await upsertCWSBracketSeries(leagueId, season, `${bracket}_WBR1a`, t1, t4, 0, 0, false);
     }
-    // WBR1 game 2: bracket seed 2 vs bracket seed 3
-    if (t2 && t3) {
+
+    // WBR1 game 2 — create only if not already present
+    const wbr1bExists = existingGames.some(
+      (g: any) => g.bracketType === bt && g.bracketRound === 1 && g.bracketSide === "WBR1b"
+    );
+    if (!wbr1bExists && t2 && t3) {
       await storage.createGame({
         leagueId, season, week: 0,
         homeTeamId: t2, awayTeamId: t3,
         phase: "cws",
-        bracketType: `cws_${bracket}_W`,
+        bracketType: bt,
         bracketRound: 1,
         bracketSide: "WBR1b",
       });
+    }
+    if (t2 && t3) {
       await upsertCWSBracketSeries(leagueId, season, `${bracket}_WBR1b`, t2, t3, 0, 0, false);
     }
   }
 
+  // Always ensure phase step is set (idempotent)
   await storage.updateLeague(leagueId, { currentPhaseStep: "cws_opening" });
 }
 
