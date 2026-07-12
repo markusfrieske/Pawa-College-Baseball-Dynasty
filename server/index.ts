@@ -1460,6 +1460,39 @@ app.use((req, res, next) => {
       .catch(e => console.warn("[startup-migration] full-season-schema-v2 failed:", e));
   })();
 
+  // ── full-season-schema-v3 ──────────────────────────────────────────────────
+  // Ensures all Full Season-specific leagues columns exist for any installation
+  // that was created before these columns were added to the schema. Safe to run
+  // on both fresh installs (where the columns already exist from the ORM push)
+  // and legacy installs that only had the older startup migration block.
+  (() => {
+    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v3'`)
+      .then(({ rowCount }) => {
+        if ((rowCount ?? 0) > 0) {
+          console.log("[startup-migration] full-season-schema-v3: already applied, skipping");
+          return;
+        }
+        return pool.query(`
+          ALTER TABLE leagues
+            ADD COLUMN IF NOT EXISTS dynasty_preset text NOT NULL DEFAULT 'custom',
+            ADD COLUMN IF NOT EXISTS rules_snapshot jsonb,
+            ADD COLUMN IF NOT EXISTS catalog_version text,
+            ADD COLUMN IF NOT EXISTS schedule_seed text,
+            ADD COLUMN IF NOT EXISTS rules_version integer,
+            ADD COLUMN IF NOT EXISTS current_phase_step text;
+        `).then(() => {
+          return pool.query(`
+            INSERT INTO _startup_migrations (key)
+            VALUES ('full-season-schema-v3')
+            ON CONFLICT (key) DO NOTHING
+          `);
+        }).then(() => {
+          console.log("[startup-migration] full-season-schema-v3: Full Season leagues columns ensured");
+        });
+      })
+      .catch(e => console.warn("[startup-migration] full-season-schema-v3 failed:", e));
+  })();
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -128,6 +128,11 @@ export default function TeamSelectionPage() {
     queryKey: ["/api/team-templates/scouting"],
   });
 
+  const { data: catalogData } = useQuery<{ conferences: any[]; totalTeams: number; catalogVersion: string }>({
+    queryKey: ["/api/catalog"],
+  });
+  const liveTotalTeams = catalogData?.totalTeams ?? TOTAL_NATIONAL_TEAMS;
+
   const saveMutation = useMutation({
     mutationFn: async (teams: { conferenceId: string; teamNames: string[] }[]) => {
       return apiRequest("POST", `/api/leagues/${id}/team-selection`, { selectedTeams: teams });
@@ -281,7 +286,7 @@ export default function TeamSelectionPage() {
             </div>
             <h1 className="font-pixel text-gold text-xl mb-2" data-testid="text-select-teams-title">Full Season Mode</h1>
             <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-              All {TOTAL_NATIONAL_TEAMS} programs from 12 conferences are included automatically.
+              All {liveTotalTeams} programs from 12 conferences are included automatically.
               Click below to initialize the dynasty and continue to coach setup.
             </p>
           </div>
@@ -298,7 +303,7 @@ export default function TeamSelectionPage() {
               </div>
               <div className="text-center">
                 <div className="text-sm text-muted-foreground mb-4">
-                  <span className="text-gold font-bold">{TOTAL_NATIONAL_TEAMS}</span> teams across{" "}
+                  <span className="text-gold font-bold">{liveTotalTeams}</span> teams across{" "}
                   <span className="text-gold font-bold">{data.conferences.length}</span> conferences
                 </div>
                 <RetroButton
@@ -432,7 +437,7 @@ export default function TeamSelectionPage() {
                         isFocused={focusedTeam === team.name}
                         onClick={() => toggleTeam(team.name)}
                         nationalRank={scoutingMap?.[team.name]?.nationalRank}
-                        totalTeams={TOTAL_NATIONAL_TEAMS}
+                        totalTeams={liveTotalTeams}
                       />
                     ))}
                   </div>

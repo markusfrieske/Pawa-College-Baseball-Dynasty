@@ -15,10 +15,14 @@
  *      so we validate no duplicate values across canonical name variants)
  *   9. Every rank value is in range [1, TOTAL_NATIONAL_TEAMS]
  *  10. At most one team holds each rank (except the shared floor rank)
+ *
+ * Roster-source mapping checks (via ROSTER_SCALE_FACTORS):
+ *  11. Every NATIONAL_RANKS team has an entry in ROSTER_SCALE_FACTORS (has a roster source)
+ *  12. Every ROSTER_SCALE_FACTORS entry appears in NATIONAL_RANKS (no orphan scale entries)
  */
 
 import { CONFERENCE_CATALOG, FULL_SEASON_TOTAL, CONF_SIZE_MAP } from "../shared/catalog";
-import { TOTAL_NATIONAL_TEAMS, NATIONAL_RANKS } from "../server/rosterScaleFactors";
+import { TOTAL_NATIONAL_TEAMS, NATIONAL_RANKS, ROSTER_SCALE_FACTORS } from "../server/rosterScaleFactors";
 
 const errors: string[] = [];
 const warnings: string[] = [];
@@ -115,6 +119,26 @@ if (duplicateRanks.length > 0) {
   }
 }
 const floorCount = (rankToTeams[FLOOR_RANK] ?? []).length;
+
+// ── Roster-source mapping (via ROSTER_SCALE_FACTORS) ─────────────────────────
+
+// 11. Every NATIONAL_RANKS team has a corresponding entry in ROSTER_SCALE_FACTORS
+//     (i.e., the team has a real roster source with a calibrated scale factor).
+const missingFromScale = teamNames.filter(name => !(name in ROSTER_SCALE_FACTORS));
+if (missingFromScale.length > 0) {
+  for (const name of missingFromScale) {
+    errors.push(`Team "${name}" in NATIONAL_RANKS has no ROSTER_SCALE_FACTORS entry (no roster source)`);
+  }
+}
+
+// 12. Every ROSTER_SCALE_FACTORS entry appears in NATIONAL_RANKS
+//     (no orphan scale factors for teams outside the catalog).
+const orphanScaleEntries = Object.keys(ROSTER_SCALE_FACTORS).filter(name => !(name in NATIONAL_RANKS));
+if (orphanScaleEntries.length > 0) {
+  for (const name of orphanScaleEntries) {
+    warnings.push(`Team "${name}" has ROSTER_SCALE_FACTORS entry but is absent from NATIONAL_RANKS`);
+  }
+}
 
 // ── Report ───────────────────────────────────────────────────────────────────
 
