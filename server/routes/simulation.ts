@@ -17,6 +17,7 @@ import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, LastSeasonStats, AdvanceDigestCategories } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "../utils";
+import { getRecruitingPitch } from "@shared/programIdentity";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import { finalizeAdvanceDigestSafe } from "../digest-engine";
@@ -76,6 +77,333 @@ import {
   calculatePhilosophyRetentionBonus,
 } from "../route-helpers";
 import { updateRecruitStages } from "./league-mgmt";
+
+// ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
+// These are duplicated at module scope so simulation.ts (which runs CPU
+// recruiting without going through the recruiting routes) can compute the
+// identical per-coach weekly action budget.
+const ARCHETYPE_RECRUITING_ACTION_BONUS: Record<string, number> = {
+  "Scout Master": 4,
+  "Dealmaker": 4,
+  "Pure CEO": 2,
+  "Player's Coach": 0,
+  "Balanced": 0,
+  "Academic Dean": 0,
+  "Tactician": -2,
+  "Old School": -4,
+};
+
+function getMaxRecruitingActions(coach: any, seasonLength?: string | null): number {
+  const baseActions = 15;
+  const skillBonus = Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2);
+  const archetypeBonus = ARCHETYPE_RECRUITING_ACTION_BONUS[coach?.archetype] || 0;
+  const rawBudget = Math.max(4, baseActions + skillBonus + archetypeBonus);
+  const seasonScale: Record<string, number> = { short: 1.0, standard: 1.0, medium: 0.87, long: 0.73 };
+  const scale = seasonScale[seasonLength ?? "standard"] ?? 1.0;
+  return Math.max(4, Math.round(rawBudget * scale));
+}
+
+// ── Shared recruiting math helpers (mirrors recruiting.ts — keep in sync) ────
+// Extracted so simulation.ts CPU recruiter uses the identical math as the
+// human endpoint without creating a circular import.
+
+let _simSanityClippedCount = 0;
+
+function simAssertInterestGainSane(actionType: string, interestGain: number, baseGain: number) {
+  const expectedMin = Math.ceil(baseGain * 0.4);
+  const expectedMax = Math.ceil(baseGain * 5.0);
+  if (interestGain < expectedMin || interestGain > expectedMax) {
+    _simSanityClippedCount++;
+    console.warn(
+      `[recruiting-sanity][sim] ${actionType}: interestGain=${interestGain} outside [${expectedMin},${expectedMax}] (base=${baseGain}) — cumulative clips: ${_simSanityClippedCount}`,
+    );
+  }
+}
+
+function simNormalizeAttrBonus(attr: number): number {
+  const clamped = Math.max(1, Math.min(10, attr));
+  return 0.75 + clamped * 0.05;
+}
+
+function simCalculatePriorityBonus(pitchTopic: string, recruit: any, _team: any): { bonus: number; matchLevel: string } {
+  const priorityMap: Record<string, string> = {
+    proximity: recruit.proximityPriority,
+    reputation: recruit.reputationPriority,
+    playingTime: recruit.playingTimePriority,
+    academics: recruit.academicsPriority,
+    prestige: recruit.prestigePriority,
+    facilities: recruit.facilitiesPriority,
+    collegeLife: (recruit as any).collegeLifePriority || "Somewhat",
+  };
+  const priorityValue = priorityMap[pitchTopic] || "Somewhat";
+  const priorityMultipliers: Record<string, number> = {
+    "Not Important": 0.5,
+    "Somewhat": 1.0,
+    "Very": 1.5,
+    "Extremely": 2.0,
+  };
+  return { bonus: priorityMultipliers[priorityValue] || 1.0, matchLevel: priorityValue };
+}
+
+function simCalculateSchoolBonus(pitchTopic: string, team: any): number {
+  const attributeMap: Record<string, number> = {
+    proximity: 1.0,
+    reputation: simNormalizeAttrBonus(team.prestige || 5),
+    playingTime: 1.0,
+    academics: simNormalizeAttrBonus(team.academics || 5),
+    prestige: simNormalizeAttrBonus(team.prestige || 5),
+    facilities: simNormalizeAttrBonus(team.facilities || 5),
+    collegeLife: simNormalizeAttrBonus(team.collegeLife || 5),
+  };
+  const topicBonus = attributeMap[pitchTopic] || 1.0;
+  const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5) + (team.collegeLife || 5)) / 40;
+  const rankBoost = typeof team.recruitingRankBoost === "number" ? team.recruitingRankBoost : 0;
+  const qualityModifier = 0.9 + (overallQuality * 0.2) + rankBoost;
+  return topicBonus * qualityModifier;
+}
+
+function simCalculateProximityBonus(recruitState: string, teamState: string, team?: any): number {
+  if (recruitState === teamState) return 1.5;
+  const regions: Record<string, string[]> = {
+    southeast: ["FL","GA","AL","SC","NC","TN","MS","LA"],
+    southwest: ["TX","AZ","NM","OK"],
+    midwest: ["OH","IN","IL","MI","WI","MN","IA","MO","NE","KS"],
+    northeast: ["NY","PA","NJ","MA","CT","MD","VA"],
+    west: ["CA","WA","OR","CO","UT","NV"],
+  };
+  let recruitRegion = "";
+  let teamRegion = "";
+  for (const [region, states] of Object.entries(regions)) {
+    if (states.includes(recruitState)) recruitRegion = region;
+    if (states.includes(teamState)) teamRegion = region;
+  }
+  const rawBonus = (recruitRegion && recruitRegion === teamRegion) ? 1.2 : 1.0;
+  if (team) {
+    const brandScore = Math.max(team.prestige || 5, team.stadium || 5);
+    if (brandScore >= 8) {
+      return Math.min(1.45, rawBonus + (brandScore >= 9 ? 0.10 : 0.07));
+    }
+  }
+  return rawBonus;
+}
+
+const SIM_ARCHETYPE_INTEREST_MULTIPLIERS: Record<string, number> = {
+  "Pure CEO": 1.15, "Dealmaker": 1.12, "Player's Coach": 1.10,
+  "Scout Master": 1.08, "Balanced": 1.0, "Academic Dean": 1.0,
+  "Tactician": 0.95, "Old School": 0.90,
+};
+const SIM_ARCHETYPE_PITCHER_BONUS: Record<string, number> = {
+  "Tactician": 1.20, "Old School": 1.15, "Scout Master": 1.05,
+  "Balanced": 1.0, "Pure CEO": 1.0, "Dealmaker": 1.0,
+  "Player's Coach": 1.0, "Academic Dean": 1.0,
+};
+const SIM_ARCHETYPE_HITTER_BONUS: Record<string, number> = {
+  "Player's Coach": 1.20, "Dealmaker": 1.10, "Scout Master": 1.05,
+  "Balanced": 1.0, "Pure CEO": 1.0, "Tactician": 1.0,
+  "Old School": 1.0, "Academic Dean": 1.0,
+};
+
+function simCalculatePhilosophyBonus(coach: any, recruit: any, actionType: string, team?: any): number {
+  const philosophy = Array.isArray(coach?.coachingPhilosophy)
+    ? (coach.coachingPhilosophy as { statement: string; importance: string }[])
+    : [];
+  if (philosophy.length === 0) return 0;
+  const importanceScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+  const PITCHER_POSITIONS = ["P","SP","RP","CL","CP","LHP","RHP"];
+  const isPitcher = PITCHER_POSITIONS.includes(recruit.position || "");
+  const STAGE_ORDER = ["open","top8","top5","top3","verbal","signed"];
+  const stageIndex = STAGE_ORDER.indexOf((recruit.stage || "open").toLowerCase());
+  const stars = recruit.starRating || 2;
+  const isBlueChip = !!recruit.isBlueChip;
+  const academicsPriority = recruit.academicsPriority || "Somewhat";
+  const reputationPriority = recruit.reputationPriority || "Somewhat";
+  const highAcademics = academicsPriority === "Very" || academicsPriority === "Extremely";
+  const highReputation = reputationPriority === "Very" || reputationPriority === "Extremely";
+  const recruitState = recruit.homeState || "";
+  const teamState = team?.state || "";
+  const sameState = !!recruitState && recruitState === teamState;
+  const regions: string[][] = [
+    ["FL","GA","AL","SC","NC","TN","MS","LA"],
+    ["TX","AZ","NM","OK"],
+    ["OH","IN","IL","MI","WI","MN","IA","MO","NE","KS"],
+    ["NY","PA","NJ","MA","CT","MD","VA"],
+    ["CA","WA","OR","CO","UT","NV"],
+  ];
+  const rr = regions.find(r => r.includes(recruitState));
+  const tr = regions.find(r => r.includes(teamState));
+  const sameRegion = !sameState && !!(rr && tr && rr === tr);
+  const isEmail = actionType === "email";
+  const isPhone = actionType === "phone";
+  const isEmailPhone = isEmail || isPhone;
+  const isVisit = actionType === "visit" || actionType === "campus_visit";
+  const isHCVisit = actionType === "head_coach_visit" || actionType === "hc_visit";
+  const isOffer = actionType === "offer";
+  let total = 0;
+  for (const { statement, importance } of philosophy) {
+    const scale = importanceScale[importance] ?? 0.33;
+    let base = 0;
+    switch (statement) {
+      case "Recruit for the Long Term": if (isEmailPhone && stageIndex <= 2) base = 0.10; break;
+      case "Build Team Chemistry": if (isVisit) base = 0.12; break;
+      case "Play Small Ball": base = 0.04; break;
+      case "Win Now": if (isOffer) base = 0.14; break;
+      case "Elite Program Standards": if (isVisit) base = 0.12; break;
+      case "Build a National Brand": base = sameState ? 0.02 : 0.07; break;
+      case "Player Development First": if (isEmailPhone) base = highReputation ? 0.14 : 0.06; break;
+      case "Positive Culture": if (isVisit) base = 0.12; else if (isEmailPhone) base = 0.04; break;
+      case "Trust the Process": if ((isEmailPhone || isOffer) && stageIndex >= 2) base = 0.07; break;
+      case "Pitching Wins Championships": if (isHCVisit && isPitcher) base = 0.14; break;
+      case "Game Management Mastery": if (isHCVisit) base = 0.12; break;
+      case "Exploit Every Matchup": if (isEmailPhone) base = 0.05; break;
+      case "Play the Right Way": if (sameState) base = 0.14; else if (sameRegion) base = 0.07; break;
+      case "Defense and Pitching": if (isPhone && isPitcher) base = 0.12; break;
+      case "Earn Everything": if (isHCVisit || isVisit) base = 0.07; break;
+      case "Scouting Advantage": if (isEmailPhone) base = 0.04; break;
+      case "Find Hidden Gems": if (isEmailPhone && stars <= 2) base = 0.05; break;
+      case "Build Through Recruiting": if (isEmailPhone) base = 0.05; break;
+      case "Academic Excellence": if (highAcademics) base = 0.14; break;
+      case "Graduation Rate Matters": if (isVisit) base = 0.12; break;
+      case "Character Counts": if (isEmailPhone && highAcademics) base = 0.08; break;
+      case "Land the Blue Chips": if (isOffer && (stars >= 4 || isBlueChip)) base = 0.14; break;
+      case "NIL Budget Mastery":
+        if (isOffer) {
+          const nilBudget = team?.nilBudget || 0;
+          const nilSpent = team?.nilSpent || 0;
+          const nilRatio = nilBudget > 0 ? Math.max(0, (nilBudget - nilSpent) / nilBudget) : 0.5;
+          base = 0.06 + nilRatio * 0.12;
+        }
+        break;
+      case "Close Every Deal": if (stageIndex >= 3) base = 0.07; break;
+    }
+    total += base * scale;
+  }
+  return total;
+}
+
+function simCalculateIdentityRecruitingBonus(coach: any, recruit: any, actionType: string): number {
+  if (!coach?.recruitingPitch) return 0;
+  const pitch = getRecruitingPitch(coach.recruitingPitch);
+  if (!pitch) return 0;
+  const BASE = 0.05;
+  const isEmail = actionType === "email";
+  const isPhone = actionType === "phone";
+  const isVisit = actionType === "visit" || actionType === "campus_visit";
+  const isOffer = actionType === "offer";
+  const isHCVisit = actionType === "head_coach_visit" || actionType === "hc_visit";
+  const highImportance = (v: string | undefined) => v === "Very" || v === "Extremely";
+  switch (pitch.id) {
+    case "development": if ((isEmail || isPhone) && highImportance(recruit.playerDevelopmentPriority)) return BASE; break;
+    case "playing_time": if ((isVisit || isOffer || isHCVisit) && highImportance(recruit.playingTimePriority)) return BASE; break;
+    case "prestige": if ((isOffer || isHCVisit) && highImportance(recruit.reputationPriority)) return BASE; break;
+    case "academics": if ((isEmail || isVisit) && highImportance(recruit.academicsPriority)) return BASE; break;
+    case "campus_life": if (isVisit && highImportance(recruit.collegeLifePriority)) return BASE; break;
+    case "pro_path": if ((isOffer || isHCVisit) && (recruit.starRating >= 4 || recruit.isBlueChip)) return BASE; break;
+  }
+  return 0;
+}
+
+function simCalculateCoachBonus(coach: any, recruit: any, actionType: string, team?: any): number {
+  if (!coach) return 1.0;
+  const isPitcher = recruit.position === "P";
+  const baseSkill = isPitcher ? (coach.pitchingRecruitingSkill || 1) : (coach.hittingRecruitingSkill || 1);
+  const skillBonus = 1.0 + (baseSkill - 1) * 0.05;
+  const archetypeBonus = SIM_ARCHETYPE_INTEREST_MULTIPLIERS[coach.archetype] || 1.0;
+  const positionBonus = isPitcher
+    ? (SIM_ARCHETYPE_PITCHER_BONUS[coach.archetype] || 1.0)
+    : (SIM_ARCHETYPE_HITTER_BONUS[coach.archetype] || 1.0);
+  const philosophyAddon = simCalculatePhilosophyBonus(coach, recruit, actionType, team);
+  const identityAddon = simCalculateIdentityRecruitingBonus(coach, recruit, actionType);
+  return skillBonus * archetypeBonus * positionBonus + philosophyAddon + identityAddon;
+}
+
+function computePrestigeBandMod(recruit: any, team: any): number {
+  if (recruit.recruitType !== "TRANSFER") return 1.0;
+  const op = recruit.originPrestige;
+  if (op == null) return 1.0;
+  const tp = team.prestige || 5;
+  if (tp > op + 2) return 1.15;
+  if (tp < op - 2) return 0.6;
+  return 1.0;
+}
+
+function computePlayingTimeMod(recruit: any, teamPlayers: any[]): number {
+  if (recruit.recruitType !== "TRANSFER") return 1.0;
+  const recruitOvr = recruit.overall || 0;
+  const PITCHER_POSITIONS = ["P","SP","RP","CL","CP","LHP","RHP"];
+  const isPitcher = PITCHER_POSITIONS.includes(recruit.position);
+  if (isPitcher) {
+    const pitchersAbove = teamPlayers.filter(
+      p => PITCHER_POSITIONS.includes(p.position) && (p.overall || 0) > recruitOvr
+    ).length;
+    return pitchersAbove >= 5 ? 0.5 : 1.0;
+  } else {
+    return teamPlayers.filter(p => p.position === recruit.position && (p.overall || 0) > recruitOvr).length > 0 ? 0.5 : 1.0;
+  }
+}
+
+function computeEmailGain(recruit: any, team: any, coach: any, topic: string) {
+  const baseGain = 3 + Math.floor(Math.random() * 5);
+  const { bonus: priorityBonus, matchLevel } = simCalculatePriorityBonus(topic, recruit, team);
+  const schoolBonus = simCalculateSchoolBonus(topic, team);
+  const coachBonus = simCalculateCoachBonus(coach, recruit, "email", team);
+  const proximityBonus = topic === "proximity" ? simCalculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
+  const totalMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
+  const baseFinalGain = Math.max(1, Math.round(baseGain * totalMultiplier));
+  const perkMultiplier = (coach?.perks as Record<string, boolean> | null)?.rec_hustler ? 1.08 : 1.0;
+  const interestGain = Math.max(1, Math.round(baseFinalGain * perkMultiplier));
+  return { baseGain, interestGain, matchLevel, totalMultiplier };
+}
+
+function computePhoneGain(recruit: any, team: any, coach: any, topics: string[]) {
+  let totalInterestGain = 0;
+  const pitchResults: { topic: string; gain: number; matchLevel: string }[] = [];
+  for (const topic of topics) {
+    const baseGain = 3 + Math.floor(Math.random() * 7);
+    const { bonus: priorityBonus, matchLevel } = simCalculatePriorityBonus(topic, recruit, team);
+    const schoolBonus = simCalculateSchoolBonus(topic, team);
+    const coachBonus = simCalculateCoachBonus(coach, recruit, "phone", team);
+    const proximityBonus = topic === "proximity" ? simCalculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
+    const topicMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
+    const baseTopicGain = Math.max(1, Math.round(baseGain * topicMultiplier));
+    const phonePerkMult = (coach?.perks as Record<string, boolean> | null)?.rec_hustler ? 1.08 : 1.0;
+    const gain = Math.max(1, Math.round(baseTopicGain * phonePerkMult));
+    simAssertInterestGainSane(`phone:${topic}`, gain, baseGain);
+    totalInterestGain += gain;
+    pitchResults.push({ topic, gain, matchLevel });
+  }
+  return { totalInterestGain, pitchResults };
+}
+
+function computeVisitGain(recruit: any, team: any, coach: any) {
+  const baseGain = 20 + Math.floor(Math.random() * 16);
+  const facilitiesBonus = simNormalizeAttrBonus(team.facilities || 5);
+  const academicsBonus  = simNormalizeAttrBonus(team.academics  || 5);
+  const prestigeBonus   = simNormalizeAttrBonus(team.prestige   || 5);
+  const collegeLifeBonus = simNormalizeAttrBonus(team.collegeLife || 5);
+  const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
+  const coachBonus = simCalculateCoachBonus(coach, recruit, "visit", team);
+  const { bonus: priorityBonus } = simCalculatePriorityBonus("facilities", recruit, team);
+  const proximityBonus = simCalculateProximityBonus(recruit.homeState, team.state, team);
+  const totalMultiplier = Math.min(3.0, schoolAttrBonus * coachBonus * priorityBonus * proximityBonus);
+  const baseVisitGain = Math.max(5, Math.round(baseGain * totalMultiplier));
+  const visitPerkMult = (coach?.perks as Record<string, boolean> | null)?.rec_campus_closer ? 1.15 : 1.0;
+  const interestGain = Math.max(5, Math.round(baseVisitGain * visitPerkMult));
+  return { baseGain, interestGain, totalMultiplier };
+}
+
+function computeOfferGain(recruit: any, team: any, coach: any) {
+  const baseGain = 15 + Math.floor(Math.random() * 10);
+  const prestigeBonus = simNormalizeAttrBonus(team.prestige || 5);
+  const coachBonus = simCalculateCoachBonus(coach, recruit, "offer", team);
+  const { bonus: priorityBonus } = simCalculatePriorityBonus("playingTime", recruit, team);
+  const totalMultiplier = Math.min(3.0, prestigeBonus * coachBonus * priorityBonus);
+  const interestGain = Math.max(2, Math.round(baseGain * totalMultiplier));
+  return { baseGain, interestGain };
+}
+
+function assertInterestGainSane(actionType: string, interestGain: number, baseGain: number) {
+  simAssertInterestGainSane(actionType, interestGain, baseGain);
+}
 
 // ============ ADVANCE PROGRESS STORE ============
 // In-memory map: leagueId -> { stage, pct, updatedAt }
@@ -3941,7 +4269,7 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
     function pickBestTopic(recruit: any): string {
       const topicCandidates = ["reputation", "academics", "prestige", "facilities", "playingTime", "proximity"];
       const ranked = topicCandidates
-        .map(t => ({ t, level: calculatePriorityBonus(t, recruit, team).matchLevel }))
+        .map(t => ({ t, level: simCalculatePriorityBonus(t, recruit, team).matchLevel }))
         .sort((a, b) => {
           const order = { Extremely: 4, Very: 3, Somewhat: 2, "Not Important": 1 } as Record<string, number>;
           return (order[b.level] || 0) - (order[a.level] || 0);
