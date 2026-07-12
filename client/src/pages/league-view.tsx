@@ -80,7 +80,7 @@ export default function LeagueViewPage() {
     }
   }, [requestedTab]);
 
-  const { data: league, isLoading, isError: leagueIsError, error: leagueError, refetch: refetchLeague } = useQuery<LeagueDetails>({
+  const { data: league, isLoading, isFetching, isError: leagueIsError, error: leagueError, refetch: refetchLeague } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
   });
 
@@ -222,7 +222,7 @@ export default function LeagueViewPage() {
   const ownPitchingIncomplete = ownPitchers.length >= 4 && ownRotationAssigned < 4;
   const showLineupBanner = shouldCheckLineup && !lineupBannerDismissed && (ownBattingIncomplete || ownPitchingIncomplete);
 
-  if (league.currentPhase === "dynasty_setup" || (!league.teams || league.teams.length === 0)) {
+  if (!isFetching && (league.currentPhase === "dynasty_setup" || (!league.teams || league.teams.length === 0))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8 max-w-md">

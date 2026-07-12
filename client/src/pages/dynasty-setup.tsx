@@ -151,9 +151,9 @@ export default function DynastySetupPage() {
       recruitingClassId: selectedClassId !== "auto" ? selectedClassId : undefined,
       perTeamRosters: Object.keys(perTeamRosters).length > 0 ? perTeamRosters : undefined,
     }),
-    onSuccess: () => {
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       toast({ title: "Dynasty Started!", description: "Let the games begin!" });
       setLocation(`/league/${id}`);
     },
