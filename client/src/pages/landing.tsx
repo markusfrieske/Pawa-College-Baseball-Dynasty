@@ -213,10 +213,11 @@ export default function LandingPage() {
                 className="flex flex-wrap gap-4 text-xs text-white/70"
                 style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
               >
-                {/* TODO: add /leagues route */}
-                <button className="flex items-center gap-1.5 text-white/30 cursor-not-allowed" disabled data-testid="button-view-leagues">
-                  <Database className="w-3.5 h-3.5" /> View Leagues
-                </button>
+                <Link href="/guest">
+                  <button className="flex items-center gap-1.5 hover:text-gold transition-colors" data-testid="button-guest-league">
+                    <Database className="w-3.5 h-3.5" /> Guest League
+                  </button>
+                </Link>
                 {isLoggedIn && leaguesLoading && !leagues ? (
                   <button className="flex items-center gap-1 text-muted-foreground cursor-wait" disabled data-testid="button-open-recruiting-wizard-loading">
                     <div className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
@@ -237,10 +238,9 @@ export default function LandingPage() {
                     </button>
                   </Link>
                 )}
-                {/* TODO: add donate link */}
-                <button className="flex items-center gap-1.5 text-white/30 cursor-not-allowed" disabled data-testid="button-donate">
+                <a href="https://www.paypal.com/donate?business=Markusfrieske%40gmail.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-gold transition-colors" data-testid="button-donate">
                   <DollarSign className="w-3.5 h-3.5" /> Donate
-                </button>
+                </a>
               </div>
             </div>
 
