@@ -414,13 +414,21 @@ export function generateRecruitClass(
   if (opts.wizardSpecialCounts?.genGems != null) numGenGems = Math.min(opts.wizardSpecialCounts.genGems, Math.max(1, Math.floor(count * 0.05)));
   let numGenBusts = 1;
   if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.max(1, Math.floor(count * 0.05)));
+  // Scale gem/bust/raw counts proportionally to pool size.
+  // poolScale = 1.0 for the standard 80-recruit class; larger values for
+  // full_season (200 recruits → poolScale ≈ 2.5).
+  // All three variables produce the same absolute numbers as before when
+  // count = 80 (poolScale = 1), preserving existing balance for custom leagues.
+  const poolScale = count / 80;
   const numRegGems = opts.wizardSpecialCounts?.gems != null
     ? Math.min(opts.wizardSpecialCounts.gems, Math.floor(count * 0.15))
-    : 5 + Math.floor(Math.random() * 6);
+    : Math.max(5, Math.round(5 * poolScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * poolScale)));
   const numRegBusts = opts.wizardSpecialCounts?.busts != null
     ? Math.min(opts.wizardSpecialCounts.busts, Math.floor(count * 0.15))
-    : 5 + Math.floor(Math.random() * 6);
-  const rawTalentBase = theme === "raw_talent" ? (10 + Math.floor(Math.random() * 7)) : (5 + Math.floor(Math.random() * 6));
+    : Math.max(5, Math.round(5 * poolScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * poolScale)));
+  const rawTalentBase = theme === "raw_talent"
+    ? (Math.max(10, Math.round(10 * poolScale)) + Math.floor(Math.random() * Math.max(7, Math.round(7 * poolScale))))
+    : (Math.max(5, Math.round(5 * poolScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * poolScale))));
   const numRawPlayers = opts.wizardSpecialCounts?.rawPlayers != null
     ? Math.min(opts.wizardSpecialCounts.rawPlayers, Math.floor(count * 0.20))
     : rawTalentBase;
