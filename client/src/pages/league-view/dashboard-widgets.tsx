@@ -9,6 +9,7 @@ import {
   Calendar, Play, ChevronRight, Home, Plane, FileText, ClipboardList, Target,
   UserMinus, UserPlus, Check, Clock, Settings, Trophy, AlertTriangle, History,
   TrendingUp, TrendingDown, Bell, Zap, Star, Swords, Building2, Users,
+  GraduationCap, BarChart2, BookOpen, Archive,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { LeagueEvent, AdvanceDigest } from "@shared/schema";
@@ -1104,73 +1105,104 @@ export function NavDock({
   storylinePendingVotes: number;
   showLineupBanner: boolean;
 }) {
-  const groups: { label: string; links: { href: string; label: string; badge?: number | string | null }[] }[] = [
+  const topRow = [
     {
-      label: "MY TEAM",
-      links: [
-        { href: `/league/${leagueId}/roster`, label: "Roster" },
-        { href: `/league/${leagueId}/roster?view=depth&sub=lineup`, label: "Lineup", badge: showLineupBanner ? "!" : null },
-        { href: `/league/${leagueId}/coach`, label: "Coach" },
-        { href: `/league/${leagueId}/team/${userTeam?.id ?? ""}`, label: "School" },
-      ],
+      href: `/league/${leagueId}/coach`,
+      icon: <GraduationCap className="w-6 h-6" />,
+      title: "Coach",
+      subtitle: "View your career",
     },
     {
-      label: "SEASON",
-      links: [
-        { href: `/league/${leagueId}/schedule`, label: "Schedule" },
-        { href: `/league/${leagueId}/stats`, label: "Stats" },
-        { href: `/league/${leagueId}/postseason`, label: "Postseason" },
-        { href: `/league/${leagueId}/archive`, label: "Archive" },
-      ],
+      href: `/league/${leagueId}/team/${userTeam?.id ?? ""}`,
+      icon: <Building2 className="w-6 h-6" />,
+      title: "School",
+      subtitle: "Your program",
     },
     {
-      label: "RECRUITING",
-      links: [
-        { href: `/league/${leagueId}/recruiting`, label: "Board" },
-        { href: `/league/${leagueId}/commits`, label: "Commits" },
-        { href: `/league/${leagueId}/storylines`, label: "Storylines", badge: storylinePendingVotes > 0 ? storylinePendingVotes : null },
-      ],
+      href: `/league/${leagueId}/roster`,
+      icon: <Users className="w-6 h-6" />,
+      title: "Roster",
+      subtitle: "Manage your team",
     },
     {
-      label: "LEAGUE",
-      links: [
-        { href: `/league/${leagueId}/record-book`, label: "Records" },
-        { href: `/league/${leagueId}/ticker`, label: "Ticker" },
-        ...(isCommissioner ? [{ href: `/league/${leagueId}/commissioner`, label: "Commissioner" }] : []),
-      ],
+      href: `/league/${leagueId}/roster?view=depth&sub=lineup`,
+      icon: <ClipboardList className="w-6 h-6" />,
+      title: "Lineup",
+      subtitle: "Set batting order",
+      badge: showLineupBanner ? "!" : undefined,
+    },
+    {
+      href: `/league/${leagueId}/schedule`,
+      icon: <Calendar className="w-6 h-6" />,
+      title: "Schedule",
+      subtitle: "View games",
+    },
+    {
+      href: `/league/${leagueId}/recruiting`,
+      icon: <Target className="w-6 h-6" />,
+      title: "Recruiting",
+      subtitle: "Scout players",
+    },
+    {
+      href: `/league/${leagueId}/commits`,
+      icon: <Star className="w-6 h-6" />,
+      title: "Commits",
+      subtitle: "Class leaderboard",
+    },
+    {
+      href: `/league/${leagueId}/storylines`,
+      icon: <Swords className="w-6 h-6" />,
+      title: "Storylines",
+      subtitle: "Vote on arcs",
+      badge: storylinePendingVotes > 0 ? storylinePendingVotes : undefined,
+    },
+    {
+      href: `/league/${leagueId}/stats`,
+      icon: <BarChart2 className="w-6 h-6" />,
+      title: "Stats",
+      subtitle: "Season leaders",
     },
   ];
 
+  const bottomRow = [
+    {
+      href: `/league/${leagueId}/record-book`,
+      icon: <BookOpen className="w-6 h-6" />,
+      title: "Record Book",
+      subtitle: "Dynasty records",
+    },
+    {
+      href: `/league/${leagueId}/archive`,
+      icon: <Archive className="w-6 h-6" />,
+      title: "Archive",
+      subtitle: "Season history",
+    },
+    {
+      href: `/league/${leagueId}/postseason`,
+      icon: <Trophy className="w-6 h-6" />,
+      title: "Postseason",
+      subtitle: "Bracket & history",
+    },
+    ...(isCommissioner
+      ? [{
+          href: `/league/${leagueId}/commissioner`,
+          icon: <Settings className="w-6 h-6" />,
+          title: "Commissioner",
+          subtitle: "Dynasty settings",
+        }]
+      : []),
+  ];
+
   return (
-    <div className="border border-border rounded-lg overflow-hidden mb-6" data-testid="nav-dock">
-      <div className="bg-gold/5 px-3 py-1.5 border-b border-border">
-        <span className="font-pixel text-gold text-[8px]">QUICK NAV</span>
+    <div className="mb-6" data-testid="nav-dock">
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 mb-2">
+        {topRow.map(tile => (
+          <QuickActionCard key={tile.href} {...tile} />
+        ))}
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4">
-        {groups.map((group, gi) => (
-          <div
-            key={group.label}
-            className={`p-3 ${gi % 2 !== 0 ? "border-l border-border" : ""} ${gi >= 2 ? "border-t border-border sm:border-t-0" : ""} ${gi > 0 && gi % 2 === 0 ? "sm:border-l sm:border-border" : ""}`}
-          >
-            <p className="font-pixel text-[7px] text-muted-foreground mb-2">{group.label}</p>
-            <div className="space-y-0.5">
-              {group.links.map(link => (
-                <Link key={link.href} href={link.href}>
-                  <div
-                    className="flex items-center justify-between py-1 px-1.5 rounded hover:bg-gold/10 transition-colors cursor-pointer group"
-                    data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    <span className="text-sm text-foreground/80 group-hover:text-gold transition-colors">{link.label}</span>
-                    {link.badge != null && link.badge !== false && (
-                      <span className="min-w-[16px] h-4 flex items-center justify-center rounded-full bg-gold text-forest-dark font-pixel text-[7px] px-1 animate-pulse">
-                        {link.badge}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {bottomRow.map(tile => (
+          <QuickActionCard key={tile.href} {...tile} />
         ))}
       </div>
     </div>
