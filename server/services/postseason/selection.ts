@@ -2,10 +2,12 @@
  * National field selection for Full Season postseason.
  *
  * Selection rules:
- *   - 1 automatic bid per conference (conference champion)
- *   - Remaining spots (target 16 total) filled by best at-large teams
- *     by selection score, excluding already-qualified auto-bid teams
- *   - All 16 seeded 1-16 by selection score (best score = seed 1)
+ *   - Exactly 1 automatic bid per conference (conference champion).
+ *     If a conference championship game is not yet completed, the auto bid
+ *     falls back to the best team in that conference by conference win%.
+ *   - AT_LARGE_SLOTS = TARGET_FIELD_SIZE - numConferences at-large teams,
+ *     chosen from remaining teams by selection score.
+ *   - All 16 seeded 1-16 by selection score (best score = seed 1).
  *
  * Minimum field: if fewer than 4 qualifying teams exist, aborts gracefully.
  * Results stored idempotently in postseason_entries.
@@ -45,37 +47,75 @@ export async function selectAndSeedNationalField(
   const allGames = await storage.getGamesByLeague(leagueId);
   const leagueTeams = await storage.getTeamsByLeague(leagueId);
   const standingsList = await storage.getStandingsByLeague(leagueId, season);
+  const confs = await storage.getConferencesByLeague(leagueId);
 
   if (leagueTeams.length < 4) {
     console.warn(`[fs-selection] Not enough teams (${leagueTeams.length}) to run national selection.`);
     return [];
   }
 
-  // Determine conference champions from completed CC games
+  // Build team standings lookup
+  const standingsById = new Map(standingsList.map(s => [s.teamId, s]));
+
+  const confWinPct = (teamId: string) => {
+    const s = standingsById.get(teamId);
+    const cw = s?.conferenceWins ?? 0;
+    const cl = s?.conferenceLosses ?? 0;
+    const total = cw + cl;
+    return { pct: total > 0 ? cw / total : 0, diff: cw - cl, cw };
+  };
+
+  // Map conference championship winners from completed CC games
   const ccGames = allGames.filter(
     g => g.phase === "conference_championship" && g.season === season && g.isComplete
   );
-  const confChampionIds = new Set(
-    ccGames.map(g => (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId)
-  );
+  // Map: conferenceId → winning teamId (from CC game)
+  const ccWinnerByConf = new Map<string, string>();
+  for (const game of ccGames) {
+    const winner = (game.homeScore ?? 0) > (game.awayScore ?? 0) ? game.homeTeamId : game.awayTeamId;
+    const team = (leagueTeams as any[]).find(t => t.id === winner);
+    if (team?.conferenceId && !ccWinnerByConf.has(team.conferenceId)) {
+      ccWinnerByConf.set(team.conferenceId, winner);
+    }
+  }
 
-  // Invariant check: one auto bid per conference
-  const uniqueConferences = new Set(
-    (leagueTeams as any[]).map(t => t.conferenceId).filter(Boolean)
-  );
-  const expectedAutoBids = uniqueConferences.size;
-  if (confChampionIds.size !== expectedAutoBids) {
-    console.warn(
-      `[fs-selection] Invariant: found ${confChampionIds.size} conference champion(s) ` +
-      `but expected ${expectedAutoBids} (one per conf). ` +
-      `Missing champions will be replaced by at-large selections to fill ${TARGET_FIELD_SIZE}-team field. ` +
-      `CC games completed: ${ccGames.length}`
+  // Enforce EXACTLY 1 auto bid per conference.
+  // Fallback: best team by conf win% if CC game incomplete.
+  const autoChampIds = new Set<string>();
+  const autoChampReason = new Map<string, string>(); // teamId → reason label
+  for (const conf of confs) {
+    if (ccWinnerByConf.has(conf.id)) {
+      const tid = ccWinnerByConf.get(conf.id)!;
+      autoChampIds.add(tid);
+      autoChampReason.set(tid, "Conference Champion");
+    } else {
+      // Fallback: standings leader in this conference by conf win%
+      const confTeams = (leagueTeams as any[]).filter(t => t.conferenceId === conf.id);
+      const best = confTeams
+        .map(t => ({ teamId: t.id, ...confWinPct(t.id) }))
+        .sort((a, b) => b.pct - a.pct || b.diff - a.diff || b.cw - a.cw)[0];
+      if (best) {
+        autoChampIds.add(best.teamId);
+        autoChampReason.set(best.teamId, "Conference Leader");
+        console.warn(
+          `[fs-selection] No CC winner for conf ${conf.id}; ` +
+          `using standings leader ${best.teamId} (${(best.pct * 100).toFixed(1)}% conf win%)`
+        );
+      }
+    }
+  }
+
+  // Hard invariant: log clearly if mismatch (should never happen with fallback above)
+  if (autoChampIds.size !== confs.length) {
+    console.error(
+      `[fs-selection] INVARIANT FAILED: expected ${confs.length} auto bids but resolved ${autoChampIds.size}. ` +
+      `CC games completed: ${ccGames.length}/${confs.length}`
     );
   }
 
   // Score ALL teams
-  const scoredTeams = leagueTeams.map(t => {
-    const s = standingsList.find(st => st.teamId === t.id);
+  const scoredTeams = (leagueTeams as any[]).map(t => {
+    const s = standingsById.get(t.id);
     const wins = s?.wins ?? 0;
     const losses = s?.losses ?? 0;
     const confWins = s?.conferenceWins ?? 0;
@@ -83,26 +123,25 @@ export async function selectAndSeedNationalField(
     const runsScored = s?.runsScored ?? 0;
     const runsAllowed = s?.runsAllowed ?? 0;
     const score = computeSelectionScore(wins, losses, confWins, confLosses, runsScored, runsAllowed);
-    const isAutoChamp = confChampionIds.has(t.id);
-    return { teamId: t.id, score, wins, losses, isAutoChamp };
+    const isAuto = autoChampIds.has(t.id);
+    return { teamId: t.id as string, score, wins, losses, isAuto };
   });
 
-  // Auto-bids: all conference champions (one per conf, from completed CC games)
-  const autoChamps = scoredTeams
-    .filter(t => t.isAutoChamp)
+  // Auto-bids: exactly one per conference
+  const autoTeams = scoredTeams
+    .filter(t => t.isAuto)
     .sort((a, b) => b.score - a.score);
 
-  // At-large: best non-champions by score, fill remaining spots up to TARGET_FIELD_SIZE
+  // At-large: fill remaining spots to TARGET_FIELD_SIZE
+  const atLargeNeeded = Math.max(0, TARGET_FIELD_SIZE - autoTeams.length);
   const atLargePool = scoredTeams
-    .filter(t => !t.isAutoChamp)
+    .filter(t => !t.isAuto)
     .sort((a, b) => b.score - a.score);
-
-  const atLargeNeeded = Math.max(0, TARGET_FIELD_SIZE - autoChamps.length);
   const atLargeSelection = atLargePool.slice(0, atLargeNeeded);
 
   // Combine and sort by score for seeding
   const allSelected = [
-    ...autoChamps.map(t => ({ ...t, qualType: "auto_bid" as const })),
+    ...autoTeams.map(t => ({ ...t, qualType: "auto_bid" as const })),
     ...atLargeSelection.map(t => ({ ...t, qualType: "at_large" as const })),
   ].sort((a, b) => b.score - a.score);
 
@@ -119,6 +158,9 @@ export async function selectAndSeedNationalField(
   for (let i = 0; i < allSelected.length; i++) {
     const t = allSelected[i];
     const nationalSeed = i + 1;
+    const label = t.qualType === "auto_bid"
+      ? `${autoChampReason.get(t.teamId) ?? "Conference Champion"} (${(t.score * 100).toFixed(1)} sel)`
+      : `At-Large #${atLargeRank.get(t.teamId) ?? 0} (${(t.score * 100).toFixed(1)} sel)`;
     const entry = await storage.upsertPostseasonEntry({
       leagueId,
       season,
@@ -126,16 +168,17 @@ export async function selectAndSeedNationalField(
       nationalSeed,
       qualificationType: t.qualType,
       selectionScore: t.score,
-      selectionReason: t.qualType === "auto_bid"
-        ? `Conference Champion (${(t.score * 100).toFixed(1)} sel)`
-        : `At-Large #${atLargeRank.get(t.teamId) ?? 0} (${(t.score * 100).toFixed(1)} sel)`,
+      selectionReason: label,
       seed: nationalSeed,
       status: "active",
     });
     entries.push(entry);
   }
 
-  console.log(`[fs-selection] Selected ${entries.length} teams: ${autoChamps.length} auto-bids + ${atLargeSelection.length} at-large`);
+  console.log(
+    `[fs-selection] Selected ${entries.length} teams: ` +
+    `${autoTeams.length} auto-bids (${confs.length} expected) + ${atLargeSelection.length} at-large`
+  );
   return entries;
 }
 

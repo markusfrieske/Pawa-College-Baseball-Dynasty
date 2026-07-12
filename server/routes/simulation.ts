@@ -1120,8 +1120,12 @@ async function generateConferenceChampionships(leagueId: string, season: number)
     
     const confStandings = confTeams.map(t => {
       const s = standingsList.find(st => st.teamId === t.id);
-      return { team: t, wins: s?.wins || 0, confWins: s?.conferenceWins || 0 };
-    }).sort((a, b) => b.confWins - a.confWins || b.wins - a.wins);
+      const confWins = s?.conferenceWins || 0;
+      const confLosses = s?.conferenceLosses || 0;
+      const confTotal = confWins + confLosses;
+      const confWinPct = confTotal > 0 ? confWins / confTotal : 0;
+      return { team: t, wins: s?.wins || 0, losses: s?.losses || 0, confWins, confLosses, confWinPct };
+    }).sort((a, b) => b.confWinPct - a.confWinPct || (b.confWins - b.confLosses) - (a.confWins - a.confLosses) || b.wins - a.wins);
     
     await storage.createGame({
       leagueId,
