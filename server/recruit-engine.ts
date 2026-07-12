@@ -54,6 +54,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
   if (numTeams < 2) return;
 
   const seasonLength = league?.seasonLength || "standard";
+  const isFullSeason = seasonLength === "full_season";
 
   type TeamType = typeof leagueTeams[0];
   type Matchup = { home: TeamType; away: TeamType };
@@ -242,7 +243,6 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
   // Pairing index i with i+N/2: the conference offset is (N/2) % numConfs.
   // With N=149, numConfs=12 → N/2=74, 74 % 12 = 2, so pairs are always 2+
   // conferences apart — guaranteed cross-conference for nearly every pair.
-  const isFullSeason = seasonLength === "full_season";
   const confArraysFull: (typeof leagueTeams)[] = [];
   const interleavedTeamsFull: (typeof leagueTeams[0])[] = [];
   const confByTeamIdFull = new Map<string, string>();
