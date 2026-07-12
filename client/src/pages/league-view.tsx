@@ -26,8 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import type { Player } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ArtworkBackground } from "@/components/artwork-background";
-import { artBackgrounds } from "@/lib/art-assets";
+import { LEAGUE_HUB_BANNERS, getLeagueHubBannerKey } from "@/lib/art-assets";
 
 import type { LeagueDetails, TeamWithCoach, DashboardOverview, AuctionOutcome, StorylineWidgetItem } from "./league-view/types";
 import { HOME_TAB_VALUES, STORYLINE_VOTE_CALLOUT_PHASES } from "./league-view/types";
@@ -409,43 +408,75 @@ export default function LeagueViewPage() {
         </div>
       </header>
 
-      {/* ─── HERO BRIEFING AREA ──────────────────────────────────────── */}
-      <div className="relative h-40 sm:h-52 overflow-hidden" data-testid="hub-hero">
-        <ArtworkBackground
-          desktopSrc={artBackgrounds.leagueWarRoom.desktop}
-          mobileSrc={artBackgrounds.leagueWarRoom.mobile}
-          focalPoint="center center"
-          overlayStrength="heavy"
-          className="absolute inset-0 h-full"
-        />
-        <div className="relative z-10 h-full flex items-end">
-          <div className="container mx-auto px-4 pb-4">
-            <div className="flex items-end justify-between gap-4">
-              <div className="min-w-0">
-                {hasAssignedTeam && myTeam && (
-                  <p className="font-pixel text-[8px] text-gold/70 mb-1">
-                    {myTeam.name} · {phaseLabels[league.currentPhase]}
-                  </p>
-                )}
-                {isLeagueOnlyCommissioner && (
-                  <p className="font-pixel text-[8px] text-gold/70 mb-1">
-                    COMMISSIONER · {phaseLabels[league.currentPhase]}
-                  </p>
-                )}
-                <h2 className="font-pixel text-gold text-sm sm:text-base leading-snug truncate" data-testid="text-hub-season">
-                  Season {league.currentSeason} · Week {league.currentWeek}
-                </h2>
-                {hasAssignedTeam && myTeam?.standings && (
-                  <p className="text-white/70 text-xs mt-0.5">
-                    {myTeam.standings.wins ?? 0}–{myTeam.standings.losses ?? 0} record
-                    {myTeam.standings.conferenceWins != null ? ` · ${myTeam.standings.conferenceWins}-${myTeam.standings.conferenceLosses} conf` : ""}
-                  </p>
-                )}
+      {/* ─── SEASONAL HERO BANNER ────────────────────────────────────── */}
+      {(() => {
+        const bannerKey = getLeagueHubBannerKey(league.currentPhase, league.currentWeek ?? 0);
+        const banner = LEAGUE_HUB_BANNERS[bannerKey];
+        return (
+          <div
+            className="relative overflow-hidden border-b"
+            style={{ height: "clamp(240px, 24vw, 380px)", borderColor: "rgba(202,168,84,0.22)", background: "#102414" }}
+            data-testid="hub-hero"
+          >
+            {/* Desktop image */}
+            <img
+              src={banner.src}
+              alt={banner.alt}
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none hidden sm:block"
+              style={{ objectPosition: banner.desktopPosition }}
+            />
+            {/* Mobile image */}
+            <img
+              src={banner.src}
+              alt=""
+              aria-hidden="true"
+              loading="eager"
+              decoding="async"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none sm:hidden"
+              style={{ objectPosition: banner.mobilePosition }}
+            />
+            {/* Subtle bottom overlay only — no left-side dark gradient */}
+            <div
+              className="absolute inset-0 pointer-events-none"
+              aria-hidden="true"
+              style={{
+                background: "linear-gradient(to bottom, rgba(8,18,10,0.04), rgba(8,18,10,0.18)), linear-gradient(to top, rgba(8,18,10,0.55), rgba(8,18,10,0))",
+              }}
+            />
+            {/* Text panel — bottom-left, sits in the gradient fade zone */}
+            <div className="relative z-10 h-full flex items-end">
+              <div className="container mx-auto px-4 pb-4">
+                <div className="min-w-0">
+                  {hasAssignedTeam && myTeam && (
+                    <p className="font-pixel text-[8px] text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                      {myTeam.name} · {phaseLabels[league.currentPhase]}
+                    </p>
+                  )}
+                  {isLeagueOnlyCommissioner && (
+                    <p className="font-pixel text-[8px] text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                      COMMISSIONER · {phaseLabels[league.currentPhase]}
+                    </p>
+                  )}
+                  <h2
+                    className="font-pixel text-gold text-sm sm:text-base leading-snug truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
+                    data-testid="text-hub-season"
+                  >
+                    Season {league.currentSeason} · Week {league.currentWeek}
+                  </h2>
+                  {hasAssignedTeam && myTeam?.standings && (
+                    <p className="text-white/80 text-xs mt-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                      {myTeam.standings.wins ?? 0}–{myTeam.standings.losses ?? 0} record
+                      {myTeam.standings.conferenceWins != null ? ` · ${myTeam.standings.conferenceWins}-${myTeam.standings.conferenceLosses} conf` : ""}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* ─── AUCTION MODAL ───────────────────────────────────────────── */}
       {showAuctionModal && auctionResultsData?.results && (

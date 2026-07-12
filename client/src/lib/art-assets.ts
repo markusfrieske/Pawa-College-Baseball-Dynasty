@@ -84,6 +84,71 @@ export const artBackgrounds = {
   },
 };
 
+// ─── League Hub Seasonal Banners ────────────────────────────────────────────
+
+export type LeagueHubBannerKey =
+  | "springTraining"
+  | "regularSeason"
+  | "conferenceChampionship"
+  | "superRegionals"
+  | "collegeWorldSeries"
+  | "offseason";
+
+export const LEAGUE_HUB_BANNERS: Record<
+  LeagueHubBannerKey,
+  { src: string; alt: string; desktopPosition: string; mobilePosition: string }
+> = {
+  springTraining: {
+    src: "/images/league-hub-banners/league-hub-banner-spring-training-v1.png",
+    alt: "Spring training coach office overlooking a baseball stadium",
+    desktopPosition: "center 48%",
+    mobilePosition: "center 50%",
+  },
+  regularSeason: {
+    src: "/images/league-hub-banners/league-hub-banner-week-1-5-friday-night-v1.png",
+    alt: "Friday night college baseball stadium under the lights",
+    desktopPosition: "center 48%",
+    mobilePosition: "center 50%",
+  },
+  conferenceChampionship: {
+    src: "/images/league-hub-banners/league-hub-banner-conference-championship-trophy-room-v1.png",
+    alt: "Conference championship trophy room",
+    desktopPosition: "42% 50%",
+    mobilePosition: "45% 50%",
+  },
+  superRegionals: {
+    src: "/images/league-hub-banners/league-hub-banner-super-regionals-press-conference-v1.png",
+    alt: "Super Regionals press conference podium with camera flashes",
+    desktopPosition: "center 50%",
+    mobilePosition: "48% 50%",
+  },
+  collegeWorldSeries: {
+    src: "/images/league-hub-banners/league-hub-banner-college-world-series-omaha-aerial-v1.png",
+    alt: "College World Series championship stadium aerial",
+    desktopPosition: "center 48%",
+    mobilePosition: "center 50%",
+  },
+  offseason: {
+    src: "/images/league-hub-banners/league-hub-banner-offseason-board-room-v1.png",
+    alt: "Offseason baseball operations board room with depth charts",
+    desktopPosition: "center 50%",
+    mobilePosition: "center 50%",
+  },
+} as const;
+
+export function getLeagueHubBannerKey(phase: string, week: number): LeagueHubBannerKey {
+  const p = phase.toLowerCase();
+
+  if (p === "cws") return "collegeWorldSeries";
+  if (p === "super_regionals") return "superRegionals";
+  if (p === "conference_championship") return "conferenceChampionship";
+  if (p === "regular_season") return "regularSeason";
+  if (p === "preseason" || p === "spring_training") return "springTraining";
+  if (p.startsWith("offseason") || p === "dynasty_setup") return "offseason";
+
+  return "springTraining";
+}
+
 export const storylineArt: Record<string, string> = {
   personal: storyDormRoom,
   work_ethic: storyDormRoom,
