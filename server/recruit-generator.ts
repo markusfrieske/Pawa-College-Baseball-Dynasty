@@ -875,7 +875,8 @@ export function generateRecruitClass(
   };
 
   // Tracks total gold special abilities assigned so far in this class.
-  // Used to enforce the 10-gold-per-class hard cap during generation (no exemptions).
+  // Cap scales with class size: round(20 * count / 80), matching the validator formula.
+  const classGoldCap = Math.round(20 * count / 80);
   let classGoldCount = 0;
 
   for (let i = 0; i < count; i++) {
@@ -1636,7 +1637,7 @@ export function generateRecruitClass(
     // All other recruits (hitters, gen gems, busts) remain fully subject to the cap.
     {
       let recruitGold = abilities.filter(n => getAbilityByName(n)?.tier === "gold");
-      const excess = (classGoldCount + recruitGold.length) - 10;
+      const excess = (classGoldCount + recruitGold.length) - classGoldCap;
       if (excess > 0) {
         let toReplace = [...recruitGold].sort(() => Math.random() - 0.5).slice(0, excess);
         if (isPitcher && (isGem || isBlueChip) && toReplace.length > 0) {
