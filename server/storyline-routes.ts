@@ -1106,7 +1106,7 @@ export async function generateAndResolveStorylineEvents(
   let generated = 0;
 
   // Compute the hard cap for regular-season story generation.
-  const effectiveMaxWeeks = maxWeeks ?? (seasonLength === "long" ? 10 : 5);
+  const effectiveMaxWeeks = maxWeeks ?? (seasonLength === "full_season" ? 14 : seasonLength === "long" ? 15 : 5);
 
   try {
     // Season-scoped: resolve all overdue pending events using the new StoryOutcome pipeline

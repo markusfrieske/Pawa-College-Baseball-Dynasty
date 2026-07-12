@@ -12,9 +12,11 @@ import { Link } from "wouter";
 import type { Conference, League } from "@shared/schema";
 import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
 
-const TOTAL_NATIONAL_TEAMS = 142;
+const TOTAL_NATIONAL_TEAMS = 149;
 
-function getConferenceTargets(maxTeams: number, conferenceCount: number): number[] {
+function getConferenceTargets(maxTeams: number, conferenceCount: number, conferenceSizes?: number[]): number[] {
+  // If per-conference sizes are provided (e.g. full season with unequal conferences), use them directly
+  if (conferenceSizes && conferenceSizes.length === conferenceCount) return conferenceSizes;
   if (maxTeams === 14 && conferenceCount === 3) return [6, 4, 4];
   const base = Math.floor(maxTeams / conferenceCount);
   const extras = maxTeams % conferenceCount;

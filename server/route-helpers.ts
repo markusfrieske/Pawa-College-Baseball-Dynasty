@@ -109,12 +109,13 @@ export const authSchema = z.object({
 
 export const leagueCreateSchema = z.object({
   name: z.string().min(1).max(100),
-  maxTeams: z.number().min(6).max(64).optional(),
+  maxTeams: z.number().min(6).max(149).optional(),
   cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
-  conferenceCount: z.number().min(2).max(4).optional(),
-  selectedConferences: z.array(z.string()).min(1).max(4).optional(),
-  seasonLength: z.enum(["short", "medium", "standard", "long"]).optional(),
+  conferenceCount: z.number().min(2).max(12).optional(),
+  selectedConferences: z.array(z.string()).min(1).max(12).optional(),
+  seasonLength: z.enum(["short", "medium", "standard", "long", "full_season"]).optional(),
   progressionEnabled: z.boolean().optional(),
+  preset: z.enum(["custom", "full_season"]).optional(),
 });
 
 export const gameScoreSchema = z.object({

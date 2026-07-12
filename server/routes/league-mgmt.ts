@@ -127,7 +127,7 @@ export async function updateRecruitStages(leagueId: string, week: number) {
     //   5★: +3 (commit possible in offseason week 3)
     //   BC:  +4 (commit possible in offseason week 4 — final week before signing day)
     const seasonLength = league?.seasonLength || "standard";
-    const seasonMaxWeeks = seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
+    const seasonMaxWeeks = seasonLength === "full_season" ? 14 : seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
     const verbalOffset = isBlueChip ? 4 : starRating >= 5 ? 3 : starRating >= 4 ? 2 : 1;
     const verbalWeek = seasonMaxWeeks + verbalOffset + storylineWeekBonus;
     const verbalInterest = Math.max(50, (isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60) + storylineInterestBonus - prestigeThresholdReduction);
@@ -2189,7 +2189,7 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
 
     const season = league.currentSeason;
     const seasonLength = league.seasonLength || "standard";
-    const numWeeks = seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
+    const numWeeks = seasonLength === "full_season" ? 14 : seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
     const maxGamesPerWeek = seasonLength === "short" || seasonLength === "standard" ? 2 : 4;
     const expectedGamesPerTeam = maxGamesPerWeek * numWeeks;
 

@@ -89,7 +89,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     return rounds;
   }
 
-  const numWeeks = seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
+  const numWeeks = seasonLength === "full_season" ? 14 : seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5;
 
   const confMap = new Map<string, TeamType[]>();
   for (const team of leagueTeams) {
@@ -125,7 +125,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     const rounds = generateRoundRobin(confTeams);
     let weekRounds: Matchup[][] = [];
 
-    if (seasonLength === "long") {
+    if (seasonLength === "long" || seasonLength === "full_season") {
       const reversedRounds = rounds.map(round => round.map(m => ({ home: m.away, away: m.home })));
       weekRounds = [...rounds, ...reversedRounds];
     } else {
@@ -385,7 +385,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
   // Target: reach targetGamesPerTeam regular-season games for each team.
   // Odd-sized conferences (e.g. 5-team) get fewer conf games due to phantom-team byes;
   // the top-up loop below bridges the gap with extra OOC midweek games.
-  const targetGamesPerTeam = seasonLength === "long" ? 60 : seasonLength === "medium" ? 40 : 20;
+  const targetGamesPerTeam = seasonLength === "full_season" ? 56 : seasonLength === "long" ? 60 : seasonLength === "medium" ? 40 : 20;
   const topupCeiling = targetGamesPerTeam + 4; // prevent runaway inflation
   const confByTeamFinal = new Map<string, string>();
   for (const [cid, teams] of Array.from(confMap)) for (const t of teams) confByTeamFinal.set(t.id, cid);
@@ -546,7 +546,7 @@ export async function generateExhibitionGames(leagueId: string, season: number) 
     new Set(leagueTeams.map(t => t.conferenceId).filter(Boolean)).size >= 2;
 
   const league = await storage.getLeague(leagueId);
-  const TARGET = league?.seasonLength === "long" ? 9 : league?.seasonLength === "medium" ? 6 : 3; // 3/6/9 spring games per standard/medium/long
+  const TARGET = league?.seasonLength === "full_season" ? 4 : league?.seasonLength === "long" ? 9 : league?.seasonLength === "medium" ? 6 : 3; // 3/6/9 spring games per standard/medium/long; full_season=4
   const matchups: Array<{ homeTeamId: string; awayTeamId: string }> = [];
   const gameCounts = new Map(leagueTeams.map(t => [t.id, 0]));
 

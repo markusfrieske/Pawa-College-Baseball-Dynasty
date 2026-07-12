@@ -1190,7 +1190,10 @@ async function generateSuperRegionalBracket(leagueId: string, season: number) {
     g => g.phase === "conference_championship" && g.season === season && g.isComplete
   );
   const confChampionIds = new Set(confChampGames.map(g => getGameWinner(g)));
-  const seededTeams = buildSeededTeams(leagueTeams, standingsList, confChampionIds);
+  const allSeeded = buildSeededTeams(leagueTeams, standingsList, confChampionIds);
+  // SR field: take top 16 (conference champions first, then at-large by win%)
+  // This prevents every team in a 149-team league entering the bracket.
+  const seededTeams = allSeeded.slice(0, Math.min(16, allSeeded.length));
   const N = seededTeams.length;
   if (N < 2) return;
 
@@ -7458,7 +7461,7 @@ export function registerSimulationRoutes(app: Express): void {
           break;
         }
 
-        const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
+        const maxWeeks = currentLeague.seasonLength === "full_season" ? 14 : currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
@@ -7962,7 +7965,7 @@ export function registerSimulationRoutes(app: Express): void {
         while (gIter < MAX_GAME_ITER && gamePhases.includes(currentLeague.currentPhase)) {
           gIter++;
           const phase = currentLeague.currentPhase;
-          const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
+          const maxWeeks = currentLeague.seasonLength === "full_season" ? 14 : currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
           const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
           if (["preseason", "spring_training", "regular_season"].includes(phase)) {
@@ -8185,7 +8188,7 @@ export function registerSimulationRoutes(app: Express): void {
 
         if (phase === "conference_championship") break;
 
-        const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
+        const maxWeeks = currentLeague.seasonLength === "full_season" ? 14 : currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (preseasonPhases.includes(phase)) {
@@ -8300,7 +8303,7 @@ export function registerSimulationRoutes(app: Express): void {
         if (phase === "cws") break;
         if (phase === "offseason_departures") break;
 
-        const maxWeeks = currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
+        const maxWeeks = currentLeague.seasonLength === "full_season" ? 14 : currentLeague.seasonLength === "long" ? 15 : currentLeague.seasonLength === "medium" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (["preseason", "spring_training", "regular_season"].includes(phase)) {

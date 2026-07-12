@@ -8,7 +8,7 @@ import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Star, ArrowLeft, TrendingUp, Check, Camera } from "lucide-react";
+import { Star, ArrowLeft, TrendingUp, Check, Camera, Globe, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
 
@@ -21,26 +21,28 @@ const difficultyOptions = [
 
 const availableConferences = [
   { id: "SEC",            abbr: "SEC",  teams: 16, primaryColor: "#002D72", secondaryColor: "#CFB53B", fullName: "Southeastern Conference" },
-  { id: "ACC",            abbr: "ACC",  teams: 17, primaryColor: "#003087", secondaryColor: "#F47920", fullName: "Atlantic Coast Conference" },
+  { id: "ACC",            abbr: "ACC",  teams: 16, primaryColor: "#003087", secondaryColor: "#F47920", fullName: "Atlantic Coast Conference" },
   { id: "Big 12",         abbr: "B12",  teams: 14, primaryColor: "#00205B", secondaryColor: "#CC0000", fullName: "Big 12 Conference" },
-  { id: "Big Ten",        abbr: "B10",  teams: 18, primaryColor: "#0032A0", secondaryColor: "#E8C84A", fullName: "Big Ten Conference" },
+  { id: "Big Ten",        abbr: "B10",  teams: 17, primaryColor: "#0032A0", secondaryColor: "#E8C84A", fullName: "Big Ten Conference" },
   { id: "Pac-12",         abbr: "P12",  teams: 8,  primaryColor: "#003DA5", secondaryColor: "#C4A962", fullName: "Pac-12 Conference" },
   { id: "AAC",            abbr: "AAC",  teams: 11, primaryColor: "#007A53", secondaryColor: "#003087", fullName: "American Athletic Conference" },
   { id: "WCC",            abbr: "WCC",  teams: 8,  primaryColor: "#6B1D3E", secondaryColor: "#C8A96E", fullName: "West Coast Conference" },
   { id: "Ivy League",     abbr: "IVY",  teams: 8,  primaryColor: "#006438", secondaryColor: "#D4AF37", fullName: "Ivy League" },
-  { id: "Sun Belt",       abbr: "SB",   teams: 13, primaryColor: "#003087", secondaryColor: "#FFD100", fullName: "Sun Belt Conference" },
+  { id: "Sun Belt",       abbr: "SB",   teams: 12, primaryColor: "#003087", secondaryColor: "#FFD100", fullName: "Sun Belt Conference" },
   { id: "Big West",       abbr: "BW",   teams: 10, primaryColor: "#00539C", secondaryColor: "#E87722", fullName: "Big West Conference" },
   { id: "HBCU",           abbr: "HBCU", teams: 16, primaryColor: "#1A1A1A", secondaryColor: "#FFD700", fullName: "HBCU Conferences" },
   { id: "Missouri Valley",abbr: "MVC",  teams: 13, primaryColor: "#5B2C6B", secondaryColor: "#FFD100", fullName: "Missouri Valley Conference" },
 ];
 
 const seasonLengthOptions = [
+  { value: "full_season", label: "Full Season — 60 Games (14 weeks + 4 spring)" },
   { value: "standard", label: "Standard Season — 23 Games (5 weeks + 3 spring)" },
   { value: "medium",   label: "Medium Season — 46 Games (10 weeks + 6 spring)" },
   { value: "long",     label: "Long Season — 69 Games (15 weeks + 9 spring)" },
 ];
 
 const seasonScheduleBreakdown: Record<string, string> = {
+  full_season: "14 weeks · 14 conf series (3 games each) · 14 OOC midweeks · 56 regular season games · 4 spring training games",
   standard: "5 weeks · 5 conf series (3 games each) · 5 OOC midweeks · 20 regular season games · 3 spring training games",
   medium:   "10 weeks · 10 conf series (3 games each) · 10 OOC midweeks · 40 regular season games · 6 spring training games",
   long:     "15 weeks · 15 conf series (3 games each) · 15 OOC midweeks · 60 regular season games · 9 spring training games",
@@ -52,7 +54,11 @@ function isValidTeamCount(n: number, confCount: number): boolean {
   return n % (2 * confCount) === 0;
 }
 
+const ALL_CONFERENCE_IDS = availableConferences.map(c => c.id);
+const FULL_SEASON_TOTAL = availableConferences.reduce((s, c) => s + c.teams, 0);
+
 export default function LeagueCreatePage() {
+  const [mode, setMode] = useState<"full_season" | "custom">("full_season");
   const [name, setName] = useState("");
   const [maxTeams, setMaxTeams] = useState("14");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
@@ -132,6 +138,7 @@ export default function LeagueCreatePage() {
       seasonLength: string;
       progressionEnabled: boolean;
       gameMode: string;
+      preset?: string;
     }) => {
       return apiRequest("POST", "/api/leagues", data);
     },
@@ -163,6 +170,19 @@ export default function LeagueCreatePage() {
       });
       return;
     }
+    if (mode === "full_season") {
+      createLeagueMutation.mutate({
+        name: name.trim(),
+        maxTeams: FULL_SEASON_TOTAL,
+        cpuDifficulty,
+        selectedConferences: ALL_CONFERENCE_IDS,
+        seasonLength: "full_season",
+        progressionEnabled: true,
+        gameMode,
+        preset: "full_season",
+      });
+      return;
+    }
     if (selectedConferences.length < 1) {
       toast({
         title: "Select at least one conference",
@@ -179,6 +199,7 @@ export default function LeagueCreatePage() {
       seasonLength,
       progressionEnabled,
       gameMode,
+      preset: "custom",
     });
   };
 
@@ -208,7 +229,48 @@ export default function LeagueCreatePage() {
           <RetroCardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
 
-              {/* Conference Picker — top of form, icon grid */}
+              {/* Mode toggle — Full Season vs Custom */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMode("full_season")}
+                  data-testid="button-mode-full-season"
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
+                    mode === "full_season"
+                      ? "border-gold bg-gold/10 shadow-[0_0_8px_rgba(212,175,55,0.3)]"
+                      : "border-border bg-card hover:border-gold/40"
+                  }`}
+                >
+                  <Globe className={`w-5 h-5 ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`} />
+                  <span className={`text-[10px] font-pixel leading-tight text-center ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`}>
+                    Full Season
+                  </span>
+                  <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                    All 12 confs · 149 teams · 56 games
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode("custom")}
+                  data-testid="button-mode-custom"
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
+                    mode === "custom"
+                      ? "border-gold bg-gold/10 shadow-[0_0_8px_rgba(212,175,55,0.3)]"
+                      : "border-border bg-card hover:border-gold/40"
+                  }`}
+                >
+                  <Settings className={`w-5 h-5 ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`} />
+                  <span className={`text-[10px] font-pixel leading-tight text-center ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`}>
+                    Custom
+                  </span>
+                  <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                    Pick conferences, size &amp; length
+                  </span>
+                </button>
+              </div>
+
+              {/* Custom-only: Conference Picker */}
+              {mode === "custom" && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-medium text-gold uppercase tracking-widest">Conferences</label>
@@ -234,7 +296,6 @@ export default function LeagueCreatePage() {
                         }`}
                         data-testid={`checkbox-conference-${conf.id.replace(/\s/g, '-')}`}
                       >
-                        {/* Conference badge */}
                         <div
                           className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-pixel font-bold text-white shrink-0"
                           style={{
@@ -245,15 +306,11 @@ export default function LeagueCreatePage() {
                         >
                           {conf.abbr}
                         </div>
-
-                        {/* Gold checkmark badge when selected */}
                         {isSelected && (
                           <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gold rounded-full flex items-center justify-center z-10 shadow-sm">
                             <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
                           </div>
                         )}
-
-                        {/* Team count pill — always visible when selected, fades in on hover otherwise */}
                         <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-background border whitespace-nowrap transition-opacity pointer-events-none ${
                           isSelected
                             ? "border-gold text-gold opacity-100"
@@ -266,6 +323,7 @@ export default function LeagueCreatePage() {
                   })}
                 </div>
               </div>
+              )}
 
               <RetroInput
                 id="dynastyName"
@@ -277,6 +335,7 @@ export default function LeagueCreatePage() {
                 data-testid="input-dynasty-name"
               />
 
+              {mode === "custom" && (
               <div>
                 <RetroSelect
                   id="teamCount"
@@ -288,12 +347,14 @@ export default function LeagueCreatePage() {
                   data-testid="select-team-count"
                 />
               </div>
+              )}
 
+              {mode === "custom" && (
               <div>
                 <RetroSelect
                   id="seasonLength"
                   label="Season Length"
-                  options={seasonLengthOptions}
+                  options={seasonLengthOptions.filter(o => o.value !== "full_season")}
                   value={seasonLength}
                   onChange={(e) => setSeasonLength(e.target.value)}
                   data-testid="select-season-length"
@@ -305,6 +366,7 @@ export default function LeagueCreatePage() {
                   </p>
                 )}
               </div>
+              )}
 
               <RetroSelect
                 id="difficulty"
