@@ -5,6 +5,43 @@ import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
+import { CONFERENCE_CATALOG, FULL_SEASON_TOTAL, CONF_SIZE_MAP, CATALOG_TEAMS } from "../shared/catalog";
+import { TOTAL_NATIONAL_TEAMS, NATIONAL_RANKS, ROSTER_SCALE_FACTORS } from "./rosterScaleFactors";
+
+// ── Server-side catalog validation ─────────────────────────────────────────
+// Runs synchronously at startup before routes are registered. Aborts the
+// process if the catalog invariants required by Full Season are violated.
+(function validateCatalogAtStartup() {
+  const errs: string[] = [];
+  if (CONFERENCE_CATALOG.length !== 12)
+    errs.push(`Expected 12 conferences, got ${CONFERENCE_CATALOG.length}`);
+  const derivedTotal = CONFERENCE_CATALOG.reduce((s, c) => s + c.size, 0);
+  if (derivedTotal !== FULL_SEASON_TOTAL)
+    errs.push(`Conference sizes sum to ${derivedTotal}, expected ${FULL_SEASON_TOTAL}`);
+  if (FULL_SEASON_TOTAL !== TOTAL_NATIONAL_TEAMS)
+    errs.push(`FULL_SEASON_TOTAL (${FULL_SEASON_TOTAL}) ≠ TOTAL_NATIONAL_TEAMS (${TOTAL_NATIONAL_TEAMS})`);
+  const catalogNames = new Set(CATALOG_TEAMS.map(t => t.name));
+  if (catalogNames.size !== FULL_SEASON_TOTAL)
+    errs.push(`CATALOG_TEAMS has ${catalogNames.size} unique teams, expected ${FULL_SEASON_TOTAL}`);
+  for (const name of Object.keys(NATIONAL_RANKS)) {
+    if (!catalogNames.has(name))
+      errs.push(`NATIONAL_RANKS team "${name}" not found in CATALOG_TEAMS`);
+  }
+  for (const name of catalogNames) {
+    if (!(name in ROSTER_SCALE_FACTORS))
+      errs.push(`CATALOG_TEAMS team "${name}" has no ROSTER_SCALE_FACTORS entry`);
+  }
+  for (const name of Object.keys(CONF_SIZE_MAP)) {
+    if (!CONFERENCE_CATALOG.find(c => c.name === name))
+      errs.push(`CONF_SIZE_MAP key "${name}" not in CONFERENCE_CATALOG`);
+  }
+  if (errs.length > 0) {
+    console.error("[catalog-validation] STARTUP FAILED — catalog invariants violated:");
+    errs.forEach(e => console.error("  ✗", e));
+    process.exit(1);
+  }
+  console.log(`[catalog-validation] OK — ${CONFERENCE_CATALOG.length} conferences, ${FULL_SEASON_TOTAL} teams`);
+})();
 
 const app = express();
 const httpServer = createServer(app);

@@ -41,6 +41,12 @@ const settingsSchema = z.object({
   emailDigestsEnabled: z.boolean().optional(),
   showReadyNamesToAll: z.boolean().optional(),
   gameMode: z.enum(["simulated", "reported"]).optional(),
+  // The following fields are creation-time locked for full_season leagues.
+  // Accepting them in the schema lets us detect and reject mutation attempts.
+  maxTeams: z.number().int().optional(),
+  conferenceCount: z.number().int().optional(),
+  seasonLength: z.string().optional(),
+  progressionEnabled: z.boolean().optional(),
 });
 
 type SimulateGameFn = (homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhil?: string, awayPhil?: string, week?: number | null) => Promise<{ homeScore: number; awayScore: number; boxScore: string }>;
@@ -1185,10 +1191,19 @@ app.patch("/api/leagues/:id/settings", requireAuth, async (req, res) => {
 
     // Full Season preset: certain settings are locked at dynasty creation and cannot be changed.
     const isFullSeason = (league as any).dynastyPreset === "full_season";
-    if (isFullSeason && result.data.gameMode !== undefined && result.data.gameMode !== "simulated") {
-      return res.status(409).json({
-        message: "Full Season dynasties are locked to Simulated game mode and cannot be switched to Reported mode.",
-      });
+    if (isFullSeason) {
+      const FULL_SEASON_LOCKED_FIELDS = ["maxTeams", "conferenceCount", "seasonLength", "progressionEnabled"] as const;
+      const attempted = FULL_SEASON_LOCKED_FIELDS.filter(f => (result.data as any)[f] !== undefined);
+      if (attempted.length > 0) {
+        return res.status(409).json({
+          message: `Full Season dynasties have locked settings that cannot be changed after creation: ${attempted.join(", ")}.`,
+        });
+      }
+      if (result.data.gameMode !== undefined && result.data.gameMode !== "simulated") {
+        return res.status(409).json({
+          message: "Full Season dynasties are locked to Simulated game mode and cannot be switched to Reported mode.",
+        });
+      }
     }
 
     const updateData: Record<string, any> = {};

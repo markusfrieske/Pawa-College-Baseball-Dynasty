@@ -327,6 +327,9 @@ export function registerGameRoutes(app: Express): void {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode. Games are auto-simulated." });
+      }
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can view all game reports" });
       }
@@ -343,6 +346,9 @@ export function registerGameRoutes(app: Express): void {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode. Games are auto-simulated." });
+      }
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can view pending game reports" });
       }
@@ -365,6 +371,10 @@ export function registerGameRoutes(app: Express): void {
 
       const fetchLeague = await storage.getLeague(fetchLeagueId);
       if (!fetchLeague) return res.status(404).json({ message: "League not found" });
+
+      if ((fetchLeague as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode. Games are auto-simulated." });
+      }
 
       const fetchGame = await storage.getGame(fetchGameId);
       if (!fetchGame || fetchGame.leagueId !== fetchLeagueId) {
