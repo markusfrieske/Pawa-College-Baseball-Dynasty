@@ -416,19 +416,23 @@ export function generateRecruitClass(
   if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.max(1, Math.floor(count * 0.05)));
   // Scale gem/bust/raw counts proportionally to pool size.
   // poolScale = 1.0 for the standard 80-recruit class; larger values for
-  // full_season (200 recruits → poolScale ≈ 2.5).
+  // full_season (1,081 recruits → poolScale ≈ 13.5).
   // All three variables produce the same absolute numbers as before when
   // count = 80 (poolScale = 1), preserving existing balance for custom leagues.
   const poolScale = count / 80;
+  // gemBustScale is capped at 3.0 so rare archetypes stay proportionally bounded
+  // for large (full-season) pools. At cap=3.0 the absolute counts are 15–33 gems/busts
+  // in a 1,081-recruit class (~1.4–3.1%), which is already generous.
+  const gemBustScale = Math.min(poolScale, 3.0);
   const numRegGems = opts.wizardSpecialCounts?.gems != null
     ? Math.min(opts.wizardSpecialCounts.gems, Math.floor(count * 0.15))
-    : Math.max(5, Math.round(5 * poolScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * poolScale)));
+    : Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * gemBustScale)));
   const numRegBusts = opts.wizardSpecialCounts?.busts != null
     ? Math.min(opts.wizardSpecialCounts.busts, Math.floor(count * 0.15))
-    : Math.max(5, Math.round(5 * poolScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * poolScale)));
+    : Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * gemBustScale)));
   const rawTalentBase = theme === "raw_talent"
-    ? (Math.max(10, Math.round(10 * poolScale)) + Math.floor(Math.random() * Math.max(7, Math.round(7 * poolScale))))
-    : (Math.max(5, Math.round(5 * poolScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * poolScale))));
+    ? (Math.max(10, Math.round(10 * gemBustScale)) + Math.floor(Math.random() * Math.max(7, Math.round(7 * gemBustScale))))
+    : (Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * gemBustScale))));
   const numRawPlayers = opts.wizardSpecialCounts?.rawPlayers != null
     ? Math.min(opts.wizardSpecialCounts.rawPlayers, Math.floor(count * 0.20))
     : rawTalentBase;
@@ -875,8 +879,14 @@ export function generateRecruitClass(
   };
 
   // Tracks total gold special abilities assigned so far in this class.
-  // Cap scales with class size: round(20 * count / 80), matching the validator formula.
-  const classGoldCap = Math.round(20 * count / 80);
+  // For custom leagues (≤80 recruits): 20 golds baseline, scales linearly with count.
+  // For large pools (full-season, >80): base cap round(count/8) + blue-chip bypass tolerance.
+  //   Blue-chip and pitcher-gem recruits can retain 1 "protected" gold when removing it
+  //   would drop OVR below their archetype floor. Adding ~numBlueChips (≈3% of count) as
+  //   tolerance ensures the validator cap matches the generator's real output. Validator uses same rule.
+  const classGoldCap = count <= 80
+    ? Math.round(20 * count / 80)
+    : Math.round(count / 8) + Math.max(2, Math.floor(count * 0.03));
   let classGoldCount = 0;
 
   for (let i = 0; i < count; i++) {

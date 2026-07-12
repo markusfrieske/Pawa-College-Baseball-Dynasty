@@ -1569,15 +1569,22 @@ async function applyPlayerProgression(leagueId: string) {
 
   const gradeStats: Record<string, { count: number; totalDelta: number; gainers: number; decliners: number }> = {};
 
-  for (const team of teams) {
-    const roster = await storage.getPlayersByTeam(team.id);
+  // Batch containers: compute all progression in memory, then write in parallel chunks
+  // to avoid N sequential DB round-trips (critical for large full-season leagues with 3,700+ players).
+  const progressionWrites: Array<{ id: string; updates: Record<string, any> }> = [];
+  const ovrStatWrites: Array<{ playerId: string; ovr: number }> = [];
+  const seniorClears: string[] = [];
+
+  for (let ti = 0; ti < teams.length; ti++) {
+    const team = teams[ti];
+    const roster = allRosters[ti]; // reuse pre-fetched roster — no extra DB round-trip per team
     for (const player of roster) {
       if (player.potential == null) continue;
 
-      // Seniors graduate without a progression delta — clear any stale deltas
+      // Seniors graduate without a progression delta — collect for batch clear
       if ((player as any).eligibility === "SR") {
         if ((player as any).progressionDeltas != null) {
-          await storage.updatePlayer(player.id, { progressionDeltas: null } as any);
+          seniorClears.push(player.id);
         }
         continue;
       }
@@ -1600,7 +1607,7 @@ async function applyPlayerProgression(leagueId: string) {
       // correctly reflects what the current formula would produce for these attrs.
       const baselineOvr = calculateOVR(player as any);
 
-      const updates: Record<string, number> = {};
+      const updates: Record<string, any> = {};
       const deltas: Record<string, number> = {};
 
       const presentAttrFields = attrFields.filter(f => (player as any)[f] != null);
@@ -1676,15 +1683,13 @@ async function applyPlayerProgression(leagueId: string) {
       if (ovrDelta !== 0) deltas["overall"] = ovrDelta;
 
       updates["starRating"] = getStarRatingFromOVR(newOverall);
+      updates["progressionDeltas"] = Object.keys(deltas).length > 0 ? deltas : null;
 
-      (updates as any)["progressionDeltas"] = Object.keys(deltas).length > 0 ? deltas : null;
-
-      await storage.updatePlayer(player.id, updates);
+      progressionWrites.push({ id: player.id, updates });
       progressed++;
 
-      // Record the end-of-season OVR in player_season_stats for career history tracking
       if (newOverall) {
-        await storage.setPlayerSeasonStatsOvr(player.id, leagueId, league.currentSeason, newOverall);
+        ovrStatWrites.push({ playerId: player.id, ovr: newOverall });
       }
 
       // Accumulate per-potential-grade OVR changes for the verification summary log.
@@ -1695,6 +1700,25 @@ async function applyPlayerProgression(leagueId: string) {
       if (ovrDelta > 0) gradeStats[potGrade].gainers++;
       else if (ovrDelta < 0) gradeStats[potGrade].decliners++;
     }
+  }
+
+  // Write all updates in parallel chunks of 50 — avoids sequential round-trips while
+  // keeping chunk size small enough not to overwhelm the DB connection pool.
+  const PROG_CHUNK = 50;
+  for (let i = 0; i < seniorClears.length; i += PROG_CHUNK) {
+    await Promise.all(seniorClears.slice(i, i + PROG_CHUNK).map(id =>
+      storage.updatePlayer(id, { progressionDeltas: null } as any)
+    ));
+  }
+  for (let i = 0; i < progressionWrites.length; i += PROG_CHUNK) {
+    await Promise.all(progressionWrites.slice(i, i + PROG_CHUNK).map(u =>
+      storage.updatePlayer(u.id, u.updates)
+    ));
+  }
+  for (let i = 0; i < ovrStatWrites.length; i += PROG_CHUNK) {
+    await Promise.all(ovrStatWrites.slice(i, i + PROG_CHUNK).map(u =>
+      storage.setPlayerSeasonStatsOvr(u.playerId, leagueId, league!.currentSeason, u.ovr)
+    ));
   }
 
   // Log a verification summary so it's easy to confirm potential tiers are differentiated.
@@ -2300,6 +2324,26 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
   let totalRecruitsAdded = 0;
   let totalTransferred = 0;
 
+  // Pre-load all recruiting interests for the league in one query — avoids N per-recruit
+  // fetches in the interest-based auto-commit loop (critical for ~1,081 recruit pools).
+  const allLeagueInterests = await storage.getRecruitingInterestsByLeague(leagueId);
+  const interestsByRecruit = new Map<string, typeof allLeagueInterests>();
+  for (const interest of allLeagueInterests) {
+    const arr = interestsByRecruit.get(interest.recruitId) ?? [];
+    arr.push(interest);
+    interestsByRecruit.set(interest.recruitId, arr);
+  }
+
+  // Pre-load all roster players for the league in one query — avoids N per-team fetches
+  // in the CPU fill/dynamic/sweep loops (critical for 149-team full-season leagues).
+  const preloadedRosterPlayers = await storage.getPlayersByTeamIds(teams.map(t => t.id));
+  const playersByTeam = new Map<string, typeof preloadedRosterPlayers>();
+  for (const player of preloadedRosterPlayers) {
+    const arr = playersByTeam.get(player.teamId) ?? [];
+    arr.push(player);
+    playersByTeam.set(player.teamId, arr);
+  }
+
   // NIL budget tracking — accumulate locally, persist at the end
   const nilSpentAccum = new Map<string, number>(teams.map(t => [t.id, t.nilSpent || 0]));
   const nilBudgetMap = new Map<string, number>(teams.map(t => [t.id, t.nilBudget || 0]));
@@ -2322,7 +2366,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     );
     for (const recruit of undecidedForInterest) {
       try {
-        const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+        const interests = interestsByRecruit.get(recruit.id) ?? [];
         // Canonical resolver: only award to teams with offer + threshold met + NIL budget.
         // No fallback to no-offer teams — a team that never extended a scholarship cannot win.
         const recruitNilCost = recruit.nilCost || 0;
@@ -2362,7 +2406,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
   for (const team of teams) {
     // Auto-pilot human teams get the same CPU minimum-roster auto-fill
     if (!team.isCpu && !team.isAutoPilot) continue;
-    const currentRoster = await storage.getPlayersByTeam(team.id);
+    const currentRoster = playersByTeam.get(team.id) ?? [];
     const alreadySignedCount = allRecruitsPreCheck.filter(r => r.signedTeamId === team.id).length;
     const projectedSize = currentRoster.length + alreadySignedCount;
     if (projectedSize <= MIN_ROSTER) {
@@ -2435,7 +2479,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
 
     for (const team of teams) {
       if (!team.isCpu && !team.isAutoPilot) continue;
-      const currentRoster = await storage.getPlayersByTeam(team.id);
+      const currentRoster = playersByTeam.get(team.id) ?? [];
       const signedCount = allAfterAutoCommit.filter(r => r.signedTeamId === team.id).length;
       // Dynamic target: fill to MAX_ROSTER — do NOT apply MIN_CLASS_FLOOR here because
       // it can push the final count above 25 when the existing roster is large.
@@ -2508,7 +2552,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
       const sweepEntries: SweepEntry[] = [];
       for (const team of teams) {
         if (!team.isCpu && !team.isAutoPilot) continue;
-        const currentRoster = await storage.getPlayersByTeam(team.id);
+        const currentRoster = playersByTeam.get(team.id) ?? [];
         const signedCount = afterDynamic.filter(r => r.signedTeamId === team.id).length;
         const projectedSize = currentRoster.length + signedCount;
         const slotsLeft = Math.max(0, MAX_ROSTER - projectedSize);
@@ -3801,6 +3845,54 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
     console.log(`[attr-evolution] Season ${completedSeason} attribute updates applied for league ${leagueId}`);
   } catch (evoErr) {
     console.error("[attr-evolution] Failed to apply program attribute evolution:", evoErr);
+  }
+
+  // ── Roster health enforcement ─────────────────────────────────────────────
+  // After the walk-on phase, every team must have at least MIN_ROSTER_HEALTH
+  // players so games can be simulated. This catches edge cases (e.g. large
+  // full-season leagues where the walk-on pool ran dry before every team
+  // filled). Teams that are still under the floor get synthetic 0-1★ filler
+  // walk-ons generated inline (same as the walk-on pool fillers).
+  try {
+    const MIN_ROSTER_HEALTH = 18;
+    const allTeamsPostWalkon = await storage.getTeamsByLeague(leagueId);
+    for (const team of allTeamsPostWalkon) {
+      const finalRoster = await storage.getPlayersByTeam(team.id);
+      const deficit = MIN_ROSTER_HEALTH - finalRoster.length;
+      if (deficit <= 0) continue;
+      console.warn(`[finalizeWalkonsPhase] Roster health: ${team.name} has ${finalRoster.length} players — auto-filling ${deficit} filler(s)`);
+      const positionCounts: Record<string, number> = {};
+      for (const p of finalRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+      const positions = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "P"];
+      for (let d = 0; d < deficit; d++) {
+        // Pick the most-needed position
+        const pos = positions.slice().sort((a, b) => (positionCounts[a] || 0) - (positionCounts[b] || 0))[0];
+        positionCounts[pos] = (positionCounts[pos] || 0) + 1;
+        const fillerAttrs = 20 + Math.floor(Math.random() * 25);
+        await storage.createPlayer({
+          teamId: team.id,
+          leagueId,
+          firstName: "Walk",
+          lastName: `On-${d + 1}`,
+          position: pos,
+          year: "FR",
+          overall: fillerAttrs + 100,
+          potential: "D",
+          bats: "R",
+          throws: "R",
+          homeState: "N/A",
+          abilities: [],
+          contact: fillerAttrs, power: fillerAttrs, speed: fillerAttrs,
+          fielding: fillerAttrs, arm: fillerAttrs, accuracy: fillerAttrs,
+          velocity: fillerAttrs, stuff: fillerAttrs, control: fillerAttrs,
+          stamina: pos === "P" ? fillerAttrs : 0,
+          isWalkOn: true,
+        } as any);
+      }
+    }
+    console.log(`[finalizeWalkonsPhase] Roster health check complete for ${allTeamsPostWalkon.length} teams`);
+  } catch (rosterHealthErr) {
+    console.error("[finalizeWalkonsPhase] Roster health enforcement error (non-fatal):", rosterHealthErr);
   }
 
   // Reset coach isReady for all human coaches now that the phase is preseason.

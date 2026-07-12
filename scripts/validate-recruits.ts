@@ -20,7 +20,7 @@ import { computeRecruitPoolSize } from "../shared/catalog";
 
 const SAMPLE_CLASSES = 10;
 const CLASS_SIZE = 75;
-const FULL_SEASON_CLASS_SIZE = computeRecruitPoolSize(149); // ~200 for 149-team full_season
+const FULL_SEASON_CLASS_SIZE = computeRecruitPoolSize(149); // ~1081 for 149-team full_season
 
 const CANONICAL_NAMES = new Set(ALL_ABILITIES.map(a => a.name));
 const OUTFIELD_POSITIONS = new Set(["OF", "LF", "CF", "RF"]);
@@ -62,8 +62,14 @@ let totalRecruits = 0;
  * absolute terms.
  */
 function scanClasses(numClasses: number, classSize: number, label: string): void {
-  // Gold cap: 20 for the standard 80-recruit class, scales linearly.
-  const goldCap = Math.round(20 * classSize / 80);
+  // Gold cap formula mirrors recruit-generator.ts classGoldCap:
+  //   ≤80 recruits: round(20 × classSize / 80)  — linear from baseline
+  //   >80 recruits: round(classSize / 8) + blue-chip bypass tolerance
+  //     Pitcher gem/blueChip recruits retain protected golds when removal would
+  //     violate their OVR floor. Tolerance ≈ numBlueChips = floor(classSize × 0.03).
+  const goldCap = classSize <= 80
+    ? Math.round(20 * classSize / 80)
+    : Math.round(classSize / 8) + Math.max(2, Math.floor(classSize * 0.03));
 
   for (let c = 0; c < numClasses; c++) {
     const recruits = generateRecruitClass(classSize);
@@ -171,13 +177,14 @@ function scanClasses(numClasses: number, classSize: number, label: string): void
 // ── Pool-size assertion matrix ────────────────────────────────────────────────
 // Proves that computeRecruitPoolSize returns the expected value for key team
 // counts.  Custom leagues (≤20 teams) must always return exactly 80.
-// Full-season (149 teams) must return exactly 200.
+// Full-season (149 teams) uses the roster-demand formula:
+//   max(ceil(149×25/4), ceil(149×7.25)) = max(932, 1081) = 1081
 const POOL_SIZE_ASSERTIONS: { teams: number; expected: number }[] = [
-  { teams: 4,   expected: 80  },
-  { teams: 10,  expected: 80  },
-  { teams: 15,  expected: 80  },
-  { teams: 20,  expected: 80  },
-  { teams: 149, expected: 200 },
+  { teams: 4,   expected: 80   },
+  { teams: 10,  expected: 80   },
+  { teams: 15,  expected: 80   },
+  { teams: 20,  expected: 80   },
+  { teams: 149, expected: 1081 },
 ];
 let poolSizeErrors = 0;
 for (const { teams, expected } of POOL_SIZE_ASSERTIONS) {
@@ -196,9 +203,10 @@ if (poolSizeErrors === 0) {
 // Standard custom-league classes (75 recruits each)
 scanClasses(SAMPLE_CLASSES, CLASS_SIZE, "Standard");
 
-// Full-season classes (200 recruits each) — validates pool-size scaling
-const FULL_SEASON_SAMPLE = 3;
-console.log(`Running ${FULL_SEASON_SAMPLE} full-season classes at ${FULL_SEASON_CLASS_SIZE} recruits each...`);
+// Full-season classes (~1,081 recruits each) — validates pool-size scaling.
+// Sample count is 1 (not 3) to keep validator runtime reasonable at this scale.
+const FULL_SEASON_SAMPLE = 1;
+console.log(`Running ${FULL_SEASON_SAMPLE} full-season class at ${FULL_SEASON_CLASS_SIZE} recruits...`);
 scanClasses(FULL_SEASON_SAMPLE, FULL_SEASON_CLASS_SIZE, "FullSeason");
 
 const mismatchViolations = violations.filter(v => v.kind === "position-mismatch");

@@ -19,24 +19,26 @@ export const FULL_SEASON_TOTAL: number = CONFERENCE_CATALOG.reduce((s, c) => s +
 /**
  * Compute the recruit pool size for a given number of teams.
  *
- * ≤20 teams (custom): teamCount × 5 + 10, capped at 80.
- *   4 teams → 30 | 10 teams → 60 | 14+ teams → 80
+ * ≤20 teams (custom leagues): fixed 80 recruits.
+ *   Unchanged from original formula — custom league balance is unaffected.
  *
- * >20 teams (large / full_season): linear interpolation 80 → 200 as
- *   team count goes from 20 → FULL_SEASON_TOTAL (149).
- *   Target: ~1.25 recruits per team, matching the real NCAA signing-day
- *   ratio. Capped at 200 so generation stays performant at full scale.
- *   149 teams → 200 recruits
+ * >20 teams (large / full_season): roster-demand formula.
+ *   steadyStateDemand  = ceil(teams × rosterLimit / eligibilityYears)
+ *   minimumNationalBoard = ceil(teams × 7.25)   — competition depth floor
+ *   result = max(steadyStateDemand, minimumNationalBoard)
  *
- * This is the canonical source of truth — imported by server/utils.ts
- * and scripts that need the same pool-size arithmetic.
+ *   For 149 teams: max(ceil(149×25/4), ceil(149×7.25)) = max(932, 1081) = 1081
+ *
+ * This is the canonical source of truth — imported by server/utils.ts,
+ * server/services/recruitPoolPlanner.ts, and validation scripts.
  */
 export function computeRecruitPoolSize(numTeams: number): number {
   if (numTeams <= 20) return 80;
-  return Math.min(
-    200,
-    Math.round(80 + (numTeams - 20) * (200 - 80) / (FULL_SEASON_TOTAL - 20)),
-  );
+  const ROSTER_LIMIT = 25;
+  const ELIGIBILITY_YEARS = 4;
+  const steadyStateDemand = Math.ceil(numTeams * ROSTER_LIMIT / ELIGIBILITY_YEARS);
+  const minimumNationalBoard = Math.ceil(numTeams * 7.25);
+  return Math.max(steadyStateDemand, minimumNationalBoard);
 }
 
 export const FULL_SEASON_RULES = {
