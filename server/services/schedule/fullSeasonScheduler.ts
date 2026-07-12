@@ -98,69 +98,89 @@ function expandToWeeks(
   return doubled.slice(0, NUM_WEEKS);
 }
 
-/** OOC greedy matcher for one week.
+/** OOC constrained matcher for one week.
  *  byeTeamIds: teams that need 4 OOC slots (they have a conf bye this week).
  *  All other teams need 1 OOC slot.
- *  Returns 79 pairs of (home, away) from different conferences. */
+ *  Returns 79 pairs of (home, away) guaranteed to be cross-conference.
+ *
+ *  Algorithm — "task scheduler" max-heap interleaving:
+ *    1. Expand each team into N slots (bye=4, normal=1), grouped by conference.
+ *    2. Use a greedy max-heap: always pick the highest-slot-count conference
+ *       that is different from the previously placed conference.
+ *       This guarantees no two adjacent slots share a conference.
+ *    3. Pair adjacent positions (0,1), (2,3), … — since no adjacent pair
+ *       shares a conference, all pairs are guaranteed cross-conference.
+ *       Bye teams appear 4×; their instances are always separated by slots
+ *       from other conferences, so no team is ever paired with itself.
+ *
+ *  Correctness: Hall's marriage theorem guarantees a valid non-adjacent-same-
+ *  conf placement exists iff no single conference holds > ⌊totalSlots/2⌋ + 1
+ *  slots.  Our largest conf (Big Ten-17 + 1 bye-team × 4 extra slots = max 20)
+ *  is far below the threshold (79 for 158 total slots), so the greedy always
+ *  succeeds.
+ */
 function matchOocPairs(
   allTeams: ScheduleTeam[],
   byeTeamIds: Set<string>,
   confIdByTeamId: Map<string, string>,
   weekSeed: number,
 ): Matchup[] {
-  // Track remaining OOC need per team.
-  const needs = new Map<string, number>();
-  for (const t of allTeams) needs.set(t.id, byeTeamIds.has(t.id) ? 4 : 1);
-
-  const teamById = new Map(allTeams.map(t => [t.id, t]));
-  const pairs: Matchup[] = [];
-  let iterations = 0;
-  const maxIterations = allTeams.length * 6; // safety bound
-
-  while (iterations++ < maxIterations) {
-    // Find team with highest remaining need (deterministic: sort by need desc, then id asc).
-    let teamA: ScheduleTeam | null = null;
-    let maxNeed = 0;
-    for (const [id, n] of needs) {
-      if (n > maxNeed || (n === maxNeed && teamA && id < teamA.id)) {
-        maxNeed = n;
-        teamA = teamById.get(id)!;
-      }
-    }
-    if (!teamA || maxNeed === 0) break;
-
-    const confA = confIdByTeamId.get(teamA.id)!;
-
-    // Find a partner: different conference, still has need > 0, not teamA.
-    // Sort candidates deterministically (by need desc, then id asc) for reproducibility.
-    const candidates: Array<{ team: ScheduleTeam; need: number }> = [];
-    for (const [id, n] of needs) {
-      if (n > 0 && id !== teamA.id && confIdByTeamId.get(id) !== confA) {
-        candidates.push({ team: teamById.get(id)!, need: n });
-      }
-    }
-    if (candidates.length === 0) {
-      // Fallback: allow same-conference OOC only if no other option exists.
-      for (const [id, n] of needs) {
-        if (n > 0 && id !== teamA.id) {
-          candidates.push({ team: teamById.get(id)!, need: n });
-        }
-      }
-    }
-    if (candidates.length === 0) break;
-
-    // Use weekSeed + pair index for home/away alternation.
-    const teamB = candidates.sort((a, b) => b.need - a.need || a.team.id.localeCompare(b.team.id))[0].team;
-    const isHomeA = (weekSeed + pairs.length) % 2 === 0;
-    pairs.push(isHomeA ? { home: teamA, away: teamB } : { home: teamB, away: teamA });
-
-    needs.set(teamA.id, maxNeed - 1);
-    const prevB = needs.get(teamB.id)!;
-    needs.set(teamB.id, prevB - 1);
-    if (needs.get(teamA.id) === 0) needs.delete(teamA.id);
-    if (needs.get(teamB.id) === 0) needs.delete(teamB.id);
+  // Step 1: Build per-conference team queues.
+  //         Each entry holds the team and its remaining slot count.
+  const confQueues = new Map<string, ScheduleTeam[]>();
+  for (const t of allTeams) {
+    const conf = confIdByTeamId.get(t.id)!;
+    if (!confQueues.has(conf)) confQueues.set(conf, []);
+    const count = byeTeamIds.has(t.id) ? 4 : 1;
+    for (let i = 0; i < count; i++) confQueues.get(conf)!.push(t);
   }
 
+  // Max-heap entries: [conf, remainingCount]
+  // We use a sorted array re-sorted after each pick (small enough: 12 confs).
+  const heap: Array<[string, number]> = Array.from(confQueues.entries())
+    .map(([conf, arr]) => [conf, arr.length] as [string, number])
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  // Step 2: Greedily build the interleaved slot sequence.
+  const slots: ScheduleTeam[] = [];
+  let lastConf: string | null = null;
+
+  while (heap.length > 0) {
+    // Find the highest-count conf that differs from the last placed conf.
+    let pickIdx = 0;
+    if (heap[0][0] === lastConf) {
+      if (heap.length === 1) {
+        // Should be impossible given Hall's condition.
+        throw new Error(
+          `OOC matcher: stuck — only remaining conf is ${heap[0][0]} (same as last). ` +
+          `Total slots: ${slots.length + heap[0][1]}`,
+        );
+      }
+      pickIdx = 1;
+    }
+
+    const [conf, remaining] = heap[pickIdx];
+    slots.push(confQueues.get(conf)!.shift()!);
+    lastConf = conf;
+
+    heap.splice(pickIdx, 1);
+    if (remaining > 1) {
+      heap.push([conf, remaining - 1]);
+      heap.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    }
+  }
+
+  // Step 3: Emit pairs from adjacent positions — cross-conf is guaranteed by
+  //         the interleaving.  Alternate home/away with weekSeed for fairness.
+  const pairs: Matchup[] = [];
+  for (let i = 0; i + 1 < slots.length; i += 2) {
+    const isHomeA = (weekSeed + pairs.length) % 2 === 0;
+    pairs.push(
+      isHomeA
+        ? { home: slots[i], away: slots[i + 1] }
+        : { home: slots[i + 1], away: slots[i] },
+    );
+  }
   return pairs;
 }
 
@@ -304,6 +324,21 @@ export function validateFullSeasonSchedule(
     errors.push({
       code: "GAME_OUT_OF_WEEK_RANGE",
       message: `${outOfRange.length} game(s) have week outside 1–${NUM_WEEKS}`,
+    });
+  }
+
+  // Invariant 5: OOC games must not involve same-conference opponents.
+  const confIdByTeamId = new Map(teams.map(t => [t.id, t.conferenceId]));
+  const oocGames = regularGames.filter(g => !g.isConference);
+  const sameConfOoc = oocGames.filter(g => {
+    const confH = confIdByTeamId.get(g.homeTeamId);
+    const confA = confIdByTeamId.get(g.awayTeamId);
+    return confH && confA && confH === confA;
+  });
+  if (sameConfOoc.length > 0) {
+    errors.push({
+      code: "OOC_SAME_CONFERENCE",
+      message: `${sameConfOoc.length} OOC game(s) involve teams from the same conference (cross-conference only is required)`,
     });
   }
 

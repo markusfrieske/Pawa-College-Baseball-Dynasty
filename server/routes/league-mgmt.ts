@@ -2377,6 +2377,21 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
           message: `Full Season: ${outOfRangeGames.length} game(s) have week values outside the required 1–14 range`,
         });
       }
+      // OOC conference separation: no OOC game may have both teams in the same conference
+      const confIdByTeamIdMap = new Map(allTeams.map(t => [t.id, t.conferenceId]));
+      const sameConfOocGames = regularGames.filter(g => {
+        if (g.isConference) return false;
+        const cH = confIdByTeamIdMap.get(g.homeTeamId ?? "");
+        const cA = confIdByTeamIdMap.get(g.awayTeamId ?? "");
+        return cH && cA && cH === cA;
+      });
+      if (sameConfOocGames.length > 0) {
+        warnings.push({
+          severity: "error",
+          code: "FS_OOC_SAME_CONF",
+          message: `Full Season: ${sameConfOocGames.length} OOC game(s) involve teams from the same conference`,
+        });
+      }
     }
     const teamsWithByes = teamStats.filter(t => t.byeWeeks.length > 1);
     const teamsWithOverloaded = teamStats.filter(t => t.overloadedWeeks.length > 0);
