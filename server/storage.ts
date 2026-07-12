@@ -140,6 +140,7 @@ export interface IStorage {
   getGamesByTeam(teamId: string): Promise<Game[]>;
   createGame(game: InsertGame): Promise<Game>;
   batchCreateGames(gamesData: InsertGame[]): Promise<Game[]>;
+  deleteRegularGamesByLeagueSeason(leagueId: string, season: number): Promise<void>;
   updateGame(id: string, data: Partial<Game>): Promise<Game | undefined>;
   batchUpdateGames(updates: Array<{id: string; homeScore: number; awayScore: number; boxScore: string}>): Promise<void>;
 
@@ -802,6 +803,16 @@ export class DatabaseStorage implements IStorage {
       results.push(...rows);
     }
     return results;
+  }
+
+  async deleteRegularGamesByLeagueSeason(leagueId: string, season: number): Promise<void> {
+    await db.delete(games).where(
+      and(
+        eq(games.leagueId, leagueId),
+        eq(games.season, season),
+        eq(games.phase, "regular"),
+      )
+    );
   }
 
   async updateGame(id: string, data: Partial<Game>): Promise<Game | undefined> {

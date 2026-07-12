@@ -2365,6 +2365,18 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
           message: `Full Season: ${trueByeViolations.length} team(s) have at least one week with 0 games (all teams should play 4 games/week)`,
         });
       }
+      // Week range: all regular games must be in weeks 1-14
+      const outOfRangeGames = regularGames.filter(g => {
+        const w = g.week ?? 0;
+        return w < 1 || w > 14;
+      });
+      if (outOfRangeGames.length > 0) {
+        warnings.push({
+          severity: "error",
+          code: "FS_WEEK_RANGE_VIOLATION",
+          message: `Full Season: ${outOfRangeGames.length} game(s) have week values outside the required 1–14 range`,
+        });
+      }
     }
     const teamsWithByes = teamStats.filter(t => t.byeWeeks.length > 1);
     const teamsWithOverloaded = teamStats.filter(t => t.overloadedWeeks.length > 0);

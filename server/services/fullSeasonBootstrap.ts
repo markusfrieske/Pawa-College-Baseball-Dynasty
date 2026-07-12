@@ -72,13 +72,21 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
             isCpu: true,
             nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
           });
-          await storage.createStandings({ leagueId, teamId: team.id, season: 1 });
           existingTeamNames.add(teamData.name);
           leagueTeams.push(team);
         }
       }
     }
     leagueTeams = await storage.getTeamsByLeague(leagueId);
+  }
+  // Standings idempotency: check per-team (teams may exist but standings may be missing
+  // if a prior run crashed between team creation and standings creation).
+  const existingStandings = await storage.getStandingsByLeague(leagueId, 1);
+  const teamsWithStandings = new Set(existingStandings.map(s => s.teamId));
+  for (const team of leagueTeams) {
+    if (!teamsWithStandings.has(team.id)) {
+      await storage.createStandings({ leagueId, teamId: team.id, season: 1 });
+    }
   }
   console.log(`[bootstrap:${leagueId}] Teams: ${leagueTeams.length}`);
 
@@ -146,9 +154,10 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   await updateProgress(jobId, 65, "Creating schedule");
   const existingGames = await storage.getGamesByLeagueSeason(leagueId, 1);
   const regularGames = existingGames.filter((g: any) => g.phase === "regular");
-  if (regularGames.length < EXPECTED_TOTAL_GAMES) {
+  if (regularGames.length !== EXPECTED_TOTAL_GAMES) {
     if (regularGames.length > 0) {
-      console.warn(`[bootstrap:${leagueId}] Partial schedule found (${regularGames.length} games), regenerating`);
+      console.warn(`[bootstrap:${leagueId}] Partial schedule found (${regularGames.length} games), deleting and regenerating`);
+      await storage.deleteRegularGamesByLeagueSeason(leagueId, 1);
     }
 
     const currentTeams = await storage.getTeamsByLeague(leagueId);

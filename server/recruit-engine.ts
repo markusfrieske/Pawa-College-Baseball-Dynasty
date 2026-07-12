@@ -1487,6 +1487,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
   // straight through so the in-game OVR matches the scouting/analysis OVR exactly.
   const { SEC_REAL_ROSTERS } = await getRealRosters();
   const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
+  const pendingInserts: Parameters<typeof storage.createPlayer>[0][] = [];
 
   if (realRoster && realRoster.length > 0) {
     const usedJerseyNumbers = new Set<number>();
@@ -1526,7 +1527,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
       const overall = Math.max(1, Math.min(999, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
 
-      await storage.createPlayer({
+      pendingInserts.push({
         teamId,
         firstName: rp.firstName,
         lastName: rp.lastName,
@@ -1651,7 +1652,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
           return "R";
         })();
 
-        await storage.createPlayer({
+        pendingInserts.push({
           teamId,
           firstName: fillerNames[Math.floor(Math.random() * fillerNames.length)],
           lastName: fillerLastNames[Math.floor(Math.random() * fillerLastNames.length)],
@@ -1685,6 +1686,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
         });
       }
     }
+    await storage.batchCreatePlayers(pendingInserts);
     return;
   }
 
@@ -1811,7 +1813,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
       return "R";
     })();
 
-    await storage.createPlayer({
+    pendingInserts.push({
       teamId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
       lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
@@ -1845,6 +1847,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
       tools: cpuTools,
     });
   }
+  await storage.batchCreatePlayers(pendingInserts);
 }
 
 // Generate veteran CPU coaches for teams that don't have a coach
