@@ -168,6 +168,31 @@ function scanClasses(numClasses: number, classSize: number, label: string): void
   }
 }
 
+// ── Pool-size assertion matrix ────────────────────────────────────────────────
+// Proves that computeRecruitPoolSize returns the expected value for key team
+// counts.  Custom leagues (≤20 teams) must always return exactly 80.
+// Full-season (149 teams) must return exactly 200.
+const POOL_SIZE_ASSERTIONS: { teams: number; expected: number }[] = [
+  { teams: 4,   expected: 80  },
+  { teams: 10,  expected: 80  },
+  { teams: 15,  expected: 80  },
+  { teams: 20,  expected: 80  },
+  { teams: 149, expected: 200 },
+];
+let poolSizeErrors = 0;
+for (const { teams, expected } of POOL_SIZE_ASSERTIONS) {
+  const actual = computeRecruitPoolSize(teams);
+  if (actual !== expected) {
+    console.error(`✗ computeRecruitPoolSize(${teams}) = ${actual}, expected ${expected}`);
+    poolSizeErrors++;
+  }
+}
+if (poolSizeErrors === 0) {
+  console.log(`✓ Pool-size assertion matrix passed (${POOL_SIZE_ASSERTIONS.length} checks)`);
+} else {
+  process.exit(1);
+}
+
 // Standard custom-league classes (75 recruits each)
 scanClasses(SAMPLE_CLASSES, CLASS_SIZE, "Standard");
 
@@ -209,7 +234,7 @@ if (abilityCapViolations.length > 0) {
 }
 
 if (goldCapViolations.length > 0) {
-  console.error(`\n✗ Found ${goldCapViolations.length} class(es) exceeding the 15 gold ability cap:`);
+  console.error(`\n✗ Found ${goldCapViolations.length} class(es) exceeding the scaled gold ability cap:`);
   for (const v of goldCapViolations) {
     console.error(`  ${v.recruitName}: ${v.detail}`);
   }

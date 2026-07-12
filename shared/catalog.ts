@@ -39,7 +39,7 @@ export const CONF_SIZE_MAP: ReadonlyMap<string, number> = new Map(
  * and scripts that need the same pool-size arithmetic.
  */
 export function computeRecruitPoolSize(numTeams: number): number {
-  if (numTeams <= 20) return Math.min(numTeams * 5 + 10, 80);
+  if (numTeams <= 20) return 80;
   return Math.min(
     200,
     Math.round(80 + (numTeams - 20) * (200 - 80) / (FULL_SEASON_TOTAL - 20)),
