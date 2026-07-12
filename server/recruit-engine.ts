@@ -7,6 +7,7 @@
  * of relying on closure scope inside registerRoutes.
  */
 import { storage } from "./storage";
+import type { InsertGame } from "@shared/schema";
 import { calculateOVR, getStarRatingFromOVR, getRandomAbilities, getAbilitiesForPosition, enforceGoldOvrGate } from "../shared/abilities";
 import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS, pickHandedness } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
@@ -188,6 +189,9 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
   // Track which teams have already faced each other as OOC opponents this season
   const oocSeasonHistory = new Map<string, Set<string>>();
 
+  // Buffer all game inserts; flushed in one batch at the end (M2 performance).
+  const pendingGames: InsertGame[] = [];
+
   // Track per-team game counts in-memory during generation (avoids a post-loop DB query).
   const teamGameCounts = new Map<string, number>();
   for (const t of leagueTeams) teamGameCounts.set(t.id, 0);
@@ -233,7 +237,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
         gps === 3 ? ["friday", "saturday", "sunday"]
         : ["friday"];
       for (let g = 0; g < gps; g++) {
-        await storage.createGame({
+        pendingGames.push({
           leagueId,
           season,
           week: week + 1,
@@ -362,7 +366,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
 
     for (const ooc of oocPairs) {
       const wk = week + 1;
-      await storage.createGame({
+      pendingGames.push({
         leagueId,
         season,
         week: wk,
@@ -490,7 +494,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     }
 
     const isHome = Math.random() > 0.5;
-    await storage.createGame({
+    pendingGames.push({
       leagueId, season, week: topupWeek,
       homeTeamId: isHome ? t1.id : t2.id,
       awayTeamId: isHome ? t2.id : t1.id,
@@ -502,6 +506,9 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     teamGameCounts.set(t2.id, (teamGameCounts.get(t2.id) ?? 0) + 1);
     totalGames++;
   }
+
+  // Flush all buffered game inserts in batches (M2 performance: one round-trip vs 4000+).
+  await storage.batchCreateGames(pendingGames);
 
   // Post-generation validation: soft range check — warn if any team is more than 4 below target.
   const gameCounts = leagueTeams.map(t => teamGameCounts.get(t.id) ?? 0);
@@ -517,7 +524,7 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     console.log(`[schedule-validation] OK — team game counts: min=${minGames} max=${maxGames} target=${targetGamesPerTeam}`);
   }
 
-  console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games`);
+  console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games (batched ${pendingGames.length} game inserts)`);
 }
 
 export async function generateExhibitionGames(leagueId: string, season: number) {

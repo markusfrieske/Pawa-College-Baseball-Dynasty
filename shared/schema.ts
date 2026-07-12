@@ -52,6 +52,10 @@ export const leagues = pgTable("leagues", {
   nextAdvanceAt: timestamp("next_advance_at"),
   advanceScheduleNote: text("advance_schedule_note"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  dynastyPreset: text("dynasty_preset").notNull().default("custom"),
+  rulesSnapshot: jsonb("rules_snapshot"),
+  catalogVersion: text("catalog_version"),
+  scheduleSeed: text("schedule_seed"),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({
@@ -64,9 +68,13 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   progressionEnabled: true,
   isTestData: true,
   gameMode: true,
+  dynastyPreset: true,
+  catalogVersion: true,
 }).extend({
   isTestData: z.boolean().optional(),
   gameMode: z.enum(["simulated", "reported"]).optional(),
+  dynastyPreset: z.string().optional(),
+  catalogVersion: z.string().optional(),
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;

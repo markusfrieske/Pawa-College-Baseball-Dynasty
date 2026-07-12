@@ -136,6 +136,7 @@ export interface IStorage {
   getPlayersByLeague(leagueId: string): Promise<Player[]>;
   getGamesByTeam(teamId: string): Promise<Game[]>;
   createGame(game: InsertGame): Promise<Game>;
+  batchCreateGames(gamesData: InsertGame[]): Promise<Game[]>;
   updateGame(id: string, data: Partial<Game>): Promise<Game | undefined>;
 
   getStandingsByLeague(leagueId: string, season: number): Promise<Standings[]>;
@@ -775,6 +776,18 @@ export class DatabaseStorage implements IStorage {
   async createGame(insertGame: InsertGame): Promise<Game> {
     const [game] = await db.insert(games).values(insertGame).returning();
     return game;
+  }
+
+  async batchCreateGames(gamesData: InsertGame[]): Promise<Game[]> {
+    if (gamesData.length === 0) return [];
+    const CHUNK = 500;
+    const results: Game[] = [];
+    for (let i = 0; i < gamesData.length; i += CHUNK) {
+      const chunk = gamesData.slice(i, i + CHUNK);
+      const rows = await db.insert(games).values(chunk).returning();
+      results.push(...rows);
+    }
+    return results;
   }
 
   async updateGame(id: string, data: Partial<Game>): Promise<Game | undefined> {

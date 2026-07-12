@@ -7,7 +7,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Star, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Star, ArrowRight, ArrowLeft, Check, Globe } from "lucide-react";
 import { Link } from "wouter";
 import type { Conference, League } from "@shared/schema";
 import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
@@ -15,7 +15,6 @@ import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scou
 const TOTAL_NATIONAL_TEAMS = 149;
 
 function getConferenceTargets(maxTeams: number, conferenceCount: number, conferenceSizes?: number[]): number[] {
-  // If per-conference sizes are provided (e.g. full season with unequal conferences), use them directly
   if (conferenceSizes && conferenceSizes.length === conferenceCount) return conferenceSizes;
   if (maxTeams === 14 && conferenceCount === 3) return [6, 4, 4];
   const base = Math.floor(maxTeams / conferenceCount);
@@ -80,7 +79,6 @@ function TeamTile({
       title={team.name}
       data-testid={`button-team-${team.abbreviation}`}
     >
-      {/* Circle badge */}
       <div className="relative">
         <div
           className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
@@ -193,23 +191,20 @@ export default function TeamSelectionPage() {
           });
           return prev;
         }
-        // Enforce exact per-conference target using getConferenceTargets (14-team 3-conf → 6+4+4)
-        if (data) {
-          const confCount = data.conferences.length;
-          const targets = getConferenceTargets(data.league.maxTeams, confCount);
-          const teamConf = allTeams.find(t => t.name === teamName)?.sourceConferenceId;
-          if (teamConf) {
-            const confIdx = data.conferences.findIndex(c => c.id === teamConf);
-            const confTarget = targets[confIdx];
-            const selectedInConf = allTeams.filter(t => t.sourceConferenceId === teamConf && next.has(t.name)).length;
-            if (selectedInConf >= confTarget) {
-              toast({
-                title: "Conference Full",
-                description: `This conference allows exactly ${confTarget} teams.`,
-                variant: "destructive",
-              });
-              return prev;
-            }
+        const confCount = data?.conferences.length ?? 1;
+        const targets = getConferenceTargets(data?.league.maxTeams ?? 0, confCount);
+        const teamConf = allTeams.find(t => t.name === teamName)?.sourceConferenceId;
+        if (teamConf && data) {
+          const confIdx = data.conferences.findIndex(c => c.id === teamConf);
+          const confTarget = targets[confIdx];
+          const selectedInConf = allTeams.filter(t => t.sourceConferenceId === teamConf && next.has(t.name)).length;
+          if (selectedInConf >= confTarget) {
+            toast({
+              title: "Conference Full",
+              description: `This conference allows exactly ${confTarget} teams.`,
+              variant: "destructive",
+            });
+            return prev;
           }
         }
         next.add(teamName);
@@ -230,7 +225,6 @@ export default function TeamSelectionPage() {
       return;
     }
 
-    // Include ALL conferences in payload (even empty) so backend can validate completeness
     const teamsPayload: { conferenceId: string; teamNames: string[] }[] = data.conferenceTeamPools
       .map(({ conference, teams: poolTeams }) => ({
         conferenceId: conference.id,
@@ -239,6 +233,17 @@ export default function TeamSelectionPage() {
           .map(t => t.name),
       }));
 
+    saveMutation.mutate(teamsPayload);
+  };
+
+  // Full Season preset: server auto-creates all teams — the user just picks their coaching program.
+  const handleFullSeasonBegin = () => {
+    if (!data) return;
+    // Send all teams from every conference; server ignores this for full_season and creates all anyway.
+    const teamsPayload = data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => ({
+      conferenceId: conference.id,
+      teamNames: poolTeams.map(t => t.name),
+    }));
     saveMutation.mutate(teamsPayload);
   };
 
@@ -256,8 +261,64 @@ export default function TeamSelectionPage() {
     return <div className="p-8 text-center text-muted-foreground">League not found</div>;
   }
 
+  const isFullSeason = (data.league as any).dynastyPreset === "full_season";
   const focusedInfo = focusedTeam && scoutingMap ? scoutingMap[focusedTeam] : null;
 
+  // ── Full Season Mode: simplified "choose your program" view ───────────────
+  if (isFullSeason) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="mb-6">
+            <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-gold transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-sm">Back to Dashboard</span>
+            </Link>
+          </div>
+
+          <div className="text-center mb-8">
+            <div className="flex justify-center gap-1 mb-4">
+              <Globe className="w-5 h-5 text-gold" />
+            </div>
+            <h1 className="font-pixel text-gold text-xl mb-2" data-testid="text-select-teams-title">Full Season Mode</h1>
+            <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+              All {TOTAL_NATIONAL_TEAMS} programs from 12 conferences are included automatically.
+              Click below to initialize the dynasty and continue to coach setup.
+            </p>
+          </div>
+
+          <RetroCard className="mb-6">
+            <RetroCardContent className="pt-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
+                {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => (
+                  <div key={conference.id} className="flex items-center justify-between px-3 py-2 rounded border border-border/50 bg-background/40">
+                    <span className="text-xs text-muted-foreground truncate">{conference.name}</span>
+                    <span className="text-xs font-pixel text-gold ml-2">{poolTeams.length}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-muted-foreground mb-4">
+                  <span className="text-gold font-bold">{TOTAL_NATIONAL_TEAMS}</span> teams across{" "}
+                  <span className="text-gold font-bold">{data.conferences.length}</span> conferences
+                </div>
+                <RetroButton
+                  onClick={handleFullSeasonBegin}
+                  loading={saveMutation.isPending}
+                  data-testid="button-continue-setup"
+                >
+                  Initialize Dynasty
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </RetroButton>
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Custom Mode: standard multi-team picker ───────────────────────────────
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="container mx-auto max-w-5xl">
@@ -326,7 +387,6 @@ export default function TeamSelectionPage() {
           ))}
         </div>
 
-        {/* Sticky scout panel — always visible, populates on team click */}
         <div className="sticky top-2 z-20 mb-4">
           <TeamScoutingPanel
             teamName={focusedTeam}
@@ -383,7 +443,6 @@ export default function TeamSelectionPage() {
           })}
         </div>
       </div>
-
     </div>
   );
 }

@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
+import { FULL_SEASON_TOTAL, FULL_SEASON_CONF_NAMES, FULL_SEASON_RULES, CONF_SIZE_MAP } from "@shared/catalog";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
@@ -649,29 +650,39 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false, isTestData, gameMode = "simulated" } = result.data;
+      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false, isTestData, gameMode = "simulated", preset } = result.data;
 
       // Safety net: always flag leagues named with the E2E test-runner convention
       // as test data, even if the caller forgot to pass isTestData explicitly.
       const autoDetectedTestData = /^e2e[\s-]/i.test(name.trim());
 
+      // Full Season preset: lock all gameplay rules to canonical values.
+      const isFullSeason = preset === "full_season";
+      const effectiveMaxTeams       = isFullSeason ? FULL_SEASON_TOTAL                  : maxTeams;
+      const effectiveSeasonLength   = isFullSeason ? FULL_SEASON_RULES.seasonLength     : seasonLength;
+      const effectiveProgression    = isFullSeason ? FULL_SEASON_RULES.progressionEnabled : progressionEnabled;
+      const effectiveGameMode       = isFullSeason ? FULL_SEASON_RULES.gameMode         : gameMode;
+
       const league = await storage.createLeague({
         name,
         commissionerId: userId,
-        maxTeams,
+        maxTeams:           effectiveMaxTeams,
         cpuDifficulty,
-        seasonLength,
-        currentPhase: "dynasty_setup",
-        progressionEnabled,
-        isTestData: isTestData === true || autoDetectedTestData,
-        gameMode,
+        seasonLength:       effectiveSeasonLength,
+        currentPhase:       "dynasty_setup",
+        progressionEnabled: effectiveProgression,
+        isTestData:         isTestData === true || autoDetectedTestData,
+        gameMode:           effectiveGameMode,
+        dynastyPreset:      preset ?? "custom",
+        catalogVersion:     isFullSeason ? FULL_SEASON_RULES.catalogVersion : undefined,
       });
 
-      // Create conferences - use selected conferences or default to first N
-      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
-      const conferenceNames = selectedConferences && selectedConferences.length > 0
-        ? selectedConferences.filter(c => allConferences.includes(c))
-        : allConferences.slice(0, conferenceCount);
+      // Create conferences — use all 12 for full_season, otherwise selected or default N
+      const conferenceNames = isFullSeason
+        ? FULL_SEASON_CONF_NAMES
+        : (selectedConferences && selectedConferences.length > 0
+            ? selectedConferences.filter(c => FULL_SEASON_CONF_NAMES.includes(c))
+            : FULL_SEASON_CONF_NAMES.slice(0, conferenceCount));
 
       for (const confName of conferenceNames) {
         await storage.createConference({ leagueId: league.id, name: confName });
@@ -683,7 +694,7 @@ export async function registerRoutes(
         leagueId: league.id,
         userId,
         action: "League Created",
-        details: `League "${name}" was created with ${maxTeams} teams`,
+        details: `League "${name}" created — preset=${preset ?? "custom"}, maxTeams=${effectiveMaxTeams}`,
       });
 
       res.json(league);
@@ -886,7 +897,7 @@ export async function registerRoutes(
   // Static scouting data for all team templates — no auth required, purely derived from hardcoded rosters
   app.get("/api/team-templates/scouting", async (_req, res) => {
     try {
-      const ALL_CONF_NAMES = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+      const ALL_CONF_NAMES = FULL_SEASON_CONF_NAMES;
 
       // Composite recruit grade: 40% normalized geographic talent pool + 60% program attributes
       // (prestige, facilities, academics, stadium, collegeLife all on 1-9 scale). Normal
@@ -1123,72 +1134,83 @@ export async function registerRoutes(
       const conferences = await storage.getConferencesByLeague(league.id);
       const actualConfCount = conferences.length;
 
-      // Validate total selected teams
-      const totalRequestedTeams = selectedTeams.reduce((sum, s) => sum + (s.teamNames?.length ?? 0), 0);
-      if (totalRequestedTeams !== league.maxTeams) {
-        return res.status(400).json({ message: `Must select exactly ${league.maxTeams} teams (got ${totalRequestedTeams})` });
-      }
-
-      // Validate payload covers all league conferences (including zero-team ones)
-      const payloadConfIds = new Set(selectedTeams.map(s => s.conferenceId));
-      for (const conf of conferences) {
-        if (!payloadConfIds.has(conf.id)) {
-          return res.status(400).json({ message: `Conference "${conf.name}" is missing from team selection` });
-        }
-      }
-
-      // Enforce exact per-conference targets based on conference creation order:
-      // first extras conferences get floor(N/C)+1 teams,
-      // remaining get floor(N/C) — so SEC (index 0) gets the extra slot
-      // Special case: 14 teams / 3 conferences → [6, 4, 4] to match frontend getConferenceTargets.
-      // General formula gives [5, 5, 4] which conflicts with the UI.
-      const confTargets = (league.maxTeams === 14 && actualConfCount === 3)
-        ? [6, 4, 4]
-        : (() => {
-            const base = Math.floor(league.maxTeams / actualConfCount);
-            const extras = league.maxTeams % actualConfCount;
-            return conferences.map((_, i) => base + (i < extras ? 1 : 0));
-          })();
-      const confTargetMap = new Map(conferences.map((c, i) => [c.id, confTargets[i]]));
-      for (const sel of selectedTeams) {
-        const target = confTargetMap.get(sel.conferenceId);
-        if (target === undefined) {
-          return res.status(400).json({ message: `Unknown conference in selection` });
-        }
-        const count = sel.teamNames?.length ?? 0;
-        if (count !== target) {
-          const conf = conferences.find(c => c.id === sel.conferenceId);
-          return res.status(400).json({ message: `Conference "${conf?.name}" requires exactly ${target} teams (got ${count})` });
-        }
-      }
       let totalTeamsCreated = 0;
 
-      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
-      const allTeamPools = allConferenceNames.flatMap(name => getTeamsForConference(name));
+      const allTeamPools = FULL_SEASON_CONF_NAMES.flatMap(name => getTeamsForConference(name));
 
-      for (const selection of selectedTeams) {
-        const conf = conferences.find(c => c.id === selection.conferenceId);
-        if (!conf) continue;
-        
-        for (const teamName of selection.teamNames) {
-          const teamData = allTeamPools.find(t => t.name === teamName);
-          if (!teamData) continue;
+      // Full Season preset: ignore incoming payload — auto-create ALL teams from the canonical catalog.
+      if (league.dynastyPreset === "full_season") {
+        for (const conf of conferences) {
+          const confTeams = getTeamsForConference(conf.name);
+          for (const teamData of confTeams) {
+            const team = await storage.createTeam({
+              ...teamData,
+              leagueId: league.id,
+              conferenceId: conf.id,
+              isCpu: true,
+              nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
+            });
+            await storage.createStandings({ leagueId: league.id, teamId: team.id, season: 1 });
+            totalTeamsCreated++;
+          }
+        }
+      } else {
+        // Custom mode: validate the incoming selectedTeams payload with equal-split rules.
+        const totalRequestedTeams = selectedTeams.reduce((sum, s) => sum + (s.teamNames?.length ?? 0), 0);
+        if (totalRequestedTeams !== league.maxTeams) {
+          return res.status(400).json({ message: `Must select exactly ${league.maxTeams} teams (got ${totalRequestedTeams})` });
+        }
 
-          const team = await storage.createTeam({
-            ...teamData,
-            leagueId: league.id,
-            conferenceId: conf.id,
-            isCpu: true,
-            nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
-          });
+        const payloadConfIds = new Set(selectedTeams.map(s => s.conferenceId));
+        for (const conf of conferences) {
+          if (!payloadConfIds.has(conf.id)) {
+            return res.status(400).json({ message: `Conference "${conf.name}" is missing from team selection` });
+          }
+        }
 
-          await storage.createStandings({
-            leagueId: league.id,
-            teamId: team.id,
-            season: 1,
-          });
+        // Use canonical conference sizes when available; fall back to equal-split for custom configurations.
+        const confTargets = (() => {
+          // If all conferences in this league are canonical (known sizes), use those directly.
+          const allCanonical = conferences.every(c => CONF_SIZE_MAP.has(c.name));
+          if (allCanonical) {
+            return conferences.map(c => CONF_SIZE_MAP.get(c.name)!);
+          }
+          // Special case: 14-team / 3-conf → 6+4+4 (legacy default)
+          if (league.maxTeams === 14 && actualConfCount === 3) return [6, 4, 4];
+          const base = Math.floor(league.maxTeams / actualConfCount);
+          const extras = league.maxTeams % actualConfCount;
+          return conferences.map((_, i) => base + (i < extras ? 1 : 0));
+        })();
 
-          totalTeamsCreated++;
+        const confTargetMap = new Map(conferences.map((c, i) => [c.id, confTargets[i]]));
+        for (const sel of selectedTeams) {
+          const target = confTargetMap.get(sel.conferenceId);
+          if (target === undefined) {
+            return res.status(400).json({ message: `Unknown conference in selection` });
+          }
+          const count = sel.teamNames?.length ?? 0;
+          if (count !== target) {
+            const conf = conferences.find(c => c.id === sel.conferenceId);
+            return res.status(400).json({ message: `Conference "${conf?.name}" requires exactly ${target} teams (got ${count})` });
+          }
+        }
+
+        for (const selection of selectedTeams) {
+          const conf = conferences.find(c => c.id === selection.conferenceId);
+          if (!conf) continue;
+          for (const teamName of selection.teamNames) {
+            const teamData = allTeamPools.find(t => t.name === teamName);
+            if (!teamData) continue;
+            const team = await storage.createTeam({
+              ...teamData,
+              leagueId: league.id,
+              conferenceId: conf.id,
+              isCpu: true,
+              nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
+            });
+            await storage.createStandings({ leagueId: league.id, teamId: team.id, season: 1 });
+            totalTeamsCreated++;
+          }
         }
       }
 
