@@ -8,7 +8,7 @@ import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Star, ArrowLeft, TrendingUp, Check, Camera, Globe, Settings } from "lucide-react";
+import { Star, ArrowLeft, TrendingUp, Check, Camera, Globe, Settings, Lock } from "lucide-react";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
 
@@ -377,6 +377,28 @@ export default function LeagueCreatePage() {
                 data-testid="select-difficulty"
               />
 
+              {/* Full Season locked-rules summary */}
+              {mode === "full_season" && (
+                <div className="p-3 rounded border border-gold/20 bg-gold/5 space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Lock className="w-3 h-3 text-gold" />
+                    <span className="text-[10px] font-pixel text-gold uppercase tracking-widest">Locked Rules</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>Teams</span>
+                    <span className="text-foreground font-medium">149 across 12 conferences</span>
+                    <span>Season</span>
+                    <span className="text-foreground font-medium">Full Season (56 games)</span>
+                    <span>Progression</span>
+                    <span className="text-foreground font-medium">Enabled</span>
+                    <span>Game mode</span>
+                    <span className="text-foreground font-medium">Simulated</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Progression toggle — hidden in full_season (locked ON by server) */}
+              {mode === "custom" && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 rounded border border-border bg-background/50">
                   <div className="flex items-center gap-3">
@@ -407,7 +429,10 @@ export default function LeagueCreatePage() {
                   </div>
                 )}
               </div>
+              )}
 
+              {/* Game mode toggle — hidden in full_season (always simulated) */}
+              {mode === "custom" && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 rounded border border-border bg-background/50">
                   <div className="flex items-center gap-3">
@@ -435,6 +460,7 @@ export default function LeagueCreatePage() {
                   </div>
                 )}
               </div>
+              )}
 
               <div className="pt-4">
                 <RetroButton
