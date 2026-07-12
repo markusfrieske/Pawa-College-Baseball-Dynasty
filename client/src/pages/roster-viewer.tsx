@@ -650,9 +650,13 @@ export default function RosterViewerPage() {
 
   const filteredConferences = useMemo(() => {
     if (!conferences) return [];
-    if (!search) return conferences;
+    const rankSorted = conferences.map(g => ({
+      ...g,
+      teams: [...g.teams].sort((a, b) => (a.nationalRank ?? 9999) - (b.nationalRank ?? 9999)),
+    }));
+    if (!search) return rankSorted;
     const q = search.toLowerCase();
-    return conferences
+    return rankSorted
       .map(g => ({ ...g, teams: g.teams.filter(t => t.name.toLowerCase().includes(q) || t.abbreviation.toLowerCase().includes(q)) }))
       .filter(g => g.teams.length > 0);
   }, [conferences, search]);
