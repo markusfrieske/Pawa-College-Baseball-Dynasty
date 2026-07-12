@@ -5,6 +5,7 @@ import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
+import { startJobRunner } from "./jobs/leagueJobRunner";
 import { CONFERENCE_CATALOG, FULL_SEASON_TOTAL, CONF_SIZE_MAP, CATALOG_TEAMS } from "../shared/catalog";
 import { TOTAL_NATIONAL_TEAMS, NATIONAL_RANKS, ROSTER_SCALE_FACTORS } from "./rosterScaleFactors";
 
@@ -1158,6 +1159,7 @@ app.use((req, res, next) => {
   });
 
   await registerRoutes(httpServer, app);
+  startJobRunner();
 
   // One-time OVR resync — runs in background after startup, at most once ever.
   // Recomputes calculateOVR() for every player and corrects any stored `overall`

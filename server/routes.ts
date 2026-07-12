@@ -715,10 +715,32 @@ export async function registerRoutes(
         details: `League "${name}" created — preset=${preset ?? "custom"}, maxTeams=${effectiveMaxTeams}`,
       });
 
+      if (isFullSeason) {
+        const job = await storage.createLeagueJob({
+          leagueId: league.id,
+          jobType: "bootstrap",
+          status: "pending",
+          progress: 0,
+        });
+        return res.status(202).json({ league, jobId: job.id });
+      }
+
       res.json(league);
     } catch (error) {
       console.error("Failed to create league:", error);
       res.status(500).json({ message: "Failed to create league" });
+    }
+  });
+
+  app.get("/api/leagues/:id/job", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const job = await storage.getLatestLeagueJob(leagueId);
+      if (!job) return res.status(404).json({ message: "No job found for this league" });
+      res.json(job);
+    } catch (error) {
+      console.error("Failed to fetch league job:", error);
+      res.status(500).json({ message: "Failed to fetch league job" });
     }
   });
 

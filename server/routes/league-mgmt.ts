@@ -2329,9 +2329,43 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
 
     // Warnings
     const warnings: Array<{ severity: string; code: string; message: string }> = [];
-    const tolerance = 0.15;
-    const underTarget = teamStats.filter(t => t.totalGames < expectedGamesPerTeam * (1 - tolerance));
-    const overTarget = teamStats.filter(t => t.totalGames > expectedGamesPerTeam * (1 + tolerance));
+    const isFullSeason = (league as any).dynastyPreset === "full_season";
+
+    // Full Season uses strict zero-tolerance invariants (exact counts required).
+    // Custom leagues use 15% tolerance bands.
+    const tolerance = isFullSeason ? 0 : 0.15;
+    const underTarget = teamStats.filter(t => t.totalGames < expectedGamesPerTeam - (isFullSeason ? 0 : expectedGamesPerTeam * tolerance));
+    const overTarget = teamStats.filter(t => t.totalGames > expectedGamesPerTeam + (isFullSeason ? 0 : expectedGamesPerTeam * tolerance));
+
+    // Strict full_season invariants
+    if (isFullSeason) {
+      const EXPECTED_TOTAL = 4172;
+      if (regularGames.length !== EXPECTED_TOTAL) {
+        warnings.push({
+          severity: "error",
+          code: "FS_TOTAL_GAME_MISMATCH",
+          message: `Full Season requires exactly ${EXPECTED_TOTAL} regular-season games; found ${regularGames.length}`,
+        });
+      }
+      const wrongCount = teamStats.filter(t => t.totalGames !== 56);
+      if (wrongCount.length > 0) {
+        warnings.push({
+          severity: "error",
+          code: "FS_TEAM_GAME_COUNT_VIOLATION",
+          message: `${wrongCount.length} team(s) do not have exactly 56 regular-season games: ${wrongCount.slice(0, 5).map(t => `${t.teamName}=${t.totalGames}`).join(", ")}`,
+        });
+      }
+      // In full season, every team should play exactly 4 games/week — odd-conf byes get 4 OOC games so no week should ever be 0 games.
+      // Check for any 0-game weeks (true byes)
+      const trueByeViolations = teamStats.filter(t => t.byeWeeks.length > 0);
+      if (trueByeViolations.length > 0) {
+        warnings.push({
+          severity: "error",
+          code: "FS_TRUE_BYE_WEEK",
+          message: `Full Season: ${trueByeViolations.length} team(s) have at least one week with 0 games (all teams should play 4 games/week)`,
+        });
+      }
+    }
     const teamsWithByes = teamStats.filter(t => t.byeWeeks.length > 1);
     const teamsWithOverloaded = teamStats.filter(t => t.overloadedWeeks.length > 0);
     const teamsWithRepeats = teamStats.filter(t => t.repeatOpponents.length > 0);

@@ -3,6 +3,7 @@ import {
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   playerSeasonStats, walkonPool, walkonBids,
+  league_jobs,
   leagueEvents,
   tickerReads,
   coachMessages,
@@ -58,6 +59,7 @@ import {
   type StorylineEvent, type InsertStorylineEvent,
   type StorylineVote, type InsertStorylineVote,
   type CoachMessage, type InsertCoachMessage,
+  type LeagueJob, type InsertLeagueJob,
 } from "@shared/schema";
 import { db, pool } from "./db";
 import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql, gt } from "drizzle-orm";
@@ -102,6 +104,7 @@ export interface IStorage {
   getPlayersByTeam(teamId: string): Promise<Player[]>;
   getPlayersByTeamIds(teamIds: string[]): Promise<Player[]>;
   createPlayer(player: InsertPlayer): Promise<Player>;
+  batchCreatePlayers(playersData: InsertPlayer[]): Promise<Player[]>;
 
   getRecruitsByLeague(leagueId: string): Promise<Recruit[]>;
   getRecruitsByLeagueIds(leagueIds: string[]): Promise<Recruit[]>;
@@ -357,6 +360,14 @@ export interface IStorage {
   getLeagueNewsPosts(leagueId: string): Promise<LeagueNewsPost[]>;
   createLeagueNewsPost(data: InsertLeagueNewsPost): Promise<LeagueNewsPost>;
   deleteLeagueNewsPost(id: string, leagueId: string): Promise<void>;
+
+  // League bootstrap jobs
+  createLeagueJob(data: InsertLeagueJob): Promise<LeagueJob>;
+  getLeagueJob(id: string): Promise<LeagueJob | undefined>;
+  getLatestLeagueJob(leagueId: string): Promise<LeagueJob | undefined>;
+  updateLeagueJob(id: string, data: Partial<LeagueJob>): Promise<LeagueJob | undefined>;
+  getPendingLeagueJobs(): Promise<LeagueJob[]>;
+  getOrphanedLeagueJobs(): Promise<LeagueJob[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2446,6 +2457,56 @@ export class DatabaseStorage implements IStorage {
   async deleteLeagueNewsPost(id: string, leagueId: string): Promise<void> {
     await db.delete(leagueNewsPosts)
       .where(and(eq(leagueNewsPosts.id, id), eq(leagueNewsPosts.leagueId, leagueId)));
+  }
+
+  async batchCreatePlayers(playersData: InsertPlayer[]): Promise<Player[]> {
+    if (playersData.length === 0) return [];
+    const CHUNK = 200;
+    const results: Player[] = [];
+    for (let i = 0; i < playersData.length; i += CHUNK) {
+      const chunk = playersData.slice(i, i + CHUNK);
+      const rows = await db.insert(players).values(chunk).returning();
+      results.push(...rows);
+    }
+    return results;
+  }
+
+  async createLeagueJob(data: InsertLeagueJob): Promise<LeagueJob> {
+    const [job] = await db.insert(league_jobs).values(data).returning();
+    return job;
+  }
+
+  async getLeagueJob(id: string): Promise<LeagueJob | undefined> {
+    const [job] = await db.select().from(league_jobs).where(eq(league_jobs.id, id));
+    return job ?? undefined;
+  }
+
+  async getLatestLeagueJob(leagueId: string): Promise<LeagueJob | undefined> {
+    const [job] = await db.select().from(league_jobs)
+      .where(eq(league_jobs.leagueId, leagueId))
+      .orderBy(desc(league_jobs.createdAt))
+      .limit(1);
+    return job ?? undefined;
+  }
+
+  async updateLeagueJob(id: string, data: Partial<LeagueJob>): Promise<LeagueJob | undefined> {
+    const [job] = await db.update(league_jobs)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(league_jobs.id, id))
+      .returning();
+    return job ?? undefined;
+  }
+
+  async getPendingLeagueJobs(): Promise<LeagueJob[]> {
+    return db.select().from(league_jobs)
+      .where(eq(league_jobs.status, "pending"))
+      .orderBy(asc(league_jobs.createdAt));
+  }
+
+  async getOrphanedLeagueJobs(): Promise<LeagueJob[]> {
+    return db.select().from(league_jobs)
+      .where(eq(league_jobs.status, "running"))
+      .orderBy(asc(league_jobs.createdAt));
   }
 }
 

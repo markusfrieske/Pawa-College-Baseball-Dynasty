@@ -59,6 +59,7 @@ const StatsPage = lazy(() => import("@/pages/stats"));
 const DigestFeedPage = lazy(() => import("@/pages/digest-feed"));
 const LeagueTickerPage = lazy(() => import("@/pages/league-ticker"));
 const CoachInboxPage = lazy(() => import("@/pages/coach-inbox"));
+const LeagueCreationProgressPage = lazy(() => import("@/pages/league-creation-progress"));
 // War Room is retired — redirect to League Hub
 function WarRoomRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -141,6 +142,7 @@ function Router() {
           <Route path="/league/:id/signing-day-reveal" component={SigningDayRevealPage} />
           <Route path="/league/:id/departures" component={DeparturesPage} />
           <Route path="/league/:id/walkons" component={WalkonsPage} />
+          <Route path="/league/:id/creating" component={LeagueCreationProgressPage} />
           <Route path="/league/:id/storylines" component={StorylinesPage} />
           <Route path="/league/:id/games/:gameId/prep" component={GamePrepPage} />
           <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />

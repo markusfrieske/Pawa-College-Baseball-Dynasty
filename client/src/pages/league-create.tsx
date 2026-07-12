@@ -176,13 +176,21 @@ export default function LeagueCreatePage() {
       return apiRequest("POST", "/api/leagues", data);
     },
     onSuccess: async (response) => {
-      const league = await response.json();
+      const data = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
-      toast({
-        title: "Dynasty Created!",
-        description: `${name} has been created. Now select your teams!`,
-      });
-      setLocation(`/league/${league.id}/team-selection`);
+      if (response.status === 202 && data.jobId) {
+        toast({
+          title: "Dynasty Created!",
+          description: `${name} is being built. This may take a minute...`,
+        });
+        setLocation(`/league/${data.league.id}/creating`);
+      } else {
+        toast({
+          title: "Dynasty Created!",
+          description: `${name} has been created. Now select your teams!`,
+        });
+        setLocation(`/league/${data.id}/team-selection`);
+      }
     },
     onError: (error: Error) => {
       toast({
