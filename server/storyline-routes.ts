@@ -5,7 +5,7 @@ import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights, StoryOutcome } from "@shared/schema";
 import { getAbilitiesForPosition, calculateOVR } from "@shared/abilities";
 import { isPitcher } from "@shared/positions";
-import { hasCommissionerAccess } from "./route-helpers";
+import { hasCommissionerAccess, isLeagueMember } from "./route-helpers";
 import { checkStorylineHealth } from "./lib/storylineHealth";
 
 // ─── Advance Index Mapping ─────────────────────────────────────────────────────
@@ -247,8 +247,14 @@ async function assertLeagueMember(leagueId: string, userId: string | undefined, 
   if (!league) { res.status(404).json({ message: "League not found" }); return false; }
   // Commissioner and co-commissioners always have access — they don't need a coach team
   if (hasCommissionerAccess(league, userId)) return true;
-  const teamId = await resolveCoachTeamId(leagueId, userId);
-  if (!teamId) { res.status(403).json({ message: "You are not a member of this league" }); return false; }
+  // Non-commissioner: any coach record with a matching userId is sufficient for read access.
+  // We intentionally do NOT require a non-null teamId so that coaches who joined via invite
+  // but whose team assignment is in progress still receive 200 instead of 403.
+  const leagueCoaches = await storage.getCoachesByLeague(leagueId);
+  if (!isLeagueMember(leagueCoaches, userId)) {
+    res.status(403).json({ message: "You are not a member of this league" });
+    return false;
+  }
   return true;
 }
 

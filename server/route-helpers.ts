@@ -40,6 +40,19 @@ export function hasCommissionerAccess(
 }
 
 /**
+ * Returns true when userId has a coach record in this league's coach list.
+ * Does NOT require a non-null teamId — a coach record alone is sufficient for
+ * read-only league membership (e.g. storylines widget access).
+ */
+export function isLeagueMember(
+  coaches: Array<{ userId?: string | null }>,
+  userId: string | undefined,
+): boolean {
+  if (!userId) return false;
+  return coaches.some(c => c.userId === userId);
+}
+
+/**
  * Resolve the team for a given user session WITHOUT falling back to the first
  * non-CPU team.  In a multiplayer league every coach owns exactly one team;
  * using a CPU fallback routes unmatched requests to the wrong team and
