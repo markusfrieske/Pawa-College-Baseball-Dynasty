@@ -1,0 +1,334 @@
+# Replit Prompt: Expand League Newsroom To Fill League Hub Empty Space
+
+Use this prompt in Replit against the latest repo.
+
+## Goal
+
+Use `League Newsroom` as a larger, premium dashboard module to fill the current empty real estate on the League Hub.
+
+The League Hub currently has a large blank area under the center/right dashboard modules. Instead of adding random small cards, turn `League Newsroom` into a major coach-homepage module that consolidates:
+
+- League News posts.
+- Activity Feed.
+- Storyline votes / active arcs.
+- Commissioner/system updates.
+- Recent results and upcoming league moments when available.
+
+This should feel like the main news desk of the dynasty, not a sparse empty-state panel.
+
+## Placement
+
+Place the expanded `League Newsroom` in the large empty space before Quick Nav.
+
+Recommended desktop layout:
+
+```text
+Left column:
+- Waiting / Ready Up
+- Coach Action Queue
+- Recruit Storylines
+
+Center + right area:
+- Program Snapshot
+- Roster Snapshot
+- Recruiting / Standings
+- Expanded League Newsroom spanning the remaining center/right space
+
+Lower:
+- Stat Leaders / Power Rankings / MLB Prospects
+- Quick Nav
+```
+
+If using a 12-column grid, make Newsroom span:
+
+```css
+grid-column: 5 / 13;
+```
+
+or, if the dashboard has already been refactored:
+
+```css
+.league-hub-newsroom {
+  grid-column: span 8;
+}
+```
+
+The key requirement: Newsroom should occupy the empty area under `Roster` and `Big Ten`, above the lower stats/prospects/quick-nav area.
+
+## Do Not Duplicate
+
+Remove or merge duplicate modules:
+
+- Do not keep separate `League News`, `Dynasty News`, and `Activity Feed` modules that all show empty states.
+- `League Newsroom` should be the single source for this content on the League Hub.
+- If other pages still need dedicated news/activity pages, keep those routes, but the Hub should show one consolidated module.
+
+## Module Structure
+
+Use a large module with tabs:
+
+```text
+League Newsroom
+[Posts] [Activity] [Storylines]
+```
+
+Recommended desktop internal layout:
+
+```text
+Header row:
+- Title: League Newsroom
+- Tabs: Posts / Activity / Storylines
+- CTA: Post
+
+Body:
+- Left/main: featured item or latest feed
+- Right/side rail: compact league pulse summary
+```
+
+Suggested content areas:
+
+### Posts Tab
+
+Show:
+
+- Latest league post.
+- Commissioner announcement.
+- Coach posts.
+- Team tags if available.
+- Timestamp.
+- Author.
+- Reaction/comment count if available.
+- CTA to open full newsroom or create post.
+
+If no posts exist, do **not** show a giant blank empty box. Show a useful preseason newsroom state:
+
+```text
+No posts yet
+Spring training is underway
+Commissioner advance pending
+3 storyline votes pending
+0/1 coaches ready
+```
+
+Also show small suggested post prompts as compact chips/cards:
+
+```text
+Preseason prediction
+Recruiting rumor
+Game recap
+Commissioner note
+```
+
+### Activity Tab
+
+Show recent league events:
+
+- Ready-up events.
+- Score reports.
+- Recruiting commitments.
+- Storyline votes.
+- Roster cuts.
+- Schedule changes.
+- Commissioner advances.
+
+If no activity exists, show phase-aware fallback:
+
+```text
+No activity yet
+Activity will appear after coaches ready up, recruit, post, or report games.
+```
+
+Keep this compact. Do not leave half the module blank.
+
+### Storylines Tab
+
+Show:
+
+- Pending votes.
+- Active arcs.
+- Most active recruit/player storyline.
+- Vote deadline or next advance.
+- CTA: View Storylines / Vote.
+
+If there are pending votes, surface them here instead of hiding them only in the left rail.
+
+## League Pulse Side Rail
+
+Inside the expanded Newsroom, add a small right-side `League Pulse` column on desktop.
+
+Suggested items:
+
+```text
+Ready: 0/1
+Pending votes: 3
+Next advance: Spring Training
+Latest commit: none yet
+Upcoming game: none scheduled
+```
+
+If data is available, replace placeholders with real values.
+
+This side rail helps the module feel filled even when posts are empty.
+
+## Size And Spacing
+
+The module should be big enough to solve the blank-space problem but should not collide with lower modules.
+
+Recommended CSS:
+
+```css
+.league-hub-newsroom {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.league-hub-newsroom__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 16px;
+  flex: 1;
+}
+
+.league-hub-newsroom__feed {
+  min-height: 220px;
+}
+
+.league-hub-newsroom__pulse {
+  min-height: 220px;
+}
+
+@media (max-width: 900px) {
+  .league-hub-newsroom {
+    min-height: auto;
+  }
+
+  .league-hub-newsroom__body {
+    grid-template-columns: 1fr;
+  }
+}
+```
+
+Important:
+
+- No absolute positioning for module layout.
+- No negative margins.
+- Quick Nav must remain below Newsroom in normal document flow.
+- Add at least `24px` vertical gap before Quick Nav.
+
+## Visual Design
+
+Keep the same retro sports-game style, but make this module feel more important.
+
+Recommended details:
+
+- Slightly stronger border than smaller modules.
+- Header title with news icon.
+- Tabs as compact segmented buttons.
+- Active tab in gold.
+- Feed rows with clear hover state.
+- Important events can use small category labels:
+  - `POST`
+  - `COMMIT`
+  - `FINAL`
+  - `VOTE`
+  - `ADVANCE`
+- Avoid giant centered empty icons taking up the whole module.
+- Avoid huge blank green panels.
+
+## Click Behavior
+
+Make rows useful:
+
+- Post row -> open post detail or newsroom page.
+- Activity row with player -> player profile.
+- Activity row with team -> team/program page.
+- Storyline row -> storyline voting page.
+- Commit row -> recruit/player profile.
+- `Post` button -> post creation modal.
+
+## Mobile Behavior
+
+On mobile, keep Newsroom as a full-width module after:
+
+1. Banner
+2. Ticker
+3. Ready / Waiting
+4. Coach Action Queue
+5. Upcoming Game / Game Prep if present
+6. League Newsroom
+
+Tabs should remain usable on mobile:
+
+```css
+.league-hub-newsroom-tabs {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+```
+
+Do not hide Posts, Activity, or Storylines on mobile.
+
+## Empty-State Rule
+
+Every tab must have a phase-aware empty state that includes useful league context.
+
+Bad:
+
+```text
+No posts yet
+```
+
+Better:
+
+```text
+No posts yet
+Spring training is underway
+0/1 coaches ready
+3 storyline votes pending
+```
+
+Best:
+
+Show the above plus one or two compact action rows:
+
+```text
+Post a commissioner update
+Vote on pending storylines
+Ready up for next advance
+```
+
+Use actual routes/actions when available.
+
+## QA Checklist
+
+Test:
+
+- Spring Training with no posts.
+- Spring Training with pending storyline votes.
+- Regular season with game results.
+- Recruiting with commitments.
+- Mobile width around 390px.
+- Desktop 1366x768 and 1920x1080.
+
+Verify:
+
+- League Newsroom fills the previous empty center/right space.
+- No separate duplicate League News / Dynasty News module remains on the Hub.
+- No module overlaps Quick Nav.
+- Quick Nav has a clear gap above it.
+- Newsroom empty states do not look blank.
+- Tabs work.
+- Post button works.
+- Storyline rows route correctly.
+- Activity rows route correctly where possible.
+
+## Completion Summary
+
+When done, report:
+
+- Files changed.
+- Where Newsroom is placed in the League Hub grid.
+- Which old duplicate modules were removed or merged.
+- What the empty state shows during Spring Training.
+- Desktop/mobile QA result.
