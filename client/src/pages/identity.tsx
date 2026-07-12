@@ -281,7 +281,7 @@ export default function IdentityPage() {
       <div className="max-w-2xl mx-auto p-4">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">
-          <Link href={`/league/${id}/war-room`}>
+          <Link href={`/league/${id}`}>
             <button
               type="button"
               className="p-2 rounded-lg border border-border hover:border-gold/50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"

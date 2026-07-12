@@ -472,7 +472,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
   return (
     <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-league-${league.id}`}>
       <RetroCardHeader className="flex items-center justify-between gap-4">
-        <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}/war-room`} className="truncate cursor-pointer hover:text-gold transition-colors">
+        <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
           <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="truncate">{league.name}</span>
             {isPrimaryCommissioner ? (
@@ -597,7 +597,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
         );
       })()}
 
-      <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}/war-room`} className="cursor-pointer block">
+      <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}`} className="cursor-pointer block">
         <RetroCardContent>
           {/* Team info row */}
           <div className="flex items-center gap-3 mb-4">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Swords, Users, Target, Calendar, Menu, BarChart3, Newspaper,
+  Home, Users, Target, Calendar, Menu, BarChart3, Newspaper,
   BookOpen, Sparkles, UserCircle, Settings, ShieldCheck, Trophy, Rss,
   Inbox,
 } from "lucide-react";
@@ -55,7 +55,7 @@ export function MobileNav() {
     !!currentUser && !!league && (currentUser.id === league.commissionerId || coCommIds.includes(currentUser.id));
 
   const primaryTabs = [
-    { href: `${leagueBase}/war-room`, icon: Swords, label: "War Room", testId: "mobile-nav-war-room", exact: false, alsoActive: leagueBase },
+    { href: leagueBase, icon: Home, label: "Hub", testId: "mobile-nav-hub", exact: true, alsoActive: undefined },
     { href: `${leagueBase}/recruiting`, icon: Target, label: "Recruit", testId: "mobile-nav-recruiting", exact: false, alsoActive: undefined },
     { href: `${leagueBase}/schedule`, icon: Calendar, label: "Games", testId: "mobile-nav-games", exact: false, alsoActive: undefined },
     { href: `${leagueBase}/roster`, icon: Users, label: "Roster", testId: "mobile-nav-roster", exact: false, alsoActive: undefined },

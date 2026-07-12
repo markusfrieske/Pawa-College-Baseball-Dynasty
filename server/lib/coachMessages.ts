@@ -189,8 +189,8 @@ export async function notifyReadyUp(opts: {
     category: "game_prep",
     title: "Ready-up required",
     body: `Week ${week} of ${phase} is waiting for your ready confirmation. Don't hold up the league.`,
-    ctaLabel: "Go to War Room",
-    ctaUrl: `/league/${leagueId}/war-room`,
+    ctaLabel: "Go to Hub",
+    ctaUrl: `/league/${leagueId}`,
     metadata: { phase, week },
   });
 }

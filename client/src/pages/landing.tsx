@@ -267,7 +267,7 @@ export default function LandingPage() {
                 {
                   num: "01",
                   icon: <Radio className="w-6 h-6" />,
-                  label: "War Room",
+                  label: "League Hub",
                   desc: "See your opponent, league pulse, open tasks, and ready status.",
                 },
                 {

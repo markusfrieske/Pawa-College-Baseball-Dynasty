@@ -198,12 +198,13 @@ export default function LeagueViewPage() {
     );
   }
 
-  const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id);
-  const userTeam = myTeam ?? league.teams?.find(t => !t.isCpu);
+  const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id) ?? null;
   const myCoach = myTeam?.coach ?? null;
   const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
   const isPrimaryCommissioner = !!currentUser && currentUser.id === league.commissionerId;
   const isCommissioner = isPrimaryCommissioner || (!!currentUser && coCommIds.includes(currentUser.id));
+  const hasAssignedTeam = !!myTeam;
+  const isLeagueOnlyCommissioner = isCommissioner && !hasAssignedTeam;
   const canLeave = !!myCoach && !isPrimaryCommissioner;
 
   const dismissLineupBanner = () => {
@@ -304,12 +305,12 @@ export default function LeagueViewPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
 
-            {userTeam && (
+            {myTeam && (
               <TeamBadge
-                abbreviation={userTeam.abbreviation}
-                primaryColor={userTeam.primaryColor}
-                secondaryColor={userTeam.secondaryColor}
-                name={userTeam.name}
+                abbreviation={myTeam.abbreviation}
+                primaryColor={myTeam.primaryColor}
+                secondaryColor={myTeam.secondaryColor}
+                name={myTeam.name}
                 size="sm"
                 className="shrink-0"
               />
@@ -331,9 +332,9 @@ export default function LeagueViewPage() {
                 >
                   {phaseLabels[league.currentPhase]}
                 </Badge>
-                {userTeam?.standings && (
+                {myTeam?.standings && (
                   <span className="text-xs text-gold font-medium shrink-0" data-testid="text-user-team-record">
-                    {userTeam.standings.wins ?? 0}–{userTeam.standings.losses ?? 0}
+                    {myTeam.standings.wins ?? 0}–{myTeam.standings.losses ?? 0}
                   </span>
                 )}
                 {isPrimaryCommissioner ? (
@@ -409,14 +410,43 @@ export default function LeagueViewPage() {
         </div>
       </header>
 
-      {/* ─── ARTWORK BANNER ──────────────────────────────────────────── */}
-      <ArtworkBackground
-        desktopSrc={artBackgrounds.leagueWarRoom.desktop}
-        mobileSrc={artBackgrounds.leagueWarRoom.mobile}
-        focalPoint="center top"
-        overlayStrength="heavy"
-        className="h-24 sm:h-32"
-      />
+      {/* ─── HERO BRIEFING AREA ──────────────────────────────────────── */}
+      <div className="relative h-40 sm:h-52 overflow-hidden" data-testid="hub-hero">
+        <ArtworkBackground
+          desktopSrc={artBackgrounds.leagueWarRoom.desktop}
+          mobileSrc={artBackgrounds.leagueWarRoom.mobile}
+          focalPoint="center center"
+          overlayStrength="heavy"
+          className="absolute inset-0 h-full"
+        />
+        <div className="relative z-10 h-full flex items-end">
+          <div className="container mx-auto px-4 pb-4">
+            <div className="flex items-end justify-between gap-4">
+              <div className="min-w-0">
+                {hasAssignedTeam && myTeam && (
+                  <p className="font-pixel text-[8px] text-gold/70 mb-1">
+                    {myTeam.name} · {phaseLabels[league.currentPhase]}
+                  </p>
+                )}
+                {isLeagueOnlyCommissioner && (
+                  <p className="font-pixel text-[8px] text-gold/70 mb-1">
+                    COMMISSIONER · {phaseLabels[league.currentPhase]}
+                  </p>
+                )}
+                <h2 className="font-pixel text-gold text-sm sm:text-base leading-snug truncate" data-testid="text-hub-season">
+                  Season {league.currentSeason} · Week {league.currentWeek}
+                </h2>
+                {hasAssignedTeam && myTeam?.standings && (
+                  <p className="text-white/70 text-xs mt-0.5">
+                    {myTeam.standings.wins ?? 0}–{myTeam.standings.losses ?? 0} record
+                    {myTeam.standings.conferenceWins != null ? ` · ${myTeam.standings.conferenceWins}-${myTeam.standings.conferenceLosses} conf` : ""}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ─── AUCTION MODAL ───────────────────────────────────────────── */}
       {showAuctionModal && auctionResultsData?.results && (
@@ -522,7 +552,7 @@ export default function LeagueViewPage() {
               <>
                 <ProgramSnapshotPanel
                   overview={overview}
-                  userTeam={userTeam}
+                  userTeam={myTeam ?? undefined}
                   leagueId={id!}
                 />
                 <MergedRosterPanel
@@ -545,7 +575,7 @@ export default function LeagueViewPage() {
 
             <StandingsPreviewPanel
               league={league}
-              userTeam={userTeam}
+              userTeam={myTeam ?? undefined}
               leagueId={id!}
             />
 
@@ -563,7 +593,7 @@ export default function LeagueViewPage() {
         {/* ─── NAVIGATION DOCK ─────────────────────────────────────── */}
         <NavDock
           leagueId={id!}
-          userTeam={userTeam}
+          userTeam={myTeam ?? undefined}
           isCommissioner={isCommissioner}
           storylinePendingVotes={storylinePendingVotes}
           showLineupBanner={showLineupBanner}
@@ -577,22 +607,26 @@ export default function LeagueViewPage() {
                 News
               </TabsTrigger>
               <TabsTrigger value="standings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
-                Stand
+                <span className="hidden sm:inline">Standings</span>
+                <span className="sm:hidden">Stand</span>
               </TabsTrigger>
               <TabsTrigger value="teams" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
                 Teams
               </TabsTrigger>
               <TabsTrigger value="rankings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
-                Rank
+                <span className="hidden sm:inline">Rankings</span>
+                <span className="sm:hidden">Rank</span>
               </TabsTrigger>
               <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
                 Top 100
               </TabsTrigger>
               <TabsTrigger value="awards" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
-                Award
+                <span className="hidden sm:inline">Awards</span>
+                <span className="sm:hidden">Award</span>
               </TabsTrigger>
               <TabsTrigger value="history" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
-                Hist
+                <span className="hidden sm:inline">History</span>
+                <span className="sm:hidden">Hist</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -603,7 +637,7 @@ export default function LeagueViewPage() {
               <ActivityFeed leagueId={league.id} />
             </div>
             <div className="mt-4">
-              <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
+              <StoryEngineHub leagueId={league.id} teamId={myTeam?.id} />
             </div>
           </TabsContent>
 

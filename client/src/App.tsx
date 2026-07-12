@@ -1,9 +1,9 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useParams } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState, useRef, lazy, Suspense } from "react";
+import { useState, useRef, lazy, Suspense, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
@@ -59,7 +59,13 @@ const StatsPage = lazy(() => import("@/pages/stats"));
 const DigestFeedPage = lazy(() => import("@/pages/digest-feed"));
 const LeagueTickerPage = lazy(() => import("@/pages/league-ticker"));
 const CoachInboxPage = lazy(() => import("@/pages/coach-inbox"));
-const WarRoomPage = lazy(() => import("@/pages/war-room"));
+// War Room is retired — redirect to League Hub
+function WarRoomRedirect() {
+  const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
+  useEffect(() => { if (id) setLocation(`/league/${id}`, { replace: true }); }, [id, setLocation]);
+  return null;
+}
 const RivalriesPage = lazy(() => import("@/pages/rivalries"));
 const IdentityPage = lazy(() => import("@/pages/identity"));
 const GamePrepPage = lazy(() => import("@/pages/game-prep"));
@@ -118,7 +124,7 @@ function Router() {
           <Route path="/guest" component={GuestPage} />
           <Route path="/dashboard" component={DashboardPage} />
           <Route path="/league/create" component={LeagueCreatePage} />
-          <Route path="/league/:id/war-room" component={WarRoomPage} />
+          <Route path="/league/:id/war-room" component={WarRoomRedirect} />
           <Route path="/league/:id" component={LeagueViewPage} />
           <Route path="/league/:id/team-selection" component={TeamSelectionPage} />
           <Route path="/league/:id/setup" component={LeagueSetupPage} />

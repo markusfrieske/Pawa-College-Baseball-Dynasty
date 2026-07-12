@@ -1,0 +1,769 @@
+# Replit Prompt: Finish League Hub + War Room Consolidation From Latest ZIP
+
+## Repo / Source
+
+Use the latest repo ZIP or GitHub repo:
+
+```text
+https://github.com/markusfrieske/Pawa-College-Baseball-Dynasty.git
+```
+
+This prompt is based on the new ZIP provided on July 12, 2026:
+
+```text
+C:\Users\marku\Downloads\Pawa-College-Baseball-Dynasty-main.zip
+```
+
+## Goal
+
+Finish the League Hub / War Room redesign so the game has one clear coach homepage.
+
+The current ZIP shows progress: `client/src/pages/league-view.tsx` now has a cockpit-style grid, `client/src/pages/league-view/hub-panels.tsx` exists, and the League Hub has newer widgets. But the product is still split between **League Hub** and **War Room**, several stale paths still point to `/war-room`, the page still duplicates readiness/activity modules, the hero image is still a thin cropped strip, and some team-specific links can still resolve incorrectly.
+
+Make `/league/:id` the main coach homepage. It should feel like the front page of a PC sports dynasty/franchise game: immersive, useful, data-rich, and immediately actionable.
+
+## Current Files To Audit First
+
+Start here:
+
+```text
+client/src/pages/league-view.tsx
+client/src/pages/league-view/hub-panels.tsx
+client/src/pages/league-view/dashboard-widgets.tsx
+client/src/pages/league-view/hooks.ts
+client/src/pages/war-room.tsx
+client/src/components/mobile-nav.tsx
+client/src/App.tsx
+client/src/pages/dashboard.tsx
+client/src/pages/dynasty-setup.tsx
+client/src/pages/identity.tsx
+client/src/pages/rivalries.tsx
+client/src/pages/league-ticker.tsx
+server/routes/war-room.ts
+server/routes/league-mgmt.ts
+server/lib/coachMessages.ts
+```
+
+Also run a repo-wide search for:
+
+```text
+/war-room
+War Room
+mobile-nav-war-room
+SinceLastAdvance
+WaitingOnWidget
+PrimaryPhaseCTA
+CoachActionQueue
+QuickActionsBar
+NeedsAttentionCard
+NavDock
+leagueWarRoom
+```
+
+## Latest ZIP Findings
+
+### 1. War Room is still a separate competing homepage
+
+Current files still register and link to War Room:
+
+```text
+client/src/App.tsx
+client/src/components/mobile-nav.tsx
+client/src/pages/dashboard.tsx
+client/src/pages/dynasty-setup.tsx
+client/src/pages/identity.tsx
+client/src/pages/rivalries.tsx
+client/src/pages/league-ticker.tsx
+server/lib/coachMessages.ts
+```
+
+Examples from the current ZIP:
+
+```text
+client/src/App.tsx: /league/:id/war-room still routes to WarRoomPage
+client/src/components/mobile-nav.tsx: first nav item is still War Room -> /league/:id/war-room
+client/src/pages/dashboard.tsx: league cards still route to /league/:id/war-room
+client/src/pages/dynasty-setup.tsx: setup completion sends users to /league/:id/war-room
+client/src/pages/identity.tsx: still links back to /league/:id/war-room
+client/src/pages/rivalries.tsx: still links back to /league/:id/war-room
+server/lib/coachMessages.ts: CTA URL still points to /league/:id/war-room
+```
+
+This keeps pulling users into the old split experience. Fix all of it.
+
+### 2. The League Hub still duplicates War Room jobs
+
+The new League Hub includes:
+
+```text
+WaitingOnWidget
+PrimaryPhaseCTA
+CoachActionQueue
+SinceLastAdvanceWidget
+SinceLastAdvanceFeed
+LeagueTickerBanner
+ActivityFeed inside the News tab
+```
+
+The War Room still includes:
+
+```text
+NextGameCard
+NeedsAttentionCard
+QuickActionsBar
+SinceLastAdvanceSection
+```
+
+The same jobs are repeated across multiple places:
+
+- Ready status.
+- Ready-up action.
+- Blockers.
+- Next game/current objective.
+- Coach action queue.
+- Since-last-advance feed.
+- League ticker/activity feed.
+
+The final design should have one canonical module for each job.
+
+### 3. `userTeam` is still unsafe for commissioners/guests
+
+The current League Hub improved the coach case by preferring `myTeam`, but it still falls back to the first non-CPU team:
+
+```ts
+const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id);
+const userTeam = myTeam ?? league.teams?.find(t => !t.isCpu);
+```
+
+That fallback can still show the wrong team to:
+
+- Commissioners with no assigned team.
+- Co-commissioners with no assigned team.
+- Guests/unassigned users.
+- Any state where `currentUser` is missing while league data is loaded.
+
+Do not show a fake "your team" context. Split the concept into:
+
+```ts
+const myTeam = ... // authenticated user's assigned team only
+const displayTeam = myTeam ?? null
+const commissionerLeagueContext = isCommissioner && !myTeam
+```
+
+Team-specific modules should either use `myTeam`, show commissioner league-wide data, or render a neutral empty state.
+
+### 4. Team-specific links can still produce bad paths
+
+Current `NavDock` still creates:
+
+```ts
+href: `/league/${leagueId}/team/${userTeam?.id ?? ""}`
+```
+
+That can generate:
+
+```text
+/league/:id/team/
+```
+
+or send a commissioner/guest to the wrong human team because of the unsafe `userTeam` fallback.
+
+Fix all team-id links:
+
+- Use `myTeam?.id`, not `userTeam?.id`.
+- Hide or disable "School" when no team is assigned.
+- Never generate `/team/` with an empty id.
+- Do not pass fallback teams into `StoryEngineHub`, `ProgramSnapshotPanel`, `StandingsPreviewPanel`, or any "your team" display.
+
+### 5. The artwork is still a cropped strip
+
+Current League Hub still uses:
+
+```tsx
+<ArtworkBackground
+  desktopSrc={artBackgrounds.leagueWarRoom.desktop}
+  mobileSrc={artBackgrounds.leagueWarRoom.mobile}
+  focalPoint="center top"
+  overlayStrength="heavy"
+  className="h-24 sm:h-32"
+/>
+```
+
+This is not a premium sports-game homepage hero. It is too short, has no meaningful content, and still risks poor cropping.
+
+Replace it with a real hub hero/briefing area that includes:
+
+- Properly cropped art.
+- League/team/phase context.
+- Current objective.
+- Primary action.
+- Readiness summary.
+
+### 6. The cockpit grid still feels mechanically assembled
+
+The current layout is:
+
+```text
+Left 4 columns: readiness + actions + storylines
+Center 5 columns: phase + next game + program + roster
+Right 3 columns: recruiting + standings + feed
+```
+
+This is better than the old tile wall, but it still feels like stacked widgets instead of a designed sports-game home screen. The first viewport should feel composed, with a clear "what do I do next?" hierarchy.
+
+### 7. The nav dock is still too much like the old tile wall
+
+`NavDock` still renders a grid of large `QuickActionCard` tiles:
+
+```text
+grid-cols-3 sm:grid-cols-5 lg:grid-cols-9
+```
+
+This is better than the original huge cards, but still reads like a menu grid. Rework it into a compact grouped dock.
+
+### 8. Tab labels are still too cramped
+
+Current tab labels include:
+
+```text
+Stand
+Rank
+Award
+Hist
+```
+
+Use full, readable labels on desktop and sensible compact labels on mobile only when needed. This is a PC-first game UI; do not make desktop labels tiny and cryptic.
+
+## Final Route Strategy
+
+Make this the source-of-truth coach home route:
+
+```text
+/league/:id
+```
+
+Preferred behavior:
+
+```text
+/league/:id/war-room -> redirect to /league/:id?focus=war-room
+```
+
+or:
+
+```text
+/league/:id/war-room -> redirect to /league/:id
+```
+
+Do not maintain two full dashboard pages.
+
+Update all stale links:
+
+```text
+client/src/components/mobile-nav.tsx
+client/src/pages/dashboard.tsx
+client/src/pages/dynasty-setup.tsx
+client/src/pages/identity.tsx
+client/src/pages/rivalries.tsx
+client/src/pages/league-ticker.tsx
+server/lib/coachMessages.ts
+any tests that still expect /war-room
+```
+
+Mobile bottom nav should become:
+
+```text
+Hub
+Recruit
+Games
+Roster
+More
+```
+
+The Hub button should point to:
+
+```text
+/league/:id
+```
+
+not:
+
+```text
+/league/:id/war-room
+```
+
+## Target Product Design
+
+The League Hub should feel like a sports video game command center, not a generic admin dashboard.
+
+The first screen should answer:
+
+1. What league, season, week, and phase am I in?
+2. What team am I coaching?
+3. What is my record and competitive position?
+4. What is the next thing I need to do?
+5. Am I ready? If not, why?
+6. Who is my next opponent or what phase objective is active?
+7. What recruiting/roster issue needs attention?
+8. What just happened around the league?
+
+## Recommended Layout
+
+### Desktop
+
+Use a composed 12-column layout:
+
+```text
+Header:
+  League name, team, season, phase, week, record, ready state, commissioner badge
+
+Hero / Coach Briefing:
+  Background art, current objective, primary CTA, ready count, next deadline
+
+Main Grid:
+  Left 8 columns:
+    Next Game / Current Objective
+    Recruiting War Room Snapshot
+    Roster + Lineup Health
+    Coach Action Queue
+
+  Right 4 columns:
+    Readiness & Blockers
+    League Pulse
+    Standings / CWS Race
+    Commissioner Panel when applicable
+
+Lower:
+  Compact grouped navigation dock
+  Secondary deep-dive tabs
+```
+
+Desktop rules:
+
+- Use max width around `1500px` to `1600px`.
+- Use `grid-cols-12`.
+- Use `min-w-0` on every grid/flex child.
+- Use consistent `gap-4`, `gap-5`, or `gap-6`.
+- Do not place cards inside cards.
+- Do not use absolute-positioned badges where they can collide.
+- Do not let buttons wrap into neighboring content.
+
+### Mobile
+
+Mobile should keep the same information and actions, stacked cleanly.
+
+Mobile order:
+
+1. Sticky compact league header.
+2. Coach briefing with primary action.
+3. Ready & blockers.
+4. Next game/current objective.
+5. Recruiting snapshot.
+6. Roster health.
+7. League pulse.
+8. Compact grouped navigation.
+
+Mobile rules:
+
+- No horizontal overflow.
+- No missing core actions.
+- No stripped recruiting/roster data.
+- No separate War Room tab needed.
+- Primary action must be easy to reach.
+
+## Required Consolidated Modules
+
+### 1. Hub Header
+
+Show:
+
+- League name.
+- Current user's team, only if assigned.
+- Coach name if available.
+- Season.
+- Week.
+- Phase.
+- Record/conference record, only if assigned to a team.
+- Commissioner or co-commissioner badge.
+- Ready state badge.
+
+If the current user has no assigned team, show commissioner/league context instead of a fake team.
+
+### 2. Hero Coach Briefing
+
+Replace the current `h-24 sm:h-32` art strip.
+
+Hero must include:
+
+- Background art with correct crop.
+- Current objective.
+- One primary CTA.
+- One compact status line.
+- Ready count or deadline.
+
+Examples:
+
+```text
+Report your game vs Texas
+Recruiting Week 2: 240 points unspent
+Set lineup before the next advance
+3 coaches not ready
+CWS bracket waiting on final score
+```
+
+### 3. Readiness & Blockers
+
+Create one canonical readiness module.
+
+Merge/remove overlap from:
+
+```text
+WaitingOnWidget
+PrimaryPhaseCTA
+CoachActionQueue ready-up fallback
+War Room NeedsAttentionCard
+War Room QuickActionsBar
+```
+
+Final module must show:
+
+- My ready state.
+- Why I cannot ready up.
+- Readiness count, like `9 / 14 ready`.
+- Commissioner-only blocker list.
+- Single ready/unready action.
+
+### 4. Next Game / Current Objective
+
+Merge the useful parts of War Room `NextGameCard` into the hub.
+
+In season, show:
+
+- Opponent.
+- Home/away/neutral.
+- Week.
+- Score/status.
+- Report/view recap/schedule action.
+- Rivalry/ranked indicators if available.
+
+Outside the season, show the active phase objective:
+
+- Spring training.
+- Recruiting.
+- Signing day.
+- Walk-ons/cuts.
+- Departures.
+- CWS/postseason.
+- Commissioner advance state.
+
+### 5. Recruiting War Room Snapshot
+
+This is where the "War Room" identity should survive as a strategy panel, not a separate page.
+
+Show:
+
+- Recruiting phase.
+- Points/budget remaining.
+- Scout points remaining.
+- Commits.
+- Class rank.
+- Active targets.
+- Hottest battle/top target.
+- Recent signing/loss if available.
+- Link to full Recruiting.
+
+Make it analytical and useful, not just decorative.
+
+### 6. Roster + Lineup Health
+
+Show:
+
+- Roster count.
+- Max roster.
+- Thin positions.
+- Average OVR.
+- Hitting/pitching/fielding grades.
+- Lineup completion.
+- Rotation completion.
+- Link to roster/lineup.
+
+### 7. League Pulse
+
+Create one compact league pulse module.
+
+Merge/remove overlap from:
+
+```text
+LeagueTickerBanner
+SinceLastAdvanceWidget
+SinceLastAdvanceFeed
+ActivityFeed in News
+War Room SinceLastAdvanceSection
+```
+
+It can still link to full ticker/digests, but the Hub should not render three versions of the same idea.
+
+Show:
+
+- Recent results.
+- Upsets.
+- Commits.
+- Storyline votes.
+- Awards.
+- Rankings movement.
+- Commissioner advances.
+
+### 8. Standings / Race Snapshot
+
+Show:
+
+- User team's conference rank when assigned.
+- Top teams.
+- Playoff/CWS race when relevant.
+- Link to full standings/postseason.
+
+If no assigned team, show league-wide standings race.
+
+### 9. Commissioner Panel
+
+Only for commissioners/co-commissioners.
+
+Show:
+
+- Advance eligibility.
+- Not-ready teams.
+- Missing reports.
+- Pending storyline votes.
+- Any blockers.
+- Commissioner page CTA.
+
+### 10. Compact Navigation Dock
+
+Replace the current large grid of `QuickActionCard` tiles with grouped compact controls.
+
+Groups:
+
+```text
+Team: Coach, School, Roster, Lineup
+Season: Schedule, Stats, Standings, Record Book
+Recruiting: Recruiting, Commits, Transfer Portal, Walk-ons
+League: Storylines, Ticker, Archive, Postseason
+Admin: Commissioner, Settings, Invite
+```
+
+Rules:
+
+- Use smaller icon buttons with labels.
+- Group related links.
+- Hide/disable team-only links when no `myTeam`.
+- Do not generate invalid hrefs.
+- Do not duplicate the primary CTA.
+
+## Specific Code Changes Required
+
+### A. Replace unsafe team fallback
+
+In `client/src/pages/league-view.tsx`, remove this pattern:
+
+```ts
+const userTeam = myTeam ?? league.teams?.find(t => !t.isCpu);
+```
+
+Use explicit variables:
+
+```ts
+const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id) ?? null;
+const hasAssignedTeam = !!myTeam;
+const isLeagueOnlyCommissioner = isCommissioner && !myTeam;
+```
+
+Then update props:
+
+- `ProgramSnapshotPanel` should receive `myTeam`, not fallback `userTeam`.
+- `StandingsPreviewPanel` should accept `myTeam` and fall back to league-wide standings.
+- `StoryEngineHub` should receive `myTeam?.id`, not a fallback team.
+- `NavDock` should receive `myTeam`.
+- Header should only show team badge/record when `myTeam` exists.
+
+### B. Remove bad team links
+
+Fix:
+
+```ts
+href: `/league/${leagueId}/team/${userTeam?.id ?? ""}`
+```
+
+Required behavior:
+
+- If `myTeam?.id` exists: link to `/league/:id/team/:teamId`.
+- If no `myTeam`: hide "School" or render disabled "No Team Assigned".
+- Add a test that no rendered link ends with `/team/`.
+
+### C. Consolidate `/war-room`
+
+In `client/src/App.tsx`, replace the full War Room route with a redirect wrapper or delete after all links migrate.
+
+Example:
+
+```tsx
+function WarRoomRedirect() {
+  const { id } = useParams();
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    setLocation(`/league/${id}?focus=war-room`, { replace: true });
+  }, [id, setLocation]);
+  return null;
+}
+```
+
+Use the repo's existing routing style.
+
+Then update all links that still point to `/war-room`.
+
+### D. Fold useful War Room components into Hub
+
+Do not keep `client/src/pages/war-room.tsx` as a full dashboard.
+
+Move useful logic into shared hub components:
+
+- Next game display.
+- Needs attention/blockers.
+- Commissioner blockers.
+- Since-last-advance data.
+
+Then retire the page or leave a redirect-only compatibility page.
+
+### E. Redesign hero image handling
+
+Update:
+
+```text
+client/src/pages/league-view.tsx
+client/src/components/artwork-background.tsx
+client/src/lib/art-assets.ts
+```
+
+Requirements:
+
+- Hero should be tall enough to matter.
+- Use responsive focal points.
+- Use overlay for readable text.
+- Validate at desktop and mobile sizes.
+- Do not crop out the subject.
+- Do not leave the art as a detached empty strip.
+
+### F. Replace duplicated feed system
+
+Choose one:
+
+- A `LeaguePulsePanel` fed by latest digest/events/ticker data.
+- Or a compact digest strip plus a details drawer.
+
+Do not render all of these on the same page:
+
+```text
+LeagueTickerBanner
+SinceLastAdvanceWidget
+SinceLastAdvanceFeed
+ActivityFeed
+War Room SinceLastAdvanceSection
+```
+
+### G. Replace duplicate ready/action system
+
+Do not render all of these on the same page:
+
+```text
+WaitingOnWidget
+PrimaryPhaseCTA
+CoachActionQueue ready-up item
+War Room NeedsAttentionCard
+War Room QuickActionsBar
+```
+
+Use:
+
+- One `PrimaryObjectivePanel`.
+- One `ReadinessPanel`.
+- One `CoachActionQueue` for secondary actions only.
+
+### H. Fix desktop tab labels
+
+Replace cramped labels:
+
+```text
+Stand -> Standings
+Rank -> Rankings
+Award -> Awards
+Hist -> History
+```
+
+Use responsive CSS if mobile needs shorter text.
+
+## Acceptance Criteria
+
+This is complete when:
+
+- `/league/:id` is clearly the coach homepage.
+- `/league/:id/war-room` no longer displays a separate full dashboard.
+- Dashboard cards, setup flow, identity, rivalries, mobile nav, ticker, and server coach-message CTAs no longer route users to the old War Room page.
+- The first mobile nav item is Hub and points to `/league/:id`.
+- The Hub never shows another human coach's team as "your team".
+- Commissioners with no team see commissioner/league context, not a fake team.
+- No link renders as `/team/`.
+- Ready state appears once clearly.
+- League activity appears once clearly.
+- Hero art is properly cropped and contains useful briefing content.
+- The page feels like a sports-game home screen, not a stacked pile of widgets.
+- Mobile has the same critical information and actions as desktop.
+
+## Testing Requirements
+
+Add/update tests for:
+
+```text
+tests/e2e/league-hub-dashboard.test.ts
+tests/e2e/league-hub-war-room-consolidation.test.ts
+tests/e2e/mobile-league-hub.test.ts
+```
+
+Minimum scenarios:
+
+1. Coach with assigned team sees their own team, not another human team.
+2. Commissioner without assigned team sees commissioner context and no fake team badge.
+3. `/league/:id/war-room` redirects to `/league/:id` or `/league/:id?focus=war-room`.
+4. Dashboard league card routes to `/league/:id`.
+5. Dynasty setup completion routes to `/league/:id`.
+6. Mobile Hub nav item routes to `/league/:id`.
+7. No rendered anchor has an href ending in `/team/`.
+8. Hub renders only one ready-up control.
+9. Hub renders only one league pulse/since-last-advance section.
+10. Desktop hero crop looks correct at `1440x900` and `1920x1080`.
+11. Mobile layout has no horizontal overflow at `390x844` and `414x896`.
+12. Recruiting, roster, next game, standings, and commissioner modules are present when relevant.
+
+Run:
+
+```bash
+npm run check
+npm test
+npx playwright test tests/e2e/league-hub-dashboard.test.ts
+npx playwright test tests/e2e/league-hub-war-room-consolidation.test.ts
+npx playwright test tests/e2e/mobile-league-hub.test.ts
+```
+
+If the exact tests do not exist yet, create them. If the repo's test scripts differ in Replit, run the closest available typecheck and Playwright commands and document the result.
+
+## Final Response Required From Replit
+
+When finished, report:
+
+1. Files changed.
+2. Final route behavior for `/league/:id` and `/league/:id/war-room`.
+3. Every stale `/war-room` link fixed.
+4. Which duplicated modules were removed or merged.
+5. How `myTeam` vs commissioner/no-team state was fixed.
+6. How invalid `/team/` links were prevented.
+7. How hero image cropping and briefing content were redesigned.
+8. Desktop and mobile screenshots.
+9. Tests run and results.
+10. Any remaining risks or follow-up work.

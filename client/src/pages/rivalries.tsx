@@ -337,7 +337,7 @@ export default function RivalriesPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          <Link href={`/league/${leagueId}/war-room`}>
+          <Link href={`/league/${leagueId}`}>
             <button className="p-2 -ml-1 rounded hover:bg-muted/20 transition-colors" style={{ minWidth: 44, minHeight: 44 }}>
               <ArrowLeft className="w-4 h-4" />
             </button>
