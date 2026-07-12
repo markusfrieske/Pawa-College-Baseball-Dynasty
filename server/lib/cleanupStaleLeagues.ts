@@ -84,6 +84,9 @@ export async function cleanupStaleLeagues(
       // 3. Tables that reference other league-scoped tables (must go before
       //    their referenced table is deleted).
       await client.query(`DELETE FROM game_reports WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> games
+      // storyline_events.storyline_recruit_id FK means events must be deleted
+      // before storyline_recruits (storyline_votes already deleted above by team_id).
+      await client.query(`DELETE FROM storyline_events WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> storyline_recruits
       await client.query(`DELETE FROM storyline_recruits WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> recruits
       await client.query(`DELETE FROM coach_season_history WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> coaches
       await client.query(`DELETE FROM recruiting_actions_log WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // -> recruits, teams
@@ -102,10 +105,9 @@ export async function cleanupStaleLeagues(
       await client.query(`DELETE FROM walkon_pool WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // signed_team_id -> teams
       await client.query(`DELETE FROM scouts WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
 
-      // 5. Recruits (after everything referencing recruit_id is gone) and
-      //    storyline events (after storyline_votes is gone).
+      // 5. Recruits (after everything referencing recruit_id is gone).
+      //    storyline_events was already deleted in step 3 (before storyline_recruits).
       await client.query(`DELETE FROM recruits WHERE league_id = ANY($1::varchar[])`, [leagueIds]); // signed_team_id -> teams
-      await client.query(`DELETE FROM storyline_events WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM dynasty_news WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM audit_logs WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
       await client.query(`DELETE FROM advance_digests WHERE league_id = ANY($1::varchar[])`, [leagueIds]);
