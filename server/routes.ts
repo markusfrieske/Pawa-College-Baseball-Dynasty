@@ -9,7 +9,8 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
-import { FULL_SEASON_TOTAL, FULL_SEASON_CONF_NAMES, FULL_SEASON_RULES, CONF_SIZE_MAP } from "@shared/catalog";
+import { FULL_SEASON_TOTAL, FULL_SEASON_CONF_NAMES, FULL_SEASON_RULES, CONF_SIZE_MAP, CONFERENCE_CATALOG } from "@shared/catalog";
+import { FULL_SEASON_RULES_SNAPSHOT } from "@shared/leagueRules";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
@@ -476,6 +477,21 @@ export async function registerRoutes(
   registerIdentityRoutes(app);
   registerObjectStorageRoutes(app);
 
+  // ── Catalog ───────────────────────────────────────────────────────────────
+  // Public read — no auth required, catalog is static metadata.
+  app.get("/api/catalog", async (_req, res) => {
+    const conferences = CONFERENCE_CATALOG.map(c => ({
+      id:   c.name,
+      name: c.name,
+      size: c.size,
+    }));
+    res.json({
+      conferences,
+      totalTeams: FULL_SEASON_TOTAL,
+      catalogVersion: FULL_SEASON_RULES.catalogVersion,
+    });
+  });
+
   // League routes
   app.get("/api/leagues", requireAuth, async (req, res) => {
     try {
@@ -675,6 +691,8 @@ export async function registerRoutes(
         gameMode:           effectiveGameMode,
         dynastyPreset:      preset ?? "custom",
         catalogVersion:     isFullSeason ? FULL_SEASON_RULES.catalogVersion : undefined,
+        rulesVersion:       isFullSeason ? 1 : undefined,
+        rulesSnapshot:      isFullSeason ? FULL_SEASON_RULES_SNAPSHOT : undefined,
       });
 
       // Create conferences — use all 12 for full_season, otherwise selected or default N

@@ -400,6 +400,11 @@ export function registerGameRoutes(app: Express): void {
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
+      // Full Season leagues always use simulation — manual game reports are not supported.
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode. Games are auto-simulated." });
+      }
+
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
@@ -540,6 +545,9 @@ export function registerGameRoutes(app: Express): void {
       const gameId = req.params.gameId as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if ((league as any).dynastyPreset === "full_season") {
+        return res.status(409).json({ message: "Game reports are not available in Full Season mode." });
+      }
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only commissioners can edit a submitted report" });
       }

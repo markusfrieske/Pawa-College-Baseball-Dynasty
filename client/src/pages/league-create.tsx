@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Star, ArrowLeft, TrendingUp, Check, Camera, Globe, Settings, Lock } from "lucide-react";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
+import { CONFERENCE_CATALOG, FULL_SEASON_TOTAL } from "@shared/catalog";
 
 const difficultyOptions = [
   { value: "beginner", label: "Beginner - Easy, relaxed pace" },
@@ -19,20 +20,31 @@ const difficultyOptions = [
   { value: "elite", label: "Elite - Ruthless, dominant opponents" },
 ];
 
-const availableConferences = [
-  { id: "SEC",            abbr: "SEC",  teams: 16, primaryColor: "#002D72", secondaryColor: "#CFB53B", fullName: "Southeastern Conference" },
-  { id: "ACC",            abbr: "ACC",  teams: 16, primaryColor: "#003087", secondaryColor: "#F47920", fullName: "Atlantic Coast Conference" },
-  { id: "Big 12",         abbr: "B12",  teams: 14, primaryColor: "#00205B", secondaryColor: "#CC0000", fullName: "Big 12 Conference" },
-  { id: "Big Ten",        abbr: "B10",  teams: 17, primaryColor: "#0032A0", secondaryColor: "#E8C84A", fullName: "Big Ten Conference" },
-  { id: "Pac-12",         abbr: "P12",  teams: 8,  primaryColor: "#003DA5", secondaryColor: "#C4A962", fullName: "Pac-12 Conference" },
-  { id: "AAC",            abbr: "AAC",  teams: 11, primaryColor: "#007A53", secondaryColor: "#003087", fullName: "American Athletic Conference" },
-  { id: "WCC",            abbr: "WCC",  teams: 8,  primaryColor: "#6B1D3E", secondaryColor: "#C8A96E", fullName: "West Coast Conference" },
-  { id: "Ivy League",     abbr: "IVY",  teams: 8,  primaryColor: "#006438", secondaryColor: "#D4AF37", fullName: "Ivy League" },
-  { id: "Sun Belt",       abbr: "SB",   teams: 12, primaryColor: "#003087", secondaryColor: "#FFD100", fullName: "Sun Belt Conference" },
-  { id: "Big West",       abbr: "BW",   teams: 10, primaryColor: "#00539C", secondaryColor: "#E87722", fullName: "Big West Conference" },
-  { id: "HBCU",           abbr: "HBCU", teams: 16, primaryColor: "#1A1A1A", secondaryColor: "#FFD700", fullName: "HBCU Conferences" },
-  { id: "Missouri Valley",abbr: "MVC",  teams: 13, primaryColor: "#5B2C6B", secondaryColor: "#FFD100", fullName: "Missouri Valley Conference" },
-];
+// Conference display metadata — visual/brand properties that supplement the canonical catalog.
+const CONF_DISPLAY: Record<string, { abbr: string; primaryColor: string; secondaryColor: string; fullName: string }> = {
+  "SEC":             { abbr: "SEC",  primaryColor: "#002D72", secondaryColor: "#CFB53B", fullName: "Southeastern Conference" },
+  "ACC":             { abbr: "ACC",  primaryColor: "#003087", secondaryColor: "#F47920", fullName: "Atlantic Coast Conference" },
+  "Big 12":          { abbr: "B12",  primaryColor: "#00205B", secondaryColor: "#CC0000", fullName: "Big 12 Conference" },
+  "Big Ten":         { abbr: "B10",  primaryColor: "#0032A0", secondaryColor: "#E8C84A", fullName: "Big Ten Conference" },
+  "Pac-12":          { abbr: "P12",  primaryColor: "#003DA5", secondaryColor: "#C4A962", fullName: "Pac-12 Conference" },
+  "AAC":             { abbr: "AAC",  primaryColor: "#007A53", secondaryColor: "#003087", fullName: "American Athletic Conference" },
+  "WCC":             { abbr: "WCC",  primaryColor: "#6B1D3E", secondaryColor: "#C8A96E", fullName: "West Coast Conference" },
+  "Ivy League":      { abbr: "IVY",  primaryColor: "#006438", secondaryColor: "#D4AF37", fullName: "Ivy League" },
+  "Sun Belt":        { abbr: "SB",   primaryColor: "#003087", secondaryColor: "#FFD100", fullName: "Sun Belt Conference" },
+  "Big West":        { abbr: "BW",   primaryColor: "#00539C", secondaryColor: "#E87722", fullName: "Big West Conference" },
+  "HBCU":            { abbr: "HBCU", primaryColor: "#1A1A1A", secondaryColor: "#FFD700", fullName: "HBCU Conferences" },
+  "Missouri Valley": { abbr: "MVC",  primaryColor: "#5B2C6B", secondaryColor: "#FFD100", fullName: "Missouri Valley Conference" },
+};
+
+// Derive from canonical catalog — team counts come from the single source of truth.
+const availableConferences = CONFERENCE_CATALOG.map(c => ({
+  id:   c.name,
+  abbr: CONF_DISPLAY[c.name]?.abbr ?? c.name.slice(0, 4).toUpperCase(),
+  teams: c.size,
+  primaryColor:   CONF_DISPLAY[c.name]?.primaryColor   ?? "#333333",
+  secondaryColor: CONF_DISPLAY[c.name]?.secondaryColor ?? "#ffffff",
+  fullName: CONF_DISPLAY[c.name]?.fullName ?? c.name,
+}));
 
 const seasonLengthOptions = [
   { value: "full_season", label: "Full Season — 60 Games (14 weeks + 4 spring)" },
@@ -55,7 +67,6 @@ function isValidTeamCount(n: number, confCount: number): boolean {
 }
 
 const ALL_CONFERENCE_IDS = availableConferences.map(c => c.id);
-const FULL_SEASON_TOTAL = availableConferences.reduce((s, c) => s + c.teams, 0);
 
 export default function LeagueCreatePage() {
   const [mode, setMode] = useState<"full_season" | "custom">("full_season");

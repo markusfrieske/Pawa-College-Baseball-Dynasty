@@ -10,9 +10,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Star, ArrowRight, ArrowLeft, Check, Globe } from "lucide-react";
 import { Link } from "wouter";
 import type { Conference, League } from "@shared/schema";
+import { FULL_SEASON_TOTAL as TOTAL_NATIONAL_TEAMS } from "@shared/catalog";
 import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
-
-const TOTAL_NATIONAL_TEAMS = 149;
 
 function getConferenceTargets(maxTeams: number, conferenceCount: number, conferenceSizes?: number[]): number[] {
   if (conferenceSizes && conferenceSizes.length === conferenceCount) return conferenceSizes;

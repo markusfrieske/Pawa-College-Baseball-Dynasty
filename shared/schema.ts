@@ -54,8 +54,10 @@ export const leagues = pgTable("leagues", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   dynastyPreset: text("dynasty_preset").notNull().default("custom"),
   rulesSnapshot: jsonb("rules_snapshot"),
+  rulesVersion: integer("rules_version"),
   catalogVersion: text("catalog_version"),
   scheduleSeed: text("schedule_seed"),
+  currentPhaseStep: text("current_phase_step"),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({
@@ -70,11 +72,17 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   gameMode: true,
   dynastyPreset: true,
   catalogVersion: true,
+  rulesVersion: true,
+  rulesSnapshot: true,
+  scheduleSeed: true,
 }).extend({
   isTestData: z.boolean().optional(),
   gameMode: z.enum(["simulated", "reported"]).optional(),
   dynastyPreset: z.string().optional(),
   catalogVersion: z.string().optional(),
+  rulesVersion: z.number().int().optional(),
+  rulesSnapshot: z.record(z.unknown()).optional(),
+  scheduleSeed: z.string().optional(),
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;
@@ -2103,3 +2111,77 @@ export const leagueNewsPosts = pgTable("league_news_posts", {
 export const insertLeagueNewsPostSchema = createInsertSchema(leagueNewsPosts).omit({ id: true, createdAt: true });
 export type InsertLeagueNewsPost = z.infer<typeof insertLeagueNewsPostSchema>;
 export type LeagueNewsPost = typeof leagueNewsPosts.$inferSelect;
+
+// ── Full Season Postseason Tables ─────────────────────────────────────────────
+
+export const postseason_tournaments = pgTable("postseason_tournaments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  season: integer("season").notNull(),
+  stage: text("stage").notNull(), // "conference_championship" | "super_regional" | "cws"
+  status: text("status").notNull().default("scheduled"), // "scheduled" | "in_progress" | "complete"
+  winnerId: varchar("winner_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (t) => [
+  index("idx_ps_tournaments_league_season").on(t.leagueId, t.season),
+  index("idx_ps_tournaments_league_stage").on(t.leagueId, t.season, t.stage),
+]);
+
+export type PostseasonTournament = typeof postseason_tournaments.$inferSelect;
+export type InsertPostseasonTournament = typeof postseason_tournaments.$inferInsert;
+
+export const postseason_entries = pgTable("postseason_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tournamentId: varchar("tournament_id").notNull().references(() => postseason_tournaments.id),
+  teamId: varchar("team_id").notNull(),
+  seed: integer("seed"),
+  bracket: text("bracket"), // "winners" | "losers" | null
+  status: text("status").notNull().default("active"), // "active" | "eliminated" | "champion"
+}, (t) => [
+  index("idx_ps_entries_tournament").on(t.tournamentId),
+  index("idx_ps_entries_team").on(t.teamId),
+]);
+
+export type PostseasonEntry = typeof postseason_entries.$inferSelect;
+export type InsertPostseasonEntry = typeof postseason_entries.$inferInsert;
+
+export const postseason_series = pgTable("postseason_series", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tournamentId: varchar("tournament_id").notNull().references(() => postseason_tournaments.id),
+  homeTeamId: varchar("home_team_id"),
+  awayTeamId: varchar("away_team_id"),
+  round: integer("round").notNull(),
+  bracketSlot: text("bracket_slot"), // "WBR1", "LBR1", etc.
+  homeScore: integer("home_score"),
+  awayScore: integer("away_score"),
+  winnerId: varchar("winner_id"),
+  isComplete: boolean("is_complete").notNull().default(false),
+  gameNumber: integer("game_number").notNull().default(1),
+  playedAt: timestamp("played_at"),
+}, (t) => [
+  index("idx_ps_series_tournament").on(t.tournamentId),
+  index("idx_ps_series_bracket_slot").on(t.tournamentId, t.bracketSlot),
+]);
+
+export type PostseasonSeries = typeof postseason_series.$inferSelect;
+export type InsertPostseasonSeries = typeof postseason_series.$inferInsert;
+
+export const league_jobs = pgTable("league_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  jobType: text("job_type").notNull(), // "bootstrap" | "schedule_gen" | "advance"
+  status: text("status").notNull().default("pending"), // "pending" | "running" | "complete" | "failed"
+  progress: integer("progress").notNull().default(0), // 0-100
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_league_jobs_league_status").on(t.leagueId, t.status),
+  index("idx_league_jobs_created").on(t.createdAt),
+]);
+
+export type LeagueJob = typeof league_jobs.$inferSelect;
+export type InsertLeagueJob = typeof league_jobs.$inferInsert;
