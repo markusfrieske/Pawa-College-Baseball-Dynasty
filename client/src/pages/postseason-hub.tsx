@@ -1188,7 +1188,14 @@ export default function PostseasonHubPage() {
                           <span className="text-[10px] font-pixel text-gold w-5 flex-shrink-0">{e.nationalSeed}</span>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs truncate">{e.team?.name ?? "—"}</p>
-                            <p className="text-[8px] text-muted-foreground">{e.wins}-{e.losses}</p>
+                            <p className="text-[8px] text-muted-foreground">
+                              {e.wins}-{e.losses}
+                              {e.selectionReason && (
+                                <span className="ml-1 text-muted-foreground/60" title={e.selectionReason}>
+                                  · {e.selectionReason}
+                                </span>
+                              )}
+                            </p>
                           </div>
                           <span
                             className={`text-[7px] font-pixel flex-shrink-0 px-1 rounded ${

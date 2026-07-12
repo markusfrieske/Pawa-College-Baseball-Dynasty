@@ -453,7 +453,14 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
                 data-testid={`fs-seed-row-${e.nationalSeed}`}
               >
                 <span className="w-5 font-pixel text-gold flex-shrink-0">{e.nationalSeed}</span>
-                <span className="truncate flex-1">{e.team?.abbreviation ?? "—"}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate">{e.team?.abbreviation ?? "—"}</span>
+                  {e.selectionReason && (
+                    <span className="block truncate text-[6px] text-muted-foreground/70" title={e.selectionReason}>
+                      {e.selectionReason}
+                    </span>
+                  )}
+                </div>
                 {e.qualificationType === "auto_bid" ? (
                   <Star className="w-2.5 h-2.5 text-gold flex-shrink-0" title="Auto bid" />
                 ) : (

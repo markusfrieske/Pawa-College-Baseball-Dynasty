@@ -374,16 +374,15 @@ async function advanceSingleBracket(
     return null; // BF2 in progress or just created
   }
 
-  // Any incomplete game in any bracket game → wait
-  const allBracketGames = [...wbr1, ...wbr2, ...lbr1, ...lbr2, ...bf1, ...bf2];
-  if (allBracketGames.some(g => !g.isComplete)) return null;
-
-  // WBR1 done → create WBR2 + LBR1
-  if (allDone(wbr1) && wbr2.length === 0 && lbr1.length === 0) {
+  // ── Independent backfill (BEFORE blanket wait) ───────────────────────────
+  // WBR2 and LBR1 are checked independently so a partial failure on one
+  // does not permanently block the other. Each creation is guarded by its
+  // own `length === 0` check — safe to call on every advance tick.
+  if (allDone(wbr1)) {
     const winners1 = wbr1.map(g => winner(g));
     const losers1 = wbr1.map(g => loser(g));
 
-    if (winners1.length >= 2) {
+    if (wbr2.length === 0 && winners1.length >= 2) {
       await storage.createGame({
         leagueId, season, week: 0,
         homeTeamId: winners1[0], awayTeamId: winners1[1],
@@ -392,8 +391,10 @@ async function advanceSingleBracket(
         bracketRound: 2,
       });
       await upsertCWSBracketSeries(leagueId, season, `${bracket}_WBR2`, winners1[0], winners1[1], 0, 0, false);
+      await storage.updateLeague(leagueId, { currentPhaseStep: "cws_winners" });
     }
-    if (losers1.length >= 2) {
+
+    if (lbr1.length === 0 && losers1.length >= 2) {
       await storage.createGame({
         leagueId, season, week: 0,
         homeTeamId: losers1[0], awayTeamId: losers1[1],
@@ -402,12 +403,17 @@ async function advanceSingleBracket(
         bracketRound: 1,
       });
       await upsertCWSBracketSeries(leagueId, season, `${bracket}_LBR1`, losers1[0], losers1[1], 0, 0, false);
+      await storage.updateLeague(leagueId, { currentPhaseStep: "cws_winners" });
     }
-    await storage.updateLeague(leagueId, { currentPhaseStep: "cws_winners" });
-    return null;
   }
 
-  // WBR2 + LBR1 done → create LBR2
+  // ── Blanket wait: any existing game still in progress → wait ─────────────
+  // (uses stale allGames from caller; newly created games above aren't in it
+  //  yet, which is fine — they'll appear on the next advance tick)
+  const allBracketGames = [...wbr1, ...wbr2, ...lbr1, ...lbr2, ...bf1, ...bf2];
+  if (allBracketGames.some(g => !g.isComplete)) return null;
+
+  // ── WBR2 + LBR1 done → create LBR2 ──────────────────────────────────────
   if (allDone(wbr2) && allDone(lbr1) && lbr2.length === 0) {
     const wbr2Loser = loser(wbr2[0]);
     const lbr1Winner = winner(lbr1[0]);
@@ -423,7 +429,7 @@ async function advanceSingleBracket(
     return null;
   }
 
-  // LBR2 + WBR2 done → create bracket final (BF1)
+  // ── LBR2 + WBR2 done → create bracket final (BF1) ───────────────────────
   if (allDone(lbr2) && allDone(wbr2) && bf1.length === 0) {
     const wbr2Winner = winner(wbr2[0]);
     const lbr2Winner = winner(lbr2[0]);

@@ -59,6 +59,20 @@ export async function selectAndSeedNationalField(
     ccGames.map(g => (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId)
   );
 
+  // Invariant check: one auto bid per conference
+  const uniqueConferences = new Set(
+    (leagueTeams as any[]).map(t => t.conferenceId).filter(Boolean)
+  );
+  const expectedAutoBids = uniqueConferences.size;
+  if (confChampionIds.size !== expectedAutoBids) {
+    console.warn(
+      `[fs-selection] Invariant: found ${confChampionIds.size} conference champion(s) ` +
+      `but expected ${expectedAutoBids} (one per conf). ` +
+      `Missing champions will be replaced by at-large selections to fill ${TARGET_FIELD_SIZE}-team field. ` +
+      `CC games completed: ${ccGames.length}`
+    );
+  }
+
   // Score ALL teams
   const scoredTeams = leagueTeams.map(t => {
     const s = standingsList.find(st => st.teamId === t.id);
