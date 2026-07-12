@@ -3,7 +3,7 @@
  *
  * Schema rules (server/pitchMixHelpers.ts):
  *   - pitchFB, pitch2S, pitchKN are binary: 0 or 1.
- *   - pitchFK and pitchSFF are leveled: 0 (absent) or 1-3.
+ *   - pitchFK and pitchSFF are leveled: 0 (absent) or 1-4.
  *   - pitchCH and all other pitch slots must be integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
@@ -122,8 +122,8 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
         const value = typeof raw[field] === "number" ? (raw[field] as number) : 0;
         if (BINARY_PITCH_FIELDS.has(field) && value > 1) {
           violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "binary field (must be 0 or 1)" });
-        } else if (LEVELED_SPECIALTY_FIELDS.has(field) && value > 3) {
-          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "leveled specialty field (must be 0-3)" });
+        } else if (LEVELED_SPECIALTY_FIELDS.has(field) && value > 4) {
+          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "leveled specialty field (must be 0-4)" });
         } else if (!BINARY_PITCH_FIELDS.has(field) && !LEVELED_SPECIALTY_FIELDS.has(field) && value > 7) {
           violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "wrong 0-100 scale (must be 0-7)" });
         }

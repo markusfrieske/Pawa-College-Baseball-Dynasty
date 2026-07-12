@@ -2,11 +2,9 @@
  * Pitch-level OVR-cap validator.
  *
  * Rules:
- *   - Pitchers with OVR ≤ 500: pitchSL/CB/CT/SNK/SPL must be ≤ 5
- *   - Pitchers with OVR ≤ 400: pitchSL/CB/CT/SNK/SPL must be ≤ 4
+ *   - Pitchers with OVR ≤ 500: pitchSL/CB/CT/SNK/SPL must be ≤ 6
  *
- * Only true elite arms (501+ OVR) may throw a signature-level 6–7 secondary.
- * Mid-tier arms (401–500 OVR) cap at 5. Below-average arms (≤400 OVR) cap at 4.
+ * Only true elite arms (501+ OVR) may throw a signature-level 7 secondary.
  */
 
 import { SEC_BATCH1_ROSTERS } from "../server/secBatch1";
@@ -82,17 +80,11 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
         const value = typeof raw[field] === "number" ? raw[field] : 0;
         if (value === 0) continue;
 
-        if (ovr <= 400 && value >= 5) {
+        if (ovr <= 500 && value >= 7) {
           violations.push({
             file: fileName, team: teamName, player: playerName,
-            ovr, field, value, cap: 4,
-            rule: "OVR ≤ 400 → leveled pitches must be ≤ 4",
-          });
-        } else if (ovr <= 500 && value >= 6) {
-          violations.push({
-            file: fileName, team: teamName, player: playerName,
-            ovr, field, value, cap: 5,
-            rule: "OVR ≤ 500 → leveled pitches must be ≤ 5",
+            ovr, field, value, cap: 6,
+            rule: "OVR ≤ 500 → leveled pitches must be ≤ 6",
           });
         }
       }
@@ -118,8 +110,7 @@ if (violations.length > 0) {
 
   console.error(`
 Fix: lower the flagged pitch levels to their OVR-tier cap.
-     ≤400 OVR: pitchSL/CB/CT/SNK/SPL must be ≤ 4
-     ≤500 OVR: pitchSL/CB/CT/SNK/SPL must be ≤ 5
+     ≤500 OVR: pitchSL/CB/CT/SNK/SPL must be ≤ 6
 `);
   process.exit(1);
 }

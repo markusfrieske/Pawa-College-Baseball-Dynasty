@@ -562,7 +562,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       protectedAttrs: UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
-      ...pitchMix(1, [0, 0, 0, 0, 4, 0, 0, 0, 3, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 4, 0, 0, 0, 4, 0]) },
     // Michael Barnett — Saturday opener, SR, 3.74 ERA, 244 career IP, four-pitch mix (sinker/CH/SL/CB)
     { firstName: "Michael", lastName: "Barnett", position: "P", eligibility: "SR", homeState: "CA", hometown: "Lafayette", jerseyNumber: 55,
       hitForAvg: 16, power: 12, speed: 31, arm: 55, fielding: 39, errorResistance: 56, velocity: 75, control: 72, stamina: 73, stuff: 50,
@@ -571,7 +571,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       protectedAttrs: UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 4, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 5, 6, 0, 0, 0, 0, 0]) },
     // Landon Stump — Sunday SP, JR, 4.33 ERA, ~3 IP/start, surviving Sundays
     { firstName: "Landon", lastName: "Stump", position: "P", eligibility: "JR", homeState: "CA", hometown: "Morgan Hill", jerseyNumber: 14,
       hitForAvg: 14, power: 11, speed: 32, arm: 48, fielding: 33, errorResistance: 48, velocity: 65, control: 65, stamina: 71, stuff: 45,
@@ -607,7 +607,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       protectedAttrs: UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 3, 2, 3, 0, 0, 3, 0]) },
+      ...pitchMix(1, [0, 0, 0, 3, 2, 3, 0, 0, 4, 0]) },
     // Zach Strickland — FR RHP, weekend bullpen, elite K/BB, 27 APP, 2.82 ERA
     { firstName: "Zach", lastName: "Strickland", position: "P", eligibility: "FR", homeState: "CA", hometown: "Arcadia", jerseyNumber: 12,
       hitForAvg: 10, power: 8, speed: 31, arm: 53, fielding: 32, errorResistance: 44, velocity: 63, control: 78, stamina: 45, stuff: 55,
@@ -717,7 +717,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       protectedAttrs: UCLA_SCREENSHOT_PITCHER_PROTECTED_ATTRS,
       throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 0, 4, 4, 0, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 5, 5, 0, 0, 0, 0]) },
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 9,
