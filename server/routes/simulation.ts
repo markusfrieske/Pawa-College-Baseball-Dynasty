@@ -1434,18 +1434,12 @@ async function advanceSuperRegionals(leagueId: string, season: number): Promise<
 
     const postseasonRotation = ["friday", "saturday", "sunday"];
     const _srSimStart = Date.now();
-    await Promise.all(gamesToSimulate.map(async (game, gi) => {
+    const srSimResults = await Promise.all(gamesToSimulate.map(async (game, gi) => {
       const psGameType = game.gameType || postseasonRotation[gi % 3];
       const result = await simulateGame(game.homeTeamId, game.awayTeamId, psGameType, undefined, undefined, game.week);
-      const box = JSON.parse(result.boxScore);
-      await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, {
-        skipStandings: true,
-        skipCoachXp: true,
-        leagueTeams: srTeams,
-        eventDescriptionSuffix: "(Super Regionals)",
-        skipCacheInvalidation: true,
-      });
+      return { game, result };
     }));
+    await batchFinalizeGames(srSimResults, leagueId, season, new Map<string, CoachXpDelta>(), srTeams, undefined, { skipStandings: true, skipCoachXp: true });
     console.log(`[advance-perf] super-regionals-sim: ${Date.now() - _srSimStart}ms`);
   }
 
@@ -1477,18 +1471,12 @@ async function advanceCWS(leagueId: string, season: number): Promise<{ done: boo
   const _cwsSimStart = Date.now();
   // CWS results intentionally do NOT update standings — postseason games must not
   // mutate the regular-season win/loss records that bracket seeding depends on.
-  await Promise.all(incompleteGames.map(async (game, gi) => {
+  const cwsSimResults = await Promise.all(incompleteGames.map(async (game, gi) => {
     const cwsGameType = game.gameType || cwsRotation[gi % 3];
     const result = await simulateGame(game.homeTeamId, game.awayTeamId, cwsGameType, undefined, undefined, game.week);
-    const box = JSON.parse(result.boxScore);
-    await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, {
-      skipStandings: true,
-      skipCoachXp: true,
-      leagueTeams: cwsTeams,
-      eventDescriptionSuffix: "(CWS)",
-      skipCacheInvalidation: true,
-    });
+    return { game, result };
   }));
+  await batchFinalizeGames(cwsSimResults, leagueId, season, new Map<string, CoachXpDelta>(), cwsTeams, undefined, { skipStandings: true, skipCoachXp: true });
   console.log(`[advance-perf] cws-sim: ${Date.now() - _cwsSimStart}ms`);
   
   const updatedGames = await storage.getGamesByLeague(leagueId);
@@ -6582,14 +6570,9 @@ export function registerSimulationRoutes(app: Express): void {
           console.time("[advance-perf] conf-champ-games");
           const confGameResults = await Promise.all(confGames.map(async (game) => {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
-            const box = JSON.parse(result.boxScore);
-            await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, {
-              leagueTeams: leagueTeamsForSim,
-              eventDescriptionSuffix: "(Conf Champ)",
-              skipCacheInvalidation: true,
-            });
             return { game, result };
           }));
+          await batchFinalizeGames(confGameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches);
           console.timeEnd("[advance-perf] conf-champ-games");
           // Extract user's conf champ game if they played one
           if (simUserTeamId && !userTeamGame) {
@@ -8006,11 +7989,13 @@ export function registerSimulationRoutes(app: Express): void {
 
           if (phase === "conference_championship") {
             const ccGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && !g.isComplete && g.season === currentLeague.currentSeason);
-            for (const game of ccGames) {
+            console.time("[advance-perf] fs-conf-champ-games");
+            const fsccSimResults = await Promise.all(ccGames.map(async game => {
               const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId), game.week);
-              const box = JSON.parse(result.boxScore);
-              await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, { skipCoachXp: true, skipCacheInvalidation: true });
-            }
+              return { game, result };
+            }));
+            await batchFinalizeGames(fsccSimResults, leagueId, currentLeague.currentSeason, new Map<string, CoachXpDelta>(), fsTeams, undefined, { skipCoachXp: true });
+            console.timeEnd("[advance-perf] fs-conf-champ-games");
             await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
             currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
             continue;
@@ -8362,13 +8347,13 @@ export function registerSimulationRoutes(app: Express): void {
         if (phase === "conference_championship") {
           const ccGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
-          const ccResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
-          for (const game of ccGames) {
+          console.time("[advance-perf] cws-path-conf-champ-games");
+          const ccResults = await Promise.all(ccGames.map(async game => {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
-            const box = JSON.parse(result.boxScore);
-            await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, { skipCoachXp: true, skipCacheInvalidation: true });
-            ccResults.push({ game, result });
-          }
+            return { game, result };
+          }));
+          await batchFinalizeGames(ccResults, leagueId, currentLeague.currentSeason, new Map<string, CoachXpDelta>(), cwsTeams, undefined, { skipCoachXp: true });
+          console.timeEnd("[advance-perf] cws-path-conf-champ-games");
           if (ccResults.length > 0) {
             simSummary.postseasonResults.push({
               phase: "Conference Championship",

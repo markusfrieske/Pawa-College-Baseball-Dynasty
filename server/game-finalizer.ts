@@ -631,6 +631,7 @@ export async function batchFinalizeGames(
   coachXpAccum: Map<string, CoachXpDelta>,
   leagueTeams: Team[],
   coaches?: Coach[],
+  options?: { skipStandings?: boolean; skipCoachXp?: boolean },
 ): Promise<void> {
   if (results.length === 0) return;
 
@@ -645,37 +646,39 @@ export async function batchFinalizeGames(
   );
 
   // ── 2. Batch increment standings — aggregate all deltas in memory first ────
-  const standingDeltas = new Map<string, {
-    wins: number; losses: number; confWins: number; confLosses: number;
-    runsScored: number; runsAllowed: number;
-  }>();
-  for (const { game, result } of results) {
-    const homeWon = result.homeScore > result.awayScore;
-    const isConf  = game.isConference ?? false;
-    const hd = standingDeltas.get(game.homeTeamId) ??
-      { wins: 0, losses: 0, confWins: 0, confLosses: 0, runsScored: 0, runsAllowed: 0 };
-    hd.wins      += homeWon ? 1 : 0;
-    hd.losses    += homeWon ? 0 : 1;
-    hd.confWins  += (isConf && homeWon)  ? 1 : 0;
-    hd.confLosses+= (isConf && !homeWon) ? 1 : 0;
-    hd.runsScored += result.homeScore;
-    hd.runsAllowed+= result.awayScore;
-    standingDeltas.set(game.homeTeamId, hd);
+  if (!options?.skipStandings) {
+    const standingDeltas = new Map<string, {
+      wins: number; losses: number; confWins: number; confLosses: number;
+      runsScored: number; runsAllowed: number;
+    }>();
+    for (const { game, result } of results) {
+      const homeWon = result.homeScore > result.awayScore;
+      const isConf  = game.isConference ?? false;
+      const hd = standingDeltas.get(game.homeTeamId) ??
+        { wins: 0, losses: 0, confWins: 0, confLosses: 0, runsScored: 0, runsAllowed: 0 };
+      hd.wins      += homeWon ? 1 : 0;
+      hd.losses    += homeWon ? 0 : 1;
+      hd.confWins  += (isConf && homeWon)  ? 1 : 0;
+      hd.confLosses+= (isConf && !homeWon) ? 1 : 0;
+      hd.runsScored += result.homeScore;
+      hd.runsAllowed+= result.awayScore;
+      standingDeltas.set(game.homeTeamId, hd);
 
-    const ad = standingDeltas.get(game.awayTeamId) ??
-      { wins: 0, losses: 0, confWins: 0, confLosses: 0, runsScored: 0, runsAllowed: 0 };
-    ad.wins      += homeWon ? 0 : 1;
-    ad.losses    += homeWon ? 1 : 0;
-    ad.confWins  += (isConf && !homeWon) ? 1 : 0;
-    ad.confLosses+= (isConf && homeWon)  ? 1 : 0;
-    ad.runsScored += result.awayScore;
-    ad.runsAllowed+= result.homeScore;
-    standingDeltas.set(game.awayTeamId, ad);
+      const ad = standingDeltas.get(game.awayTeamId) ??
+        { wins: 0, losses: 0, confWins: 0, confLosses: 0, runsScored: 0, runsAllowed: 0 };
+      ad.wins      += homeWon ? 0 : 1;
+      ad.losses    += homeWon ? 1 : 0;
+      ad.confWins  += (isConf && !homeWon) ? 1 : 0;
+      ad.confLosses+= (isConf && homeWon)  ? 1 : 0;
+      ad.runsScored += result.awayScore;
+      ad.runsAllowed+= result.homeScore;
+      standingDeltas.set(game.awayTeamId, ad);
+    }
+    await storage.batchIncrementStandings(
+      leagueId, season,
+      Array.from(standingDeltas.entries()).map(([teamId, d]) => ({ teamId, ...d }))
+    );
   }
-  await storage.batchIncrementStandings(
-    leagueId, season,
-    Array.from(standingDeltas.entries()).map(([teamId, d]) => ({ teamId, ...d }))
-  );
 
   // ── 3. Batch upsert player stats — collect from all game boxes at once ────
   const allPlayerStats: InsertPlayerSeasonStats[] = [];
@@ -707,50 +710,52 @@ export async function batchFinalizeGames(
   );
 
   // ── 5. Coach XP accumulation (zero DB writes — caller flushes once after) ─
-  const coachById = coaches ? new Map(coaches.map(c => [c.id, c])) : new Map<string, Coach>();
-  for (const { game, result } of results) {
-    const homeWon = result.homeScore > result.awayScore;
-    const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
-    const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
-    if (homeTeam?.coachId) {
-      const acc = coachXpAccum.get(homeTeam.coachId) ??
-        { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
-      acc.xp     += homeWon ? WIN_XP : LOSS_XP;
-      acc.wins   += homeWon ? 1 : 0;
-      acc.losses += homeWon ? 0 : 1;
-      acc.confWins  += (game.isConference && homeWon)  ? 1 : 0;
-      acc.confLosses+= (game.isConference && !homeWon) ? 1 : 0;
-      coachXpAccum.set(homeTeam.coachId, acc);
-    }
-    if (awayTeam?.coachId) {
-      const acc = coachXpAccum.get(awayTeam.coachId) ??
-        { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
-      acc.xp     += homeWon ? LOSS_XP : WIN_XP;
-      acc.wins   += homeWon ? 0 : 1;
-      acc.losses += homeWon ? 1 : 0;
-      acc.confWins  += (game.isConference && !homeWon) ? 1 : 0;
-      acc.confLosses+= (game.isConference && homeWon)  ? 1 : 0;
-      coachXpAccum.set(awayTeam.coachId, acc);
-    }
+  if (!options?.skipCoachXp) {
+    const coachById = coaches ? new Map(coaches.map(c => [c.id, c])) : new Map<string, Coach>();
+    for (const { game, result } of results) {
+      const homeWon = result.homeScore > result.awayScore;
+      const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
+      if (homeTeam?.coachId) {
+        const acc = coachXpAccum.get(homeTeam.coachId) ??
+          { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+        acc.xp     += homeWon ? WIN_XP : LOSS_XP;
+        acc.wins   += homeWon ? 1 : 0;
+        acc.losses += homeWon ? 0 : 1;
+        acc.confWins  += (game.isConference && homeWon)  ? 1 : 0;
+        acc.confLosses+= (game.isConference && !homeWon) ? 1 : 0;
+        coachXpAccum.set(homeTeam.coachId, acc);
+      }
+      if (awayTeam?.coachId) {
+        const acc = coachXpAccum.get(awayTeam.coachId) ??
+          { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+        acc.xp     += homeWon ? LOSS_XP : WIN_XP;
+        acc.wins   += homeWon ? 0 : 1;
+        acc.losses += homeWon ? 1 : 0;
+        acc.confWins  += (game.isConference && !homeWon) ? 1 : 0;
+        acc.confLosses+= (game.isConference && homeWon)  ? 1 : 0;
+        coachXpAccum.set(awayTeam.coachId, acc);
+      }
 
-    // ── 5.5 Rivalry updates — HvH games only (same logic as finalizeGame) ───
-    if (homeTeam?.coachId && awayTeam?.coachId) {
-      const hCoach = coachById.get(homeTeam.coachId);
-      const aCoach = coachById.get(awayTeam.coachId);
-      if (hCoach?.userId && aCoach?.userId) {
-        const isPostseason =
-          game.gameType === "super_regionals" || game.gameType === "cws";
-        const aIsHome = hCoach.id < aCoach.id;
-        const [coachAId, coachBId] = aIsHome
-          ? [hCoach.id, aCoach.id]
-          : [aCoach.id, hCoach.id];
-        const aWon  = aIsHome ? homeWon : !homeWon;
-        const aRuns = aIsHome ? result.homeScore : result.awayScore;
-        const bRuns = aIsHome ? result.awayScore : result.homeScore;
-        storage.upsertRivalryFromGame(
-          leagueId, coachAId, coachBId, aWon, aRuns, bRuns,
-          game.season, game.week, isPostseason,
-        ).catch(e => console.error("[batchFinalizeGames] rivalry update error:", e));
+      // ── 5.5 Rivalry updates — HvH games only (same logic as finalizeGame) ───
+      if (homeTeam?.coachId && awayTeam?.coachId) {
+        const hCoach = coachById.get(homeTeam.coachId);
+        const aCoach = coachById.get(awayTeam.coachId);
+        if (hCoach?.userId && aCoach?.userId) {
+          const isPostseason =
+            game.gameType === "super_regionals" || game.gameType === "cws";
+          const aIsHome = hCoach.id < aCoach.id;
+          const [coachAId, coachBId] = aIsHome
+            ? [hCoach.id, aCoach.id]
+            : [aCoach.id, hCoach.id];
+          const aWon  = aIsHome ? homeWon : !homeWon;
+          const aRuns = aIsHome ? result.homeScore : result.awayScore;
+          const bRuns = aIsHome ? result.awayScore : result.homeScore;
+          storage.upsertRivalryFromGame(
+            leagueId, coachAId, coachBId, aWon, aRuns, bRuns,
+            game.season, game.week, isPostseason,
+          ).catch(e => console.error("[batchFinalizeGames] rivalry update error:", e));
+        }
       }
     }
   }
