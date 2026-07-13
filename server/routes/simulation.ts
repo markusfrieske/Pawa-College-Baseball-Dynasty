@@ -3272,6 +3272,13 @@ async function computeSeasonNilBudget(leagueId: string, completedSeason: number)
     storage.getCoachSeasonHistoryByLeague(leagueId),
     storage.getRecruitingClassSnapshotsByLeague(leagueId, completedSeason),
   ]);
+  // Load rosters once for all teams (used to compute planned class size for class-need adjustment)
+  const allRosters = await storage.getPlayersByTeamIds(teams.map(t => t.id));
+  const rosterByTeam = new Map<string, typeof allRosters>();
+  for (const p of allRosters) {
+    if (!rosterByTeam.has(p.teamId)) rosterByTeam.set(p.teamId, []);
+    rosterByTeam.get(p.teamId)!.push(p);
+  }
 
   const confById = new Map(conferences.map(c => [c.id, c]));
   const totalTeams = teams.length;
@@ -3304,11 +3311,30 @@ async function computeSeasonNilBudget(leagueId: string, completedSeason: number)
   for (const team of teams) {
     const conf = team.conferenceId ? confById.get(team.conferenceId) : undefined;
     const confName = conf?.name ?? "";
-    const baseNil = CONFERENCE_TIER_NIL[confName] ?? DEFAULT_CONFERENCE_NIL;
+    const conferenceTierBase = CONFERENCE_TIER_NIL[confName] ?? DEFAULT_CONFERENCE_NIL;
+
+    // ── V2 NIL blend formula ────────────────────────────────────────────────
+    // nilBaseline: persisted on first reset; blended 60/40 with conference tier
+    // each subsequent season to preserve program identity while allowing drift.
+    const nilBaseline = team.nilBaseline ?? team.nilBudget ?? conferenceTierBase;
+
+    // Class-need adjustment: teams with more open spots earn extra NIL capacity.
+    // plannedClassSize = max open roster spots based on departing seniors.
+    const teamRoster = rosterByTeam.get(team.id) ?? [];
+    const seniorsLeaving = teamRoster.filter(p => p.eligibility === "SR" && !p.retentionStatus).length;
+    const portalLeaving = teamRoster.filter(p => p.inTransferPortal).length;
+    const pendingDepartures = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
+    const totalLeaving = Math.max(seniorsLeaving, pendingDepartures) + portalLeaving;
+    const returningRoster = Math.max(0, teamRoster.length - totalLeaving);
+    const plannedClassSize = Math.max(0, 25 - returningRoster);
+    const classNeedAdjustment = Math.max(-225_000, Math.min(225_000, (plannedClassSize - 6) * 75_000));
+
+    const blendedBase = Math.round(0.60 * nilBaseline + 0.40 * conferenceTierBase + classNeedAdjustment);
+    const baseNil = Math.max(750_000, blendedBase);
 
     const earnings: Array<{ category: string; amount: number; description: string }> = [];
 
-    earnings.push({ category: "base", amount: baseNil, description: `${confName || "Unknown"} conference base allocation` });
+    earnings.push({ category: "base", amount: baseNil, description: `${confName || "Unknown"} conference base allocation (blended)` });
 
     // ── Recruiting class rank bonus
     const classRank = classRankByTeam.get(team.id);
@@ -3401,11 +3427,25 @@ async function computeSeasonNilBudget(leagueId: string, completedSeason: number)
       description: `prestige:${team.prestige}`,
     });
 
-    // ── Reset nilBudget and nilSpent
+    // ── Reset nilBudget and nilSpent; initialize envelopes and persist baseline
     const totalNil = earnings.reduce((s, e) => s + e.amount, 0);
-    await storage.updateTeam(team.id, { nilBudget: totalNil, nilSpent: 0 });
+    const recruitingAlloc = Math.round(totalNil * 0.65);
+    const retentionReserve = Math.round(totalNil * 0.25);
+    const walkonReserve = totalNil - recruitingAlloc - retentionReserve;
+    const teamUpdate: Partial<import("@shared/schema").Team> = {
+      nilBudget: totalNil,
+      nilSpent: 0,
+      nilRecruitingAlloc: recruitingAlloc,
+      nilRetentionReserve: retentionReserve,
+      nilWalkonReserve: walkonReserve,
+    };
+    // Persist nilBaseline on first reset (never overwritten after initial set)
+    if (!team.nilBaseline) {
+      teamUpdate.nilBaseline = team.nilBudget ?? conferenceTierBase;
+    }
+    await storage.updateTeam(team.id, teamUpdate);
 
-    console.log(`[NIL] Season ${newSeason} | Team ${team.abbreviation}: base $${(baseNil / 1000).toFixed(0)}K + bonuses $${((totalNil - baseNil) / 1000).toFixed(0)}K = $${(totalNil / 1000).toFixed(0)}K total`);
+    console.log(`[NIL] Season ${newSeason} | Team ${team.abbreviation}: blended base $${(baseNil / 1000).toFixed(0)}K + bonuses $${((totalNil - baseNil) / 1000).toFixed(0)}K = $${(totalNil / 1000).toFixed(0)}K total | envelopes: rec=$${(recruitingAlloc / 1000).toFixed(0)}K ret=$${(retentionReserve / 1000).toFixed(0)}K wk=$${(walkonReserve / 1000).toFixed(0)}K`);
   }
 }
 

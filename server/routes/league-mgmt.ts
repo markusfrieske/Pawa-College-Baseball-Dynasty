@@ -3494,6 +3494,45 @@ app.delete("/api/leagues/:leagueId/coaches/:coachId/remove", requireAuth, async 
   }
 });
 
+// Commissioner reallocates NIL budget between planning envelopes
+app.post("/api/leagues/:leagueId/teams/:teamId/nil-realloc", requireAuth, async (req, res) => {
+  try {
+    const { leagueId, teamId } = req.params as { leagueId: string; teamId: string };
+    const league = await storage.getLeague(leagueId);
+    if (!league) return res.status(404).json({ message: "League not found" });
+    if (!hasCommissionerAccess(league, req.session.userId)) {
+      return res.status(403).json({ message: "Only the commissioner can reallocate NIL envelopes" });
+    }
+    const schema = z.object({
+      nilRecruitingAlloc: z.number().int().min(0),
+      nilRetentionReserve: z.number().int().min(0),
+      nilWalkonReserve: z.number().int().min(0),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid envelope values", errors: parsed.error.issues });
+    const { nilRecruitingAlloc, nilRetentionReserve, nilWalkonReserve } = parsed.data;
+    const team = await storage.getTeam(teamId);
+    if (!team || team.leagueId !== leagueId) return res.status(404).json({ message: "Team not found in this league" });
+    const total = nilRecruitingAlloc + nilRetentionReserve + nilWalkonReserve;
+    if (total !== (team.nilBudget || 0)) {
+      return res.status(400).json({
+        message: `Envelope totals ($${total.toLocaleString()}) must equal the team's NIL budget ($${(team.nilBudget || 0).toLocaleString()})`,
+      });
+    }
+    await storage.updateTeam(teamId, { nilRecruitingAlloc, nilRetentionReserve, nilWalkonReserve });
+    await storage.createAuditLog({
+      leagueId,
+      userId: req.session.userId,
+      action: "NIL Envelope Reallocation",
+      details: `${team.name}: recruiting=$${(nilRecruitingAlloc / 1000).toFixed(0)}K, retention=$${(nilRetentionReserve / 1000).toFixed(0)}K, walkons=$${(nilWalkonReserve / 1000).toFixed(0)}K (total=$${(total / 1000).toFixed(0)}K)`,
+    });
+    res.json({ success: true, nilRecruitingAlloc, nilRetentionReserve, nilWalkonReserve });
+  } catch (error) {
+    console.error("Failed to reallocate NIL envelopes:", error);
+    res.status(500).json({ message: "Failed to reallocate NIL envelopes" });
+  }
+});
+
 // Commissioner transfers their role to another human coach
 app.patch("/api/leagues/:leagueId/commissioner", requireAuth, async (req, res) => {
   try {

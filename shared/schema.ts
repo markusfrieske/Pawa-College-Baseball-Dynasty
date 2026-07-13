@@ -164,6 +164,10 @@ export const teams = pgTable("teams", {
   academicsBaseline: integer("academics_baseline"),
   stadiumBaseline: integer("stadium_baseline"),
   collegeLifeBaseline: integer("college_life_baseline"),
+  nilBaseline: integer("nil_baseline"),
+  nilRecruitingAlloc: integer("nil_recruiting_alloc"),
+  nilRetentionReserve: integer("nil_retention_reserve"),
+  nilWalkonReserve: integer("nil_walkon_reserve"),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

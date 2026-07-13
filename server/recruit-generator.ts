@@ -267,7 +267,8 @@ function generateNilCost(
 
   const geoMultiplier = getGeoMultiplier(homeState);
   const adjusted = Math.floor(baseCost * posMultiplier * geoMultiplier);
-  return adjusted;
+  // Apply V2 NIL price index (0.75) and round to nearest $5,000
+  return Math.max(5000, Math.round(adjusted * 0.75 / 5000) * 5000);
 }
 
 export function generateRecruitClass(

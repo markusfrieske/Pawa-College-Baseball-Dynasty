@@ -1799,12 +1799,15 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "Roster would exceed 30-player limit. Release or manage your roster before signing more recruits." });
       }
 
-      // NIL budget enforcement
+      // NIL budget enforcement — validate against recruiting envelope when set
       const nilCost = recruit.nilCost || 0;
-      const nilRemaining = (userTeam.nilBudget || 0) - (userTeam.nilSpent || 0);
+      const nilRemaining = userTeam.nilRecruitingAlloc != null
+        ? (userTeam.nilRecruitingAlloc || 0) - (userTeam.nilSpent || 0)
+        : (userTeam.nilBudget || 0) - (userTeam.nilSpent || 0);
       if (nilCost > nilRemaining) {
+        const envelopeLabel = userTeam.nilRecruitingAlloc != null ? "recruiting envelope" : "NIL budget";
         return res.status(400).json({
-          message: `Insufficient NIL budget. This recruit costs $${nilCost.toLocaleString()} but you only have $${nilRemaining.toLocaleString()} remaining.`,
+          message: `Insufficient NIL ${envelopeLabel}. This recruit costs $${nilCost.toLocaleString()} but you only have $${nilRemaining.toLocaleString()} remaining.`,
         });
       }
 
