@@ -1802,7 +1802,7 @@ export function registerRecruitingRoutes(app: Express): void {
       // NIL budget enforcement — validate against recruiting envelope when set
       const nilCost = recruit.nilCost || 0;
       const nilRemaining = userTeam.nilRecruitingAlloc != null
-        ? (userTeam.nilRecruitingAlloc || 0) - (userTeam.nilSpent || 0)
+        ? (userTeam.nilRecruitingAlloc || 0) - (userTeam.nilRecruitingSpent || 0)
         : (userTeam.nilBudget || 0) - (userTeam.nilSpent || 0);
       if (nilCost > nilRemaining) {
         const envelopeLabel = userTeam.nilRecruitingAlloc != null ? "recruiting envelope" : "NIL budget";
@@ -1823,7 +1823,10 @@ export function registerRecruitingRoutes(app: Express): void {
         resolverTeamMap,
         (teamId, cost) => {
           const t = resolverTeamMap.get(teamId);
-          return !!t && ((t.nilBudget ?? 0) - (t.nilSpent ?? 0)) >= cost;
+          // Use recruiting envelope when set; fall back to total budget for legacy leagues
+          const recAlloc = t?.nilRecruitingAlloc ?? t?.nilBudget ?? 0;
+          const recSpent = t?.nilRecruitingSpent ?? t?.nilSpent ?? 0;
+          return !!t && (recAlloc - recSpent) >= cost;
         }
       );
       if (signResolution.winnerTeamId !== userTeam.id) {
@@ -1844,9 +1847,12 @@ export function registerRecruitingRoutes(app: Express): void {
         stage: "signed",
       });
 
-      // Deduct NIL cost from team budget
+      // Deduct NIL cost from recruiting envelope and total budget
       if (nilCost > 0) {
-        await storage.updateTeam(userTeam.id, { nilSpent: (userTeam.nilSpent || 0) + nilCost });
+        await storage.updateTeam(userTeam.id, {
+          nilSpent: (userTeam.nilSpent || 0) + nilCost,
+          nilRecruitingSpent: (userTeam.nilRecruitingSpent || 0) + nilCost,
+        });
       }
 
       // Award XP to the coach for signing a recruit (star-based scale)

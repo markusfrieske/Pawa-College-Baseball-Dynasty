@@ -168,6 +168,9 @@ export const teams = pgTable("teams", {
   nilRecruitingAlloc: integer("nil_recruiting_alloc"),
   nilRetentionReserve: integer("nil_retention_reserve"),
   nilWalkonReserve: integer("nil_walkon_reserve"),
+  nilRecruitingSpent: integer("nil_recruiting_spent").notNull().default(0),
+  nilRetentionSpent: integer("nil_retention_spent").notNull().default(0),
+  nilWalkonSpent: integer("nil_walkon_spent").notNull().default(0),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

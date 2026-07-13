@@ -135,9 +135,13 @@ export function registerDeparturesRoutes(app: Express): void {
       const team = await storage.getTeam(userCoach.teamId);
       if (!team) return res.status(404).json({ message: "Team not found" });
 
-      const nilRemaining = team.nilBudget - (team.nilSpent || 0);
+      // Validate against retention envelope when set, else total budget
+      const nilRemaining = team.nilRetentionReserve != null
+        ? (team.nilRetentionReserve - (team.nilRetentionSpent || 0))
+        : (team.nilBudget - (team.nilSpent || 0));
       if (nilOffer > nilRemaining) {
-        return res.status(400).json({ message: `Insufficient NIL budget. You have $${nilRemaining.toLocaleString()} remaining.` });
+        const envelopeLabel = team.nilRetentionReserve != null ? "retention envelope" : "NIL budget";
+        return res.status(400).json({ message: `Insufficient NIL ${envelopeLabel}. You have $${nilRemaining.toLocaleString()} remaining.` });
       }
 
       const askMin = player.draftAskMin || 50000;
@@ -165,7 +169,10 @@ export function registerDeparturesRoutes(app: Express): void {
           declaredForDraft: false,
           nilOffered: nilOffer,
         });
-        await storage.updateTeam(team.id, { nilSpent: (team.nilSpent || 0) + nilOffer });
+        await storage.updateTeam(team.id, {
+          nilSpent: (team.nilSpent || 0) + nilOffer,
+          nilRetentionSpent: (team.nilRetentionSpent || 0) + nilOffer,
+        });
         
         await storage.createAuditLog({
           leagueId: req.params.id as string,
@@ -230,9 +237,13 @@ export function registerDeparturesRoutes(app: Express): void {
       if (!team) return res.status(404).json({ message: "Team not found" });
 
       const offer = nilOffer || 0;
-      const nilRemaining = team.nilBudget - (team.nilSpent || 0);
+      // Validate against retention envelope when set, else total budget
+      const nilRemaining = team.nilRetentionReserve != null
+        ? (team.nilRetentionReserve - (team.nilRetentionSpent || 0))
+        : (team.nilBudget - (team.nilSpent || 0));
       if (offer > nilRemaining) {
-        return res.status(400).json({ message: `Insufficient NIL budget. You have $${nilRemaining.toLocaleString()} remaining.` });
+        const envelopeLabel = team.nilRetentionReserve != null ? "retention envelope" : "NIL budget";
+        return res.status(400).json({ message: `Insufficient NIL ${envelopeLabel}. You have $${nilRemaining.toLocaleString()} remaining.` });
       }
 
       // Calculate retention chance
@@ -289,7 +300,10 @@ export function registerDeparturesRoutes(app: Express): void {
           nilOffered: offer,
         });
         if (offer > 0) {
-          await storage.updateTeam(team.id, { nilSpent: (team.nilSpent || 0) + offer });
+          await storage.updateTeam(team.id, {
+            nilSpent: (team.nilSpent || 0) + offer,
+            nilRetentionSpent: (team.nilRetentionSpent || 0) + offer,
+          });
         }
 
         // Create promise records if promises were made

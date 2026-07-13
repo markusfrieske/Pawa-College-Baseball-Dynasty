@@ -135,12 +135,17 @@ export function registerWalkonRoutes(app: Express): void {
       if (!walkon) return res.status(404).json({ message: "Walk-on not found" });
       if (walkon.awardedTeamId) return res.status(400).json({ message: "Auction already resolved" });
 
-      // Validate bid against available NIL (nilBudget - nilSpent - other committed bids)
+      // Validate bid against walk-on envelope when set, else total budget
+      // Also deduct other committed bids from the same envelope
       const existingBids = await storage.getWalkonBidsByTeam(leagueId, team.id);
       const committedOther = existingBids.reduce((s, b) => b.walkonPoolId === walkonId ? s : s + b.bidAmount, 0);
-      const available = (team.nilBudget - team.nilSpent) - committedOther;
+      const envelopeAvail = team.nilWalkonReserve != null
+        ? (team.nilWalkonReserve - (team.nilWalkonSpent || 0))
+        : (team.nilBudget - (team.nilSpent || 0));
+      const available = envelopeAvail - committedOther;
       if (bidAmount > available) {
-        return res.status(400).json({ message: `Bid exceeds available NIL. Available: $${available.toLocaleString()}` });
+        const envelopeLabel = team.nilWalkonReserve != null ? "walk-on envelope" : "NIL budget";
+        return res.status(400).json({ message: `Bid exceeds available ${envelopeLabel}. Available: $${available.toLocaleString()}` });
       }
 
       const bid = await storage.upsertWalkonBid(leagueId, walkonId, team.id, bidAmount);

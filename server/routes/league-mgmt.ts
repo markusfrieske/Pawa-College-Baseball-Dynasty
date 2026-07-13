@@ -82,10 +82,11 @@ export async function updateRecruitStages(leagueId: string, week: number) {
 
   const storylineRecruitIds = new Set(storylineRecruitsData.map(sl => sl.recruitId));
 
-  // NIL budget tracking for auto-sign paths — updated synchronously before any await
+  // NIL recruiting-envelope tracking for auto-sign paths — updated synchronously before any await
   // so concurrent promises within Promise.all see accurate remaining budgets.
-  const nilSpentByTeam = new Map<string, number>(
-    allLeagueTeams.map(t => [t.id, t.nilSpent || 0])
+  // Gates on the recruiting alloc (65% envelope), falls back to total budget for legacy leagues.
+  const nilRecruitingSpentByTeam = new Map<string, number>(
+    allLeagueTeams.map(t => [t.id, t.nilRecruitingSpent || 0])
   );
   const teamMap = new Map(allLeagueTeams.map(t => [t.id, t]));
   // Track in-flight commits so concurrent Promise.all promises see accurate roster projections
@@ -188,9 +189,10 @@ export async function updateRecruitStages(leagueId: string, week: number) {
           allInterests.map(i => ({ teamId: i.teamId, interestLevel: i.interestLevel, hasOffer: i.hasOffer ?? false })),
           teamMap,
           (teamId, cost) => {
-            const prevSpent = nilSpentByTeam.get(teamId) ?? 0;
+            const prevRecSpent = nilRecruitingSpentByTeam.get(teamId) ?? 0;
             const t = teamMap.get(teamId);
-            return !!t && ((t.nilBudget ?? 0) - prevSpent) >= cost;
+            const recAlloc = t?.nilRecruitingAlloc ?? t?.nilBudget ?? 0;
+            return !!t && (recAlloc - prevRecSpent) >= cost;
           }
         );
         if (verbalResolution.winnerTeamId) {
@@ -201,10 +203,15 @@ export async function updateRecruitStages(leagueId: string, week: number) {
           const portal = winnerRoster.filter(p => p.inTransferPortal).length;
           if (winnerRoster.length - departing - portal + inFlightCommits + 1 <= 30) {
             const nilCost = recruit.nilCost ?? 0;
-            nilSpentByTeam.set(winnerId, (nilSpentByTeam.get(winnerId) ?? 0) + nilCost);
+            const newRecSpent = (nilRecruitingSpentByTeam.get(winnerId) ?? 0) + nilCost;
+            nilRecruitingSpentByTeam.set(winnerId, newRecSpent);
             teamCommitsMap.set(winnerId, inFlightCommits + 1);
             await storage.updateRecruit(recruit.id, { stage: "signed", signedTeamId: winnerId });
-            await storage.updateTeam(winnerId, { nilSpent: nilSpentByTeam.get(winnerId) });
+            const winnerTeamData = teamMap.get(winnerId);
+            await storage.updateTeam(winnerId, {
+              nilRecruitingSpent: newRecSpent,
+              nilSpent: (winnerTeamData?.nilSpent || 0) + nilCost,
+            });
           }
         }
       }
@@ -217,9 +224,10 @@ export async function updateRecruitStages(leagueId: string, week: number) {
         allInterests.map(i => ({ teamId: i.teamId, interestLevel: i.interestLevel, hasOffer: i.hasOffer ?? false })),
         teamMap,
         (teamId, cost) => {
-          const prevSpent = nilSpentByTeam.get(teamId) ?? 0;
+          const prevRecSpent = nilRecruitingSpentByTeam.get(teamId) ?? 0;
           const t = teamMap.get(teamId);
-          return !!t && ((t.nilBudget ?? 0) - prevSpent) >= cost;
+          const recAlloc = t?.nilRecruitingAlloc ?? t?.nilBudget ?? 0;
+          return !!t && (recAlloc - prevRecSpent) >= cost;
         }
       );
       if (alreadyVerbalResolution.winnerTeamId) {
@@ -230,10 +238,15 @@ export async function updateRecruitStages(leagueId: string, week: number) {
         const portal = winnerRoster.filter(p => p.inTransferPortal).length;
         if (winnerRoster.length - departing - portal + inFlightCommits + 1 <= 30) {
           const nilCost = recruit.nilCost ?? 0;
-          nilSpentByTeam.set(winnerId, (nilSpentByTeam.get(winnerId) ?? 0) + nilCost);
+          const newRecSpent = (nilRecruitingSpentByTeam.get(winnerId) ?? 0) + nilCost;
+          nilRecruitingSpentByTeam.set(winnerId, newRecSpent);
           teamCommitsMap.set(winnerId, inFlightCommits + 1);
           await storage.updateRecruit(recruit.id, { stage: "signed", signedTeamId: winnerId });
-          await storage.updateTeam(winnerId, { nilSpent: nilSpentByTeam.get(winnerId) });
+          const winnerTeamData = teamMap.get(winnerId);
+          await storage.updateTeam(winnerId, {
+            nilRecruitingSpent: newRecSpent,
+            nilSpent: (winnerTeamData?.nilSpent || 0) + nilCost,
+          });
           justSigned = true;
         }
       }

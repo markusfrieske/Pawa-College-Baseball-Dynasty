@@ -2358,13 +2358,14 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     playersByTeam.set(player.teamId, arr);
   }
 
-  // NIL budget tracking — accumulate locally, persist at the end
-  const nilSpentAccum = new Map<string, number>(teams.map(t => [t.id, t.nilSpent || 0]));
-  const nilBudgetMap = new Map<string, number>(teams.map(t => [t.id, t.nilBudget || 0]));
+  // NIL budget tracking — accumulate locally per envelope, persist at the end
+  // sdCanAfford/sdChargeNil gate on the recruiting envelope (65% alloc) not total budget
+  const nilRecSpentAccum = new Map<string, number>(teams.map(t => [t.id, t.nilRecruitingSpent || 0]));
+  const nilRecAllocMap = new Map<string, number>(teams.map(t => [t.id, (t.nilRecruitingAlloc ?? t.nilBudget) || 0]));
   const sdCanAfford = (teamId: string, cost: number) =>
-    (nilBudgetMap.get(teamId) || 0) - (nilSpentAccum.get(teamId) || 0) >= cost;
+    (nilRecAllocMap.get(teamId) || 0) - (nilRecSpentAccum.get(teamId) || 0) >= cost;
   const sdChargeNil = (teamId: string, cost: number) =>
-    nilSpentAccum.set(teamId, (nilSpentAccum.get(teamId) || 0) + cost);
+    nilRecSpentAccum.set(teamId, (nilRecSpentAccum.get(teamId) || 0) + cost);
 
   const MIN_ROSTER = 22;
   const SD_CHUNK = 50; // chunk size for all parallel batch flushes in signing day
@@ -2669,11 +2670,12 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
   // The attr/common-ability holdback (40%/50%) stays in place until coaches watch the Signing Day screen.
   // The reveal screen calls POST /api/leagues/:id/signing-day-reveal/complete to lift it.
 
-  // Persist accumulated NIL spending back to each team
-  for (const [teamId, spent] of nilSpentAccum) {
+  // Persist accumulated NIL recruiting-envelope spending back to each team
+  for (const [teamId, recSpent] of nilRecSpentAccum) {
     const team = teams.find(t => t.id === teamId);
-    if (team && spent !== (team.nilSpent || 0)) {
-      await storage.updateTeam(teamId, { nilSpent: spent });
+    if (team && recSpent !== (team.nilRecruitingSpent || 0)) {
+      const totalSpent = (team.nilSpent || 0) + (recSpent - (team.nilRecruitingSpent || 0));
+      await storage.updateTeam(teamId, { nilRecruitingSpent: recSpent, nilSpent: totalSpent });
     }
   }
 
@@ -3438,6 +3440,9 @@ async function computeSeasonNilBudget(leagueId: string, completedSeason: number)
       nilRecruitingAlloc: recruitingAlloc,
       nilRetentionReserve: retentionReserve,
       nilWalkonReserve: walkonReserve,
+      nilRecruitingSpent: 0,
+      nilRetentionSpent: 0,
+      nilWalkonSpent: 0,
     };
     // Persist nilBaseline on first reset (never overwritten after initial set)
     if (!team.nilBaseline) {
@@ -3512,12 +3517,14 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
       awardedPrice: pricePaid,
     });
 
-    // Deduct NIL from winner
+    // Deduct NIL from winner — charges the walkon envelope
     const winnerTeam = teamMap.get(winner.teamId);
     if (winnerTeam) {
       const newNilSpent = (winnerTeam.nilSpent || 0) + pricePaid;
-      await storage.updateTeam(winnerTeam.id, { nilSpent: newNilSpent });
+      const newWalkonSpent = (winnerTeam.nilWalkonSpent || 0) + pricePaid;
+      await storage.updateTeam(winnerTeam.id, { nilSpent: newNilSpent, nilWalkonSpent: newWalkonSpent });
       winnerTeam.nilSpent = newNilSpent;
+      winnerTeam.nilWalkonSpent = newWalkonSpent;
     }
 
     // Record outcomes for all bidding teams
