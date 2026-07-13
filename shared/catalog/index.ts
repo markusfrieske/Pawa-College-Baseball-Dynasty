@@ -45,7 +45,6 @@ export function computeRecruitPoolSize(numTeams: number): number {
  * For 149 teams: max(ceil(149×25/4), ceil(149×7.25)) = max(932, 1081) = 1081
  */
 export function computeFullSeasonRecruitPoolSize(numTeams: number): number {
-  if (numTeams <= 20) return 80;
   const steadyStateDemand = Math.ceil(numTeams * 25 / 4);
   const minimumNationalBoard = Math.ceil(numTeams * 7.25);
   return Math.max(steadyStateDemand, minimumNationalBoard);
