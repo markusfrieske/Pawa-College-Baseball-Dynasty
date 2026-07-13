@@ -656,6 +656,7 @@ export default function LeagueViewPage() {
             isCommissioner={isCommissioner}
             myTeamId={myTeam?.id}
             phase={league.currentPhase}
+            currentUserId={currentUser?.id}
           />
         </div>
 

@@ -540,11 +540,13 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
 interface NewsPost {
   id: string; title: string; subtitle?: string | null; content: string;
   imageUrl: string | null; createdAt: string; authorName?: string | null;
+  authorId?: string | null;
 }
 
 function NewsPostCard({
-  post, isCommissioner, leagueId, onDelete,
-}: { post: NewsPost; isCommissioner: boolean; leagueId: string; onDelete: () => void }) {
+  post, isCommissioner, currentUserId, leagueId, onDelete,
+}: { post: NewsPost; isCommissioner: boolean; currentUserId?: string; leagueId: string; onDelete: () => void }) {
+  const canDelete = isCommissioner || (!!currentUserId && post.authorId === currentUserId);
   return (
     <article className="border border-border/50 rounded-lg overflow-hidden bg-card/30" data-testid={`news-post-${post.id}`}>
       {post.imageUrl && (
@@ -555,7 +557,7 @@ function NewsPostCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
           <h3 className="font-pixel text-gold text-[10px] leading-tight">{post.title}</h3>
-          {isCommissioner && (
+          {canDelete && (
             <button
               onClick={onDelete}
               className="text-red-400/60 hover:text-red-400 transition-colors shrink-0"
@@ -583,8 +585,8 @@ function NewsPostCard({
 }
 
 export function LeagueNewsPanel({
-  leagueId, isCommissioner, myTeamId,
-}: { leagueId: string; isCommissioner: boolean; myTeamId?: string }) {
+  leagueId, isCommissioner, myTeamId, currentUserId,
+}: { leagueId: string; isCommissioner: boolean; myTeamId?: string; currentUserId?: string }) {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
@@ -763,6 +765,7 @@ export function LeagueNewsPanel({
               key={post.id}
               post={post}
               isCommissioner={isCommissioner}
+              currentUserId={currentUserId}
               leagueId={leagueId}
               onDelete={() => deleteMut.mutate(post.id)}
             />
@@ -923,8 +926,8 @@ const NR_FILTERS = [
 type NrFilterKey = (typeof NR_FILTERS)[number]["key"];
 
 export function NewsroomPanel({
-  leagueId, isCommissioner, myTeamId, phase,
-}: { leagueId: string; isCommissioner: boolean; myTeamId?: string; phase?: string }) {
+  leagueId, isCommissioner, myTeamId, phase, currentUserId,
+}: { leagueId: string; isCommissioner: boolean; myTeamId?: string; phase?: string; currentUserId?: string }) {
   const [tab, setTab] = useState("posts");
   const [showPostForm, setShowPostForm] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
@@ -1206,7 +1209,7 @@ export function NewsroomPanel({
                             </div>
                             <p className="font-pixel text-[9px] text-foreground leading-snug truncate">{post.title}</p>
                           </div>
-                          {isCommissioner && (
+                          {(isCommissioner || (!!currentUserId && post.authorId === currentUserId)) && (
                             <button
                               onClick={e => { e.stopPropagation(); deleteMut.mutate(post.id); }}
                               className="text-red-400/40 hover:text-red-400 transition-colors shrink-0 p-1"

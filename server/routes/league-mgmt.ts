@@ -2981,8 +2981,15 @@ app.delete("/api/leagues/:id/news/:newsId", requireAuth, async (req, res) => {
       return res.status(404).json({ message: "League not found" });
     }
 
-    if (!hasCommissionerAccess(league, userId)) {
-      return res.status(403).json({ message: "Only the commissioner can delete news" });
+    const post = await storage.getDynastyNewsById(newsId);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const isComm = hasCommissionerAccess(league, userId);
+    const isAuthor = post.authorId === userId;
+    if (!isComm && !isAuthor) {
+      return res.status(403).json({ message: "You can only delete your own posts" });
     }
 
     await storage.deleteDynastyNews(newsId);
