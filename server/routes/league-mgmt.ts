@@ -9,6 +9,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess, calculateSignInterestThreshold } from "../route-helpers";
+import { invalidateLeague } from "../cache";
 import { getRealRosters } from "../realRostersLoader";
 import { normalizeCommonAbilities } from "../normalizeCommonAbilities";
 import { generateRecruitClass } from "../recruit-generator";
@@ -2155,6 +2156,7 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     }
     
     await storage.updateLeague(leagueId, { currentPhase: "preseason" });
+    invalidateLeague(leagueId);
     
     await storage.createAuditLog({
       leagueId,
