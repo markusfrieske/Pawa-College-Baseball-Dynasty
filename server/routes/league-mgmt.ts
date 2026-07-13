@@ -88,6 +88,10 @@ export async function updateRecruitStages(leagueId: string, week: number) {
   const nilRecruitingSpentByTeam = new Map<string, number>(
     allLeagueTeams.map(t => [t.id, t.nilRecruitingSpent || 0])
   );
+  // Running total for nilSpent (global) so multiple same-team signs don't overwrite from stale snapshot
+  const nilSpentByTeam = new Map<string, number>(
+    allLeagueTeams.map(t => [t.id, t.nilSpent || 0])
+  );
   const teamMap = new Map(allLeagueTeams.map(t => [t.id, t]));
   // Track in-flight commits so concurrent Promise.all promises see accurate roster projections
   const teamCommitsMap = new Map<string, number>(
@@ -204,13 +208,14 @@ export async function updateRecruitStages(leagueId: string, week: number) {
           if (winnerRoster.length - departing - portal + inFlightCommits + 1 <= 30) {
             const nilCost = recruit.nilCost ?? 0;
             const newRecSpent = (nilRecruitingSpentByTeam.get(winnerId) ?? 0) + nilCost;
+            const newTotalSpent = (nilSpentByTeam.get(winnerId) ?? 0) + nilCost;
             nilRecruitingSpentByTeam.set(winnerId, newRecSpent);
+            nilSpentByTeam.set(winnerId, newTotalSpent);
             teamCommitsMap.set(winnerId, inFlightCommits + 1);
             await storage.updateRecruit(recruit.id, { stage: "signed", signedTeamId: winnerId });
-            const winnerTeamData = teamMap.get(winnerId);
             await storage.updateTeam(winnerId, {
               nilRecruitingSpent: newRecSpent,
-              nilSpent: (winnerTeamData?.nilSpent || 0) + nilCost,
+              nilSpent: newTotalSpent,
             });
           }
         }
@@ -239,13 +244,14 @@ export async function updateRecruitStages(leagueId: string, week: number) {
         if (winnerRoster.length - departing - portal + inFlightCommits + 1 <= 30) {
           const nilCost = recruit.nilCost ?? 0;
           const newRecSpent = (nilRecruitingSpentByTeam.get(winnerId) ?? 0) + nilCost;
+          const newTotalSpent = (nilSpentByTeam.get(winnerId) ?? 0) + nilCost;
           nilRecruitingSpentByTeam.set(winnerId, newRecSpent);
+          nilSpentByTeam.set(winnerId, newTotalSpent);
           teamCommitsMap.set(winnerId, inFlightCommits + 1);
           await storage.updateRecruit(recruit.id, { stage: "signed", signedTeamId: winnerId });
-          const winnerTeamData = teamMap.get(winnerId);
           await storage.updateTeam(winnerId, {
             nilRecruitingSpent: newRecSpent,
-            nilSpent: (winnerTeamData?.nilSpent || 0) + nilCost,
+            nilSpent: newTotalSpent,
           });
           justSigned = true;
         }
