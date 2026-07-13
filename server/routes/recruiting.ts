@@ -2840,28 +2840,18 @@ export function registerRecruitingRoutes(app: Express): void {
         autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
         economy: (() => {
           const eProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
-          const eTurnIndex = getRecruitingTurnIndex(league.currentPhase, league.currentWeek, league.seasonLength, league.dynastyPreset);
-          const eTurnCount = getRecruitingTurnCount(league.seasonLength, league.dynastyPreset);
-          const eSeasonContactBudget = getSeasonContactBudget({
-            seasonLength: league.seasonLength,
-            dynastyPreset: league.dynastyPreset,
-            avgRecruitSkill: Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2),
-            avgScoutSkill: 1,
-            archetype: coach?.archetype || "Balanced",
-            hasQuickStudy: false,
-            currentPhase: league.currentPhase,
-            currentWeek: league.currentWeek,
-          });
-          const eSeasonScoutBudget = getSeasonScoutBudget({
-            seasonLength: league.seasonLength,
-            dynastyPreset: league.dynastyPreset,
-            avgRecruitSkill: 1,
-            avgScoutSkill: Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2),
-            archetype: coach?.archetype || "Balanced",
-            hasQuickStudy: !!(coach?.perks as Record<string, boolean> | null)?.scout_quick_study,
-            currentPhase: league.currentPhase,
-            currentWeek: league.currentWeek,
-          });
+          const eTurnIndex = getRecruitingTurnIndex(league.currentPhase, league.currentWeek, league.seasonLength);
+          const eTurnCount = getRecruitingTurnCount(league.seasonLength);
+          const eAvgRecruitSkill = Math.floor(
+            ((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2
+          );
+          const eAvgScoutSkill = Math.floor(
+            ((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2
+          );
+          const eArchetype = coach?.archetype || "Balanced";
+          const eHasQuickStudy = !!(coach?.perks as Record<string, boolean> | null)?.scout_quick_study;
+          const eSeasonContactBudget = getSeasonContactBudget(eProfile, eAvgRecruitSkill, eArchetype);
+          const eSeasonScoutBudget = getSeasonScoutBudget(eProfile, eAvgScoutSkill, eArchetype, eHasQuickStudy);
           const eTargetCap = getTargetCap(maxCommits, eProfile);
           return {
             balanceVersion: 2 as const,

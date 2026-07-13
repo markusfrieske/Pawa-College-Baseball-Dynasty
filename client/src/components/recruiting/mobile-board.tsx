@@ -11,6 +11,7 @@ import { RetroInput } from "@/components/ui/retro-input";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { RecruitingEconomy } from "@/hooks/use-recruiting";
 import {
   getInterestLabel,
   getInterestBarColor,
@@ -59,6 +60,7 @@ interface ActionState {
   seasonVisitCount: { total: number; campusVisits: number; hcVisits: number };
   nilRemaining?: number;
   recruitPointCosts: Record<string, { visit: number; headCoachVisit: number }>;
+  economy?: RecruitingEconomy;
 }
 
 function getDisabledReason(

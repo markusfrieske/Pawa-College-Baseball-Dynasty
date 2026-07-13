@@ -814,6 +814,7 @@ export default function RecruitingPage() {
                 seasonVisitCount: data?.seasonVisitCount ?? { total: 0, campusVisits: 0, hcVisits: 0 },
                 nilRemaining,
                 recruitPointCosts: data?.recruitPointCosts ?? {},
+                economy: data?.economy,
               }}
               leagueId={id!}
               battlesData={battlesData}
