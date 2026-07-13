@@ -79,18 +79,27 @@ function getDisabledReason(
   if (action === "scout") {
     const pct = recruit.interest?.scoutPercentage ?? 0;
     if (pct >= 100) return "Fully scouted";
+    const scoutCap = state.economy?.scoutPoints?.cap;
+    const scoutSpent = state.economy?.scoutPoints?.spent;
+    if (scoutCap != null && scoutSpent != null && scoutSpent >= scoutCap) return "Scout pts exhausted";
     if (state.remainingScoutPoints <= 0) return "No scout points";
     return null;
   }
 
   if (action === "phone") {
     if (weekly.includes("phone")) return "Called this week";
+    const contactCap = state.economy?.contactPoints?.cap;
+    const contactSpent = state.economy?.contactPoints?.spent;
+    if (contactCap != null && contactSpent != null && contactSpent >= contactCap) return "Contact pts exhausted";
     if (state.remainingPoints <= 0) return "No action points";
     return null;
   }
 
   if (action === "email") {
     if (weekly.includes("email")) return "Emailed this week";
+    const contactCap = state.economy?.contactPoints?.cap;
+    const contactSpent = state.economy?.contactPoints?.spent;
+    if (contactCap != null && contactSpent != null && contactSpent >= contactCap) return "Contact pts exhausted";
     if (state.remainingPoints <= 0) return "No action points";
     return null;
   }
@@ -98,7 +107,8 @@ function getDisabledReason(
   if (action === "visit") {
     if (used.includes("visit")) return "Already visited";
     const visitCap = state.economy?.visits?.totalCap;
-    if (visitCap != null && state.seasonVisitCount.total >= visitCap) return `Visit cap reached (${visitCap})`;
+    const visitUsed = state.economy?.visits?.totalUsed ?? state.seasonVisitCount.total;
+    if (visitCap != null && visitUsed >= visitCap) return `Visit cap reached (${visitCap})`;
     const cost = state.recruitPointCosts?.[recruit.id]?.visit ?? 2;
     if (state.remainingPoints < cost) return `Need ${cost} pts`;
     return null;
@@ -107,7 +117,8 @@ function getDisabledReason(
   if (action === "hcv") {
     if (used.includes("head_coach_visit")) return "Already HCV'd";
     const hcvCap = state.economy?.visits?.totalCap;
-    if (hcvCap != null && state.seasonVisitCount.total >= hcvCap) return `Visit cap reached (${hcvCap})`;
+    const visitUsed = state.economy?.visits?.totalUsed ?? state.seasonVisitCount.total;
+    if (hcvCap != null && visitUsed >= hcvCap) return `Visit cap reached (${hcvCap})`;
     const cost = state.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2;
     if (state.remainingPoints < cost) return `Need ${cost} pts`;
     return null;
@@ -117,7 +128,8 @@ function getDisabledReason(
     if (recruit.interest?.hasOffer) return "Offer already out";
     if (isVerbal) return "Already verbal";
     const nilCost = recruit.nilCost;
-    if (nilCost && state.nilRemaining !== undefined && Math.ceil(nilCost * 1.25) > state.nilRemaining) {
+    const nilRem = state.economy?.nil?.recruitingRemaining ?? state.nilRemaining;
+    if (nilCost && nilRem !== undefined && Math.ceil(nilCost * 1.25) > nilRem) {
       return "Over NIL budget";
     }
     return null;

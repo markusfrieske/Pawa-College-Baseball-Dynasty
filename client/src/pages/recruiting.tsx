@@ -530,7 +530,7 @@ export default function RecruitingPage() {
     }
   }, [unreadAutoPilotLog.length]);
 
-  const nilRemaining = data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined;
+  const nilRemaining = data?.economy?.nil?.recruitingRemaining ?? (data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined);
 
   const filteredRecruits = sortRecruits(
     filterRecruits(data?.recruits || [], {
@@ -1911,9 +1911,9 @@ export default function RecruitingPage() {
                     headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
                     outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
                     progressionEnabled={leagueData?.progressionEnabled}
-                    nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-                    seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? Infinity)}
-                    visitCap={data?.economy?.visits.totalCap}
+                    nilRemaining={nilRemaining}
+                    seasonVisitCapReached={(data?.economy?.visits?.totalUsed ?? data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits?.totalCap ?? Infinity)}
+                    visitCap={data?.economy?.visits?.totalCap}
                   />
                 </div>
               );
@@ -1971,9 +1971,9 @@ export default function RecruitingPage() {
         headCoachVisitCost={selectedRecruit ? (data?.recruitPointCosts?.[selectedRecruit.id]?.headCoachVisit ?? 2) : 2}
         hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
-        nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-        seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? Infinity)}
-        visitCap={data?.economy?.visits.totalCap}
+        nilRemaining={nilRemaining}
+        seasonVisitCapReached={(data?.economy?.visits?.totalUsed ?? data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits?.totalCap ?? Infinity)}
+        visitCap={data?.economy?.visits?.totalCap}
         userTeamId={data?.team?.id}
         trend={selectedRecruit ? (trendsData?.trends?.[selectedRecruit.id] ?? null) : null}
       />
