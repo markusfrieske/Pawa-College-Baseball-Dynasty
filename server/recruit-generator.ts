@@ -880,24 +880,6 @@ export function generateRecruitClass(
     if (theme === "defense_first") return rollWeighted(defenseFirstPositions);
     if (theme === "speed_class")   return rollWeighted(speedClassPositions);
     if (theme === "power_class")   return rollWeighted(powerClassPositions);
-    // Departure-based position-group quota: when the pool planner provides C/IF/OF
-    // demand counts, use them to weight field position selection proportionally.
-    // Each IF slot is split evenly across 1B/2B/3B/SS (÷4); OF is a single bucket.
-    if (opts.positionGroupWeights) {
-      const pw = opts.positionGroupWeights;
-      const pool: string[] = [];
-      const cCount  = Math.max(1, pw.C  ?? 1);
-      const ifCount = Math.max(4, pw.IF ?? 4);
-      const ofCount = Math.max(1, pw.OF ?? 6);
-      for (let i = 0; i < cCount; i++) pool.push("C");
-      const ifEach = Math.max(1, Math.round(ifCount / 4));
-      for (let i = 0; i < ifEach; i++) pool.push("1B");
-      for (let i = 0; i < ifEach; i++) pool.push("2B");
-      for (let i = 0; i < ifEach; i++) pool.push("3B");
-      for (let i = 0; i < ifEach; i++) pool.push("SS");
-      for (let i = 0; i < ofCount; i++) pool.push("OF");
-      return pool[Math.floor(Math.random() * pool.length)];
-    }
     return fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
   };
 
@@ -914,19 +896,77 @@ export function generateRecruitClass(
   //   Blue-chip and pitcher-gem recruits can retain 1 "protected" gold when removing it
   //   would drop OVR below their archetype floor. Adding ~numBlueChips (≈3% of count) as
   //   tolerance ensures the validator cap matches the generator's real output. Validator uses same rule.
-  // Gold cap uses a bypass tolerance in both branches so the validator and generator
-  // agree even when the OVR-aware pitcher-gem bypass retains extra gold abilities.
-  // Worst case: blueChips (≈3%) × 3 gold each + gen gem × 4 gold ≈ 13 protected gold.
-  // Tolerance = max(2, floor(count × 0.12)) safely covers the realistic bypass ceiling.
-  const _goldTolerance = Math.max(2, Math.floor(count * 0.12));
+  // Gold cap: target ≈ round(20 × count/80) for standard pools, round(count/8) for large pools.
+  // Tolerance = max(2, floor(count × 0.03)) reserves a small budget for the OVR-aware bypass
+  // (pitcher gems/blue chips that retain a gold ability when removal would drop OVR below floor).
+  // classProtectedGoldBudget hard-caps the total bypass slots consumed, so final gold count
+  // is always ≤ classGoldCap regardless of how many OVR-critical pitcher gems appear.
+  const _goldTolerance = Math.max(2, Math.floor(count * 0.03));
   const classGoldCap = count <= 80
     ? Math.round(20 * count / 80) + _goldTolerance
     : Math.round(count / 8) + _goldTolerance;
   let classGoldCount = 0;
+  let classProtectedGoldBudget = _goldTolerance; // total bypass slots for the entire class
+
+  // ── Deterministic position quota fulfillment ──────────────────────────────
+  // When positionGroupWeights is provided (from the pool planner), pre-assign ALL
+  // positions before the recruit loop so each group hits its exact target count.
+  // Weighted-random picking cannot guarantee quotas; pre-assignment does.
+  // Wizard overrides (wizardPositionDistribution / wizardFieldWeights / theme-specific
+  // picks) bypass this because they never set positionGroupWeights.
+  let preassignedPositions: string[] | null = null;
+  if (opts.positionGroupWeights && !opts.wizardPositionDistribution) {
+    const pw = opts.positionGroupWeights;
+    const numP  = Math.round(count * pitcherRatio);
+    const numH  = count - numP;
+    const wC    = Math.max(0, pw.C  ?? 0);
+    const wIF   = Math.max(0, pw.IF ?? 0);
+    const wOF   = Math.max(0, pw.OF ?? 0);
+    const wTot  = wC + wIF + wOF;
+    let cSlots: number, ifSlots: number, ofSlots: number;
+    if (wTot > 0) {
+      cSlots  = Math.max(1, Math.round(numH * wC  / wTot));
+      ofSlots = Math.max(1, Math.round(numH * wOF / wTot));
+      ifSlots = Math.max(4, numH - cSlots - ofSlots);
+    } else {
+      // Fallback: default split
+      cSlots  = Math.max(1, Math.round(numH * 0.10));
+      ifSlots = Math.max(4, Math.round(numH * 0.45));
+      ofSlots = numH - cSlots - ifSlots;
+    }
+    const arr: string[] = [];
+    for (let j = 0; j < numP;   j++) arr.push("P");
+    for (let j = 0; j < cSlots; j++) arr.push("C");
+    // Split IF evenly across 1B / 2B / 3B / SS; SS absorbs rounding remainder
+    const ifEach   = Math.max(1, Math.floor(ifSlots / 4));
+    const ssExtras = Math.max(0, ifSlots - ifEach * 4);
+    for (let j = 0; j < ifEach;           j++) arr.push("1B");
+    for (let j = 0; j < ifEach;           j++) arr.push("2B");
+    for (let j = 0; j < ifEach;           j++) arr.push("3B");
+    for (let j = 0; j < ifEach + ssExtras; j++) arr.push("SS");
+    for (let j = 0; j < ofSlots; j++) arr.push("OF");
+    // Pad/trim to exactly count (rounding edge cases)
+    while (arr.length < count) arr.push("OF");
+    if (arr.length > count) arr.length = count;
+    // Fisher-Yates shuffle to randomise order while preserving counts
+    for (let j = arr.length - 1; j > 0; j--) {
+      const k = Math.floor(Math.random() * (j + 1));
+      [arr[j], arr[k]] = [arr[k], arr[j]];
+    }
+    preassignedPositions = arr;
+  }
 
   for (let i = 0; i < count; i++) {
-    const isPitcher = Math.random() < pitcherRatio;
-    const position = isPitcher ? pickPitcherPosition() : pickFieldPosition();
+    let isPitcher: boolean;
+    let position: string;
+    if (preassignedPositions) {
+      const prePos = preassignedPositions[i];
+      isPitcher = prePos === "P";
+      position  = isPitcher ? pickPitcherPosition() : prePos;
+    } else {
+      isPitcher = Math.random() < pitcherRatio;
+      position  = isPitcher ? pickPitcherPosition() : pickFieldPosition();
+    }
 
     const stateIdx = stateAssignments[i] || 0;
     const recruitState = stateData[stateIdx];
@@ -1685,12 +1725,25 @@ export function generateRecruitClass(
       const excess = (classGoldCount + recruitGold.length) - classGoldCap;
       if (excess > 0) {
         let toReplace = [...recruitGold].sort(() => Math.random() - 0.5).slice(0, excess);
-        if (isPitcher && (isGem || isBlueChip) && toReplace.length > 0) {
+        if (isPitcher && (isGem || isBlueChip) && toReplace.length > 0 && classProtectedGoldBudget > 0) {
           const [gemFloor] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+          const origLen = toReplace.length;
           toReplace = toReplace.filter(goldName => {
             const testAbilities = abilities.filter(n => n !== goldName);
             return calculateOVR({ ...recruitOvrData, abilities: testAbilities }) >= gemFloor;
           });
+          // Each OVR-protected gold consumes one bypass-budget slot.
+          // If budget runs out mid-recruit, force-add the overflow back to toReplace.
+          const numProtected = origLen - toReplace.length;
+          if (numProtected > 0) {
+            const canProtect = Math.min(numProtected, classProtectedGoldBudget);
+            classProtectedGoldBudget -= canProtect;
+            const forceRemoveCount = numProtected - canProtect;
+            if (forceRemoveCount > 0) {
+              const stillProtected = recruitGold.filter(g => !toReplace.includes(g));
+              toReplace = [...toReplace, ...stillProtected.slice(0, forceRemoveCount)];
+            }
+          }
         }
         for (const goldName of toReplace) {
           const bluePool = getAbilitiesForPosition(position)

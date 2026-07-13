@@ -78,7 +78,7 @@ import {
 } from "../route-helpers";
 import { updateRecruitStages } from "./league-mgmt";
 import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
-import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets } from "../services/recruitPoolPlanner";
+import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets, computePoolSizeFromDepartures } from "../services/recruitPoolPlanner";
 
 // ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
 // These are duplicated at module scope so simulation.ts (which runs CPU
@@ -3633,22 +3633,30 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
   await storage.deleteRecruitsByLeague(leagueId);
 
   // Scale recruit class to league size, gated by dynasty preset.
-  // full_season leagues use the roster-demand formula (1081 for 149 teams);
-  // all other presets use the backward-compatible linear formula (≤80).
+  // full_season leagues use the departure-based pool-size formula (open slots + 20%
+  // buffer, floored by minimumNationalBoard) so the class reflects actual roster demand.
+  // Non-full_season leagues use the backward-compatible linear formula (≤80).
   const _walkonsLeague = await storage.getLeague(leagueId);
-  const recruitCount = getRecruitPoolSize(teams.length, _walkonsLeague?.dynastyPreset);
+  let recruitCount: number;
+  if (_walkonsLeague?.dynastyPreset === "full_season") {
+    // Re-use the already-loaded roster snapshot (preloadedRosterPlayers) to avoid
+    // a second DB round-trip; same dataset that drives the position targets below.
+    recruitCount = computePoolSizeFromDepartures(preloadedRosterPlayers, teams.length);
+    console.log(`[finalizeWalkonsPhase] Departure-based pool size: ${recruitCount} (teams=${teams.length})`);
+  } else {
+    recruitCount = getRecruitPoolSize(teams.length, _walkonsLeague?.dynastyPreset);
+  }
 
-  // ── Departure-based position-demand planning (Fix 2) ─────────────────────
-  // Fetch current roster to derive per-group departure counts (SR + declared JR).
-  // posTargets.{P, C, IF, OF} reflect actual vacated slots so the new class
-  // supplies the right mix — pitcher ratio AND infield/outfield/catcher depth.
+  // ── Departure-based position-demand planning ──────────────────────────────
+  // posTargets.{P, C, IF, OF} reflect actual vacated slots (SR + JR departures + 20%
+  // buffer), giving the generator exact group quotas instead of a static ratio.
+  // preloadedRosterPlayers is reused here — no extra DB call needed.
   let nextClassPitcherRatio: number | undefined;
   let nextClassPosGroupWeights: { C?: number; IF?: number; OF?: number } | undefined;
   try {
-    const allCurrentPlayers = await storage.getPlayersByLeague(leagueId);
-    const posTargets = computePositionTargetsFromDepartures(allCurrentPlayers, recruitCount);
+    const posTargets = computePositionTargetsFromDepartures(preloadedRosterPlayers, recruitCount);
     nextClassPitcherRatio = derivePitcherRatioFromTargets(posTargets, recruitCount);
-    // Pass non-pitcher group demand counts to weight field position selection.
+    // Non-pitcher group weights drive pre-assigned deterministic position quotas.
     if (posTargets.C || posTargets.IF || posTargets.OF) {
       nextClassPosGroupWeights = { C: posTargets.C, IF: posTargets.IF, OF: posTargets.OF };
     }

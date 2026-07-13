@@ -121,6 +121,37 @@ export function computePositionTargetsFromDepartures(
 }
 
 /**
+ * Computes the recruit pool size from actual roster departure data.
+ *
+ * Used by full_season leagues in finalizeWalkonsPhase when live roster data is
+ * available.  Incorporates projected open slots (departures + 20% competition
+ * buffer) rather than relying solely on a team-count formula.
+ *
+ * Algorithm:
+ *   1. Count seniors (always depart) + juniors (treated as likely declarers).
+ *   2. Add a 20% planning buffer for competitive depth.
+ *   3. Return max(departure-based size, minimumNationalBoard per team count).
+ *
+ * Falls back to the static computeFullSeasonRecruitPoolSize when departure data
+ * is unavailable (e.g. first season with no SR/JR players).
+ */
+export function computePoolSizeFromDepartures(
+  players: Array<{ year?: string | null; position?: string | null }>,
+  teamCount: number,
+): number {
+  const staticSize = computeFullSeasonRecruitPoolSize(teamCount);
+  const totalDepartures = players.filter(p => p.year === "SR" || p.year === "JR").length;
+  if (totalDepartures === 0) return staticSize;
+
+  // Open slots with 20% competition buffer
+  const openWithBuffer = Math.ceil(totalDepartures * 1.2);
+  // Minimum national board depth floor (= minimumNationalBoard from static formula)
+  const minBoard = Math.ceil(teamCount * 7.25);
+
+  return Math.max(openWithBuffer, minBoard);
+}
+
+/**
  * Derives the pitcher ratio (0-1) for generateRecruitClass from departure-based
  * position targets.  Returns 0.42 (the static default) if no departure data
  * is available.

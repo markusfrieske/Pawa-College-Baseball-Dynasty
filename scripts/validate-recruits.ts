@@ -70,7 +70,10 @@ function scanClasses(numClasses: number, classSize: number, label: string): void
   // Both branches add a bypass tolerance matching the OVR-aware pitcher-gem
   // bypass in the generator (which retains protected gold when removal would
   // violate the OVR floor). Tolerance ≈ numBlueChips = max(2, floor(classSize × 0.03)).
-  const _goldTol = Math.max(2, Math.floor(classSize * 0.12));
+  // Tolerance matches generator: max(2, floor(classSize × 0.03)) ≈ one slot per 33 recruits.
+  // Bypass budget in the generator is also capped to this same tolerance value,
+  // so the final gold count is always ≤ classGoldCap.
+  const _goldTol = Math.max(2, Math.floor(classSize * 0.03));
   const goldCap = classSize <= 80
     ? Math.round(20 * classSize / 80) + _goldTol
     : Math.round(classSize / 8) + _goldTol;
