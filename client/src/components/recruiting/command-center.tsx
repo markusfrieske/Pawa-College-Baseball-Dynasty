@@ -168,7 +168,7 @@ export function RecruitingCommandCenter({
     : 0;
 
   const visitsUsed = recruitingData?.seasonVisitCount?.total ?? 0;
-  const visitsMax = 20;
+  const visitsMax = recruitingData?.economy?.visits?.totalCap ?? 20;
   const visitPct = Math.round((visitsUsed / visitsMax) * 100);
 
   const hotBattles: BattleRecruit[] = (battlesData?.battles ?? [])

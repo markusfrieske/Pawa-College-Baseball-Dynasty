@@ -95,7 +95,8 @@ function getDisabledReason(
 
   if (action === "visit") {
     if (used.includes("visit")) return "Already visited";
-    if (state.seasonVisitCount.total >= 20) return "Visit cap reached (20)";
+    const visitTotalCap = state.economy?.visits?.totalCap ?? 20;
+    if (state.seasonVisitCount.total >= visitTotalCap) return `Visit cap reached (${visitTotalCap})`;
     const cost = state.recruitPointCosts?.[recruit.id]?.visit ?? 2;
     if (state.remainingPoints < cost) return `Need ${cost} pts`;
     return null;
@@ -103,7 +104,8 @@ function getDisabledReason(
 
   if (action === "hcv") {
     if (used.includes("head_coach_visit")) return "Already HCV'd";
-    if (state.seasonVisitCount.total >= 20) return "Visit cap reached (20)";
+    const hcvTotalCap = state.economy?.visits?.totalCap ?? 20;
+    if (state.seasonVisitCount.total >= hcvTotalCap) return `Visit cap reached (${hcvTotalCap})`;
     const cost = state.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2;
     if (state.remainingPoints < cost) return `Need ${cost} pts`;
     return null;

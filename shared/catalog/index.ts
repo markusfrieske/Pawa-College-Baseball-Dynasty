@@ -17,21 +17,21 @@ import { CONFERENCE_CATALOG } from "./conferences";
 export const FULL_SEASON_TOTAL: number = CONFERENCE_CATALOG.reduce((s, c) => s + c.size, 0);
 
 /**
- * Compute the recruit pool size for a given number of teams.
+ * Compute the recruit pool size for a given number of teams (V2 formula).
  *
- * Used by ALL non-full_season leagues:
- *   Math.min(teamCount × 5 + 10, 75)
+ * Uses the sustainable roster-demand formula for ALL league sizes:
+ *   max(30, ceil(teamCount × 7.25))
  *
- * Examples: 4→30, 6→40, 8→50, 10→60, 12→70, 13→75, 14→75
+ * Examples: 4→30, 10→73, 14→102, 20→145, 149→1081
  *
  * Full-season leagues use computeFullSeasonRecruitPoolSize() instead,
- * which applies the roster-demand formula yielding ~1,081 for 149 teams.
+ * which applies the same underlying formula but has a ≤20-team guard.
  *
  * Callers that need preset-aware behaviour should call getRecruitPoolSize()
  * in server/utils.ts, which gates on dynastyPreset automatically.
  */
 export function computeRecruitPoolSize(numTeams: number): number {
-  return Math.min(numTeams * 5 + 10, 75);
+  return Math.max(30, Math.ceil(numTeams * 7.25));
 }
 
 /**

@@ -37,6 +37,19 @@ import { generateRecruitCommitNewsArticle } from "../news-engine";
 import { invalidateLeague } from "../cache";
 import { awardRecruitSignXp } from "../game-finalizer";
 import { getActionPointCost } from "@shared/stateDistance";
+import {
+  getRecruitingBalanceProfile,
+  getTargetCap,
+  getTurnContactCap,
+  getTurnScoutCap,
+  getRecruitingTurnCount,
+  getRecruitingTurnIndex,
+  getClassCapacity,
+  getSeasonContactBudget,
+  getSeasonScoutBudget,
+  ARCHETYPE_SEASON_CONTACT_BONUS,
+  ARCHETYPE_SEASON_SCOUT_BONUS,
+} from "@shared/recruitingBalance";
 import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import {
   getAttributesToRevealCount,
@@ -264,9 +277,9 @@ export function registerRecruitingRoutes(app: Express): void {
         if (current - graduating < 2) needPositions.add(pos);
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       const remainingPoints = Math.max(0, maxRecruitingActions - (userCoach?.recruitActionsUsed || 0));
-      const maxScoutActions = getMaxScoutActions(userCoach);
+      const maxScoutActions = getMaxScoutActions(userCoach, league);
       const remainingScoutPoints = Math.max(0, maxScoutActions - (userCoach?.scoutActionsUsed || 0));
 
       const recommendations: {
@@ -471,39 +484,37 @@ export function registerRecruitingRoutes(app: Express): void {
     "Old School": 0.90,
   };
 
-  function getMaxRecruitingActions(coach: any, seasonLength?: string | null): number {
-    const baseActions = 15;
-    const skillBonus = Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2);
-    const archetypeBonus = ARCHETYPE_RECRUITING_ACTION_BONUS[coach?.archetype] || 0;
-    const rawBudget = Math.max(4, baseActions + skillBonus + archetypeBonus);
-    // Scale weekly budget for longer seasons so total-season recruiting budget stays comparable.
-    // short/standard (9 total weeks): 15/wk → 135 total.
-    // medium (14 total weeks): ~13/wk → 182 total.
-    // long (19 total weeks): ~11/wk → 209 total.
-    // This prevents long-season coaches from having a 2× action-point advantage while still
-    // letting the larger week count mean a naturally deeper class can be recruited.
-    const seasonScale: Record<string, number> = { short: 1.0, standard: 1.0, medium: 0.87, long: 0.73 };
-    const scale = seasonScale[seasonLength ?? "standard"] ?? 1.0;
-    return Math.max(4, Math.round(rawBudget * scale));
+  function getMaxRecruitingActions(coach: any, league: any): number {
+    const avgRecruitSkill = Math.floor(
+      ((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2
+    );
+    return getTurnContactCap({
+      seasonLength: league?.seasonLength,
+      dynastyPreset: league?.dynastyPreset,
+      avgRecruitSkill,
+      avgScoutSkill: 1,
+      archetype: coach?.archetype || "Balanced",
+      hasQuickStudy: false,
+      currentPhase: league?.currentPhase || "regular_season",
+      currentWeek: league?.currentWeek || 1,
+    });
   }
 
-  function getMaxScoutActions(coach: any): number {
-    const baseActions = 25;
-    const skillBonus = Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2);
-    const archetypeScoutBonus: Record<string, number> = {
-      "Scout Master": 6,
-      "Academic Dean": 3,
-      "Balanced": 0,
-      "Pure CEO": 0,
-      "Player's Coach": 2,
-      "Dealmaker": -2,
-      "Tactician": 2,
-      "Old School": -2,
-    };
-    const archBonus = archetypeScoutBonus[coach?.archetype] || 0;
-    // scout_quick_study perk: +3 scout actions per week
-    const perkBonus = (coach?.perks as Record<string, boolean> | null)?.scout_quick_study ? 3 : 0;
-    return Math.max(4, baseActions + skillBonus + archBonus + perkBonus);
+  function getMaxScoutActions(coach: any, league: any): number {
+    const avgScoutSkill = Math.floor(
+      ((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2
+    );
+    const hasQuickStudy = !!(coach?.perks as Record<string, boolean> | null)?.scout_quick_study;
+    return getTurnScoutCap({
+      seasonLength: league?.seasonLength,
+      dynastyPreset: league?.dynastyPreset,
+      avgRecruitSkill: 1,
+      avgScoutSkill,
+      archetype: coach?.archetype || "Balanced",
+      hasQuickStudy,
+      currentPhase: league?.currentPhase || "regular_season",
+      currentWeek: league?.currentWeek || 1,
+    });
   }
 
   const ARCHETYPE_PITCHER_BONUS: Record<string, number> = {
@@ -1086,7 +1097,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "You've already called this recruit this week. Max 1 phone call per recruit per week." });
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       const phoneCost = getActionPointCost("phone", userTeam.state, recruit.homeState);
       if ((userCoach?.recruitActionsUsed || 0) + phoneCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Phone calls cost ${phoneCost} recruiting points. You don't have enough points remaining this week.` });
@@ -1195,7 +1206,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "You've already emailed this recruit this week. Max 1 email per recruit per week." });
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
@@ -1295,15 +1306,16 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const actionCost = getActionPointCost("visit", userTeam.state, recruit.homeState);
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Campus Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
       }
 
+      const visitProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
       const seasonVisits = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
-      if (seasonVisits.total >= 20) {
-        return res.status(400).json({ message: `You've used all 20 visits for this season (${seasonVisits.campusVisits} campus + ${seasonVisits.hcVisits} head coach). The cap resets next season.` });
+      if (seasonVisits.total >= visitProfile.visitCombinedCap) {
+        return res.status(400).json({ message: `You've used all ${visitProfile.visitCombinedCap} visits for this season (${seasonVisits.campusVisits} campus + ${seasonVisits.hcVisits} head coach). The cap resets next season.` });
       }
 
       const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
@@ -1397,15 +1409,16 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const actionCost = getActionPointCost("head_coach_visit", userTeam.state, recruit.homeState);
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Head Coach Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
       }
 
+      const hcvProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
       const seasonVisitsHcv = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
-      if (seasonVisitsHcv.total >= 20) {
-        return res.status(400).json({ message: `You've used all 20 visits for this season (${seasonVisitsHcv.campusVisits} campus + ${seasonVisitsHcv.hcVisits} head coach). The cap resets next season.` });
+      if (seasonVisitsHcv.total >= hcvProfile.visitCombinedCap) {
+        return res.status(400).json({ message: `You've used all ${hcvProfile.visitCombinedCap} visits for this season (${seasonVisitsHcv.campusVisits} campus + ${seasonVisitsHcv.hcVisits} head coach). The cap resets next season.` });
       }
 
       const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
@@ -1501,7 +1514,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league?.seasonLength);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
@@ -1584,12 +1597,21 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
+
+      const [targetLeague, targetRoster] = await Promise.all([
+        storage.getLeague(req.params.id as string),
+        storage.getPlayersByTeam(userTeam.id),
+      ]);
+      const targetSeniorsCount = targetRoster.filter(p => p.eligibility === "SR").length;
+      const targetMaxCommits = Math.max(0, 25 - targetRoster.length + targetSeniorsCount);
+      const targetProfile = getRecruitingBalanceProfile(targetLeague?.seasonLength, targetLeague?.dynastyPreset);
+      const dynamicTargetCap = getTargetCap(targetMaxCommits, targetProfile);
       
       if (!interest) {
         const allInterests = await storage.getRecruitingInterestsByTeam(userTeam.id);
         const currentTargets = allInterests.filter(i => i.isTargeted).length;
-        if (currentTargets >= 20) {
-          return res.status(400).json({ message: "Maximum 20 targets reached. Remove a target first." });
+        if (currentTargets >= dynamicTargetCap) {
+          return res.status(400).json({ message: `Maximum ${dynamicTargetCap} targets reached. Remove a target first.` });
         }
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1600,8 +1622,8 @@ export function registerRecruitingRoutes(app: Express): void {
         if (!interest.isTargeted) {
           const allInterests = await storage.getRecruitingInterestsByTeam(userTeam.id);
           const currentTargets = allInterests.filter(i => i.isTargeted).length;
-          if (currentTargets >= 20) {
-            return res.status(400).json({ message: "Maximum 20 targets reached. Remove a target first." });
+          if (currentTargets >= dynamicTargetCap) {
+            return res.status(400).json({ message: `Maximum ${dynamicTargetCap} targets reached. Remove a target first.` });
           }
         }
         interest = await storage.updateRecruitingInterest(interest.id, {
@@ -2741,8 +2763,8 @@ export function registerRecruitingRoutes(app: Express): void {
         }
       });
 
-      const maxScoutActions = getMaxScoutActions(coach);
-      const maxRecruitingActions = getMaxRecruitingActions(coach, league?.seasonLength);
+      const maxScoutActions = getMaxScoutActions(coach, league);
+      const maxRecruitingActions = getMaxRecruitingActions(coach, league);
       
       // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
       const seniorsCount = roster.filter(p => p.eligibility === 'SR').length;
@@ -2816,6 +2838,65 @@ export function registerRecruitingRoutes(app: Express): void {
         recruitPointCosts,
         seasonVisitCount,
         autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
+        economy: (() => {
+          const eProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
+          const eTurnIndex = getRecruitingTurnIndex(league.currentPhase, league.currentWeek, league.seasonLength, league.dynastyPreset);
+          const eTurnCount = getRecruitingTurnCount(league.seasonLength, league.dynastyPreset);
+          const eSeasonContactBudget = getSeasonContactBudget({
+            seasonLength: league.seasonLength,
+            dynastyPreset: league.dynastyPreset,
+            avgRecruitSkill: Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2),
+            avgScoutSkill: 1,
+            archetype: coach?.archetype || "Balanced",
+            hasQuickStudy: false,
+            currentPhase: league.currentPhase,
+            currentWeek: league.currentWeek,
+          });
+          const eSeasonScoutBudget = getSeasonScoutBudget({
+            seasonLength: league.seasonLength,
+            dynastyPreset: league.dynastyPreset,
+            avgRecruitSkill: 1,
+            avgScoutSkill: Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2),
+            archetype: coach?.archetype || "Balanced",
+            hasQuickStudy: !!(coach?.perks as Record<string, boolean> | null)?.scout_quick_study,
+            currentPhase: league.currentPhase,
+            currentWeek: league.currentWeek,
+          });
+          const eTargetCap = getTargetCap(maxCommits, eProfile);
+          return {
+            balanceVersion: 2 as const,
+            recruitingTurnIndex: eTurnIndex,
+            recruitingTurnsTotal: eTurnCount,
+            targets: { used: interests.filter(i => i.isTargeted).length, cap: eTargetCap },
+            commits: {
+              signed: leagueRecruits.filter(r => r.signedTeamId === userTeam.id).length,
+              confirmedOpenings: seniorsCount,
+              projectedOpenings: maxCommits,
+              hardCap: 25,
+              oversignAllowance: eProfile.oversignAllowance,
+            },
+            contactPoints: { spent: recruitingActionsUsed, cap: maxRecruitingActions, seasonBudget: eSeasonContactBudget },
+            scoutPoints: { spent: scoutActionsUsed, cap: maxScoutActions, seasonBudget: eSeasonScoutBudget },
+            visits: {
+              totalUsed: seasonVisitCount.total,
+              totalCap: eProfile.visitCombinedCap,
+              campusUsed: seasonVisitCount.campusVisits,
+              campusCap: eProfile.campusVisitCap,
+              headCoachUsed: seasonVisitCount.hcVisits,
+              headCoachCap: eProfile.headCoachVisitCap,
+            },
+            nil: {
+              budget: userTeam.nilBudget || 0,
+              spent: 0,
+              remaining: userTeam.nilBudget || 0,
+              recruitingAllocated: 0,
+              recruitingCommitted: 0,
+              recruitingRemaining: userTeam.nilBudget || 0,
+              retentionReserved: 0,
+              walkonReserved: 0,
+            },
+          };
+        })(),
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);
@@ -2835,7 +2916,8 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const maxScoutActions = getMaxScoutActions(userCoach);
+      const scoutLeague = await storage.getLeague(req.params.id as string);
+      const maxScoutActions = getMaxScoutActions(userCoach, scoutLeague);
       if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
         return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week` });
       }
@@ -3028,7 +3110,8 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const maxScoutActions = getMaxScoutActions(userCoach);
+      const bulkScoutLeague = await storage.getLeague(req.params.id as string);
+      const maxScoutActions = getMaxScoutActions(userCoach, bulkScoutLeague);
       const actionsUsed = userCoach?.scoutActionsUsed || 0;
       const actionsRemaining = Math.max(0, maxScoutActions - actionsUsed);
 

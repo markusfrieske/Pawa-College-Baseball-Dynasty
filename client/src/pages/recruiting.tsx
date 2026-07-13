@@ -714,16 +714,16 @@ export default function RecruitingPage() {
           </div>
 
           <div className="grid grid-cols-6 gap-1">
-            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/20`} />
+            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.economy?.targets.used ?? data?.targetedCount ?? 0}/${data?.economy?.targets.cap ?? 20}`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
-            <StatCard icon={<Phone className="w-4 h-4" />} label="Calls" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
-            <StatCard icon={<Eye className="w-4 h-4" />} label="Scouts" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
+            <StatCard icon={<Phone className="w-4 h-4" />} label="Contact Pts" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
+            <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Pts" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
             <StatCard
               icon={<Building2 className="w-4 h-4" />}
               label="Visits"
-              value={`${data?.seasonVisitCount?.total ?? 0}/20`}
-              highlight={(data?.seasonVisitCount?.total ?? 0) >= 20}
-              tooltip={`${data?.seasonVisitCount?.campusVisits ?? 0} campus visit${(data?.seasonVisitCount?.campusVisits ?? 0) !== 1 ? "s" : ""}, ${data?.seasonVisitCount?.hcVisits ?? 0} HC visit${(data?.seasonVisitCount?.hcVisits ?? 0) !== 1 ? "s" : ""} — 20 total cap per season`}
+              value={`${data?.economy?.visits.totalUsed ?? data?.seasonVisitCount?.total ?? 0}/${data?.economy?.visits.totalCap ?? 20}`}
+              highlight={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? 20)}
+              tooltip={`${data?.seasonVisitCount?.campusVisits ?? 0} campus visit${(data?.seasonVisitCount?.campusVisits ?? 0) !== 1 ? "s" : ""}, ${data?.seasonVisitCount?.hcVisits ?? 0} HC visit${(data?.seasonVisitCount?.hcVisits ?? 0) !== 1 ? "s" : ""} — ${data?.economy?.visits.totalCap ?? 20} total cap per season`}
             />
             {data?.team && (
               <StatCard
@@ -1874,7 +1874,7 @@ export default function RecruitingPage() {
                     outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
                     progressionEnabled={leagueData?.progressionEnabled}
                     nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-                    seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
+                    seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? 20)}
                   />
                 </div>
               );
@@ -1933,7 +1933,7 @@ export default function RecruitingPage() {
         hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
         nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-        seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= 20}
+        seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? 20)}
         userTeamId={data?.team?.id}
         trend={selectedRecruit ? (trendsData?.trends?.[selectedRecruit.id] ?? null) : null}
       />

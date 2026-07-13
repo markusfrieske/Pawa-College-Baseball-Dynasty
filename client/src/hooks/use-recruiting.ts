@@ -95,6 +95,40 @@ export interface AutoPilotAlertEntry {
   isDeadlineForced: boolean;
 }
 
+export interface RecruitingEconomy {
+  balanceVersion: 2;
+  recruitingTurnIndex: number;
+  recruitingTurnsTotal: number;
+  targets: { used: number; cap: number };
+  commits: {
+    signed: number;
+    confirmedOpenings: number;
+    projectedOpenings: number;
+    hardCap: number;
+    oversignAllowance: number;
+  };
+  contactPoints: { spent: number; cap: number; seasonBudget: number };
+  scoutPoints: { spent: number; cap: number; seasonBudget: number };
+  visits: {
+    totalUsed: number;
+    totalCap: number;
+    campusUsed: number;
+    campusCap: number;
+    headCoachUsed: number;
+    headCoachCap: number;
+  };
+  nil: {
+    budget: number;
+    spent: number;
+    remaining: number;
+    recruitingAllocated: number;
+    recruitingCommitted: number;
+    recruitingRemaining: number;
+    retentionReserved: number;
+    walkonReserved: number;
+  };
+}
+
 export interface RecruitingData {
   recruits: RecruitWithInterest[];
   team: Team;
@@ -119,6 +153,7 @@ export interface RecruitingData {
   weeklyActionsSeason?: number;
   seasonVisitCount: { total: number; campusVisits: number; hcVisits: number };
   autoPilotPendingAlert: AutoPilotAlertEntry[];
+  economy?: RecruitingEconomy;
 }
 
 export interface PipelineData {
