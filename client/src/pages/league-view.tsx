@@ -39,10 +39,12 @@ import {
   WeeklyOpponentCard, PrimaryPhaseCTA, CoachActionQueue, SinceLastAdvanceFeed,
   SinceLastAdvanceWidget, ProgramSnapshotPanel,
   RecruitingSnapshotPanel, StandingsPreviewPanel, NavDock,
+  NeedsAttentionPanel,
 } from "./league-view/dashboard-widgets";
 import {
   LeagueTickerBanner, StatsLeadersPanel, PowerRankingsWidget,
   TopProspectsWidget, MergedRosterPanel, NewsroomPanel,
+  NationalPulsePanel,
 } from "./league-view/hub-panels";
 import { StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
 import { SigningDaySummaryCard, ProgramChangesCard, OffseasonSummary } from "./league-view/tabs/offseason-widgets";
@@ -550,6 +552,13 @@ export default function LeagueViewPage() {
               lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
             />
 
+            <NeedsAttentionPanel
+              leagueId={id!}
+              league={league}
+              isCommissioner={isCommissioner}
+              overview={overview}
+            />
+
             <CoachActionQueue
               leagueId={id!}
               league={league}
@@ -634,6 +643,11 @@ export default function LeagueViewPage() {
           <StatsLeadersPanel leagueId={id!} />
           <PowerRankingsWidget leagueId={id!} />
           <TopProspectsWidget leagueId={id!} />
+        </div>
+
+        {/* ─── NATIONAL PULSE (full-width Top 25 + bubble) ─────────── */}
+        <div className="mt-4">
+          <NationalPulsePanel leagueId={id!} />
         </div>
 
         {/* ─── NAVIGATION DOCK ─────────────────────────────────────── */}

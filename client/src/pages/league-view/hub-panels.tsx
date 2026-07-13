@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Newspaper, TrendingUp, BarChart2, Users, Star, Trash2,
   PlusCircle, Image, ChevronRight, Activity, Swords, Zap,
+  Globe, Radio, Target,
 } from "lucide-react";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import { apiRequest } from "@/lib/queryClient";
@@ -224,6 +225,151 @@ interface RankEntry {
   ovrPercentile: number; hitterPercentile: number; pitcherPercentile: number;
 }
 interface RankingsResp { rankings: RankEntry[]; userTeamId: string; }
+
+// ─── National Pulse Panel ────────────────────────────────────────────────────
+
+interface BubbleTeam {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  abbreviation: string;
+  primaryColor: string;
+  avgOvr: number;
+  ovrPercentile: number;
+}
+
+export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<RankingsResp>({
+    queryKey: ["/api/leagues", leagueId, "power-rankings"],
+    staleTime: 120000,
+  });
+
+  const { data: tickerData } = useQuery<{ events: TickerEvent[] }>({
+    queryKey: ["/api/leagues", leagueId, "ticker"],
+    staleTime: 60000,
+  });
+
+  const top25 = (data?.rankings ?? []).slice(0, 25);
+  const userTeamId = data?.userTeamId;
+
+  const bubbleTeams: BubbleTeam[] = (data?.rankings ?? [])
+    .slice(5, 12)
+    .filter(r => r.ovrPercentile >= 40);
+
+  const notableEvents = (tickerData?.events ?? [])
+    .filter(e => ["GAME_RESULT", "RIVALRY_RESULT", "AWARD", "DRAFT"].includes(e.eventType))
+    .slice(0, 5);
+
+  return (
+    <RetroCard data-testid="panel-national-pulse">
+      <RetroCardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-gold" />
+            <h3 className="font-pixel text-gold text-[9px]">NATIONAL PULSE</h3>
+          </div>
+          <Link href={`/league/${leagueId}?tab=rankings`}>
+            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
+          </Link>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Top 25 */}
+          <div className="md:col-span-2">
+            <p className="font-pixel text-[7px] text-gold/70 uppercase tracking-wider mb-2">Top 25</p>
+            {isLoading ? (
+              <div className="space-y-1">{[...Array(10)].map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}</div>
+            ) : (
+              <div className="space-y-0.5 max-h-[400px] overflow-y-auto scrollbar-hide" data-testid="list-top25">
+                {top25.map(r => {
+                  const { grade, color } = pctGrade(r.ovrPercentile);
+                  const isUser = r.teamId === userTeamId;
+                  const delta = r.rankDelta ?? 0;
+                  return (
+                    <Link key={r.teamId} href={`/league/${leagueId}/team/${r.teamId}`}>
+                      <div
+                        className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded text-xs cursor-pointer transition-colors ${isUser ? "bg-gold/10 border border-gold/20 hover:bg-gold/15" : "hover:bg-card/80"}`}
+                        data-testid={`pulse-rank-${r.rank}`}
+                      >
+                        <span className="font-pixel text-[8px] text-muted-foreground w-5 text-right shrink-0">{r.rank}</span>
+                        {delta !== 0 && (
+                          <span className={`font-pixel text-[7px] shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {delta > 0 ? "▲" : "▼"}
+                          </span>
+                        )}
+                        <span
+                          className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[6px] shrink-0"
+                          style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
+                        >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
+                        <span className={`flex-1 truncate text-[11px] ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
+                        <span className="text-muted-foreground text-[10px] shrink-0">{Math.round(r.avgOvr)}</span>
+                        <span className={`font-pixel text-[8px] ${color} w-5 text-right shrink-0`}>{grade}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+                {top25.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground text-center py-4">Rankings update after the season starts</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Right rail: Notable events + Bubble */}
+          <div className="space-y-4">
+            {notableEvents.length > 0 && (
+              <div>
+                <p className="font-pixel text-[7px] text-sky-400/70 uppercase tracking-wider mb-2">
+                  <Radio className="w-2.5 h-2.5 inline mr-1" />Notable
+                </p>
+                <div className="space-y-2">
+                  {notableEvents.map((e, i) => {
+                    const cfg = TICKER_TAG[e.eventType] ?? { tag: "NEWS", color: "text-muted-foreground" };
+                    return (
+                      <div key={i} className="space-y-0.5">
+                        <span className={`font-pixel text-[7px] ${cfg.color}`}>{cfg.tag}</span>
+                        <p className="text-[10px] text-foreground/70 leading-snug line-clamp-2">{e.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {bubbleTeams.length > 0 && (
+              <div>
+                <p className="font-pixel text-[7px] text-amber-400/70 uppercase tracking-wider mb-2">
+                  <Target className="w-2.5 h-2.5 inline mr-1" />Bubble
+                </p>
+                <div className="space-y-1">
+                  {bubbleTeams.map(r => {
+                    const isUser = r.teamId === userTeamId;
+                    return (
+                      <Link key={r.teamId} href={`/league/${leagueId}/team/${r.teamId}`}>
+                        <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded text-xs cursor-pointer ${isUser ? "text-gold" : "text-foreground/70 hover:text-foreground"}`} data-testid={`bubble-row-${r.teamId}`}>
+                          <span className="font-pixel text-[8px] text-muted-foreground w-4 text-right shrink-0">#{r.rank}</span>
+                          <span
+                            className="w-4 h-4 rounded-full flex items-center justify-center font-pixel text-[6px] shrink-0"
+                            style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}` }}
+                          >{r.abbreviation?.slice(0, 2) ?? "—"}</span>
+                          <span className="flex-1 truncate text-[10px]">{r.teamName}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+                <p className="text-[9px] text-muted-foreground/60 mt-1">At-large contenders</p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
 
 export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
   const { data, isLoading } = useQuery<RankingsResp>({

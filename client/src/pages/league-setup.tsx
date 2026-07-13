@@ -331,23 +331,111 @@ function TeamSelectionStep({
   selectedTeamId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const [confFilter, setConfFilter] = useState("all");
+  const [sort, setSort] = useState("name");
+
   const { data: scoutingMap } = useQuery<Record<string, TeamScoutingInfo>>({
     queryKey: ["/api/team-templates/scouting"],
   });
 
-  const teamsByConference = conferences.map(conf => ({
+  const isLargeLeague = teams.length > 30;
+
+  const confOptions = [
+    { value: "all", label: "All Conferences" },
+    ...conferences.map(c => ({ value: c.id, label: c.name })),
+  ];
+
+  const filteredSorted = (() => {
+    let result = teams.filter(t => {
+      const matchesSearch = !search.trim() ||
+        t.name.toLowerCase().includes(search.toLowerCase()) ||
+        (t.mascot ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (t.abbreviation ?? "").toLowerCase().includes(search.toLowerCase()) ||
+        (t.state ?? "").toLowerCase().includes(search.toLowerCase());
+      const matchesConf = confFilter === "all" || t.conferenceId === confFilter;
+      return matchesSearch && matchesConf;
+    });
+
+    result = [...result].sort((a, b) => {
+      if (sort === "prestige") return (b.prestige ?? 0) - (a.prestige ?? 0);
+      if (sort === "facilities") return (b.facilities ?? 0) - (a.facilities ?? 0);
+      return a.name.localeCompare(b.name);
+    });
+
+    return result;
+  })();
+
+  const groupedByConf = conferences.map(conf => ({
     conference: conf,
-    teams: teams.filter(t => t.conferenceId === conf.id).sort((a, b) => a.name.localeCompare(b.name)),
-  })).filter(({ teams: confTeams }) => confTeams.length > 0);
+    teams: filteredSorted.filter(t => t.conferenceId === conf.id),
+  })).filter(g => g.teams.length > 0);
 
-  const unassignedTeams = teams.filter(t => !t.conferenceId);
-
+  const ungrouped = filteredSorted.filter(t => !t.conferenceId);
   const selectedTeam = teams.find(t => t.id === selectedTeamId);
   const scoutingInfo = selectedTeam && scoutingMap ? scoutingMap[selectedTeam.name] : null;
 
   return (
-    <div className="space-y-6">
-      {teamsByConference.map(({ conference, teams: confTeams }) => (
+    <div className="space-y-4">
+      {/* Search + filter bar — only shown for leagues with many teams */}
+      {isLargeLeague && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative flex-1 min-w-[160px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search by name, mascot, or state…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-card border border-border rounded text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold/60"
+              data-testid="input-team-search"
+            />
+          </div>
+          <select
+            value={confFilter}
+            onChange={e => setConfFilter(e.target.value)}
+            className="px-2 py-1.5 text-xs bg-card border border-border rounded text-foreground focus:outline-none focus:border-gold/60"
+            data-testid="select-conf-filter"
+          >
+            {confOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+          <div className="flex items-center gap-1">
+            {[
+              { value: "name", label: "A–Z" },
+              { value: "prestige", label: "Prestige" },
+              { value: "facilities", label: "Facilities" },
+            ].map(s => (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => setSort(s.value)}
+                className={`px-2 py-1 text-[10px] font-pixel rounded border transition-colors ${
+                  sort === s.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
+                }`}
+                data-testid={`button-team-sort-${s.value}`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[10px] text-muted-foreground">
+            {filteredSorted.length} / {teams.length}
+          </span>
+        </div>
+      )}
+
+      {/* Scouting panel sticky at top when a team is selected */}
+      {scoutingInfo && selectedTeam && (
+        <div className="animate-in slide-in-from-top-2 duration-200">
+          <TeamScoutingPanel
+            teamName={selectedTeam.name}
+            info={scoutingInfo}
+            variant="inline"
+          />
+        </div>
+      )}
+
+      {groupedByConf.map(({ conference, teams: confTeams }) => (
         <div key={conference.id}>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-pixel text-sm text-gold">{conference.name}</h3>
@@ -366,14 +454,14 @@ function TeamSelectionStep({
         </div>
       ))}
 
-      {unassignedTeams.length > 0 && (
+      {ungrouped.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-pixel text-sm text-muted-foreground">Unassigned</h3>
-            <span className="text-xs text-muted-foreground">{unassignedTeams.length} teams</span>
+            <span className="text-xs text-muted-foreground">{ungrouped.length} teams</span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {unassignedTeams.map((team) => (
+            {ungrouped.map((team) => (
               <TeamTile
                 key={team.id}
                 team={team}
@@ -385,20 +473,12 @@ function TeamSelectionStep({
         </div>
       )}
 
-      {teams.length === 0 && (
-        <RetroCard variant="bordered" className="text-center py-12">
-          <p className="text-muted-foreground">No teams in this dynasty</p>
+      {filteredSorted.length === 0 && (
+        <RetroCard variant="bordered" className="text-center py-8">
+          <p className="text-muted-foreground text-sm">
+            {search || confFilter !== "all" ? "No teams match your filters" : "No teams in this dynasty"}
+          </p>
         </RetroCard>
-      )}
-
-      {scoutingInfo && selectedTeam && (
-        <div className="animate-in slide-in-from-bottom-2 duration-200">
-          <TeamScoutingPanel
-            teamName={selectedTeam.name}
-            info={scoutingInfo}
-            variant="inline"
-          />
-        </div>
       )}
     </div>
   );

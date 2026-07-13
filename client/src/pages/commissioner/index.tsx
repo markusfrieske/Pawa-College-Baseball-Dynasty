@@ -222,6 +222,26 @@ export default function CommissionerPage() {
           setShowSeasonSummary(true);
         }
 
+        const isFullSeason = data?.league?.dynastyPreset === "full_season";
+        if (isFullSeason && phase) {
+          const phaseRedirects: Record<string, string> = {
+            offseason_recruiting_1: `/league/${id}/recruiting`,
+            offseason_recruiting_2: `/league/${id}/recruiting`,
+            offseason_recruiting_3: `/league/${id}/recruiting`,
+            offseason_recruiting_4: `/league/${id}/recruiting`,
+            conference_championship: `/league/${id}/postseason`,
+            super_regionals: `/league/${id}/postseason`,
+            cws: `/league/${id}/postseason`,
+            offseason_signing_day: `/league/${id}/commits`,
+            offseason_walkons: `/league/${id}/walkons`,
+          };
+          const redirect = phaseRedirects[phase];
+          if (redirect) {
+            navigate(redirect);
+            return;
+          }
+        }
+
         const autoAdvanceEnabled = localStorage.getItem(`auto-advance-${id}`) === "true";
         const autoAdvancePhases = ["regular_season", "preseason", "spring_training"];
         if (

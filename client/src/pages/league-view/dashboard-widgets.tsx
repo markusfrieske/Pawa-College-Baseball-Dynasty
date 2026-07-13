@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -9,7 +9,7 @@ import {
   Calendar, Play, ChevronRight, Home, Plane, FileText, ClipboardList, Target,
   UserMinus, UserPlus, Check, Clock, Settings, Trophy, AlertTriangle, History,
   TrendingUp, TrendingDown, Bell, Zap, Star, Swords, Building2, Users,
-  GraduationCap, BarChart2, BookOpen, Archive,
+  GraduationCap, BarChart2, BookOpen, Archive, FastForward, Loader2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { LeagueEvent, AdvanceDigest } from "@shared/schema";
@@ -1206,6 +1206,170 @@ export function NavDock({
         ))}
       </div>
     </div>
+  );
+}
+
+// ─── Needs Attention Panel ───────────────────────────────────────────────────
+
+interface JobStatus {
+  status: "pending" | "processing" | "complete" | "failed";
+  progress: number;
+  metadata?: { stage?: string };
+  errorMessage?: string;
+}
+
+interface NeedsAttentionProps {
+  leagueId: string;
+  league: LeagueDetails;
+  isCommissioner: boolean;
+  overview: DashboardOverview | undefined;
+  onAdvanceSuccess?: (response: any) => void;
+}
+
+export function NeedsAttentionPanel({
+  leagueId, league, isCommissioner, overview, onAdvanceSuccess,
+}: NeedsAttentionProps) {
+  const qc = useQueryClient();
+  const [jobId, setJobId] = useState<string | null>(null);
+
+  const { data: jobStatus } = useQuery<JobStatus>({
+    queryKey: ["/api/leagues", leagueId, "job"],
+    enabled: !!jobId,
+    staleTime: 0,
+    refetchInterval: jobId ? 1500 : false,
+    select: (data) => {
+      if (data?.status === "complete" || data?.status === "failed") {
+        setJobId(null);
+      }
+      return data;
+    },
+  });
+
+  const advanceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance`, {});
+      return res.json();
+    },
+    onSuccess: (response: any) => {
+      if (response?.jobId) {
+        setJobId(response.jobId);
+      }
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      onAdvanceSuccess?.(response);
+    },
+  });
+
+  const isWorking = advanceMutation.isPending || (!!jobId && jobStatus?.status !== "complete" && jobStatus?.status !== "failed");
+  const jobProgress = jobStatus?.progress ?? 0;
+  const jobStage = jobStatus?.metadata?.stage;
+
+  const phase = league.currentPhase;
+  const positionsAtRisk = overview?.positionsAtRisk ?? [];
+  const isRecruitingPhase = phase.startsWith("offseason_recruiting");
+  const hasRosterAlerts = positionsAtRisk.length > 0;
+
+  const { data: recruitingData } = useQuery<{
+    remainingPoints: number;
+    remainingScoutPoints: number;
+    commitsCount: number;
+    maxCommits: number;
+    highInterestNoOffer?: number;
+  }>({
+    queryKey: ["/api/leagues", leagueId, "recruiting"],
+    enabled: isRecruitingPhase,
+    staleTime: 60000,
+  });
+
+  const highInterestNoOffer = recruitingData?.highInterestNoOffer ?? 0;
+  const hasUrgentRecruits = isRecruitingPhase && highInterestNoOffer > 0;
+  const hasAnythingToShow = hasRosterAlerts || hasUrgentRecruits || isCommissioner;
+
+  if (!hasAnythingToShow) return null;
+
+  return (
+    <RetroCard className="border-gold/20 bg-gold/5" data-testid="panel-needs-attention">
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-gold" />
+          <h3 className="font-pixel text-gold text-[9px]">NEEDS ATTENTION</h3>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="space-y-3">
+
+          {/* Urgent recruits */}
+          {hasUrgentRecruits && (
+            <Link href={`/league/${leagueId}/recruiting`}>
+              <div className="flex items-center gap-3 p-2.5 rounded border border-amber-500/30 bg-amber-500/10 cursor-pointer hover:bg-amber-500/15 transition-colors" data-testid="alert-urgent-recruits">
+                <Target className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-amber-300">{highInterestNoOffer} recruit{highInterestNoOffer !== 1 ? "s" : ""} interested — no offer yet</p>
+                  <p className="text-[10px] text-amber-400/70">Make an offer before the deadline</p>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-amber-400/60 shrink-0" />
+              </div>
+            </Link>
+          )}
+
+          {/* Roster alerts */}
+          {hasRosterAlerts && (
+            <Link href={`/league/${leagueId}/roster`}>
+              <div className="flex items-center gap-3 p-2.5 rounded border border-red-500/30 bg-red-500/10 cursor-pointer hover:bg-red-500/15 transition-colors" data-testid="alert-roster-depth">
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-red-300">Thin depth at {positionsAtRisk.slice(0, 3).join(", ")}</p>
+                  <p className="text-[10px] text-red-400/70">Check your roster depth</p>
+                </div>
+                <ChevronRight className="w-3.5 h-3.5 text-red-400/60 shrink-0" />
+              </div>
+            </Link>
+          )}
+
+          {/* Commissioner advance button */}
+          {isCommissioner && (
+            <div className="space-y-2">
+              {isWorking && jobId && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>{jobStage ?? "Simulating..."}</span>
+                    <span>{jobProgress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-background/60 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gold/60 rounded-full transition-all duration-500"
+                      style={{ width: `${jobProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <RetroButton
+                variant="primary"
+                className="w-full text-xs py-2.5"
+                onClick={() => advanceMutation.mutate()}
+                disabled={isWorking}
+                data-testid="button-needs-attention-advance"
+              >
+                {isWorking ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    {jobId ? `Advancing... ${jobProgress}%` : "Advancing..."}
+                  </>
+                ) : (
+                  <>
+                    <FastForward className="w-4 h-4 mr-2" />
+                    Advance Week
+                  </>
+                )}
+              </RetroButton>
+            </div>
+          )}
+        </div>
+      </RetroCardContent>
+    </RetroCard>
   );
 }
 

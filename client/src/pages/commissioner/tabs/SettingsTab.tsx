@@ -131,6 +131,7 @@ export function SettingsTab({
               />
             </div>
 
+            {league?.dynastyPreset !== "full_season" && (
             <div className="flex items-center justify-between border-t border-border pt-6">
               <div className="flex items-center gap-3">
                 <Camera className="w-4 h-4 text-gold shrink-0" />
@@ -148,6 +149,7 @@ export function SettingsTab({
                 data-testid="switch-game-mode"
               />
             </div>
+            )}
 
             <div className="border-t border-border pt-6">
               <div className="mb-4">
