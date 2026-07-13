@@ -1097,11 +1097,12 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
 
   return (
     <RetroCard data-testid={`card-week-${weekData.isPostseason ? weekData.label : weekData.weekNum}`}>
-      <RetroCardHeader
-        className="flex items-center justify-between gap-4 cursor-pointer select-none hover:bg-white/5 transition-colors rounded-t"
-        onClick={() => setCollapsed(c => !c)}
-        data-testid={`button-collapse-week-${weekData.isPostseason ? weekData.label : weekData.weekNum}`}
-      >
+      <RetroCardHeader className="p-0">
+        <div
+          className="flex items-center justify-between gap-4 cursor-pointer select-none hover:bg-white/5 transition-colors rounded-t px-4 py-3"
+          onClick={() => setCollapsed(c => !c)}
+          data-testid={`button-collapse-week-${weekData.isPostseason ? weekData.label : weekData.weekNum}`}
+        >
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground">
             {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -1117,6 +1118,7 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
               {completedCount}/{totalCount}
             </span>
           )}
+        </div>
         </div>
       </RetroCardHeader>
 

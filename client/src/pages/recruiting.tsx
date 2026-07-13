@@ -208,7 +208,7 @@ export default function RecruitingPage() {
       storedFiltersRef.current = {};
     }
   }
-  const sf = storedFiltersRef.current;
+  const sf = storedFiltersRef.current!;
 
   const skipPersistRef = useRef(false);
 

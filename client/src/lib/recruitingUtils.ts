@@ -23,6 +23,9 @@ export interface RecruitWithInterest extends Recruit {
   offersOut?: number | null;
   signingDayLockedFields?: string[] | null;
   lastSeasonStats?: LastSeasonStats | null;
+  dramaTags?: string[] | null;
+  rivalryAlert?: boolean | null;
+  myMovementDelta?: number | null;
 }
 
 export interface RecruitRecommendation {

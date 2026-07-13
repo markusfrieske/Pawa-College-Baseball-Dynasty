@@ -687,6 +687,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   academicsPriority: true,
   prestigePriority: true,
   facilitiesPriority: true,
+  collegeLifePriority: true,
   dealbreaker: true,
   commitmentThreshold: true,
   stage: true,

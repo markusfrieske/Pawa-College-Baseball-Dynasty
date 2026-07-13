@@ -657,7 +657,7 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a3a1a]">
           <div>
             <div className="font-pixel text-[11px] text-[#C4A35A]">BATTLE REPORT</div>
-            <div className="text-xs text-gray-400 mt-0.5">{recruit.name} · {recruit.position} · {recruit.starRating}★</div>
+            <div className="text-xs text-gray-400 mt-0.5">{recruit.firstName} {recruit.lastName} · {recruit.position} · {recruit.starRating}★</div>
           </div>
           <button
             className="text-gray-600 hover:text-gray-300 transition-colors"
@@ -860,7 +860,7 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
               {recruit.position} · T:{recruit.throwHand ?? "R"} · B:{recruit.batHand ?? "R"}
             </div>
           </div>
-          <StarRating rating={recruit.starRating} size="sm" className="shrink-0 mt-0.5" />
+          <StarRating rating={recruit.starRating} size="sm" />
         </div>
         <div className="flex items-baseline gap-3">
           <div className="flex items-baseline gap-1">
@@ -2104,6 +2104,14 @@ export default function SigningDayRevealPage() {
           </div>
         )}
       </div>
+
+      {/* Battle Report modal */}
+      {battleRecruit && (
+        <BattleReportModal
+          recruit={battleRecruit}
+          onClose={() => setBattleRecruit(null)}
+        />
+      )}
     </div>
   );
 }
@@ -2213,13 +2221,6 @@ function PostRevealSummary({
         })}
       </div>
 
-      {/* Battle Report modal */}
-      {battleRecruit && (
-        <BattleReportModal
-          recruit={battleRecruit}
-          onClose={() => setBattleRecruit(null)}
-        />
-      )}
     </div>
   );
 }

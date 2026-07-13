@@ -32,6 +32,8 @@ export interface RevealRecruit {
   isGenerationalBust?: boolean;
   gemBustRevealed?: boolean;
   fromTeamName?: string;
+  name?: string;
+  signedTeamId?: string | null;
   potential?: number | null;
   abilities?: string[];
   hitForAvg?: number | null;

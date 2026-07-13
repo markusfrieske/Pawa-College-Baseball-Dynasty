@@ -1330,7 +1330,7 @@ export async function registerRoutes(
       const coach = await storage.createCoach({
         userId,
         teamId,
-        leagueId: req.params.id,
+        leagueId: (req.params.id as string),
         firstName: coachData.firstName,
         lastName: coachData.lastName,
         archetype: coachData.archetype || "Balanced",
@@ -1346,11 +1346,11 @@ export async function registerRoutes(
 
       await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
 
-      const leagueForGen = await storage.getLeague(req.params.id);
+      const leagueForGen = await storage.getLeague((req.params.id as string));
       const progressionOn = leagueForGen?.progressionEnabled ?? false;
 
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const leagueConfs = await storage.getConferencesByLeague(req.params.id);
+      const leagueTeams = await storage.getTeamsByLeague((req.params.id as string));
+      const leagueConfs = await storage.getConferencesByLeague((req.params.id as string));
       const confNameById: Record<string, string> = {};
       for (const c of leagueConfs) confNameById[c.id] = c.name;
       for (const team of leagueTeams) {
@@ -1374,16 +1374,16 @@ export async function registerRoutes(
       }
 
       // Generate initial schedule (only if not already present — startDynasty may have run first)
-      const existingGamesForCoach = await storage.getGamesByLeague(req.params.id);
+      const existingGamesForCoach = await storage.getGamesByLeague((req.params.id as string));
       if (existingGamesForCoach.length === 0) {
-        await createScheduleForSeason(req.params.id, 1);
+        await createScheduleForSeason((req.params.id as string), 1);
         if (leagueForGen?.dynastyPreset !== "full_season") {
-          await generateExhibitionGames(req.params.id, 1);
+          await generateExhibitionGames((req.params.id as string), 1);
         }
       }
 
       await storage.createAuditLog({
-        leagueId: req.params.id,
+        leagueId: (req.params.id as string),
         userId,
         action: "Coach Created",
         details: `${coachData.firstName} ${coachData.lastName} joined as coach`,

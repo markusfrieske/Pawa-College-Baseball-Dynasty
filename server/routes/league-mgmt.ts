@@ -1080,7 +1080,7 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
     const { count: savedCount } = await replaceLeagueRecruitingClass({
       leagueId,
       season: league.currentSeason,
-      recruits: validatedWizard.recruits.map(r => ({ ...r, leagueId })),
+      recruits: (validatedWizard.recruits.map(r => ({ ...r, leagueId })) as any),
       initStorylines: true,
       saveState: {
         trigger: "pre_restore",
@@ -1136,7 +1136,7 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
     const { count: loadedCount } = await replaceLeagueRecruitingClass({
       leagueId,
       season: league.currentSeason,
-      recruits: validatedLoad.recruits.map(r => ({ ...r, leagueId })),
+      recruits: (validatedLoad.recruits.map(r => ({ ...r, leagueId })) as any),
       initStorylines: true,
       saveState: {
         trigger: "pre_restore",
@@ -2015,7 +2015,7 @@ app.post("/api/leagues/:id/load-recruiting-class", requireAuth, async (req, res)
     const { count: lrcCount } = await replaceLeagueRecruitingClass({
       leagueId,
       season: league.currentSeason,
-      recruits: validatedLrc.recruits.map(r => ({ ...r, leagueId })),
+      recruits: (validatedLrc.recruits.map(r => ({ ...r, leagueId })) as any),
       audit: {
         userId: userId ?? "system",
         action: "Recruiting Class Loaded (Pre-Start)",

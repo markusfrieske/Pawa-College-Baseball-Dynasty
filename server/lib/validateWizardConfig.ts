@@ -107,7 +107,7 @@ export function validateWizardConfig(config: unknown): WizardConfigValidationRes
         }
       }
       if (!anyKeyErr) {
-        const total = Object.values(vals).reduce((a, b) => a + (b ?? 0), 0);
+        const total = Object.values(vals).reduce((a: number, b) => a + (b ?? 0), 0);
         if (Math.abs(total - 100) > 0.5) {
           errors.push(
             `starDistribution values must sum to 100 — ` +
@@ -165,7 +165,7 @@ export function validateWizardConfig(config: unknown): WizardConfigValidationRes
       }
       if (!hasNegative) {
         const total = Object.values(obj).reduce(
-          (s, v) => s + (Number(v) || 0), 0
+          (s: number, v) => s + (Number(v) || 0), 0
         );
         if (total <= 0) {
           errors.push(

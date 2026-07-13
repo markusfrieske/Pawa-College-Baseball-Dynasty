@@ -546,7 +546,7 @@ export default function LeagueViewPage() {
             <PrimaryPhaseCTA
               leagueId={id!}
               league={league}
-              myTeam={myTeam}
+              myTeam={myTeam ?? undefined}
               currentUserId={currentUser?.id}
               isCommissioner={isCommissioner}
               lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
@@ -583,7 +583,7 @@ export default function LeagueViewPage() {
             <CoachActionQueue
               leagueId={id!}
               league={league}
-              myTeam={myTeam}
+              myTeam={myTeam ?? undefined}
               currentUserId={currentUser?.id}
               overview={overview}
               lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
@@ -606,7 +606,7 @@ export default function LeagueViewPage() {
           <div className="lg:col-span-5 space-y-4">
             <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
 
-            <WeeklyOpponentCard leagueId={id!} league={league} myTeam={myTeam} />
+            <WeeklyOpponentCard leagueId={id!} league={league} myTeam={myTeam ?? undefined} />
 
             {overview && (
               <>

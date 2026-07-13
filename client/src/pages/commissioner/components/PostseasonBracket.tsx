@@ -462,7 +462,7 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
                   )}
                 </div>
                 {e.qualificationType === "auto_bid" ? (
-                  <Star className="w-2.5 h-2.5 text-gold flex-shrink-0" title="Auto bid" />
+                  <Star className="w-2.5 h-2.5 text-gold flex-shrink-0" aria-label="Auto bid" />
                 ) : (
                   <span className="text-[7px] text-muted-foreground flex-shrink-0">AL</span>
                 )}

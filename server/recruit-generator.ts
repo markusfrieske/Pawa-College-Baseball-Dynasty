@@ -395,7 +395,7 @@ export function generateRecruitClass(
     const posDist = opts.wizardPositionDistribution;
     const pitcherWeight = (posDist["P"] ?? 0)
       + (posDist["SP"] ?? 0) + (posDist["RP"] ?? 0) + (posDist["CP"] ?? 0);
-    const totalPosWeight = Object.values(posDist).reduce((s, v) => s + (v ?? 0), 0);
+    const totalPosWeight = Object.values(posDist).reduce<number>((s, v) => s + (v ?? 0), 0);
     if (totalPosWeight > 0) {
       pitcherRatio = pitcherWeight / totalPosWeight;
     }

@@ -537,7 +537,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               <h4 className="font-pixel text-gold text-xs mb-2">PITCH MIX</h4>
               <div className="grid grid-cols-2 gap-1">
                 {allPitchKeys.map(key => {
-                  const val = (player as Record<string, unknown>)[`pitch${key}`] as number | null | undefined;
+                  const val = (player as unknown as Record<string, unknown>)[`pitch${key}`] as number | null | undefined;
                   const rating = val ?? 0;
                   const isBinary = ["FB", "2S"].includes(key);
                   if (rating <= 0) return null;

@@ -334,7 +334,7 @@ export function registerStorylineRoutes(app: Express) {
 
         // Risk/reward hints — derived from active event weights + hidden vars.
         // No raw probability numbers are exposed; only labeled tiers and flavor text.
-        const hv = sl.hiddenVars as Record<string, unknown> | null ?? null;
+        const hv = sl.hiddenVars as unknown as Record<string, unknown> | null ?? null;
         const choiceHints = activeEvent ? buildChoiceHints(activeEvent) : null;
         const moodHint = buildMoodHint(hv);
         const recruitingImpactHint = buildRecruitingImpactHint(hv);
@@ -923,7 +923,7 @@ async function resolveOneStorylineEvent(
 
     // Build positivity scores for each choice so the deterministic fallback can
     // bias toward the recruit's personality profile when no votes were cast.
-    const hv = sl.hiddenVars as Record<string, unknown> | null ?? null;
+    const hv = sl.hiddenVars as unknown as Record<string, unknown> | null ?? null;
     const positivityScores = [
       event.choiceAWeights, event.choiceBWeights, event.choiceCWeights,
       ...(event.choiceD ? [event.choiceDWeights] : []),

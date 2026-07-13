@@ -546,7 +546,6 @@ export class DatabaseStorage implements IStorage {
       await db.insert(leagueEvents).values({
         leagueId,
         eventType: "coach_removed",
-        title: "Coach Removed",
         description: `${coach.firstName} ${coach.lastName} was removed from the dynasty by the commissioner. Their team is now CPU-controlled.`,
       });
     } else {
@@ -559,7 +558,6 @@ export class DatabaseStorage implements IStorage {
       await db.insert(leagueEvents).values({
         leagueId,
         eventType: "coach_left",
-        title: "Coach Left the Dynasty",
         description: `${coach.firstName} ${coach.lastName} has left the dynasty. Their team is now CPU-controlled.`,
       });
     }
@@ -578,7 +576,6 @@ export class DatabaseStorage implements IStorage {
     await db.insert(leagueEvents).values({
       leagueId,
       eventType: "commissioner_transfer",
-      title: "Commissioner Role Transferred",
       description: `The commissioner role has been handed off to ${newCoach ? `${newCoach.firstName} ${newCoach.lastName}` : "a new coach"}.`,
     });
   }
@@ -1371,7 +1368,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(coachMessages.leagueId, leagueId),
         or(eq(coachMessages.userId, userId), isNull(coachMessages.userId)),
-        category ? eq(coachMessages.category, category) : undefined,
+        category ? eq(coachMessages.category, category as any) : undefined,
         unreadOnly ? isNull(coachMessages.readAt) : undefined,
         archivedOnly ? isNotNull(coachMessages.archivedAt) : isNull(coachMessages.archivedAt),
       ))
@@ -2209,7 +2206,7 @@ export class DatabaseStorage implements IStorage {
 
   // ─── Game Recaps ───────────────────────────────────────────────────────────────
   async createGameRecap(data: InsertGameRecap): Promise<GameRecap> {
-    const [recap] = await db.insert(gameRecaps).values(data).returning();
+    const [recap] = await db.insert(gameRecaps).values(data as any).returning();
     return recap;
   }
 

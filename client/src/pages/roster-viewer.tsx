@@ -439,8 +439,8 @@ function MobileCompareSheet({
             <CompareStatRow
               key={key}
               label={label}
-              valA={(playerA as Record<string, unknown>)[key] as number | null}
-              valB={(playerB as Record<string, unknown>)[key] as number | null}
+              valA={(playerA as unknown as Record<string, unknown>)[key] as number | null}
+              valB={(playerB as unknown as Record<string, unknown>)[key] as number | null}
             />
           ))}
 
@@ -450,8 +450,8 @@ function MobileCompareSheet({
             <CompareStatRow
               key={key}
               label={label}
-              valA={(playerA as Record<string, unknown>)[key] as number | null}
-              valB={(playerB as Record<string, unknown>)[key] as number | null}
+              valA={(playerA as unknown as Record<string, unknown>)[key] as number | null}
+              valB={(playerB as unknown as Record<string, unknown>)[key] as number | null}
             />
           ))}
 

@@ -1,7 +1,8 @@
 {
   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "server/replit_integrations/chat", "server/replit_integrations/audio", "server/replit_integrations/batch"],
   "compilerOptions": {
+    "target": "ES2022",
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,

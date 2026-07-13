@@ -59,6 +59,7 @@ type CoachSnapshot = {
   nationalChampionships: number;
   allAmericans: number;
   draftPicks: number;
+  perks?: Record<string, boolean> | null;
 };
 
 export interface FinalizeGameOptions {

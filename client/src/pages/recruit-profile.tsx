@@ -85,6 +85,7 @@ interface TopSchool {
   abbreviation: string;
   primaryColor: string;
   interestLevel: number;
+  previousInterestLevel?: number | null;
 }
 
 interface RecruitWithInterest extends Recruit {
@@ -96,6 +97,7 @@ interface RecruitWithInterest extends Recruit {
   signedTeamAbbreviation?: string | null;
   signedTeamPrimaryColor?: string | null;
   signedTeamSecondaryColor?: string | null;
+  signingDayLockedFields?: string[] | null;
 }
 
 interface RecruitData {
@@ -1908,7 +1910,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                     <label className="text-xs text-muted-foreground flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={(formData as Record<string, number>)[key] > 0}
+                        checked={(formData as unknown as Record<string, number>)[key] > 0}
                         onChange={(e) => setFormData({ ...formData, [key]: e.target.checked ? 1 : 0 })}
                         className="accent-gold"
                         data-testid={`checkbox-pitch-${key.replace("pitch", "").toLowerCase()}`}
@@ -1927,7 +1929,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                       type="number"
                       min={0}
                       max={7}
-                      value={(formData as Record<string, number>)[key]}
+                      value={(formData as unknown as Record<string, number>)[key]}
                       onChange={(e) => setFormData({ ...formData, [key]: Math.min(7, Math.max(0, parseInt(e.target.value) || 0)) })}
                       data-testid={`input-pitch-${key.replace("pitch", "").toLowerCase()}`}
                     />

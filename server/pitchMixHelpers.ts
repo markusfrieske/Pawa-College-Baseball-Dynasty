@@ -449,10 +449,10 @@ export function generateArchetypePitchMix(
       pool.splice(chosen, 1);
 
       if (BINARY_PITCH_KEYS.has(key)) {
-        (result as Record<string, number>)[key as string] = 1;
+        (result as unknown as Record<string, number>)[key as string] = 1;
       } else {
         const level = tier === "elite" ? 5 + Math.floor(Math.random() * 3) : 2 + Math.floor(Math.random() * 3);
-        (result as Record<string, number>)[key as string] = level;
+        (result as unknown as Record<string, number>)[key as string] = level;
       }
       secondaryCount++;
     }
@@ -510,12 +510,12 @@ export function generateArchetypePitchMix(
     if (key === "pitchFB") {
       result.pitchFB = 1;
     } else if (BINARY_PITCH_KEYS.has(key)) {
-      (result as Record<string, number>)[key as string] = 1;
+      (result as unknown as Record<string, number>)[key as string] = 1;
     } else if (isElite && !eliteSignatureDone) {
-      (result as Record<string, number>)[key as string] = 5 + Math.floor(Math.random() * 3); // 5–7
+      (result as unknown as Record<string, number>)[key as string] = 5 + Math.floor(Math.random() * 3); // 5–7
       eliteSignatureDone = true;
     } else {
-      (result as Record<string, number>)[key as string] = 2 + Math.floor(Math.random() * 3); // 2–4
+      (result as unknown as Record<string, number>)[key as string] = 2 + Math.floor(Math.random() * 3); // 2–4
     }
   }
 

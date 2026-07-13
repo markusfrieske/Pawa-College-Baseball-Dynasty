@@ -260,7 +260,7 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
 
       // 1. Normalize common ability F/G distribution by conference tier (deterministic via name hash).
       const normalized = normalizeCommonAbilities(
-        { position: calibrated.position, firstName: calibrated.firstName, lastName: calibrated.lastName, ...calibrated },
+        { ...calibrated } as any,
         confName,
       );
       calibrated = { ...calibrated, ...normalized };
@@ -269,9 +269,9 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
       // (e.g. "stealing" is a fielder common field and can be reassigned by the normalizer).
       if (p.protectedAttrs) {
         for (const attr of p.protectedAttrs) {
-          const rawVal = (p as Record<string, unknown>)[attr as string];
+          const rawVal = (p as unknown as Record<string, unknown>)[attr as string];
           if (typeof rawVal === "number") {
-            (calibrated as Record<string, unknown>)[attr as string] = rawVal;
+            (calibrated as unknown as Record<string, unknown>)[attr as string] = rawVal;
           }
         }
       }

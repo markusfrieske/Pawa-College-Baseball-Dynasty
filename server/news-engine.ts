@@ -467,16 +467,16 @@ export async function generateGameNewsArticles(
         const winnerPlayers = await storage.getPlayersByTeam(bestGame.winner.id);
         const winnerIds = new Set(winnerPlayers.map(p => p.id));
         const winnerStats = allStats.filter(s => winnerIds.has(s.playerId));
-        const topBatter = winnerStats.filter(s => (s.hits || 0) > 0).sort((a, b) => (b.hits || 0) - (a.hits || 0))[0];
-        const topPitcher = winnerStats.filter(s => (s.inningsPitched || 0) > 0).sort((a, b) => (b.strikeouts || 0) - (a.strikeouts || 0))[0];
+        const topBatter = winnerStats.filter(s => (s.h || 0) > 0).sort((a, b) => (b.h || 0) - (a.h || 0))[0];
+        const topPitcher = winnerStats.filter(s => (s.ipOuts || 0) > 0).sort((a, b) => (b.so || 0) - (a.so || 0))[0];
         const batPlayer = topBatter ? winnerPlayers.find(p => p.id === topBatter.playerId) : null;
         const pitchPlayer = topPitcher ? winnerPlayers.find(p => p.id === topPitcher.playerId) : null;
         const lines: string[] = [];
         if (batPlayer && topBatter) {
-          lines.push(`${batPlayer.firstName} ${batPlayer.lastName} leads the ${bestGame.winner.abbreviation} offense with ${topBatter.hits} hits and ${topBatter.homeRuns || 0} home runs on the season`);
+          lines.push(`${batPlayer.firstName} ${batPlayer.lastName} leads the ${bestGame.winner.abbreviation} offense with ${topBatter.h} hits and ${topBatter.hr || 0} home runs on the season`);
         }
         if (pitchPlayer && topPitcher && pitchPlayer.id !== batPlayer?.id) {
-          lines.push(`${pitchPlayer.firstName} ${pitchPlayer.lastName} has been dominant on the mound with ${topPitcher.strikeouts} strikeouts this year`);
+          lines.push(`${pitchPlayer.firstName} ${pitchPlayer.lastName} has been dominant on the mound with ${topPitcher.so} strikeouts this year`);
         }
         if (lines.length > 0) {
           playerStatLine = "\n\nBy the numbers: " + lines.join(". ") + ".";

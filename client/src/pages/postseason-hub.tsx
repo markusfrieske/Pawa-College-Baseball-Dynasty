@@ -638,7 +638,7 @@ function SeedingSidebar({ seeds }: { seeds: SeedEntry[] }) {
             <p className="text-[8px] text-muted-foreground truncate">{s.conferenceName}</p>
           </div>
           {s.isConfChamp && (
-            <Star className="w-3 h-3 text-gold flex-shrink-0" title="Conference Champion" />
+            <Star className="w-3 h-3 text-gold flex-shrink-0" aria-label="Conference Champion" />
           )}
           <span className="text-[10px] text-muted-foreground flex-shrink-0 font-pixel">
             {s.wins}-{s.losses}

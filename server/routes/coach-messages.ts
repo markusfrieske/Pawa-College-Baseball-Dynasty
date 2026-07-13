@@ -26,7 +26,7 @@ export function registerCoachMessageRoutes(app: Express): void {
   // ── GET /api/leagues/:id/messages ─────────────────────────────────────────
   app.get("/api/leagues/:id/messages", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const userId = req.session.userId!;
 
       const league = await storage.getLeague(leagueId);
@@ -60,7 +60,7 @@ export function registerCoachMessageRoutes(app: Express): void {
   // ── GET /api/leagues/:id/messages/unread-count ────────────────────────────
   app.get("/api/leagues/:id/messages/unread-count", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const userId = req.session.userId!;
 
       const league = await storage.getLeague(leagueId);
@@ -77,7 +77,7 @@ export function registerCoachMessageRoutes(app: Express): void {
   // ── POST /api/leagues/:id/messages/:msgId/read ────────────────────────────
   app.post("/api/leagues/:id/messages/:msgId/read", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const userId = req.session.userId!;
       const msgId = req.params.msgId;
 
@@ -95,7 +95,7 @@ export function registerCoachMessageRoutes(app: Express): void {
   // ── POST /api/leagues/:id/messages/:msgId/archive ─────────────────────────
   app.post("/api/leagues/:id/messages/:msgId/archive", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const userId = req.session.userId!;
       const msgId = req.params.msgId;
 
@@ -113,7 +113,7 @@ export function registerCoachMessageRoutes(app: Express): void {
   // ── POST /api/leagues/:id/messages/mark-all-read ──────────────────────────
   app.post("/api/leagues/:id/messages/mark-all-read", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const userId = req.session.userId!;
 
       const league = await storage.getLeague(leagueId);
@@ -130,7 +130,7 @@ export function registerCoachMessageRoutes(app: Express): void {
   // ── POST /api/leagues/:id/messages/broadcast ──────────────────────────────
   app.post("/api/leagues/:id/messages/broadcast", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const userId = req.session.userId!;
 
       const league = await storage.getLeague(leagueId);
