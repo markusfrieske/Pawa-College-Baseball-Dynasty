@@ -119,6 +119,19 @@ function expandToWeeks(
  *  is far below the threshold (79 for 158 total slots), so the greedy always
  *  succeeds.
  */
+/** Deterministic Fisher-Yates shuffle seeded with a 32-bit LCG.
+ *  Same seed always produces the same permutation. */
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const result = [...arr];
+  let s = seed >>> 0;
+  for (let i = result.length - 1; i > 0; i--) {
+    s = Math.imul(s, 1664525) + 1013904223;
+    const j = ((s >>> 0) % (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 function matchOocPairs(
   allTeams: ScheduleTeam[],
   byeTeamIds: Set<string>,
@@ -126,9 +139,11 @@ function matchOocPairs(
   weekSeed: number,
 ): Matchup[] {
   // Step 1: Build per-conference team queues.
-  //         Each entry holds the team and its remaining slot count.
+  //         Shuffle teams within each conference using weekSeed so the
+  //         pairing rotates every week instead of repeating the same matchups.
+  const shuffledTeams = seededShuffle(allTeams, weekSeed * 2654435761 + 1);
   const confQueues = new Map<string, ScheduleTeam[]>();
-  for (const t of allTeams) {
+  for (const t of shuffledTeams) {
     const conf = confIdByTeamId.get(t.id)!;
     if (!confQueues.has(conf)) confQueues.set(conf, []);
     const count = byeTeamIds.has(t.id) ? 4 : 1;
