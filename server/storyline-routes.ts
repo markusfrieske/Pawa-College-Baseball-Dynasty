@@ -7,6 +7,7 @@ import { getAbilitiesForPosition, calculateOVR } from "@shared/abilities";
 import { isPitcher } from "@shared/positions";
 import { hasCommissionerAccess, isLeagueMember } from "./route-helpers";
 import { checkStorylineHealth } from "./lib/storylineHealth";
+import { getSeasonMaxWeeks } from "@shared/phase";
 
 // ─── Advance Index Mapping ─────────────────────────────────────────────────────
 // Maps league phase + week to a 0–9 advance index used for slot-based story scheduling.
@@ -1105,10 +1106,10 @@ export async function generateAndResolveStorylineEvents(
   let resolved = 0;
   let generated = 0;
 
-  // Compute the hard cap for regular-season story generation.
-  // getSeasonMaxWeeks is the single source of truth; the inline fallback is kept as a safeguard
-  // only when maxWeeks is not passed in (legacy callers).
-  const effectiveMaxWeeks = maxWeeks ?? (seasonLength === "full_season" ? 14 : seasonLength === "long" ? 15 : seasonLength === "medium" ? 10 : 5);
+  // getSeasonMaxWeeks(seasonLength) is the single source of truth for max regular-season weeks.
+  // The explicit maxWeeks parameter from the caller (advanceLeagueStep) always takes precedence;
+  // if omitted by a legacy caller, we derive it from the seasonLength string via shared constants.
+  const effectiveMaxWeeks = maxWeeks ?? getSeasonMaxWeeks(seasonLength);
 
   try {
     // Season-scoped: resolve all overdue pending events using the new StoryOutcome pipeline

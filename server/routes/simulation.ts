@@ -7052,6 +7052,10 @@ export function registerSimulationRoutes(app: Express): void {
     }
   });
 
+  // Sim to Offseason - advances through regular season + postseason, stops at offseason_departures.
+  // Note: advanceLeagueStep returns currentPhase="offseason_departures" when CWS (or SR-skip)
+  // transitions out — the predicate catches that result before any departure auto-finalization
+  // would occur on a subsequent call.
   app.post("/api/leagues/:id/sim-to-offseason", async (req, res) => {
     try {
       const leagueId = req.params.id;
@@ -7060,10 +7064,17 @@ export function registerSimulationRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
       }
+      // Only callable from in-season or postseason phases (not already in offseason)
+      const inSeasonPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason, Phase.ConferenceChampionship, Phase.SuperRegionals, Phase.CWS];
+      if (!inSeasonPhases.includes(league.currentPhase)) {
+        return res.status(400).json({ message: "Can only sim to offseason from an in-season phase." });
+      }
       const startSeason = league.currentSeason;
       const { league: finalLeague, steps } = await simulateUntil(
         leagueId, req.session.userId!,
-        d => (d.currentPhase as string) === "offseason_departures" || (d.currentSeason as number) > startSeason,
+        // Primary: stop as soon as the CWS/SR-skip step returns offseason_departures.
+        // Safety net: stop if season increments (handles edge cases like postseason skip).
+        d => (d.currentPhase as string) === Phase.OffseasonDepartures || (d.currentSeason as number) > startSeason,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Offseason", details: `Fast-forwarded ${steps} steps to ${finalLeague.currentPhase}.` });
       res.json(finalLeague);
@@ -7081,14 +7092,14 @@ export function registerSimulationRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
       }
-      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
+      const offseasonPhases: string[] = [Phase.OffseasonDepartures, Phase.OffseasonRecruiting1, Phase.OffseasonRecruiting2, Phase.OffseasonRecruiting3, Phase.OffseasonRecruiting4, Phase.OffseasonSigningDay, Phase.OffseasonWalkons];
       if (!offseasonPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to signing day during offseason phases." });
       }
       const startSeason = league.currentSeason;
       const { league: finalLeague, steps } = await simulateUntil(
         leagueId, req.session.userId!,
-        d => (d.currentPhase as string) === "preseason" && (d.currentSeason as number) > startSeason,
+        d => (d.currentPhase as string) === Phase.Preseason && (d.currentSeason as number) > startSeason,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Signing Day", details: `Fast-forwarded ${steps} steps to preseason season ${finalLeague.currentSeason}.` });
       res.json({ ...finalLeague, seasonTransition: (finalLeague as any).seasonTransition });
@@ -7097,8 +7108,8 @@ export function registerSimulationRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to sim to signing day" });
     }
   });
-  
-  // Sim Full Season - advances from current phase all the way to preseason of next season
+
+  // Sim Full Season - advances from any phase all the way to preseason of the next season.
   app.post("/api/leagues/:id/sim-full-season", async (req, res) => {
     try {
       const leagueId = req.params.id;
@@ -7110,7 +7121,7 @@ export function registerSimulationRoutes(app: Express): void {
       const startSeason = league.currentSeason;
       const { league: finalLeague, steps } = await simulateUntil(
         leagueId, req.session.userId!,
-        d => (d.currentPhase as string) === "preseason" && (d.currentSeason as number) > startSeason,
+        d => (d.currentPhase as string) === Phase.Preseason && (d.currentSeason as number) > startSeason,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim Full Season", details: `Simulated ${steps} advances. Now season ${finalLeague.currentSeason}, phase ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
@@ -7120,7 +7131,7 @@ export function registerSimulationRoutes(app: Express): void {
     }
   });
 
-  // Sim to Postseason - stops at conference_championship
+  // Sim to Postseason - stops at conference_championship.
   app.post("/api/leagues/:id/sim-to-postseason", async (req, res) => {
     try {
       const leagueId = req.params.id;
@@ -7129,13 +7140,13 @@ export function registerSimulationRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
       }
-      const preseasonPhases = ["preseason", "spring_training", "regular_season"];
+      const preseasonPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason];
       if (!preseasonPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to postseason during the regular season." });
       }
       const { league: finalLeague, steps } = await simulateUntil(
         leagueId, req.session.userId!,
-        d => (d.currentPhase as string) === "conference_championship",
+        d => (d.currentPhase as string) === Phase.ConferenceChampionship,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Postseason", details: `Simulated ${steps} advances to ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
@@ -7145,7 +7156,7 @@ export function registerSimulationRoutes(app: Express): void {
     }
   });
 
-  // Sim to CWS - advances through regular season + conference championships + super regionals, stops at CWS
+  // Sim to CWS - advances through regular season + conference championships + super regionals, stops at CWS.
   app.post("/api/leagues/:id/sim-to-cws", async (req, res) => {
     try {
       const leagueId = req.params.id;
@@ -7154,13 +7165,13 @@ export function registerSimulationRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
       }
-      const validPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals"];
-      if (!validPhases.includes(league.currentPhase)) {
+      const preCwsPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason, Phase.ConferenceChampionship, Phase.SuperRegionals];
+      if (!preCwsPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to CWS before the College World Series." });
       }
       const { league: finalLeague, steps } = await simulateUntil(
         leagueId, req.session.userId!,
-        d => (d.currentPhase as string) === "cws",
+        d => (d.currentPhase as string) === Phase.CWS,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to CWS", details: `Simulated ${steps} advances to ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
