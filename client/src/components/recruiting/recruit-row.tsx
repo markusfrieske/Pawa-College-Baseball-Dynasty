@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import type { RecruitingEconomy } from "@/hooks/use-recruiting";
 import { Link } from "wouter";
 import { DramaChips, MovementIndicator } from "./drama-chips";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -80,6 +81,7 @@ function RecruitRow({
   nilRemaining,
   seasonVisitCapReached,
   visitCap,
+  economy,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -121,6 +123,7 @@ function RecruitRow({
   nilRemaining?: number;
   seasonVisitCapReached?: boolean;
   visitCap?: number;
+  economy?: RecruitingEconomy;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -140,6 +143,17 @@ function RecruitRow({
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   const isOverNilBudget = nilRemaining != null && Math.ceil((recruit.nilCost || 0) * 1.25) > nilRemaining && !recruit.interest?.hasOffer && (recruit.interest?.scoutPercentage || 0) >= NIL_SCOUT_THRESHOLD;
+
+  const contactExhausted = economy?.contactPoints != null && economy.contactPoints.spent >= economy.contactPoints.cap;
+  const scoutExhausted = economy?.scoutPoints != null && economy.scoutPoints.spent >= economy.scoutPoints.cap;
+  const campusCap = economy?.visits?.campusCap;
+  const campusUsed = economy?.visits?.campusUsed;
+  const campusCapReached = campusCap != null && campusUsed != null && campusUsed >= campusCap;
+  const hcvCap = economy?.visits?.headCoachCap;
+  const hcvUsed = economy?.visits?.headCoachUsed;
+  const hcvCapReached = hcvCap != null && hcvUsed != null && hcvUsed >= hcvCap;
+  const visitCapReachedCombined = campusCapReached || (seasonVisitCapReached ?? false);
+  const hcvCapReachedCombined = hcvCapReached || (seasonVisitCapReached ?? false);
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
@@ -770,40 +784,40 @@ function RecruitRow({
                     <button
                       className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
                       onClick={() => { setShowPhonePicker(true); setShowEmailPicker(false); setSelectedPhonePitches([]); setShowMobileMore(false); }}
-                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek || remainingPoints < 2}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || contactExhausted || phonedThisWeek || remainingPoints < 2}
                       data-testid={`button-phone-mobile-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 flex-shrink-0" />
-                      {phonedThisWeek ? "Called (limit)" : "Call (2 pts)"}
+                      {phonedThisWeek ? "Called (limit)" : contactExhausted ? "Contact Exhausted" : "Call (2 pts)"}
                     </button>
                     <button
                       className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
                       onClick={() => { setShowEmailPicker(true); setShowPhonePicker(false); setSelectedEmailPitch(null); setShowMobileMore(false); }}
-                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions || emailedThisWeek}
+                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions || contactExhausted || emailedThisWeek}
                       data-testid={`button-email-mobile-${recruit.id}`}
                     >
                       <Mail className="w-3 h-3 flex-shrink-0" />
-                      {emailedThisWeek ? "Emailed (limit)" : "Email (1 pt)"}
+                      {emailedThisWeek ? "Emailed (limit)" : contactExhausted ? "Contact Exhausted" : "Email (1 pt)"}
                     </button>
                     <button
                       className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${hasVisited ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
                       onClick={() => { onVisit(); setShowMobileMore(false); }}
-                      disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
+                      disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited || visitCapReachedCombined}
                       data-testid={`button-visit-mobile-${recruit.id}`}
-                      title={seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : hasVisited ? "Campus Visit already used for this recruit" : undefined}
+                      title={campusCapReached ? `Campus cap reached (${campusUsed}/${campusCap}). Resets next season.` : visitCapReachedCombined ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : hasVisited ? "Campus Visit already used for this recruit" : undefined}
                     >
                       <Building2 className="w-3 h-3 flex-shrink-0" />
-                      {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : `Visit (${visitCost} pts)`}
+                      {hasVisited ? "Visited" : visitCapReachedCombined ? "Cap Reached" : `Visit (${visitCost} pts)`}
                     </button>
                     <button
                       className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${hasHeadCoachVisited ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
                       onClick={() => { onHeadCoachVisit(); setShowMobileMore(false); }}
-                      disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
+                      disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || hcvCapReachedCombined}
                       data-testid={`button-hcvisit-mobile-${recruit.id}`}
-                      title={seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : undefined}
+                      title={hcvCapReached ? `HCV cap reached (${hcvUsed}/${hcvCap}). Resets next season.` : hcvCapReachedCombined ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : undefined}
                     >
                       <Crown className="w-3 h-3 flex-shrink-0" />
-                      {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : `HC Visit (${headCoachVisitCost} pts)`}
+                      {hasHeadCoachVisited ? "HC Visited" : hcvCapReachedCombined ? "Cap Reached" : `HC Visit (${headCoachVisitCost} pts)`}
                     </button>
                     <button
                       className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${isOverNilBudget ? "text-red-400/60" : recruit.interest?.hasOffer ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
@@ -894,14 +908,14 @@ function RecruitRow({
                       variant="outline"
                       size="sm"
                       onClick={onScout}
-                      disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
+                      disabled={isScouting || scoutPct >= 100 || outOfScoutActions || scoutExhausted}
                       data-testid={`button-scout-${recruit.id}`}
                     >
                       <Search className="w-3 h-3 mr-1" />
                       <span className="text-[9px]">Scout</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>Scout (1 scouting point)</TooltipContent>
+                  <TooltipContent>{scoutExhausted ? `Scout pts exhausted (${economy?.scoutPoints?.spent}/${economy?.scoutPoints?.cap})` : "Scout (1 scouting point)"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -924,14 +938,14 @@ function RecruitRow({
                       variant={phonedThisWeek ? "primary" : showPhonePicker ? "primary" : "outline"}
                       size="sm"
                       onClick={() => { if (!phonedThisWeek) { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); } }}
-                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek || remainingPoints < 2}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || contactExhausted || phonedThisWeek || remainingPoints < 2}
                       data-testid={`button-phone-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 mr-1" />
                       <span className="text-[9px]">{phonedThisWeek ? "Called" : "Call (2)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{phonedThisWeek ? "Already called this recruit this week (1 per week max)" : "Phone Call - 2 recruiting points (3 pitches)"}</TooltipContent>
+                  <TooltipContent>{phonedThisWeek ? "Already called this recruit this week (1 per week max)" : contactExhausted ? `Contact pts exhausted (${economy?.contactPoints?.spent}/${economy?.contactPoints?.cap})` : "Phone Call - 2 recruiting points (3 pitches)"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -939,14 +953,14 @@ function RecruitRow({
                       variant={emailedThisWeek ? "primary" : showEmailPicker ? "primary" : "outline"}
                       size="sm"
                       onClick={() => { if (!emailedThisWeek) { setShowEmailPicker(!showEmailPicker); setShowPhonePicker(false); setSelectedEmailPitch(null); } }}
-                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions || emailedThisWeek}
+                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions || contactExhausted || emailedThisWeek}
                       data-testid={`button-email-${recruit.id}`}
                     >
                       <Mail className="w-3 h-3 mr-1" />
                       <span className="text-[9px]">{emailedThisWeek ? "Emailed" : "Email (1)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{emailedThisWeek ? "Already emailed this recruit this week (1 per week max)" : "Send Email - 1 recruiting point (1 pitch)"}</TooltipContent>
+                  <TooltipContent>{emailedThisWeek ? "Already emailed this recruit this week (1 per week max)" : contactExhausted ? `Contact pts exhausted (${economy?.contactPoints?.spent}/${economy?.contactPoints?.cap})` : "Send Email - 1 recruiting point (1 pitch)"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -954,14 +968,14 @@ function RecruitRow({
                       variant={hasVisited ? "primary" : "outline"}
                       size="sm"
                       onClick={onVisit}
-                      disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
+                      disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited || visitCapReachedCombined}
                       data-testid={`button-visit-${recruit.id}`}
                     >
                       <Building2 className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{hasVisited ? "Visited" : seasonVisitCapReached ? "Cap" : `Visit (${visitCost})`}</span>
+                      <span className="text-[9px]">{hasVisited ? "Visited" : visitCapReachedCombined ? "Cap" : `Visit (${visitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
+                  <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : campusCapReached ? `Campus cap reached (${campusUsed}/${campusCap}). Resets next season.` : visitCapReachedCombined ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -969,14 +983,14 @@ function RecruitRow({
                       variant={hasHeadCoachVisited ? "primary" : "outline"}
                       size="sm"
                       onClick={onHeadCoachVisit}
-                      disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
+                      disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || hcvCapReachedCombined}
                       data-testid={`button-head-coach-visit-${recruit.id}`}
                     >
                       <Crown className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap" : `HC Visit (${headCoachVisitCost})`}</span>
+                      <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : hcvCapReachedCombined ? "Cap" : `HC Visit (${headCoachVisitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
+                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : hcvCapReached ? `HCV cap reached (${hcvUsed}/${hcvCap}). Resets next season.` : hcvCapReachedCombined ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>

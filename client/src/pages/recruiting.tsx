@@ -1914,6 +1914,7 @@ export default function RecruitingPage() {
                     nilRemaining={nilRemaining}
                     seasonVisitCapReached={(data?.economy?.visits?.totalUsed ?? data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits?.totalCap ?? Infinity)}
                     visitCap={data?.economy?.visits?.totalCap}
+                    economy={data?.economy}
                   />
                 </div>
               );

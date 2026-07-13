@@ -163,9 +163,8 @@ export function RecruitingCommandCenter({
     });
   };
 
-  const nilRemaining = recruitingData?.team
-    ? (recruitingData.team.nilBudget || 0) - (recruitingData.team.nilSpent || 0)
-    : 0;
+  const nilRemaining = recruitingData?.economy?.nil?.recruitingRemaining
+    ?? (recruitingData?.team ? (recruitingData.team.nilBudget || 0) - (recruitingData.team.nilSpent || 0) : 0);
 
   const visitsUsed = recruitingData?.economy?.visits?.totalUsed ?? recruitingData?.seasonVisitCount?.total ?? 0;
   const visitsMax = recruitingData?.economy?.visits?.totalCap ?? null;

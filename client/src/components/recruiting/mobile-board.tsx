@@ -106,6 +106,9 @@ function getDisabledReason(
 
   if (action === "visit") {
     if (used.includes("visit")) return "Already visited";
+    const campusCap = state.economy?.visits?.campusCap;
+    const campusUsed = state.economy?.visits?.campusUsed ?? state.seasonVisitCount.campusVisits;
+    if (campusCap != null && campusUsed >= campusCap) return `Campus cap reached (${campusUsed}/${campusCap})`;
     const visitCap = state.economy?.visits?.totalCap;
     const visitUsed = state.economy?.visits?.totalUsed ?? state.seasonVisitCount.total;
     if (visitCap != null && visitUsed >= visitCap) return `Visit cap reached (${visitCap})`;
@@ -116,9 +119,12 @@ function getDisabledReason(
 
   if (action === "hcv") {
     if (used.includes("head_coach_visit")) return "Already HCV'd";
-    const hcvCap = state.economy?.visits?.totalCap;
+    const hcvCap = state.economy?.visits?.headCoachCap;
+    const hcvUsed = state.economy?.visits?.headCoachUsed ?? state.seasonVisitCount.hcVisits;
+    if (hcvCap != null && hcvUsed >= hcvCap) return `HCV cap reached (${hcvUsed}/${hcvCap})`;
+    const visitCap = state.economy?.visits?.totalCap;
     const visitUsed = state.economy?.visits?.totalUsed ?? state.seasonVisitCount.total;
-    if (hcvCap != null && visitUsed >= hcvCap) return `Visit cap reached (${hcvCap})`;
+    if (visitCap != null && visitUsed >= visitCap) return `Visit cap reached (${visitCap})`;
     const cost = state.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2;
     if (state.remainingPoints < cost) return `Need ${cost} pts`;
     return null;
