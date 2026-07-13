@@ -1074,12 +1074,15 @@ export async function generateRecruits(
   count: number,
   forceStorylineReset = false,
   targetSeason?: number,
-  opts?: { pitcherRatio?: number },
+  opts?: { pitcherRatio?: number; positionGroupWeights?: { C?: number; IF?: number; OF?: number } },
 ) {
   const leagueForProgression = await storage.getLeague(leagueId);
   const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
 
-  const recruits = generateRecruitClass(count, opts?.pitcherRatio != null ? { pitcherRatio: opts.pitcherRatio } : {});
+  const classOpts: import("./recruit-generator").GenerateRecruitClassOptions = {};
+  if (opts?.pitcherRatio != null) classOpts.pitcherRatio = opts.pitcherRatio;
+  if (opts?.positionGroupWeights) classOpts.positionGroupWeights = opts.positionGroupWeights;
+  const recruits = generateRecruitClass(count, classOpts);
 
   // Build all recruit rows in memory, then batch-insert to avoid N sequential round-trips
   const recruitRows = recruits.map(r => ({

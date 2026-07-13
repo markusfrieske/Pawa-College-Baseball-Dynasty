@@ -2364,6 +2364,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     nilSpentAccum.set(teamId, (nilSpentAccum.get(teamId) || 0) + cost);
 
   const MIN_ROSTER = 22;
+  const SD_CHUNK = 50; // chunk size for all parallel batch flushes in signing day
 
   // ── STEP 1: Interest-based auto-commit (runs FIRST) ──────────────────────
   // Commit undecided recruits to their highest-interest team that has an offer
@@ -2404,8 +2405,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         console.error(`[finalizeSigningDay] Failed to auto-commit recruit ${recruit.id}:`, e);
       }
     }
-    // Flush step-1 signings in parallel chunks of 50 before step-2 reads the DB
-    const SD_CHUNK = 50;
+    // Flush step-1 signings in parallel chunks before step-2 reads the DB
     for (let i = 0; i < step1Batch.length; i += SD_CHUNK) {
       await Promise.all(step1Batch.slice(i, i + SD_CHUNK).map(s =>
         storage.updateRecruit(s.id, { signedTeamId: s.teamId })
@@ -3638,24 +3638,31 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
   const _walkonsLeague = await storage.getLeague(leagueId);
   const recruitCount = getRecruitPoolSize(teams.length, _walkonsLeague?.dynastyPreset);
 
-  // ── Departure-based pitcher ratio (Fix 2) ────────────────────────────────
-  // Fetch the current roster to derive per-position-group departure counts
-  // (SR + JR players) before the new class is generated.  Gives the recruit
-  // engine a demand signal so the P/H split in the new class reflects which
-  // positions are actually vacated, not just a static 42% pitcher ratio.
+  // ── Departure-based position-demand planning (Fix 2) ─────────────────────
+  // Fetch current roster to derive per-group departure counts (SR + declared JR).
+  // posTargets.{P, C, IF, OF} reflect actual vacated slots so the new class
+  // supplies the right mix — pitcher ratio AND infield/outfield/catcher depth.
   let nextClassPitcherRatio: number | undefined;
+  let nextClassPosGroupWeights: { C?: number; IF?: number; OF?: number } | undefined;
   try {
     const allCurrentPlayers = await storage.getPlayersByLeague(leagueId);
     const posTargets = computePositionTargetsFromDepartures(allCurrentPlayers, recruitCount);
     nextClassPitcherRatio = derivePitcherRatioFromTargets(posTargets, recruitCount);
-    console.log(`[finalizeWalkonsPhase] Departure-based pitcher ratio: ${nextClassPitcherRatio.toFixed(3)} (pool=${recruitCount})`);
+    // Pass non-pitcher group demand counts to weight field position selection.
+    if (posTargets.C || posTargets.IF || posTargets.OF) {
+      nextClassPosGroupWeights = { C: posTargets.C, IF: posTargets.IF, OF: posTargets.OF };
+    }
+    console.log(`[finalizeWalkonsPhase] Position targets: P=${posTargets.P} C=${posTargets.C} IF=${posTargets.IF} OF=${posTargets.OF} | pitcherRatio=${nextClassPitcherRatio.toFixed(3)} (pool=${recruitCount})`);
   } catch (plannerErr) {
-    console.warn("[finalizeWalkonsPhase] Pool planner failed (non-fatal) — using default ratio:", plannerErr);
+    console.warn("[finalizeWalkonsPhase] Pool planner failed (non-fatal) — using default split:", plannerErr);
   }
 
   // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
   // not the season that just ended (the DB counter is bumped after this function returns).
-  const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1, nextClassPitcherRatio != null ? { pitcherRatio: nextClassPitcherRatio } : undefined);
+  const newClassOpts: { pitcherRatio?: number; positionGroupWeights?: { C?: number; IF?: number; OF?: number } } = {};
+  if (nextClassPitcherRatio != null) newClassOpts.pitcherRatio = nextClassPitcherRatio;
+  if (nextClassPosGroupWeights) newClassOpts.positionGroupWeights = nextClassPosGroupWeights;
+  const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1, Object.keys(newClassOpts).length > 0 ? newClassOpts : undefined);
   if (newClassVintage) {
     await storage.updateLeague(leagueId, { currentClassVintage: newClassVintage });
   }

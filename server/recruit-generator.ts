@@ -202,6 +202,11 @@ export interface GenerateRecruitClassOptions {
   wizardOvrDistribution?: "bell" | "top_heavy" | "bottom_heavy" | "flat";
   // Override the default pitcher ratio (0.42). Clamped to [0.30, 0.65].
   pitcherRatio?: number;
+  // Per-group field position weights derived from departure-based pool planner.
+  // When provided, overrides the default uniform fieldPositions selection for
+  // non-pitcher recruits. Wizard position overrides (wizardPositionDistribution /
+  // wizardFieldWeights) and theme-specific picks still take priority.
+  positionGroupWeights?: { C?: number; IF?: number; OF?: number };
 }
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
@@ -875,6 +880,24 @@ export function generateRecruitClass(
     if (theme === "defense_first") return rollWeighted(defenseFirstPositions);
     if (theme === "speed_class")   return rollWeighted(speedClassPositions);
     if (theme === "power_class")   return rollWeighted(powerClassPositions);
+    // Departure-based position-group quota: when the pool planner provides C/IF/OF
+    // demand counts, use them to weight field position selection proportionally.
+    // Each IF slot is split evenly across 1B/2B/3B/SS (÷4); OF is a single bucket.
+    if (opts.positionGroupWeights) {
+      const pw = opts.positionGroupWeights;
+      const pool: string[] = [];
+      const cCount  = Math.max(1, pw.C  ?? 1);
+      const ifCount = Math.max(4, pw.IF ?? 4);
+      const ofCount = Math.max(1, pw.OF ?? 6);
+      for (let i = 0; i < cCount; i++) pool.push("C");
+      const ifEach = Math.max(1, Math.round(ifCount / 4));
+      for (let i = 0; i < ifEach; i++) pool.push("1B");
+      for (let i = 0; i < ifEach; i++) pool.push("2B");
+      for (let i = 0; i < ifEach; i++) pool.push("3B");
+      for (let i = 0; i < ifEach; i++) pool.push("SS");
+      for (let i = 0; i < ofCount; i++) pool.push("OF");
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
     return fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
   };
 
