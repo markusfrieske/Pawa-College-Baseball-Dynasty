@@ -50,6 +50,7 @@ import {
   ARCHETYPE_SEASON_CONTACT_BONUS,
   ARCHETYPE_SEASON_SCOUT_BONUS,
 } from "@shared/recruitingBalance";
+import { computeRecruitingEconomy } from "../services/recruitingEconomyService";
 import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import {
   getAttributesToRevealCount,
@@ -2838,55 +2839,22 @@ export function registerRecruitingRoutes(app: Express): void {
         recruitPointCosts,
         seasonVisitCount,
         autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
-        economy: (() => {
-          const eProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
-          const eTurnIndex = getRecruitingTurnIndex(league.currentPhase, league.currentWeek, league.seasonLength);
-          const eTurnCount = getRecruitingTurnCount(league.seasonLength);
-          const eAvgRecruitSkill = Math.floor(
-            ((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2
-          );
-          const eAvgScoutSkill = Math.floor(
-            ((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2
-          );
-          const eArchetype = coach?.archetype || "Balanced";
-          const eHasQuickStudy = !!(coach?.perks as Record<string, boolean> | null)?.scout_quick_study;
-          const eSeasonContactBudget = getSeasonContactBudget(eProfile, eAvgRecruitSkill, eArchetype);
-          const eSeasonScoutBudget = getSeasonScoutBudget(eProfile, eAvgScoutSkill, eArchetype, eHasQuickStudy);
-          const eTargetCap = getTargetCap(maxCommits, eProfile);
-          return {
-            balanceVersion: 2 as const,
-            recruitingTurnIndex: eTurnIndex,
-            recruitingTurnsTotal: eTurnCount,
-            targets: { used: interests.filter(i => i.isTargeted).length, cap: eTargetCap },
-            commits: {
-              signed: leagueRecruits.filter(r => r.signedTeamId === userTeam.id).length,
-              confirmedOpenings: seniorsCount,
-              projectedOpenings: maxCommits,
-              hardCap: 25,
-              oversignAllowance: eProfile.oversignAllowance,
-            },
-            contactPoints: { spent: recruitingActionsUsed, cap: maxRecruitingActions, seasonBudget: eSeasonContactBudget },
-            scoutPoints: { spent: scoutActionsUsed, cap: maxScoutActions, seasonBudget: eSeasonScoutBudget },
-            visits: {
-              totalUsed: seasonVisitCount.total,
-              totalCap: eProfile.visitCombinedCap,
-              campusUsed: seasonVisitCount.campusVisits,
-              campusCap: eProfile.campusVisitCap,
-              headCoachUsed: seasonVisitCount.hcVisits,
-              headCoachCap: eProfile.headCoachVisitCap,
-            },
-            nil: {
-              budget: userTeam.nilBudget || 0,
-              spent: 0,
-              remaining: userTeam.nilBudget || 0,
-              recruitingAllocated: 0,
-              recruitingCommitted: 0,
-              recruitingRemaining: userTeam.nilBudget || 0,
-              retentionReserved: 0,
-              walkonReserved: 0,
-            },
-          };
-        })(),
+        economy: computeRecruitingEconomy({
+          league,
+          coach,
+          team: userTeam,
+          targetsUsed: interests.filter(i => i.isTargeted).length,
+          commitsData: {
+            signed: leagueRecruits.filter(r => r.signedTeamId === userTeam.id).length,
+            confirmedOpenings: seniorsCount,
+            projectedOpenings: maxCommits,
+          },
+          contactSpent: recruitingActionsUsed,
+          contactCap: maxRecruitingActions,
+          scoutSpent: scoutActionsUsed,
+          scoutCap: maxScoutActions,
+          seasonVisitCount,
+        }),
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);

@@ -219,6 +219,9 @@ export function getTurnScoutCap(input: SeasonalBudgetInput): number {
  *
  * Examples: 4→30, 10→73, 14→102, 20→145, 149→1081
  */
+export const getRecruitPoolSize = (teamCount: number): number =>
+  computeRecruitPoolSizeV2(teamCount);
+
 export function computeRecruitPoolSizeV2(teamCount: number): number {
   return Math.max(30, Math.ceil(teamCount * 7.25));
 }

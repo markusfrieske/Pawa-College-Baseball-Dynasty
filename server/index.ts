@@ -421,6 +421,41 @@ app.use((req, res, next) => {
         console.log("[startup-migration] recruit-top-schools-unique-v1: deduped + UNIQUE INDEX added");
       });
 
+      // ── recruiting-balance-v2-schema-v1 ───────────────────────────────────
+      // Phase A: add team_recruiting_ledgers table and recruiting_balance_version
+      // column to leagues. Additive-only, idempotent.
+      await once('recruiting-balance-v2-schema-v1', async () => {
+        await pool.query(`
+          ALTER TABLE leagues
+            ADD COLUMN IF NOT EXISTS recruiting_balance_version integer DEFAULT 2
+        `);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS team_recruiting_ledgers (
+            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+            league_id varchar NOT NULL REFERENCES leagues(id),
+            team_id varchar NOT NULL REFERENCES teams(id),
+            season integer NOT NULL,
+            recruiting_turn_index integer NOT NULL,
+            contact_cap integer NOT NULL DEFAULT 0,
+            contact_spent integer NOT NULL DEFAULT 0,
+            scout_cap integer NOT NULL DEFAULT 0,
+            scout_spent integer NOT NULL DEFAULT 0,
+            targets_cap integer NOT NULL DEFAULT 0,
+            visits_combined_cap integer NOT NULL DEFAULT 0,
+            campus_visit_cap integer NOT NULL DEFAULT 0,
+            head_coach_visit_cap integer NOT NULL DEFAULT 0,
+            rules_version integer NOT NULL DEFAULT 2,
+            created_at timestamp DEFAULT now(),
+            UNIQUE (league_id, team_id, season, recruiting_turn_index)
+          )
+        `);
+        await pool.query(`
+          CREATE INDEX IF NOT EXISTS idx_team_recruiting_ledgers_league_team
+            ON team_recruiting_ledgers (league_id, team_id, season)
+        `);
+        console.log("[startup-migration] recruiting-balance-v2-schema-v1: team_recruiting_ledgers created, leagues.recruiting_balance_version added");
+      });
+
     } catch (e) {
       console.error("[startup-migrations] sequential runner failed:", e);
     }

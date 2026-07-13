@@ -55,6 +55,7 @@ export const leagues = pgTable("leagues", {
   dynastyPreset: text("dynasty_preset").notNull().default("custom"),
   rulesSnapshot: jsonb("rules_snapshot"),
   rulesVersion: integer("rules_version"),
+  recruitingBalanceVersion: integer("recruiting_balance_version").default(2),
   catalogVersion: text("catalog_version"),
   scheduleSeed: text("schedule_seed"),
   currentPhaseStep: text("current_phase_step"),
@@ -1217,6 +1218,48 @@ export const insertPlayerPromiseSchema = createInsertSchema(playerPromises).pick
 
 export type InsertPlayerPromise = z.infer<typeof insertPlayerPromiseSchema>;
 export type PlayerPromise = typeof playerPromises.$inferSelect;
+
+// Team Recruiting Ledgers — tracks per-turn budget caps and spending
+export const teamRecruitingLedgers = pgTable(
+  "team_recruiting_ledgers",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    leagueId: varchar("league_id").notNull().references(() => leagues.id),
+    teamId: varchar("team_id").notNull().references(() => teams.id),
+    season: integer("season").notNull(),
+    recruitingTurnIndex: integer("recruiting_turn_index").notNull(),
+    contactCap: integer("contact_cap").notNull().default(0),
+    contactSpent: integer("contact_spent").notNull().default(0),
+    scoutCap: integer("scout_cap").notNull().default(0),
+    scoutSpent: integer("scout_spent").notNull().default(0),
+    targetsCap: integer("targets_cap").notNull().default(0),
+    visitsCombinedCap: integer("visits_combined_cap").notNull().default(0),
+    campusVisitCap: integer("campus_visit_cap").notNull().default(0),
+    headCoachVisitCap: integer("head_coach_visit_cap").notNull().default(0),
+    rulesVersion: integer("rules_version").notNull().default(2),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => [uniqueIndex("uq_team_recruiting_ledgers_turn").on(t.leagueId, t.teamId, t.season, t.recruitingTurnIndex)],
+);
+
+export const insertTeamRecruitingLedgerSchema = createInsertSchema(teamRecruitingLedgers).pick({
+  leagueId: true,
+  teamId: true,
+  season: true,
+  recruitingTurnIndex: true,
+  contactCap: true,
+  contactSpent: true,
+  scoutCap: true,
+  scoutSpent: true,
+  targetsCap: true,
+  visitsCombinedCap: true,
+  campusVisitCap: true,
+  headCoachVisitCap: true,
+  rulesVersion: true,
+});
+
+export type InsertTeamRecruitingLedger = z.infer<typeof insertTeamRecruitingLedgerSchema>;
+export type TeamRecruitingLedger = typeof teamRecruitingLedgers.$inferSelect;
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({

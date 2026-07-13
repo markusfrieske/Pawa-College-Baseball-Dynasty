@@ -2,7 +2,7 @@ import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
-  playerSeasonStats, walkonPool, walkonBids,
+  playerSeasonStats, walkonPool, walkonBids, teamRecruitingLedgers,
   league_jobs,
   leagueEvents,
   tickerReads,
@@ -1832,6 +1832,7 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(storylineRecruits).where(eq(storylineRecruits.leagueId, id));
       await tx.delete(walkonBids).where(eq(walkonBids.leagueId, id));
       await tx.delete(walkonPool).where(eq(walkonPool.leagueId, id));
+      await tx.delete(teamRecruitingLedgers).where(eq(teamRecruitingLedgers.leagueId, id));
 
       await tx.delete(recruits).where(eq(recruits.leagueId, id));
       await tx.delete(gameReportCorrections).where(eq(gameReportCorrections.leagueId, id));
