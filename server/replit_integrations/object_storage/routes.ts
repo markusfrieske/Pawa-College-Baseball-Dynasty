@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
-import { requireAuth, canAccessGameReportImage } from "../../route-helpers";
+import { requireAuth, canAccessGameReportImage, hasCommissionerAccess } from "../../route-helpers";
 import { storage } from "../../storage";
 
 /**
@@ -74,20 +74,32 @@ export function registerObjectStorageRoutes(app: Express): void {
    */
   app.get("/objects/*objectPath", requireAuth, async (req, res) => {
     try {
-      // The only current consumer of object storage is game-report screenshots.
-      // Deny access by default unless the path matches a known screenshot the
-      // requesting user is authorized to view (commissioner or an involved coach).
-      const image = await storage.getGameReportImageByObjectPath(req.path);
-      if (!image) {
-        return res.status(404).json({ error: "Object not found" });
-      }
-      const allowed = await canAccessGameReportImage(image.leagueId, image.gameId, req.session.userId);
-      if (!allowed) {
-        return res.status(403).json({ error: "Forbidden" });
+      const objectPath = req.path;
+
+      // Check if it's a game-report screenshot first.
+      const image = await storage.getGameReportImageByObjectPath(objectPath);
+      if (image) {
+        const allowed = await canAccessGameReportImage(image.leagueId, image.gameId, req.session.userId);
+        if (!allowed) return res.status(403).json({ error: "Forbidden" });
+        const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+        return await objectStorageService.downloadObject(objectFile, res);
       }
 
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res);
+      // Check if it's a news post image — any league member may view.
+      const newsPost = await storage.getDynastyNewsByImageUrl(objectPath);
+      if (newsPost) {
+        const league = await storage.getLeague(newsPost.leagueId);
+        const isComm = league ? hasCommissionerAccess(league, req.session.userId) : false;
+        if (!isComm) {
+          const coaches = await storage.getCoachesByLeague(newsPost.leagueId);
+          const isMember = coaches.some((c: any) => c.userId === req.session.userId);
+          if (!isMember) return res.status(403).json({ error: "Forbidden" });
+        }
+        const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+        return await objectStorageService.downloadObject(objectFile, res);
+      }
+
+      return res.status(404).json({ error: "Object not found" });
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {

@@ -538,10 +538,9 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
 // ─── League News Panel ───────────────────────────────────────────────────────
 
 interface NewsPost {
-  id: string; title: string; subtitle: string | null; body: string;
-  imageUrl: string | null; createdAt: string; commissionerId: string;
+  id: string; title: string; subtitle?: string | null; content: string;
+  imageUrl: string | null; createdAt: string; authorName?: string | null;
 }
-interface NewsResp { posts: NewsPost[]; }
 
 function NewsPostCard({
   post, isCommissioner, leagueId, onDelete,
@@ -569,33 +568,66 @@ function NewsPostCard({
         {post.subtitle && (
           <p className="text-sm text-muted-foreground mb-2 font-medium">{post.subtitle}</p>
         )}
-        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{post.body}</p>
-        <p className="text-[10px] text-muted-foreground mt-3">{fmtDate(post.createdAt)}</p>
+        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+        <div className="flex items-center gap-2 mt-3">
+          {post.authorName && (
+            <span className="text-[9px] font-pixel text-gold/70 border border-gold/20 rounded px-1.5 py-0.5">
+              {post.authorName}
+            </span>
+          )}
+          <p className="text-[10px] text-muted-foreground">{fmtDate(post.createdAt)}</p>
+        </div>
       </div>
     </article>
   );
 }
 
 export function LeagueNewsPanel({
-  leagueId, isCommissioner,
-}: { leagueId: string; isCommissioner: boolean }) {
+  leagueId, isCommissioner, myTeamId,
+}: { leagueId: string; isCommissioner: boolean; myTeamId?: string }) {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
   const [body, setBody] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
 
-  const { data, isLoading } = useQuery<NewsResp>({
+  const canPost = isCommissioner || !!myTeamId;
+
+  const { data, isLoading } = useQuery<NewsPost[]>({
     queryKey: ["/api/leagues", leagueId, "news"],
     staleTime: 30000,
   });
 
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
+
   const createMut = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/news`, { title, subtitle: subtitle || undefined, body, imageUrl: imageUrl || undefined }),
+    mutationFn: async () => {
+      let imageUrl: string | undefined;
+      if (imageFile) {
+        setImageUploading(true);
+        try {
+          const resp = await apiRequest("POST", "/api/uploads/request-url", {
+            name: imageFile.name, size: imageFile.size, contentType: imageFile.type,
+          });
+          const { uploadURL, objectPath } = await resp.json();
+          await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": imageFile.type }, body: imageFile });
+          imageUrl = objectPath;
+        } finally {
+          setImageUploading(false);
+        }
+      }
+      return apiRequest("POST", `/api/leagues/${leagueId}/news`, { title, body, imageUrl });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] });
-      setTitle(""); setSubtitle(""); setBody(""); setImageUrl("");
+      setTitle(""); setBody(""); setImageFile(null); setImagePreview(null);
       setShowForm(false);
     },
   });
@@ -605,7 +637,7 @@ export function LeagueNewsPanel({
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] }),
   });
 
-  const posts = data?.posts ?? [];
+  const posts = data ?? [];
 
   return (
     <div data-testid="panel-league-news">
@@ -614,7 +646,7 @@ export function LeagueNewsPanel({
           <Newspaper className="w-4 h-4 text-gold" />
           <h2 className="font-pixel text-gold text-[10px]">LEAGUE NEWS</h2>
         </div>
-        {isCommissioner && (
+        {canPost && (
           <RetroButton
             size="sm"
             variant="outline"
@@ -627,8 +659,8 @@ export function LeagueNewsPanel({
         )}
       </div>
 
-      {/* Commissioner post form */}
-      {showForm && isCommissioner && (
+      {/* Post form — open to all league members */}
+      {showForm && canPost && (
         <RetroCard className="mb-6 border-gold/30" data-testid="form-news-post">
           <RetroCardHeader>
             <h3 className="font-pixel text-[9px] text-gold">NEW POST</h3>
@@ -647,17 +679,6 @@ export function LeagueNewsPanel({
                 />
               </div>
               <div>
-                <label className="font-pixel text-[8px] text-muted-foreground block mb-1">SUBHEADLINE</label>
-                <input
-                  value={subtitle}
-                  onChange={e => setSubtitle(e.target.value)}
-                  maxLength={200}
-                  placeholder="Optional subheadline..."
-                  className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
-                  data-testid="input-news-subtitle"
-                />
-              </div>
-              <div>
                 <label className="font-pixel text-[8px] text-muted-foreground block mb-1">BODY *</label>
                 <textarea
                   value={body}
@@ -672,25 +693,35 @@ export function LeagueNewsPanel({
               </div>
               <div>
                 <label className="font-pixel text-[8px] text-muted-foreground block mb-1 flex items-center gap-1">
-                  <Image className="w-3 h-3" /> IMAGE URL (optional)
+                  <Image className="w-3 h-3" /> IMAGE (optional)
                 </label>
-                <input
-                  value={imageUrl}
-                  onChange={e => setImageUrl(e.target.value)}
-                  placeholder="https://..."
-                  className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
-                  data-testid="input-news-image-url"
-                />
+                {imagePreview ? (
+                  <div className="relative">
+                    <img src={imagePreview} alt="Preview" className="h-28 w-full object-cover rounded border border-border/40" />
+                    <button
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      className="absolute top-1 right-1 bg-background/80 text-red-400 rounded p-0.5 hover:bg-background"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex items-center gap-2 cursor-pointer border border-dashed border-border/50 hover:border-gold/40 rounded px-3 py-2 transition-colors">
+                    <Image className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Choose image...</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} data-testid="input-news-image-file" />
+                  </label>
+                )}
               </div>
               <div className="flex justify-end gap-2">
                 <RetroButton variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</RetroButton>
                 <RetroButton
                   size="sm"
-                  disabled={!title.trim() || !body.trim() || createMut.isPending}
+                  disabled={!title.trim() || !body.trim() || createMut.isPending || imageUploading}
                   onClick={() => createMut.mutate()}
                   data-testid="button-submit-news-post"
                 >
-                  {createMut.isPending ? "Posting..." : "Publish Post"}
+                  {imageUploading ? "Uploading..." : createMut.isPending ? "Posting..." : "Publish Post"}
                 </RetroButton>
               </div>
             </div>
@@ -706,7 +737,7 @@ export function LeagueNewsPanel({
         <RetroCard className="text-center py-8" data-testid="news-empty-state">
           <Newspaper className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No posts yet</p>
-          {isCommissioner && (
+          {canPost && (
             <p className="text-[10px] text-muted-foreground mt-1">Use the Post button above to share league news</p>
           )}
         </RetroCard>
@@ -883,16 +914,26 @@ export function NewsroomPanel({
   const [showPostForm, setShowPostForm] = useState(false);
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [postTitle, setPostTitle] = useState("");
-  const [postSubtitle, setPostSubtitle] = useState("");
   const [postBody, setPostBody] = useState("");
-  const [postImageUrl, setPostImageUrl] = useState("");
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
+  const [postImageUploading, setPostImageUploading] = useState(false);
   const [actFilter, setActFilter] = useState<NrFilterKey>("ALL");
   const qc = useQueryClient();
 
-  const { data: newsData, isLoading: newsLoading } = useQuery<NewsResp>({
+  const canPost = isCommissioner || !!myTeamId;
+
+  const { data: newsData, isLoading: newsLoading } = useQuery<NewsPost[]>({
     queryKey: ["/api/leagues", leagueId, "news"],
     staleTime: 30000,
   });
+
+  function handlePostImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPostImageFile(file);
+    setPostImagePreview(URL.createObjectURL(file));
+  }
   const { data: rawEvents = [], isLoading: eventsLoading } = useQuery<LeagueEvent[]>({
     queryKey: ["/api/leagues", leagueId, "events"],
     queryFn: async () => {
@@ -917,13 +958,28 @@ export function NewsroomPanel({
   });
 
   const createMut = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/news`, {
-      title: postTitle, subtitle: postSubtitle || undefined,
-      body: postBody, imageUrl: postImageUrl || undefined,
-    }),
+    mutationFn: async () => {
+      let imageUrl: string | undefined;
+      if (postImageFile) {
+        setPostImageUploading(true);
+        try {
+          const resp = await apiRequest("POST", "/api/uploads/request-url", {
+            name: postImageFile.name, size: postImageFile.size, contentType: postImageFile.type,
+          });
+          const { uploadURL, objectPath } = await resp.json();
+          await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": postImageFile.type }, body: postImageFile });
+          imageUrl = objectPath;
+        } finally {
+          setPostImageUploading(false);
+        }
+      }
+      return apiRequest("POST", `/api/leagues/${leagueId}/news`, {
+        title: postTitle, body: postBody, imageUrl,
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] });
-      setPostTitle(""); setPostSubtitle(""); setPostBody(""); setPostImageUrl("");
+      setPostTitle(""); setPostBody(""); setPostImageFile(null); setPostImagePreview(null);
       setShowPostForm(false);
     },
   });
@@ -932,7 +988,7 @@ export function NewsroomPanel({
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] }),
   });
 
-  const posts = newsData?.posts ?? [];
+  const posts = newsData ?? [];
   const storylines = storylinesResp?.storylines ?? [];
   const pendingVotes = storylines.filter(s => !!s.activeEvent && !s.myVote).length;
   const phaseLabel = phase ? (PHASE_LABEL[phase] ?? phase.replace(/_/g, " ")) : "—";
@@ -982,7 +1038,7 @@ export function NewsroomPanel({
                 </button>
               ))}
             </div>
-            {isCommissioner && (
+            {canPost && (
               <RetroButton
                 size="sm"
                 variant="outline"
@@ -999,8 +1055,8 @@ export function NewsroomPanel({
       </RetroCardHeader>
 
       <RetroCardContent>
-        {/* ── Post creation form ──────────────────────────────────────────── */}
-        {showPostForm && isCommissioner && (
+        {/* ── Post creation form — open to all league members ────────────── */}
+        {showPostForm && canPost && (
           <div className="mb-4 p-3 bg-background/50 border border-gold/20 rounded-lg space-y-2.5" data-testid="form-news-post">
             <p className="font-pixel text-[8px] text-gold">NEW POST</p>
             <input
@@ -1011,14 +1067,6 @@ export function NewsroomPanel({
               className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
               data-testid="input-news-title"
             />
-            <input
-              value={postSubtitle}
-              onChange={e => setPostSubtitle(e.target.value)}
-              maxLength={200}
-              placeholder="Subheadline (optional)..."
-              className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
-              data-testid="input-news-subtitle"
-            />
             <textarea
               value={postBody}
               onChange={e => setPostBody(e.target.value)}
@@ -1028,15 +1076,32 @@ export function NewsroomPanel({
               className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50 resize-none"
               data-testid="input-news-body"
             />
+            {postImagePreview ? (
+              <div className="relative">
+                <img src={postImagePreview} alt="Preview" className="h-24 w-full object-cover rounded border border-border/40" />
+                <button
+                  onClick={() => { setPostImageFile(null); setPostImagePreview(null); }}
+                  className="absolute top-1 right-1 bg-background/80 text-red-400 rounded p-0.5 hover:bg-background"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex items-center gap-2 cursor-pointer border border-dashed border-border/40 hover:border-gold/40 rounded px-3 py-1.5 transition-colors">
+                <Image className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground">Add image (optional)...</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePostImageSelect} data-testid="input-news-image-file" />
+              </label>
+            )}
             <div className="flex justify-end gap-2">
               <RetroButton variant="outline" size="sm" onClick={() => setShowPostForm(false)}>Cancel</RetroButton>
               <RetroButton
                 size="sm"
-                disabled={!postTitle.trim() || !postBody.trim() || createMut.isPending}
+                disabled={!postTitle.trim() || !postBody.trim() || createMut.isPending || postImageUploading}
                 onClick={() => createMut.mutate()}
                 data-testid="button-submit-news-post"
               >
-                {createMut.isPending ? "Posting..." : "Publish"}
+                {postImageUploading ? "Uploading..." : createMut.isPending ? "Posting..." : "Publish"}
               </RetroButton>
             </div>
           </div>
@@ -1105,11 +1170,11 @@ export function NewsroomPanel({
                             <div className="flex items-center gap-2 mb-0.5">
                               <span className="font-pixel text-[7px] text-gold/60 border border-gold/20 rounded px-1">POST</span>
                               <span className="text-[9px] text-muted-foreground">{fmtDate(post.createdAt)}</span>
+                              {post.authorName && (
+                                <span className="text-[9px] font-pixel text-gold/70">{post.authorName}</span>
+                              )}
                             </div>
                             <p className="font-pixel text-[9px] text-foreground leading-snug truncate">{post.title}</p>
-                            {post.subtitle && (
-                              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{post.subtitle}</p>
-                            )}
                           </div>
                           {isCommissioner && (
                             <button
@@ -1129,7 +1194,7 @@ export function NewsroomPanel({
                               <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
                             </div>
                           )}
-                          <p className="text-[11px] text-foreground/80 leading-relaxed whitespace-pre-wrap mt-2">{post.body}</p>
+                          <p className="text-[11px] text-foreground/80 leading-relaxed whitespace-pre-wrap mt-2">{post.content}</p>
                         </div>
                       )}
                     </div>

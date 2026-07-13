@@ -167,6 +167,7 @@ export interface IStorage {
   updateLeagueInvite(id: string, data: Partial<LeagueInvite>): Promise<LeagueInvite | undefined>;
 
   getDynastyNewsByLeague(leagueId: string): Promise<DynastyNews[]>;
+  getDynastyNewsByImageUrl(imageUrl: string): Promise<DynastyNews | undefined>;
   createDynastyNews(news: InsertDynastyNews): Promise<DynastyNews>;
   deleteDynastyNews(id: string): Promise<void>;
 
@@ -1232,6 +1233,13 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(dynastyNews)
       .where(eq(dynastyNews.leagueId, leagueId))
       .orderBy(desc(dynastyNews.isSticky), desc(dynastyNews.createdAt));
+  }
+
+  async getDynastyNewsByImageUrl(imageUrl: string): Promise<DynastyNews | undefined> {
+    const [row] = await db.select().from(dynastyNews)
+      .where(eq(dynastyNews.imageUrl, imageUrl))
+      .limit(1);
+    return row;
   }
 
   async createDynastyNews(insertNews: InsertDynastyNews): Promise<DynastyNews> {

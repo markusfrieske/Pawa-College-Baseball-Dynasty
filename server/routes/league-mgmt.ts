@@ -2925,23 +2925,39 @@ app.post("/api/leagues/:id/news", requireAuth, async (req, res) => {
   try {
     const leagueId = req.params.id as string;
     const userId = req.session.userId;
-    const { title, content, category, isSticky, imageUrl } = req.body;
+    // Accept both "content" (legacy) and "body" (newsroom panel) as the post text.
+    const { title, content, body, category, isSticky, imageUrl } = req.body;
+    const postContent = (content || body || "").trim();
 
-    if (!title || !content) {
+    if (!title || !postContent) {
       return res.status(400).json({ message: "Title and content are required" });
     }
 
+    const league = await storage.getLeague(leagueId);
+    if (!league) return res.status(404).json({ message: "League not found" });
+
     const user = await storage.getUser(userId!);
-    if (!user) {
-      return res.status(401).json({ message: "User not found" });
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    // Allow commissioner OR any coach in this league to post.
+    const isComm = hasCommissionerAccess(league, userId);
+    const coaches = await storage.getCoachesByLeague(leagueId);
+    const myCoach = coaches.find(c => c.userId === userId);
+    if (!isComm && !myCoach) {
+      return res.status(403).json({ message: "Only league members can post news" });
     }
+
+    // Use coach full name if available, fall back to email prefix.
+    const authorName = myCoach
+      ? `${myCoach.firstName} ${myCoach.lastName}`.trim()
+      : user.email.split("@")[0] || "Unknown";
 
     const news = await storage.createDynastyNews({
       leagueId,
       authorId: userId,
-      authorName: user.email.split("@")[0] || "Unknown",
+      authorName,
       title,
-      content,
+      content: postContent,
       category: category || "general",
       imageUrl: imageUrl || null,
       isSticky: isSticky || false,
