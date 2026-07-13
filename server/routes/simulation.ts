@@ -81,7 +81,7 @@ import { updateRecruitStages } from "./league-mgmt";
 import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
 import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets, computePoolSizeFromDepartures } from "../services/recruitPoolPlanner";
 import { Phase, getSeasonMaxWeeks, RECRUITING_ACTIVE_PHASES as _PHASE_RECRUITING_ACTIVE, STORYLINE_ACTIVE_PHASES as _PHASE_STORYLINE_ACTIVE, OFFSEASON_RECRUITING_PHASES as _PHASE_OFFSEASON_REC } from "@shared/phase";
-import { getTurnContactCap, getRecruitingBalanceProfile, getRecruitingTurnIndex } from "@shared/recruitingBalance";
+import { getTurnContactCap, getTurnScoutCap, getRecruitingBalanceProfile, getRecruitingTurnIndex } from "@shared/recruitingBalance";
 
 // ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
 // These are duplicated at module scope so simulation.ts (which runs CPU
@@ -4364,7 +4364,7 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
     );
     const cpuArchetype = (teamCoach?.archetype as string | undefined) || "Balanced";
     const cpuHasQuickStudy = !!(teamCoach?.perks as Record<string, boolean> | null)?.scout_quick_study;
-    const actionsBudget = getTurnContactCap({
+    const budgetInput = {
       seasonLength: league?.seasonLength,
       dynastyPreset: league?.dynastyPreset,
       avgRecruitSkill,
@@ -4373,9 +4373,19 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
       hasQuickStudy: cpuHasQuickStudy,
       currentPhase: league?.currentPhase || "regular_season",
       currentWeek: week,
-    });
+    };
+    const actionsBudget = getTurnContactCap(budgetInput);
+    const scoutBudget = getTurnScoutCap(budgetInput);
     if (process.env.NODE_ENV !== "production") {
-      console.log(`[cap-parity] ${team.isCpu ? "CPU" : "auto-pilot"} ${team.name}: contactCap=${actionsBudget} skill=${avgRecruitSkill} arch=${cpuArchetype}`);
+      // Cap-parity assertion: CPU and a human coach with identical inputs (same skill/archetype/phase/week)
+      // must receive the same contact and scout caps from the canonical balance module.
+      console.log(
+        `[cap-parity][${team.isCpu ? "cpu" : "autopilot"}] ${team.name}` +
+        ` contact=${actionsBudget} scout=${scoutBudget}` +
+        ` avgRecruit=${avgRecruitSkill} avgScout=${avgScoutSkill} arch=${cpuArchetype}` +
+        ` phase=${league?.currentPhase} wk=${week}` +
+        ` — human with same inputs yields identical caps`
+      );
     }
 
     // Per-team action summary for auto-pilot log (populated if isSpecialHandling)
@@ -4464,17 +4474,29 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
           }
         }
 
+        // Hidden-info rule: compute visible OVR from scouted midpoint + difficulty noise.
+        // CPU must never sort/prioritize recruits using unrevealed r.overall or r.potential.
+        // If scouted ≥10%: midpoint = (scoutedMin + scoutedMax) / 2
+        // Otherwise: estimate from starRating band (star × 100 = band floor).
+        // Noise: ±15 beginner, ±10 high_school, ±5 elite/all_american — simulates imperfect scouting.
+        const scoutPct = interest?.scoutPercentage ?? 0;
+        const hasPartialScout = scoutPct >= 10 && interest?.scoutedMin != null && interest?.scoutedMax != null;
+        const midpointOvr = hasPartialScout
+          ? ((interest!.scoutedMin! + interest!.scoutedMax!) / 2)
+          : (r.starRating || 3) * 100;
+        const noiseRange = teamDifficulty === "beginner" ? 15 : teamDifficulty === "high_school" ? 10 : 5;
+        const visibleOvr = midpointOvr + (Math.random() * noiseRange * 2 - noiseRange);
+
         // Recruiting style strategy: bonus for preferred recruit profiles
         let styleBonus = 0;
         const stars = r.starRating || 3;
         if (styleStrategy === "top_prospects" && stars >= 4) styleBonus = 12;
         else if (styleStrategy === "high_potential") {
-          // Hidden-info rule: only act on potential if scouted to ≥50%, or on visible above-band OVR signal
-          const scoutPct = interest?.scoutPercentage ?? 0;
-          const potVisible = scoutPct >= 50 && (r.potential === "A" || r.potential === "B" || r.potential === "B+");
-          const aboveBandVisible = scoutPct >= 10
-            && (interest?.scoutedMin ?? 0) > (r.starRating || 3) * 100;
-          if (potVisible || aboveBandVisible) styleBonus = 10;
+          // Use visibleOvr: above the star band (e.g. 4★ starts at 400) signals above-band potential.
+          // Also use revealed potential if scouted to ≥50% (fog lifted at half-scouting).
+          const aboveBand = visibleOvr > (stars * 100);
+          const potRevealed = scoutPct >= 50 && (r.potential === "A" || r.potential === "B" || r.potential === "B+");
+          if (aboveBand || potRevealed) styleBonus = 10;
         }
         else if (styleStrategy === "all_in_few") {
           // Heavy interest bonus — go deep on already-engaged recruits
