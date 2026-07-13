@@ -630,9 +630,19 @@ export function LeagueNewsPanel({
           const resp = await apiRequest("POST", "/api/uploads/request-url", {
             name: imageFile.name, size: imageFile.size, contentType: imageFile.type,
           });
+          if (!resp.ok) {
+            const json = await resp.json().catch(() => ({}));
+            throw new Error(json.error ?? "Failed to prepare upload — please try again.");
+          }
           const { uploadURL, objectPath } = await resp.json();
-          await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": imageFile.type }, body: imageFile });
+          const putResp = await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": imageFile.type }, body: imageFile });
+          if (!putResp.ok) {
+            throw new Error("Upload failed — please try again.");
+          }
           imageUrl = objectPath;
+        } catch (err) {
+          setImageError(err instanceof Error ? err.message : "Upload failed — please try again.");
+          throw err;
         } finally {
           setImageUploading(false);
         }
@@ -664,7 +674,7 @@ export function LeagueNewsPanel({
           <RetroButton
             size="sm"
             variant="outline"
-            onClick={() => setShowForm(v => !v)}
+            onClick={() => { setShowForm(v => !v); setImageError(null); }}
             data-testid="button-toggle-news-form"
           >
             <PlusCircle className="w-3.5 h-3.5 mr-1" />
@@ -731,10 +741,10 @@ export function LeagueNewsPanel({
                 )}
               </div>
               <div className="flex justify-end gap-2">
-                <RetroButton variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</RetroButton>
+                <RetroButton variant="outline" size="sm" onClick={() => { setShowForm(false); setImageError(null); }}>Cancel</RetroButton>
                 <RetroButton
                   size="sm"
-                  disabled={!title.trim() || !body.trim() || createMut.isPending || imageUploading}
+                  disabled={!title.trim() || !body.trim() || createMut.isPending || imageUploading || !!imageError}
                   onClick={() => createMut.mutate()}
                   data-testid="button-submit-news-post"
                 >
@@ -996,9 +1006,19 @@ export function NewsroomPanel({
           const resp = await apiRequest("POST", "/api/uploads/request-url", {
             name: postImageFile.name, size: postImageFile.size, contentType: postImageFile.type,
           });
+          if (!resp.ok) {
+            const json = await resp.json().catch(() => ({}));
+            throw new Error(json.error ?? "Failed to prepare upload — please try again.");
+          }
           const { uploadURL, objectPath } = await resp.json();
-          await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": postImageFile.type }, body: postImageFile });
+          const putResp = await fetch(uploadURL, { method: "PUT", headers: { "Content-Type": postImageFile.type }, body: postImageFile });
+          if (!putResp.ok) {
+            throw new Error("Upload failed — please try again.");
+          }
           imageUrl = objectPath;
+        } catch (err) {
+          setPostImageError(err instanceof Error ? err.message : "Upload failed — please try again.");
+          throw err;
         } finally {
           setPostImageUploading(false);
         }
@@ -1072,7 +1092,7 @@ export function NewsroomPanel({
               <RetroButton
                 size="sm"
                 variant="outline"
-                onClick={() => { setTab("posts"); setShowPostForm(v => !v); }}
+                onClick={() => { setTab("posts"); setShowPostForm(v => !v); setPostImageError(null); }}
                 className="border-gold/40 text-gold hover:bg-gold/10 text-[9px] whitespace-nowrap"
                 data-testid="button-toggle-news-form"
               >
@@ -1127,10 +1147,10 @@ export function NewsroomPanel({
               <p className="text-xs text-red-400 mt-1" data-testid="text-post-image-error">{postImageError}</p>
             )}
             <div className="flex justify-end gap-2">
-              <RetroButton variant="outline" size="sm" onClick={() => setShowPostForm(false)}>Cancel</RetroButton>
+              <RetroButton variant="outline" size="sm" onClick={() => { setShowPostForm(false); setPostImageError(null); }}>Cancel</RetroButton>
               <RetroButton
                 size="sm"
-                disabled={!postTitle.trim() || !postBody.trim() || createMut.isPending || postImageUploading}
+                disabled={!postTitle.trim() || !postBody.trim() || createMut.isPending || postImageUploading || !!postImageError}
                 onClick={() => createMut.mutate()}
                 data-testid="button-submit-news-post"
               >
