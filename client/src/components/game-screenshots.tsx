@@ -32,7 +32,7 @@ export const CATEGORY_LABELS: Record<ScreenshotCategory, string> = {
   advanced_stats: "Advanced Stats",
 };
 
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export function useGameReportImages(leagueId: string | undefined, gameId: string | undefined, poll = false) {
   return useQuery<GameReportImage[]>({

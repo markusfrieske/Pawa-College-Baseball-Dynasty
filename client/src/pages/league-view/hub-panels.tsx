@@ -592,6 +592,7 @@ export function LeagueNewsPanel({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const canPost = isCommissioner || !!myTeamId;
 
@@ -603,6 +604,17 @@ export function LeagueNewsPanel({
   function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImageError(null);
+    if (!file.type.startsWith("image/")) {
+      setImageError("Only image files are accepted.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image must be 5 MB or smaller.");
+      e.target.value = "";
+      return;
+    }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
   }
@@ -699,7 +711,7 @@ export function LeagueNewsPanel({
                   <div className="relative">
                     <img src={imagePreview} alt="Preview" className="h-28 w-full object-cover rounded border border-border/40" />
                     <button
-                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      onClick={() => { setImageFile(null); setImagePreview(null); setImageError(null); }}
                       className="absolute top-1 right-1 bg-background/80 text-red-400 rounded p-0.5 hover:bg-background"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -711,6 +723,9 @@ export function LeagueNewsPanel({
                     <span className="text-sm text-muted-foreground">Choose image...</span>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} data-testid="input-news-image-file" />
                   </label>
+                )}
+                {imageError && (
+                  <p className="text-xs text-red-400 mt-1" data-testid="text-image-error">{imageError}</p>
                 )}
               </div>
               <div className="flex justify-end gap-2">
@@ -918,6 +933,7 @@ export function NewsroomPanel({
   const [postImageFile, setPostImageFile] = useState<File | null>(null);
   const [postImagePreview, setPostImagePreview] = useState<string | null>(null);
   const [postImageUploading, setPostImageUploading] = useState(false);
+  const [postImageError, setPostImageError] = useState<string | null>(null);
   const [actFilter, setActFilter] = useState<NrFilterKey>("ALL");
   const qc = useQueryClient();
 
@@ -931,6 +947,17 @@ export function NewsroomPanel({
   function handlePostImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPostImageError(null);
+    if (!file.type.startsWith("image/")) {
+      setPostImageError("Only image files are accepted.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPostImageError("Image must be 5 MB or smaller.");
+      e.target.value = "";
+      return;
+    }
     setPostImageFile(file);
     setPostImagePreview(URL.createObjectURL(file));
   }
@@ -1080,7 +1107,7 @@ export function NewsroomPanel({
               <div className="relative">
                 <img src={postImagePreview} alt="Preview" className="h-24 w-full object-cover rounded border border-border/40" />
                 <button
-                  onClick={() => { setPostImageFile(null); setPostImagePreview(null); }}
+                  onClick={() => { setPostImageFile(null); setPostImagePreview(null); setPostImageError(null); }}
                   className="absolute top-1 right-1 bg-background/80 text-red-400 rounded p-0.5 hover:bg-background"
                 >
                   <Trash2 className="w-3 h-3" />
@@ -1092,6 +1119,9 @@ export function NewsroomPanel({
                 <span className="text-[11px] text-muted-foreground">Add image (optional)...</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handlePostImageSelect} data-testid="input-news-image-file" />
               </label>
+            )}
+            {postImageError && (
+              <p className="text-xs text-red-400 mt-1" data-testid="text-post-image-error">{postImageError}</p>
             )}
             <div className="flex justify-end gap-2">
               <RetroButton variant="outline" size="sm" onClick={() => setShowPostForm(false)}>Cancel</RetroButton>

@@ -47,6 +47,25 @@ export function registerObjectStorageRoutes(app: Express): void {
         });
       }
 
+      if (!Number.isFinite(size) || size <= 0) {
+        return res.status(400).json({
+          error: "Missing or invalid field: size must be a positive number.",
+        });
+      }
+
+      const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+      if (size > MAX_SIZE) {
+        return res.status(400).json({
+          error: "File too large. Maximum allowed size is 5 MB.",
+        });
+      }
+
+      if (typeof contentType !== "string" || !contentType.startsWith("image/")) {
+        return res.status(400).json({
+          error: "Invalid or missing contentType. Only image files are accepted.",
+        });
+      }
+
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
 
       // Extract object path from the presigned URL for later reference
