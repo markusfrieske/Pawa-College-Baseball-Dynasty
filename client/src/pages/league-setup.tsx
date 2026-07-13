@@ -251,22 +251,31 @@ function TeamTile({
   team,
   isSelected,
   onSelect,
+  confRank,
 }: {
   team: TeamWithCoach;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  confRank?: number;
 }) {
   const hasCoach = !!team.coach;
   const isHuman = hasCoach && !!team.coach?.userId;
   const isCpu = hasCoach && !team.coach?.userId;
   const isAvailable = !team.coach?.userId;
 
+  const prestige = team.prestige ?? 5;
+  const prestigeColor =
+    prestige >= 9 ? "text-yellow-300" :
+    prestige >= 7 ? "text-gold" :
+    prestige >= 5 ? "text-muted-foreground" :
+    "text-muted-foreground/60";
+
   return (
     <button
       onClick={() => isAvailable && onSelect(team.id)}
       disabled={!isAvailable && !isSelected}
-      title={team.name}
-      className={`relative flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all focus:outline-none ${
+      title={`${team.name}${confRank ? ` — #${confRank} in conference` : ""} (Prestige ${prestige})`}
+      className={`relative flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all focus:outline-none ${
         isSelected
           ? "border-gold ring-1 ring-gold/40 bg-gold/10"
           : isAvailable
@@ -298,14 +307,14 @@ function TeamTile({
             <Check className="w-2.5 h-2.5 text-forest-dark" strokeWidth={3} />
           </div>
         )}
-        {isCpu && !isSelected && (
-          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-orange-500/90 rounded-full flex items-center justify-center">
-            <Cpu className="w-2 h-2 text-white" />
-          </div>
-        )}
-        {isHuman && !isSelected && (
+        {!isSelected && isHuman && (
           <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500/90 rounded-full flex items-center justify-center">
             <User className="w-2 h-2 text-white" />
+          </div>
+        )}
+        {confRank && !isSelected && !isHuman && (
+          <div className={`absolute -top-1 -left-1 font-pixel text-[7px] leading-none px-1 py-0.5 rounded bg-background/80 border border-border/60 ${prestigeColor}`}>
+            #{confRank}
           </div>
         )}
       </div>
@@ -316,6 +325,9 @@ function TeamTile({
       >
         {team.name}
       </p>
+      <span className={`font-pixel text-[7px] leading-none ${isSelected ? "text-gold/70" : prestigeColor}`}>
+        {"★".repeat(Math.min(prestige, 5))}{"☆".repeat(Math.max(0, 5 - Math.min(prestige, 5)))}
+      </span>
     </button>
   );
 }
@@ -333,7 +345,7 @@ function TeamSelectionStep({
 }) {
   const [search, setSearch] = useState("");
   const [confFilter, setConfFilter] = useState("all");
-  const [sort, setSort] = useState("name");
+  const [sort, setSort] = useState("prestige");
 
   const { data: scoutingMap } = useQuery<Record<string, TeamScoutingInfo>>({
     queryKey: ["/api/team-templates/scouting"],
@@ -364,6 +376,17 @@ function TeamSelectionStep({
     });
 
     return result;
+  })();
+
+  const confRankMap: Record<string, number> = (() => {
+    const map: Record<string, number> = {};
+    conferences.forEach(conf => {
+      [...teams]
+        .filter(t => t.conferenceId === conf.id)
+        .sort((a, b) => (b.prestige ?? 0) - (a.prestige ?? 0))
+        .forEach((t, i) => { map[t.id] = i + 1; });
+    });
+    return map;
   })();
 
   const groupedByConf = conferences.map(conf => ({
@@ -448,6 +471,7 @@ function TeamSelectionStep({
                 team={team}
                 isSelected={selectedTeamId === team.id}
                 onSelect={onSelect}
+                confRank={confRankMap[team.id]}
               />
             ))}
           </div>
