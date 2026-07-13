@@ -50,7 +50,7 @@ import {
   ARCHETYPE_SEASON_CONTACT_BONUS,
   ARCHETYPE_SEASON_SCOUT_BONUS,
 } from "@shared/recruitingBalance";
-import { computeRecruitingEconomy } from "../services/recruitingEconomyService";
+import { computeRecruitingEconomyWithLedger } from "../services/recruitingEconomyService";
 import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import {
   getAttributesToRevealCount,
@@ -2839,7 +2839,7 @@ export function registerRecruitingRoutes(app: Express): void {
         recruitPointCosts,
         seasonVisitCount,
         autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
-        economy: computeRecruitingEconomy({
+        economy: (await computeRecruitingEconomyWithLedger({
           league,
           coach,
           team: userTeam,
@@ -2854,7 +2854,7 @@ export function registerRecruitingRoutes(app: Express): void {
           scoutSpent: scoutActionsUsed,
           scoutCap: maxScoutActions,
           seasonVisitCount,
-        }),
+        }, storage)).economy,
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);

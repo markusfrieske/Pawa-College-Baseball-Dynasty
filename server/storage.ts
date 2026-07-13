@@ -44,6 +44,7 @@ import {
   type TransferPortalInterest, type InsertTransferPortalInterest,
   type PlayerHistory, type InsertPlayerHistory,
   type PlayerPromise, type InsertPlayerPromise,
+  type TeamRecruitingLedger, type InsertTeamRecruitingLedger,
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
   type Walkon, type InsertWalkon,
   savedRosters, savedRecruitingClasses, recruitingClassShares,
@@ -253,6 +254,9 @@ export interface IStorage {
   getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]>;
   getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]>;
   deleteLeague(id: string): Promise<void>;
+
+  getTeamRecruitingLedger(leagueId: string, teamId: string, season: number, turnIndex: number): Promise<TeamRecruitingLedger | undefined>;
+  upsertTeamRecruitingLedger(data: InsertTeamRecruitingLedger): Promise<TeamRecruitingLedger>;
 
   createPlayerPromise(data: InsertPlayerPromise): Promise<PlayerPromise>;
   getPlayerPromisesByTeam(teamId: string): Promise<PlayerPromise[]>;
@@ -1851,6 +1855,36 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(conferences).where(eq(conferences.leagueId, id));
       await tx.delete(leagues).where(eq(leagues.id, id));
     });
+  }
+
+  async getTeamRecruitingLedger(leagueId: string, teamId: string, season: number, turnIndex: number): Promise<TeamRecruitingLedger | undefined> {
+    const [row] = await db.select().from(teamRecruitingLedgers).where(
+      and(
+        eq(teamRecruitingLedgers.leagueId, leagueId),
+        eq(teamRecruitingLedgers.teamId, teamId),
+        eq(teamRecruitingLedgers.season, season),
+        eq(teamRecruitingLedgers.recruitingTurnIndex, turnIndex),
+      )
+    );
+    return row;
+  }
+
+  async upsertTeamRecruitingLedger(data: InsertTeamRecruitingLedger): Promise<TeamRecruitingLedger> {
+    const [row] = await db.insert(teamRecruitingLedgers).values(data)
+      .onConflictDoUpdate({
+        target: [teamRecruitingLedgers.leagueId, teamRecruitingLedgers.teamId, teamRecruitingLedgers.season, teamRecruitingLedgers.recruitingTurnIndex],
+        set: {
+          contactCap: data.contactCap,
+          scoutCap: data.scoutCap,
+          targetsCap: data.targetsCap,
+          visitsCombinedCap: data.visitsCombinedCap,
+          campusVisitCap: data.campusVisitCap,
+          headCoachVisitCap: data.headCoachVisitCap,
+          rulesVersion: data.rulesVersion,
+        },
+      })
+      .returning();
+    return row;
   }
 
   async createPlayerPromise(data: InsertPlayerPromise): Promise<PlayerPromise> {

@@ -148,7 +148,7 @@ export async function updateRecruitStages(leagueId: string, week: number) {
     // For medium/long seasons, buzz is capped at 1%/week (vs 1-2% for short/standard) to prevent
     // elite programs from gaining a compounding advantage over many more in-season recruiting weeks.
     if (sortedInterests.length > 0) {
-      const maxBuzzGain = (seasonLength === "long" || seasonLength === "medium") ? 1 : 2;
+      const maxBuzzGain = (seasonLength === "long" || seasonLength === "medium" || seasonLength === "full_season") ? 1 : 2;
       for (const interest of allInterests) {
         const buzzTeam = allLeagueTeams.find(t => t.id === interest.teamId);
         if (!buzzTeam) continue;
