@@ -79,6 +79,7 @@ function RecruitRow({
   emailedThisWeek,
   nilRemaining,
   seasonVisitCapReached,
+  visitCap,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -119,6 +120,7 @@ function RecruitRow({
   emailedThisWeek?: boolean;
   nilRemaining?: number;
   seasonVisitCapReached?: boolean;
+  visitCap?: number;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -788,7 +790,7 @@ function RecruitRow({
                       onClick={() => { onVisit(); setShowMobileMore(false); }}
                       disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
                       data-testid={`button-visit-mobile-${recruit.id}`}
-                      title={seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : hasVisited ? "Campus Visit already used for this recruit" : undefined}
+                      title={seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : hasVisited ? "Campus Visit already used for this recruit" : undefined}
                     >
                       <Building2 className="w-3 h-3 flex-shrink-0" />
                       {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : `Visit (${visitCost} pts)`}
@@ -798,7 +800,7 @@ function RecruitRow({
                       onClick={() => { onHeadCoachVisit(); setShowMobileMore(false); }}
                       disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
                       data-testid={`button-hcvisit-mobile-${recruit.id}`}
-                      title={seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : undefined}
+                      title={seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : undefined}
                     >
                       <Crown className="w-3 h-3 flex-shrink-0" />
                       {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : `HC Visit (${headCoachVisitCost} pts)`}
@@ -959,7 +961,7 @@ function RecruitRow({
                       <span className="text-[9px]">{hasVisited ? "Visited" : seasonVisitCapReached ? "Cap" : `Visit (${visitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
+                  <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -974,7 +976,7 @@ function RecruitRow({
                       <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap" : `HC Visit (${headCoachVisitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
+                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>

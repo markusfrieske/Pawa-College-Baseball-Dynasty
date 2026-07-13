@@ -5,7 +5,7 @@ interface StatCardProps {
   label: string;
   value: string;
   highlight?: boolean;
-  tooltip?: string;
+  tooltip?: React.ReactNode;
 }
 
 export function StatCard({ icon, label, value, highlight, tooltip }: StatCardProps) {
@@ -22,7 +22,7 @@ export function StatCard({ icon, label, value, highlight, tooltip }: StatCardPro
   return (
     <Tooltip>
       <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
+      <TooltipContent className="max-w-[260px] text-center text-[11px]">{tooltip}</TooltipContent>
     </Tooltip>
   );
 }

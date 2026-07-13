@@ -82,6 +82,7 @@ function RecruitDetailModal({
   hasHeadCoachVisited,
   nilRemaining,
   seasonVisitCapReached,
+  visitCap,
   userTeamId,
   trend,
   onTarget,
@@ -110,6 +111,7 @@ function RecruitDetailModal({
   hasHeadCoachVisited?: boolean;
   nilRemaining?: number;
   seasonVisitCapReached?: boolean;
+  visitCap?: number;
   userTeamId?: string;
   trend?: { trend: "up" | "down" | "flat"; recentGain: number } | null;
   onTarget?: () => void;
@@ -803,10 +805,10 @@ function RecruitDetailModal({
                     disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
                   >
                     <Building2 className="w-4 h-4 mr-2" />
-                    {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
+                    {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Campus Visit — ${visitCost} recruiting points`}</TooltipContent>
+                <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : `Campus Visit — ${visitCost} recruiting points`}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -818,10 +820,10 @@ function RecruitDetailModal({
                     disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
+                    {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
+                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
               </Tooltip>
               {nilRemaining != null && Math.ceil((recruit.nilCost || 0) * 1.25) > nilRemaining && !recruit.interest?.hasOffer && scoutPct >= NIL_SCOUT_THRESHOLD ? (
                 <Tooltip>
@@ -1420,10 +1422,10 @@ function RecruitDetailModal({
                     disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
                   >
                     <Building2 className="w-4 h-4 mr-2" />
-                    {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
+                    {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Campus Visit — ${visitCost} recruiting points`}</TooltipContent>
+                <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : `Campus Visit — ${visitCost} recruiting points`}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1435,10 +1437,10 @@ function RecruitDetailModal({
                     disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
+                    {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
+                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
               </Tooltip>
               {nilRemaining != null && Math.ceil((recruit.nilCost || 0) * 1.25) > nilRemaining && !recruit.interest?.hasOffer && scoutPct >= NIL_SCOUT_THRESHOLD ? (
                 <Tooltip>

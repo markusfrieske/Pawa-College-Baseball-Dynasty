@@ -713,33 +713,70 @@ export default function RecruitingPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-6 gap-1">
-            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.economy?.targets.used ?? data?.targetedCount ?? 0}/${data?.economy?.targets.cap ?? 20}`} />
-            <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
-            <StatCard icon={<Phone className="w-4 h-4" />} label="Contact Pts" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
-            <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Pts" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
-            <StatCard
-              icon={<Building2 className="w-4 h-4" />}
-              label="Visits"
-              value={`${data?.economy?.visits.totalUsed ?? data?.seasonVisitCount?.total ?? 0}/${data?.economy?.visits.totalCap ?? 20}`}
-              highlight={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? 20)}
-              tooltip={`${data?.seasonVisitCount?.campusVisits ?? 0} campus visit${(data?.seasonVisitCount?.campusVisits ?? 0) !== 1 ? "s" : ""}, ${data?.seasonVisitCount?.hcVisits ?? 0} HC visit${(data?.seasonVisitCount?.hcVisits ?? 0) !== 1 ? "s" : ""} — ${data?.economy?.visits.totalCap ?? 20} total cap per season`}
-            />
-            {data?.team && (
-              <StatCard
-                icon={<DollarSign className="w-4 h-4" />}
-                label="NIL"
-                value={(() => {
-                  const rem = (data.team.nilBudget || 0) - (data.team.nilSpent || 0);
-                  return rem >= 1000000
-                    ? `$${(rem / 1000000).toFixed(1)}M`
-                    : rem >= 1000
-                    ? `$${Math.round(rem / 1000)}K`
-                    : `$${rem}`;
-                })()}
-              />
-            )}
-          </div>
+          {(() => {
+            const eco = data?.economy;
+            const fmtNil = (n: number) =>
+              n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${Math.round(n / 1_000)}K` : `$${n}`;
+
+            const visitsUsed = eco?.visits.totalUsed ?? data?.seasonVisitCount?.total ?? 0;
+            const visitsCap = eco?.visits.totalCap;
+            const visitsValue = visitsCap != null ? `${visitsUsed}/${visitsCap}` : `${visitsUsed}/—`;
+            const visitsHighlight = visitsCap != null && visitsUsed >= visitsCap;
+            const visitsTooltip = eco
+              ? `Campus: ${eco.visits.campusUsed}/${eco.visits.campusCap} · HC Visit: ${eco.visits.headCoachUsed}/${eco.visits.headCoachCap}`
+              : `${data?.seasonVisitCount?.campusVisits ?? 0} campus · ${data?.seasonVisitCount?.hcVisits ?? 0} HC`;
+
+            const commitsValue = eco
+              ? `${eco.commits.signed}/${eco.commits.confirmedOpenings}–${eco.commits.projectedOpenings}`
+              : `${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`;
+            const commitsTooltip = eco
+              ? `${eco.commits.confirmedOpenings} confirmed spots · ${eco.commits.projectedOpenings} projected (likely departures) · ${eco.commits.oversignAllowance}-player oversign allowed`
+              : undefined;
+
+            const nilRem = eco?.nil.recruitingRemaining ?? (data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : 0);
+            const nilTooltip = eco
+              ? `Alloc: ${fmtNil(eco.nil.recruitingAllocated)} · Committed: ${fmtNil(eco.nil.recruitingCommitted)} · Retention: ${fmtNil(eco.nil.retentionReserved)} · Walk-on: ${fmtNil(eco.nil.walkonReserved)}`
+              : undefined;
+
+            return (
+              <div className="grid grid-cols-6 gap-1">
+                <StatCard
+                  icon={<Target className="w-4 h-4" />}
+                  label="Targets"
+                  value={`${eco?.targets.used ?? data?.targetedCount ?? 0}/${eco?.targets.cap ?? "—"}`}
+                />
+                <StatCard
+                  icon={<Check className="w-4 h-4" />}
+                  label="Commits"
+                  value={commitsValue}
+                  tooltip={commitsTooltip}
+                />
+                <StatCard
+                  icon={<Phone className="w-4 h-4" />}
+                  label="Contact Pts"
+                  value={`${eco?.contactPoints.spent ?? data?.pointsUsed ?? 0}/${eco?.contactPoints.cap ?? data?.maxPoints ?? 0}`}
+                />
+                <StatCard
+                  icon={<Eye className="w-4 h-4" />}
+                  label="Scout Pts"
+                  value={`${eco?.scoutPoints.spent ?? data?.scoutPointsUsed ?? 0}/${eco?.scoutPoints.cap ?? data?.maxScoutPoints ?? 0}`}
+                />
+                <StatCard
+                  icon={<Building2 className="w-4 h-4" />}
+                  label="Visits"
+                  value={visitsValue}
+                  highlight={visitsHighlight}
+                  tooltip={visitsTooltip}
+                />
+                <StatCard
+                  icon={<DollarSign className="w-4 h-4" />}
+                  label="NIL Left"
+                  value={fmtNil(nilRem)}
+                  tooltip={nilTooltip}
+                />
+              </div>
+            );
+          })()}
           {data?.team && (data.team as any).recruitingRankBoost > 0 && (() => {
             const boost = (data.team as any).recruitingRankBoost as number;
             const prev = (data.team as any).prevNationalRank as number | null;
@@ -1875,7 +1912,8 @@ export default function RecruitingPage() {
                     outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
                     progressionEnabled={leagueData?.progressionEnabled}
                     nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-                    seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? 20)}
+                    seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? Infinity)}
+                    visitCap={data?.economy?.visits.totalCap}
                   />
                 </div>
               );
@@ -1934,7 +1972,8 @@ export default function RecruitingPage() {
         hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
         nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
-        seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? 20)}
+        seasonVisitCapReached={(data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits.totalCap ?? Infinity)}
+        visitCap={data?.economy?.visits.totalCap}
         userTeamId={data?.team?.id}
         trend={selectedRecruit ? (trendsData?.trends?.[selectedRecruit.id] ?? null) : null}
       />
