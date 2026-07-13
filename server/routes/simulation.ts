@@ -3942,25 +3942,27 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
       for (const p of finalRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
 
       // Compute position group depths
+      // OF, LF, CF, RF all count as outfield — the walk-on system normalizes LF/CF/RF → OF
       const pDepth  = positionCounts["P"]  || 0;
       const cDepth  = positionCounts["C"]  || 0;
       const ifDepth = (positionCounts["1B"] || 0) + (positionCounts["2B"] || 0) + (positionCounts["3B"] || 0) + (positionCounts["SS"] || 0);
-      const ofDepth = (positionCounts["LF"] || 0) + (positionCounts["CF"] || 0) + (positionCounts["RF"] || 0);
+      const ofDepth = (positionCounts["OF"] || 0) + (positionCounts["LF"] || 0) + (positionCounts["CF"] || 0) + (positionCounts["RF"] || 0);
 
       // Determine positions needed to meet depth floors
       const depthGaps: string[] = [];
       for (let i = pDepth;  i < MIN_DEPTH.P;  i++) depthGaps.push("P");
       for (let i = cDepth;  i < MIN_DEPTH.C;  i++) depthGaps.push("C");
       for (let i = ifDepth; i < MIN_DEPTH.IF; i++) depthGaps.push("2B");
-      for (let i = ofDepth; i < MIN_DEPTH.OF; i++) depthGaps.push("CF");
+      for (let i = ofDepth; i < MIN_DEPTH.OF; i++) depthGaps.push("OF");
 
-      // Total fillers = max(roster-floor deficit, depth-gap count)
+      // Total fillers = max(roster-floor deficit, depth-gap count), hard-capped at 25-player max
       const rosterDeficit = MIN_ROSTER_HEALTH - finalRoster.length;
-      const positions = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "P"];
+      const rosterCap = 25 - finalRoster.length; // never push above 25
+      const positions = ["C", "1B", "2B", "3B", "SS", "OF", "P"];
       const fillerPositions: string[] = [...depthGaps];
 
       // Fill remaining roster spots (if any) with most-needed positions
-      const totalFillers = Math.max(rosterDeficit, depthGaps.length);
+      const totalFillers = Math.min(rosterCap, Math.max(rosterDeficit, depthGaps.length));
       if (totalFillers <= 0) continue;
 
       // Recount including already-queued depth-gap fillers
