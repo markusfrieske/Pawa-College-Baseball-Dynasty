@@ -259,7 +259,7 @@ function TeamTile({
   const hasCoach = !!team.coach;
   const isHuman = hasCoach && !!team.coach?.userId;
   const isCpu = hasCoach && !team.coach?.userId;
-  const isAvailable = !hasCoach;
+  const isAvailable = !team.coach?.userId;
 
   return (
     <button
