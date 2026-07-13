@@ -3637,11 +3637,13 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
   // buffer, floored by minimumNationalBoard) so the class reflects actual roster demand.
   // Non-full_season leagues use the backward-compatible linear formula (≤80).
   const _walkonsLeague = await storage.getLeague(leagueId);
+  // Fetch a fresh roster snapshot for pool sizing and position targets.
+  // preloadedRosterPlayers belongs to finalizeSigningDay's scope and is not available here.
+  const walkonsRosterSnapshot = await storage.getPlayersByTeamIds(teams.map(t => t.id));
   let recruitCount: number;
   if (_walkonsLeague?.dynastyPreset === "full_season") {
-    // Re-use the already-loaded roster snapshot (preloadedRosterPlayers) to avoid
-    // a second DB round-trip; same dataset that drives the position targets below.
-    recruitCount = computePoolSizeFromDepartures(preloadedRosterPlayers, teams.length);
+    // Departure-based formula: open slots (SR + JR × 1.2 buffer) floored by minimumNationalBoard.
+    recruitCount = computePoolSizeFromDepartures(walkonsRosterSnapshot, teams.length);
     console.log(`[finalizeWalkonsPhase] Departure-based pool size: ${recruitCount} (teams=${teams.length})`);
   } else {
     recruitCount = getRecruitPoolSize(teams.length, _walkonsLeague?.dynastyPreset);
@@ -3650,11 +3652,10 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
   // ── Departure-based position-demand planning ──────────────────────────────
   // posTargets.{P, C, IF, OF} reflect actual vacated slots (SR + JR departures + 20%
   // buffer), giving the generator exact group quotas instead of a static ratio.
-  // preloadedRosterPlayers is reused here — no extra DB call needed.
   let nextClassPitcherRatio: number | undefined;
   let nextClassPosGroupWeights: { C?: number; IF?: number; OF?: number } | undefined;
   try {
-    const posTargets = computePositionTargetsFromDepartures(preloadedRosterPlayers, recruitCount);
+    const posTargets = computePositionTargetsFromDepartures(walkonsRosterSnapshot, recruitCount);
     nextClassPitcherRatio = derivePitcherRatioFromTargets(posTargets, recruitCount);
     // Non-pitcher group weights drive pre-assigned deterministic position quotas.
     if (posTargets.C || posTargets.IF || posTargets.OF) {
@@ -3983,19 +3984,20 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
           firstName: "Walk",
           lastName: `On-${d + 1}`,
           position: pos,
-          year: "FR",
+          eligibility: "FR",
           overall: fillerAttrs + 100,
           potential: "D",
-          bats: "R",
-          throws: "R",
-          homeState: "N/A",
+          batHand: "R",
+          throwHand: "R",
+          hometown: "Walk-On",
+          jerseyNumber: 90 + d,
           abilities: [],
-          contact: fillerAttrs, power: fillerAttrs, speed: fillerAttrs,
-          fielding: fillerAttrs, arm: fillerAttrs, accuracy: fillerAttrs,
+          hitForAvg: fillerAttrs, power: fillerAttrs, speed: fillerAttrs,
+          fielding: fillerAttrs, arm: fillerAttrs, errorResistance: fillerAttrs,
           velocity: fillerAttrs, stuff: fillerAttrs, control: fillerAttrs,
           stamina: pos === "P" ? fillerAttrs : 0,
           isWalkOn: true,
-        } as any);
+        });
       }
       healthEvents.push({ teamId: team.id, teamName: team.name, before: beforeCount, added: fillerPositions.length });
     }

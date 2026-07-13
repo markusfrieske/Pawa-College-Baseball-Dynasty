@@ -1261,7 +1261,7 @@ export async function registerRoutes(
       }
 
       // Generate recruits now that teams exist — scale class size to team count
-      const initClassVintage = await generateRecruits(league.id, getRecruitPoolSize(totalTeamsCreated));
+      const initClassVintage = await generateRecruits(league.id, getRecruitPoolSize(totalTeamsCreated, league.dynastyPreset ?? undefined));
       if (initClassVintage) {
         await storage.updateLeague(league.id, { currentClassVintage: initClassVintage });
       }

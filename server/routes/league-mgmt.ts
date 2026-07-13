@@ -323,7 +323,7 @@ app.post("/api/leagues/:id/recruiting/generate", requireAuth, async (req, res) =
     // forceStorylineReset=true: commissioner explicitly regenerated the class, so existing
     // storyline data for this season must be wiped and rebuilt for the new recruits.
     const leagueTeamsForCount = await storage.getTeamsByLeague(req.params.id as string);
-    const recruitCount = getRecruitPoolSize(leagueTeamsForCount.length);
+    const recruitCount = getRecruitPoolSize(leagueTeamsForCount.length, league?.dynastyPreset ?? undefined);
     const generatedVintage = await generateRecruits(req.params.id as string, recruitCount, true);
     await storage.updateLeague(req.params.id as string, { currentClassVintage: generatedVintage });
 
@@ -899,7 +899,7 @@ app.post("/api/leagues/:id/recruiting/import", requireAuth, async (req, res) => 
       // forceStorylineReset=true: commissioner-initiated generation, so existing storyline data
       // for this season is wiped and rebuilt for the newly generated recruits.
       const importTeams = await storage.getTeamsByLeague(req.params.id as string);
-      recruitCount = getRecruitPoolSize(importTeams.length);
+      recruitCount = getRecruitPoolSize(importTeams.length, league?.dynastyPreset ?? undefined);
       const importGeneratedVintage = await generateRecruits(req.params.id as string, recruitCount, true);
       await storage.updateLeague(req.params.id as string, { currentClassVintage: importGeneratedVintage });
 
@@ -2141,7 +2141,7 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
         }
       } else {
         const teams = await storage.getTeamsByLeague(leagueId);
-        const recruitCount = getRecruitPoolSize(teams.length);
+        const recruitCount = getRecruitPoolSize(teams.length, league?.dynastyPreset ?? undefined);
         const joinGeneratedVintage = await generateRecruits(leagueId, recruitCount);
         await storage.updateLeague(leagueId, { currentClassVintage: joinGeneratedVintage });
       }

@@ -161,7 +161,8 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   // in full.  Skipping only when the count matches exactly prevents silently
   // serving a truncated class on bootstrap resume.
   await updateProgress(jobId, 58, "Generating recruiting class");
-  const recruitCount = getRecruitPoolSize(leagueTeams.length);
+  // Full-season bootstrap always uses the full_season preset formula.
+  const recruitCount = getRecruitPoolSize(leagueTeams.length, "full_season");
   const existingRecruits = await storage.getRecruitsByLeague(leagueId);
   if (existingRecruits.length === recruitCount) {
     console.log(`[bootstrap:${leagueId}] Recruiting class: already complete (${existingRecruits.length} recruits)`);

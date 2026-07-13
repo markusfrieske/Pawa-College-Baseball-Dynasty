@@ -76,15 +76,15 @@ function positionToGroup(pos: string): string {
  * @param poolSize  Target total pool size to normalize quotas against.
  */
 export function computePositionTargetsFromDepartures(
-  players: Array<{ year: string; position: string }>,
+  players: Array<{ eligibility?: string | null; position?: string | null }>,
   poolSize: number,
 ): Record<string, number> {
   const departures: Record<string, number> = { P: 0, C: 0, IF: 0, OF: 0 };
 
   for (const player of players) {
     // Seniors always depart; JRs are treated as likely to declare for the draft
-    if (player.year === "SR" || player.year === "JR") {
-      const group = positionToGroup(player.position);
+    if (player.eligibility === "SR" || player.eligibility === "JR") {
+      const group = positionToGroup(player.position ?? "");
       departures[group] = (departures[group] || 0) + 1;
     }
   }
@@ -136,11 +136,11 @@ export function computePositionTargetsFromDepartures(
  * is unavailable (e.g. first season with no SR/JR players).
  */
 export function computePoolSizeFromDepartures(
-  players: Array<{ year?: string | null; position?: string | null }>,
+  players: Array<{ eligibility?: string | null; position?: string | null }>,
   teamCount: number,
 ): number {
   const staticSize = computeFullSeasonRecruitPoolSize(teamCount);
-  const totalDepartures = players.filter(p => p.year === "SR" || p.year === "JR").length;
+  const totalDepartures = players.filter(p => p.eligibility === "SR" || p.eligibility === "JR").length;
   if (totalDepartures === 0) return staticSize;
 
   // Open slots with 20% competition buffer
