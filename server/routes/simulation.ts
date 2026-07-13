@@ -81,6 +81,7 @@ import { updateRecruitStages } from "./league-mgmt";
 import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
 import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets, computePoolSizeFromDepartures } from "../services/recruitPoolPlanner";
 import { Phase, getSeasonMaxWeeks, RECRUITING_ACTIVE_PHASES as _PHASE_RECRUITING_ACTIVE, STORYLINE_ACTIVE_PHASES as _PHASE_STORYLINE_ACTIVE, OFFSEASON_RECRUITING_PHASES as _PHASE_OFFSEASON_REC } from "@shared/phase";
+import { getTurnContactCap, getRecruitingBalanceProfile, getRecruitingTurnIndex } from "@shared/recruitingBalance";
 
 // ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
 // These are duplicated at module scope so simulation.ts (which runs CPU
@@ -4298,22 +4299,17 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
   const league = await storage.getLeague(leagueId);
   const leagueDifficulty = league?.cpuDifficulty || "high_school";
   
-  // CPU difficulty balance (rebalanced for 4-week recruiting window):
+  // CPU difficulty balance (V2):
   //   Auto-pilot and force-advanced human teams always use all_american difficulty,
   //   regardless of the league's CPU difficulty setting.
-  //
-  //   gainMultiplier applies on top of the same compute* functions humans use.
-  //
-  //   Effective human-equivalent actions (with updated difficultyStretch, base 15):
-  //     beginner:     budget≈15 × 0.75 = 11  → meaningfully easier than human (15)
-  //     high_school:  budget≈15 × 1.0  = 15  → matches human baseline
-  //     all_american: budget≈15 × 1.1  = 17  → modest edge
-  //     elite:        budget≈15 × 1.2  = 18  → challenging not cheating
-  const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number; positionNeedWeight: number; requireWarmup: boolean; competitionAware: boolean }> = {
-    beginner:     { minActions: 4, maxActions: 7,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 25, visitThreshold: 45, positionNeedWeight: 5,  requireWarmup: false, competitionAware: false },
-    high_school:  { minActions: 5, maxActions: 9,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 15, visitThreshold: 35, positionNeedWeight: 12, requireWarmup: false, competitionAware: false },
-    all_american: { minActions: 6, maxActions: 11, gainMultiplier: 1.05, targetingBonus: 10, offerThreshold: 10, visitThreshold: 25, positionNeedWeight: 22, requireWarmup: true,  competitionAware: true  },
-    elite:        { minActions: 7, maxActions: 13, gainMultiplier: 1.10, targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20, positionNeedWeight: 30, requireWarmup: true,  competitionAware: true  },
+  //   V2: gainMultiplier and difficultyStretch removed.  Difficulty only affects
+  //   decisions — topic quality, offer/visit thresholds, warmup gates, noise level.
+  //   Action budget comes from getTurnContactCap() — identical formula to human routes.
+  const difficultyConfig: Record<string, { targetingBonus: number; offerThreshold: number; visitThreshold: number; hcvThreshold: number; positionNeedWeight: number; requireWarmup: boolean; competitionAware: boolean }> = {
+    beginner:     { targetingBonus: 0,  offerThreshold: 25, visitThreshold: 45, hcvThreshold: 60, positionNeedWeight: 5,  requireWarmup: false, competitionAware: false },
+    high_school:  { targetingBonus: 5,  offerThreshold: 15, visitThreshold: 35, hcvThreshold: 50, positionNeedWeight: 12, requireWarmup: false, competitionAware: false },
+    all_american: { targetingBonus: 10, offerThreshold: 10, visitThreshold: 25, hcvThreshold: 40, positionNeedWeight: 22, requireWarmup: true,  competitionAware: true  },
+    elite:        { targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20, hcvThreshold: 35, positionNeedWeight: 30, requireWarmup: true,  competitionAware: true  },
   };
 
   const aggression = Math.max(1, Math.min(5, league?.cpuRecruitingAggression ?? 3));
@@ -4358,13 +4354,29 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
     const teamDifficulty = isSpecialHandling ? "all_american" : leagueDifficulty;
     const config = buildConfig(teamDifficulty);
 
-    // Use the same coach-driven budget as humans so archetype/skill perks
-    // measurably affect CPU action throughput too. Difficulty stretches it.
-    // Pass seasonLength so CPU budget scales identically to the human path.
-    const baseBudget = getMaxRecruitingActions(teamCoach, league?.seasonLength);
-    // Reduced stretches for AA/Elite: action volume advantage is modest; smarts do the heavy lifting.
-    const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 }[teamDifficulty] ?? 1.0;
-    const actionsBudget = Math.max(2, Math.round(baseBudget * difficultyStretch));
+    // V2: derive contact cap from the canonical balance module — same formula as human routes.
+    // Difficulty affects decisions (topic quality, offer timing, warmup gates), not resource volume.
+    const avgRecruitSkill = Math.floor(
+      ((teamCoach?.pitchingRecruitingSkill || 1) + (teamCoach?.hittingRecruitingSkill || 1)) / 2
+    );
+    const avgScoutSkill = Math.floor(
+      ((teamCoach?.scoutingSkill || 1) + (teamCoach?.evaluationSkill || 1)) / 2
+    );
+    const cpuArchetype = (teamCoach?.archetype as string | undefined) || "Balanced";
+    const cpuHasQuickStudy = !!(teamCoach?.perks as Record<string, boolean> | null)?.scout_quick_study;
+    const actionsBudget = getTurnContactCap({
+      seasonLength: league?.seasonLength,
+      dynastyPreset: league?.dynastyPreset,
+      avgRecruitSkill,
+      avgScoutSkill,
+      archetype: cpuArchetype,
+      hasQuickStudy: cpuHasQuickStudy,
+      currentPhase: league?.currentPhase || "regular_season",
+      currentWeek: week,
+    });
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[cap-parity] ${team.isCpu ? "CPU" : "auto-pilot"} ${team.name}: contactCap=${actionsBudget} skill=${avgRecruitSkill} arch=${cpuArchetype}`);
+    }
 
     // Per-team action summary for auto-pilot log (populated if isSpecialHandling)
     const actionSummary = { emails: 0, phones: 0, visits: 0, hcVisits: 0, offers: 0, scoutingDone: 0, recruitsTargeted: [] as { name: string; position: string; stars: number; action: string }[] };
@@ -4456,7 +4468,14 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
         let styleBonus = 0;
         const stars = r.starRating || 3;
         if (styleStrategy === "top_prospects" && stars >= 4) styleBonus = 12;
-        else if (styleStrategy === "high_potential" && (r.potential === "A" || r.potential === "B" || r.potential === "B+")) styleBonus = 10;
+        else if (styleStrategy === "high_potential") {
+          // Hidden-info rule: only act on potential if scouted to ≥50%, or on visible above-band OVR signal
+          const scoutPct = interest?.scoutPercentage ?? 0;
+          const potVisible = scoutPct >= 50 && (r.potential === "A" || r.potential === "B" || r.potential === "B+");
+          const aboveBandVisible = scoutPct >= 10
+            && (interest?.scoutedMin ?? 0) > (r.starRating || 3) * 100;
+          if (potVisible || aboveBandVisible) styleBonus = 10;
+        }
         else if (styleStrategy === "all_in_few") {
           // Heavy interest bonus — go deep on already-engaged recruits
           styleBonus = Math.min(15, currentInterest * 0.2);
@@ -4503,9 +4522,14 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
     }> = [];
     const isDeadlineForced = forcedHumanTeamIds.has(team.id) && !team.isAutoPilot;
 
-    let cpuSeasonVisitsUsed = teamActionsLog.filter(a =>
-      a.season === season && (a.actionType === "visit" || a.actionType === "head_coach_visit")
+    const profile = getRecruitingBalanceProfile(league?.seasonLength, league?.dynastyPreset);
+    let cpuSeasonCampusVisitsUsed = teamActionsLog.filter(a =>
+      a.season === season && (a.actionType === "visit" || a.actionType === "campus_visit")
     ).length;
+    let cpuSeasonHcVisitsUsed = teamActionsLog.filter(a =>
+      a.season === season && a.actionType === "head_coach_visit"
+    ).length;
+    let cpuSeasonVisitsUsed = cpuSeasonCampusVisitsUsed + cpuSeasonHcVisitsUsed;
     let pointsSpent = 0;
     const pendingTopSchoolGains = new Map<string, number>();
     for (let i = 0; i < focusedRecruits.length && pointsSpent < actionsBudget; i++) {
@@ -4539,9 +4563,18 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
       // Also enforce the 20-visit season cap (campus + head coach combined).
       const visitWarmupMet = !config.requireWarmup || priorInteractions >= 1;
       const visitCost = getActionPointCost("visit", team.state, recruit.homeState);
-      if (cpuSeasonVisitsUsed < 20 && currentInterestLevel > config.visitThreshold && visitCost <= remaining &&
-          !hasVisited && visitWarmupMet) {
+      if (cpuSeasonCampusVisitsUsed < profile.campusVisitCap && cpuSeasonVisitsUsed < profile.visitCombinedCap
+          && currentInterestLevel > config.visitThreshold && visitCost <= remaining
+          && !hasVisited && visitWarmupMet) {
         candidateActions.push("visit", "visit");
+      }
+      const hasHcVisited = teamActionsLog.some(a => a.recruitId === recruit.id && a.actionType === "head_coach_visit");
+      const hcvWarmupMet = !config.requireWarmup || priorInteractions >= 2;
+      const hcvCost = getActionPointCost("head_coach_visit", team.state, recruit.homeState);
+      if (cpuSeasonHcVisitsUsed < profile.headCoachVisitCap && cpuSeasonVisitsUsed < profile.visitCombinedCap
+          && currentInterestLevel > config.hcvThreshold && hcvCost <= remaining
+          && !hasHcVisited && hcvWarmupMet) {
+        candidateActions.push("head_coach_visit");
       }
       if (candidateActions.length === 0) continue;
       
@@ -4550,7 +4583,6 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
       if (cost > remaining) continue; // budget enforcement before execution
       
       // Use the SAME helper as the human path so multipliers match exactly.
-      // Then layer the difficulty gainMultiplier on top.
       // For TRANSFER recruits, apply prestige-band and playing-time modifiers (same as human path).
       const cpuPrestigeBandMod = computePrestigeBandMod(recruit, team);
       const cpuPlayingTimeMod = computePlayingTimeMod(recruit, roster);
@@ -4561,7 +4593,7 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
         const r = computeEmailGain(recruit, team, teamCoach, topic);
         const topicMod = topic === "prestige" ? cpuPrestigeBandMod : topic === "playingTime" ? cpuPlayingTimeMod : 1.0;
         baseGain = r.baseGain;
-        interestGain = Math.round(r.interestGain * topicMod * config.gainMultiplier);
+        interestGain = Math.round(r.interestGain * topicMod);
       } else if (actionType === "phone") {
         // Mirror human multi-topic phone (1-2 topics for CPU)
         const topicSet = [pickBestTopic(recruit)];
@@ -4573,15 +4605,23 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
           return s + Math.max(1, Math.round(pr.gain * mod));
         }, 0);
         baseGain = 6 * topicSet.length;
-        interestGain = Math.round(adjustedGain * config.gainMultiplier);
+        interestGain = adjustedGain;
       } else if (actionType === "visit") {
         const r = computeVisitGain(recruit, team, teamCoach);
         baseGain = r.baseGain;
-        interestGain = Math.round(r.interestGain * config.gainMultiplier);
+        interestGain = r.interestGain;
+      } else if (actionType === "head_coach_visit") {
+        // HCV: prestige-driven gain (same multiplier stack as human path: prestige × coach × priority)
+        const prestigeBonus = simNormalizeAttrBonus(team.prestige || 5);
+        const coachBonus = simCalculateCoachBonus(teamCoach, recruit, "head_coach_visit", team);
+        const { bonus: priorityBonus } = simCalculatePriorityBonus("prestige", recruit, team);
+        baseGain = 20 + Math.floor(Math.random() * 16);
+        const totalMultiplier = Math.min(3.0, prestigeBonus * coachBonus * priorityBonus);
+        interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
       } else { // offer
         const r = computeOfferGain(recruit, team, teamCoach);
         baseGain = r.baseGain;
-        interestGain = Math.round(r.interestGain * cpuPlayingTimeMod * config.gainMultiplier);
+        interestGain = Math.round(r.interestGain * cpuPlayingTimeMod);
       }
       // Storyline recruits: apply ±15% interest volatility for dramatic swings
       if (storylineRecruitIds.has(recruit.id)) {
@@ -4590,7 +4630,13 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
       }
       assertInterestGainSane(`cpu_${actionType}`, interestGain, baseGain);
       weeklyActionsThisWeek.add(weeklyActionKey(recruit.id, actionType));
-      if (actionType === "visit" || actionType === "head_coach_visit") cpuSeasonVisitsUsed++;
+      if (actionType === "visit" || actionType === "campus_visit") {
+        cpuSeasonCampusVisitsUsed++;
+        cpuSeasonVisitsUsed++;
+      } else if (actionType === "head_coach_visit") {
+        cpuSeasonHcVisitsUsed++;
+        cpuSeasonVisitsUsed++;
+      }
       pointsSpent += cost;
 
       // Accumulate action summary for auto-pilot / force-advanced log
@@ -4598,7 +4644,7 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
         if (actionType === "email") actionSummary.emails++;
         else if (actionType === "phone") actionSummary.phones++;
         else if (actionType === "visit") actionSummary.visits++;
-        else if (actionType === "hcVisit") actionSummary.hcVisits++;
+        else if (actionType === "head_coach_visit") actionSummary.hcVisits++;
         else if (actionType === "offer") actionSummary.offers++;
         actionSummary.recruitsTargeted.push({
           name: `${recruit.firstName || ""} ${recruit.lastName || ""}`.trim() || "Unknown",
@@ -4654,6 +4700,28 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
           season,
           isDeadlineForced,
         });
+      }
+    }
+
+    // V2: write contact points spent to ledger so auto-pilot/deadline-fill coaches see
+    // accurate remaining budget when they regain control next turn.
+    if (isSpecialHandling && pointsSpent > 0 && league) {
+      try {
+        const turnIdx = getRecruitingTurnIndex(league.currentPhase, week, league.seasonLength);
+        if (turnIdx >= 0) {
+          const existingLedger = await storage.getTeamRecruitingLedger(leagueId, team.id, season, turnIdx);
+          if (existingLedger) {
+            await storage.upsertTeamRecruitingLedger({
+              ...existingLedger,
+              contactSpent: Math.min(
+                existingLedger.contactCap,
+                (existingLedger.contactSpent || 0) + pointsSpent
+              ),
+            } as any);
+          }
+        }
+      } catch (ledgerErr) {
+        console.warn("[cpu-recruiting] Failed to charge ledger:", ledgerErr);
       }
     }
 
