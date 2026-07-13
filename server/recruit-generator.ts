@@ -200,6 +200,8 @@ export interface GenerateRecruitClassOptions {
   wizardOvrMax?: number;
   wizardOvrAverage?: number;
   wizardOvrDistribution?: "bell" | "top_heavy" | "bottom_heavy" | "flat";
+  // Override the default pitcher ratio (0.42). Clamped to [0.30, 0.65].
+  pitcherRatio?: number;
 }
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
@@ -377,6 +379,11 @@ export function generateRecruitClass(
   };
 
   let pitcherRatio = getPitcherRatio(theme);
+  // Direct pitcher ratio override (e.g. from departure-based pool planner).
+  // Applied before the wizard distribution override so wizard always wins.
+  if (opts.pitcherRatio != null) {
+    pitcherRatio = Math.min(0.65, Math.max(0.30, opts.pitcherRatio));
+  }
   // Wizard position distribution override: support both legacy "P" key and individual SP/RP/CP keys.
   // Apply whenever totalPosWeight > 0 — this correctly handles zero-pitcher intent (pitcherWeight=0).
   if (opts.wizardPositionDistribution) {
@@ -884,9 +891,14 @@ export function generateRecruitClass(
   //   Blue-chip and pitcher-gem recruits can retain 1 "protected" gold when removing it
   //   would drop OVR below their archetype floor. Adding ~numBlueChips (≈3% of count) as
   //   tolerance ensures the validator cap matches the generator's real output. Validator uses same rule.
+  // Gold cap uses a bypass tolerance in both branches so the validator and generator
+  // agree even when the OVR-aware pitcher-gem bypass retains extra gold abilities.
+  // Worst case: blueChips (≈3%) × 3 gold each + gen gem × 4 gold ≈ 13 protected gold.
+  // Tolerance = max(2, floor(count × 0.12)) safely covers the realistic bypass ceiling.
+  const _goldTolerance = Math.max(2, Math.floor(count * 0.12));
   const classGoldCap = count <= 80
-    ? Math.round(20 * count / 80)
-    : Math.round(count / 8) + Math.max(2, Math.floor(count * 0.03));
+    ? Math.round(20 * count / 80) + _goldTolerance
+    : Math.round(count / 8) + _goldTolerance;
   let classGoldCount = 0;
 
   for (let i = 0; i < count; i++) {

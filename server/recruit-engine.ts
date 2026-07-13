@@ -1069,11 +1069,17 @@ export function getTeamsForConference(conferenceName: string) {
   return conferenceTeams[conferenceName] || [];
 }
 
-export async function generateRecruits(leagueId: string, count: number, forceStorylineReset = false, targetSeason?: number) {
+export async function generateRecruits(
+  leagueId: string,
+  count: number,
+  forceStorylineReset = false,
+  targetSeason?: number,
+  opts?: { pitcherRatio?: number },
+) {
   const leagueForProgression = await storage.getLeague(leagueId);
   const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
 
-  const recruits = generateRecruitClass(count);
+  const recruits = generateRecruitClass(count, opts?.pitcherRatio != null ? { pitcherRatio: opts.pitcherRatio } : {});
 
   // Build all recruit rows in memory, then batch-insert to avoid N sequential round-trips
   const recruitRows = recruits.map(r => ({

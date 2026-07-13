@@ -19,24 +19,36 @@ export const FULL_SEASON_TOTAL: number = CONFERENCE_CATALOG.reduce((s, c) => s +
 /**
  * Compute the recruit pool size for a given number of teams.
  *
- * ≤20 teams (custom leagues): fixed 80 recruits.
- *   Unchanged from original formula — custom league balance is unaffected.
+ * Backward-compatible formula used by ALL non-full_season leagues:
+ *   ≤20 teams: min(80, teamCount × 5 + 10)   — custom league, unchanged
+ *   >20 teams: linear 80 → 200 as teams go 20 → 149
  *
- * >20 teams (large / full_season): roster-demand formula.
- *   steadyStateDemand  = ceil(teams × rosterLimit / eligibilityYears)
+ * Full-season leagues use computeFullSeasonRecruitPoolSize() instead,
+ * which applies the roster-demand formula yielding ~1,081 for 149 teams.
+ *
+ * Callers that need preset-aware behaviour should call getRecruitPoolSize()
+ * in server/utils.ts, which gates on dynastyPreset automatically.
+ */
+export function computeRecruitPoolSize(numTeams: number): number {
+  // Small/custom leagues always get the 80-recruit standard class
+  if (numTeams <= 20) return 80;
+  // Linear interpolation: 80 at 20 teams, 200 at 149 teams
+  return Math.round(80 + (200 - 80) * (numTeams - 20) / (149 - 20));
+}
+
+/**
+ * Full-season-only recruit pool formula (dynastyPreset === "full_season").
+ *
+ * Roster-demand formula guaranteeing enough recruits to replenish all rosters:
+ *   steadyStateDemand  = ceil(teams × 25 / 4)  — one class replaces 1 of 4 cohorts
  *   minimumNationalBoard = ceil(teams × 7.25)   — competition depth floor
  *   result = max(steadyStateDemand, minimumNationalBoard)
  *
- *   For 149 teams: max(ceil(149×25/4), ceil(149×7.25)) = max(932, 1081) = 1081
- *
- * This is the canonical source of truth — imported by server/utils.ts,
- * server/services/recruitPoolPlanner.ts, and validation scripts.
+ * For 149 teams: max(ceil(149×25/4), ceil(149×7.25)) = max(932, 1081) = 1081
  */
-export function computeRecruitPoolSize(numTeams: number): number {
+export function computeFullSeasonRecruitPoolSize(numTeams: number): number {
   if (numTeams <= 20) return 80;
-  const ROSTER_LIMIT = 25;
-  const ELIGIBILITY_YEARS = 4;
-  const steadyStateDemand = Math.ceil(numTeams * ROSTER_LIMIT / ELIGIBILITY_YEARS);
+  const steadyStateDemand = Math.ceil(numTeams * 25 / 4);
   const minimumNationalBoard = Math.ceil(numTeams * 7.25);
   return Math.max(steadyStateDemand, minimumNationalBoard);
 }

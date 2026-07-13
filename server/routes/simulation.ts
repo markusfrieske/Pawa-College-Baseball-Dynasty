@@ -78,6 +78,7 @@ import {
 } from "../route-helpers";
 import { updateRecruitStages } from "./league-mgmt";
 import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
+import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets } from "../services/recruitPoolPlanner";
 
 // ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
 // These are duplicated at module scope so simulation.ts (which runs CPU
@@ -1549,8 +1550,17 @@ async function applyPlayerProgression(leagueId: string) {
   // Hard guard: when progression is off, make zero database writes — no attribute
   // changes, no progressionDeltas cleared or set for any player of any eligibility.
   // This is the only gate; nothing below runs when progressionEnabled = false.
-  const allRosters = await Promise.all(teams.map(t => storage.getPlayersByTeam(t.id)));
-  const totalPlayerCount = allRosters.reduce((s, r) => s + r.length, 0);
+  // Single league-wide query instead of N per-team queries — critical for 149-team leagues
+  // with 3,700+ players. Group into per-team arrays via Map for O(1) roster lookup below.
+  const allPlayersLeague = await storage.getPlayersByLeague(leagueId);
+  const _playersByTeamId = new Map<string, typeof allPlayersLeague>();
+  for (const p of allPlayersLeague) {
+    const arr = _playersByTeamId.get(p.teamId) ?? [];
+    arr.push(p);
+    _playersByTeamId.set(p.teamId, arr);
+  }
+  const allRosters = teams.map(t => _playersByTeamId.get(t.id) ?? []);
+  const totalPlayerCount = allPlayersLeague.length;
   console.log(`[progression-guard] League ${leagueId} — progressionEnabled=${league?.progressionEnabled ?? false}, ${totalPlayerCount} players across ${teams.length} teams`);
   if (!league?.progressionEnabled) return { progressed: 0 };
 
@@ -1857,7 +1867,8 @@ async function generateWalkonPool(leagueId: string) {
   
   // Scale filler per position to league size. Formula: max(4, round(12 × (recruitCount / 80))).
   const allLeagueTeamsWo = await storage.getTeamsByLeague(leagueId);
-  const expectedRecruitCount = getRecruitPoolSize(allLeagueTeamsWo.length);
+  const _walkonLeague = await storage.getLeague(leagueId);
+  const expectedRecruitCount = getRecruitPoolSize(allLeagueTeamsWo.length, _walkonLeague?.dynastyPreset);
   const TARGET_PER_POS = Math.max(4, Math.round(12 * (expectedRecruitCount / 80)));
   // OF gets 3× the base target to compensate for collapsing LF/CF/RF into one slot.
   const targetForPos = (pos: string) => pos === "OF" ? TARGET_PER_POS * 3 : TARGET_PER_POS;
@@ -2364,6 +2375,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     const undecidedForInterest = (await storage.getRecruitsByLeague(leagueId)).filter(
       r => !r.signedTeamId && ["verbal", "top3", "top5", "top8", "open"].includes(r.stage || "")
     );
+    // ── Batch: collect all step-1 signings in memory, flush to DB in parallel chunks ──
+    const step1Batch: Array<{ id: string; teamId: string }> = [];
     for (const recruit of undecidedForInterest) {
       try {
         const interests = interestsByRecruit.get(recruit.id) ?? [];
@@ -2385,14 +2398,21 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         );
         if (resolution.winnerTeamId) {
           sdChargeNil(resolution.winnerTeamId, recruitNilCost);
-          await storage.updateRecruit(recruit.id, { signedTeamId: resolution.winnerTeamId });
+          step1Batch.push({ id: recruit.id, teamId: resolution.winnerTeamId });
         }
       } catch (e) {
         console.error(`[finalizeSigningDay] Failed to auto-commit recruit ${recruit.id}:`, e);
       }
     }
+    // Flush step-1 signings in parallel chunks of 50 before step-2 reads the DB
+    const SD_CHUNK = 50;
+    for (let i = 0; i < step1Batch.length; i += SD_CHUNK) {
+      await Promise.all(step1Batch.slice(i, i + SD_CHUNK).map(s =>
+        storage.updateRecruit(s.id, { signedTeamId: s.teamId })
+      ));
+    }
     if (undecidedForInterest.length > 0) {
-      console.log(`[finalizeSigningDay] Auto-committed ${undecidedForInterest.length} undecided recruits based on interest`);
+      console.log(`[finalizeSigningDay] Auto-committed ${step1Batch.length} undecided recruits based on interest`);
     }
   }
 
@@ -2423,6 +2443,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
   if (cpuTeamsNeedingRecruits.length > 0) {
     const unsignedPool = allRecruitsPreCheck.filter(r => !r.signedTeamId);
     const claimed = new Set<string>();
+    // ── Batch: collect step-2 signings in memory, flush before step-3 DB read ──
+    const step2Batch: Array<{ id: string; teamId: string; firstName: string; lastName: string; position: string; starRating: number }> = [];
     let anyAssigned = true;
     while (anyAssigned) {
       anyAssigned = false;
@@ -2441,28 +2463,32 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         })[0];
         if (best) {
           sdChargeNil(entry.team.id, best.nilCost || 0);
-          await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
-          // log CPU auto-signing in the activity feed so human coaches can see it
-          try {
-            await storage.createLeagueEvent({
-              leagueId,
-              teamId: entry.team.id,
-              teamName: entry.team.name,
-              teamAbbreviation: entry.team.abbreviation || entry.team.name.slice(0, 4).toUpperCase(),
-              eventType: "SIGNING",
-              description: `${entry.team.name} signed ${best.firstName} ${best.lastName} (${best.position}, ${best.starRating ?? 0}★) — CPU auto-signed`,
-              season: completedSeason,
-              week: 0,
-            });
-          } catch (evErr) {
-            console.error("[finalizeSigningDay] Failed to create CPU signing event:", evErr);
-          }
+          step2Batch.push({ id: best.id, teamId: entry.team.id, firstName: best.firstName, lastName: best.lastName, position: best.position, starRating: best.starRating ?? 0 });
           claimed.add(best.id);
           entry.positionCounts[best.position] = (entry.positionCounts[best.position] || 0) + 1;
           entry.needed--;
           anyAssigned = true;
         }
       }
+    }
+    // Flush step-2 signings in parallel chunks of 50, then emit league events
+    for (let i = 0; i < step2Batch.length; i += SD_CHUNK) {
+      await Promise.all(step2Batch.slice(i, i + SD_CHUNK).map(s =>
+        storage.updateRecruit(s.id, { signedTeamId: s.teamId })
+      ));
+    }
+    // Emit SIGNING events (non-fatal, fire-and-forget per batch)
+    const teamMapForEvents = new Map(teams.map(t => [t.id, t]));
+    for (const s of step2Batch) {
+      const t = teamMapForEvents.get(s.teamId);
+      if (!t) continue;
+      storage.createLeagueEvent({
+        leagueId, teamId: t.id, teamName: t.name,
+        teamAbbreviation: t.abbreviation || t.name.slice(0, 4).toUpperCase(),
+        eventType: "SIGNING",
+        description: `${t.name} signed ${s.firstName} ${s.lastName} (${s.position}, ${s.starRating}★) — CPU auto-signed`,
+        season: completedSeason, week: 0,
+      }).catch(() => {/* non-fatal */});
     }
   }
 
@@ -2495,6 +2521,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         positionCounts[r.position] = (positionCounts[r.position] || 0) + 1;
       }
 
+      // ── Batch: collect step-3 signings per team, flush to DB after each team's loop ──
+      const step3TeamBatch: Array<{ id: string; firstName: string; lastName: string; position: string; starRating: number }> = [];
       let filled = 0;
       while (filled < needed) {
         const available = remainingPool
@@ -2510,22 +2538,26 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         })[0];
         if (!best) break;
         sdChargeNil(team.id, best.nilCost || 0);
-        await storage.updateRecruit(best.id, { signedTeamId: team.id });
-        try {
-          await storage.createLeagueEvent({
-            leagueId,
-            teamId: team.id,
-            teamName: team.name,
-            teamAbbreviation: team.abbreviation || team.name.slice(0, 4).toUpperCase(),
-            eventType: "SIGNING",
-            description: `${team.name} signed ${best.firstName} ${best.lastName} (${best.position}, ${best.starRating ?? 0}★) — CPU auto-signed`,
-            season: completedSeason,
-            week: 0,
-          });
-        } catch { /* non-fatal */ }
+        step3TeamBatch.push({ id: best.id, firstName: best.firstName, lastName: best.lastName, position: best.position, starRating: best.starRating ?? 0 });
         poolClaimed.add(best.id);
         positionCounts[best.position] = (positionCounts[best.position] || 0) + 1;
         filled++;
+      }
+      // Flush this team's step-3 signings in parallel chunks
+      for (let i = 0; i < step3TeamBatch.length; i += SD_CHUNK) {
+        await Promise.all(step3TeamBatch.slice(i, i + SD_CHUNK).map(s =>
+          storage.updateRecruit(s.id, { signedTeamId: team.id })
+        ));
+      }
+      // Emit SIGNING events (non-fatal, fire-and-forget)
+      for (const s of step3TeamBatch) {
+        storage.createLeagueEvent({
+          leagueId, teamId: team.id, teamName: team.name,
+          teamAbbreviation: team.abbreviation || team.name.slice(0, 4).toUpperCase(),
+          eventType: "SIGNING",
+          description: `${team.name} signed ${s.firstName} ${s.lastName} (${s.position}, ${s.starRating}★) — CPU auto-signed`,
+          season: completedSeason, week: 0,
+        }).catch(() => {/* non-fatal */});
       }
       if (filled > 0) {
         console.log(`[finalizeSigningDay] CPU dynamic class: added ${filled} commit(s) to ${team.name} (had ${signedCount}, target ${classTarget})`);
@@ -2570,6 +2602,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         // Sort most-needy teams first each round
         sweepEntries.sort((a, b) => b.slotsLeft - a.slotsLeft);
         const sweepClaimed = new Set<string>();
+        // ── Batch: collect all step-4 (sweep) signings; flush to DB after the round-robin ──
+        const step4Batch: Array<{ id: string; teamId: string; firstName: string; lastName: string; position: string; starRating: number }> = [];
         let anyPlaced = true;
         let sweepTotal = 0;
 
@@ -2590,19 +2624,7 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
             })[0];
             if (!best) break;
             sdChargeNil(entry.team.id, best.nilCost || 0);
-            await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
-            try {
-              await storage.createLeagueEvent({
-                leagueId,
-                teamId: entry.team.id,
-                teamName: entry.team.name,
-                teamAbbreviation: entry.team.abbreviation || entry.team.name.slice(0, 4).toUpperCase(),
-                eventType: "SIGNING",
-                description: `${entry.team.name} signed ${best.firstName} ${best.lastName} (${best.position}, ${best.starRating ?? 0}★) — CPU auto-signed`,
-                season: completedSeason,
-                week: 0,
-              });
-            } catch { /* non-fatal */ }
+            step4Batch.push({ id: best.id, teamId: entry.team.id, firstName: best.firstName, lastName: best.lastName, position: best.position, starRating: best.starRating ?? 0 });
             sweepClaimed.add(best.id);
             entry.positionCounts[best.position] = (entry.positionCounts[best.position] || 0) + 1;
             entry.slotsLeft--;
@@ -2612,6 +2634,25 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         }
         if (sweepTotal > 0) {
           console.log(`[finalizeSigningDay] Full-sweep: placed ${sweepTotal} additional unsigned recruit(s) with CPU teams`);
+        }
+        // Flush step-4 (sweep) signings in parallel chunks of 50
+        for (let i = 0; i < step4Batch.length; i += SD_CHUNK) {
+          await Promise.all(step4Batch.slice(i, i + SD_CHUNK).map(s =>
+            storage.updateRecruit(s.id, { signedTeamId: s.teamId })
+          ));
+        }
+        // Emit SIGNING events (non-fatal, fire-and-forget)
+        const teamMapForSweep = new Map(teams.map(t => [t.id, t]));
+        for (const s of step4Batch) {
+          const t = teamMapForSweep.get(s.teamId);
+          if (!t) continue;
+          storage.createLeagueEvent({
+            leagueId, teamId: t.id, teamName: t.name,
+            teamAbbreviation: t.abbreviation || t.name.slice(0, 4).toUpperCase(),
+            eventType: "SIGNING",
+            description: `${t.name} signed ${s.firstName} ${s.lastName} (${s.position}, ${s.starRating}★) — CPU auto-signed`,
+            season: completedSeason, week: 0,
+          }).catch(() => {/* non-fatal */});
         }
       }
 
@@ -3591,11 +3632,30 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
 
   await storage.deleteRecruitsByLeague(leagueId);
 
-  // Scale recruit class to league size: min(teams × 5 + 10, 80), so 12 teams → 70, 16 teams → 80
-  const recruitCount = getRecruitPoolSize(teams.length);
+  // Scale recruit class to league size, gated by dynasty preset.
+  // full_season leagues use the roster-demand formula (1081 for 149 teams);
+  // all other presets use the backward-compatible linear formula (≤80).
+  const _walkonsLeague = await storage.getLeague(leagueId);
+  const recruitCount = getRecruitPoolSize(teams.length, _walkonsLeague?.dynastyPreset);
+
+  // ── Departure-based pitcher ratio (Fix 2) ────────────────────────────────
+  // Fetch the current roster to derive per-position-group departure counts
+  // (SR + JR players) before the new class is generated.  Gives the recruit
+  // engine a demand signal so the P/H split in the new class reflects which
+  // positions are actually vacated, not just a static 42% pitcher ratio.
+  let nextClassPitcherRatio: number | undefined;
+  try {
+    const allCurrentPlayers = await storage.getPlayersByLeague(leagueId);
+    const posTargets = computePositionTargetsFromDepartures(allCurrentPlayers, recruitCount);
+    nextClassPitcherRatio = derivePitcherRatioFromTargets(posTargets, recruitCount);
+    console.log(`[finalizeWalkonsPhase] Departure-based pitcher ratio: ${nextClassPitcherRatio.toFixed(3)} (pool=${recruitCount})`);
+  } catch (plannerErr) {
+    console.warn("[finalizeWalkonsPhase] Pool planner failed (non-fatal) — using default ratio:", plannerErr);
+  }
+
   // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
   // not the season that just ended (the DB counter is bumped after this function returns).
-  const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1);
+  const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1, nextClassPitcherRatio != null ? { pitcherRatio: nextClassPitcherRatio } : undefined);
   if (newClassVintage) {
     await storage.updateLeague(leagueId, { currentClassVintage: newClassVintage });
   }
@@ -3854,20 +3914,53 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
   // filled). Teams that are still under the floor get synthetic 0-1★ filler
   // walk-ons generated inline (same as the walk-on pool fillers).
   try {
-    const MIN_ROSTER_HEALTH = 18;
+    // Minimum roster floor raised to 22 so all game slots can be filled.
+    // Position depth minimums: 3 P, 1 C, 3 IF (1B+2B+3B+SS), 2 OF (LF+CF+RF).
+    const MIN_ROSTER_HEALTH = 22;
+    const MIN_DEPTH: Record<string, number> = { P: 3, C: 1, IF: 3, OF: 2 };
     const allTeamsPostWalkon = await storage.getTeamsByLeague(leagueId);
+    const healthEvents: Array<{ teamId: string; teamName: string; before: number; added: number }> = [];
     for (const team of allTeamsPostWalkon) {
       const finalRoster = await storage.getPlayersByTeam(team.id);
-      const deficit = MIN_ROSTER_HEALTH - finalRoster.length;
-      if (deficit <= 0) continue;
-      console.warn(`[finalizeWalkonsPhase] Roster health: ${team.name} has ${finalRoster.length} players — auto-filling ${deficit} filler(s)`);
       const positionCounts: Record<string, number> = {};
       for (const p of finalRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+
+      // Compute position group depths
+      const pDepth  = positionCounts["P"]  || 0;
+      const cDepth  = positionCounts["C"]  || 0;
+      const ifDepth = (positionCounts["1B"] || 0) + (positionCounts["2B"] || 0) + (positionCounts["3B"] || 0) + (positionCounts["SS"] || 0);
+      const ofDepth = (positionCounts["LF"] || 0) + (positionCounts["CF"] || 0) + (positionCounts["RF"] || 0);
+
+      // Determine positions needed to meet depth floors
+      const depthGaps: string[] = [];
+      for (let i = pDepth;  i < MIN_DEPTH.P;  i++) depthGaps.push("P");
+      for (let i = cDepth;  i < MIN_DEPTH.C;  i++) depthGaps.push("C");
+      for (let i = ifDepth; i < MIN_DEPTH.IF; i++) depthGaps.push("2B");
+      for (let i = ofDepth; i < MIN_DEPTH.OF; i++) depthGaps.push("CF");
+
+      // Total fillers = max(roster-floor deficit, depth-gap count)
+      const rosterDeficit = MIN_ROSTER_HEALTH - finalRoster.length;
       const positions = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "P"];
-      for (let d = 0; d < deficit; d++) {
-        // Pick the most-needed position
-        const pos = positions.slice().sort((a, b) => (positionCounts[a] || 0) - (positionCounts[b] || 0))[0];
-        positionCounts[pos] = (positionCounts[pos] || 0) + 1;
+      const fillerPositions: string[] = [...depthGaps];
+
+      // Fill remaining roster spots (if any) with most-needed positions
+      const totalFillers = Math.max(rosterDeficit, depthGaps.length);
+      if (totalFillers <= 0) continue;
+
+      // Recount including already-queued depth-gap fillers
+      const enriched = { ...positionCounts };
+      for (const p of fillerPositions) enriched[p] = (enriched[p] || 0) + 1;
+      while (fillerPositions.length < totalFillers) {
+        const pos = positions.slice().sort((a, b) => (enriched[a] || 0) - (enriched[b] || 0))[0];
+        fillerPositions.push(pos);
+        enriched[pos] = (enriched[pos] || 0) + 1;
+      }
+
+      const beforeCount = finalRoster.length;
+      console.warn(`[finalizeWalkonsPhase] ROSTER_HEALTH: ${team.name} has ${beforeCount} players (p=${pDepth} c=${cDepth} if=${ifDepth} of=${ofDepth}) — adding ${fillerPositions.length} filler(s)`);
+
+      for (let d = 0; d < fillerPositions.length; d++) {
+        const pos = fillerPositions[d];
         const fillerAttrs = 20 + Math.floor(Math.random() * 25);
         await storage.createPlayer({
           teamId: team.id,
@@ -3889,8 +3982,23 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
           isWalkOn: true,
         } as any);
       }
+      healthEvents.push({ teamId: team.id, teamName: team.name, before: beforeCount, added: fillerPositions.length });
     }
-    console.log(`[finalizeWalkonsPhase] Roster health check complete for ${allTeamsPostWalkon.length} teams`);
+    // Emit a single ROSTER_HEALTH league event summarising all teams that needed fillers
+    if (healthEvents.length > 0) {
+      const summary = healthEvents.map(e => `${e.teamName} (${e.before}→${e.before + e.added})`).join(", ");
+      await storage.createLeagueEvent({
+        leagueId,
+        teamId: null as any,
+        teamName: "League",
+        teamAbbreviation: "LG",
+        eventType: "ROSTER_HEALTH",
+        description: `Roster health enforced for ${healthEvents.length} team(s): ${summary}`,
+        season: completedSeason,
+        week: 0,
+      });
+    }
+    console.log(`[finalizeWalkonsPhase] Roster health check complete — ${healthEvents.length} team(s) received fillers`);
   } catch (rosterHealthErr) {
     console.error("[finalizeWalkonsPhase] Roster health enforcement error (non-fatal):", rosterHealthErr);
   }
