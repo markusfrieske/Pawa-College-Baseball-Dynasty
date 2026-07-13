@@ -557,6 +557,27 @@ export default function LeagueViewPage() {
               league={league}
               isCommissioner={isCommissioner}
               overview={overview}
+              onAdvanceSuccess={(response: any) => {
+                const phase: string | undefined = response?.currentPhase;
+                if (league.dynastyPreset === "full_season" && phase) {
+                  const phaseRedirects: Record<string, string> = {
+                    offseason_recruiting_1: `/league/${id}/recruiting`,
+                    offseason_recruiting_2: `/league/${id}/recruiting`,
+                    offseason_recruiting_3: `/league/${id}/recruiting`,
+                    offseason_recruiting_4: `/league/${id}/recruiting`,
+                    conference_championship: `/league/${id}/postseason`,
+                    super_regionals: `/league/${id}/postseason`,
+                    cws: `/league/${id}/postseason`,
+                    offseason_signing_day: `/league/${id}/commits`,
+                    offseason_walkons: `/league/${id}/walkons`,
+                    regular_season: `/league/${id}`,
+                    preseason: `/league/${id}`,
+                    spring_training: `/league/${id}`,
+                  };
+                  const dest = phaseRedirects[phase];
+                  if (dest) navigate(dest);
+                }
+              }}
             />
 
             <CoachActionQueue

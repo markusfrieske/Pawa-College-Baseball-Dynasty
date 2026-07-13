@@ -615,12 +615,14 @@ export default function CommissionerPage() {
               >
                 Invites
               </TabsTrigger>
-              <TabsTrigger
-                value="reports"
-                className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
-              >
-                Reports
-              </TabsTrigger>
+              {data?.league?.dynastyPreset !== "full_season" && (
+                <TabsTrigger
+                  value="reports"
+                  className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                >
+                  Reports
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="nil"
                 className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
@@ -728,9 +730,11 @@ export default function CommissionerPage() {
             <InvitesTab leagueId={id!} invites={data?.invites || []} />
           </TabsContent>
 
-          <TabsContent value="reports">
-            <GameReportsTab leagueId={id!} />
-          </TabsContent>
+          {data?.league?.dynastyPreset !== "full_season" && (
+            <TabsContent value="reports">
+              <GameReportsTab leagueId={id!} />
+            </TabsContent>
+          )}
 
           <TabsContent value="nil">
             <NilOverviewTab leagueId={id!} />
