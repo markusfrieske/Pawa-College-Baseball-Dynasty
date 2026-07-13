@@ -17,6 +17,9 @@ import { db } from "../db";
 import { requireAuth, hasCommissionerAccess } from "../route-helpers";
 import { players, teams } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
+import { ObjectStorageService, InvalidImageError } from "../replit_integrations/object_storage/objectStorage";
+
+const objectStorageService = new ObjectStorageService();
 
 export function registerNewsRoutes(app: Express): void {
 
@@ -44,14 +47,40 @@ export function registerNewsRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, userId)) {
         return res.status(403).json({ message: "Commissioner only" });
       }
+      // imageUrl may be either a full GCS URL (https://storage.googleapis.com/...)
+      // or an already-normalized /objects/... path — accept both forms.
       const bodySchema = z.object({
         title: z.string().min(1).max(120),
         subtitle: z.string().max(200).optional(),
         body: z.string().min(1).max(5000),
-        imageUrl: z.string().url().optional().or(z.literal("")),
+        imageUrl: z.string().min(1).optional().or(z.literal("")),
       });
       const parsed = bodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.issues });
+
+      // Normalize any full GCS URL to its /objects/... path form, then verify
+      // magic bytes to ensure the upload is actually an image file.
+      const rawImageUrl = parsed.data.imageUrl || null;
+      let verifiedImageUrl: string | null = null;
+      if (rawImageUrl) {
+        const normalizedPath = objectStorageService.normalizeObjectEntityPath(rawImageUrl);
+        if (normalizedPath.startsWith("/objects/")) {
+          // Our own stored upload — verify magic bytes before persisting
+          try {
+            await objectStorageService.verifyImageMagicBytes(normalizedPath);
+          } catch (err) {
+            if (err instanceof InvalidImageError) {
+              return res.status(400).json({ message: err.message });
+            }
+            console.error("[news] magic-byte verification error", err);
+            return res.status(400).json({ message: "Could not verify uploaded image." });
+          }
+          verifiedImageUrl = normalizedPath;
+        } else {
+          // External URL or unrecognised format — store as-is (not our storage)
+          verifiedImageUrl = rawImageUrl;
+        }
+      }
 
       const post = await storage.createLeagueNewsPost({
         leagueId,
@@ -59,7 +88,7 @@ export function registerNewsRoutes(app: Express): void {
         title: parsed.data.title,
         subtitle: parsed.data.subtitle ?? null,
         body: parsed.data.body,
-        imageUrl: parsed.data.imageUrl || null,
+        imageUrl: verifiedImageUrl,
       });
       return res.json({ post });
     } catch (err) {

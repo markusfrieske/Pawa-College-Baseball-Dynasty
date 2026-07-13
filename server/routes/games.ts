@@ -25,7 +25,7 @@ import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGame, finalizeReportedGame } from "../game-finalizer";
 import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
 import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
-import { ObjectStorageService, ObjectNotFoundError } from "../replit_integrations/object_storage/objectStorage";
+import { ObjectStorageService, ObjectNotFoundError, InvalidImageError } from "../replit_integrations/object_storage/objectStorage";
 import {
   computePitcherAvailability,
   fullStaminaIP,
@@ -1024,6 +1024,17 @@ export function registerGameRoutes(app: Express): void {
           return res.status(400).json({ message: "objectPath does not reference an uploaded object" });
         }
         throw err;
+      }
+      // Verify magic bytes to ensure the file is actually an image, not a
+      // disguised non-image file. Invalid files are deleted from storage here.
+      try {
+        await objectStorageService.verifyImageMagicBytes(objectPath);
+      } catch (err) {
+        if (err instanceof InvalidImageError) {
+          return res.status(400).json({ message: err.message });
+        }
+        console.error("[games] magic-byte verification error", err);
+        return res.status(400).json({ message: "Could not verify uploaded image." });
       }
 
       const image = await storage.createGameReportImage({

@@ -237,6 +237,129 @@ export class ObjectStorageService {
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
+
+  /**
+   * Delete an object from storage by its normalized object path (e.g. /objects/uploads/<uuid>).
+   * Silently succeeds if the object does not exist.
+   */
+  async deleteObject(objectPath: string): Promise<void> {
+    try {
+      const objectFile = await this.getObjectEntityFile(objectPath);
+      await objectFile.delete({ ignoreNotFound: true });
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) return;
+      throw err;
+    }
+  }
+
+  /**
+   * Read the first N bytes of an already-uploaded object.
+   * Returns a Buffer containing up to `byteCount` bytes.
+   */
+  private async readFirstBytes(objectFile: File, byteCount: number): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      const stream = objectFile.createReadStream({ start: 0, end: byteCount - 1 });
+      stream.on("data", (chunk: Buffer) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+      stream.on("end", () => resolve(Buffer.concat(chunks)));
+      stream.on("error", reject);
+    });
+  }
+
+  /**
+   * Verify that the already-uploaded object at objectPath is a real image file
+   * by inspecting its magic bytes. Supports JPEG, PNG, GIF, WebP.
+   *
+   * If the check passes, returns normally.
+   * If the check fails, the object is deleted from storage and an error is thrown
+   * so callers can reject the request before persisting the objectPath.
+   */
+  async verifyImageMagicBytes(objectPath: string): Promise<void> {
+    let objectFile: File;
+    try {
+      objectFile = await this.getObjectEntityFile(objectPath);
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) {
+        throw new Error("Object not found; cannot verify image.");
+      }
+      throw err;
+    }
+
+    let header: Buffer;
+    try {
+      header = await this.readFirstBytes(objectFile, 12);
+    } catch (err) {
+      // Cannot read bytes — delete and reject
+      await this.deleteObject(objectPath);
+      throw new Error("Unable to read uploaded file for magic-byte verification.");
+    }
+
+    if (isJpeg(header) || isPng(header) || isGif(header) || isWebp(header)) {
+      return;
+    }
+
+    // Not a recognised image — purge from storage
+    console.warn(`[object-storage] magic-byte check failed for ${objectPath}; deleting.`);
+    await this.deleteObject(objectPath);
+    throw new InvalidImageError(
+      "Uploaded file is not a valid image (JPEG, PNG, GIF, or WebP)."
+    );
+  }
+}
+
+// ── Magic-byte helpers ──────────────────────────────────────────────────────
+
+export class InvalidImageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidImageError";
+    Object.setPrototypeOf(this, InvalidImageError.prototype);
+  }
+}
+
+function isJpeg(buf: Buffer): boolean {
+  return buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+}
+
+function isPng(buf: Buffer): boolean {
+  return (
+    buf.length >= 8 &&
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47 &&
+    buf[4] === 0x0d &&
+    buf[5] === 0x0a &&
+    buf[6] === 0x1a &&
+    buf[7] === 0x0a
+  );
+}
+
+function isGif(buf: Buffer): boolean {
+  return (
+    buf.length >= 6 &&
+    buf[0] === 0x47 && // G
+    buf[1] === 0x49 && // I
+    buf[2] === 0x46 && // F
+    buf[3] === 0x38 && // 8
+    (buf[4] === 0x37 || buf[4] === 0x39) && // 7 or 9
+    buf[5] === 0x61 // a
+  );
+}
+
+function isWebp(buf: Buffer): boolean {
+  // RIFF....WEBP
+  return (
+    buf.length >= 12 &&
+    buf[0] === 0x52 && // R
+    buf[1] === 0x49 && // I
+    buf[2] === 0x46 && // F
+    buf[3] === 0x46 && // F
+    buf[8] === 0x57 && // W
+    buf[9] === 0x45 && // E
+    buf[10] === 0x42 && // B
+    buf[11] === 0x50 // P
+  );
 }
 
 function parseObjectPath(path: string): {
