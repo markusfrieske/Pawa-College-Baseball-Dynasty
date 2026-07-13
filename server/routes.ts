@@ -58,6 +58,7 @@ import { registerCoachMessageRoutes } from "./routes/coach-messages";
 import { registerRivalryRoutes } from "./routes/rivalries";
 import { registerNewsRoutes } from "./routes/news";
 import { registerIdentityRoutes } from "./routes/identity";
+import { createScheduleForSeason } from "./services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
   generateRecruits,
@@ -1375,8 +1376,10 @@ export async function registerRoutes(
       // Generate initial schedule (only if not already present — startDynasty may have run first)
       const existingGamesForCoach = await storage.getGamesByLeague(req.params.id);
       if (existingGamesForCoach.length === 0) {
-        await generateSchedule(req.params.id);
-        await generateExhibitionGames(req.params.id, 1);
+        await createScheduleForSeason(req.params.id, 1);
+        if (leagueForGen?.dynastyPreset !== "full_season") {
+          await generateExhibitionGames(req.params.id, 1);
+        }
       }
 
       await storage.createAuditLog({

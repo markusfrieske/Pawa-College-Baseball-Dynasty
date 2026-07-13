@@ -141,6 +141,20 @@ export function registerInviteRoutes(app: Express): void {
         } : {}),
       };
 
+      // Phase 2 fix: retire the existing CPU coach that bootstrap assigned to
+      // this team before creating the human coach. Leaving the old coach with
+      // teamId still set causes getCoachesByLeague() to return two coaches for
+      // the same team, making isHumanControlled non-deterministic and breaking
+      // readiness checks.
+      if (team.coachId) {
+        const existingCoach = await storage.getCoach(team.coachId);
+        if (existingCoach && !existingCoach.userId) {
+          // CPU coach — detach from team so it no longer appears in league coach lists
+          await storage.updateCoach(existingCoach.id, { teamId: null } as any);
+          console.log(`[inviteJoin] Retired CPU coach ${existingCoach.id} from team ${teamId}`);
+        }
+      }
+
       const coach = await storage.createCoach(baseCoachData);
       try { await ensureCoachTraits(coach, 1); } catch (err) {
         console.error("[inviteJoin] ensureCoachTraits failed:", err);

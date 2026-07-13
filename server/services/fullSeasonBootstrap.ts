@@ -24,7 +24,6 @@ import {
   generateCpuCoaches,
   generatePlayersForTeam,
   generateRecruits,
-  generateExhibitionGames,
 } from "../recruit-engine";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
 import { FULL_SEASON_CONF_NAMES } from "../../shared/catalog";
@@ -219,11 +218,11 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
     console.log(`[bootstrap:${leagueId}] Schedule: already exists (${existingRegular.length} games)`);
   }
 
-  // Exhibition games (spring training)
-  const exhibitionGames = existingGames.filter((g: any) => g.phase === "exhibition");
-  if (exhibitionGames.length === 0) {
-    await generateExhibitionGames(leagueId, 1);
-  }
+  // Phase 3 fix: Full Season uses exactly 56 official regular-season games
+  // (4 per week × 14 weeks). Exhibition games are NOT generated here because
+  // they would inflate team game counts and — if simulated — could corrupt
+  // standings before the real season begins. Spring Training exhibitions are
+  // only appropriate for custom/short/standard/long leagues, not Full Season.
 
   // ── Checkpoint 8: Health Validation ──────────────────────────────────────
   await updateProgress(jobId, 88, "Validating universe");

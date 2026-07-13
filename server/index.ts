@@ -1310,22 +1310,40 @@ app.use((req, res, next) => {
     }
   })();
 
-  // ── full-season-schema-v1 ──────────────────────────────────────────────────
-  // Ensures the Full Season columns exist on the leagues table and creates the
-  // four Full Season tracking tables with column names that exactly mirror
-  // the Drizzle schema in shared/schema.ts.
+  // ── full-season-schema-v4 ──────────────────────────────────────────────────
+  // Additive-only replacement for the old v1/v2/v3 startup blocks (which
+  // contained a destructive DROP TABLE sequence). This migration:
+  //   • Creates all four FS tables with CREATE TABLE IF NOT EXISTS so it is a
+  //     no-op on installations where v2 already ran.
+  //   • Patches any table that v2 created with a truncated schema by adding the
+  //     FS-specific columns via ALTER TABLE ADD COLUMN IF NOT EXISTS.
+  //   • Drops the erroneous NOT NULL constraint on tournament_id so that FS
+  //     entries/series (which use league_id instead) can be inserted.
+  //   • Ensures all leagues.* columns exist (idempotent).
+  //   • NO DROP TABLE operations — ever.
   (() => {
-    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v1'`)
+    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v4'`)
       .then(({ rowCount }) => {
         if ((rowCount ?? 0) > 0) {
-          console.log("[startup-migration] full-season-schema-v1: already applied, skipping");
+          console.log("[startup-migration] full-season-schema-v4: already applied, skipping");
           return;
         }
+        // Step 1: tables + league columns (all additive / idempotent)
         return pool.query(`
+          -- ── leagues ──────────────────────────────────────────────────────────
           ALTER TABLE leagues
-            ADD COLUMN IF NOT EXISTS rules_version integer DEFAULT NULL,
-            ADD COLUMN IF NOT EXISTS current_phase_step text DEFAULT NULL;
+            ADD COLUMN IF NOT EXISTS rules_version integer,
+            ADD COLUMN IF NOT EXISTS current_phase_step text,
+            ADD COLUMN IF NOT EXISTS dynasty_preset text DEFAULT 'custom',
+            ADD COLUMN IF NOT EXISTS rules_snapshot jsonb,
+            ADD COLUMN IF NOT EXISTS catalog_version text,
+            ADD COLUMN IF NOT EXISTS schedule_seed text;
 
+          UPDATE leagues
+            SET dynasty_preset = 'custom'
+            WHERE dynasty_preset IS NULL OR dynasty_preset = '';
+
+          -- ── postseason_tournaments ────────────────────────────────────────────
           CREATE TABLE IF NOT EXISTS postseason_tournaments (
             id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
             league_id varchar NOT NULL REFERENCES leagues(id),
@@ -1342,38 +1360,87 @@ app.use((req, res, next) => {
           CREATE INDEX IF NOT EXISTS idx_ps_tournaments_league_stage
             ON postseason_tournaments (league_id, season, stage);
 
+          -- ── postseason_entries (create + patch) ──────────────────────────────
           CREATE TABLE IF NOT EXISTS postseason_entries (
             id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            tournament_id varchar NOT NULL REFERENCES postseason_tournaments(id),
+            tournament_id varchar REFERENCES postseason_tournaments(id),
             team_id varchar NOT NULL,
             seed integer,
             bracket text,
-            status text NOT NULL DEFAULT 'active'
+            status text NOT NULL DEFAULT 'active',
+            league_id varchar,
+            season integer,
+            qualification_type text,
+            national_seed integer,
+            selection_score real,
+            selection_reason text,
+            bracket_lane text
           );
+          -- v2 created tournament_id NOT NULL; FS entries populate league_id instead
+          ALTER TABLE postseason_entries
+            ALTER COLUMN tournament_id DROP NOT NULL;
+          -- add FS-specific columns to any existing table from v2
+          ALTER TABLE postseason_entries
+            ADD COLUMN IF NOT EXISTS league_id varchar,
+            ADD COLUMN IF NOT EXISTS season integer,
+            ADD COLUMN IF NOT EXISTS qualification_type text,
+            ADD COLUMN IF NOT EXISTS national_seed integer,
+            ADD COLUMN IF NOT EXISTS selection_score real,
+            ADD COLUMN IF NOT EXISTS selection_reason text,
+            ADD COLUMN IF NOT EXISTS bracket_lane text;
           CREATE INDEX IF NOT EXISTS idx_ps_entries_tournament
             ON postseason_entries (tournament_id);
           CREATE INDEX IF NOT EXISTS idx_ps_entries_team
             ON postseason_entries (team_id);
+          CREATE INDEX IF NOT EXISTS idx_ps_entries_league_season
+            ON postseason_entries (league_id, season);
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_ps_entries_league_season_team
+            ON postseason_entries (league_id, season, team_id);
 
+          -- ── postseason_series (create + patch) ───────────────────────────────
           CREATE TABLE IF NOT EXISTS postseason_series (
             id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            tournament_id varchar NOT NULL REFERENCES postseason_tournaments(id),
+            tournament_id varchar REFERENCES postseason_tournaments(id),
             home_team_id varchar,
             away_team_id varchar,
-            round integer NOT NULL,
+            round integer NOT NULL DEFAULT 1,
             bracket_slot text,
             home_score integer,
             away_score integer,
             winner_id varchar,
             is_complete boolean NOT NULL DEFAULT false,
             game_number integer NOT NULL DEFAULT 1,
-            played_at timestamp
+            played_at timestamp,
+            league_id varchar,
+            season integer,
+            stage text,
+            best_of integer DEFAULT 3,
+            home_wins integer NOT NULL DEFAULT 0,
+            away_wins integer NOT NULL DEFAULT 0,
+            series_status text NOT NULL DEFAULT 'pending'
           );
+          -- v2 created tournament_id NOT NULL; FS series populate league_id instead
+          ALTER TABLE postseason_series
+            ALTER COLUMN tournament_id DROP NOT NULL;
+          -- add FS-specific columns to any existing table from v2
+          ALTER TABLE postseason_series
+            ADD COLUMN IF NOT EXISTS league_id varchar,
+            ADD COLUMN IF NOT EXISTS season integer,
+            ADD COLUMN IF NOT EXISTS stage text,
+            ADD COLUMN IF NOT EXISTS best_of integer DEFAULT 3,
+            ADD COLUMN IF NOT EXISTS home_wins integer NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS away_wins integer NOT NULL DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS series_status text NOT NULL DEFAULT 'pending';
           CREATE INDEX IF NOT EXISTS idx_ps_series_tournament
             ON postseason_series (tournament_id);
           CREATE INDEX IF NOT EXISTS idx_ps_series_bracket_slot
             ON postseason_series (tournament_id, bracket_slot);
+          CREATE INDEX IF NOT EXISTS idx_ps_series_league_season
+            ON postseason_series (league_id, season);
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_ps_series_league_season_slot
+            ON postseason_series (league_id, season, stage, bracket_slot);
 
+          -- ── league_jobs ───────────────────────────────────────────────────────
           CREATE TABLE IF NOT EXISTS league_jobs (
             id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
             league_id varchar NOT NULL REFERENCES leagues(id),
@@ -1392,144 +1459,14 @@ app.use((req, res, next) => {
         `).then(() => {
           return pool.query(`
             INSERT INTO _startup_migrations (key)
-            VALUES ('full-season-schema-v1')
+            VALUES ('full-season-schema-v4')
             ON CONFLICT (key) DO NOTHING
           `);
         }).then(() => {
-          console.log("[startup-migration] full-season-schema-v1: Full Season columns and tables created");
+          console.log("[startup-migration] full-season-schema-v4: FS tables ensured, missing columns patched, indexes created");
         });
       })
-      .catch(e => console.warn("[startup-migration] full-season-schema-v1 failed:", e));
-  })();
-
-  // ── full-season-schema-v2 ──────────────────────────────────────────────────
-  // Repairs any Full Season tables created by v1 that had incorrect column names
-  // (did not yet match shared/schema.ts). Drops and recreates them — safe since
-  // these tables are always empty at this point (no Full Season leagues exist yet).
-  // Also backfills leagues.dynasty_preset = 'custom' for any NULL rows (pre-preset
-  // leagues that pre-date the full_season preset addition).
-  (() => {
-    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v2'`)
-      .then(({ rowCount }) => {
-        if ((rowCount ?? 0) > 0) {
-          console.log("[startup-migration] full-season-schema-v2: already applied, skipping");
-          return;
-        }
-        return pool.query(`
-          -- Drop old tables (created by v1 with wrong column names); these are always empty.
-          DROP TABLE IF EXISTS postseason_series CASCADE;
-          DROP TABLE IF EXISTS postseason_entries CASCADE;
-          DROP TABLE IF EXISTS postseason_tournaments CASCADE;
-          DROP TABLE IF EXISTS league_jobs CASCADE;
-
-          -- Recreate with column names that exactly match shared/schema.ts.
-          CREATE TABLE postseason_tournaments (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            league_id varchar NOT NULL REFERENCES leagues(id),
-            season integer NOT NULL,
-            stage text NOT NULL,
-            status text NOT NULL DEFAULT 'scheduled',
-            winner_id varchar,
-            metadata jsonb,
-            created_at timestamp NOT NULL DEFAULT now(),
-            completed_at timestamp
-          );
-          CREATE INDEX idx_ps_tournaments_league_season
-            ON postseason_tournaments (league_id, season);
-          CREATE INDEX idx_ps_tournaments_league_stage
-            ON postseason_tournaments (league_id, season, stage);
-
-          CREATE TABLE postseason_entries (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            tournament_id varchar NOT NULL REFERENCES postseason_tournaments(id),
-            team_id varchar NOT NULL,
-            seed integer,
-            bracket text,
-            status text NOT NULL DEFAULT 'active'
-          );
-          CREATE INDEX idx_ps_entries_tournament ON postseason_entries (tournament_id);
-          CREATE INDEX idx_ps_entries_team ON postseason_entries (team_id);
-
-          CREATE TABLE postseason_series (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            tournament_id varchar NOT NULL REFERENCES postseason_tournaments(id),
-            home_team_id varchar,
-            away_team_id varchar,
-            round integer NOT NULL,
-            bracket_slot text,
-            home_score integer,
-            away_score integer,
-            winner_id varchar,
-            is_complete boolean NOT NULL DEFAULT false,
-            game_number integer NOT NULL DEFAULT 1,
-            played_at timestamp
-          );
-          CREATE INDEX idx_ps_series_tournament ON postseason_series (tournament_id);
-          CREATE INDEX idx_ps_series_bracket_slot
-            ON postseason_series (tournament_id, bracket_slot);
-
-          CREATE TABLE league_jobs (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            league_id varchar NOT NULL REFERENCES leagues(id),
-            job_type text NOT NULL,
-            status text NOT NULL DEFAULT 'pending',
-            progress integer NOT NULL DEFAULT 0,
-            error_message text,
-            metadata jsonb,
-            created_at timestamp NOT NULL DEFAULT now(),
-            updated_at timestamp NOT NULL DEFAULT now()
-          );
-          CREATE INDEX idx_league_jobs_league_status ON league_jobs (league_id, status);
-          CREATE INDEX idx_league_jobs_created ON league_jobs (created_at);
-
-          -- Backfill: ensure all existing leagues have dynasty_preset set.
-          UPDATE leagues
-          SET dynasty_preset = 'custom'
-          WHERE dynasty_preset IS NULL OR dynasty_preset = '';
-        `).then(() => {
-          return pool.query(`
-            INSERT INTO _startup_migrations (key)
-            VALUES ('full-season-schema-v2')
-            ON CONFLICT (key) DO NOTHING
-          `);
-        }).then(() => {
-          console.log("[startup-migration] full-season-schema-v2: Full Season tables repaired + dynasty_preset backfill complete");
-        });
-      })
-      .catch(e => console.warn("[startup-migration] full-season-schema-v2 failed:", e));
-  })();
-
-  // ── full-season-schema-v3 ──────────────────────────────────────────────────
-  // Ensures all Full Season-specific leagues columns exist for any installation
-  // that was created before these columns were added to the schema. Safe to run
-  // on both fresh installs (where the columns already exist from the ORM push)
-  // and legacy installs that only had the older startup migration block.
-  (() => {
-    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v3'`)
-      .then(({ rowCount }) => {
-        if ((rowCount ?? 0) > 0) {
-          console.log("[startup-migration] full-season-schema-v3: already applied, skipping");
-          return;
-        }
-        return pool.query(`
-          ALTER TABLE leagues
-            ADD COLUMN IF NOT EXISTS dynasty_preset text NOT NULL DEFAULT 'custom',
-            ADD COLUMN IF NOT EXISTS rules_snapshot jsonb,
-            ADD COLUMN IF NOT EXISTS catalog_version text,
-            ADD COLUMN IF NOT EXISTS schedule_seed text,
-            ADD COLUMN IF NOT EXISTS rules_version integer,
-            ADD COLUMN IF NOT EXISTS current_phase_step text;
-        `).then(() => {
-          return pool.query(`
-            INSERT INTO _startup_migrations (key)
-            VALUES ('full-season-schema-v3')
-            ON CONFLICT (key) DO NOTHING
-          `);
-        }).then(() => {
-          console.log("[startup-migration] full-season-schema-v3: Full Season leagues columns ensured");
-        });
-      })
-      .catch(e => console.warn("[startup-migration] full-season-schema-v3 failed:", e));
+      .catch(e => console.warn("[startup-migration] full-season-schema-v4 failed:", e));
   })();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

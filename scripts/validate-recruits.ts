@@ -182,14 +182,14 @@ function scanClasses(numClasses: number, classSize: number, label: string): void
 }
 
 // ── Pool-size assertion matrix ────────────────────────────────────────────────
-// Custom leagues (≤20 teams) use computeRecruitPoolSize → always 80.
+// Custom leagues use computeRecruitPoolSize → Math.min(teams × 5 + 10, 75).
 // Full-season (149 teams) uses computeFullSeasonRecruitPoolSize:
 //   max(ceil(149×25/4), ceil(149×7.25)) = max(932, 1081) = 1081
 const POOL_SIZE_ASSERTIONS: { teams: number; expected: number; preset?: string }[] = [
-  { teams: 4,   expected: 80   },
-  { teams: 10,  expected: 80   },
-  { teams: 15,  expected: 80   },
-  { teams: 20,  expected: 80   },
+  { teams: 4,   expected: 30   },
+  { teams: 10,  expected: 60   },
+  { teams: 15,  expected: 75   },
+  { teams: 20,  expected: 75   },
   { teams: 149, expected: 1081, preset: "full_season" },
 ];
 let poolSizeErrors = 0;

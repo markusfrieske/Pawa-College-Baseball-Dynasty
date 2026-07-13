@@ -21,6 +21,7 @@ import { assignTrajectory } from "../../shared/trajectory";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
+import { createScheduleForSeason } from "../services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
   generateRecruits,
@@ -2151,8 +2152,10 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     // Auto-generate schedule if not already present
     const existingGames = await storage.getGamesByLeague(leagueId);
     if (existingGames.length === 0) {
-      await generateSchedule(leagueId);
-      await generateExhibitionGames(leagueId, 1);
+      await createScheduleForSeason(leagueId, 1);
+      if (league?.dynastyPreset !== "full_season") {
+        await generateExhibitionGames(leagueId, 1);
+      }
     }
     
     await storage.updateLeague(leagueId, { currentPhase: "preseason" });
@@ -2191,8 +2194,10 @@ app.post("/api/leagues/:id/schedule/generate", requireAuth, async (req, res) => 
       return res.status(403).json({ message: "Only the commissioner can generate schedule" });
     }
     
-    await generateSchedule(leagueId);
-    await generateExhibitionGames(leagueId, 1);
+    await createScheduleForSeason(leagueId, 1);
+    if (league?.dynastyPreset !== "full_season") {
+      await generateExhibitionGames(leagueId, 1);
+    }
     
     res.json({ success: true });
   } catch (error) {

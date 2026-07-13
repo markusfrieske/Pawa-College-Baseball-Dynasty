@@ -18,3 +18,4 @@
 - [Multiplayer CPU fallback pattern](multiplayer-cpu-fallback.md) — `leagueTeams.find(t => !t.isCpu)` as a team fallback silently corrupts 14-user leagues; use `resolveUserTeam` from route-helpers instead.
 - [Recruiting balance across season lengths](recruiting-season-length-normalization.md) — verbalWeek must be season-relative (seasonMaxWeeks + offset) not a fixed number, or medium/long seasons commit recruits mid-regular-season and short seasons can never close 5★/BC recruits.
 - [Action-log idempotency pattern](action-log-idempotency.md) — recruiting action handlers gate on ON CONFLICT DO NOTHING insert before touching interest/points; return early on null result; atomicSpendRecruitPoints uses SQL UPDATE...WHERE to prevent double-spend.
+- [Full Season remediation status](full-season-remediation-status.md) — phases 1-4 and 6 complete; phases 5/7/8 remain; createScheduleForSeason.ts is now the authoritative schedule entry point.

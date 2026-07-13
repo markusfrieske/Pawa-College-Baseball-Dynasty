@@ -49,6 +49,7 @@ import { resolveRecruitSigningWinner } from "../signing-resolver";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "../pitchMixHelpers";
 import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, computePitcherAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
 import { generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents, initializeStorylineRecruits, catchUpAndResolveStorylineArcs } from "../storyline-routes";
+import { createScheduleForSeason } from "../services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
   generateRecruits,
@@ -3855,8 +3856,10 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
     }
   }
 
-  await generateSchedule(leagueId, completedSeason + 1);
-  await generateExhibitionGames(leagueId, completedSeason + 1);
+  await createScheduleForSeason(leagueId, completedSeason + 1);
+  if (_walkonsLeague?.dynastyPreset !== "full_season") {
+    await generateExhibitionGames(leagueId, completedSeason + 1);
+  }
 
   await validateLeagueRosters(
     leagueId,
