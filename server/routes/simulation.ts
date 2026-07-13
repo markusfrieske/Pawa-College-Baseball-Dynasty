@@ -4727,20 +4727,29 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
 
     // V2: write contact points spent to ledger so auto-pilot/deadline-fill coaches see
     // accurate remaining budget when they regain control next turn.
+    // Handles both existing rows (updates spent) and missing rows (creates with initial spend).
     if (isSpecialHandling && pointsSpent > 0 && league) {
       try {
         const turnIdx = getRecruitingTurnIndex(league.currentPhase, week, league.seasonLength);
         if (turnIdx >= 0) {
           const existingLedger = await storage.getTeamRecruitingLedger(leagueId, team.id, season, turnIdx);
-          if (existingLedger) {
-            await storage.upsertTeamRecruitingLedger({
-              ...existingLedger,
-              contactSpent: Math.min(
-                existingLedger.contactCap,
-                (existingLedger.contactSpent || 0) + pointsSpent
-              ),
-            } as any);
-          }
+          const prevSpent = existingLedger?.contactSpent ?? 0;
+          const capValue = existingLedger?.contactCap ?? actionsBudget;
+          await storage.upsertTeamRecruitingLedger({
+            leagueId,
+            teamId: team.id,
+            season,
+            recruitingTurnIndex: turnIdx,
+            contactCap: capValue,
+            contactSpent: Math.min(capValue, prevSpent + pointsSpent),
+            scoutCap: existingLedger?.scoutCap ?? scoutBudget,
+            scoutSpent: existingLedger?.scoutSpent ?? 0,
+            targetsCap: existingLedger?.targetsCap ?? profile.targetBase,
+            visitsCombinedCap: profile.visitCombinedCap,
+            campusVisitCap: profile.campusVisitCap,
+            headCoachVisitCap: profile.headCoachVisitCap,
+            rulesVersion: 2,
+          });
         }
       } catch (ledgerErr) {
         console.warn("[cpu-recruiting] Failed to charge ledger:", ledgerErr);

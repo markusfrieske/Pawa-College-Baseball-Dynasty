@@ -1875,7 +1875,9 @@ export class DatabaseStorage implements IStorage {
         target: [teamRecruitingLedgers.leagueId, teamRecruitingLedgers.teamId, teamRecruitingLedgers.season, teamRecruitingLedgers.recruitingTurnIndex],
         set: {
           contactCap: data.contactCap,
+          contactSpent: data.contactSpent,
           scoutCap: data.scoutCap,
+          scoutSpent: data.scoutSpent,
           targetsCap: data.targetsCap,
           visitsCombinedCap: data.visitsCombinedCap,
           campusVisitCap: data.campusVisitCap,
