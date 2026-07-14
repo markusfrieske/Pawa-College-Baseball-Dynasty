@@ -1237,13 +1237,13 @@ export function NeedsAttentionPanel({
     enabled: !!jobId,
     staleTime: 0,
     refetchInterval: jobId ? 1500 : false,
-    select: (data) => {
-      if (data?.status === "complete" || data?.status === "failed") {
-        setJobId(null);
-      }
-      return data;
-    },
   });
+
+  useEffect(() => {
+    if (jobStatus?.status === "complete" || jobStatus?.status === "failed") {
+      setJobId(null);
+    }
+  }, [jobStatus?.status]);
 
   const advanceMutation = useMutation({
     mutationFn: async () => {
