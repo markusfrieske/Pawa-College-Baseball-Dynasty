@@ -566,13 +566,20 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
   const liveOvr = selected ? previewOvr(selected, edits) : 0;
   const liveStar = getStarRatingFromOVR(liveOvr);
 
+  const PLAYER_COMPETITIVE_KEYS = new Set([
+    "potential","abilities","velocity","control","stuff","power","speed","contact",
+    "defense","arm","stamina","aggression","hitForAvg","overall",
+  ]);
+  const hasCompetitiveEdits = Object.keys(edits).some(k => PLAYER_COMPETITIVE_KEYS.has(k));
+
   const patchMutation = useMutation({
-    mutationFn: async ({ reason }: { reason: string }) => {
+    mutationFn: async ({ reason, season }: { reason: string; season?: number }) => {
       const key = `player-${selectedId}-${Date.now()}`;
       const res = await apiRequest("PATCH", `/api/leagues/${leagueId}/editor/players/${selectedId}`, {
         expectedVersion: selected!.editorVersion,
         changes: edits,
         reason,
+        effectiveSeason: season,
         idempotencyKey: key,
       });
       return res.json();
@@ -956,8 +963,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
       <ReasonModal
         open={reasonOpen}
         onClose={() => setReasonOpen(false)}
-        onConfirm={(reason) => patchMutation.mutate({ reason })}
+        onConfirm={(reason, season) => patchMutation.mutate({ reason, season })}
         isPending={patchMutation.isPending}
+        competitive={hasCompetitiveEdits}
       />
     </div>
   );

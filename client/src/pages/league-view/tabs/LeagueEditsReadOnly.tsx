@@ -62,8 +62,7 @@ export function LeagueEditsReadOnly({ leagueId }: { leagueId: string }) {
   if (isError) {
     return (
       <RetroCard className="p-6 text-center">
-        <Lock className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-        <p className="text-sm text-muted-foreground">Commissioner edits are private for this league.</p>
+        <p className="text-sm text-muted-foreground">Unable to load commissioner edit history.</p>
       </RetroCard>
     );
   }

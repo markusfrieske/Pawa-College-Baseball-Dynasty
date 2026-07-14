@@ -599,14 +599,12 @@ export function registerEditorRoutes(app: Express): void {
       const isCommissioner = hasCommissionerAccess(league, userId);
 
       if (!isCommissioner) {
-        // Verify the user is actually a member of this league
+        // All league members can view the editor history regardless of auditLogPublic.
+        // auditLogPublic controls other audit surfaces, not the League Editor change log.
         const leagueCoaches = await storage.getCoachesByLeague(leagueId);
         const isMember = leagueCoaches.some((c: { userId?: string | null }) => c.userId === userId);
         if (!isMember) {
           return res.status(403).json({ message: "Not a member of this league" });
-        }
-        if (!(league as any).auditLogPublic) {
-          return res.status(403).json({ message: "Audit log is private" });
         }
       }
 
