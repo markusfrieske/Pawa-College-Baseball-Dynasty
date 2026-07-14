@@ -29,7 +29,6 @@ import { AuditLogTab } from "./tabs/AuditLogTab";
 import { InvitesTab } from "./tabs/InvitesTab";
 import { GameReportsTab } from "./tabs/GameReportsTab";
 import { NilOverviewTab } from "./tabs/NilOverviewTab";
-import { RosterEditorTab } from "./tabs/RosterEditorTab";
 import { LeagueEditorTab } from "./tabs/LeagueEditorTab";
 import { SaveStatesTab } from "./tabs/SaveStatesTab";
 import { ScheduleHealthTab } from "./tabs/ScheduleHealthTab";

@@ -137,6 +137,7 @@ export const teams = pgTable("teams", {
   city: text("city").notNull(),
   state: text("state").notNull(),
   zipcode: text("zipcode"),
+  stadiumName: text("stadium_name"),
   primaryColor: text("primary_color").notNull().default("#0037ff"),
   secondaryColor: text("secondary_color").notNull().default("#FFD700"),
   prestige: integer("prestige").notNull().default(5),

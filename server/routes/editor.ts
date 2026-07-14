@@ -25,7 +25,7 @@ import { invalidateLeague } from "../cache";
 // ── Allowlists ────────────────────────────────────────────────────────────────
 
 const TEAM_IDENTITY_FIELDS = new Set([
-  "name", "mascot", "abbreviation", "primaryColor", "secondaryColor", "city", "state",
+  "name", "mascot", "abbreviation", "primaryColor", "secondaryColor", "city", "state", "stadiumName",
 ]);
 
 const TEAM_COMPETITIVE_FIELDS = new Set([
@@ -41,6 +41,7 @@ const TEAM_IDENTITY_SCHEMA = z.object({
   secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
   city: z.string().min(1).max(100).optional(),
   state: z.string().min(2).max(30).optional(),
+  stadiumName: z.string().min(1).max(120).optional(),
 }).strict();
 
 const TEAM_COMPETITIVE_SCHEMA = z.object({
@@ -160,7 +161,7 @@ export function registerEditorRoutes(app: Express): void {
       const { rows } = await pool.query<{
         id: string; league_id: string; conference_id: string | null;
         name: string; mascot: string; abbreviation: string;
-        city: string; state: string;
+        city: string; state: string; stadium_name: string | null;
         primary_color: string; secondary_color: string;
         prestige: number; stadium: number; facilities: number;
         college_life: number; marketing: number; academics: number;
@@ -188,6 +189,7 @@ export function registerEditorRoutes(app: Express): void {
           abbreviation: r.abbreviation,
           city: r.city,
           state: r.state,
+          stadiumName: r.stadium_name ?? "",
           primaryColor: r.primary_color,
           secondaryColor: r.secondary_color,
           prestige: r.prestige,

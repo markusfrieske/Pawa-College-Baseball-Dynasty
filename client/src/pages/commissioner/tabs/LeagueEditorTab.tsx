@@ -367,6 +367,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     { label: "Abbreviation", field: "abbreviation", maxLen: 8 },
                     { label: "City", field: "city", maxLen: 100 },
                     { label: "State", field: "state", maxLen: 30 },
+                    { label: "Stadium Name", field: "stadiumName", maxLen: 120 },
                   ].map(({ label, field, maxLen }) => (
                     <div key={field}>
                       <label className="text-[9px] font-pixel text-muted-foreground block mb-1">{label}</label>
@@ -566,11 +567,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
   const liveOvr = selected ? previewOvr(selected, edits) : 0;
   const liveStar = getStarRatingFromOVR(liveOvr);
 
-  const PLAYER_COMPETITIVE_KEYS = new Set([
-    "potential","abilities","velocity","control","stuff","power","speed","contact",
-    "defense","arm","stamina","aggression","hitForAvg","overall",
-  ]);
-  const hasCompetitiveEdits = Object.keys(edits).some(k => PLAYER_COMPETITIVE_KEYS.has(k));
+  // Always treat player edits as competitive (effectiveSeason always required)
+  // to avoid client/server drift on which fields are competitive.
+  const hasCompetitiveEdits = true;
 
   const patchMutation = useMutation({
     mutationFn: async ({ reason, season }: { reason: string; season?: number }) => {
