@@ -1479,6 +1479,9 @@ app.use((req, res, next) => {
       locked_at timestamptz NOT NULL DEFAULT now()
     );
 
+    -- Add locked_by column to advance locks table (idempotent; supports owner-token release).
+    ALTER TABLE league_advance_locks ADD COLUMN IF NOT EXISTS locked_by text;
+
     -- One human coach per league per user (partial index: cpu coaches have null user_id).
     CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_user
       ON coaches (league_id, user_id)

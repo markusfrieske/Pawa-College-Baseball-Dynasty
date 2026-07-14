@@ -241,11 +241,16 @@ export function getOnlineCount(): number {
   return presenceMap.size;
 }
 
-// ── PER-LEAGUE ADVANCE LOCK (DB-backed) ──────────────────────────────────────
+// ── PER-LEAGUE ADVANCE LOCK (DB-backed, owner-token model) ──────────────────
 // Prevents concurrent advance calls for the same league (double-click /
-// network-retry protection).  Uses a `league_advance_locks` table so the
-// guard survives horizontal scale-out and is visible to monitoring.
-// The table is created in the startup migration (server/index.ts).
+// network-retry protection). Uses `league_advance_locks` (league_id PK,
+// locked_by uuid) so the guard is durable across requests.
+//
+// KEY DESIGN PRINCIPLE: no time-based expiry.  Only the process that acquired
+// the lock (identified by a UUID token it holds in `activeLockTokens`) can
+// release it.  A second request that arrives while the lock is held — even
+// hours later — will always receive `false`.  A crash leaves an orphaned row;
+// recovery is done via the commissioner's force-advance or an admin DELETE.
 //
 // Callers MUST release the lock via releaseAdvanceLock() in a finally block.
 //
@@ -253,25 +258,28 @@ export function getOnlineCount(): number {
 // Returns false → lock already held by another in-flight request, reject 409.
 
 import { pool } from "./db";
+import { randomUUID } from "crypto";
+
+// In-memory owner registry: maps leagueId → UUID token for locks acquired by
+// this server process.  Token is also stored in the DB so a second instance
+// cannot release a lock it did not acquire.
+const activeLockTokens = new Map<string, string>();
 
 export async function acquireAdvanceLock(leagueId: string): Promise<boolean> {
   try {
-    // Remove any stale lock left by a prior crash/restart (> 10 min old).
-    // This is per-league so it cannot interfere with active locks on other leagues,
-    // and it avoids the global TRUNCATE-on-startup that breaks multi-instance safety.
-    await pool.query(
-      `DELETE FROM league_advance_locks
-        WHERE league_id = $1 AND locked_at < now() - interval '10 minutes'`,
-      [leagueId],
-    );
+    const token = randomUUID();
     const result = await pool.query(
-      `INSERT INTO league_advance_locks (league_id, locked_at)
-       VALUES ($1, now())
+      `INSERT INTO league_advance_locks (league_id, locked_at, locked_by)
+       VALUES ($1, now(), $2)
        ON CONFLICT (league_id) DO NOTHING
        RETURNING league_id`,
-      [leagueId],
+      [leagueId, token],
     );
-    return result.rowCount === 1;
+    if ((result.rowCount ?? 0) === 1) {
+      activeLockTokens.set(leagueId, token);
+      return true;
+    }
+    return false;
   } catch (err) {
     console.error("[advanceLock] acquireAdvanceLock error:", err);
     return false;
@@ -280,9 +288,12 @@ export async function acquireAdvanceLock(leagueId: string): Promise<boolean> {
 
 export async function releaseAdvanceLock(leagueId: string): Promise<void> {
   try {
+    const token = activeLockTokens.get(leagueId);
+    activeLockTokens.delete(leagueId);          // clear regardless of DB result
+    if (!token) return;                          // not the owner; do nothing
     await pool.query(
-      `DELETE FROM league_advance_locks WHERE league_id = $1`,
-      [leagueId],
+      `DELETE FROM league_advance_locks WHERE league_id = $1 AND locked_by = $2`,
+      [leagueId, token],
     );
   } catch (err) {
     console.error("[advanceLock] releaseAdvanceLock error:", err);
