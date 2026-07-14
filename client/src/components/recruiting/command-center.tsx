@@ -166,6 +166,8 @@ export function RecruitingCommandCenter({
   const nilRemaining = recruitingData?.economy?.nil?.recruitingRemaining
     ?? (recruitingData?.team ? (recruitingData.team.nilBudget || 0) - (recruitingData.team.nilSpent || 0) : 0);
 
+  const economyLoading = recruitingData != null && recruitingData.economy == null;
+
   const visitsUsed = recruitingData?.economy?.visits?.totalUsed ?? recruitingData?.seasonVisitCount?.total ?? 0;
   const visitsMax = recruitingData?.economy?.visits?.totalCap ?? null;
   const visitPct = visitsMax != null ? Math.round((visitsUsed / visitsMax) * 100) : 0;
@@ -342,41 +344,55 @@ export function RecruitingCommandCenter({
               title="Visit Planner"
               icon={<Building2 className="w-3 h-3" />}
               accent={
-                visitCapReached ? "red" : visitPct >= 80 ? "orange" : "blue"
+                economyLoading ? "blue" : visitCapReached ? "red" : visitPct >= 80 ? "orange" : "blue"
               }
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      visitCapReached
-                        ? "bg-red-400"
-                        : visitPct >= 80
-                        ? "bg-orange-400"
-                        : "bg-blue-400"
-                    }`}
-                    style={{ width: `${Math.min(100, visitPct)}%` }}
-                  />
+              {economyLoading ? (
+                <div className="space-y-2" data-testid="visit-planner-skeleton">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full w-0 rounded-full bg-blue-400/30" />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground/40 tabular-nums shrink-0">—/—</span>
+                  </div>
+                  <div className="h-2.5 w-24 rounded bg-white/10 animate-pulse" />
                 </div>
-                <span
-                  className={`text-[10px] font-bold tabular-nums shrink-0 ${
-                    visitCapReached
-                      ? "text-red-400"
-                      : visitPct >= 80
-                      ? "text-orange-400"
-                      : "text-blue-400"
-                  }`}
-                >
-                  {visitsUsed}/{visitsMax ?? "—"}
-                </span>
-              </div>
-              <div className="flex gap-2 text-[9px] text-muted-foreground">
-                <span>{recruitingData?.economy?.visits?.campusUsed ?? recruitingData?.seasonVisitCount?.campusVisits ?? 0} campus</span>
-                <span>·</span>
-                <span>{recruitingData?.economy?.visits?.headCoachUsed ?? recruitingData?.seasonVisitCount?.hcVisits ?? 0} HC</span>
-              </div>
-              {visitCapReached && (
-                <p className="text-[9px] text-red-400 mt-1 font-semibold">Visit cap reached</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          visitCapReached
+                            ? "bg-red-400"
+                            : visitPct >= 80
+                            ? "bg-orange-400"
+                            : "bg-blue-400"
+                        }`}
+                        style={{ width: `${Math.min(100, visitPct)}%` }}
+                      />
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold tabular-nums shrink-0 ${
+                        visitCapReached
+                          ? "text-red-400"
+                          : visitPct >= 80
+                          ? "text-orange-400"
+                          : "text-blue-400"
+                      }`}
+                    >
+                      {visitsUsed}/{visitsMax ?? "—"}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 text-[9px] text-muted-foreground">
+                    <span>{recruitingData?.economy?.visits?.campusUsed ?? recruitingData?.seasonVisitCount?.campusVisits ?? 0} campus</span>
+                    <span>·</span>
+                    <span>{recruitingData?.economy?.visits?.headCoachUsed ?? recruitingData?.seasonVisitCount?.hcVisits ?? 0} HC</span>
+                  </div>
+                  {visitCapReached && (
+                    <p className="text-[9px] text-red-400 mt-1 font-semibold">Visit cap reached</p>
+                  )}
+                </>
               )}
             </CcCard>
 
