@@ -1,4 +1,4 @@
-import type { IStorage } from "../storage";
+import { pool } from "../db";
 
 export interface RecruitingActionParams {
   actionType: string;
@@ -25,71 +25,83 @@ export interface RecruitingActionResult {
 /**
  * Unified transactional recruiting action executor — used by BOTH human routes and CPU simulation.
  *
- * Ordering contract (prevents partial mutations under concurrent requests):
- *   1. Insert action log (ON CONFLICT DO NOTHING — idempotency gate).
- *   2. Return early if duplicate (already done this turn).
- *   3. Atomic spend via UPDATE WHERE (budget enforced before any interest change).
- *      If spend fails (concurrent over-budget race), no interest side-effects have occurred.
- *   4. Update recruiting interest (create or increment).
- *   5. Update top-school accumulated interest.
+ * All mutations run in a single DB transaction with deterministic lock order to prevent
+ * partial state corruption under concurrent requests:
  *
- * Pass coachId=null for CPU simulation teams that manage budget via a local variable instead
- * of per-action atomicSpend; budget enforcement is the caller's responsibility in that case.
+ *   1. INSERT action log (ON CONFLICT DO NOTHING — idempotency gate).
+ *      If the row already exists (0 rows inserted): ROLLBACK, return alreadyDone.
+ *   2. If coachId provided: UPDATE coaches SET recruit_actions_used = ... WHERE used + cost <= max.
+ *      If 0 rows updated (budget exhausted concurrently): ROLLBACK, return spendFailed.
+ *      The spend ROLLBACK also reverts the action log insert, so retries are NOT blocked.
+ *   3. UPSERT recruiting_interests (create or increment interest_level, set has_offer).
+ *   4. UPDATE recruit_top_schools accumulated_interest.
+ *   5. COMMIT.
+ *
+ * Pass coachId=null for CPU simulation teams that track budget via a local variable.
+ * Budget enforcement is the caller's responsibility when coachId is null.
  */
 export async function executeRecruitingAction(
   params: RecruitingActionParams,
-  storage: IStorage,
 ): Promise<RecruitingActionResult> {
   const {
     actionType, recruitId, teamId, leagueId, coachId,
     week, season, interestGain, hasOffer, cost, maxAllowed, notes, isAutoPilot,
   } = params;
 
-  const logged = await storage.createRecruitingAction({
-    recruitId,
-    teamId,
-    leagueId,
-    week,
-    season,
-    actionType,
-    interestChange: interestGain,
-    notes,
-    ...(isAutoPilot !== undefined ? { isAutoPilot } : {}),
-  });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  if (!logged) {
-    return { success: false, alreadyDone: true, spendFailed: false };
-  }
+    const logInsert = await client.query<{ id: string }>(
+      `INSERT INTO recruiting_actions_log
+         (id, recruit_id, team_id, league_id, week, season, action_type, interest_change, notes, is_auto_pilot)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [recruitId, teamId, leagueId, week, season, actionType, interestGain, notes ?? null, isAutoPilot ?? false],
+    );
 
-  if (coachId) {
-    const spent = await storage.atomicSpendRecruitPoints(coachId, cost, maxAllowed);
-    if (!spent) {
-      return { success: false, alreadyDone: false, spendFailed: true };
+    if ((logInsert.rowCount ?? 0) === 0) {
+      await client.query("ROLLBACK");
+      return { success: false, alreadyDone: true, spendFailed: false };
     }
-  }
 
-  let interest = await storage.getRecruitingInterest(recruitId, teamId);
-  if (!interest) {
-    await storage.createRecruitingInterest({
-      recruitId,
-      teamId,
-      interestLevel: interestGain,
-      ...(hasOffer ? { hasOffer: true } : {}),
-    });
-  } else {
-    await storage.updateRecruitingInterest(interest.id, {
-      interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
-      ...(hasOffer ? { hasOffer: true } : {}),
-    });
-  }
+    if (coachId) {
+      const spendResult = await client.query(
+        `UPDATE coaches
+         SET recruit_actions_used = recruit_actions_used + $1
+         WHERE id = $2 AND recruit_actions_used + $1 <= $3`,
+        [cost, coachId, maxAllowed],
+      );
+      if ((spendResult.rowCount ?? 0) === 0) {
+        await client.query("ROLLBACK");
+        return { success: false, alreadyDone: false, spendFailed: true };
+      }
+    }
 
-  const topSchools = await storage.getRecruitTopSchools(recruitId);
-  const teamTopSchool = topSchools.find(ts => ts.teamId === teamId);
-  if (teamTopSchool) {
-    await storage.updateRecruitTopSchool(teamTopSchool.id, {
-      accumulatedInterest: (teamTopSchool.accumulatedInterest || 0) + interestGain,
-    });
-  }
+    await client.query(
+      `INSERT INTO recruiting_interests
+         (id, recruit_id, team_id, interest_level, has_offer)
+       VALUES (gen_random_uuid(), $1, $2, $3, $4)
+       ON CONFLICT (recruit_id, team_id) DO UPDATE SET
+         interest_level = LEAST(100, recruiting_interests.interest_level + EXCLUDED.interest_level),
+         has_offer = recruiting_interests.has_offer OR EXCLUDED.has_offer`,
+      [recruitId, teamId, interestGain, hasOffer ?? false],
+    );
 
-  return { success: true, alreadyDone: false, spendFailed: false };
+    await client.query(
+      `UPDATE recruit_top_schools
+       SET accumulated_interest = COALESCE(accumulated_interest, 0) + $1
+       WHERE recruit_id = $2 AND team_id = $3`,
+      [interestGain, recruitId, teamId],
+    );
+
+    await client.query("COMMIT");
+    return { success: true, alreadyDone: false, spendFailed: false };
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch (_) { /* ignore secondary error */ }
+    throw err;
+  } finally {
+    client.release();
+  }
 }

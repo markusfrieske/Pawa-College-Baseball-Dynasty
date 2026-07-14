@@ -4746,7 +4746,7 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
             ? `CPU (Fill-In) ${actionType}`
             : `CPU ${actionType} action`,
         isAutoPilot: team.isAutoPilot || isForced,
-      }, storage);
+      });
 
       // Collect alert entry for coach notification (auto-pilot or deadline-forced)
       if (isAlertableAction) {

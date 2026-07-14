@@ -27,6 +27,8 @@ export interface EconomyInput {
     nilSpent?: number | null;
     nilRecruitingAlloc?: number | null;
     nilRecruitingSpent?: number | null;
+    nilRetentionReserve?: number | null;
+    nilWalkonReserve?: number | null;
   } | null;
   targetsUsed: number;
   commitsData: {
@@ -95,6 +97,8 @@ export async function computeRecruitingEconomyWithLedger(
   const nilSpent = team?.nilSpent || 0;
   const nilRecruitingAlloc = team?.nilRecruitingAlloc ?? nilBudget;
   const nilRecruitingSpent = team?.nilRecruitingSpent || 0;
+  const nilRetentionReserve = team?.nilRetentionReserve ?? 0;
+  const nilWalkonReserve = team?.nilWalkonReserve ?? 0;
   const teamId = team?.id ?? coach?.teamId ?? "";
 
   let ledger: TeamRecruitingLedger | undefined;
@@ -137,8 +141,8 @@ export async function computeRecruitingEconomyWithLedger(
       recruitingAllocated: nilRecruitingAlloc,
       recruitingCommitted: nilRecruitingSpent,
       recruitingRemaining: Math.max(0, nilRecruitingAlloc - nilRecruitingSpent),
-      retentionReserved: 0,
-      walkonReserved: 0,
+      retentionReserved: nilRetentionReserve,
+      walkonReserved: nilWalkonReserve,
     },
   };
 
@@ -168,6 +172,8 @@ export function computeRecruitingEconomy(input: EconomyInput): RecruitingEconomy
   const nilSpent = team?.nilSpent || 0;
   const nilRecruitingAlloc = team?.nilRecruitingAlloc ?? nilBudget;
   const nilRecruitingSpent = team?.nilRecruitingSpent || 0;
+  const nilRetentionReserve = team?.nilRetentionReserve ?? 0;
+  const nilWalkonReserve = team?.nilWalkonReserve ?? 0;
 
   return {
     balanceVersion: 2,
@@ -198,8 +204,8 @@ export function computeRecruitingEconomy(input: EconomyInput): RecruitingEconomy
       recruitingAllocated: nilRecruitingAlloc,
       recruitingCommitted: nilRecruitingSpent,
       recruitingRemaining: Math.max(0, nilRecruitingAlloc - nilRecruitingSpent),
-      retentionReserved: 0,
-      walkonReserved: 0,
+      retentionReserved: nilRetentionReserve,
+      walkonReserved: nilWalkonReserve,
     },
   };
 }

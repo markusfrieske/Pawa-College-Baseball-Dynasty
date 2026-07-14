@@ -1129,7 +1129,7 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: phoneCost,
         maxAllowed: maxRecruitingActions,
         notes: `Phone call: ${topicSummary}`,
-      }, storage);
+      });
       if (phoneResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
       }
@@ -1216,7 +1216,7 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: 1,
         maxAllowed: maxRecruitingActions,
         notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
-      }, storage);
+      });
       if (emailResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
       }
@@ -1301,7 +1301,7 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: actionCost,
         maxAllowed: maxRecruitingActions,
         notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
-      }, storage);
+      });
       if (visitResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
       }
@@ -1388,7 +1388,7 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: actionCost,
         maxAllowed: maxRecruitingActions,
         notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
-      }, storage);
+      });
       if (hcvResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
       }
@@ -1469,7 +1469,7 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: 1,
         maxAllowed: maxRecruitingActions,
         notes: `Offered scholarship (+${interestGain}% interest)`,
-      }, storage);
+      });
       if (offerResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
       }
