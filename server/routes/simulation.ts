@@ -1741,7 +1741,7 @@ async function applyPlayerProgression(leagueId: string) {
     .map(g => {
       const s = gradeStats[g];
       const avg = (s.totalDelta / s.count).toFixed(1);
-      return `${g}: n=${s.count} avgOVR=${avg > 0 ? "+" : ""}${avg} (↑${s.gainers} ↓${s.decliners})`;
+      return `${g}: n=${s.count} avgOVR=${Number(avg) > 0 ? "+" : ""}${avg} (↑${s.gainers} ↓${s.decliners})`;
     });
   console.log(`[Progression] League ${leagueId} — per-grade OVR summary:\n  ${summaryLines.join("\n  ")}`);
 
@@ -3181,7 +3181,6 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         hometown: recruit.hometown,
         jerseyNumber,
         overall: recruit.overall,
-        signingOvr: recruit.overall,
         starRating: recruit.starRating,
         hitForAvg: recruit.hitForAvg || 50,
         power: recruit.power || 50,
@@ -3230,8 +3229,6 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         hairStyle: recruit.hairStyle || "short",
         headwear: recruit.headwear || "cap",
         potential: recruit.potential ?? null,
-        workEthicScore: recruit.workEthicScore ?? 70,
-        coachability: recruit.coachability ?? 70,
       });
       totalRecruitsAdded++;
     }
@@ -4034,23 +4031,22 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
         const fillerAttrs = 20 + Math.floor(Math.random() * 25);
         await storage.createPlayer({
           teamId: team.id,
-          leagueId,
           firstName: "Walk",
           lastName: `On-${d + 1}`,
           position: pos,
           eligibility: "FR",
           overall: fillerAttrs + 100,
-          potential: "D",
+          potential: 200,
           batHand: "R",
           throwHand: "R",
           hometown: "Walk-On",
+          homeState: "NA",
           jerseyNumber: 90 + d,
           abilities: [],
           hitForAvg: fillerAttrs, power: fillerAttrs, speed: fillerAttrs,
           fielding: fillerAttrs, arm: fillerAttrs, errorResistance: fillerAttrs,
           velocity: fillerAttrs, stuff: fillerAttrs, control: fillerAttrs,
           stamina: pos === "P" ? fillerAttrs : 0,
-          isWalkOn: true,
         });
       }
       healthEvents.push({ teamId: team.id, teamName: team.name, before: beforeCount, added: fillerPositions.length });
@@ -4063,7 +4059,7 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
         teamId: null as any,
         teamName: "League",
         teamAbbreviation: "LG",
-        eventType: "ROSTER_HEALTH",
+        eventType: "WALKON",
         description: `Roster health enforced for ${healthEvents.length} team(s): ${summary}`,
         season: completedSeason,
         week: 0,
@@ -4527,9 +4523,9 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
         // Otherwise: estimate from starRating band (star × 100 = band floor).
         // Noise: ±15 beginner, ±10 high_school, ±5 elite/all_american — simulates imperfect scouting.
         const scoutPct = interest?.scoutPercentage ?? 0;
-        const hasPartialScout = scoutPct >= 10 && interest?.scoutedMin != null && interest?.scoutedMax != null;
+        const hasPartialScout = scoutPct >= 10 && interest?.minOverall != null && interest?.maxOverall != null;
         const midpointOvr = hasPartialScout
-          ? ((interest!.scoutedMin! + interest!.scoutedMax!) / 2)
+          ? ((interest!.minOverall! + interest!.maxOverall!) / 2)
           : (r.starRating || 3) * 100;
         const noiseRange = teamDifficulty === "beginner" ? 15 : teamDifficulty === "high_school" ? 10 : 5;
         const visibleOvr = midpointOvr + (Math.random() * noiseRange * 2 - noiseRange);
@@ -4542,7 +4538,7 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
           // Use visibleOvr: above the star band (e.g. 4★ starts at 400) signals above-band potential.
           // Also use revealed potential if scouted to ≥50% (fog lifted at half-scouting).
           const aboveBand = visibleOvr > (stars * 100);
-          const potRevealed = scoutPct >= 50 && (r.potential === "A" || r.potential === "B" || r.potential === "B+");
+          const potRevealed = scoutPct >= 50 && (String(r.potential) === "A" || String(r.potential) === "B" || String(r.potential) === "B+");
           if (aboveBand || potRevealed) styleBonus = 10;
         }
         else if (styleStrategy === "all_in_few") {
@@ -5399,7 +5395,7 @@ export async function advanceLeagueStep(
       const [allTeamsForLineup, allPlayersForLineup] = await Promise.all([storage.getTeamsByLeague(leagueId), storage.getPlayersByLeague(leagueId)]);
       const lineupPlayersByTeam = new Map<string, typeof allPlayersForLineup>();
       for (const p of allPlayersForLineup) { if (!lineupPlayersByTeam.has(p.teamId)) lineupPlayersByTeam.set(p.teamId, []); lineupPlayersByTeam.get(p.teamId)!.push(p); }
-      await Promise.all(allTeamsForLineup.filter(t => !t.userId || t.userId === "cpu").map(t => autoAssignLineup(storage, lineupPlayersByTeam.get(t.id) ?? [], t.id)));
+      await Promise.all(allTeamsForLineup.filter(t => t.isCpu).map(t => autoAssignLineup(lineupPlayersByTeam.get(t.id) ?? [], t.id)));
     } catch (e) { console.error("CPU auto-lineup error:", e); }
     await storage.createAuditLog({ leagueId: league.id, userId: actorUserId, action: "Season Advanced", details: `Season ${league.currentSeason} ended. ${walkonResult.walkonsAdded} walk-ons joined, ${walkonResult.newRecruits} new recruits generated. Now Season ${league.currentSeason + 1}.` });
     storage.getTeamsByLeague(leagueId).then(previewTeams => generateSeasonPreviewNewsArticle(leagueId, previewTeams, league.currentSeason + 1)).catch(e => console.error("Season preview news error:", e));
@@ -6870,7 +6866,7 @@ export function registerSimulationRoutes(app: Express): void {
   // Commissioner routes
   app.get("/api/leagues/:id/commissioner", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
@@ -7058,13 +7054,13 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   app.get("/api/leagues/:id/advance-progress", requireAuth, async (req, res) => {
-    const entry = advanceProgress.get(req.params.id);
+    const entry = advanceProgress.get(req.params.id as string);
     if (!entry) {
       return res.json({ active: false, stage: "idle", pct: 0 });
     }
     // Auto-expire stale entries (>60s) so clients don't hang
     if (Date.now() - entry.updatedAt > 60_000) {
-      advanceProgress.delete(req.params.id);
+      advanceProgress.delete(req.params.id as string);
       return res.json({ active: false, stage: "idle", pct: 0 });
     }
     return res.json({ active: true, stage: entry.stage, pct: entry.pct });
@@ -7331,7 +7327,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
   app.post("/api/leagues/:id/admin/dedup-rosters", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Commissioner only" });

@@ -2150,7 +2150,7 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
           await replaceLeagueRecruitingClass({
             leagueId,
             season: league.currentSeason,
-            recruits: validatedDynasty.recruits.map(r => ({ ...r, leagueId })),
+            recruits: validatedDynasty.recruits.map(r => ({ ...r, leagueId })) as any,
             initStorylines: true,
             asyncStorylines: true,
             audit: {
@@ -2298,7 +2298,7 @@ app.get("/api/leagues/:id/schedule/health", requireAuth, async (req, res) => {
       return {
         teamId: team.id,
         teamName: team.name,
-        conferenceName: team.conferenceName || "",
+        conferenceName: (team as any).conferenceName || "",
         isHuman: !team.isCpu,
         totalGames: myGames.length,
         confGames,

@@ -2236,7 +2236,7 @@ export function registerRecruitingRoutes(app: Express): void {
   // gem/bust/generational status, no hidden OVR beyond what star rating shows.
   app.get("/api/leagues/:id/recruiting/battles", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
 
       const leagueTeams = await storage.getTeamsByLeague(league.id);
@@ -2421,7 +2421,7 @@ export function registerRecruitingRoutes(app: Express): void {
   // Recruiting routes
   app.get("/api/leagues/:id/recruiting", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
@@ -2581,6 +2581,7 @@ export function registerRecruitingRoutes(app: Express): void {
             abbreviation: team.abbreviation,
             primaryColor: team.primaryColor,
             interestLevel: Math.max(10, 100 - (idx * 10) - ((seed + idx) % 10)),
+            previousInterestLevel: null,
           })).sort((a, b) => b.interestLevel - a.interestLevel);
         }
         
@@ -2755,7 +2756,7 @@ export function registerRecruitingRoutes(app: Express): void {
       // Attach lastSeasonStats to each recruit
       const recruitsWithStats = recruitsWithInterest.map(r => ({
         ...r,
-        lastSeasonStats: r.sourcePlayerId ? (transferStatsMap.get(r.sourcePlayerId) ?? null) : null,
+        lastSeasonStats: (r as any).sourcePlayerId ? (transferStatsMap.get((r as any).sourcePlayerId) ?? null) : null,
       }));
 
       // Current roster position counts
@@ -2873,7 +2874,7 @@ export function registerRecruitingRoutes(app: Express): void {
 
   app.post("/api/leagues/:id/recruiting/:recruitId/scout", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
       const userId = req.session.userId;
       const coaches = await storage.getCoachesByLeague(req.params.id as string);
       const userCoach = coaches.find((c) => c.userId === userId);
@@ -2897,7 +2898,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(403).json({ message: "Recruit not found in this league" });
       }
 
-      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
       // Scout reveals 15-25% each time, with archetype scouting efficiency bonus
       const archetypeScoutEfficiency: Record<string, number> = {
@@ -2911,12 +2912,12 @@ export function registerRecruitingRoutes(app: Express): void {
         "Old School": 0,
       };
       const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
-      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
+      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype ?? ""] || 0;
       // Facilities 7+: elite infrastructure means deeper, faster evaluations
       const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
       const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
       const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
-      const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0) + philosophyNarrowBonus;
+      const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype ?? ""] || 1.0) + philosophyNarrowBonus;
 
       // Helper function to narrow down a range (with archetype potential narrowing bonus).
       // Scouting is partially capped before signing day — attrs cap at 60%, common abilities at 50%.
@@ -3031,12 +3032,12 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       // Log the scouting action
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (league) {
         await storage.createRecruitingAction({
-          recruitId: req.params.recruitId,
+          recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
-          leagueId: req.params.id,
+          leagueId: req.params.id as string,
           week: league.currentWeek,
           season: league.currentSeason,
           actionType: "scout",
@@ -3067,9 +3068,9 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "recruitIds must be a non-empty array" });
       }
 
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
       const userId = req.session.userId;
-      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
       const userCoach = coaches.find((c) => c.userId === userId);
       const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
 
@@ -3090,7 +3091,7 @@ export function registerRecruitingRoutes(app: Express): void {
       const allowedIds = recruitIds.slice(0, actionsRemaining);
       const skippedCount = recruitIds.length - allowedIds.length;
 
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
 
       // Archetype/skill bonuses (same as single-scout endpoint)
       const archetypeScoutEfficiency: Record<string, number> = {
@@ -3104,7 +3105,7 @@ export function registerRecruitingRoutes(app: Express): void {
         "Old School": 0,
       };
       const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
-      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
+      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype ?? ""] || 0;
       const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
 
       const narrowRange = (min: number, max: number, actual: number, pct: number, potentialNarrowMultiplier: number): { newMin: number; newMax: number } => {
@@ -3141,7 +3142,7 @@ export function registerRecruitingRoutes(app: Express): void {
 
         const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
         const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
-        const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0) + philosophyNarrowBonus;
+        const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype ?? ""] || 1.0) + philosophyNarrowBonus;
 
         let interest = await storage.getRecruitingInterest(recruitId, userTeam.id);
 
@@ -3190,7 +3191,7 @@ export function registerRecruitingRoutes(app: Express): void {
           await storage.createRecruitingAction({
             recruitId,
             teamId: userTeam.id,
-            leagueId: req.params.id,
+            leagueId: req.params.id as string,
             week: league.currentWeek,
             season: league.currentSeason,
             actionType: "scout",
@@ -3222,8 +3223,8 @@ export function registerRecruitingRoutes(app: Express): void {
   app.get("/api/leagues/:id/recruiting/:recruitId/actions", requireAuth, async (req, res) => {
     try {
       const [leagueTeams, coaches] = await Promise.all([
-        storage.getTeamsByLeague(req.params.id),
-        storage.getCoachesByLeague(req.params.id),
+        storage.getTeamsByLeague(req.params.id as string),
+        storage.getCoachesByLeague(req.params.id as string),
       ]);
       const { userTeam } = resolveUserTeam(coaches, leagueTeams, req.session.userId);
       
@@ -3231,7 +3232,7 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const actions = await storage.getRecruitingActionsLog(req.params.recruitId, userTeam.id);
+      const actions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
       res.json({ actions });
     } catch (error) {
       console.error("Failed to fetch recruiting actions:", error);
@@ -3242,17 +3243,17 @@ export function registerRecruitingRoutes(app: Express): void {
   // Get all scouting/recruiting actions for user's team (history across all recruits)
   app.get("/api/leagues/:id/recruiting-history", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       
       if (!userCoach) {
         return res.status(400).json({ message: "No coach assigned" });
       }
 
-      const actions = await storage.getRecruitingActionsLogByTeam(userCoach.teamId, req.params.id);
+      const actions = await storage.getRecruitingActionsLogByTeam(userCoach.teamId!, req.params.id as string);
       
-      const recruits = await storage.getRecruitsByLeague(req.params.id);
+      const recruits = await storage.getRecruitsByLeague(req.params.id as string);
       const recruitMap = new Map(recruits.map(r => [r.id, r]));
       
       const enrichedActions = actions.map(a => {

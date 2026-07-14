@@ -84,7 +84,7 @@ export function registerCoachMessageRoutes(app: Express): void {
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
-      await storage.markCoachMessageRead(msgId, userId);
+      await storage.markCoachMessageRead(msgId as string, userId);
       res.json({ ok: true });
     } catch (err) {
       console.error("[coach-messages] mark-read failed:", err);
@@ -102,7 +102,7 @@ export function registerCoachMessageRoutes(app: Express): void {
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
-      await storage.markCoachMessageArchived(msgId, userId);
+      await storage.markCoachMessageArchived(msgId as string, userId);
       res.json({ ok: true });
     } catch (err) {
       console.error("[coach-messages] archive failed:", err);

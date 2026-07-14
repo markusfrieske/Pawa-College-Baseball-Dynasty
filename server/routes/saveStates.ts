@@ -15,7 +15,7 @@ const createSaveStateSchema = z.object({
 export function registerSaveStateRoutes(app: Express) {
   app.get("/api/leagues/:id/save-states", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Commissioner access required" });
@@ -30,7 +30,7 @@ export function registerSaveStateRoutes(app: Express) {
 
   app.post("/api/leagues/:id/save-states", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Commissioner access required" });
@@ -71,7 +71,7 @@ export function registerSaveStateRoutes(app: Express) {
     requireAuth,
     async (req, res) => {
       try {
-        const league = await storage.getLeague(req.params.id);
+        const league = await storage.getLeague(req.params.id as string);
         if (!league) return res.status(404).json({ message: "League not found" });
         if (!hasCommissionerAccess(league, req.session.userId)) {
           return res.status(403).json({ message: "Commissioner access required" });
@@ -84,7 +84,7 @@ export function registerSaveStateRoutes(app: Express) {
         advancingLeagues.add(league.id);
         try {
           await restoreLeagueSaveState(
-            req.params.saveStateId,
+            req.params.saveStateId as string,
             league.id,
             req.session.userId
           );

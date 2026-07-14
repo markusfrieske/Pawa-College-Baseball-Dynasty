@@ -1526,7 +1526,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecruitTopSchoolsByLeague(leagueId: string): Promise<RecruitTopSchools[]> {
-    return await db.select({ ...recruitTopSchools })
+    return await db.select({
+      id: recruitTopSchools.id,
+      recruitId: recruitTopSchools.recruitId,
+      teamId: recruitTopSchools.teamId,
+      interestLevel: recruitTopSchools.interestLevel,
+      rank: recruitTopSchools.rank,
+      isActive: recruitTopSchools.isActive,
+      accumulatedInterest: recruitTopSchools.accumulatedInterest,
+      previousInterestLevel: recruitTopSchools.previousInterestLevel,
+    })
       .from(recruitTopSchools)
       .innerJoin(recruits, eq(recruitTopSchools.recruitId, recruits.id))
       .where(eq(recruits.leagueId, leagueId));

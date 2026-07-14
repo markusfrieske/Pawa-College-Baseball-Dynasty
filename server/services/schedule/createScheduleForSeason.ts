@@ -69,7 +69,12 @@ async function createFullSeasonSchedule(
     conferences: conferences.map((c) => ({ id: c.id, name: c.name })),
   });
 
-  const errors = validateFullSeasonSchedule(scheduleGames);
+  const scheduleTeams = teams.map((t) => ({
+    id: t.id,
+    conferenceId: t.conferenceId ?? "",
+    name: t.name,
+  }));
+  const errors = validateFullSeasonSchedule(scheduleGames, scheduleTeams);
   if (errors.length > 0) {
     const msg = errors.map((e) => `${e.code}: ${e.message}`).join("; ");
     throw new Error(
