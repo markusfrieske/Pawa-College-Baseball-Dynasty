@@ -466,7 +466,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/phone`, { pitchTopics });
       return await res.json();
     },
-    onSuccess: (_data: any, variables: { recruitId: string; pitchTopic?: string }) => {
+    onSuccess: (data: any, variables: { recruitId: string; pitchTopic?: string }) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const weeklyActionsUsed = { ...old.weeklyActionsUsed };
@@ -474,11 +474,21 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
         if (!weeklyActionsUsed[variables.recruitId].includes("phone")) {
           weeklyActionsUsed[variables.recruitId] = [...weeklyActionsUsed[variables.recruitId], "phone"];
         }
+        const economy = old.economy && typeof data?.actionsRemaining === "number"
+          ? {
+              ...old.economy,
+              contactPoints: {
+                ...old.economy.contactPoints,
+                spent: old.economy.contactPoints.cap - data.actionsRemaining,
+              },
+            }
+          : old.economy;
         return {
           ...old,
           weeklyActionsUsed,
           weeklyActionsWeek: currentWeek ?? old.weeklyActionsWeek,
           weeklyActionsSeason: currentSeason ?? old.weeklyActionsSeason,
+          ...(economy !== old.economy && { economy }),
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
@@ -492,7 +502,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/email`, { pitchTopic });
       return await res.json();
     },
-    onSuccess: (_data: any, variables: { recruitId: string; pitchTopic?: string }) => {
+    onSuccess: (data: any, variables: { recruitId: string; pitchTopic?: string }) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const weeklyActionsUsed = { ...old.weeklyActionsUsed };
@@ -500,11 +510,21 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
         if (!weeklyActionsUsed[variables.recruitId].includes("email")) {
           weeklyActionsUsed[variables.recruitId] = [...weeklyActionsUsed[variables.recruitId], "email"];
         }
+        const economy = old.economy && typeof data?.actionsRemaining === "number"
+          ? {
+              ...old.economy,
+              contactPoints: {
+                ...old.economy.contactPoints,
+                spent: old.economy.contactPoints.cap - data.actionsRemaining,
+              },
+            }
+          : old.economy;
         return {
           ...old,
           weeklyActionsUsed,
           weeklyActionsWeek: currentWeek ?? old.weeklyActionsWeek,
           weeklyActionsSeason: currentSeason ?? old.weeklyActionsSeason,
+          ...(economy !== old.economy && { economy }),
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
@@ -518,7 +538,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/visit`, {});
       return await res.json();
     },
-    onSuccess: (_data: any, recruitId: string) => {
+    onSuccess: (data: any, recruitId: string) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const premiumActionsUsed = { ...old.premiumActionsUsed };
@@ -526,14 +546,32 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
         if (!premiumActionsUsed[recruitId].includes("visit")) {
           premiumActionsUsed[recruitId] = [...premiumActionsUsed[recruitId], "visit"];
         }
+        const newSeasonVisitCount = {
+          ...old.seasonVisitCount,
+          total: (old.seasonVisitCount?.total ?? 0) + 1,
+          campusVisits: (old.seasonVisitCount?.campusVisits ?? 0) + 1,
+        };
+        const economy = old.economy
+          ? {
+              ...old.economy,
+              visits: {
+                ...old.economy.visits,
+                totalUsed: (old.economy.visits?.totalUsed ?? 0) + 1,
+                campusUsed: (old.economy.visits?.campusUsed ?? 0) + 1,
+              },
+              ...(typeof data?.actionsRemaining === "number" && {
+                contactPoints: {
+                  ...old.economy.contactPoints,
+                  spent: old.economy.contactPoints.cap - data.actionsRemaining,
+                },
+              }),
+            }
+          : old.economy;
         return {
           ...old,
           premiumActionsUsed,
-          seasonVisitCount: {
-            ...old.seasonVisitCount,
-            total: (old.seasonVisitCount?.total ?? 0) + 1,
-            campusVisits: (old.seasonVisitCount?.campusVisits ?? 0) + 1,
-          },
+          seasonVisitCount: newSeasonVisitCount,
+          economy,
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
@@ -547,7 +585,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/head-coach-visit`, {});
       return await res.json();
     },
-    onSuccess: (_data: any, recruitId: string) => {
+    onSuccess: (data: any, recruitId: string) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const premiumActionsUsed = { ...old.premiumActionsUsed };
@@ -555,14 +593,32 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
         if (!premiumActionsUsed[recruitId].includes("head_coach_visit")) {
           premiumActionsUsed[recruitId] = [...premiumActionsUsed[recruitId], "head_coach_visit"];
         }
+        const newSeasonVisitCount = {
+          ...old.seasonVisitCount,
+          total: (old.seasonVisitCount?.total ?? 0) + 1,
+          hcVisits: (old.seasonVisitCount?.hcVisits ?? 0) + 1,
+        };
+        const economy = old.economy
+          ? {
+              ...old.economy,
+              visits: {
+                ...old.economy.visits,
+                totalUsed: (old.economy.visits?.totalUsed ?? 0) + 1,
+                headCoachUsed: (old.economy.visits?.headCoachUsed ?? 0) + 1,
+              },
+              ...(typeof data?.actionsRemaining === "number" && {
+                contactPoints: {
+                  ...old.economy.contactPoints,
+                  spent: old.economy.contactPoints.cap - data.actionsRemaining,
+                },
+              }),
+            }
+          : old.economy;
         return {
           ...old,
           premiumActionsUsed,
-          seasonVisitCount: {
-            ...old.seasonVisitCount,
-            total: (old.seasonVisitCount?.total ?? 0) + 1,
-            hcVisits: (old.seasonVisitCount?.hcVisits ?? 0) + 1,
-          },
+          seasonVisitCount: newSeasonVisitCount,
+          economy,
         };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
@@ -576,7 +632,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/offer`, {});
       return await res.json();
     },
-    onSuccess: (_data: any, recruitId: string) => {
+    onSuccess: (data: any, recruitId: string) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const recruits = old.recruits.map((r: any) =>
@@ -584,7 +640,20 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
             ? { ...r, interest: r.interest ? { ...r.interest, hasOffer: true } : { hasOffer: true } }
             : r
         );
-        return { ...old, recruits };
+        const economy = old.economy && typeof data?.actionsRemaining === "number"
+          ? {
+              ...old.economy,
+              contactPoints: {
+                ...old.economy.contactPoints,
+                spent: old.economy.contactPoints.cap - data.actionsRemaining,
+              },
+            }
+          : old.economy;
+        return {
+          ...old,
+          recruits,
+          ...(economy !== old.economy && { economy }),
+        };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });

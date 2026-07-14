@@ -6,11 +6,15 @@ interface StatCardProps {
   value: string;
   highlight?: boolean;
   tooltip?: React.ReactNode;
+  "data-testid"?: string;
 }
 
-export function StatCard({ icon, label, value, highlight, tooltip }: StatCardProps) {
+export function StatCard({ icon, label, value, highlight, tooltip, "data-testid": testId }: StatCardProps) {
   const card = (
-    <div className={`bg-card border p-1.5 rounded text-center ${highlight ? "border-red-500/50" : "border-border"} ${tooltip ? "cursor-help" : ""}`}>
+    <div
+      className={`bg-card border p-1.5 rounded text-center ${highlight ? "border-red-500/50" : "border-border"} ${tooltip ? "cursor-help" : ""}`}
+      data-testid={testId}
+    >
       <div className={`flex items-center justify-center gap-1 mb-0.5 ${highlight ? "text-red-400" : "text-muted-foreground"}`}>
         <span className="[&>svg]:w-3 [&>svg]:h-3">{icon}</span>
         <span className="text-[9px] uppercase tracking-wide leading-none">{label}</span>

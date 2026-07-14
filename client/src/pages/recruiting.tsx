@@ -755,6 +755,7 @@ export default function RecruitingPage() {
                   icon={<Phone className="w-4 h-4" />}
                   label="Contact Pts"
                   value={`${eco?.contactPoints.spent ?? data?.pointsUsed ?? 0}/${eco?.contactPoints.cap ?? data?.maxPoints ?? 0}`}
+                  data-testid="stat-card-contact-pts"
                 />
                 <StatCard
                   icon={<Eye className="w-4 h-4" />}
@@ -767,6 +768,7 @@ export default function RecruitingPage() {
                   value={visitsValue}
                   highlight={visitsHighlight}
                   tooltip={visitsTooltip}
+                  data-testid="stat-card-visits"
                 />
                 <StatCard
                   icon={<DollarSign className="w-4 h-4" />}
