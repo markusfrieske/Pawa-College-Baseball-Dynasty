@@ -1369,6 +1369,7 @@ export async function registerRoutes(
       }
 
       for (const team of leagueTeams) {
+        if (!team.isCpu) continue; // never overwrite a human coach's lineup
         const teamPlayers = await storage.getPlayersByTeam(team.id);
         await autoAssignLineup(storage, teamPlayers, team.id);
       }

@@ -1118,8 +1118,22 @@ async function generateConferenceChampionships(leagueId: string, season: number)
   const confs = await storage.getConferencesByLeague(leagueId);
   const leagueTeams = await storage.getTeamsByLeague(leagueId);
   const standingsList = await storage.getStandingsByLeague(leagueId, season);
-  
+
+  // Idempotency: fetch existing CC games once and skip any conference that
+  // already has a game to avoid duplicate championship games on retry.
+  const allGames = await storage.getGamesByLeague(leagueId);
+  const existingCCByConf = new Set<string>();
+  for (const g of allGames) {
+    if (g.phase === "conference_championship" && g.season === season) {
+      const homeConf = leagueTeams.find(t => t.id === g.homeTeamId)?.conferenceId;
+      if (homeConf) existingCCByConf.add(homeConf);
+    }
+  }
+
   for (const conf of confs) {
+    // Skip if this conference already has a championship game for this season.
+    if (existingCCByConf.has(conf.id)) continue;
+
     const confTeams = leagueTeams.filter(t => t.conferenceId === conf.id);
     if (confTeams.length < 2) continue;
     

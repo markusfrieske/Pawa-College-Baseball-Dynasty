@@ -136,6 +136,7 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   // generation but before lineup assignment is correctly repaired on resume.
   await updateProgress(jobId, 48, "Assigning lineups");
   for (const team of leagueTeams) {
+    if (!team.isCpu) continue; // never overwrite a human coach's lineup
     const teamPlayers = await storage.getPlayersByTeam(team.id);
     const assignedCount = teamPlayers.filter(p => p.battingOrder != null).length;
     if (assignedCount < 9) {

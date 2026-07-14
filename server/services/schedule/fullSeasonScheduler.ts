@@ -6,6 +6,9 @@
  *   • Every team plays exactly 56 games across exactly 14 weeks
  *   • Every team plays exactly 4 games per week
  *   • No games vs same-conference opponent in OOC slots
+ *   • Every team hosts between 26 and 30 games (home/away diff ≤ 4)
+ *   • Every team faces ≥ 8 unique OOC opponents
+ *   • No OOC pair plays each other more than 3 times across the season
  *
  * Per-week breakdown (149 teams, 12 confs, 3 odd confs):
  *   Conf games:  219  (each matchup = 3-game Fri/Sat/Sun series)
@@ -38,6 +41,8 @@ export interface FullSeasonScheduleParams {
   season: number;
   teams: ScheduleTeam[];
   conferences: ScheduleConference[];
+  /** Integer seed for deterministic OOC matching. Same seed → identical schedule. */
+  seed?: number;
 }
 
 export interface ScheduleValidationError {
@@ -50,6 +55,11 @@ const GAMES_PER_SERIES = 3;
 const EXPECTED_GAMES_PER_TEAM = 56;
 const EXPECTED_GAMES_PER_WEEK_PER_TEAM = 4;
 const EXPECTED_TOTAL_GAMES = 4172;
+const HOME_MIN = 26;
+const HOME_MAX = 30;
+const OOC_MAX_PAIR_MEETINGS = 3;
+const OOC_MIN_UNIQUE_OPPONENTS = 8;
+const HOME_AWAY_MAX_DIFF = 4;
 
 type Matchup = { home: ScheduleTeam; away: ScheduleTeam };
 
@@ -98,27 +108,6 @@ function expandToWeeks(
   return doubled.slice(0, NUM_WEEKS);
 }
 
-/** OOC constrained matcher for one week.
- *  byeTeamIds: teams that need 4 OOC slots (they have a conf bye this week).
- *  All other teams need 1 OOC slot.
- *  Returns 79 pairs of (home, away) guaranteed to be cross-conference.
- *
- *  Algorithm — "task scheduler" max-heap interleaving:
- *    1. Expand each team into N slots (bye=4, normal=1), grouped by conference.
- *    2. Use a greedy max-heap: always pick the highest-slot-count conference
- *       that is different from the previously placed conference.
- *       This guarantees no two adjacent slots share a conference.
- *    3. Pair adjacent positions (0,1), (2,3), … — since no adjacent pair
- *       shares a conference, all pairs are guaranteed cross-conference.
- *       Bye teams appear 4×; their instances are always separated by slots
- *       from other conferences, so no team is ever paired with itself.
- *
- *  Correctness: Hall's marriage theorem guarantees a valid non-adjacent-same-
- *  conf placement exists iff no single conference holds > ⌊totalSlots/2⌋ + 1
- *  slots.  Our largest conf (Big Ten-17 + 1 bye-team × 4 extra slots = max 20)
- *  is far below the threshold (79 for 158 total slots), so the greedy always
- *  succeeds.
- */
 /** Deterministic Fisher-Yates shuffle seeded with a 32-bit LCG.
  *  Same seed always produces the same permutation. */
 function seededShuffle<T>(arr: T[], seed: number): T[] {
@@ -132,16 +121,18 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return result;
 }
 
-function matchOocPairs(
+/**
+ * Build the conference-interleaved slot sequence for one week's OOC assignment.
+ * Returns a flat array of team slots (bye teams appear 4 times, others once).
+ * Adjacent positions are guaranteed to be from different conferences.
+ */
+function buildOocSlots(
   allTeams: ScheduleTeam[],
   byeTeamIds: Set<string>,
   confIdByTeamId: Map<string, string>,
   weekSeed: number,
-): Matchup[] {
-  // Step 1: Build per-conference team queues.
-  //         Shuffle teams within each conference using weekSeed so the
-  //         pairing rotates every week instead of repeating the same matchups.
-  const shuffledTeams = seededShuffle(allTeams, weekSeed * 2654435761 + 1);
+): ScheduleTeam[] {
+  const shuffledTeams = seededShuffle(allTeams, weekSeed);
   const confQueues = new Map<string, ScheduleTeam[]>();
   for (const t of shuffledTeams) {
     const conf = confIdByTeamId.get(t.id)!;
@@ -150,22 +141,17 @@ function matchOocPairs(
     for (let i = 0; i < count; i++) confQueues.get(conf)!.push(t);
   }
 
-  // Max-heap entries: [conf, remainingCount]
-  // We use a sorted array re-sorted after each pick (small enough: 12 confs).
   const heap: Array<[string, number]> = Array.from(confQueues.entries())
     .map(([conf, arr]) => [conf, arr.length] as [string, number])
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
-  // Step 2: Greedily build the interleaved slot sequence.
   const slots: ScheduleTeam[] = [];
   let lastConf: string | null = null;
 
   while (heap.length > 0) {
-    // Find the highest-count conf that differs from the last placed conf.
     let pickIdx = 0;
     if (heap[0][0] === lastConf) {
       if (heap.length === 1) {
-        // Should be impossible given Hall's condition.
         throw new Error(
           `OOC matcher: stuck — only remaining conf is ${heap[0][0]} (same as last). ` +
           `Total slots: ${slots.length + heap[0][1]}`,
@@ -185,28 +171,321 @@ function matchOocPairs(
     }
   }
 
-  // Step 3: Emit pairs from adjacent positions — cross-conf is guaranteed by
-  //         the interleaving.  Alternate home/away with weekSeed for fairness.
-  const pairs: Matchup[] = [];
-  for (let i = 0; i + 1 < slots.length; i += 2) {
-    const isHomeA = (weekSeed + pairs.length) % 2 === 0;
-    pairs.push(
-      isHomeA
-        ? { home: slots[i], away: slots[i + 1] }
-        : { home: slots[i + 1], away: slots[i] },
-    );
+  return slots;
+}
+
+/**
+ * Pair key for two team IDs — order-independent.
+ */
+function pairKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+/**
+ * Build all OOC games across 14 weeks with:
+ *   • Per-week pair count tracking (max 2 preferred, hard limit via validator = 3)
+ *   • Running home/away balance assignment (conference counts pre-seeded)
+ *   • Lookahead-8 matching to avoid over-met pairs
+ */
+function buildOocSchedule(
+  allTeams: ScheduleTeam[],
+  weekByeTeamIds: Array<Set<string>>,
+  confIdByTeamId: Map<string, string>,
+  homeCount: Map<string, number>,
+  awayCount: Map<string, number>,
+  baseSeed: number,
+  leagueId: string,
+  season: number,
+): InsertGame[] {
+  const pairCount = new Map<string, number>();
+  const getPairCnt = (a: string, b: string) => pairCount.get(pairKey(a, b)) ?? 0;
+  const incPairCnt = (a: string, b: string) => {
+    const k = pairKey(a, b);
+    pairCount.set(k, (pairCount.get(k) ?? 0) + 1);
+  };
+
+  const LOOKAHEAD = 8;
+  const oocGames: InsertGame[] = [];
+
+  for (let weekIdx = 0; weekIdx < NUM_WEEKS; weekIdx++) {
+    const week = weekIdx + 1;
+    const byeTeamIds = weekByeTeamIds[weekIdx];
+
+    // Per-week seed derived from base seed so same base → same per-week sequence.
+    const weekSeed = (((baseSeed ^ (weekIdx * 0x9e3779b9)) >>> 0) * 2654435761 + weekIdx) >>> 0;
+
+    const slots = buildOocSlots(allTeams, byeTeamIds, confIdByTeamId, weekSeed);
+
+    const used = new Set<number>();
+
+    for (let i = 0; i < slots.length; i++) {
+      if (used.has(i)) continue;
+      const a = slots[i];
+      const confA = confIdByTeamId.get(a.id)!;
+
+      let bestJ = -1;
+      let bestScore = Infinity;
+
+      // Full scan: no lookahead cap. We score every candidate and pick the best.
+      // Score = pairMeetings * 10000 + (j - i), so fewer past meetings always wins,
+      // with proximity as tiebreak (prefer slots close to i to preserve cross-conf
+      // adjacency from the interleaved sequence).
+      // Fast-exit: if we find an adjacent fresh pair, accept immediately.
+      for (let j = i + 1; j < slots.length; j++) {
+        if (used.has(j)) continue;
+        const b = slots[j];
+        if (confIdByTeamId.get(b.id) === confA) continue; // must be cross-conf
+        const cnt = getPairCnt(a.id, b.id);
+        const score = cnt * 10_000 + (j - i);
+        if (score < bestScore) {
+          bestScore = score;
+          bestJ = j;
+          if (cnt === 0 && j === i + 1) break; // adjacent fresh pair — can't do better
+        }
+      }
+      if (bestJ === -1) {
+        // Last resort: any unused slot (may violate cross-conf, validator will catch)
+        for (let j = i + 1; j < slots.length; j++) {
+          if (!used.has(j)) { bestJ = j; break; }
+        }
+      }
+      if (bestJ === -1) break;
+
+      used.add(i);
+      used.add(bestJ);
+
+      const b = slots[bestJ];
+      incPairCnt(a.id, b.id);
+
+      // Home/away: the team further behind on home games becomes home.
+      // Balance = homeCount - awayCount; lower = needs more home games.
+      const aBalance = (homeCount.get(a.id) ?? 0) - (awayCount.get(a.id) ?? 0);
+      const bBalance = (homeCount.get(b.id) ?? 0) - (awayCount.get(b.id) ?? 0);
+      const aIsHome = aBalance <= bBalance;
+
+      const home = aIsHome ? a : b;
+      const away = aIsHome ? b : a;
+
+      homeCount.set(home.id, (homeCount.get(home.id) ?? 0) + 1);
+      awayCount.set(away.id, (awayCount.get(away.id) ?? 0) + 1);
+
+      oocGames.push({
+        leagueId,
+        season,
+        week,
+        homeTeamId: home.id,
+        awayTeamId: away.id,
+        phase: "regular",
+        isConference: false,
+        gameType: "midweek",
+      });
+    }
   }
-  return pairs;
+
+  return oocGames;
+}
+
+/**
+ * Swap repair pass: mutates OOC game home/away in-place until all teams
+ * are within [HOME_MIN, HOME_MAX] home games, or no valid swap is found.
+ * Only OOC games are swapped to preserve conference series integrity.
+ */
+function repairHomeAwayBalance(
+  games: InsertGame[],
+  teams: ScheduleTeam[],
+  homeCount: Map<string, number>,
+  awayCount: Map<string, number>,
+): void {
+  const oocIdxs: number[] = [];
+  for (let i = 0; i < games.length; i++) {
+    if (!games[i].isConference) oocIdxs.push(i);
+  }
+
+  const MAX_PASSES = 300;
+
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    // Find the team most over the ceiling
+    let worstOver: string | null = null;
+    let worstOverVal = 0;
+    for (const t of teams) {
+      const h = homeCount.get(t.id) ?? 0;
+      if (h > HOME_MAX && h - HOME_MAX > worstOverVal) {
+        worstOverVal = h - HOME_MAX;
+        worstOver = t.id;
+      }
+    }
+
+    if (worstOver !== null) {
+      let swapped = false;
+      for (const idx of oocIdxs) {
+        const g = games[idx];
+        if (g.homeTeamId !== worstOver) continue;
+        const awayH = homeCount.get(g.awayTeamId) ?? 0;
+        if (awayH >= HOME_MAX) continue; // swapping would push away team over limit
+        // Perform swap
+        [g.homeTeamId, g.awayTeamId] = [g.awayTeamId, g.homeTeamId];
+        homeCount.set(worstOver, (homeCount.get(worstOver) ?? 0) - 1);
+        awayCount.set(worstOver, (awayCount.get(worstOver) ?? 0) + 1);
+        homeCount.set(g.homeTeamId, (homeCount.get(g.homeTeamId) ?? 0) + 1);
+        awayCount.set(g.homeTeamId, (awayCount.get(g.homeTeamId) ?? 0) - 1);
+        swapped = true;
+        break;
+      }
+      if (!swapped) break; // can't fix this team — stop to avoid infinite loop
+      continue;
+    }
+
+    // Find the team most under the floor
+    let worstUnder: string | null = null;
+    let worstUnderVal = 0;
+    for (const t of teams) {
+      const h = homeCount.get(t.id) ?? 0;
+      if (h < HOME_MIN && HOME_MIN - h > worstUnderVal) {
+        worstUnderVal = HOME_MIN - h;
+        worstUnder = t.id;
+      }
+    }
+
+    if (worstUnder !== null) {
+      let swapped = false;
+      for (const idx of oocIdxs) {
+        const g = games[idx];
+        if (g.awayTeamId !== worstUnder) continue;
+        const homeH = homeCount.get(g.homeTeamId) ?? 0;
+        if (homeH <= HOME_MIN) continue; // swapping would push home team under floor
+        [g.homeTeamId, g.awayTeamId] = [g.awayTeamId, g.homeTeamId];
+        homeCount.set(worstUnder, (homeCount.get(worstUnder) ?? 0) + 1);
+        awayCount.set(worstUnder, (awayCount.get(worstUnder) ?? 0) - 1);
+        homeCount.set(g.awayTeamId, (homeCount.get(g.awayTeamId) ?? 0) - 1);
+        awayCount.set(g.awayTeamId, (awayCount.get(g.awayTeamId) ?? 0) + 1);
+        swapped = true;
+        break;
+      }
+      if (!swapped) break;
+      continue;
+    }
+
+    break; // all teams within [HOME_MIN, HOME_MAX]
+  }
+}
+
+/**
+ * Post-processing repair: find any OOC pair that has met > OOC_MAX_PAIR_MEETINGS times
+ * and swap their opponents within the same week until all pairs are within the limit.
+ * Runs up to MAX_PASSES swap attempts.
+ */
+function repairOocOvermetPairs(
+  games: InsertGame[],
+  confIdByTeamId: Map<string, string>,
+): void {
+  const getPK = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+  // Index OOC games by week for fast lookup
+  const oocByWeek = new Map<number, number[]>();
+  for (let idx = 0; idx < games.length; idx++) {
+    const g = games[idx];
+    if (g.isConference) continue;
+    const w = g.week ?? 0;
+    if (!oocByWeek.has(w)) oocByWeek.set(w, []);
+    oocByWeek.get(w)!.push(idx);
+  }
+
+  // Build pair count map
+  const cnt = new Map<string, number>();
+  for (const idxs of oocByWeek.values()) {
+    for (const idx of idxs) {
+      const g = games[idx];
+      const k = getPK(g.homeTeamId, g.awayTeamId);
+      cnt.set(k, (cnt.get(k) ?? 0) + 1);
+    }
+  }
+
+  const MAX_PASSES = 200;
+  for (let pass = 0; pass < MAX_PASSES; pass++) {
+    // Find the first over-met game
+    let fixIdx = -1;
+    let fixA = '', fixB = '', fixWeek = 0;
+
+    outer:
+    for (const [, idxs] of oocByWeek) {
+      for (const idx of idxs) {
+        const g = games[idx];
+        if ((cnt.get(getPK(g.homeTeamId, g.awayTeamId)) ?? 0) > OOC_MAX_PAIR_MEETINGS) {
+          fixIdx = idx;
+          fixA = g.homeTeamId;
+          fixB = g.awayTeamId;
+          fixWeek = g.week ?? 0;
+          break outer;
+        }
+      }
+    }
+    if (fixIdx === -1) break; // all pairs within limit
+
+    const confA = confIdByTeamId.get(fixA)!;
+    const confB = confIdByTeamId.get(fixB)!;
+    const weekIdxs = oocByWeek.get(fixWeek) ?? [];
+
+    let swapped = false;
+    for (const idx of weekIdxs) {
+      if (idx === fixIdx) continue;
+      const g = games[idx];
+      const C = g.homeTeamId;
+      const D = g.awayTeamId;
+      const confC = confIdByTeamId.get(C)!;
+      const confD = confIdByTeamId.get(D)!;
+
+      // Attempt swap1: (A vs B, C vs D) → (A vs C, B vs D)
+      if (confC !== confA && confD !== confB) {
+        const acCnt = cnt.get(getPK(fixA, C)) ?? 0;
+        const bdCnt = cnt.get(getPK(fixB, D)) ?? 0;
+        if (acCnt < OOC_MAX_PAIR_MEETINGS && bdCnt < OOC_MAX_PAIR_MEETINGS) {
+          // Update pair counts
+          cnt.set(getPK(fixA, fixB), (cnt.get(getPK(fixA, fixB)) ?? 0) - 1);
+          cnt.set(getPK(C, D), (cnt.get(getPK(C, D)) ?? 0) - 1);
+          cnt.set(getPK(fixA, C), acCnt + 1);
+          cnt.set(getPK(fixB, D), bdCnt + 1);
+          // Patch games: A keeps its home/away role; C slots into B's position
+          const fixGame = games[fixIdx];
+          if (fixGame.homeTeamId === fixA) { fixGame.awayTeamId = C; }
+          else { fixGame.homeTeamId = C; }
+          // D stays in its original role; B slots into C's position
+          if (g.homeTeamId === C) { g.homeTeamId = fixB; }
+          else { g.awayTeamId = fixB; }
+          swapped = true;
+          break;
+        }
+      }
+
+      // Attempt swap2: (A vs B, C vs D) → (A vs D, B vs C)
+      if (confD !== confA && confC !== confB) {
+        const adCnt = cnt.get(getPK(fixA, D)) ?? 0;
+        const bcCnt = cnt.get(getPK(fixB, C)) ?? 0;
+        if (adCnt < OOC_MAX_PAIR_MEETINGS && bcCnt < OOC_MAX_PAIR_MEETINGS) {
+          cnt.set(getPK(fixA, fixB), (cnt.get(getPK(fixA, fixB)) ?? 0) - 1);
+          cnt.set(getPK(C, D), (cnt.get(getPK(C, D)) ?? 0) - 1);
+          cnt.set(getPK(fixA, D), adCnt + 1);
+          cnt.set(getPK(fixB, C), bcCnt + 1);
+          const fixGame = games[fixIdx];
+          if (fixGame.homeTeamId === fixA) { fixGame.awayTeamId = D; }
+          else { fixGame.homeTeamId = D; }
+          if (g.homeTeamId === D) { g.homeTeamId = fixB; }
+          else { g.awayTeamId = fixB; }
+          swapped = true;
+          break;
+        }
+      }
+    }
+    if (!swapped) break; // can't fix any remaining over-met pair — stop
+  }
 }
 
 /** Build the full 4,172-game schedule as a pure function.
- *  Throws ScheduleValidationError[] if invariants cannot be met. */
+ *  Throws if team list is empty. Validation is done by validateFullSeasonSchedule. */
 export function buildFullSeasonSchedule(params: FullSeasonScheduleParams): InsertGame[] {
-  const { leagueId, season, teams, conferences } = params;
+  const { leagueId, season, teams, conferences, seed = 0 } = params;
 
   if (teams.length === 0) throw new Error("No teams provided to scheduler");
 
-  const confById = new Map(conferences.map(c => [c.id, c]));
   const confIdByTeamId = new Map(teams.map(t => [t.id, t.conferenceId]));
 
   // Group teams by conferenceId.
@@ -217,7 +496,6 @@ export function buildFullSeasonSchedule(params: FullSeasonScheduleParams): Inser
   }
 
   // Build per-conference 14-week RR schedule.
-  // weekRounds[confId][week (0-indexed)] = { matchups, byeTeam }
   const confWeekRounds = new Map<string, Array<{ matchups: Matchup[]; byeTeam: ScheduleTeam | null }>>();
   for (const [confId, confTeams] of teamsByConf) {
     const rrRounds = generateRoundRobin(confTeams);
@@ -225,19 +503,25 @@ export function buildFullSeasonSchedule(params: FullSeasonScheduleParams): Inser
     confWeekRounds.set(confId, weekRounds);
   }
 
-  const pendingGames: InsertGame[] = [];
+  // Track home/away counts to drive OOC assignment and swap repair.
+  const homeCount = new Map<string, number>();
+  const awayCount = new Map<string, number>();
+  for (const t of teams) { homeCount.set(t.id, 0); awayCount.set(t.id, 0); }
 
+  const confGames: InsertGame[] = [];
+  const weekByeTeamIds: Array<Set<string>> = [];
+
+  // Step 1: emit conference series and accumulate home/away counts.
   for (let weekIdx = 0; weekIdx < NUM_WEEKS; weekIdx++) {
     const week = weekIdx + 1;
     const byeTeamIds = new Set<string>();
 
-    // Add conference series games (3 games per matchup).
-    for (const [confId, weekRounds] of confWeekRounds) {
+    for (const [, weekRounds] of confWeekRounds) {
       const { matchups, byeTeam } = weekRounds[weekIdx];
       if (byeTeam) byeTeamIds.add(byeTeam.id);
       for (const m of matchups) {
         for (let g = 0; g < GAMES_PER_SERIES; g++) {
-          pendingGames.push({
+          confGames.push({
             leagueId,
             season,
             week,
@@ -248,29 +532,48 @@ export function buildFullSeasonSchedule(params: FullSeasonScheduleParams): Inser
             gameType: "weekend",
           });
         }
+        homeCount.set(m.home.id, (homeCount.get(m.home.id) ?? 0) + GAMES_PER_SERIES);
+        awayCount.set(m.away.id, (awayCount.get(m.away.id) ?? 0) + GAMES_PER_SERIES);
       }
     }
 
-    // Add OOC midweek games.
-    const oocPairs = matchOocPairs(teams, byeTeamIds, confIdByTeamId, weekIdx);
-    for (const ooc of oocPairs) {
-      pendingGames.push({
-        leagueId,
-        season,
-        week,
-        homeTeamId: ooc.home.id,
-        awayTeamId: ooc.away.id,
-        phase: "regular",
-        isConference: false,
-        gameType: "midweek",
-      });
-    }
+    weekByeTeamIds.push(byeTeamIds);
   }
 
-  return pendingGames;
+  // Step 2: generate OOC games with pair count tracking and running balance.
+  const oocGames = buildOocSchedule(
+    teams,
+    weekByeTeamIds,
+    confIdByTeamId,
+    homeCount,
+    awayCount,
+    seed,
+    leagueId,
+    season,
+  );
+
+  const allGames = [...confGames, ...oocGames];
+
+  // Step 3a: fix any OOC pairs that exceeded the 3-meeting cap.
+  repairOocOvermetPairs(allGames, confIdByTeamId);
+
+  // Step 3b: recompute home/away counts after the OOC pair repair may have
+  // swapped game assignments, invalidating the running counts from Step 2.
+  homeCount.clear();
+  awayCount.clear();
+  for (const t of teams) { homeCount.set(t.id, 0); awayCount.set(t.id, 0); }
+  for (const g of allGames) {
+    homeCount.set(g.homeTeamId, (homeCount.get(g.homeTeamId) ?? 0) + 1);
+    awayCount.set(g.awayTeamId, (awayCount.get(g.awayTeamId) ?? 0) + 1);
+  }
+
+  // Step 3c: swap repair — ensure all teams host 26-30 games.
+  repairHomeAwayBalance(allGames, teams, homeCount, awayCount);
+
+  return allGames;
 }
 
-/** Validate that the schedule meets all exact invariants.
+/** Validate that the schedule meets all invariants.
  *  Returns an array of error objects (empty = valid). */
 export function validateFullSeasonSchedule(
   games: InsertGame[],
@@ -287,38 +590,45 @@ export function validateFullSeasonSchedule(
     });
   }
 
-  // Invariant 2: every team plays exactly 56 games.
-  const teamGameCounts = new Map<string, number>();
-  for (const t of teams) teamGameCounts.set(t.id, 0);
-  for (const g of regularGames) {
-    teamGameCounts.set(g.homeTeamId, (teamGameCounts.get(g.homeTeamId) ?? 0) + 1);
-    teamGameCounts.set(g.awayTeamId, (teamGameCounts.get(g.awayTeamId) ?? 0) + 1);
-  }
-  const undercount = teams.filter(t => (teamGameCounts.get(t.id) ?? 0) < EXPECTED_GAMES_PER_TEAM);
-  const overcount = teams.filter(t => (teamGameCounts.get(t.id) ?? 0) > EXPECTED_GAMES_PER_TEAM);
-  if (undercount.length > 0) {
-    errors.push({
-      code: "TEAM_GAME_UNDERCOUNT",
-      message: `${undercount.length} team(s) have fewer than ${EXPECTED_GAMES_PER_TEAM} games: ${undercount.slice(0, 5).map(t => `${t.name}=${teamGameCounts.get(t.id)}`).join(", ")}`,
-    });
-  }
-  if (overcount.length > 0) {
-    errors.push({
-      code: "TEAM_GAME_OVERCOUNT",
-      message: `${overcount.length} team(s) have more than ${EXPECTED_GAMES_PER_TEAM} games: ${overcount.slice(0, 5).map(t => `${t.name}=${teamGameCounts.get(t.id)}`).join(", ")}`,
-    });
+  // Build per-team counts.
+  const teamHomeCount = new Map<string, number>();
+  const teamAwayCount = new Map<string, number>();
+  const teamWeekCounts = new Map<string, Map<number, number>>();
+  for (const t of teams) {
+    teamHomeCount.set(t.id, 0);
+    teamAwayCount.set(t.id, 0);
+    teamWeekCounts.set(t.id, new Map());
   }
 
-  // Invariant 3: exactly 4 games per team per week.
-  const teamWeekCounts = new Map<string, Map<number, number>>();
-  for (const t of teams) teamWeekCounts.set(t.id, new Map());
   for (const g of regularGames) {
+    teamHomeCount.set(g.homeTeamId, (teamHomeCount.get(g.homeTeamId) ?? 0) + 1);
+    teamAwayCount.set(g.awayTeamId, (teamAwayCount.get(g.awayTeamId) ?? 0) + 1);
     const w = g.week ?? 0;
     for (const tid of [g.homeTeamId, g.awayTeamId]) {
       const wm = teamWeekCounts.get(tid);
       if (wm) wm.set(w, (wm.get(w) ?? 0) + 1);
     }
   }
+
+  // Invariant 2: every team plays exactly 56 games.
+  const undercount = teams.filter(t => (teamHomeCount.get(t.id) ?? 0) + (teamAwayCount.get(t.id) ?? 0) < EXPECTED_GAMES_PER_TEAM);
+  const overcount  = teams.filter(t => (teamHomeCount.get(t.id) ?? 0) + (teamAwayCount.get(t.id) ?? 0) > EXPECTED_GAMES_PER_TEAM);
+  if (undercount.length > 0) {
+    errors.push({
+      code: "TEAM_GAME_UNDERCOUNT",
+      message: `${undercount.length} team(s) have fewer than ${EXPECTED_GAMES_PER_TEAM} games: ` +
+        undercount.slice(0, 5).map(t => `${t.name}=${teamHomeCount.get(t.id)! + teamAwayCount.get(t.id)!}`).join(", "),
+    });
+  }
+  if (overcount.length > 0) {
+    errors.push({
+      code: "TEAM_GAME_OVERCOUNT",
+      message: `${overcount.length} team(s) have more than ${EXPECTED_GAMES_PER_TEAM} games: ` +
+        overcount.slice(0, 5).map(t => `${t.name}=${teamHomeCount.get(t.id)! + teamAwayCount.get(t.id)!}`).join(", "),
+    });
+  }
+
+  // Invariant 3: exactly 4 games per team per week.
   let weekViolations = 0;
   for (const [, wm] of teamWeekCounts) {
     for (let w = 1; w <= NUM_WEEKS; w++) {
@@ -329,7 +639,7 @@ export function validateFullSeasonSchedule(
   if (weekViolations > 0) {
     errors.push({
       code: "WEEKLY_GAME_COUNT_VIOLATION",
-      message: `${weekViolations} team-week slot(s) have ≠ ${EXPECTED_GAMES_PER_WEEK_PER_TEAM} games (expected ${EXPECTED_GAMES_PER_WEEK_PER_TEAM}/team/week for all 14 weeks)`,
+      message: `${weekViolations} team-week slot(s) have ≠ ${EXPECTED_GAMES_PER_WEEK_PER_TEAM} games`,
     });
   }
 
@@ -353,7 +663,77 @@ export function validateFullSeasonSchedule(
   if (sameConfOoc.length > 0) {
     errors.push({
       code: "OOC_SAME_CONFERENCE",
-      message: `${sameConfOoc.length} OOC game(s) involve teams from the same conference (cross-conference only is required)`,
+      message: `${sameConfOoc.length} OOC game(s) involve teams from the same conference`,
+    });
+  }
+
+  // Invariant 6: every team hosts between HOME_MIN and HOME_MAX games.
+  const homeBelow = teams.filter(t => (teamHomeCount.get(t.id) ?? 0) < HOME_MIN);
+  const homeAbove = teams.filter(t => (teamHomeCount.get(t.id) ?? 0) > HOME_MAX);
+  if (homeBelow.length > 0) {
+    errors.push({
+      code: "HOME_GAME_UNDERCOUNT",
+      message: `${homeBelow.length} team(s) host fewer than ${HOME_MIN} home games: ` +
+        homeBelow.slice(0, 5).map(t => `${t.name}=${teamHomeCount.get(t.id)}`).join(", "),
+    });
+  }
+  if (homeAbove.length > 0) {
+    errors.push({
+      code: "HOME_GAME_OVERCOUNT",
+      message: `${homeAbove.length} team(s) host more than ${HOME_MAX} home games: ` +
+        homeAbove.slice(0, 5).map(t => `${t.name}=${teamHomeCount.get(t.id)}`).join(", "),
+    });
+  }
+
+  // Invariant 7: home/away diff ≤ HOME_AWAY_MAX_DIFF per team.
+  const diffViolators = teams.filter(t => {
+    const h = teamHomeCount.get(t.id) ?? 0;
+    const a = teamAwayCount.get(t.id) ?? 0;
+    return Math.abs(h - a) > HOME_AWAY_MAX_DIFF;
+  });
+  if (diffViolators.length > 0) {
+    errors.push({
+      code: "HOME_AWAY_DIFF_EXCEEDED",
+      message: `${diffViolators.length} team(s) have home/away diff > ${HOME_AWAY_MAX_DIFF}: ` +
+        diffViolators.slice(0, 5).map(t => {
+          const h = teamHomeCount.get(t.id) ?? 0;
+          const a = teamAwayCount.get(t.id) ?? 0;
+          return `${t.name}=${h}H/${a}A`;
+        }).join(", "),
+    });
+  }
+
+  // Invariant 8: OOC pair meetings ≤ OOC_MAX_PAIR_MEETINGS.
+  const oocPairCount = new Map<string, number>();
+  for (const g of oocGames) {
+    const k = pairKey(g.homeTeamId, g.awayTeamId);
+    oocPairCount.set(k, (oocPairCount.get(k) ?? 0) + 1);
+  }
+  const overmetPairs: string[] = [];
+  for (const [k, cnt] of oocPairCount) {
+    if (cnt > OOC_MAX_PAIR_MEETINGS) overmetPairs.push(`${k}(${cnt}x)`);
+  }
+  if (overmetPairs.length > 0) {
+    errors.push({
+      code: "OOC_PAIR_OVERMET",
+      message: `${overmetPairs.length} OOC pair(s) meet more than ${OOC_MAX_PAIR_MEETINGS} times: ` +
+        overmetPairs.slice(0, 5).join(", "),
+    });
+  }
+
+  // Invariant 9: ≥ OOC_MIN_UNIQUE_OPPONENTS unique OOC opponents per team.
+  const oocOpponents = new Map<string, Set<string>>();
+  for (const t of teams) oocOpponents.set(t.id, new Set());
+  for (const g of oocGames) {
+    oocOpponents.get(g.homeTeamId)?.add(g.awayTeamId);
+    oocOpponents.get(g.awayTeamId)?.add(g.homeTeamId);
+  }
+  const fewOoc = teams.filter(t => (oocOpponents.get(t.id)?.size ?? 0) < OOC_MIN_UNIQUE_OPPONENTS);
+  if (fewOoc.length > 0) {
+    errors.push({
+      code: "OOC_INSUFFICIENT_VARIETY",
+      message: `${fewOoc.length} team(s) face fewer than ${OOC_MIN_UNIQUE_OPPONENTS} unique OOC opponents: ` +
+        fewOoc.slice(0, 5).map(t => `${t.name}=${oocOpponents.get(t.id)?.size}`).join(", "),
     });
   }
 

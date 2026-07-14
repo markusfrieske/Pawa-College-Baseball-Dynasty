@@ -58,6 +58,7 @@ async function createFullSeasonSchedule(
   const teams = await storage.getTeamsByLeague(leagueId);
   const conferences = await storage.getConferencesByLeague(leagueId);
 
+  const seedVal = league.scheduleSeed != null ? parseInt(league.scheduleSeed, 10) : 0;
   const scheduleGames = buildFullSeasonSchedule({
     leagueId,
     season,
@@ -67,6 +68,7 @@ async function createFullSeasonSchedule(
       name: t.name,
     })),
     conferences: conferences.map((c) => ({ id: c.id, name: c.name })),
+    seed: Number.isFinite(seedVal) ? seedVal : 0,
   });
 
   const scheduleTeams = teams.map((t) => ({
