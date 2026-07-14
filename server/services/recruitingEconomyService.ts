@@ -24,6 +24,9 @@ export interface EconomyInput {
   team?: {
     id?: string | null;
     nilBudget?: number | null;
+    nilSpent?: number | null;
+    nilRecruitingAlloc?: number | null;
+    nilRecruitingSpent?: number | null;
   } | null;
   targetsUsed: number;
   commitsData: {
@@ -55,9 +58,9 @@ function buildLedgerRecord(
     season: input.league.currentSeason,
     recruitingTurnIndex: turnIndex,
     contactCap: perTurnContact,
-    contactSpent: 0,
+    contactSpent: input.contactSpent,
     scoutCap: perTurnScout,
-    scoutSpent: 0,
+    scoutSpent: input.scoutSpent,
     targetsCap: targetCap,
     visitsCombinedCap: profile.visitCombinedCap,
     campusVisitCap: profile.campusVisitCap,
@@ -89,15 +92,19 @@ export async function computeRecruitingEconomyWithLedger(
   const seasonScoutBudget = getSeasonScoutBudget(profile, avgScoutSkill, archetype, hasQuickStudy);
   const targetCap = getTargetCap(commitsData.projectedOpenings, profile);
   const nilBudget = team?.nilBudget || 0;
+  const nilSpent = team?.nilSpent || 0;
+  const nilRecruitingAlloc = team?.nilRecruitingAlloc ?? nilBudget;
+  const nilRecruitingSpent = team?.nilRecruitingSpent || 0;
   const teamId = team?.id ?? coach?.teamId ?? "";
 
   let ledger: TeamRecruitingLedger | undefined;
   if (teamId && league.id && turnIndex >= 0) {
     ledger = await storage.getTeamRecruitingLedger(league.id, teamId, league.currentSeason, turnIndex);
+    const ledgerRecord = buildLedgerRecord(input, profile, turnIndex, seasonContactBudget, seasonScoutBudget, targetCap);
     if (!ledger) {
-      ledger = await storage.upsertTeamRecruitingLedger(
-        buildLedgerRecord(input, profile, turnIndex, seasonContactBudget, seasonScoutBudget, targetCap)
-      );
+      ledger = await storage.upsertTeamRecruitingLedger(ledgerRecord);
+    } else if (ledger.contactSpent !== contactSpent || ledger.scoutSpent !== scoutSpent) {
+      ledger = await storage.upsertTeamRecruitingLedger(ledgerRecord);
     }
   }
 
@@ -125,11 +132,11 @@ export async function computeRecruitingEconomyWithLedger(
     },
     nil: {
       budget: nilBudget,
-      spent: 0,
-      remaining: nilBudget,
-      recruitingAllocated: 0,
-      recruitingCommitted: 0,
-      recruitingRemaining: nilBudget,
+      spent: nilSpent,
+      remaining: Math.max(0, nilBudget - nilSpent),
+      recruitingAllocated: nilRecruitingAlloc,
+      recruitingCommitted: nilRecruitingSpent,
+      recruitingRemaining: Math.max(0, nilRecruitingAlloc - nilRecruitingSpent),
       retentionReserved: 0,
       walkonReserved: 0,
     },
@@ -158,6 +165,9 @@ export function computeRecruitingEconomy(input: EconomyInput): RecruitingEconomy
   const seasonScoutBudget = getSeasonScoutBudget(profile, avgScoutSkill, archetype, hasQuickStudy);
   const targetCap = getTargetCap(commitsData.projectedOpenings, profile);
   const nilBudget = team?.nilBudget || 0;
+  const nilSpent = team?.nilSpent || 0;
+  const nilRecruitingAlloc = team?.nilRecruitingAlloc ?? nilBudget;
+  const nilRecruitingSpent = team?.nilRecruitingSpent || 0;
 
   return {
     balanceVersion: 2,
@@ -183,11 +193,11 @@ export function computeRecruitingEconomy(input: EconomyInput): RecruitingEconomy
     },
     nil: {
       budget: nilBudget,
-      spent: 0,
-      remaining: nilBudget,
-      recruitingAllocated: 0,
-      recruitingCommitted: 0,
-      recruitingRemaining: nilBudget,
+      spent: nilSpent,
+      remaining: Math.max(0, nilBudget - nilSpent),
+      recruitingAllocated: nilRecruitingAlloc,
+      recruitingCommitted: nilRecruitingSpent,
+      recruitingRemaining: Math.max(0, nilRecruitingAlloc - nilRecruitingSpent),
       retentionReserved: 0,
       walkonReserved: 0,
     },
