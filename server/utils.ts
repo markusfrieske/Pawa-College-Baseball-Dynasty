@@ -6,12 +6,12 @@ import { computeRecruitPoolSize, computeFullSeasonRecruitPoolSize } from "../sha
  * full_season preset  → roster-demand formula (computeFullSeasonRecruitPoolSize)
  *   149 teams → 1,081 recruits
  *
- * All other presets   → backward-compatible linear formula (computeRecruitPoolSize)
- *   ≤20 teams: min(80, teams × 5 + 10)
- *   >20 teams: linear 80 → 200 as teams go 20 → 149
+ * All other presets   → V2 formula: max(30, ceil(teamCount × 7.25))
+ *   14 teams → 102 recruits
+ *   20 teams → 145 recruits
  *
  * Pass the league's dynastyPreset value as the second argument so custom
- * leagues are unaffected by the full-season scaling.
+ * leagues use the correct V2 formula.
  */
 export function getRecruitPoolSize(teamCount: number, dynastyPreset?: string | null): number {
   if (dynastyPreset === "full_season") {

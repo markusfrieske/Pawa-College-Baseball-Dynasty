@@ -84,31 +84,6 @@ import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets, co
 import { Phase, getSeasonMaxWeeks, RECRUITING_ACTIVE_PHASES as _PHASE_RECRUITING_ACTIVE, STORYLINE_ACTIVE_PHASES as _PHASE_STORYLINE_ACTIVE, OFFSEASON_RECRUITING_PHASES as _PHASE_OFFSEASON_REC } from "@shared/phase";
 import { getTurnContactCap, getTurnScoutCap, getRecruitingBalanceProfile, getRecruitingTurnIndex } from "@shared/recruitingBalance";
 
-// ── Recruiting budget helpers (mirrors recruiting.ts — keep in sync) ─────────
-// These are duplicated at module scope so simulation.ts (which runs CPU
-// recruiting without going through the recruiting routes) can compute the
-// identical per-coach weekly action budget.
-const ARCHETYPE_RECRUITING_ACTION_BONUS: Record<string, number> = {
-  "Scout Master": 4,
-  "Dealmaker": 4,
-  "Pure CEO": 2,
-  "Player's Coach": 0,
-  "Balanced": 0,
-  "Academic Dean": 0,
-  "Tactician": -2,
-  "Old School": -4,
-};
-
-function getMaxRecruitingActions(coach: any, seasonLength?: string | null): number {
-  const baseActions = 15;
-  const skillBonus = Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2);
-  const archetypeBonus = ARCHETYPE_RECRUITING_ACTION_BONUS[coach?.archetype] || 0;
-  const rawBudget = Math.max(4, baseActions + skillBonus + archetypeBonus);
-  const seasonScale: Record<string, number> = { short: 1.0, standard: 1.0, medium: 0.87, long: 0.73 };
-  const scale = seasonScale[seasonLength ?? "standard"] ?? 1.0;
-  return Math.max(4, Math.round(rawBudget * scale));
-}
-
 // ── Shared recruiting math helpers (mirrors recruiting.ts — keep in sync) ────
 // Extracted so simulation.ts CPU recruiter uses the identical math as the
 // human endpoint without creating a circular import.

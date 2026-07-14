@@ -25,8 +25,9 @@ transactional). Custom leagues use legacy `generateSchedule`.
   uses team.id.localeCompare() as stable final tiebreaker.
 - SR/CWS: `createPostseasonSeries` uses .onConflictDoNothing() with fallback read in storage.ts.
 
-**Phase 6** — Custom recruiting formula: `computeRecruitPoolSize` returns
-`Math.min(numTeams * 5 + 10, 75)` for non-FS leagues.
+**Phase 6** — Custom recruiting formula: `computeRecruitPoolSize` in `shared/catalog/index.ts`
+returns `Math.max(30, Math.ceil(numTeams * 7.25))` for all non-FS leagues (V2 formula).
+14 teams → 102 recruits. Full Season uses `computeFullSeasonRecruitPoolSize` (demand-driven, 149 teams → 1,081).
 
 **Phase 7/8** — Schedule fairness, publish correctness, and advance guard:
 - Scheduler: 1000-seed validator passes (26-30 home, diff ≤4, ≥8 unique OOC opps, pair ≤3).
