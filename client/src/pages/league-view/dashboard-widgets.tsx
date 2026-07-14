@@ -1080,7 +1080,7 @@ export function StandingsPreviewPanel({
                   size="xs"
                 />
                 <span className={`flex-1 text-xs truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>
-                  {team.abbreviation}
+                  {team.name}
                 </span>
                 <span className={`font-pixel text-xs shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>
                   {team.standings?.wins ?? 0}-{team.standings?.losses ?? 0}
@@ -1113,7 +1113,7 @@ export function NavDock({
       subtitle: "View your career",
     },
     {
-      href: `/league/${leagueId}/team/${userTeam?.id ?? ""}`,
+      href: userTeam?.id ? `/league/${leagueId}/team/${userTeam.id}` : `/league/${leagueId}`,
       icon: <Building2 className="w-6 h-6" />,
       title: "School",
       subtitle: "Your program",

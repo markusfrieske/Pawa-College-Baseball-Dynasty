@@ -301,7 +301,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                           </span>
                         )}
                         <span
-                          className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
+                          className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
                           style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
                         >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
                         <span className={`flex-1 truncate text-xs ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
@@ -415,7 +415,7 @@ export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
                       </span>
                     )}
                     <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
+                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
                       style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
                     >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
                     <span className={`flex-1 truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>

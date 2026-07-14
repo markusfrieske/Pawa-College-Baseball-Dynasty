@@ -296,7 +296,13 @@ function TeamTile({
           style={{ backgroundColor: team.primaryColor }}
         >
           <span
-            className="font-pixel text-xs leading-none text-center px-0.5"
+            className={`font-pixel leading-none text-center ${
+              (team.abbreviation?.length ?? 0) > 3
+                ? "text-[7px]"
+                : (team.abbreviation?.length ?? 0) === 3
+                ? "text-[9px]"
+                : "text-xs"
+            }`}
             style={{ color: team.secondaryColor || "#ffffff" }}
           >
             {team.abbreviation}
@@ -677,12 +683,12 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
             const { label, color, dot } = IMPORTANCE_LABELS[p.importance] ?? IMPORTANCE_LABELS["somewhat"];
             const desc = PHILOSOPHY_DESCRIPTIONS[p.statement] ?? "";
             return (
-              <div key={p.statement} className="flex items-start gap-3">
-                <div className="flex items-center gap-1.5 w-20 shrink-0 pt-0.5">
+              <div key={p.statement} className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-                  <span className={`font-pixel text-xs ${color}`}>{label}</span>
+                  <span className={`font-pixel text-[9px] ${color}`}>{label}</span>
                 </div>
-                <div className="min-w-0">
+                <div className="pl-3">
                   <p className="text-xs font-medium leading-tight">{p.statement}</p>
                   <p className="text-xs text-muted-foreground leading-tight mt-0.5">{desc}</p>
                 </div>

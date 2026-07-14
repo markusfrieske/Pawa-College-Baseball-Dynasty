@@ -9,6 +9,28 @@ interface TeamBadgeProps {
   className?: string;
 }
 
+function abbrFontSize(abbreviation: string, size: "xs" | "sm" | "md" | "lg"): string {
+  const len = abbreviation?.length ?? 0;
+  if (size === "xs") {
+    if (len <= 2) return "text-[7px]";
+    return "text-[5px]";
+  }
+  if (size === "sm") {
+    if (len <= 2) return "text-[9px]";
+    if (len === 3) return "text-[7px]";
+    return "text-[5px]";
+  }
+  if (size === "md") {
+    if (len <= 2) return "text-xs";
+    if (len === 3) return "text-[9px]";
+    return "text-[7px]";
+  }
+  // lg
+  if (len <= 2) return "text-sm";
+  if (len === 3) return "text-xs";
+  return "text-[9px]";
+}
+
 export function TeamBadge({
   abbreviation,
   primaryColor,
@@ -18,10 +40,10 @@ export function TeamBadge({
   className,
 }: TeamBadgeProps) {
   const sizes = {
-    xs: "w-6 h-6 text-xs",
-    sm: "w-8 h-8 text-xs",
-    md: "w-12 h-12 text-xs",
-    lg: "w-16 h-16 text-sm",
+    xs: "w-6 h-6",
+    sm: "w-8 h-8",
+    md: "w-12 h-12",
+    lg: "w-16 h-16",
   };
 
   return (
@@ -39,7 +61,9 @@ export function TeamBadge({
       aria-label={name ?? abbreviation}
       data-testid="team-badge-letter"
     >
-      {abbreviation}
+      <span className={cn("leading-none text-center", abbrFontSize(abbreviation, size))}>
+        {abbreviation}
+      </span>
     </div>
   );
 }

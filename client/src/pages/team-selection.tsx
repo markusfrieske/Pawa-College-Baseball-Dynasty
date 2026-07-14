@@ -86,7 +86,13 @@ function TeamTile({
           style={{ backgroundColor: team.primaryColor }}
         >
           <span
-            className="font-pixel text-xs leading-none text-center px-0.5"
+            className={`font-pixel leading-none text-center ${
+              (team.abbreviation?.length ?? 0) > 3
+                ? "text-[7px]"
+                : (team.abbreviation?.length ?? 0) === 3
+                ? "text-[9px]"
+                : "text-xs"
+            }`}
             style={{ color: team.secondaryColor || "#ffffff" }}
           >
             {team.abbreviation}
