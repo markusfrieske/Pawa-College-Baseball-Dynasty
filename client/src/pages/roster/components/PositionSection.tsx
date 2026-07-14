@@ -114,7 +114,17 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
 
       {/* Desktop table layout */}
       <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
+          <colgroup>
+            <col className="w-10" />
+            <col />
+            <col className="w-12" />
+            <col className="w-12" />
+            <col className="w-24" />
+            <col className="w-12" />
+            {progressionEnabled && <col className="w-12" />}
+            <col className="w-36 hidden lg:table-column" />
+          </colgroup>
           <thead>
             <tr className="border-b border-border text-muted-foreground">
               <th className="text-left py-3 px-2">#</th>

@@ -1136,7 +1136,7 @@ function RecruitRow({
 
           {/* Row 1 — ATTRIBUTES */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-20 shrink-0">ATTRIBUTES</span>
+            <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">ATTRIBUTES</span>
             {primaryAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
@@ -1178,7 +1178,7 @@ function RecruitRow({
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">PITCH MIX</span>
                 {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
                     <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
@@ -1196,7 +1196,7 @@ function RecruitRow({
 
           {/* Row 2 — COMMON abilities */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">COMMON</span>
+            <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">COMMON</span>
             {commonAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
@@ -1218,7 +1218,7 @@ function RecruitRow({
 
           {/* Row 3 — SPECIAL abilities */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">SPECIAL</span>
+            <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">SPECIAL</span>
             {(() => {
               const abilitiesList = (recruit.abilities as string[] | null | undefined) || [];
               // Filter to only gold/blue/red special abilities first, then apply fog-of-war slice

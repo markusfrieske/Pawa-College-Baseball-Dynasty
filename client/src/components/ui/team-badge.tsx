@@ -46,10 +46,17 @@ export function TeamBadge({
     lg: "w-16 h-16",
   };
 
+  // Truncate abbreviation to fit the circle at each size
+  const displayAbbr = size === "xs"
+    ? (abbreviation?.slice(0, 2) ?? "")
+    : size === "sm"
+    ? (abbreviation?.slice(0, 3) ?? "")
+    : abbreviation;
+
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-pixel font-bold border-2 shrink-0",
+        "rounded-full flex items-center justify-center font-pixel font-bold border-2 shrink-0 overflow-hidden",
         sizes[size],
         className,
       )}
@@ -61,8 +68,8 @@ export function TeamBadge({
       aria-label={name ?? abbreviation}
       data-testid="team-badge-letter"
     >
-      <span className={cn("leading-none text-center", abbrFontSize(abbreviation, size))}>
-        {abbreviation}
+      <span className={cn("leading-none text-center", abbrFontSize(displayAbbr, size))}>
+        {displayAbbr}
       </span>
     </div>
   );

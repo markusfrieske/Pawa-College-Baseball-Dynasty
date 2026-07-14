@@ -1114,9 +1114,16 @@ export function NavDock({
     },
     {
       href: userTeam?.id ? `/league/${leagueId}/team/${userTeam.id}` : `/league/${leagueId}`,
-      icon: <Building2 className="w-6 h-6" />,
-      title: "School",
-      subtitle: "Your program",
+      icon: userTeam ? (
+        <TeamBadge
+          abbreviation={userTeam.abbreviation}
+          primaryColor={userTeam.primaryColor}
+          secondaryColor={userTeam.secondaryColor ?? undefined}
+          size="sm"
+        />
+      ) : <Building2 className="w-6 h-6" />,
+      title: userTeam ? userTeam.abbreviation : "School",
+      subtitle: userTeam ? userTeam.name : "Your program",
     },
     {
       href: `/league/${leagueId}/roster`,

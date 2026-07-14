@@ -352,7 +352,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                         <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded text-xs cursor-pointer ${isUser ? "text-gold" : "text-foreground/70 hover:text-foreground"}`} data-testid={`bubble-row-${r.teamId}`}>
                           <span className="font-pixel text-xs text-muted-foreground w-4 text-right shrink-0">#{r.rank}</span>
                           <span
-                            className="w-4 h-4 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
+                            className="w-4 h-4 rounded-full flex items-center justify-center font-pixel text-[6px] shrink-0 overflow-hidden"
                             style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}` }}
                           >{r.abbreviation?.slice(0, 2) ?? "—"}</span>
                           <span className="flex-1 truncate text-xs">{r.teamName}</span>
