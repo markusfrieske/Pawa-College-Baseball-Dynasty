@@ -59,6 +59,8 @@ export const leagues = pgTable("leagues", {
   catalogVersion: text("catalog_version"),
   scheduleSeed: text("schedule_seed"),
   currentPhaseStep: text("current_phase_step"),
+  /** Monotonically-increasing version number, bumped on every atomic schedule publish. */
+  scheduleVersion: integer("schedule_version").notNull().default(0),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

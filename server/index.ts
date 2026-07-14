@@ -1469,6 +1469,26 @@ app.use((req, res, next) => {
       })
       .catch(e => console.warn("[startup-migration] full-season-schema-v4 failed:", e));
 
+  // ── full-season-schema-v5 ─────────────────────────────────────────────────
+  // Additive-only. Adds:
+  //   • leagues.schedule_version  — monotonic counter bumped on every publish
+  //   • Partial unique index on games for conference_championship phase
+  //     so concurrent advance requests cannot create duplicate CC games.
+  pool.query(`
+    ALTER TABLE leagues
+      ADD COLUMN IF NOT EXISTS schedule_version integer NOT NULL DEFAULT 0;
+
+    -- Prevent concurrent CC-game creation from producing duplicates.
+    -- One home team per league/season in conference_championship phase.
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_games_cc_league_season_home
+      ON games (league_id, season, home_team_id)
+      WHERE phase = 'conference_championship';
+  `).then(() => {
+    console.log("[startup-migration] full-season-schema-v5: schedule_version column + CC unique index ensured");
+  }).catch(e => {
+    console.warn("[startup-migration] full-season-schema-v5 failed (non-fatal):", e);
+  });
+
   // ── Security hardening migration (checkpoint-2) ───────────────────────────
   // Creates league_advance_locks (DB-backed advance concurrency guard) and
   // adds a partial unique index on coaches so one user can't claim multiple

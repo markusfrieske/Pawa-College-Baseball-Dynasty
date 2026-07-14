@@ -58,7 +58,7 @@ import { registerCoachMessageRoutes } from "./routes/coach-messages";
 import { registerRivalryRoutes } from "./routes/rivalries";
 import { registerNewsRoutes } from "./routes/news";
 import { registerIdentityRoutes } from "./routes/identity";
-import { createScheduleForSeason } from "./services/schedule/createScheduleForSeason";
+import { createScheduleForSeason, previewFullSeasonSchedule } from "./services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
   generateRecruits,
@@ -742,6 +742,27 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch league job:", error);
       res.status(500).json({ message: "Failed to fetch league job" });
+    }
+  });
+
+  // ── Schedule preview (pure, no DB writes) ────────────────────────────────
+  // Commissioners can call this before publishing to verify schedule fairness
+  // without committing any changes.
+  app.get("/api/leagues/:id/schedule/preview", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = (req.session as any).userId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== userId) {
+        return res.status(403).json({ message: "Only the commissioner can preview the schedule" });
+      }
+      const season = Number(req.query.season) || league.currentSeason || 1;
+      const preview = await previewFullSeasonSchedule(leagueId, season);
+      res.json({ leagueId, season, ...preview });
+    } catch (error) {
+      console.error("Failed to preview schedule:", error);
+      res.status(500).json({ message: "Failed to preview schedule" });
     }
   });
 

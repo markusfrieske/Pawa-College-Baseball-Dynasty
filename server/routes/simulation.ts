@@ -1146,14 +1146,19 @@ async function generateConferenceChampionships(leagueId: string, season: number)
       return { team: t, wins: s?.wins || 0, losses: s?.losses || 0, confWins, confLosses, confWinPct };
     }).sort((a, b) => b.confWinPct - a.confWinPct || (b.confWins - b.confLosses) - (a.confWins - a.confLosses) || b.wins - a.wins);
     
-    await storage.createGame({
-      leagueId,
-      season,
-      week: 0,
-      homeTeamId: confStandings[0].team.id,
-      awayTeamId: confStandings[1].team.id,
-      phase: "conference_championship",
-    });
+    // Use ON CONFLICT DO NOTHING so that concurrent advance requests (both
+    // pass the existingCCByConf read-check simultaneously) produce exactly
+    // one CC game per conference — the unique index idx_games_cc_league_season_home
+    // enforces the DB-level constraint.
+    await pool.query(
+      `INSERT INTO games
+         (id, league_id, season, week, home_team_id, away_team_id, phase,
+          is_complete, is_conference, is_manually_reported)
+       VALUES (gen_random_uuid(), $1, $2, 0, $3, $4, 'conference_championship',
+               false, false, false)
+       ON CONFLICT DO NOTHING`,
+      [leagueId, season, confStandings[0].team.id, confStandings[1].team.id],
+    );
   }
 }
 
