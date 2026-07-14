@@ -69,6 +69,24 @@ import {
 import { db, pool } from "./db";
 import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql, gt } from "drizzle-orm";
 
+/** Map a raw pg snake_case league_jobs row to the Drizzle camelCase LeagueJob type. */
+function mapJobRow(row: Record<string, unknown>): LeagueJob {
+  return {
+    id: row.id,
+    leagueId: row.league_id,
+    jobType: row.job_type,
+    status: row.status,
+    progress: row.progress,
+    errorMessage: row.error_message ?? null,
+    metadata: row.metadata ?? null,
+    lockedBy: row.locked_by ?? null,
+    leaseExpiresAt: row.lease_expires_at ?? null,
+    attemptCount: row.attempt_count ?? 0,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  } as LeagueJob;
+}
+
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -2574,6 +2592,7 @@ export class DatabaseStorage implements IStorage {
     return job;
   }
 
+
   async getLeagueJob(id: string): Promise<LeagueJob | undefined> {
     const [job] = await db.select().from(league_jobs).where(eq(league_jobs.id, id));
     return job ?? undefined;
@@ -2612,7 +2631,7 @@ export class DatabaseStorage implements IStorage {
     // Claim either a genuinely pending job OR a running job whose lease expired.
     // SET locked_by / lease_expires_at so multi-instance runners don't double-claim,
     // and bump attempt_count for observability.
-    const result = await pgPool.query<LeagueJob>(`
+    const result = await pgPool.query(`
       UPDATE league_jobs
          SET status           = 'running',
              updated_at       = now(),
@@ -2629,7 +2648,8 @@ export class DatabaseStorage implements IStorage {
              )
     RETURNING *
     `);
-    return result.rows[0] ?? undefined;
+    const row = result.rows[0];
+    return row ? mapJobRow(row) : undefined;
   }
 
   /**
@@ -2640,12 +2660,12 @@ export class DatabaseStorage implements IStorage {
   async getOrphanedLeagueJobs(): Promise<LeagueJob[]> {
     const { pool: pgPool } = await import("./db");
     try {
-      const result = await pgPool.query<LeagueJob>(`
+      const result = await pgPool.query(`
         SELECT * FROM league_jobs
          WHERE status = 'running' AND lease_expires_at IS NULL
          ORDER BY created_at ASC
       `);
-      return result.rows;
+      return result.rows.map(mapJobRow);
     } catch (e: any) {
       // 42703 = undefined_column — lease_expires_at may not exist yet on first
       // boot if the startup migration hasn't completed yet.  Return empty so the
