@@ -638,15 +638,13 @@ export default function CommissionerPage() {
               >
                 Schedule
               </TabsTrigger>
-              {isPrimaryCommissioner && (
-                <TabsTrigger
-                  value="league-editor"
-                  className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
-                  data-testid="tab-league-editor"
-                >
-                  League Editor
-                </TabsTrigger>
-              )}
+              <TabsTrigger
+                value="league-editor"
+                className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                data-testid="tab-league-editor"
+              >
+                League Editor
+              </TabsTrigger>
               {isPrimaryCommissioner && (
                 <TabsTrigger
                   value="save-states"

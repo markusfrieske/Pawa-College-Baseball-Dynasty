@@ -489,6 +489,11 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
 
 const PITCHER_POSITIONS = new Set(["P","SP","RP","CP","CL","LHP","RHP"]);
 
+const SKIN_TONES = ["light","fair","medium","tan","dark","deep"];
+const HAIR_COLORS = ["black","brown","blonde","red","gray","white","auburn"];
+const HAIR_STYLES = ["short","medium","long","buzz","bald","curly","wavy","spiky"];
+const FACIAL_HAIR_OPTS = ["none","stubble","beard","mustache","goatee","full_beard"];
+
 const HITTER_ATTRS = [
   { label: "Contact", field: "hitForAvg" }, { label: "Power", field: "power" },
   { label: "Speed", field: "speed" }, { label: "Arm", field: "arm" },
@@ -522,10 +527,12 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
     queryFn: () => fetch(`/api/leagues/${leagueId}/editor/schools`, { credentials: "include" }).then(r => r.json()),
   });
 
-  const { data: playersData, isLoading } = useQuery<{ players: EditorPlayer[] }>({
-    queryKey: ["/api/leagues", leagueId, "editor", "players", teamId, posFilter, eligFilter, search],
+  const [playerPage, setPlayerPage] = useState(1);
+
+  const { data: playersData, isLoading } = useQuery<{ players: EditorPlayer[]; total: number; page: number; pageSize: number }>({
+    queryKey: ["/api/leagues", leagueId, "editor", "players", teamId, posFilter, eligFilter, search, playerPage],
     queryFn: () => {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ page: String(playerPage), pageSize: "50" });
       if (teamId !== "all") params.set("teamId", teamId);
       if (posFilter !== "all") params.set("position", posFilter);
       if (eligFilter !== "all") params.set("eligibility", eligFilter);
@@ -643,6 +650,28 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             <p className="text-xs text-muted-foreground text-center py-4">No players found</p>
           )}
         </div>
+        {/* Pagination */}
+        {playersData && playersData.total > playersData.pageSize && (
+          <div className="flex items-center justify-between gap-1 pt-1 border-t border-border shrink-0">
+            <button
+              onClick={() => setPlayerPage(p => Math.max(1, p - 1))}
+              disabled={playerPage <= 1}
+              className="text-[9px] text-muted-foreground disabled:opacity-30 hover:text-foreground px-1"
+            >
+              Prev
+            </button>
+            <span className="text-[9px] text-muted-foreground">
+              {playerPage}/{Math.ceil(playersData.total / playersData.pageSize)}
+            </span>
+            <button
+              onClick={() => setPlayerPage(p => Math.min(Math.ceil(playersData.total / playersData.pageSize), p + 1))}
+              disabled={playerPage >= Math.ceil(playersData.total / playersData.pageSize)}
+              className="text-[9px] text-muted-foreground disabled:opacity-30 hover:text-foreground px-1"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right: Player Editor */}
@@ -683,7 +712,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
 
             <Tabs value={panelTab} onValueChange={setPanelTab}>
               <TabsList className="bg-card border border-border">
-                {["identity","ratings","abilities"].map(t => (
+                {["identity","ratings","pitching","abilities","appearance"].map(t => (
                   <TabsTrigger
                     key={t}
                     value={t}
@@ -820,6 +849,92 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                     <p className="text-[9px] text-muted-foreground mt-2">
                       Selected: {(getVal("abilities", selected.abilities) as string[]).length} / 7
                     </p>
+                  </RetroCardContent>
+                </RetroCard>
+              </TabsContent>
+
+              {/* Pitching Panel */}
+              <TabsContent value="pitching">
+                <RetroCard>
+                  <RetroCardContent className="pt-3">
+                    <p className="text-[9px] text-muted-foreground mb-3">Pitch mix levels (0 = does not throw). Levels 1-7 indicate proficiency.</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                      {([
+                        ["FB","pitchFB"], ["2S","pitch2S"], ["SL","pitchSL"], ["CB","pitchCB"],
+                        ["CH","pitchCH"], ["CT","pitchCT"], ["SNK","pitchSNK"], ["SPL","pitchSPL"],
+                        ["SHU","pitchSHU"], ["CCH","pitchCCH"], ["HSL","pitchHSL"], ["SWP","pitchSWP"],
+                        ["KN","pitchKN"], ["VSL","pitchVSL"], ["SFF","pitchSFF"], ["FK","pitchFK"],
+                        ["SCB","pitchSCB"], ["PCB","pitchPCB"],
+                      ] as [string, string][]).map(([label, field]) => (
+                        <div key={field} className="flex items-center gap-2">
+                          <span className="text-[9px] text-muted-foreground w-8 shrink-0 font-mono">{label}</span>
+                          <input
+                            type="range" min={0} max={7}
+                            value={getVal(field, 0) as number}
+                            onChange={e => setEdit(field, parseInt(e.target.value))}
+                            className="flex-1 h-1 accent-gold"
+                            data-testid={`slider-${field}`}
+                          />
+                          <span className="text-[10px] w-4 text-right shrink-0">
+                            {getVal(field, 0) as number}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </RetroCardContent>
+                </RetroCard>
+              </TabsContent>
+
+              {/* Appearance Panel */}
+              <TabsContent value="appearance">
+                <RetroCard>
+                  <RetroCardContent className="pt-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Skin Tone</label>
+                        <Select value={getVal("skinTone", selected.skinTone ?? "light") as string} onValueChange={v => setEdit("skinTone", v)}>
+                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-skinTone">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SKIN_TONES.map(t => <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Hair Color</label>
+                        <Select value={getVal("hairColor", selected.hairColor ?? "brown") as string} onValueChange={v => setEdit("hairColor", v)}>
+                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-hairColor">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {HAIR_COLORS.map(c => <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Hair Style</label>
+                        <Select value={getVal("hairStyle", selected.hairStyle ?? "short") as string} onValueChange={v => setEdit("hairStyle", v)}>
+                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-hairStyle">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {HAIR_STYLES.map(s => <SelectItem key={s} value={s} className="capitalize">{s.replace("_", " ")}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Facial Hair</label>
+                        <Select value={getVal("facialHair", selected.facialHair ?? "none") as string} onValueChange={v => setEdit("facialHair", v)}>
+                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-facialHair">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {FACIAL_HAIR_OPTS.map(f => <SelectItem key={f} value={f} className="capitalize">{f.replace("_", " ")}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </RetroCardContent>
                 </RetroCard>
               </TabsContent>

@@ -69,6 +69,11 @@ const PLAYER_IDENTITY_SCHEMA = z.object({
   hometown: z.string().max(80).optional(),
   position: z.string().max(10).optional(),
   eligibility: z.enum(["FR","SO","JR","SR"]).optional(),
+  // Appearance
+  skinTone: z.enum(["light","fair","medium","tan","dark","deep"]).optional(),
+  hairColor: z.enum(["black","brown","blonde","red","gray","white","auburn"]).optional(),
+  hairStyle: z.enum(["short","medium","long","buzz","bald","curly","wavy","spiky"]).optional(),
+  facialHair: z.enum(["none","stubble","beard","mustache","goatee","full_beard"]).optional(),
 }).strict();
 
 const PLAYER_COMPETITIVE_SCHEMA = z.object({
@@ -226,6 +231,10 @@ export function registerEditorRoutes(app: Express): void {
       const params: unknown[] = [leagueId];
       let idx = 2;
 
+      const page = Math.max(1, parseInt(req.query.page as string) || 1);
+      const pageSize = Math.min(100, parseInt(req.query.pageSize as string) || 50);
+      const offset = (page - 1) * pageSize;
+
       if (teamId) { sql += ` AND p.team_id = $${idx++}`; params.push(teamId); }
       if (position) { sql += ` AND p.position = $${idx++}`; params.push(position); }
       if (eligibility) { sql += ` AND p.eligibility = $${idx++}`; params.push(eligibility); }
@@ -233,7 +242,17 @@ export function registerEditorRoutes(app: Express): void {
         sql += ` AND (LOWER(p.first_name || ' ' || p.last_name) LIKE $${idx++})`;
         params.push(`%${search.toLowerCase()}%`);
       }
-      sql += ` ORDER BY t.name, p.overall DESC LIMIT 500`;
+
+      // Count total for pagination
+      const countSql = sql.replace(
+        /SELECT p\.\*, p\.editor_version, t\.name as team_name, t\.abbreviation as team_abbr/,
+        "SELECT count(*)"
+      );
+      const { rows: countRows } = await pool.query(countSql, params);
+      const total = parseInt(countRows[0].count ?? "0");
+
+      sql += ` ORDER BY t.name, p.overall DESC LIMIT $${idx++} OFFSET $${idx++}`;
+      params.push(pageSize, offset);
 
       const { rows } = await pool.query(sql, params);
 
@@ -301,12 +320,14 @@ export function registerEditorRoutes(app: Express): void {
           pitchPCB: r.pitch_pcb,
           abilities: r.abilities ?? [],
           editorVersion: r.editor_version ?? 1,
-          // Appearance
           skinTone: r.skin_tone,
           hairColor: r.hair_color,
           hairStyle: r.hair_style,
           facialHair: r.facial_hair,
         })),
+        total,
+        page,
+        pageSize,
       });
     } catch (err) {
       console.error("[editor] GET players error:", err);
@@ -560,13 +581,23 @@ export function registerEditorRoutes(app: Express): void {
       const leagueId = req.params.id as string;
       const userId = req.session.userId!;
 
-      // Check access: commissioner or if audit log is public, any league member
+      // Check access: must be a league member (commissioner or enrolled coach).
+      // If not commissioner, additionally requires auditLogPublic to be true.
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
       const isCommissioner = hasCommissionerAccess(league, userId);
-      if (!isCommissioner && !league.auditLogPublic) {
-        return res.status(403).json({ message: "Audit log is private" });
+
+      if (!isCommissioner) {
+        // Verify the user is actually a member of this league
+        const leagueCoaches = await storage.getCoachesByLeague(leagueId);
+        const isMember = leagueCoaches.some((c: { userId?: string | null }) => c.userId === userId);
+        if (!isMember) {
+          return res.status(403).json({ message: "Not a member of this league" });
+        }
+        if (!(league as any).auditLogPublic) {
+          return res.status(403).json({ message: "Audit log is private" });
+        }
       }
 
       const page = Math.max(1, parseInt(req.query.page as string) || 1);

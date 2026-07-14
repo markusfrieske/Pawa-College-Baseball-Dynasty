@@ -55,6 +55,7 @@ import { RankingsTab } from "./league-view/tabs/RankingsTab";
 import { ProspectsTab } from "./league-view/tabs/ProspectsTab";
 import { AwardsTab } from "./league-view/tabs/AwardsTab";
 import { DynastyHistoryTab } from "./league-view/tabs/DynastyHistoryTab";
+import { LeagueEditsReadOnly } from "./league-view/tabs/LeagueEditsReadOnly";
 
 export default function LeagueViewPage() {
   const { id } = useParams<{ id: string }>();
@@ -707,6 +708,10 @@ export default function LeagueViewPage() {
                 <span className="hidden sm:inline">History</span>
                 <span className="sm:hidden">Hist</span>
               </TabsTrigger>
+              <TabsTrigger value="edits" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-edits">
+                <span className="hidden sm:inline">Edits</span>
+                <span className="sm:hidden">Edits</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -732,6 +737,10 @@ export default function LeagueViewPage() {
 
           <TabsContent value="history">
             <DynastyHistoryTab leagueId={league.id} />
+          </TabsContent>
+
+          <TabsContent value="edits">
+            <LeagueEditsReadOnly leagueId={league.id} />
           </TabsContent>
         </Tabs>
       </main>
