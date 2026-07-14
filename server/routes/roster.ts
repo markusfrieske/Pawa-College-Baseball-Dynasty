@@ -31,8 +31,13 @@ import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 // be updated in a single request, but unknown/forbidden fields (e.g. teamId,
 // overall, leagueId, pendingDeparture) always return 400.
 
-/** Identity / structural fields — non-competitive. */
+/** Identity / structural fields — non-competitive (name, jersey, appearance, eligibility). */
 export const playerIdentityPatchSchema = z.object({
+  firstName:   z.string().min(1).max(50).optional(),
+  lastName:    z.string().min(1).max(50).optional(),
+  jerseyNumber: z.number().int().min(0).max(99).optional(),
+  homeState:   z.string().max(30).optional(),
+  hometown:    z.string().max(80).optional(),
   position:    z.string().max(10).optional(),
   eligibility: z.enum(["FR", "SO", "JR", "SR"]).optional(),
 }).strict();

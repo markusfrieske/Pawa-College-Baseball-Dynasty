@@ -86,6 +86,30 @@ export function requireTeamOwner(teamParam: string = "teamId") {
   };
 }
 
+/**
+ * Middleware: requires the authenticated user to be the commissioner
+ * (or co-commissioner) of the league identified by `req.params.id`.
+ *
+ * Returns 401 if not authenticated, 404 if the league is missing, or
+ * 403 if the user is a member but not a commissioner.
+ */
+export function requireCommissioner(req: Request, res: Response, next: NextFunction): void {
+  const leagueId = req.params.id as string;
+  const userId   = req.session?.userId;
+
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  (async () => {
+    const league = await storage.getLeague(leagueId);
+    if (!league) { res.status(404).json({ message: "League not found" }); return; }
+    if (hasCommissionerAccess(league, userId)) { next(); return; }
+    res.status(403).json({ message: "Access denied: commissioner role required" });
+  })().catch(next);
+}
+
 export function hasCommissionerAccess(
   league: { commissionerId: string; coCommissionerIds?: unknown },
   userId: string | undefined,

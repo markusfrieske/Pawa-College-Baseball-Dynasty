@@ -1159,7 +1159,8 @@ app.use((req, res, next) => {
   });
 
   await registerRoutes(httpServer, app);
-  startJobRunner();
+  // startJobRunner() is called inside the security-hardening migration .then()
+  // below so the job runner never polls before the lease columns exist.
 
   // One-time OVR resync — runs in background after startup, at most once ever.
   // Recomputes calculateOVR() for every player and corrects any stored `overall`
@@ -1494,7 +1495,15 @@ app.use((req, res, next) => {
     ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS attempt_count    integer NOT NULL DEFAULT 0;
   `).then(() => {
     console.log("[startup-migration] security-hardening-v1: advance locks + coach unique indexes + job lease columns ensured");
-  }).catch(e => console.warn("[startup-migration] security-hardening-v1 failed (non-fatal):", e));
+    // Start the job runner only after lease columns are confirmed to exist so
+    // claimNextPendingJob() never races against a missing column.
+    startJobRunner();
+  }).catch(e => {
+    console.warn("[startup-migration] security-hardening-v1 failed (non-fatal):", e);
+    // Start anyway so jobs aren't silently dropped; lease-column 42703 errors
+    // are already caught gracefully inside claimNextPendingJob / resetOrphanedJobs.
+    startJobRunner();
+  });
 
   })();
 
