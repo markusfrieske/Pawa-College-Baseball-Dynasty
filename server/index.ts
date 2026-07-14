@@ -1479,9 +1479,16 @@ app.use((req, res, next) => {
       ADD COLUMN IF NOT EXISTS schedule_version integer NOT NULL DEFAULT 0;
 
     -- Prevent concurrent CC-game creation from producing duplicates.
-    -- One home team per league/season in conference_championship phase.
+    -- Both home and away unique indexes are needed: they prevent any team
+    -- from appearing in more than one CC game per league/season, which
+    -- (since each team belongs to exactly one conference) guarantees at
+    -- most one CC game per conference.
     CREATE UNIQUE INDEX IF NOT EXISTS idx_games_cc_league_season_home
       ON games (league_id, season, home_team_id)
+      WHERE phase = 'conference_championship';
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_games_cc_league_season_away
+      ON games (league_id, season, away_team_id)
       WHERE phase = 'conference_championship';
   `).then(() => {
     console.log("[startup-migration] full-season-schema-v5: schedule_version column + CC unique index ensured");

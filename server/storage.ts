@@ -437,7 +437,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConferencesByLeague(leagueId: string): Promise<Conference[]> {
-    return await db.select().from(conferences).where(eq(conferences.leagueId, leagueId));
+    return await db.select().from(conferences)
+      .where(eq(conferences.leagueId, leagueId))
+      .orderBy(asc(conferences.id));
   }
 
   async createConference(insertConference: InsertConference): Promise<Conference> {
@@ -446,7 +448,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTeamsByLeague(leagueId: string): Promise<Team[]> {
-    return await db.select().from(teams).where(eq(teams.leagueId, leagueId));
+    return await db.select().from(teams)
+      .where(eq(teams.leagueId, leagueId))
+      .orderBy(asc(teams.id));
   }
 
   async getTeamsByLeagueIds(leagueIds: string[]): Promise<Team[]> {

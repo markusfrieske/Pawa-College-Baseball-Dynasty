@@ -89,19 +89,14 @@ export async function selectAndSeedNationalField(
       autoChampIds.add(tid);
       autoChampReason.set(tid, "Conference Champion");
     } else {
-      // Fallback: standings leader in this conference by conf win%
-      const confTeams = (leagueTeams as any[]).filter(t => t.conferenceId === conf.id);
-      const best = confTeams
-        .map(t => ({ teamId: t.id, ...confWinPct(t.id) }))
-        .sort((a, b) => b.pct - a.pct || b.diff - a.diff || b.cw - a.cw)[0];
-      if (best) {
-        autoChampIds.add(best.teamId);
-        autoChampReason.set(best.teamId, "Conference Leader");
-        console.warn(
-          `[fs-selection] No CC winner for conf ${conf.id}; ` +
-          `using standings leader ${best.teamId} (${(best.pct * 100).toFixed(1)}% conf win%)`
-        );
-      }
+      // A missing CC winner means the conference championship was not yet
+      // simulated.  Throw so the phase-advance caller gets a clear error
+      // instead of silently using a standings proxy.
+      throw new Error(
+        `[fs-selection] Cannot seed national field: conference championship ` +
+        `for conference ${conf.id} has no completed game. ` +
+        `Ensure all CC games are simulated before advancing to Super Regionals.`
+      );
     }
   }
 

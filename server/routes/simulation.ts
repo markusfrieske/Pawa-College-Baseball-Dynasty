@@ -1144,8 +1144,15 @@ async function generateConferenceChampionships(leagueId: string, season: number)
       const confTotal = confWins + confLosses;
       const confWinPct = confTotal > 0 ? confWins / confTotal : 0;
       return { team: t, wins: s?.wins || 0, losses: s?.losses || 0, confWins, confLosses, confWinPct };
-    }).sort((a, b) => b.confWinPct - a.confWinPct || (b.confWins - b.confLosses) - (a.confWins - a.confLosses) || b.wins - a.wins);
-    
+    }).sort((a, b) =>
+      b.confWinPct - a.confWinPct ||
+      (b.confWins - b.confLosses) - (a.confWins - a.confLosses) ||
+      b.wins - a.wins ||
+      // Stable final tiebreaker: team id (lexicographic) so concurrent
+      // requests always produce identical home/away assignment.
+      a.team.id.localeCompare(b.team.id)
+    );
+
     // Use ON CONFLICT DO NOTHING so that concurrent advance requests (both
     // pass the existingCCByConf read-check simultaneously) produce exactly
     // one CC game per conference — the unique index idx_games_cc_league_season_home
@@ -5181,6 +5188,26 @@ export async function advanceLeagueStep(
         }
       } catch (e) { console.error("Conf champ coach stats error:", e); }
       if (league.dynastyPreset === "full_season") {
+        // Hard precondition: every conference must have a completed CC game
+        // before we seed the national field.  Without this check a partial
+        // advance (e.g. network retry that only ran some CC sims) would silently
+        // seed incorrect brackets.
+        const allConfsForFS = await storage.getConferencesByLeague(leagueId);
+        const allGamesSnap = await storage.getGamesByLeague(leagueId);
+        const completedCCConfs = new Set<string>();
+        for (const g of allGamesSnap) {
+          if (g.phase === "conference_championship" && g.season === league.currentSeason && g.isComplete) {
+            const homeConf = leagueTeamsForSim.find((t: any) => t.id === g.homeTeamId)?.conferenceId;
+            if (homeConf) completedCCConfs.add(homeConf);
+          }
+        }
+        const missingCC = allConfsForFS.filter(c => !completedCCConfs.has(c.id));
+        if (missingCC.length > 0) {
+          throw new Error(
+            `Cannot advance: conference championship not complete for: ` +
+            `${missingCC.map(c => c.name).join(", ")}. Simulate all CC games first.`
+          );
+        }
         await selectAndSeedNationalField(leagueId, league.currentSeason);
         await generateFSSuperRegionals(leagueId, league.currentSeason);
       } else {

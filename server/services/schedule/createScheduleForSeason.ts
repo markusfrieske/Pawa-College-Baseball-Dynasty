@@ -15,7 +15,7 @@
 
 import { db } from "../../db";
 import { games, leagues, auditLogs } from "../../../shared/schema";
-import { eq, and, sql, ne } from "drizzle-orm";
+import { eq, and, sql, notInArray } from "drizzle-orm";
 import { storage } from "../../storage";
 import { generateSchedule } from "../../recruit-engine";
 import {
@@ -206,21 +206,53 @@ async function _buildAndPublish(
     );
   }
 
+  // Determine which weeks already have at least one completed regular game.
+  // Those weeks are "locked" — we must not touch any game in them so completed
+  // rows survive intact and no duplicate games are created.
+  const existingGamesForSeason = await storage.getGamesByLeagueSeason(leagueId, season);
+  const lockedWeeks = new Set(
+    existingGamesForSeason
+      .filter((g) => g.phase === "regular" && g.isComplete)
+      .map((g) => g.week)
+  );
+
+  // Only schedule games for unlocked weeks.
+  const gamesToInsert = lockedWeeks.size > 0
+    ? scheduleGames.filter((g) => !lockedWeeks.has(g.week))
+    : scheduleGames;
+
   await db.transaction(async (tx) => {
-    // Only delete unlocked (not-yet-played) regular games so that completed
-    // games are never removed.  This is the key invariant for republishing.
-    await tx
-      .delete(games)
-      .where(
-        and(
-          eq(games.leagueId, leagueId),
-          eq(games.season, season),
-          eq(games.phase, "regular"),
-          eq(games.isComplete, false)
-        )
-      );
-    for (let i = 0; i < scheduleGames.length; i += GAME_CHUNK) {
-      await tx.insert(games).values(scheduleGames.slice(i, i + GAME_CHUNK));
+    // Delete only unlocked (not-yet-played) regular games that belong to
+    // weeks with no completed games.  This prevents touching any week whose
+    // outcome is already recorded.
+    if (lockedWeeks.size > 0) {
+      const lockedWeekArr = [...lockedWeeks];
+      await tx
+        .delete(games)
+        .where(
+          and(
+            eq(games.leagueId, leagueId),
+            eq(games.season, season),
+            eq(games.phase, "regular"),
+            eq(games.isComplete, false),
+            notInArray(games.week, lockedWeekArr)
+          )
+        );
+    } else {
+      // No completed games — safe to delete all unlocked regular games.
+      await tx
+        .delete(games)
+        .where(
+          and(
+            eq(games.leagueId, leagueId),
+            eq(games.season, season),
+            eq(games.phase, "regular"),
+            eq(games.isComplete, false)
+          )
+        );
+    }
+    for (let i = 0; i < gamesToInsert.length; i += GAME_CHUNK) {
+      await tx.insert(games).values(gamesToInsert.slice(i, i + GAME_CHUNK));
     }
 
     // Bump scheduleVersion on every atomic publish so callers can detect
