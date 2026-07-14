@@ -373,6 +373,7 @@ export function RecruitingCommandCenter({
                       />
                     </div>
                     <span
+                      data-testid="visit-planner-count"
                       className={`text-[10px] font-bold tabular-nums shrink-0 ${
                         visitCapReached
                           ? "text-red-400"
@@ -385,9 +386,9 @@ export function RecruitingCommandCenter({
                     </span>
                   </div>
                   <div className="flex gap-2 text-[9px] text-muted-foreground">
-                    <span>{recruitingData?.economy?.visits?.campusUsed ?? recruitingData?.seasonVisitCount?.campusVisits ?? 0} campus</span>
+                    <span data-testid="visit-planner-campus-count">{recruitingData?.economy?.visits?.campusUsed ?? recruitingData?.seasonVisitCount?.campusVisits ?? 0} campus</span>
                     <span>·</span>
-                    <span>{recruitingData?.economy?.visits?.headCoachUsed ?? recruitingData?.seasonVisitCount?.hcVisits ?? 0} HC</span>
+                    <span data-testid="visit-planner-hc-count">{recruitingData?.economy?.visits?.headCoachUsed ?? recruitingData?.seasonVisitCount?.hcVisits ?? 0} HC</span>
                   </div>
                   {visitCapReached && (
                     <p className="text-[9px] text-red-400 mt-1 font-semibold">Visit cap reached</p>
