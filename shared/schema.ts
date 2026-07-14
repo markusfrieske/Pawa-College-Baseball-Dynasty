@@ -419,6 +419,12 @@ export const players = pgTable("players", {
   lastPitchedDay: text("last_pitched_day"),
   captainRole: text("captain_role"), // 'pitcher_captain' | 'fielder_captain' | null
   captainSeason: integer("captain_season"), // season in which captain was designated
+  // ── V3 Development fields ────────────────────────────────────────────────
+  playArchetypeId: text("play_archetype_id"),                                     // baseball archetype from playerArchetypes.ts
+  developmentCaps: jsonb("development_caps").$type<Record<string, number>>().default({}), // attr→ceiling, computed from potential + archetype
+  developmentSeed: text("development_seed").notNull().default(""),                 // seed string for deterministic PRNG
+  developmentModelVersion: integer("development_model_version").notNull().default(1), // 1=legacy, 3=V3 archetype-aware
+  lastDevelopmentSeason: integer("last_development_season"),                       // idempotency: last season V3 ran for this player
 }, (t) => [
   index("idx_players_team_id").on(t.teamId),
   index("idx_players_team_id_overall").on(t.teamId, t.overall),
@@ -508,6 +514,13 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   pitchingRole: true,
   lineupPosition: true,
   tools: true,
+  workEthicScore: true,
+  coachability: true,
+  playArchetypeId: true,
+  developmentCaps: true,
+  developmentSeed: true,
+  developmentModelVersion: true,
+  lastDevelopmentSeason: true,
 }).extend({
   pitchCH: z.number().int().min(0).max(7).optional(),
 });

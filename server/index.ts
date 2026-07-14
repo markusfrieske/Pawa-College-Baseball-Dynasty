@@ -403,6 +403,17 @@ app.use((req, res, next) => {
         console.log("[startup-migration] action-log-seasonal-unique-v1: seasonal visit/HCV/offer unique index added");
       });
 
+      // ── v3-development-columns-v1 ─────────────────────────────────────────
+      // Add V3 archetype-aware development fields to the players table.
+      await once('v3-development-columns-v1', async () => {
+        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS play_archetype_id text`);
+        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS development_caps jsonb NOT NULL DEFAULT '{}'::jsonb`);
+        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS development_seed text NOT NULL DEFAULT ''`);
+        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS development_model_version integer NOT NULL DEFAULT 1`);
+        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS last_development_season integer`);
+        console.log("[startup-migration] v3-development-columns-v1: V3 development columns added to players table");
+      });
+
       // ── recruit-top-schools-unique-v1 ──────────────────────────────────
       // Same treatment for recruit_top_schools.
       await onceAfter('recruit-top-schools-unique-v1', async () => {

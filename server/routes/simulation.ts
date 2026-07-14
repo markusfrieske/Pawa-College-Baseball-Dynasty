@@ -81,6 +81,10 @@ import {
 } from "../route-helpers";
 import { updateRecruitStages } from "./league-mgmt";
 import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
+import { runV3SeasonDevelopment } from "../services/playerDevelopment/runSeasonDevelopment";
+import { assignArchetype } from "../services/playerDevelopment/assignArchetype";
+import { buildDevelopmentCaps } from "../services/playerDevelopment/buildCaps";
+import { buildDevelopmentSeed } from "@shared/seededRng";
 import { computePositionTargetsFromDepartures, derivePitcherRatioFromTargets, computePoolSizeFromDepartures } from "../services/recruitPoolPlanner";
 import { Phase, getSeasonMaxWeeks, RECRUITING_ACTIVE_PHASES as _PHASE_RECRUITING_ACTIVE, STORYLINE_ACTIVE_PHASES as _PHASE_STORYLINE_ACTIVE, OFFSEASON_RECRUITING_PHASES as _PHASE_OFFSEASON_REC } from "@shared/phase";
 import { getTurnContactCap, getTurnScoutCap, getRecruitingBalanceProfile, getRecruitingTurnIndex } from "@shared/recruitingBalance";
@@ -1595,6 +1599,8 @@ async function applyPlayerProgression(leagueId: string) {
     const team = teams[ti];
     const roster = allRosters[ti]; // reuse pre-fetched roster — no extra DB round-trip per team
     for (const player of roster) {
+      // V3 players are handled by the V3 engine after this loop — skip here
+      if ((player as any).developmentModelVersion === 3) continue;
       if (player.potential == null) continue;
 
       // Seniors graduate without a progression delta — collect for batch clear
@@ -1735,6 +1741,20 @@ async function applyPlayerProgression(leagueId: string) {
     await Promise.all(ovrStatWrites.slice(i, i + PROG_CHUNK).map(u =>
       storage.setPlayerSeasonStatsOvr(u.playerId, leagueId, league!.currentSeason, u.ovr)
     ));
+  }
+
+  // ── V3 engine ──────────────────────────────────────────────────────────
+  // Run V3 archetype-aware development for any players with developmentModelVersion=3.
+  const v3Result = await runV3SeasonDevelopment(
+    storage as any,
+    leagueId,
+    league?.currentSeason ?? 1,
+    teams,
+    allPlayersLeague,
+  );
+  if (v3Result.progressed > 0) {
+    console.log(`[progression-v3] ${v3Result.progressed} players developed, ${v3Result.skipped} skipped, ${v3Result.errors} errors`);
+    progressed += v3Result.progressed;
   }
 
   // Log a verification summary so it's easy to confirm potential tiers are differentiated.
@@ -3227,11 +3247,23 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         pitchSCB: (recruit as any).pitchSCB ?? 0,
         pitchPCB: (recruit as any).pitchPCB ?? 0,
         abilities: recruit.abilities || [],
+        trajectory: (recruit as any).trajectory ?? 2,
+        tools: recruit.tools || [],
+        workEthicScore: recruit.workEthicScore ?? 70,
+        coachability: recruit.coachability ?? 70,
         skinTone: recruit.skinTone || "light",
         hairColor: recruit.hairColor || "brown",
         hairStyle: recruit.hairStyle || "short",
-        headwear: recruit.headwear || "cap",
+        headwear: (recruit as any).headwear || "cap",
+        facialHair: (recruit as any).facialHair || "none",
+        eyeStyle: (recruit as any).eyeStyle || "standard",
+        eyebrowStyle: (recruit as any).eyebrowStyle || "flat",
+        mouthStyle: (recruit as any).mouthStyle || "neutral",
+        eyeBlack: (recruit as any).eyeBlack || false,
         potential: recruit.potential ?? null,
+        // V3: new signed players use the archetype-aware development engine
+        developmentModelVersion: 3,
+        playArchetypeId: assignArchetype(recruit.position, recruit as any),
       });
       totalRecruitsAdded++;
     }
@@ -3603,11 +3635,17 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
         heater: walkon.heater || 50,
         agile: walkon.agile || 50,
         abilities: walkon.abilities || [],
+        trajectory: (walkon as any).trajectory ?? 2,
+        tools: (walkon as any).tools || [],
+        workEthicScore: (walkon as any).workEthicScore ?? 70,
+        coachability: (walkon as any).coachability ?? 70,
         skinTone: walkon.skinTone || "light",
         hairColor: walkon.hairColor || "brown",
         hairStyle: walkon.hairStyle || "short",
         headwear: walkon.headwear || "cap",
         potential: walkon.potential ?? null,
+        developmentModelVersion: 3,
+        playArchetypeId: assignArchetype(walkon.position, walkon as any),
       });
       totalWalkonsAdded++;
     }

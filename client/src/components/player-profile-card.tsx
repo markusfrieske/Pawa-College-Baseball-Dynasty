@@ -17,6 +17,7 @@ import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@sha
 import { TRAJECTORY_LABELS, TRAJECTORY_FULL_LABELS, assignTrajectory } from "@shared/trajectory";
 import { isPitcher as getIsPitcher } from "@shared/positions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ARCHETYPES_BY_ID } from "@shared/playerArchetypes";
 
 export interface Player {
   id: string;
@@ -76,6 +77,8 @@ export interface Player {
   heater?: number | null;
   agile?: number | null;
   trajectory?: number | null;
+  playArchetypeId?: string | null;
+  developmentModelVersion?: number | null;
   // Other
   bats?: string;
   throws?: string;
@@ -465,6 +468,16 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                     />
                   ))}
                 </div>
+                {player.playArchetypeId && ARCHETYPES_BY_ID[player.playArchetypeId] && (
+                  <Badge
+                    variant="outline"
+                    className="text-[8px] border-gold/40 text-gold/80 bg-gold/5 font-pixel"
+                    data-testid="badge-archetype"
+                    title={ARCHETYPES_BY_ID[player.playArchetypeId].description}
+                  >
+                    {ARCHETYPES_BY_ID[player.playArchetypeId].label}
+                  </Badge>
+                )}
               </div>
               <h2 className="font-pixel text-gold text-sm mt-1" data-testid="text-player-name">
                 #{player.jerseyNumber} {player.firstName} {player.lastName}

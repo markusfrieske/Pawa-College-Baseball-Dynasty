@@ -478,18 +478,22 @@ export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
 // ---------------------------------------------------------------------------
 
 // Grade table for pitcher common attributes.
-// D/C grades are neutral (0 pts). E is a mild penalty (below-average), F/G are stronger penalties,
-// B/A are bonuses. S grade is handled exclusively by the linked gold ability (via PITCHER_NAMED_PTS)
-// and always scores 0 here — the gold ability's pts replace the common attr row.
-// Eight-step scale matching Power Pros: S/A/B/C/D/E/F/G
+// D/C grades are neutral (0 pts). E is mild penalty, F/G stronger penalties, B/A bonuses.
+// S grade combines the A bonus + the linked gold ability contribution so that
+// the transition from A→S always increases (or holds) OVR regardless of whether the
+// gold ability is present — mirrors the hitter S-gold pattern and fixes the monotonicity
+// bug where reaching S could lower OVR when the gold ability's pts replaced a non-zero
+// A common contribution.
+// S formula: S = A_value + PITCHER_NAMED_PTS[linked_gold] (or P_GOLD_DEFAULT for "Grit").
+// Eight-step scale: S/A/B/C/D/E/F/G
 const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"E"|"F"|"G", number>> = {
-  heater:   { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, E:  -6.96, F: -20.88, G: -27.84 },
-  wRISP:    { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, E:  -6.96, F: -20.88, G: -27.84 },
-  vsLefty:  { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
-  agile:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
-  recovery: { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
-  poise:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
-  grit:     { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
+  heater:   { S: 73.08, A: 27.84, B: 13.92, C: 0, D: 0, E:  -6.96, F: -20.88, G: -27.84 },
+  wRISP:    { S: 69.60, A: 27.84, B: 13.92, C: 0, D: 0, E:  -6.96, F: -20.88, G: -27.84 },
+  vsLefty:  { S: 48.72, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
+  agile:    { S: 31.32, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
+  recovery: { S: 52.20, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
+  poise:    { S: 48.72, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
+  grit:     { S: 34.80, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
 };
 
 // Gold pitcher abilities linked to common attributes.
@@ -713,24 +717,28 @@ export function calculateOVR(attrs: {
     const coreTotal = velRaw + ctrlRaw + stamRaw + diversityPts + levelPts;
 
     // ── Common attribute grades ─────────────────────────────────────────────
-    // S grade is handled exclusively by the linked gold ability: when the
-    // gold is present AND the attr grades S, zero out the common row (the gold
-    // ability's pts in PITCHER_NAMED_PTS replace it — no double-count).
-    // For all non-S grades, the common attr contributes normally even if the
-    // linked gold is also in the ability list.
+    // Monotonic S-grade model (mirrors the hitter formula):
+    //   • The S row of PITCHER_COMMON_RAW already incorporates the linked gold
+    //     ability contribution (S = A_value + gold_pts), so PITCHER_COMMON_RAW
+    //     is always counted regardless of grade.
+    //   • When computing special ability pts, any gold whose linked attr has
+    //     reached S is skipped — its contribution is already included in the S
+    //     common row, avoiding double-counting.
+    //   • This ensures OVR never decreases when a common attr crosses from A→S,
+    //     regardless of whether the linked gold ability is present.
     const abilities = attrs.abilities ?? [];
-    const goldLinkedCommonAttrs = new Set<string>();
-    for (const name of abilities) {
-      const linkedAttr = S_GOLD_PITCHER_KEY[name];
-      if (linkedAttr) goldLinkedCommonAttrs.add(linkedAttr);
+
+    // Determine which common attrs have reached S grade.
+    const sGradeAttrs = new Set<string>();
+    for (const attrKey of Object.keys(PITCHER_COMMON_RAW)) {
+      const val = ((attrs as Record<string, unknown>)[attrKey] as number | null | undefined) ?? 0;
+      if (pitcherCommonGrade(val) === "S") sGradeAttrs.add(attrKey);
     }
 
     let commonTotal = 0;
     for (const [attrKey, gradeTable] of Object.entries(PITCHER_COMMON_RAW)) {
       const val = ((attrs as Record<string, unknown>)[attrKey] as number | null | undefined) ?? 0;
       const grade = pitcherCommonGrade(val);
-      // Skip the common attr only when a gold is present AND the attr is S grade
-      if (grade === "S" && goldLinkedCommonAttrs.has(attrKey)) continue;
       commonTotal += gradeTable[grade];
     }
 
@@ -746,6 +754,9 @@ export function calculateOVR(attrs: {
     for (const name of abilities) {
       // Skip blues cleared by their gold counterpart
       if (suppressedBlues.has(name)) continue;
+      // Skip a linked-common gold if its attr has reached S (already in S common row)
+      const linkedAttr = S_GOLD_PITCHER_KEY[name];
+      if (linkedAttr && sGradeAttrs.has(linkedAttr)) continue;
 
       if (PITCHER_NAMED_PTS[name] !== undefined) {
         specialTotal += PITCHER_NAMED_PTS[name];
