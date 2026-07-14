@@ -154,11 +154,11 @@ function StepIndicator({ step }: { step: number }) {
         return (
           <div key={s} className="flex items-center">
             <div className={`flex flex-col items-center min-w-[52px] ${active ? "opacity-100" : done ? "opacity-60" : "opacity-30"}`}>
-              <div className={`w-6 h-6 rounded-full text-xs font-pixel flex items-center justify-center ${
+              <div className={`w-6 h-6 rounded-full text-xs flex items-center justify-center ${
                 active ? "bg-gold text-forest-dark" : done ? "bg-gold/40 text-gold" : "bg-border text-muted-foreground"}`}>
                 {s}
               </div>
-              <span className="font-pixel text-xs mt-0.5 text-center leading-tight">{lbl}</span>
+              <span className="text-xs font-semibold mt-0.5 text-center leading-tight">{lbl}</span>
             </div>
             {idx < labels.length - 1 && (
               <div className={`h-0.5 w-4 mx-0.5 mt-[-8px] ${done ? "bg-gold/40" : "bg-border"}`} />
@@ -176,7 +176,7 @@ function Step1({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
   return (
     <div className="space-y-6">
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">Class Size: {config.count}</Label>
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Class Size: {config.count}</Label>
         <input
           type="range" min={20} max={80} step={1}
           value={config.count}
@@ -190,7 +190,7 @@ function Step1({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
       </div>
 
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">Theme</Label>
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Theme</Label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {THEMES.map(t => (
             <button
@@ -203,7 +203,7 @@ function Step1({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
               }`}
               data-testid={`wizard-theme-${t.id}`}
             >
-              <div className="font-pixel text-xs mb-0.5">{t.label}</div>
+              <div className="text-xs font-semibold mb-0.5">{t.label}</div>
               <div className="text-xs leading-tight">{t.desc}</div>
             </button>
           ))}
@@ -211,7 +211,7 @@ function Step1({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
       </div>
 
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">Class Label (Optional)</Label>
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Class Label (Optional)</Label>
         <Input
           value={config.label}
           onChange={e => setConfig({ ...config, label: e.target.value })}
@@ -256,7 +256,7 @@ function Step2({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
         ))}
       </div>
 
-      <div className={`text-center font-pixel text-xs ${valid ? "text-green-400" : "text-red-400"}`}>
+      <div className={`text-center text-xs font-semibold ${valid ? "text-green-400" : "text-red-400"}`}>
         Total: {total}% · {Math.round(total / 100 * config.count)} recruits {!valid && `(must equal exactly 100%)`}
       </div>
 
@@ -319,7 +319,7 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
           <div key={r.key} className="flex items-center gap-3 p-2 rounded border border-border bg-card">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <div className="font-pixel text-xs text-gold">{r.label}</div>
+                <div className="text-xs font-semibold text-gold">{r.label}</div>
                 {r.note && <span className="text-xs text-muted-foreground/60 border border-border rounded px-1 py-0">{r.note}</span>}
               </div>
               <div className="text-xs text-muted-foreground mt-0.5">{r.desc}</div>
@@ -334,7 +334,7 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
       </div>
 
       <div className="p-2 rounded bg-muted/20 border border-border text-xs text-muted-foreground">
-        <span className="font-pixel text-xs text-gold">Class breakdown: </span>
+        <span className="text-xs font-semibold text-gold">Class breakdown: </span>
         {sc.blueChips} blue chips + {sc.genGems} gen gems + {sc.genBusts} gen busts + {sc.jucos} JUCOs + {sc.rawPlayers} raw + {sc.lateBloomers} late bloomers + {sc.overdrafts} overdrafts → {remaining} standard slots
       </div>
     </div>
@@ -406,7 +406,7 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
       {/* Position Distribution Table */}
       <div>
         <div className="flex items-center justify-between mb-1">
-          <Label className="font-pixel text-xs text-gold uppercase">Position Mix</Label>
+          <Label className="text-xs font-semibold text-gold uppercase">Position Mix</Label>
           <button
             onClick={resetPD}
             className="text-xs text-muted-foreground hover:text-gold transition-colors underline underline-offset-2"
@@ -423,14 +423,14 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
           {/* Pitchers */}
           <div className="rounded border border-border bg-card p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-pixel text-xs text-gold uppercase">Pitchers</span>
+              <span className="text-xs font-semibold text-gold uppercase">Pitchers</span>
               <span className="text-xs text-muted-foreground tabular-nums">{pitcherTotal} ({pctPitchers}%)</span>
             </div>
             <div className="space-y-2">
               {PITCHER_POSITIONS.map(p => (
                 <div key={p.key} className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="font-pixel text-xs text-foreground">{p.label}</span>
+                    <span className="text-xs font-semibold text-foreground">{p.label}</span>
                     <span className="text-xs text-muted-foreground ml-2">{p.desc}</span>
                   </div>
                   <PosInput posKey={p.key} value={(pd as any)[p.key] ?? 0} onChange={setPD} />
@@ -442,14 +442,14 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
           {/* Position Players */}
           <div className="rounded border border-border bg-card p-3">
             <div className="flex items-center justify-between mb-2">
-              <span className="font-pixel text-xs text-gold uppercase">Position Players</span>
+              <span className="text-xs font-semibold text-gold uppercase">Position Players</span>
               <span className="text-xs text-muted-foreground tabular-nums">{fieldTotal} ({pctField}%)</span>
             </div>
             <div className="space-y-2">
               {FIELD_POSITIONS.map(p => (
                 <div key={p.key} className="flex items-center justify-between gap-2">
                   <div>
-                    <span className="font-pixel text-xs text-foreground">{p.label}</span>
+                    <span className="text-xs font-semibold text-foreground">{p.label}</span>
                     <span className="text-xs text-muted-foreground ml-2">{p.desc}</span>
                   </div>
                   <PosInput posKey={p.key} value={(pd as any)[p.key] ?? 0} onChange={setPD} />
@@ -479,7 +479,7 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
 
       {/* Region Skew */}
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">
           Region Skew
         </Label>
         <p className="text-xs text-muted-foreground mb-3">Bias recruit home states toward a geographic region.</p>
@@ -495,7 +495,7 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
               }`}
               data-testid={`wizard-region-${r.id}`}
             >
-              <div className="font-pixel text-xs mb-0.5">{r.label}</div>
+              <div className="text-xs font-semibold mb-0.5">{r.label}</div>
               <div className="text-xs leading-tight">{r.desc}</div>
             </button>
           ))}
@@ -504,7 +504,7 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
 
       {/* Fog of War */}
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">
           Fog of War Density: {config.fogDensity}%
         </Label>
         <p className="text-xs text-muted-foreground mb-2">100% = fully hidden (default). 0% = all attributes revealed at generation.</p>
@@ -550,11 +550,11 @@ function StepOVR({ config, setConfig }: { config: WizardConfig; setConfig: (c: W
 
       {/* OVR Range */}
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">OVR Range</Label>
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">OVR Range</Label>
         <p className="text-xs text-muted-foreground mb-3">Set the minimum and maximum overall rating for recruits in this class (150–650).</p>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="font-pixel text-xs text-muted-foreground mb-1 block">Min OVR</label>
+            <label className="text-xs font-semibold text-muted-foreground mb-1 block">Min OVR</label>
             <div className="flex items-center gap-2">
               <input
                 type="range" min={150} max={640} step={5}
@@ -579,7 +579,7 @@ function StepOVR({ config, setConfig }: { config: WizardConfig; setConfig: (c: W
             </div>
           </div>
           <div>
-            <label className="font-pixel text-xs text-muted-foreground mb-1 block">Max OVR</label>
+            <label className="text-xs font-semibold text-muted-foreground mb-1 block">Max OVR</label>
             <div className="flex items-center gap-2">
               <input
                 type="range" min={160} max={650} step={5}
@@ -628,7 +628,7 @@ function StepOVR({ config, setConfig }: { config: WizardConfig; setConfig: (c: W
 
       {/* Desired Average OVR */}
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">
           Desired Average OVR: {ovrAverage}
         </Label>
         <p className="text-xs text-muted-foreground mb-2">Target class mean OVR. Bell Curve centers here; other distributions shift the class mean toward this value.</p>
@@ -664,7 +664,7 @@ function StepOVR({ config, setConfig }: { config: WizardConfig; setConfig: (c: W
 
       {/* Distribution Shape */}
       <div>
-        <Label className="font-pixel text-xs text-gold uppercase mb-2 block">Distribution Shape</Label>
+        <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Distribution Shape</Label>
         <p className="text-xs text-muted-foreground mb-3">Controls how OVR values are spread across the class.</p>
         <div className="grid grid-cols-2 gap-2">
           {OVR_DIST_OPTIONS.map(opt => (
@@ -678,7 +678,7 @@ function StepOVR({ config, setConfig }: { config: WizardConfig; setConfig: (c: W
               }`}
               data-testid={`wizard-ovr-dist-${opt.id}`}
             >
-              <div className="font-pixel text-xs mb-0.5">{opt.label}</div>
+              <div className="text-xs font-semibold mb-0.5">{opt.label}</div>
               <div className="text-xs leading-tight">{opt.desc}</div>
             </button>
           ))}
@@ -714,7 +714,7 @@ function Step5({ onGenerate, isGenerating, config }: {
         <Wand2 className="w-8 h-8 text-gold" />
       </div>
       <div className="text-center space-y-2">
-        <h3 className="font-pixel text-gold text-sm">Ready to Generate</h3>
+        <h3 className="text-gold text-sm">Ready to Generate</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
           {config.count} recruits · {config.theme} theme
           {config.regionSkew !== "none" ? ` · ${config.regionSkew} skew` : ""}
@@ -741,7 +741,7 @@ function Step5({ onGenerate, isGenerating, config }: {
         )}
       </RetroButton>
       {isGenerating && (
-        <div className="text-xs text-muted-foreground text-center animate-pulse font-pixel text-xs">
+        <div className="text-xs text-muted-foreground text-center animate-pulse text-xs font-semibold">
           ROLLING RECRUITS...
         </div>
       )}
@@ -835,7 +835,7 @@ function TextEditCell({
 // ─── Select inline-edit cell ─────────────────────────────────────────────────
 
 function SelectEditCell({
-  value, field, recruitId, options, onCommit, className: cls = "font-pixel text-xs",
+  value, field, recruitId, options, onCommit, className: cls = "text-xs font-semibold",
 }: { value: string; field: string; recruitId: string; options: { label: string; value: string }[]; onCommit: (id: string, field: string, v: string) => void; className?: string }) {
   const [editing, setEditing] = useState(false);
   const ref = useRef<HTMLSelectElement>(null);
@@ -1343,7 +1343,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
 
   const SortTh = ({ label, field }: { label: string; field: SortKey }) => (
     <th
-      className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground cursor-pointer hover:text-gold whitespace-nowrap"
+      className="px-2 py-1.5 text-left text-xs text-muted-foreground cursor-pointer hover:text-gold whitespace-nowrap"
       onClick={() => toggleSort(field)}
     >
       {label}{sortKey === field ? (sortDir === "asc" ? " ↑" : " ↓") : ""}
@@ -1372,11 +1372,11 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
         <table className="w-full text-xs border-collapse min-w-[900px]">
           <thead className="sticky top-0 bg-card z-10 border-b border-border">
             <tr>
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap w-10">Img</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap w-10">Img</th>
               <SortTh label="Name"  field="name" />
               <SortTh label="Pos"   field="pos" />
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">Yr</th>
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">State</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">Yr</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">State</th>
               <SortTh label="Stars"  field="stars" />
               <SortTh label="OVR"    field="overall" />
               <SortTh label="Pot"    field="potential" />
@@ -1389,11 +1389,11 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
               <SortTh label="Ctrl"   field="control" />
               <SortTh label="Stam"   field="stamina" />
               <SortTh label="Stf"    field="stuff" />
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">Pitches</th>
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">Abilities</th>
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">NIL</th>
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">Type</th>
-              <th className="px-2 py-1.5 text-left text-xs font-pixel text-muted-foreground whitespace-nowrap">Actions</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">Pitches</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">Abilities</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">NIL</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">Type</th>
+              <th className="px-2 py-1.5 text-left text-xs text-muted-foreground whitespace-nowrap">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -1494,7 +1494,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                       recruitId={r._tempId}
                       options={POTENTIAL_GRADE_OPTIONS}
                       onCommit={(id, field, val) => commitEdit(id, field, potentialGradeToValue(val))}
-                      className="font-pixel text-xs"
+                      className="text-xs font-semibold"
                     />
                   </td>
                   <td className="px-2 py-1">
@@ -1549,7 +1549,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                   <td className="px-2 py-1">
                     <div className="flex gap-0.5 flex-wrap">
                       {typeBadges(r).map(b => (
-                        <span key={b.label} className={`${b.cls} rounded px-1 py-0 font-pixel text-xs`}>{b.label}</span>
+                        <span key={b.label} className={`${b.cls} rounded px-1 py-0 text-xs font-semibold`}>{b.label}</span>
                       ))}
                     </div>
                   </td>
@@ -1639,13 +1639,13 @@ function Step7Save({
   return (
     <div className="flex flex-col gap-6 py-4 max-w-md mx-auto">
       <div className="text-center space-y-1">
-        <h3 className="font-pixel text-gold text-sm">Save Your Class</h3>
+        <h3 className="text-gold text-sm">Save Your Class</h3>
         <p className="text-xs text-muted-foreground">{recruits.length} recruits ready · choose how to save</p>
       </div>
 
       <div className="space-y-3">
         <div>
-          <label className="font-pixel text-xs text-gold uppercase mb-1.5 block">Class Name</label>
+          <label className="text-xs font-semibold text-gold uppercase mb-1.5 block">Class Name</label>
           <input
             className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:border-gold focus:outline-none"
             placeholder="e.g. Power-Heavy 2027 Class"
@@ -1656,7 +1656,7 @@ function Step7Save({
           />
         </div>
         <div>
-          <label className="font-pixel text-xs text-gold uppercase mb-1.5 block">Description (optional)</label>
+          <label className="text-xs font-semibold text-gold uppercase mb-1.5 block">Description (optional)</label>
           <input
             className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:border-gold focus:outline-none"
             placeholder="Notes about this class..."
@@ -1720,7 +1720,7 @@ function SavedScreen({ count, savedToLeague, onClose }: { count: number; savedTo
         <CheckCircle2 className="w-8 h-8 text-green-400" />
       </div>
       <div className="text-center space-y-2">
-        <h3 className="font-pixel text-gold text-sm">Class Saved!</h3>
+        <h3 className="text-gold text-sm">Class Saved!</h3>
         <p className="text-sm text-muted-foreground">{count} recruits saved successfully.</p>
         {savedToLeague ? (
           <p className="text-xs text-muted-foreground">Coaches can now view and recruit from the new class.</p>
@@ -1941,7 +1941,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
     <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
       <AlertDialogContent className="bg-card border-border">
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-pixel text-gold text-sm">Close wizard?</AlertDialogTitle>
+          <AlertDialogTitle className="text-gold text-sm">Close wizard?</AlertDialogTitle>
           <AlertDialogDescription className="text-muted-foreground text-xs">
             Any unsaved recruits will be lost. Are you sure you want to close?
           </AlertDialogDescription>
@@ -1974,7 +1974,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
         }}
       >
         <DialogHeader className="px-5 pt-4 pb-3 border-b border-border shrink-0">
-          <DialogTitle className="font-pixel text-gold text-sm">
+          <DialogTitle className="text-gold text-sm">
             Create Recruiting Class
           </DialogTitle>
           <div className="mt-3">
@@ -2039,7 +2039,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
               <ChevronLeft className="w-4 h-4 mr-1" /> Back
             </RetroButton>
 
-            <span className="font-pixel text-xs text-muted-foreground">
+            <span className="text-xs font-semibold text-muted-foreground">
               {step} / {TOTAL_STEPS}
             </span>
 

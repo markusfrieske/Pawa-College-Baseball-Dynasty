@@ -257,7 +257,7 @@ export function ReadyStatusSection({
       <AlertDialog open={showForceAdvanceConfirm} onOpenChange={setShowForceAdvanceConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-pixel text-orange-400 text-sm">
+            <AlertDialogTitle className="text-orange-400 text-sm">
               Force Advance Phase?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -304,7 +304,7 @@ export function ReadyStatusSection({
       >
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-pixel text-gold text-sm">
+            <AlertDialogTitle className="text-gold text-sm">
               Enable Auto-Pilot?
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -335,7 +335,7 @@ export function ReadyStatusSection({
           <div className="space-y-4">
             {stalledTeams.length > 0 && (
               <div>
-                <p className="font-pixel text-xs text-amber-400 uppercase mb-2 flex items-center gap-1">
+                <p className="text-xs font-semibold text-amber-400 uppercase mb-2 flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Waiting ({stalledTeams.length})
                 </p>
                 <div className="space-y-2">
@@ -371,16 +371,16 @@ export function ReadyStatusSection({
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-pixel text-xs text-gold">
+                            <span className="text-xs font-semibold text-gold">
                               {team.abbreviation}
                             </span>
                             <span className="text-sm">{team.coachName}</span>
                             {team.isAutoPilot ? (
-                              <span className="text-xs font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded flex items-center gap-0.5">
+                              <span className="text-xs text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded flex items-center gap-0.5">
                                 <Bot className="w-2.5 h-2.5" /> AUTO-PILOT
                               </span>
                             ) : (
-                              <span className="text-xs font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">
+                              <span className="text-xs text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">
                                 WAITING
                               </span>
                             )}
@@ -499,7 +499,7 @@ export function ReadyStatusSection({
                               </AlertDialogTrigger>
                               <AlertDialogContent className="bg-card border-border">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="font-pixel text-gold text-sm">
+                                  <AlertDialogTitle className="text-gold text-sm">
                                     Remove Coach?
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>
@@ -534,7 +534,7 @@ export function ReadyStatusSection({
             {readyTeams.length > 0 && (
               <div>
                 {stalledTeams.length > 0 && (
-                  <p className="font-pixel text-xs text-green-500 uppercase mb-2 flex items-center gap-1">
+                  <p className="text-xs font-semibold text-green-500 uppercase mb-2 flex items-center gap-1">
                     <Check className="w-3 h-3" /> Ready ({readyTeams.length})
                   </p>
                 )}
@@ -560,12 +560,12 @@ export function ReadyStatusSection({
                           ) : (
                             <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
                           )}
-                          <span className="font-pixel text-xs text-gold">
+                          <span className="text-xs font-semibold text-gold">
                             {team.abbreviation}
                           </span>
                           <span className="text-sm text-muted-foreground">{team.coachName}</span>
                           {team.isAutoPilot && (
-                            <span className="text-xs font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded">
+                            <span className="text-xs text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded">
                               AUTO-PILOT
                             </span>
                           )}
@@ -627,7 +627,7 @@ export function ReadyStatusSection({
                               </AlertDialogTrigger>
                               <AlertDialogContent className="bg-card border-border">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="font-pixel text-gold text-sm">
+                                  <AlertDialogTitle className="text-gold text-sm">
                                     Remove Coach?
                                   </AlertDialogTitle>
                                   <AlertDialogDescription>

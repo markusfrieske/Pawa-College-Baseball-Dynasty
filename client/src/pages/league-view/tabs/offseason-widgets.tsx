@@ -81,19 +81,19 @@ export function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetail
       <div className="flex items-start gap-3 pr-8">
         <Trophy className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-pixel text-gold text-xs mb-0.5">DECISION DAY</p>
+          <p className="text-gold text-xs mb-0.5">DECISION DAY</p>
           <p className="text-xs text-muted-foreground mb-3">
             Season {latestSeason} Recruiting Class — {mySnap.totalCommits} commits signed
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             <div className={`rounded border p-3 text-center ${gradeBg}`}>
-              <p className="font-pixel text-xs text-muted-foreground mb-1">CLASS GRADE</p>
-              <p className={`font-pixel text-2xl font-bold ${gradeColor}`} data-testid="text-signing-day-grade">{grade}</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">CLASS GRADE</p>
+              <p className={`font-display text-2xl font-bold font-bold ${gradeColor}`} data-testid="text-signing-day-grade">{grade}</p>
             </div>
 
             <div className="bg-muted/30 rounded border border-border p-3 text-center">
-              <p className="font-pixel text-xs text-muted-foreground mb-1">NATIONAL RANK</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">NATIONAL RANK</p>
               <p className="font-bold text-xl text-foreground" data-testid="text-signing-day-rank">
                 #{mySnap.classRank}
               </p>
@@ -101,7 +101,7 @@ export function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetail
             </div>
 
             <div className="bg-muted/30 rounded border border-border p-3 text-center">
-              <p className="font-pixel text-xs text-muted-foreground mb-1">COMMITS</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">COMMITS</p>
               <p className="font-bold text-xl text-foreground" data-testid="text-signing-day-commits">
                 {mySnap.totalCommits}
               </p>
@@ -113,7 +113,7 @@ export function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetail
             </div>
 
             <div className="bg-muted/30 rounded border border-border p-3 text-center">
-              <p className="font-pixel text-xs text-muted-foreground mb-1">TOP RECRUIT</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-1">TOP RECRUIT</p>
               {mySnap.topRecruitName ? (
                 <>
                   <p className="text-xs font-bold text-foreground leading-tight" data-testid="text-signing-day-top-recruit">
@@ -191,7 +191,7 @@ export function ProgramChangesCard({ league, myTeam }: { league: LeagueDetails; 
       <div className="flex items-start gap-3 pr-8">
         <Zap className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-pixel text-gold text-xs mb-0.5">PROGRAM CHANGES</p>
+          <p className="text-gold text-xs mb-0.5">PROGRAM CHANGES</p>
           <p className="text-xs text-muted-foreground mb-3">
             Season {completedSeason} — Your program attributes evolved
           </p>
@@ -199,7 +199,7 @@ export function ProgramChangesCard({ league, myTeam }: { league: LeagueDetails; 
             {changeList.map((c) => (
               <div key={c.attr} className="flex items-center gap-2 text-xs" data-testid={`program-change-${c.attr}`}>
                 <span
-                  className={`inline-flex items-center gap-0.5 font-pixel text-xs px-1.5 py-0.5 rounded border ${
+                  className={`inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded border ${
                     c.delta > 0
                       ? "bg-green-500/15 text-green-400 border-green-500/30"
                       : "bg-red-500/15 text-red-400 border-red-500/30"
@@ -290,7 +290,7 @@ export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; my
       <div className="flex items-start gap-3">
         {phaseIcon}
         <div className="flex-1">
-          <p className="font-pixel text-gold text-xs mb-2">{phaseTitle}</p>
+          <p className="text-gold text-xs mb-2">{phaseTitle}</p>
           
           {(league.currentPhase === "offseason_departures" || (currentSeasonDepartures.length > 0 && league.currentPhase !== "offseason_signing_day")) && (
             <div className="space-y-3">
@@ -383,7 +383,7 @@ export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; my
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {signingDayData.teamSignings.map((team, rank) => (
                   <div key={team.teamId} className="flex items-center gap-2 p-2 rounded bg-muted/20" data-testid={`signing-day-team-${team.abbreviation}`}>
-                    <span className="font-pixel text-gold text-xs w-6 text-center">#{rank + 1}</span>
+                    <span className="text-gold text-xs w-6 text-center">#{rank + 1}</span>
                     <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} name={team.teamName} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{team.teamName}</p>

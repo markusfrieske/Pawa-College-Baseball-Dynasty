@@ -223,7 +223,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
               {autoLineupMutation.isPending ? "Setting..." : "Auto-Set Lineup"}
             </RetroButton>
           )}
-          <span className="font-pixel text-gold text-lg">DEPTH CHART</span>
+          <span className="text-gold text-lg">DEPTH CHART</span>
         </div>
       </div>
 
@@ -256,7 +256,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="batting-order-section">
             <div className="bg-gold/20 px-3 py-2 border-b border-border flex items-center justify-between">
-              <span className="font-pixel text-gold text-xs">BATTING ORDER</span>
+              <span className="text-gold text-xs">BATTING ORDER</span>
               {canDrag && (
                 <span className="text-xs text-muted-foreground">Drag or click to assign</span>
               )}
@@ -291,7 +291,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                     }}
                     data-testid={`slot-batting-${slot}`}
                   >
-                    <span className="font-pixel text-gold text-xs w-6 flex-shrink-0 text-center">{slot}</span>
+                    <span className="text-gold text-xs w-6 flex-shrink-0 text-center">{slot}</span>
                     {player ? (
                       <div
                         className="flex items-center gap-2 flex-1 min-w-0"
@@ -391,7 +391,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
 
           <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="available-batters-section">
             <div className="bg-gold/20 px-3 py-2 border-b border-border">
-              <span className="font-pixel text-gold text-xs">
+              <span className="text-gold text-xs">
                 {selectingSlot?.type === "batting" ? `SELECT FOR SLOT #${selectingSlot.slot}` : "AVAILABLE PLAYERS"}
               </span>
             </div>
@@ -458,7 +458,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
             ] as const).map(({ sectionLabel, slots, testId }) => (
               <div key={sectionLabel} className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid={testId}>
                 <div className="bg-gold/20 px-3 py-2 border-b border-border flex items-center justify-between">
-                  <span className="font-pixel text-gold text-xs">{sectionLabel}</span>
+                  <span className="text-gold text-xs">{sectionLabel}</span>
                   {canDrag && <span className="text-xs text-muted-foreground">Drag or click</span>}
                 </div>
                 <div className="p-2 space-y-1">
@@ -491,7 +491,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                         }}
                         data-testid={`slot-pitching-${role}`}
                       >
-                        <span className="font-pixel text-gold text-xs w-10 flex-shrink-0">{label}</span>
+                        <span className="text-gold text-xs w-10 flex-shrink-0">{label}</span>
                         {player ? (
                           <div
                             className="flex items-center gap-2 flex-1 min-w-0"
@@ -525,7 +525,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                               VEL {player.velocity || 0} / CTL {player.control || 0} / STM {player.stamina || 0}
                             </span>
                             <span className="text-xs text-muted-foreground">{player.eligibility}</span>
-                            <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
+                            <span className={`text-xs font-semibold px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
                               {player.throwHand}HP
                             </span>
                             <span className="text-xs font-bold text-gold">{player.overall}</span>
@@ -555,7 +555,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
 
           <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="available-pitchers-section">
             <div className="bg-gold/20 px-3 py-2 border-b border-border">
-              <span className="font-pixel text-gold text-xs">
+              <span className="text-gold text-xs">
                 {selectingSlot?.type === "pitching" ? `SELECT FOR ${[...rotationRoles, ...bullpenRoles].find(r => r.role === selectingSlot.role)?.label?.toUpperCase() || selectingSlot.role}` : "AVAILABLE PITCHERS"}
               </span>
             </div>
@@ -606,7 +606,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                       <PositionBadge position={p.position} size="sm" />
                       <span className="text-xs truncate flex-1">{p.firstName.charAt(0)}. {p.lastName}</span>
                       <span className="text-xs text-muted-foreground hidden sm:inline">{keyStats}</span>
-                      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
+                      <span className={`text-xs font-semibold px-1 py-0.5 rounded border ${p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
                         {p.throwHand}HP
                       </span>
                       <span className="text-xs font-bold text-gold">{p.overall}</span>

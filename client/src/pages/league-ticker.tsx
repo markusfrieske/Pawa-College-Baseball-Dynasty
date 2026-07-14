@@ -266,7 +266,7 @@ export default function LeagueTickerPage() {
             </button>
           </Link>
           <div>
-            <h1 className="font-pixel text-gold text-xs sm:text-[13px] leading-tight">LEAGUE TICKER</h1>
+            <h1 className="text-gold text-xs sm:text-[13px] leading-tight">LEAGUE TICKER</h1>
             <p className="text-xs text-muted-foreground mt-0.5">What's happening across the league</p>
           </div>
           {(tickerData?.unreadCount ?? 0) > 0 && (

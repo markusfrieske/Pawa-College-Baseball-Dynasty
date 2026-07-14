@@ -244,7 +244,7 @@ export function SettingsTab({
                   <div className="mt-1">
                     {league?.progressionEnabled ? (
                       <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-pixel bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default"
                         title="Player attributes grow between seasons based on potential and team facilities"
                         data-testid="badge-progression-on"
                       >
@@ -252,7 +252,7 @@ export function SettingsTab({
                       </span>
                     ) : (
                       <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-pixel bg-muted/40 text-muted-foreground border border-border cursor-default"
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-muted/40 text-muted-foreground border border-border cursor-default"
                         title="Player attributes do not change between seasons in this league"
                         data-testid="badge-progression-off"
                       >
@@ -303,7 +303,7 @@ export function SettingsTab({
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium truncate">{coachName}</p>
                           {coach.abbreviation && (
-                            <span className="font-pixel text-xs text-gold shrink-0">
+                            <span className="text-xs font-semibold text-gold shrink-0">
                               {coach.abbreviation}
                             </span>
                           )}
@@ -364,7 +364,7 @@ export function SettingsTab({
       >
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-pixel text-gold text-sm">
+            <AlertDialogTitle className="text-gold text-sm">
               Enable Auto-Pilot?
             </AlertDialogTitle>
             <AlertDialogDescription>

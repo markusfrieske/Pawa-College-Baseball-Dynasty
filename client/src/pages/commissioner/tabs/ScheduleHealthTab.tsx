@@ -88,7 +88,7 @@ function SeverityBadge({ severity }: { severity: string }) {
       ? "bg-yellow-900/40 text-yellow-300 border-yellow-700/50"
       : "bg-blue-900/40 text-blue-300 border-blue-700/50";
   return (
-    <span className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${cls} uppercase`}>
+    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${cls} uppercase`}>
       {severity}
     </span>
   );
@@ -116,7 +116,7 @@ function GameCountBar({
         />
       </div>
       <span
-        className={`font-pixel text-xs shrink-0 ${
+        className={`text-xs font-semibold shrink-0 ${
           isLow ? "text-yellow-400" : isHigh ? "text-red-400" : "text-green-400"
         }`}
       >
@@ -167,7 +167,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
   const displayedTeams = showAllTeams ? teamStats : teamStats.slice(0, 12);
 
   const tabBtnClass = (view: typeof activeView) =>
-    `font-pixel text-xs px-3 py-1.5 rounded transition-colors ${
+    `text-xs font-semibold px-3 py-1.5 rounded transition-colors ${
       activeView === view
         ? "bg-gold text-forest-dark"
         : "text-muted-foreground hover:text-foreground"
@@ -178,28 +178,28 @@ export function ScheduleHealthTab({ leagueId }: Props) {
       {/* Summary bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <RetroCard className="p-3">
-          <p className="font-pixel text-xs text-muted-foreground mb-1">GAME COUNT RANGE</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-1">GAME COUNT RANGE</p>
           <p className="text-lg font-bold">
             {summary.minGames}–{summary.maxGames}
           </p>
           <p className="text-xs text-muted-foreground">target: {data.expectedGamesPerTeam}</p>
         </RetroCard>
         <RetroCard className="p-3">
-          <p className="font-pixel text-xs text-muted-foreground mb-1">TOTAL BYE WEEKS</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-1">TOTAL BYE WEEKS</p>
           <p className={`text-lg font-bold ${summary.totalByes > data.numTeams ? "text-yellow-400" : ""}`}>
             {summary.totalByes}
           </p>
           <p className="text-xs text-muted-foreground">across {data.numTeams} teams</p>
         </RetroCard>
         <RetroCard className="p-3">
-          <p className="font-pixel text-xs text-muted-foreground mb-1">HUMAN vs HUMAN</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-1">HUMAN vs HUMAN</p>
           <p className="text-lg font-bold">{summary.humanVsHumanGames}</p>
           <p className="text-xs text-muted-foreground">
             {humanTeamIds.length} human teams
           </p>
         </RetroCard>
         <RetroCard className="p-3">
-          <p className="font-pixel text-xs text-muted-foreground mb-1">HEALTH STATUS</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-1">HEALTH STATUS</p>
           {summary.hasErrors ? (
             <p className="text-base font-bold text-red-400 flex items-center gap-1">
               <AlertTriangle className="w-4 h-4" /> Issues
@@ -235,7 +235,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <SeverityBadge severity={w.severity} />
-                  <span className="font-pixel text-xs text-muted-foreground">{w.code}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{w.code}</span>
                 </div>
                 <p className="text-xs text-foreground/90">{w.message}</p>
               </div>
@@ -273,7 +273,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
           </button>
         )}
         <button
-          className="ml-auto font-pixel text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+          className="ml-auto text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1"
           onClick={() => refetch()}
           disabled={isFetching}
           data-testid="sched-health-refresh"
@@ -288,7 +288,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
         <div className="space-y-3">
           <RetroCard>
             <RetroCardHeader>
-              <span className="font-pixel text-xs text-gold">Schedule Configuration</span>
+              <span className="text-xs font-semibold text-gold">Schedule Configuration</span>
             </RetroCardHeader>
             <RetroCardContent className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div>
@@ -320,22 +320,22 @@ export function ScheduleHealthTab({ leagueId }: Props) {
 
           <RetroCard>
             <RetroCardHeader>
-              <span className="font-pixel text-xs text-gold">Game Count Distribution</span>
+              <span className="text-xs font-semibold text-gold">Game Count Distribution</span>
             </RetroCardHeader>
             <RetroCardContent className="space-y-2">
               <div className="grid grid-cols-3 gap-3 text-center text-xs mb-3">
                 <div className="p-2 bg-muted/20 rounded">
-                  <p className="font-pixel text-xs text-muted-foreground mb-1">MIN</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">MIN</p>
                   <p className={`text-lg font-bold ${summary.minGames < data.expectedGamesPerTeam * 0.85 ? "text-yellow-400" : ""}`}>
                     {summary.minGames}
                   </p>
                 </div>
                 <div className="p-2 bg-muted/20 rounded">
-                  <p className="font-pixel text-xs text-muted-foreground mb-1">AVG</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">AVG</p>
                   <p className="text-lg font-bold">{summary.avgGames}</p>
                 </div>
                 <div className="p-2 bg-muted/20 rounded">
-                  <p className="font-pixel text-xs text-muted-foreground mb-1">MAX</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">MAX</p>
                   <p className={`text-lg font-bold ${summary.maxGames > data.expectedGamesPerTeam * 1.15 ? "text-red-400" : ""}`}>
                     {summary.maxGames}
                   </p>
@@ -354,7 +354,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
                         max={summary.maxGames}
                       />
                       {t.byeWeeks.length > 1 && (
-                        <Badge variant="outline" className="font-pixel text-xs px-1 py-0 shrink-0 text-yellow-400 border-yellow-600/50">
+                        <Badge variant="outline" className="text-xs font-semibold px-1 py-0 shrink-0 text-yellow-400 border-yellow-600/50">
                           {t.byeWeeks.length} byes
                         </Badge>
                       )}
@@ -397,7 +397,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
                   )}
                   <span className="font-semibold text-sm flex-1 truncate">{t.teamName}</span>
                   {t.isHuman && (
-                    <Badge variant="outline" className="font-pixel text-xs px-1.5 py-0 shrink-0 text-blue-400 border-blue-600/50">
+                    <Badge variant="outline" className="text-xs font-semibold px-1.5 py-0 shrink-0 text-blue-400 border-blue-600/50">
                       HUMAN
                     </Badge>
                   )}
@@ -440,7 +440,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
 
                     {t.overloadedWeeks.length > 0 && (
                       <div className="p-2 rounded border border-red-500/30 bg-red-900/20 text-xs">
-                        <span className="font-pixel text-xs text-red-400 mr-1">OVERLOADED:</span>
+                        <span className="text-xs font-semibold text-red-400 mr-1">OVERLOADED:</span>
                         {t.overloadedWeeks.map(ow => (
                           <span key={ow.week} className="mr-2 text-red-300">
                             Wk {ow.week} ({ow.count} games)
@@ -451,7 +451,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
 
                     {t.repeatOpponents.length > 0 && (
                       <div className="p-2 rounded border border-yellow-500/30 bg-yellow-900/20 text-xs">
-                        <span className="font-pixel text-xs text-yellow-400 block mb-1">REPEAT OPPONENTS:</span>
+                        <span className="text-xs font-semibold text-yellow-400 block mb-1">REPEAT OPPONENTS:</span>
                         {t.repeatOpponents.map(ro => (
                           <span key={ro.opponentId} className="mr-3 text-yellow-300">
                             {ro.opponentName} × {ro.count}
@@ -467,7 +467,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
 
           {teamStats.length > 12 && (
             <button
-              className="w-full text-center font-pixel text-xs text-muted-foreground hover:text-foreground py-2"
+              className="w-full text-center text-xs font-semibold text-muted-foreground hover:text-foreground py-2"
               onClick={() => setShowAllTeams(v => !v)}
             >
               {showAllTeams ? "Show fewer" : `Show all ${teamStats.length} teams`}
@@ -480,19 +480,19 @@ export function ScheduleHealthTab({ leagueId }: Props) {
       {activeView === "weeks" && (
         <RetroCard>
           <RetroCardHeader>
-            <span className="font-pixel text-xs text-gold">Week-by-Week Breakdown</span>
+            <span className="text-xs font-semibold text-gold">Week-by-Week Breakdown</span>
           </RetroCardHeader>
           <RetroCardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
-                    <th className="text-left py-1.5 pr-3 font-pixel text-xs">WEEK</th>
-                    <th className="text-right py-1.5 px-2 font-pixel text-xs">GAMES</th>
-                    <th className="text-right py-1.5 px-2 font-pixel text-xs">CONF</th>
-                    <th className="text-right py-1.5 px-2 font-pixel text-xs">OOC</th>
-                    <th className="text-right py-1.5 px-2 font-pixel text-xs">ACTIVE</th>
-                    <th className="text-right py-1.5 pl-2 font-pixel text-xs">BYES</th>
+                    <th className="text-left py-1.5 pr-3 text-xs font-semibold">WEEK</th>
+                    <th className="text-right py-1.5 px-2 text-xs font-semibold">GAMES</th>
+                    <th className="text-right py-1.5 px-2 text-xs font-semibold">CONF</th>
+                    <th className="text-right py-1.5 px-2 text-xs font-semibold">OOC</th>
+                    <th className="text-right py-1.5 px-2 text-xs font-semibold">ACTIVE</th>
+                    <th className="text-right py-1.5 pl-2 text-xs font-semibold">BYES</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -511,7 +511,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
                 </tbody>
                 <tfoot>
                   <tr className="border-t border-border text-muted-foreground">
-                    <td className="py-1.5 pr-3 font-pixel text-xs">TOTAL</td>
+                    <td className="py-1.5 pr-3 text-xs font-semibold">TOTAL</td>
                     <td className="text-right py-1.5 px-2 font-bold text-foreground">
                       {weekStats.reduce((a, w) => a + w.totalGames, 0)}
                     </td>
@@ -537,7 +537,7 @@ export function ScheduleHealthTab({ leagueId }: Props) {
       {activeView === "human" && humanTeamIds.length > 1 && (
         <RetroCard>
           <RetroCardHeader>
-            <span className="font-pixel text-xs text-gold">Human vs. Human Matchup Matrix</span>
+            <span className="text-xs font-semibold text-gold">Human vs. Human Matchup Matrix</span>
           </RetroCardHeader>
           <RetroCardContent>
             <p className="text-xs text-muted-foreground mb-3">
@@ -548,11 +548,11 @@ export function ScheduleHealthTab({ leagueId }: Props) {
               <table className="text-xs">
                 <thead>
                   <tr>
-                    <th className="text-left py-1 pr-3 font-pixel text-xs text-muted-foreground" />
+                    <th className="text-left py-1 pr-3 text-xs font-semibold text-muted-foreground" />
                     {humanTeamIds.map(tid => (
                       <th
                         key={tid}
-                        className="text-center py-1 px-2 font-pixel text-xs text-muted-foreground max-w-[60px] truncate"
+                        className="text-center py-1 px-2 text-xs font-semibold text-muted-foreground max-w-[60px] truncate"
                         title={humanTeamNames[tid]}
                       >
                         {humanTeamNames[tid]?.split(" ").slice(-1)[0] ?? tid.slice(0, 6)}

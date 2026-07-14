@@ -73,7 +73,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-muted-foreground font-pixel text-xs">
+            <tr className="border-b border-border text-muted-foreground text-xs font-semibold">
               <th className="text-left py-2 px-2">#</th>
               <th className="text-left py-2 px-2">Team</th>
               <th className="text-center py-2 px-1">
@@ -109,12 +109,12 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                   >
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-1">
-                        <span className={`font-pixel text-xs ${isUser ? "text-gold" : "text-muted-foreground"}`}>
+                        <span className={`text-xs font-semibold ${isUser ? "text-gold" : "text-muted-foreground"}`}>
                           #{entry.rank}
                         </span>
                         {entry.rankDelta != null && entry.rankDelta !== 0 && (
                           <span
-                            className={`font-pixel text-xs leading-none ${entry.rankDelta > 0 ? "text-green-400" : "text-red-400"}`}
+                            className={`text-xs font-semibold leading-none ${entry.rankDelta > 0 ? "text-green-400" : "text-red-400"}`}
                             title={`${entry.rankDelta > 0 ? "+" : ""}${entry.rankDelta} since last week`}
                             data-testid={`rank-delta-${entry.teamId}`}
                           >
@@ -122,7 +122,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                           </span>
                         )}
                         {entry.rankDelta === 0 && (
-                          <span className="font-pixel text-xs text-muted-foreground/50" title="No change">—</span>
+                          <span className="text-xs font-semibold text-muted-foreground/50" title="No change">—</span>
                         )}
                       </div>
                     </td>
@@ -143,7 +143,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                             </span>
                           </Link>
                           {isUser && (
-                            <span className="ml-1.5 text-xs font-pixel text-gold/70">YOU</span>
+                            <span className="ml-1.5 text-xs text-gold/70">YOU</span>
                           )}
                         </div>
                       </div>
@@ -231,11 +231,11 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <TeamBadge abbreviation={userEntry.abbreviation} primaryColor={userEntry.primaryColor} secondaryColor={userEntry.secondaryColor} name={userEntry.teamName} size="sm" />
-          <span className="font-pixel text-gold text-xs">YOU</span>
+          <span className="text-gold text-xs">YOU</span>
         </div>
-        <span className="font-pixel text-xs text-muted-foreground">HEAD-TO-HEAD</span>
+        <span className="text-xs font-semibold text-muted-foreground">HEAD-TO-HEAD</span>
         <div className="flex items-center gap-2">
-          <span className="font-pixel text-xs text-foreground">{rivalEntry.teamName}</span>
+          <span className="text-xs font-semibold text-foreground">{rivalEntry.teamName}</span>
           <TeamBadge abbreviation={rivalEntry.abbreviation} primaryColor={rivalEntry.primaryColor} secondaryColor={rivalEntry.secondaryColor} name={rivalEntry.teamName} size="sm" />
         </div>
       </div>

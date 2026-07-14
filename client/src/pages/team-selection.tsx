@@ -86,11 +86,11 @@ function TeamTile({
           style={{ backgroundColor: team.primaryColor }}
         >
           <span
-            className={`font-pixel leading-none text-center ${
+            className={`leading-none text-center ${
               (team.abbreviation?.length ?? 0) > 3
-                ? "text-[7px]"
+                ? "text-xs"
                 : (team.abbreviation?.length ?? 0) === 3
-                ? "text-[9px]"
+                ? "text-xs"
                 : "text-xs"
             }`}
             style={{ color: team.secondaryColor || "#ffffff" }}
@@ -106,7 +106,7 @@ function TeamTile({
       </div>
       {nationalRank !== undefined && (
         <span
-          className="text-xs leading-none font-pixel text-muted-foreground"
+          className="text-xs leading-none text-muted-foreground"
           data-testid={`text-rank-${team.abbreviation}`}
         >
           #{nationalRank}
@@ -290,7 +290,7 @@ export default function TeamSelectionPage() {
             <div className="flex justify-center gap-1 mb-4">
               <Globe className="w-5 h-5 text-gold" />
             </div>
-            <h1 className="font-pixel text-gold text-xl mb-2" data-testid="text-select-teams-title">Full Season Mode</h1>
+            <h1 className="text-gold text-xl mb-2" data-testid="text-select-teams-title">Full Season Mode</h1>
             <p className="text-muted-foreground text-sm max-w-lg mx-auto">
               All {liveTotalTeams} programs from 12 conferences are included automatically.
               Click below to initialize the dynasty and continue to coach setup.
@@ -303,7 +303,7 @@ export default function TeamSelectionPage() {
                 {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => (
                   <div key={conference.id} className="flex items-center justify-between px-3 py-2 rounded border border-border/50 bg-background/40">
                     <span className="text-xs text-muted-foreground truncate">{conference.name}</span>
-                    <span className="text-xs font-pixel text-gold ml-2">{poolTeams.length}</span>
+                    <span className="text-xs text-gold ml-2">{poolTeams.length}</span>
                   </div>
                 ))}
               </div>
@@ -344,7 +344,7 @@ export default function TeamSelectionPage() {
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
           </div>
-          <h1 className="font-pixel text-gold text-xl mb-2" data-testid="text-select-teams-title">Select Teams</h1>
+          <h1 className="text-gold text-xl mb-2" data-testid="text-select-teams-title">Select Teams</h1>
           <p className="text-muted-foreground text-sm">
             Choose {data.league.maxTeams} teams for your dynasty across {data.conferences.length} conferences.
           </p>
@@ -387,7 +387,7 @@ export default function TeamSelectionPage() {
             <button
               key={opt.value}
               onClick={() => setTeamSort(opt.value)}
-              className={`px-2 py-1 text-xs font-pixel rounded border transition-colors ${
+              className={`px-2 py-1 text-xs rounded border transition-colors ${
                 teamSort === opt.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
               }`}
               data-testid={`button-sort-${opt.value}`}
@@ -420,13 +420,13 @@ export default function TeamSelectionPage() {
                         const targets = getConferenceTargets(data.league.maxTeams, data.conferences.length);
                         const target = targets[confIdx];
                         return (
-                          <span className="text-xs text-muted-foreground font-pixel">
+                          <span className="text-xs text-muted-foreground">
                             target {target}
                           </span>
                         );
                       })()}
                       {confSelectedCount > 0 && (
-                        <span className="text-xs text-gold font-pixel">
+                        <span className="text-xs text-gold">
                           {confSelectedCount} selected
                         </span>
                       )}

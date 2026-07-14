@@ -71,7 +71,7 @@ export function LeagueEditsReadOnly({ leagueId }: { leagueId: string }) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <div>
-          <p className="font-pixel text-xs text-gold">Commissioner Edits</p>
+          <p className="text-xs font-semibold text-gold">Commissioner Edits</p>
           <p className="text-xs text-muted-foreground">Transparent log of all roster and school changes made by the commissioner.</p>
         </div>
         <div className="ml-auto flex items-center gap-2">

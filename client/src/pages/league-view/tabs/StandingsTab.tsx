@@ -68,7 +68,7 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                           <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
                         {leagueRankMap.has(team.id) && (
-                          <span className="font-pixel text-xs text-gold/70 flex-shrink-0" data-testid={`badge-league-rank-${team.id}`}>
+                          <span className="text-xs font-semibold text-gold/70 flex-shrink-0" data-testid={`badge-league-rank-${team.id}`}>
                             #{leagueRankMap.get(team.id)}
                           </span>
                         )}
@@ -151,7 +151,7 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                 const topTwo = conf.teams.slice(0, 2);
                 return (
                   <div key={conf.id}>
-                    <p className="font-pixel text-xs text-muted-foreground mb-1">{conf.name}</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">{conf.name}</p>
                     <div className="flex gap-2">
                       {topTwo.map((team, i) => (
                         <div key={team.id} className="flex items-center gap-2 text-xs">

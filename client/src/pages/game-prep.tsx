@@ -190,7 +190,7 @@ function MeterBar({
     <div className="grid grid-cols-[1fr_60px_1fr] items-center gap-2" data-testid={`meter-row-${label.toLowerCase().replace(" ", "-")}`}>
       {/* My bar (right-aligned) */}
       <div className="flex items-center justify-end gap-1.5">
-        <span className={`font-pixel text-xs tabular-nums ${myAdv ? "text-emerald-400" : "text-muted-foreground"}`}>
+        <span className={`text-xs font-semibold tabular-nums ${myAdv ? "text-emerald-400" : "text-muted-foreground"}`}>
           {myVal}
         </span>
         <div className="w-16 h-2 bg-border/40 rounded-full overflow-hidden flex justify-end">
@@ -205,7 +205,7 @@ function MeterBar({
       </div>
 
       {/* Label */}
-      <span className="font-pixel text-xs text-muted-foreground text-center whitespace-nowrap">
+      <span className="text-xs font-semibold text-muted-foreground text-center whitespace-nowrap">
         {label.toUpperCase()}
       </span>
 
@@ -217,7 +217,7 @@ function MeterBar({
             style={{ width: `${oppWidth}%` }}
           />
         </div>
-        <span className={`font-pixel text-xs tabular-nums ${oppAdv ? "text-red-400" : "text-muted-foreground"}`}>
+        <span className={`text-xs font-semibold tabular-nums ${oppAdv ? "text-red-400" : "text-muted-foreground"}`}>
           {oppVal}
         </span>
       </div>
@@ -259,20 +259,20 @@ function StarDots({ count, max = 5 }: { count: number; max?: number }) {
 function AvailBadge({ available, limited }: { available: boolean; limited: boolean }) {
   if (!available) {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-red-500/15 border border-red-500/30 text-red-400">
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-red-500/15 border border-red-500/30 text-red-400">
         UNAVAIL
       </span>
     );
   }
   if (limited) {
     return (
-      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-yellow-500/15 border border-yellow-500/30 text-yellow-400">
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-yellow-500/15 border border-yellow-500/30 text-yellow-400">
         LIMITED
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
       RESTED
     </span>
   );
@@ -317,19 +317,19 @@ function HeaderSection({
       <div className="bg-gold/10 px-3 py-1.5 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="w-3.5 h-3.5 text-gold" />
-          <span className="font-pixel text-gold text-xs">GAME PREP</span>
+          <span className="text-gold text-xs">GAME PREP</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <Badge variant="outline" className="font-pixel text-xs text-muted-foreground border-border">
+          <Badge variant="outline" className="text-xs font-semibold text-muted-foreground border-border">
             S{game.season} W{game.week}
           </Badge>
           <Badge
             variant="outline"
-            className={`font-pixel text-xs ${game.isConference ? "border-blue-600/50 text-blue-400" : "border-border text-muted-foreground"}`}
+            className={`text-xs font-semibold ${game.isConference ? "border-blue-600/50 text-blue-400" : "border-border text-muted-foreground"}`}
           >
             {game.isConference ? "CONF" : "OOC"}
           </Badge>
-          <Badge variant="outline" className="font-pixel text-xs text-muted-foreground border-border">
+          <Badge variant="outline" className="text-xs font-semibold text-muted-foreground border-border">
             {dayLabel.toUpperCase()}
           </Badge>
         </div>
@@ -355,14 +355,14 @@ function HeaderSection({
                   </span>
                   <RecentFormDots form={myAnalysis.recentForm} />
                   {isHome && (
-                    <span className="font-pixel text-xs text-gold px-1 rounded bg-gold/10 border border-gold/30">HOME</span>
+                    <span className="text-xs font-semibold text-gold px-1 rounded bg-gold/10 border border-gold/30">HOME</span>
                   )}
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="font-pixel text-muted-foreground text-xs flex-shrink-0">VS</div>
+          <div className="text-muted-foreground text-xs flex-shrink-0">VS</div>
 
           <div className="flex-1 min-w-0 flex flex-col items-end">
             <div className="flex items-center gap-2">
@@ -370,7 +370,7 @@ function HeaderSection({
                 <p className="text-sm font-medium truncate">{oppTeam.name}</p>
                 <div className="flex items-center justify-end gap-2 mt-0.5">
                   {!isHome && (
-                    <span className="font-pixel text-xs text-gold px-1 rounded bg-gold/10 border border-gold/30">HOME</span>
+                    <span className="text-xs font-semibold text-gold px-1 rounded bg-gold/10 border border-gold/30">HOME</span>
                   )}
                   <RecentFormDots form={[...oppAnalysis.recentForm].reverse()} />
                   <span className="text-xs text-muted-foreground">
@@ -434,7 +434,7 @@ function MatchupMeterSection({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <Target className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs">MATCHUP METER</h3>
+          <h3 className="text-gold text-xs">MATCHUP METER</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -469,7 +469,7 @@ function PitcherCard({
   if (!pitcher) {
     return (
       <div className="p-3 rounded-lg border border-border/50 bg-background/30">
-        <p className="font-pixel text-xs text-muted-foreground mb-1">{label}</p>
+        <p className="text-xs font-semibold text-muted-foreground mb-1">{label}</p>
         <p className="text-sm text-muted-foreground">No starter data</p>
       </div>
     );
@@ -485,7 +485,7 @@ function PitcherCard({
     <div className="p-3 rounded-lg border border-border/50 bg-background/30" data-testid="card-probable-starter">
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
-          <p className="font-pixel text-xs text-muted-foreground mb-0.5">{label}</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-0.5">{label}</p>
           <p className="font-medium text-sm leading-tight">{pitcher.name}</p>
           {pitcher.record && (
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -505,7 +505,7 @@ function PitcherCard({
         ].map(({ label: lbl, val }) => (
           <div key={lbl} className="bg-background/50 rounded py-1">
             <div className={`text-xs font-bold ${ratingColor(val)}`}>{val}</div>
-            <div className="font-pixel text-xs text-muted-foreground">{lbl}</div>
+            <div className="text-xs font-semibold text-muted-foreground">{lbl}</div>
           </div>
         ))}
       </div>
@@ -532,7 +532,7 @@ function PitchingSection({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs">PITCHING MATCHUP</h3>
+          <h3 className="text-gold text-xs">PITCHING MATCHUP</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -544,7 +544,7 @@ function PitchingSection({
         {/* Opponent bullpen */}
         {oppAnalysis.bullpen.length > 0 && (
           <div className="mt-3">
-            <p className="font-pixel text-xs text-muted-foreground mb-1.5">
+            <p className="text-xs font-semibold text-muted-foreground mb-1.5">
               {oppTeam.abbreviation} BULLPEN
             </p>
             <div className="flex flex-wrap gap-2">
@@ -555,12 +555,12 @@ function PitchingSection({
                   data-testid={`chip-opp-rp-${rp.id}`}
                 >
                   <span className="font-medium truncate max-w-[90px]">{rp.name.split(" ")[1] ?? rp.name}</span>
-                  <span className={`font-pixel text-xs ${ratingColor(rp.velocity)}`}>{rp.velocity}v</span>
+                  <span className={`text-xs font-semibold ${ratingColor(rp.velocity)}`}>{rp.velocity}v</span>
                   {!rp.available && (
-                    <span className="font-pixel text-xs text-red-400 border border-red-500/30 rounded px-0.5">OUT</span>
+                    <span className="text-xs font-semibold text-red-400 border border-red-500/30 rounded px-0.5">OUT</span>
                   )}
                   {rp.era && (
-                    <span className="font-pixel text-xs text-muted-foreground">{rp.era}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{rp.era}</span>
                   )}
                 </div>
               ))}
@@ -586,7 +586,7 @@ function LineupSection({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <Eye className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs">
+          <h3 className="text-gold text-xs">
             {oppTeam.abbreviation} — LINEUP THREATS
           </h3>
         </div>
@@ -600,11 +600,11 @@ function LineupSection({
               className="flex items-center gap-3 p-2 rounded bg-background/30 border border-border/40"
               data-testid={`row-opp-batter-${batter.id}`}
             >
-              <span className="font-pixel text-xs text-muted-foreground w-4 text-center">{idx + 1}</span>
+              <span className="text-xs font-semibold text-muted-foreground w-4 text-center">{idx + 1}</span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-medium text-sm">{batter.name}</span>
-                  <span className="font-pixel text-xs text-muted-foreground">{batter.position}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{batter.position}</span>
                   <StarDots count={batter.starRating} />
                 </div>
                 {batter.ba && (
@@ -616,15 +616,15 @@ function LineupSection({
               <div className="flex items-center gap-2 shrink-0">
                 <div className="text-center">
                   <div className={`text-xs font-bold ${ratingColor(batter.hitForAvg)}`}>{batter.hitForAvg}</div>
-                  <div className="font-pixel text-xs text-muted-foreground">HIT</div>
+                  <div className="text-xs font-semibold text-muted-foreground">HIT</div>
                 </div>
                 <div className="text-center">
                   <div className={`text-xs font-bold ${ratingColor(batter.power)}`}>{batter.power}</div>
-                  <div className="font-pixel text-xs text-muted-foreground">PWR</div>
+                  <div className="text-xs font-semibold text-muted-foreground">PWR</div>
                 </div>
                 <div className="text-center">
                   <div className={`text-xs font-bold ${ratingColor(batter.speed)}`}>{batter.speed}</div>
-                  <div className="font-pixel text-xs text-muted-foreground">SPD</div>
+                  <div className="text-xs font-semibold text-muted-foreground">SPD</div>
                 </div>
               </div>
             </div>
@@ -642,7 +642,7 @@ function LineupSection({
         {/* Weak defensive spots */}
         {oppAnalysis.weakDefense.length > 0 && (
           <div>
-            <p className="font-pixel text-xs text-muted-foreground mb-1.5">EXPLOITABLE GLOVES</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1.5">EXPLOITABLE GLOVES</p>
             <div className="flex flex-wrap gap-2">
               {oppAnalysis.weakDefense.map(spot => (
                 <div
@@ -650,9 +650,9 @@ function LineupSection({
                   className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-red-500/5 border border-red-500/20 text-xs"
                   data-testid={`chip-weak-def-${spot.position}`}
                 >
-                  <span className="font-pixel text-xs text-red-400">{spot.position}</span>
+                  <span className="text-xs font-semibold text-red-400">{spot.position}</span>
                   <span className="text-muted-foreground">{spot.name.split(" ")[1] ?? spot.name}</span>
-                  <span className={`font-pixel text-xs ${ratingColor(spot.fielding)}`}>{spot.fielding} FLD</span>
+                  <span className={`text-xs font-semibold ${ratingColor(spot.fielding)}`}>{spot.fielding} FLD</span>
                 </div>
               ))}
             </div>
@@ -675,7 +675,7 @@ function KeysToWinSection({ keys }: { keys: string[] }) {
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <Flame className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs">KEYS TO WIN</h3>
+          <h3 className="text-gold text-xs">KEYS TO WIN</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -718,7 +718,7 @@ function H2HSection({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">HEAD TO HEAD</h3>
+            <h3 className="text-gold text-xs">HEAD TO HEAD</h3>
           </div>
         </RetroCardHeader>
         <RetroCardContent>
@@ -736,7 +736,7 @@ function H2HSection({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs">HEAD TO HEAD THIS SEASON</h3>
+          <h3 className="text-gold text-xs">HEAD TO HEAD THIS SEASON</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -745,7 +745,7 @@ function H2HSection({
             <p className="text-2xl font-bold text-gold">{awayWins}</p>
             <p className="text-xs text-muted-foreground truncate max-w-[80px]">{awayTeam.abbreviation}</p>
           </div>
-          <div className="font-pixel text-muted-foreground text-xs">–</div>
+          <div className="text-muted-foreground text-xs">–</div>
           <div className="text-center">
             <p className="text-2xl font-bold text-gold">{homeWins}</p>
             <p className="text-xs text-muted-foreground truncate max-w-[80px]">{homeTeam.abbreviation}</p>
@@ -784,7 +784,7 @@ function H2HSection({
                 {iPlayed && (
                   <Badge
                     variant="outline"
-                    className={`text-xs font-pixel ${iWon ? "border-emerald-600 text-emerald-400" : "border-red-600 text-red-400"}`}
+                    className={`text-xs ${iWon ? "border-emerald-600 text-emerald-400" : "border-red-600 text-red-400"}`}
                   >
                     {iWon ? "W" : "L"}
                   </Badge>
@@ -816,7 +816,7 @@ export default function GamePrepPage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <RetroCard variant="bordered" className="text-center p-8 max-w-sm">
           <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <h2 className="font-pixel text-gold text-xs mb-2">Prep Card Unavailable</h2>
+          <h2 className="text-gold text-xs mb-2">Prep Card Unavailable</h2>
           <p className="text-sm text-muted-foreground mb-4">Could not load game prep data.</p>
           <RetroButton onClick={() => navigate(`/league/${id}/schedule`)} data-testid="button-prep-back">
             Back to Schedule
@@ -853,9 +853,9 @@ export default function GamePrepPage() {
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-pixel text-gold text-xs">GAME PREP</span>
+              <span className="text-gold text-xs">GAME PREP</span>
               {game.isComplete && (
-                <Badge variant="outline" className="font-pixel text-xs text-muted-foreground border-border">
+                <Badge variant="outline" className="text-xs font-semibold text-muted-foreground border-border">
                   COMPLETED
                 </Badge>
               )}
@@ -917,16 +917,16 @@ export default function GamePrepPage() {
             <RetroCardHeader>
               <div className="flex items-center gap-2">
                 <Eye className="w-4 h-4 text-gold" />
-                <h3 className="font-pixel text-gold text-xs">{homeTeam.abbreviation} — LINEUP</h3>
+                <h3 className="text-gold text-xs">{homeTeam.abbreviation} — LINEUP</h3>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
               <div className="space-y-1.5">
                 {home.top3Bats.map((batter, idx) => (
                   <div key={batter.id} className="flex items-center gap-2 py-1" data-testid={`row-home-batter-${batter.id}`}>
-                    <span className="font-pixel text-xs text-muted-foreground w-4">{idx + 1}</span>
+                    <span className="text-xs font-semibold text-muted-foreground w-4">{idx + 1}</span>
                     <span className="font-medium text-sm flex-1 truncate">{batter.name}</span>
-                    <span className="font-pixel text-xs text-muted-foreground">{batter.position}</span>
+                    <span className="text-xs font-semibold text-muted-foreground">{batter.position}</span>
                     <span className={`text-xs font-bold ${ratingColor(batter.overall)}`}>{batter.overall}</span>
                   </div>
                 ))}

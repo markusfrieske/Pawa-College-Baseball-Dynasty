@@ -88,7 +88,7 @@ export function SeasonProgressBar({ phase }: { phase: string }) {
                     : "bg-muted"
               }`}
             />
-            <span className={`text-xs sm:text-xs font-pixel text-center ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
+            <span className={`text-xs sm:text-xs text-center ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
               {p.label}
             </span>
           </div>

@@ -100,12 +100,12 @@ function GameCard({ game }: { game: PostseasonGame }) {
     <div className="bg-muted/30 rounded p-2 border border-border" data-testid={`game-card-${game.id}`}>
       <div className={`flex items-center justify-between gap-2 py-1 ${homeWon ? "text-gold" : awayWon ? "text-muted-foreground" : ""}`}>
         <span className="text-xs font-medium truncate">{game.homeTeam?.abbreviation || "TBD"}</span>
-        <span className="text-xs font-pixel">{game.isComplete ? game.homeScore : "-"}</span>
+        <span className="text-xs">{game.isComplete ? game.homeScore : "-"}</span>
       </div>
       <div className="border-t border-border/50 my-0.5" />
       <div className={`flex items-center justify-between gap-2 py-1 ${awayWon ? "text-gold" : homeWon ? "text-muted-foreground" : ""}`}>
         <span className="text-xs font-medium truncate">{game.awayTeam?.abbreviation || "TBD"}</span>
-        <span className="text-xs font-pixel">{game.isComplete ? game.awayScore : "-"}</span>
+        <span className="text-xs">{game.isComplete ? game.awayScore : "-"}</span>
       </div>
       {!game.isComplete && (
         <div className="text-center mt-1">
@@ -133,14 +133,14 @@ function CWSSeriesStatus({ games }: { games: PostseasonGame[] }) {
       {champion ? (
         <div className="text-center">
           <Trophy className="w-6 h-6 text-gold mx-auto mb-1" />
-          <p className="font-pixel text-gold text-xs" data-testid="text-cws-champion">
+          <p className="text-gold text-xs" data-testid="text-cws-champion">
             {champion.name} Wins the CWS!
           </p>
         </div>
       ) : (
         <div className="flex items-center justify-center gap-4 text-xs">
           {entries.map(e => (
-            <span key={e.name} className="font-pixel">{e.name}: {e.wins} {e.wins === 1 ? "win" : "wins"}</span>
+            <span key={e.name} className="font-sans font-semibold">{e.name}: {e.wins} {e.wins === 1 ? "win" : "wins"}</span>
           ))}
         </div>
       )}
@@ -159,7 +159,7 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
       <div className="space-y-3">
         {completedGames.length > 0 && (
           <div>
-            <p className="text-xs text-muted-foreground font-pixel mb-1">Completed</p>
+            <p className="text-xs text-muted-foreground mb-1">Completed</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {completedGames.map(game => <GameCard key={game.id} game={game} />)}
             </div>
@@ -167,7 +167,7 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
         )}
         {upcomingGames.length > 0 && (
           <div>
-            <p className="text-xs text-muted-foreground font-pixel mb-1">Next Round</p>
+            <p className="text-xs text-muted-foreground mb-1">Next Round</p>
             <div className="grid sm:grid-cols-2 gap-2">
               {upcomingGames.map(game => <GameCard key={game.id} game={game} />)}
             </div>
@@ -220,15 +220,15 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
     const awayWon = game.isComplete && (game.awayScore ?? 0) > (game.homeScore ?? 0);
     return (
       <div className="bg-muted/30 rounded p-1.5 border border-border text-xs">
-        {label && <p className="text-xs font-pixel text-muted-foreground mb-0.5 uppercase">{label}</p>}
+        {label && <p className="text-xs text-muted-foreground mb-0.5 uppercase">{label}</p>}
         <div className={`flex items-center justify-between gap-1 py-0.5 ${homeWon ? "text-gold" : awayWon ? "text-muted-foreground" : ""}`}>
           <span className="truncate flex-1">{game.homeTeam?.abbreviation || "TBD"}{lossTag(game.homeTeamId)}</span>
-          <span className="font-pixel flex-shrink-0">{game.isComplete ? game.homeScore : "-"}</span>
+          <span className="flex-shrink-0">{game.isComplete ? game.homeScore : "-"}</span>
         </div>
         <div className="border-t border-border/30 my-0.5" />
         <div className={`flex items-center justify-between gap-1 py-0.5 ${awayWon ? "text-gold" : homeWon ? "text-muted-foreground" : ""}`}>
           <span className="truncate flex-1">{game.awayTeam?.abbreviation || "TBD"}{lossTag(game.awayTeamId)}</span>
-          <span className="font-pixel flex-shrink-0">{game.isComplete ? game.awayScore : "-"}</span>
+          <span className="flex-shrink-0">{game.isComplete ? game.awayScore : "-"}</span>
         </div>
         {!game.isComplete && <p className="text-xs text-center text-muted-foreground/50 mt-0.5">Upcoming</p>}
       </div>
@@ -238,53 +238,53 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
     <div className="space-y-3">
       <div className="grid md:grid-cols-2 gap-3">
         <div className="space-y-2">
-          <p className="text-xs font-pixel text-gold uppercase">Winners Bracket</p>
+          <p className="text-xs text-gold uppercase">Winners Bracket</p>
           {wbRounds.map(r => (
             <div key={r} className="space-y-1">
-              <p className="text-xs font-pixel text-muted-foreground uppercase">{WB_LABELS[r] ?? `WB R${r}`}</p>
+              <p className="text-xs text-muted-foreground uppercase">{WB_LABELS[r] ?? `WB R${r}`}</p>
               {wbGames.filter(g => (g.bracketRound ?? 1) === r).map(g => <CommGameCard key={g.id} game={g} />)}
               {r === 1 && byeSeedAbbr && (
                 <div className="bg-muted/20 border border-gold/20 rounded px-1.5 py-1 text-center">
-                  <p className="text-xs font-pixel text-gold/70 uppercase">#1 Seed — BYE</p>
-                  <p className="text-xs font-pixel text-muted-foreground">{byeSeedAbbr} → WBR2</p>
+                  <p className="text-xs text-gold/70 uppercase">#1 Seed — BYE</p>
+                  <p className="text-xs text-muted-foreground">{byeSeedAbbr} → WBR2</p>
                 </div>
               )}
             </div>
           ))}
           {wbChamp && !gfGame && (
             <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center">
-              <p className="text-xs font-pixel text-muted-foreground">WB CHAMPION</p>
-              <p className="text-gold font-pixel text-xs">{wbChamp.abbr}</p>
+              <p className="text-xs text-muted-foreground">WB CHAMPION</p>
+              <p className="text-gold text-xs font-semibold">{wbChamp.abbr}</p>
             </div>
           )}
         </div>
         <div className="space-y-2">
-          <p className="text-xs font-pixel text-amber-400 uppercase">Losers Bracket</p>
+          <p className="text-xs text-amber-400 uppercase">Losers Bracket</p>
           {lbRounds.map(r => (
             <div key={r} className="space-y-1">
-              <p className="text-xs font-pixel text-muted-foreground uppercase">{LB_LABELS[r] ?? `LB R${r}`}</p>
+              <p className="text-xs text-muted-foreground uppercase">{LB_LABELS[r] ?? `LB R${r}`}</p>
               {lbGames.filter(g => (g.bracketRound ?? 2) === r).map(g => <CommGameCard key={g.id} game={g} />)}
             </div>
           ))}
           {lbChamp && !gfGame && (
             <div className="bg-amber-400/10 border border-amber-400/30 rounded px-2 py-1 text-center">
-              <p className="text-xs font-pixel text-muted-foreground">LB CHAMPION</p>
-              <p className="text-amber-400 font-pixel text-xs">{lbChamp.abbr}</p>
+              <p className="text-xs text-muted-foreground">LB CHAMPION</p>
+              <p className="text-amber-400 text-xs font-semibold">{lbChamp.abbr}</p>
             </div>
           )}
         </div>
       </div>
       {gfGame && (
         <div className="border-t border-gold/20 pt-2 space-y-1">
-          <p className="text-xs font-pixel text-gold uppercase text-center">Grand Final</p>
+          <p className="text-xs text-gold uppercase text-center">Grand Final</p>
           <div className="max-w-[200px] mx-auto space-y-1">
             <CommGameCard game={gfGame} label="Grand Final" />
             {gfResetGm && <CommGameCard game={gfResetGm} label="If Necessary (Reset)" />}
           </div>
           {srChamp && (
             <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center max-w-[200px] mx-auto">
-              <p className="text-xs font-pixel text-muted-foreground">SR CHAMPION → CWS</p>
-              <p className="text-gold font-pixel text-xs">{srChamp.abbr}</p>
+              <p className="text-xs text-muted-foreground">SR CHAMPION → CWS</p>
+              <p className="text-gold text-xs font-semibold">{srChamp.abbr}</p>
             </div>
           )}
         </div>
@@ -303,19 +303,19 @@ function FSSRSeriesCard({ series }: { series: FSSeries }) {
       className={`bg-muted/30 rounded p-2 border text-xs ${isDone ? "border-border" : "border-gold/30"}`}
       data-testid={`fs-sr-series-${series.bracketSlot}`}
     >
-      <p className="text-xs font-pixel text-muted-foreground mb-1 uppercase">{series.bracketSlot}</p>
+      <p className="text-xs text-muted-foreground mb-1 uppercase">{series.bracketSlot}</p>
       <div className={`flex items-center justify-between py-0.5 ${winner?.name === series.homeTeam?.name ? "text-gold" : ""}`}>
         <span className="truncate">{series.homeTeam?.abbreviation || "TBD"}</span>
-        <span className="font-pixel ml-2">{series.homeWins}</span>
+        <span className="ml-2">{series.homeWins}</span>
       </div>
       <div className="border-t border-border/30 my-0.5" />
       <div className={`flex items-center justify-between py-0.5 ${winner?.name === series.awayTeam?.name ? "text-gold" : ""}`}>
         <span className="truncate">{series.awayTeam?.abbreviation || "TBD"}</span>
-        <span className="font-pixel ml-2">{series.awayWins}</span>
+        <span className="ml-2">{series.awayWins}</span>
       </div>
-      {!isDone && <p className="text-xs text-center text-gold/50 font-pixel mt-0.5">Bo3</p>}
+      {!isDone && <p className="text-xs text-center text-gold/50 mt-0.5">Bo3</p>}
       {isDone && winner && (
-        <p className="text-xs text-center text-gold font-pixel mt-0.5">{winner.abbreviation} wins</p>
+        <p className="text-xs text-center text-gold mt-0.5">{winner.abbreviation} wins</p>
       )}
     </div>
   );
@@ -332,7 +332,7 @@ function FSCWSBracket({
 }) {
   const bGames = games.filter(g => g.bracketType?.startsWith(`cws_${bracketId}_`));
   if (bGames.length === 0) return (
-    <div className="text-xs text-muted-foreground font-pixel text-center py-2">Awaiting bracket</div>
+    <div className="text-xs text-muted-foreground text-center py-2">Awaiting bracket</div>
   );
 
   const gameWinner = (g: FSCWSGame) =>
@@ -345,14 +345,14 @@ function FSCWSBracket({
     const aw = g.isComplete && (g.awayScore ?? 0) > (g.homeScore ?? 0);
     return (
       <div className="bg-muted/20 rounded p-1 border border-border/50">
-        <p className="text-xs font-pixel text-muted-foreground uppercase mb-0.5">{label}</p>
+        <p className="text-xs text-muted-foreground uppercase mb-0.5">{label}</p>
         <div className={`flex justify-between text-xs ${hw ? "text-gold" : aw ? "text-muted-foreground" : ""}`}>
           <span>{g.homeTeam?.abbreviation || "TBD"}</span>
-          <span className="font-pixel">{g.isComplete ? g.homeScore : "-"}</span>
+          <span className="font-sans font-semibold">{g.isComplete ? g.homeScore : "-"}</span>
         </div>
         <div className={`flex justify-between text-xs ${aw ? "text-gold" : hw ? "text-muted-foreground" : ""}`}>
           <span>{g.awayTeam?.abbreviation || "TBD"}</span>
-          <span className="font-pixel">{g.isComplete ? g.awayScore : "-"}</span>
+          <span className="font-sans font-semibold">{g.isComplete ? g.awayScore : "-"}</span>
         </div>
       </div>
     );
@@ -375,39 +375,39 @@ function FSCWSBracket({
     <div className="space-y-1.5">
       {wbr1.length > 0 && (
         <div>
-          <p className="text-xs font-pixel text-gold/70 uppercase mb-0.5">WBR1</p>
+          <p className="text-xs text-gold/70 uppercase mb-0.5">WBR1</p>
           {wbr1.map(g => <MiniGame key={g.id} g={g} label={g.bracketSide ?? "WBR1"} />)}
         </div>
       )}
       {(wbr2.length > 0 || lbr1.length > 0) && (
         <div className="grid grid-cols-2 gap-1">
           <div>
-            <p className="text-xs font-pixel text-gold/70 uppercase mb-0.5">WBR2</p>
+            <p className="text-xs text-gold/70 uppercase mb-0.5">WBR2</p>
             {wbr2.map(g => <MiniGame key={g.id} g={g} label="WBR2" />)}
           </div>
           <div>
-            <p className="text-xs font-pixel text-amber-400/70 uppercase mb-0.5">LBR1</p>
+            <p className="text-xs text-amber-400/70 uppercase mb-0.5">LBR1</p>
             {lbr1.map(g => <MiniGame key={g.id} g={g} label="LBR1" />)}
           </div>
         </div>
       )}
       {lbr2.length > 0 && (
         <div>
-          <p className="text-xs font-pixel text-amber-400/70 uppercase mb-0.5">LBR2</p>
+          <p className="text-xs text-amber-400/70 uppercase mb-0.5">LBR2</p>
           {lbr2.map(g => <MiniGame key={g.id} g={g} label="LBR2" />)}
         </div>
       )}
       {bf1.length > 0 && (
         <div>
-          <p className="text-xs font-pixel text-gold uppercase mb-0.5">Bracket Final</p>
+          <p className="text-xs text-gold uppercase mb-0.5">Bracket Final</p>
           {bf1.map(g => <MiniGame key={g.id} g={g} label="BF1" />)}
           {bf2.map(g => <MiniGame key={g.id} g={g} label="BF2 (If Nec.)" />)}
         </div>
       )}
       {bracketChamp && (
         <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center">
-          <p className="text-xs font-pixel text-muted-foreground">BRACKET {bracketId} CHAMPION</p>
-          <p className="text-gold font-pixel text-xs">{bracketChamp.abbreviation}</p>
+          <p className="text-xs text-muted-foreground">BRACKET {bracketId} CHAMPION</p>
+          <p className="text-gold text-xs font-semibold">{bracketChamp.abbreviation}</p>
         </div>
       )}
     </div>
@@ -444,7 +444,7 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
       {/* National seeding */}
       {fs.entries.length > 0 && (
         <div>
-          <p className="text-xs font-pixel text-gold uppercase mb-2">National Field ({fs.entries.length} teams)</p>
+          <p className="text-xs text-gold uppercase mb-2">National Field ({fs.entries.length} teams)</p>
           <div className="space-y-0.5 max-h-48 overflow-y-auto">
             {fs.entries.map(e => (
               <div
@@ -452,7 +452,7 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
                 className="flex items-center gap-2 px-1.5 py-1 rounded bg-muted/20 text-xs"
                 data-testid={`fs-seed-row-${e.nationalSeed}`}
               >
-                <span className="w-5 font-pixel text-gold flex-shrink-0">{e.nationalSeed}</span>
+                <span className="w-5 text-gold flex-shrink-0">{e.nationalSeed}</span>
                 <div className="min-w-0 flex-1">
                   <span className="block truncate">{e.team?.abbreviation ?? "—"}</span>
                   {e.selectionReason && (
@@ -476,7 +476,7 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
       {/* SR series */}
       {inSR && fs.srSeries.length > 0 && (
         <div>
-          <p className="text-xs font-pixel text-gold uppercase mb-2">Super Regionals</p>
+          <p className="text-xs text-gold uppercase mb-2">Super Regionals</p>
           <div className="grid grid-cols-2 gap-2">
             {fs.srSeries.map(s => <FSSRSeriesCard key={s.id} series={s} />)}
           </div>
@@ -486,21 +486,21 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
       {/* CWS two-bracket */}
       {inCWS && fs.cwsGames.length > 0 && (
         <div>
-          <p className="text-xs font-pixel text-gold uppercase mb-2">College World Series</p>
+          <p className="text-xs text-gold uppercase mb-2">College World Series</p>
           <div className="grid md:grid-cols-2 gap-3 mb-3">
             <div>
-              <p className="text-xs font-pixel text-gold/80 mb-1">Bracket A (1,4,5,8)</p>
+              <p className="text-xs text-gold/80 mb-1">Bracket A (1,4,5,8)</p>
               <FSCWSBracket bracketId="A" games={fs.cwsGames} entries={fs.entries} />
             </div>
             <div>
-              <p className="text-xs font-pixel text-gold/80 mb-1">Bracket B (2,3,6,7)</p>
+              <p className="text-xs text-gold/80 mb-1">Bracket B (2,3,6,7)</p>
               <FSCWSBracket bracketId="B" games={fs.cwsGames} entries={fs.entries} />
             </div>
           </div>
           {/* CWS Final */}
           {cwsFinalGames.length > 0 && (
             <div className="border-t border-gold/20 pt-2">
-              <p className="text-xs font-pixel text-gold uppercase text-center mb-1.5">CWS Final (Best of 3)</p>
+              <p className="text-xs text-gold uppercase text-center mb-1.5">CWS Final (Best of 3)</p>
               <div className="flex items-center justify-center gap-4 mb-2">
                 {(() => {
                   const g1 = cwsFinalGames[0];
@@ -511,9 +511,9 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
                   const aw = finalWinsA[awayId] ?? 0;
                   return (
                     <div className="flex items-center gap-3 text-xs">
-                      <span className={hw >= 2 ? "text-gold font-pixel" : ""}>{g1.homeTeam?.abbreviation || "?"}</span>
-                      <span className="font-pixel text-sm">{hw} – {aw}</span>
-                      <span className={aw >= 2 ? "text-gold font-pixel" : ""}>{g1.awayTeam?.abbreviation || "?"}</span>
+                      <span className={hw >= 2 ? "text-gold" : ""}>{g1.homeTeam?.abbreviation || "?"}</span>
+                      <span className="font-display text-sm font-bold">{hw} – {aw}</span>
+                      <span className={aw >= 2 ? "text-gold" : ""}>{g1.awayTeam?.abbreviation || "?"}</span>
                     </div>
                   );
                 })()}
@@ -521,7 +521,7 @@ function FSPostseasonSection({ leagueId, phase }: { leagueId: string; phase: str
               {cwsChamp && (
                 <div className="text-center">
                   <Trophy className="w-5 h-5 text-gold mx-auto mb-1" />
-                  <p className="font-pixel text-gold text-xs" data-testid="text-cws-fs-champion">
+                  <p className="text-gold text-xs" data-testid="text-cws-fs-champion">
                     {cwsChamp.name} — CWS Champion!
                   </p>
                 </div>
@@ -567,7 +567,7 @@ export function PostseasonBracket({ leagueId, phase, dynastyPreset }: Postseason
       <RetroCardContent>
         {data.conferenceChampionships.length > 0 && (
           <div className="mb-4">
-            <h4 className="font-pixel text-gold text-xs mb-2 uppercase">Conference Championships</h4>
+            <h4 className="text-gold text-xs mb-2 uppercase">Conference Championships</h4>
             <div className="grid sm:grid-cols-2 gap-2">
               {data.conferenceChampionships.map(game => <GameCard key={game.id} game={game} />)}
             </div>
@@ -581,17 +581,17 @@ export function PostseasonBracket({ leagueId, phase, dynastyPreset }: Postseason
           <>
             {data.superRegionals.length > 0 && (
               <div className="mb-4">
-                <h4 className="font-pixel text-gold text-xs mb-2 uppercase">Super Regionals Bracket</h4>
+                <h4 className="text-gold text-xs mb-2 uppercase">Super Regionals Bracket</h4>
                 <BracketDisplay games={data.superRegionals} />
               </div>
             )}
             {data.cws.length > 0 && (
               <div>
-                <h4 className="font-pixel text-gold text-xs mb-2 uppercase">College World Series (Best of 3)</h4>
+                <h4 className="text-gold text-xs mb-2 uppercase">College World Series (Best of 3)</h4>
                 <div className="space-y-2">
                   {data.cws.map((game, i) => (
                     <div key={game.id}>
-                      <p className="text-xs text-muted-foreground font-pixel mb-1">Game {i + 1}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Game {i + 1}</p>
                       <GameCard game={game} />
                     </div>
                   ))}

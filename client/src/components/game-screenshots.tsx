@@ -179,7 +179,7 @@ function CategoryUploadTile({
 
       {/* Header row: label + upload button */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-pixel text-gold leading-none">{CATEGORY_LABELS[category]}</span>
+        <span className="text-xs text-gold leading-none">{CATEGORY_LABELS[category]}</span>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -380,7 +380,7 @@ export function GameScreenshotUpload({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Camera className="w-3.5 h-3.5 text-gold" />
-        <span className="text-xs font-pixel text-gold">Evidence Screenshots</span>
+        <span className="text-xs text-gold">Evidence Screenshots</span>
       </div>
       <p className="text-xs text-muted-foreground">
         Upload game screenshots — the app reads your stats and auto-fills the form. Screenshots are stored permanently as proof and shown to your opponent and the commissioner.
@@ -427,7 +427,7 @@ export function GameScreenshotGallery({ leagueId, gameId }: { leagueId: string; 
       {lightbox && <Lightbox url={lightbox} onClose={() => setLightbox(null)} />}
       <div className="flex items-center gap-2">
         <Camera className="w-3.5 h-3.5 text-gold" />
-        <span className="text-xs font-pixel text-gold">Evidence Screenshots</span>
+        <span className="text-xs text-gold">Evidence Screenshots</span>
         <Badge variant="outline" className="text-xs border-gold/40 text-gold/70 py-0 px-1.5">{total}</Badge>
       </div>
       <div className="space-y-2">

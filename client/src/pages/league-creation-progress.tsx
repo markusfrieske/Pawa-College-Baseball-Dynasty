@@ -55,7 +55,7 @@ export default function LeagueCreationProgressPage() {
     <div className="min-h-screen bg-[#0a1a0a] flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="font-pixel text-gold text-lg">Building Your Universe</h1>
+          <h1 className="text-gold text-lg">Building Your Universe</h1>
           <p className="text-muted-foreground text-sm">
             149 teams · 3,725 players · 4,172 games
           </p>

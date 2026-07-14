@@ -1,3 +1,52 @@
+/* ── Self-hosted fonts ── */
+@font-face {
+  font-family: "Inter Variable";
+  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  src: url("/fonts/barlow-semi-condensed-latin-600-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  src: url("/fonts/barlow-semi-condensed-latin-700-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Barlow Semi Condensed";
+  src: url("/fonts/barlow-semi-condensed-latin-800-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,9 +92,12 @@
   --chart-3: 180 60% 45%;
   --chart-4: 0 72% 50%;
   --chart-5: 280 65% 55%;
-  --font-sans: Inter, sans-serif;
+  --font-ui: "Inter Variable", Inter, "Segoe UI", Arial, sans-serif;
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  --font-sans: "Inter Variable", Inter, "Segoe UI", Arial, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
+  --font-mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
   --radius: .5rem;
 
   /* ── Fixed shadow tokens (real visible drop shadows) ── */
@@ -177,8 +229,77 @@
     @apply border-border;
   }
 
+  html {
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .tabular-nums,
+  .type-stat,
+  .type-stat-lg,
+  .type-stat-xl {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* ── Semantic typography tokens ── */
+
+  /* Page / hero titles — sports display face */
+  .type-display {
+    @apply font-display text-[2rem] leading-[2.375rem] font-extrabold tracking-tight;
+  }
+  .type-page-title {
+    @apply font-display text-2xl leading-[1.875rem] font-bold tracking-normal;
+  }
+  .type-hero-title {
+    @apply font-display text-[1.375rem] leading-7 font-bold tracking-[0.01em];
+  }
+  .type-section-title {
+    @apply font-display text-base leading-[1.375rem] font-bold tracking-[0.02em];
+  }
+
+  /* UI copy — Inter */
+  .type-subheading {
+    @apply font-sans text-sm leading-5 font-semibold tracking-normal;
+  }
+  .type-body {
+    @apply font-sans text-sm leading-[1.3125rem] font-normal tracking-normal;
+  }
+  .type-body-strong {
+    @apply font-sans text-sm leading-[1.3125rem] font-semibold tracking-normal;
+  }
+  .type-secondary {
+    @apply font-sans text-[0.8125rem] leading-[1.125rem] font-normal tracking-normal;
+  }
+  .type-label {
+    @apply font-sans text-xs leading-4 font-semibold tracking-[0.04em];
+  }
+  .type-caption {
+    @apply font-sans text-xs leading-4 font-normal tracking-normal;
+  }
+  .type-button {
+    @apply font-sans text-[0.8125rem] leading-[1.125rem] font-semibold tracking-[0.01em];
+  }
+  .type-badge {
+    @apply font-sans text-xs leading-4 font-semibold tracking-normal;
+  }
+
+  /* Data / numeric — IBM Plex Mono */
+  .type-stat-xl {
+    @apply font-data text-[1.75rem] leading-8 font-semibold tracking-tight tabular-nums;
+  }
+  .type-stat-lg {
+    @apply font-data text-[1.375rem] leading-7 font-semibold tracking-tight tabular-nums;
+  }
+  .type-stat {
+    @apply font-data text-sm leading-5 font-medium tabular-nums;
   }
 }
 

@@ -53,7 +53,7 @@ export function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3
       data-position-group={position}
     >
       <div className="bg-gold/20 px-2 py-1 border-b border-border">
-        <span className="font-pixel text-gold text-xs">{position}</span>
+        <span className="text-gold text-xs">{position}</span>
       </div>
       <div className="p-1" data-testid={`depth-position-group-${position}`}>
         {displayPlayers.length === 0 ? (

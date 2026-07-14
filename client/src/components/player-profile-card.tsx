@@ -200,7 +200,7 @@ function AbilitiesEditor({
               if (!list.length) return null;
               return (
                 <div key={tier}>
-                  <div className={`px-2 py-0.5 text-xs font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                  <div className={`px-2 py-0.5 text-xs uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
                     {tier} ({list.length})
                   </div>
                   {list.map(ability => {
@@ -471,7 +471,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {player.playArchetypeId && ARCHETYPES_BY_ID[player.playArchetypeId] && (
                   <Badge
                     variant="outline"
-                    className="text-xs border-gold/40 text-gold/80 bg-gold/5 font-pixel"
+                    className="text-xs border-gold/40 text-gold/80 bg-gold/5"
                     data-testid="badge-archetype"
                     title={ARCHETYPES_BY_ID[player.playArchetypeId].description}
                   >
@@ -479,7 +479,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                   </Badge>
                 )}
               </div>
-              <h2 className="font-pixel text-gold text-sm mt-1" data-testid="text-player-name">
+              <h2 className="text-gold text-sm mt-1" data-testid="text-player-name">
                 #{player.jerseyNumber} {player.firstName} {player.lastName}
               </h2>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
@@ -497,7 +497,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             <div className="flex items-center gap-3 ml-auto">
               <div className="flex items-center gap-1">
                 <span
-                  className="font-pixel text-gold text-lg"
+                  className="text-gold text-lg"
                   data-testid="text-overall"
                   style={{
                     textShadow: player.starRating >= 5
@@ -519,7 +519,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               </div>
               {player.potential != null && (
                 <div className="flex items-center gap-1" data-testid="text-potential">
-                  <span className={`font-pixel text-lg ${getProgressionColor(getProgressionZone(player.potential))}`}>
+                  <span className={`font-display text-lg font-bold ${getProgressionColor(getProgressionZone(player.potential))}`}>
                     {getPotentialGrade(player.potential)}
                   </span>
                   <span className="text-xs">POT</span>
@@ -531,7 +531,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
         {/* Attributes Section */}
         <div className="p-4 border-b border-border">
-          <h3 className="font-pixel text-gold text-xs mb-3">ATTRIBUTES</h3>
+          <h3 className="text-gold text-xs mb-3">ATTRIBUTES</h3>
 
           {/* Trajectory row — hitters only, above the attribute grid */}
           {!isPitcher && (
@@ -547,7 +547,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           {/* Pitch Mix for Pitchers */}
           {isPitcher && (
             <div className="mt-4 pt-4 border-t border-border">
-              <h4 className="font-pixel text-gold text-xs mb-2">PITCH MIX</h4>
+              <h4 className="text-gold text-xs mb-2">PITCH MIX</h4>
               <div className="grid grid-cols-2 gap-1">
                 {allPitchKeys.map(key => {
                   const val = (player as unknown as Record<string, unknown>)[`pitch${key}`] as number | null | undefined;
@@ -572,7 +572,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
         {/* Common Abilities Section (Letter Grades) */}
         <div className="p-4 border-b border-border">
-          <h3 className="font-pixel text-gold text-xs mb-3">COMMON ABILITIES</h3>
+          <h3 className="text-gold text-xs mb-3">COMMON ABILITIES</h3>
           <div className="grid grid-cols-2 gap-2">
             {commonAbilities.map((ability) => (
               <CommonAbilityRow 
@@ -588,7 +588,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
         {/* Special Abilities Section */}
         <div className="p-4 border-b border-border">
-          <h3 className="font-pixel text-gold text-xs mb-3">SPECIAL ABILITIES</h3>
+          <h3 className="text-gold text-xs mb-3">SPECIAL ABILITIES</h3>
           {player.abilities && player.abilities.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {player.abilities.filter(name => !commonLinkedGoldShown.has(name)).map((abilityName, idx) => {
@@ -631,7 +631,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                         <span className="bg-red-600/20 text-red-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(239,68,68,0.70)" }}>Ball Hitter</span>
                       </Badge>
                       {isStoryAcquired && (
-                        <span className={`text-xs font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
+                        <span className={`text-xs ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
                           <Sparkles className="w-2.5 h-2.5" />STORY
                         </span>
                       )}
@@ -650,7 +650,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                       {abilityName}
                     </Badge>
                     {isStoryAcquired && (
-                      <span className={`text-xs font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
+                      <span className={`text-xs ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
                         <Sparkles className="w-2.5 h-2.5" />STORY
                       </span>
                     )}
@@ -675,7 +675,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               onClick={() => setEditOpen(v => !v)}
               data-testid="button-toggle-edit-stats"
             >
-              <span className="font-pixel text-gold text-xs flex items-center gap-2">
+              <span className="text-gold text-xs flex items-center gap-2">
                 <Edit className="w-3 h-3" />
                 EDIT STATS
               </span>
@@ -686,7 +686,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               <div className="px-4 pb-4 space-y-4">
                 {/* Numeric Attributes */}
                 <div>
-                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
                     {isPitcher ? "Pitching Attributes" : "Hitting Attributes"}
                   </p>
                   <div className="grid grid-cols-3 gap-2">
@@ -699,7 +699,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                           { field: "stuff", label: "STUF" },
                         ] as const).map(({ field, label }) => (
                           <div key={field} className="space-y-0.5">
-                            <label className="font-pixel text-xs text-gold block">{label}</label>
+                            <label className="text-xs font-semibold text-gold block">{label}</label>
                             <Input
                               type="number"
                               min={1}
@@ -723,7 +723,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                           { field: "errorResistance", label: "ERR" },
                         ] as const).map(({ field, label }) => (
                           <div key={field} className="space-y-0.5">
-                            <label className="font-pixel text-xs text-gold block">{label}</label>
+                            <label className="text-xs font-semibold text-gold block">{label}</label>
                             <Input
                               type="number"
                               min={1}
@@ -743,7 +743,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {/* Trajectory (hitters only) */}
                 {!isPitcher && (
                   <div>
-                    <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Trajectory</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Trajectory</p>
                     <Select
                       value={String(player.trajectory ?? 2)}
                       onValueChange={val => onUpdate("trajectory", parseInt(val))}
@@ -764,7 +764,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
                 {/* Common Abilities */}
                 <div>
-                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Common Abilities</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Common Abilities</p>
                   <div className="grid grid-cols-3 gap-2">
                     {(isPitcher ? (
                       [
@@ -789,7 +789,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                       ] as const
                     )).map(({ field, label }) => (
                       <div key={field} className="space-y-0.5">
-                        <label className="font-pixel text-xs text-gold block">{label}</label>
+                        <label className="text-xs font-semibold text-gold block">{label}</label>
                         <Input
                           type="number"
                           min={1}
@@ -806,7 +806,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
                 {/* Special Abilities */}
                 <div>
-                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Special Abilities</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Special Abilities</p>
                   <AbilitiesEditor
                     abilities={player.abilities ?? []}
                     position={player.position}
@@ -823,7 +823,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           <div className="px-4 py-2 bg-yellow-500/20 border-t border-border">
             <div className="flex items-center gap-2 text-yellow-500">
               <Trophy className="w-4 h-4" />
-              <span className="font-pixel text-xs">DECLARED FOR MLB DRAFT</span>
+              <span className="text-xs font-semibold">DECLARED FOR MLB DRAFT</span>
             </div>
           </div>
         )}
@@ -846,7 +846,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-card border-border">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="font-pixel text-gold text-sm">
+                  <AlertDialogTitle className="text-gold text-sm">
                     Declare for MLB Draft?
                   </AlertDialogTitle>
                   <AlertDialogDescription>
@@ -950,29 +950,29 @@ function OvrCell({ seasons, idx }: { seasons: CareerSeasonRow[]; idx: number }) 
 function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
   return (
     <div>
-      {label && <p className="font-pixel text-xs text-muted-foreground mb-1">{label}</p>}
+      {label && <p className="text-xs font-semibold text-muted-foreground mb-1">{label}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-xs" data-testid="table-career-pitching">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground">SZN</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">OVR</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">G</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">W</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">L</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">ERA</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">IP</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">SO</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">FIP</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">WHIP</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">K%</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">Whiff%</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">OVR</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">W</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">L</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">ERA</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">IP</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">SO</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">FIP</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">WHIP</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">K%</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">Whiff%</th>
             </tr>
           </thead>
           <tbody>
             {seasons.map((s, idx) => (
               <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
-                <td className="py-1 px-1 font-pixel text-xs text-gold">S{s.season}</td>
+                <td className="py-1 px-1 text-xs font-semibold text-gold">S{s.season}</td>
                 <OvrCell seasons={seasons} idx={idx} />
                 <td className="py-1 px-1 text-center">{s.pitchingGames}</td>
                 <td className="py-1 px-1 text-center">{s.wins}</td>
@@ -996,29 +996,29 @@ function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; la
 function BattingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
   return (
     <div>
-      {label && <p className="font-pixel text-xs text-muted-foreground mb-1">{label}</p>}
+      {label && <p className="text-xs font-semibold text-muted-foreground mb-1">{label}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-xs" data-testid="table-career-batting">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground">SZN</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">OVR</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">G</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">AB</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">AVG</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">OPS</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">HR</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">RBI</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">SB</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">wOBA</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">EV</th>
-              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">Brl%</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">OVR</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">AB</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">AVG</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">OPS</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">HR</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">RBI</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">SB</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">wOBA</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">EV</th>
+              <th className="py-1 px-1 text-xs font-semibold text-muted-foreground text-center">Brl%</th>
             </tr>
           </thead>
           <tbody>
             {seasons.map((s, idx) => (
               <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
-                <td className="py-1 px-1 font-pixel text-xs text-gold">S{s.season}</td>
+                <td className="py-1 px-1 text-xs font-semibold text-gold">S{s.season}</td>
                 <OvrCell seasons={seasons} idx={idx} />
                 <td className="py-1 px-1 text-center">{s.games}</td>
                 <td className="py-1 px-1 text-center">{s.ab}</td>
@@ -1052,7 +1052,7 @@ function CareerStatsSection({ playerId, leagueId }: { playerId: string; leagueId
   if (isLoading) {
     return (
       <div className="p-4 border-b border-border">
-        <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+        <h3 className="text-gold text-xs mb-3">CAREER STATS</h3>
         <div className="text-xs text-muted-foreground">Loading stats...</div>
       </div>
     );
@@ -1061,7 +1061,7 @@ function CareerStatsSection({ playerId, leagueId }: { playerId: string; leagueId
   if (!data || !data.seasons || data.seasons.length === 0) {
     return (
       <div className="p-4 border-b border-border">
-        <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+        <h3 className="text-gold text-xs mb-3">CAREER STATS</h3>
         <p className="text-xs text-muted-foreground">No game stats recorded yet</p>
       </div>
     );
@@ -1076,7 +1076,7 @@ function CareerStatsSection({ playerId, leagueId }: { playerId: string; leagueId
 
   return (
     <div className="p-4 border-b border-border">
-      <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+      <h3 className="text-gold text-xs mb-3">CAREER STATS</h3>
       <div className="space-y-4">
         {pitchingSeasons.length > 0 && (
           <PitchingStatsTable
@@ -1152,7 +1152,7 @@ function CommonAbilityRow({ label, value, delta, goldAbilityName }: { label: str
       <div className="flex items-center gap-1">
         {goldAbilityName && (
           <span
-            className="text-xs font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
+            className="text-xs px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
             style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
             title={goldAbilityName}
             data-testid={`common-ability-gold-badge-${label.toLowerCase().replace(/\s/g, "-")}`}

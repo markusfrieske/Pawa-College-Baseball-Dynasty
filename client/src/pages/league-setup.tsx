@@ -152,7 +152,7 @@ export default function LeagueSetupPage() {
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
           </div>
-          <h1 className="font-pixel text-gold text-xl mb-2">
+          <h1 className="text-gold text-xl mb-2">
             {step === "team" ? "Select Your Team" : "Create Your Coach"}
           </h1>
           <div className="flex justify-center gap-1 mt-4">
@@ -235,12 +235,12 @@ function StepIndicator({
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center font-pixel text-xs
+        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold
           ${active ? "bg-gold text-forest-dark" : completed ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}
       >
         {step}
       </div>
-      <span className={`font-pixel text-xs ${active ? "text-gold" : "text-muted-foreground"}`}>
+      <span className={`text-xs font-semibold ${active ? "text-gold" : "text-muted-foreground"}`}>
         {label}
       </span>
     </div>
@@ -296,11 +296,11 @@ function TeamTile({
           style={{ backgroundColor: team.primaryColor }}
         >
           <span
-            className={`font-pixel leading-none text-center ${
+            className={`leading-none text-center ${
               (team.abbreviation?.length ?? 0) > 3
-                ? "text-[7px]"
+                ? "text-xs"
                 : (team.abbreviation?.length ?? 0) === 3
-                ? "text-[9px]"
+                ? "text-xs"
                 : "text-xs"
             }`}
             style={{ color: team.secondaryColor || "#ffffff" }}
@@ -319,19 +319,19 @@ function TeamTile({
           </div>
         )}
         {confRank && !isSelected && !isHuman && (
-          <div className={`absolute -top-1 -left-1 font-pixel text-xs leading-none px-1 py-0.5 rounded bg-background/80 border border-border/60 ${prestigeColor}`}>
+          <div className={`absolute -top-1 -left-1 text-xs font-semibold leading-none px-1 py-0.5 rounded bg-background/80 border border-border/60 ${prestigeColor}`}>
             #{confRank}
           </div>
         )}
       </div>
       <p
-        className={`text-xs font-pixel text-center leading-tight w-[60px] truncate ${
+        className={`text-xs text-center leading-tight w-[60px] truncate ${
           isSelected ? "text-gold" : isAvailable ? "text-muted-foreground" : "text-muted-foreground/50"
         }`}
       >
         {team.name}
       </p>
-      <span className={`font-pixel text-xs leading-none ${isSelected ? "text-gold/70" : prestigeColor}`}>
+      <span className={`text-xs font-semibold leading-none ${isSelected ? "text-gold/70" : prestigeColor}`}>
         {"★".repeat(Math.min(prestige, 5))}{"☆".repeat(Math.max(0, 5 - Math.min(prestige, 5)))}
       </span>
     </button>
@@ -438,7 +438,7 @@ function TeamSelectionStep({
                 key={s.value}
                 type="button"
                 onClick={() => setSort(s.value)}
-                className={`px-2 py-1 text-xs font-pixel rounded border transition-colors ${
+                className={`px-2 py-1 text-xs rounded border transition-colors ${
                   sort === s.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
                 }`}
                 data-testid={`button-team-sort-${s.value}`}
@@ -467,7 +467,7 @@ function TeamSelectionStep({
       {groupedByConf.map(({ conference, teams: confTeams }) => (
         <div key={conference.id}>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-pixel text-sm text-gold">{conference.name}</h3>
+            <h3 className="font-display text-sm font-bold text-gold">{conference.name}</h3>
             <span className="text-xs text-muted-foreground">{confTeams.length} teams</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -487,7 +487,7 @@ function TeamSelectionStep({
       {ungrouped.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-pixel text-sm text-muted-foreground">Unassigned</h3>
+            <h3 className="font-display text-sm font-bold text-muted-foreground">Unassigned</h3>
             <span className="text-xs text-muted-foreground">{ungrouped.length} teams</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -677,7 +677,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
     <div className="mt-6 space-y-3">
       {/* Philosophy */}
       <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-philosophy">
-        <h4 className="font-pixel text-xs text-gold uppercase mb-3">Coaching Philosophy</h4>
+        <h4 className="text-xs font-semibold text-gold uppercase mb-3">Coaching Philosophy</h4>
         <div className="space-y-2.5">
           {philosophy.map((p) => {
             const { label, color, dot } = IMPORTANCE_LABELS[p.importance] ?? IMPORTANCE_LABELS["somewhat"];
@@ -686,7 +686,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
               <div key={p.statement} className="space-y-0.5">
                 <div className="flex items-center gap-1.5">
                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-                  <span className={`font-pixel text-[9px] ${color}`}>{label}</span>
+                  <span className={`text-xs font-semibold ${color}`}>{label}</span>
                 </div>
                 <div className="pl-3">
                   <p className="text-xs font-medium leading-tight">{p.statement}</p>
@@ -700,7 +700,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
 
       {/* Starting Traits */}
       <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-traits">
-        <h4 className="font-pixel text-xs text-gold uppercase mb-3">Starting Traits</h4>
+        <h4 className="text-xs font-semibold text-gold uppercase mb-3">Starting Traits</h4>
         <div className="flex flex-wrap gap-2">
           <TooltipProvider>
             {traits.map((trait) => (
@@ -724,7 +724,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
 
       {/* Skill Boosts */}
       <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-skills">
-        <h4 className="font-pixel text-xs text-gold uppercase mb-1">Skill Boosts</h4>
+        <h4 className="text-xs font-semibold text-gold uppercase mb-1">Skill Boosts</h4>
         <p className="text-xs text-muted-foreground mb-4">Higher bars mean faster skill-tree progress. Scouting reveals recruit attributes faster. Evaluation sharpens player ratings. Pitchers/Hitters boost recruiting for those positions.</p>
         <div className="grid grid-cols-4 gap-3">
           {skillItems.map((skill) => (
@@ -732,7 +732,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
               <div className={`p-2 bg-card border border-border rounded ${skill.color}`}>
                 <skill.icon className="w-4 h-4" />
               </div>
-              <span className="text-xs text-muted-foreground font-pixel">{skill.label}</span>
+              <span className="text-xs text-muted-foreground">{skill.label}</span>
               <div className="flex items-center gap-1">
                 <div className="flex gap-0.5">
                   {[1, 2, 3, 4].map((n) => (
@@ -742,7 +742,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
                     />
                   ))}
                 </div>
-                <span className="font-pixel text-xs text-gold w-4">+{skill.value}</span>
+                <span className="text-xs font-semibold text-gold w-4">+{skill.value}</span>
               </div>
             </div>
           ))}

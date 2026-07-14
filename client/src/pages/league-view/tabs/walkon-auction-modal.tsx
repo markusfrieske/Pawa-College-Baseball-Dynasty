@@ -15,7 +15,7 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
     <Dialog open onOpenChange={(open) => { if (!open) onDismiss(); }}>
       <DialogContent className="bg-card border-gold/30 max-w-lg max-h-[80vh] overflow-y-auto" data-testid="modal-auction-summary">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+          <DialogTitle className="text-gold text-sm flex items-center gap-2">
             <Gavel className="w-4 h-4 text-gold" />
             Walk-On Auction Results
           </DialogTitle>
@@ -30,7 +30,7 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
 
         {won.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-pixel text-xs text-green-400 mb-2 uppercase">Signed</h3>
+            <h3 className="text-xs font-semibold text-green-400 mb-2 uppercase">Signed</h3>
             <div className="space-y-1.5">
               {won.map(r => (
                 <div
@@ -57,7 +57,7 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
 
         {lost.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-pixel text-xs text-red-400 mb-2 uppercase">Outbid On</h3>
+            <h3 className="text-xs font-semibold text-red-400 mb-2 uppercase">Outbid On</h3>
             <div className="space-y-1.5">
               {lost.map(r => (
                 <div

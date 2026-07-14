@@ -83,7 +83,7 @@ function DepartureLabel({ type, round }: { type: string; round: number | null })
 function StarRow({ stars }: { stars: number | null }) {
   if (!stars) return null;
   const colors: Record<number, string> = { 5: "text-orange-400", 4: "text-yellow-400", 3: "text-green-400", 2: "text-blue-400", 1: "text-gray-400" };
-  return <span className={`font-pixel text-xs ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
+  return <span className={`text-xs font-semibold ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
 }
 
 // ── Season Card ────────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
           <div className="flex items-center gap-3">
             {/* Season label */}
             <div className="flex-shrink-0 text-center w-10">
-              <p className="font-pixel text-gold text-xs">S{entry.season}</p>
+              <p className="text-gold text-xs">S{entry.season}</p>
               <p className="font-mono text-xs text-muted-foreground">{winPct}%</p>
             </div>
 
@@ -125,7 +125,7 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
                   <Star className="w-3 h-3 text-gold" />
                   <span className="text-xs">#{entry.classRank} class</span>
                   {entry.grade && (
-                    <span className={`font-pixel text-xs font-bold ${gradeColor(entry.grade)}`}>
+                    <span className={`text-xs font-semibold font-bold ${gradeColor(entry.grade)}`}>
                       {entry.grade}
                     </span>
                   )}
@@ -155,7 +155,7 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
             <div className="flex items-center gap-2 p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
               <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-yellow-400 font-pixel">TOP DRAFT PICK</p>
+                <p className="text-xs text-yellow-400">TOP DRAFT PICK</p>
                 <p className="text-sm font-medium truncate">{entry.topDraftPick.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {entry.topDraftPick.position} · {entry.topDraftPick.overall} OVR
@@ -170,7 +170,7 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
             <div className="flex items-center gap-2 p-2 rounded bg-background/40 border border-border/40">
               <Star className="w-3.5 h-3.5 text-gold flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-gold font-pixel">TOP RECRUIT</p>
+                <p className="text-xs text-gold">TOP RECRUIT</p>
                 <p className="text-sm font-medium truncate">{entry.topRecruitName}</p>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {entry.topRecruitOvr && <span>{entry.topRecruitOvr} OVR</span>}
@@ -184,7 +184,7 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
           {/* Departed players */}
           {entry.departed.length > 0 && (
             <div>
-              <p className="font-pixel text-xs text-muted-foreground mb-2">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">
                 DEPARTURES ({entry.departedCount} total)
               </p>
               <div className="space-y-1">
@@ -263,8 +263,8 @@ export default function ArchiveTeamPage() {
                 <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: team.color }} />
               )}
               <div className="min-w-0">
-                <p className="font-pixel text-gold text-xs">{leagueData?.league?.name?.toUpperCase() ?? "LEAGUE"}</p>
-                <h1 className="font-pixel text-xs text-foreground truncate">
+                <p className="text-gold text-xs">{leagueData?.league?.name?.toUpperCase() ?? "LEAGUE"}</p>
+                <h1 className="text-xs font-semibold text-foreground truncate">
                   {isLoading ? "Loading…" : (team?.name ?? "Team History")}
                 </h1>
               </div>

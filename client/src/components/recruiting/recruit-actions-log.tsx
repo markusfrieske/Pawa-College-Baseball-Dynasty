@@ -44,7 +44,7 @@ export function RecruitActionsLog({ recruitId, leagueId }: RecruitActionsLogProp
   if (isLoading) {
     return (
       <div className="mt-4 pt-4 border-t border-border">
-        <h4 className="font-pixel text-xs text-gold mb-2">Activity Log</h4>
+        <h4 className="text-xs font-semibold text-gold mb-2">Activity Log</h4>
         <Skeleton className="h-20" />
       </div>
     );
@@ -53,7 +53,7 @@ export function RecruitActionsLog({ recruitId, leagueId }: RecruitActionsLogProp
   if (!actionsData?.actions?.length) {
     return (
       <div className="mt-4 pt-4 border-t border-border">
-        <h4 className="font-pixel text-xs text-gold mb-2">Activity Log</h4>
+        <h4 className="text-xs font-semibold text-gold mb-2">Activity Log</h4>
         <p className="text-xs text-muted-foreground italic">No activity yet</p>
       </div>
     );
@@ -61,7 +61,7 @@ export function RecruitActionsLog({ recruitId, leagueId }: RecruitActionsLogProp
 
   return (
     <div className="mt-4 pt-4 border-t border-border">
-      <h4 className="font-pixel text-xs text-gold mb-2">Activity Log</h4>
+      <h4 className="text-xs font-semibold text-gold mb-2">Activity Log</h4>
       <div className="max-h-32 overflow-y-auto space-y-1">
         {actionsData.actions.slice(0, 10).map((action) => (
           <div

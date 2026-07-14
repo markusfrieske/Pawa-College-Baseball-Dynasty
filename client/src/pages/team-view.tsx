@@ -110,7 +110,7 @@ export default function TeamViewPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8">
-          <h2 className="font-pixel text-gold text-sm mb-4">Team Not Found</h2>
+          <h2 className="text-gold text-sm mb-4">Team Not Found</h2>
           <Link href={`/league/${id}`}>
             <RetroButton>Back to Dynasty</RetroButton>
           </Link>
@@ -140,7 +140,7 @@ export default function TeamViewPage() {
                 size="lg"
               />
               <div>
-                <h1 className="font-pixel text-gold text-xl mb-1">
+                <h1 className="text-gold text-xl mb-1">
                   {team.name} {team.mascot}
                 </h1>
                 <p className="text-muted-foreground flex items-center gap-1">
@@ -177,22 +177,22 @@ export default function TeamViewPage() {
         <Tabs defaultValue="summary" className="space-y-6">
           <div className="overflow-x-auto pb-px -mx-1 px-1">
             <TabsList className="bg-card border border-border flex-nowrap min-w-max gap-1">
-              <TabsTrigger value="summary" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="summary" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Summary
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="schedule" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Schedule
               </TabsTrigger>
-              <TabsTrigger value="roster" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="roster" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Roster
               </TabsTrigger>
-              <TabsTrigger value="coaches" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="coaches" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Coaches
               </TabsTrigger>
-              <TabsTrigger value="school" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="school" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 School
               </TabsTrigger>
-              <TabsTrigger value="history" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="history" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 History
               </TabsTrigger>
             </TabsList>
@@ -348,7 +348,7 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
           {bonusRows.length > 0 && (
             <>
               <div className="border-t border-border/40 pt-1.5 mt-1.5">
-                <p className="text-xs text-gold font-pixel mb-1">PERFORMANCE BONUSES</p>
+                <p className="text-xs text-gold mb-1">PERFORMANCE BONUSES</p>
               </div>
               {bonusRows.map(e => (
                 <div key={e.id} className="flex items-center justify-between text-xs">
@@ -370,7 +370,7 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
 
           {nilData.confPeer && nilData.confPeer.total > 1 && (
             <div className="border-t border-border/40 pt-1.5 mt-1.5">
-              <p className="text-xs text-gold font-pixel mb-1.5">CONFERENCE COMPARISON</p>
+              <p className="text-xs text-gold mb-1.5">CONFERENCE COMPARISON</p>
               <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="p-1.5 bg-muted/20 rounded">
                   <p className="font-bold text-xs text-foreground">
@@ -958,7 +958,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                       <span className="font-bold text-gold">{player.overall}</span>
                     </td>
                     <td className="text-center py-3 px-2">
-                      <span className={`font-pixel text-xs ${
+                      <span className={`text-xs font-semibold ${
                         player.starRating >= 4
                           ? "text-gold"
                           : player.starRating >= 3
@@ -969,7 +969,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                       </span>
                     </td>
                     <td className="text-center py-3 px-2">
-                      <span className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-${player.id}`}>
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-${player.id}`}>
                         B:{player.batHand || "R"} T:{player.throwHand || "R"}
                       </span>
                     </td>
@@ -1049,7 +1049,7 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+          <DialogTitle className="text-gold text-sm flex items-center gap-2">
             <Edit className="w-4 h-4" />
             Edit Player: {player.firstName} {player.lastName}
           </DialogTitle>
@@ -1082,7 +1082,7 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
 
           {isPlayerPitcher ? (
             <>
-              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitcher Attributes</h4>
+              <h4 className="text-gold text-xs border-b border-border pb-1">Pitcher Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Velocity</label>
@@ -1121,7 +1121,7 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
             </>
           ) : (
             <>
-              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Fielder Attributes</h4>
+              <h4 className="text-gold text-xs border-b border-border pb-1">Fielder Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Contact</label>

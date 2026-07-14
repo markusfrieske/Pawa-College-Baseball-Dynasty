@@ -85,7 +85,7 @@ export function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, 
         </TooltipTrigger>
         <TooltipContent side="right" className="bg-card border-border p-2 max-w-[200px]">
           <div className="space-y-1">
-            <div className="font-pixel text-gold text-xs">
+            <div className="text-gold text-xs">
               #{p.jerseyNumber} {p.firstName} {p.lastName}
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -108,7 +108,7 @@ export function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, 
       <span className="text-xs text-muted-foreground/80 font-medium">
         {p.eligibility || 'FR'}
       </span>
-      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${isPitcher(p.position) ? (p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60") : (p.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : p.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60")}`} data-testid={`badge-hand-depth-${p.id}`}>
+      <span className={`text-xs font-semibold px-1 py-0.5 rounded border ${isPitcher(p.position) ? (p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60") : (p.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : p.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60")}`} data-testid={`badge-hand-depth-${p.id}`}>
         {isPitcher(p.position) ? `${p.throwHand}HP` : `${p.batHand}/${p.throwHand}`}
       </span>
       <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>

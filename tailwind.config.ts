@@ -96,10 +96,22 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        pixel: ["'Press Start 2P'", "'DotGothic16'", "cursive"],
+        sans: ["Inter Variable", "Inter", "Segoe UI", "Arial", "sans-serif"],
+        display: ["Barlow Semi Condensed", "Arial Narrow", "Segoe UI", "sans-serif"],
+        data: ["IBM Plex Mono", "Cascadia Mono", "Consolas", "monospace"],
+        "brand-pixel": ["'Press Start 2P'", "'DotGothic16'", "cursive"],
         serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+        mono: ["IBM Plex Mono", "Cascadia Mono", "Consolas", "monospace"],
+      },
+      fontSize: {
+        "ui-xs": ["0.75rem", { lineHeight: "1rem" }],
+        "ui-sm": ["0.8125rem", { lineHeight: "1.125rem" }],
+        "ui": ["0.875rem", { lineHeight: "1.3125rem" }],
+        "section": ["1rem", { lineHeight: "1.375rem" }],
+        "page": ["1.5rem", { lineHeight: "1.875rem" }],
+      },
+      letterSpacing: {
+        label: "0.04em",
       },
       keyframes: {
         "accordion-down": {

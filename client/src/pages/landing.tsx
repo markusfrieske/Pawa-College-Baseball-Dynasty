@@ -81,7 +81,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 pr-14 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <DynastyLogo className="w-10 h-10" />
-            <span className="font-pixel text-gold text-sm hidden sm:block">
+            <span className="text-gold text-sm hidden sm:block">
               パワプロ College Baseball Dynasty
             </span>
           </div>
@@ -90,7 +90,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="flex items-center gap-2 text-gold" data-testid="display-user">
                 <User className="w-5 h-5" />
-                <span className="font-pixel text-xs sm:text-xs hidden sm:block truncate max-w-[100px]">
+                <span className="text-xs font-semibold sm:text-xs hidden sm:block truncate max-w-[100px]">
                   {user.email.split("@")[0]}
                 </span>
               </div>
@@ -146,14 +146,14 @@ export default function LandingPage() {
             <div className="max-w-xl">
               <div className="flex flex-wrap items-center gap-3 mb-8">
                 <div
-                  className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 text-gold/80 text-xs font-pixel tracking-wider"
+                  className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 text-gold/80 text-xs tracking-wider"
                   style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
                 >
                   <span className="text-gold">◆</span> SEASON 2026 <span className="text-gold">◆</span>
                 </div>
                 {onlineData !== undefined && (
                   <div
-                    className="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/20 px-3 py-1.5 text-xs font-pixel tracking-wider"
+                    className="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/20 px-3 py-1.5 text-xs tracking-wider"
                     style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
                     data-testid="badge-users-online"
                   >
@@ -164,7 +164,7 @@ export default function LandingPage() {
               </div>
 
               <h1
-                className="font-pixel text-gold leading-tight mb-6"
+                className="text-gold leading-tight mb-6"
                 style={{
                   fontSize: "clamp(1.6rem, 4.5vw, 3.5rem)",
                   textShadow: "0 2px 16px rgba(0,0,0,0.95), 0 4px 32px rgba(0,0,0,0.8), 0 0 40px rgba(196,163,90,0.35)",
@@ -190,7 +190,7 @@ export default function LandingPage() {
               </div>
 
               <p
-                className="hidden sm:block font-pixel text-gold/60 text-xs tracking-widest mb-5"
+                className="hidden sm:block text-gold/60 text-xs tracking-widest mb-5"
                 style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
               >
                 Recruit the future. Run the league. Chase Omaha.
@@ -262,7 +262,7 @@ export default function LandingPage() {
           <div className="ticker-track">
             {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
               <span key={i} className="flex items-center gap-3 px-6 whitespace-nowrap">
-                <span className={`font-pixel text-xs tracking-widest ${item.color}`}>{item.tag}</span>
+                <span className={`text-xs font-semibold tracking-widest ${item.color}`}>{item.tag}</span>
                 <span className="text-xs text-muted-foreground/70">{item.text}</span>
                 <span className="text-gold/20">◆</span>
               </span>
@@ -274,8 +274,8 @@ export default function LandingPage() {
         <section className="py-20 px-6 border-b border-border">
           <div className="container mx-auto max-w-5xl">
             <div className="text-center mb-14">
-              <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">HOW IT WORKS</p>
-              <h2 className="font-pixel text-gold text-xl sm:text-2xl leading-relaxed mb-4">Your Week in the Dynasty</h2>
+              <p className="text-xs font-semibold text-gold/50 tracking-widest mb-3">HOW IT WORKS</p>
+              <h2 className="text-gold text-xl sm:text-2xl leading-relaxed mb-4">Your Week in the Dynasty</h2>
               <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
                 Every advance creates a new set of decisions. Check your matchup, scout your board, play your games, submit results, and lock in when your program is ready.
               </p>
@@ -315,9 +315,9 @@ export default function LandingPage() {
                 },
               ].map((step, i) => (
                 <div key={step.num} className="relative flex flex-col gap-3 p-5 bg-card/40 border border-border/50 rounded-sm hover:border-gold/30 transition-colors">
-                  <div className="font-pixel text-xs text-gold/30 tracking-widest">{step.num}</div>
+                  <div className="text-xs font-semibold text-gold/30 tracking-widest">{step.num}</div>
                   <div className="text-gold">{step.icon}</div>
-                  <div className="font-pixel text-xs text-foreground leading-relaxed">{step.label}</div>
+                  <div className="text-xs font-semibold text-foreground leading-relaxed">{step.label}</div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
                   {i < 4 && (
                     <div className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden sm:flex">
@@ -334,8 +334,8 @@ export default function LandingPage() {
         <section className="py-20 px-6 border-b border-border bg-card/20">
           <div className="container mx-auto max-w-5xl">
             <div className="text-center mb-14">
-              <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">BUILT AROUND THE LEAGUE NIGHT RITUAL</p>
-              <h2 className="font-pixel text-gold text-xl sm:text-2xl leading-relaxed mb-4">The Weekly Home Base</h2>
+              <p className="text-xs font-semibold text-gold/50 tracking-widest mb-3">BUILT AROUND THE LEAGUE NIGHT RITUAL</p>
+              <h2 className="text-gold text-xl sm:text-2xl leading-relaxed mb-4">The Weekly Home Base</h2>
               <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
                 This is not just a roster database. It is the live command center every coach in your dynasty returns to every week.
               </p>
@@ -384,8 +384,8 @@ export default function LandingPage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/30 to-transparent" />
                   <div className="absolute bottom-0 left-0 p-6">
-                    <p className="font-pixel text-xs text-gold/60 tracking-widest mb-2">{card.tag}</p>
-                    <h3 className="font-pixel text-gold text-sm leading-relaxed mb-2">{card.title}</h3>
+                    <p className="text-xs font-semibold text-gold/60 tracking-widest mb-2">{card.tag}</p>
+                    <h3 className="text-gold text-sm leading-relaxed mb-2">{card.title}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-[280px]">{card.desc}</p>
                     <Link href={card.href}>
                       <span className="text-xs text-gold/70 hover:text-gold transition-colors flex items-center gap-1">
@@ -404,8 +404,8 @@ export default function LandingPage() {
           <div className="container mx-auto max-w-5xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">RECRUITING</p>
-                <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Recruiting That Feels Like a Game</h2>
+                <p className="text-xs font-semibold text-gold/50 tracking-widest mb-3">RECRUITING</p>
+                <h2 className="text-gold text-xl leading-relaxed mb-5">Recruiting That Feels Like a Game</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Prospects are not solved on day one. Storylines, scouting, showcases, injuries, position changes, and coach choices shape what each player becomes over time.
                 </p>
@@ -438,8 +438,8 @@ export default function LandingPage() {
                 <img src="/screenshots/postseason.jpg" alt="Game reporting and box score" className="w-full h-auto block" />
               </div>
               <div className="order-1 md:order-2">
-                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">GAME REPORTING</p>
-                <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Connect the Field to the League</h2>
+                <p className="text-xs font-semibold text-gold/50 tracking-widest mb-3">GAME REPORTING</p>
+                <h2 className="text-gold text-xl leading-relaxed mb-5">Connect the Field to the League</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Auto-sim your games instantly, or play them yourself and bring the result back into the dynasty. Reports become standings, player stats, records, and storylines.
                 </p>
@@ -466,8 +466,8 @@ export default function LandingPage() {
           <div className="container mx-auto max-w-5xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">COMMISSIONER TOOLS</p>
-                <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Advance Without Fear</h2>
+                <p className="text-xs font-semibold text-gold/50 tracking-widest mb-3">COMMISSIONER TOOLS</p>
+                <h2 className="text-gold text-xl leading-relaxed mb-5">Advance Without Fear</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Multiplayer leagues need trust. Commissioners can see who is ready, what is missing, what changed, and whether a rollback point exists before advancing.
                 </p>
@@ -500,8 +500,8 @@ export default function LandingPage() {
                 <img src="/screenshots/rankings.jpg" alt="Stats and league history" className="w-full h-auto block" />
               </div>
               <div className="order-1 md:order-2">
-                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">STATS AND HISTORY</p>
-                <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Every Week Becomes History</h2>
+                <p className="text-xs font-semibold text-gold/50 tracking-widest mb-3">STATS AND HISTORY</p>
+                <h2 className="text-gold text-xl leading-relaxed mb-5">Every Week Becomes History</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Standings, leaders, player cards, records, postseason runs, and recruiting classes build a league story that lasts season after season.
                 </p>
@@ -534,8 +534,8 @@ export default function LandingPage() {
                 { num: "12", label: "Conferences", sub: "SEC to HBCU" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card/40 border border-border/50 rounded-sm p-6 text-center hover:border-gold/20 transition-colors">
-                  <div className="font-pixel text-gold text-2xl sm:text-3xl mb-1">{stat.num}</div>
-                  <div className="font-pixel text-xs text-foreground mb-1">{stat.label}</div>
+                  <div className="text-gold text-2xl sm:text-3xl mb-1">{stat.num}</div>
+                  <div className="text-xs font-semibold text-foreground mb-1">{stat.label}</div>
                   <div className="text-muted-foreground text-xs">{stat.sub}</div>
                 </div>
               ))}
@@ -554,7 +554,7 @@ export default function LandingPage() {
             <div className="flex justify-center gap-1 mb-6">
               {[1,2,3,4,5].map((i) => <Star key={i} className="w-4 h-4 text-gold fill-gold" />)}
             </div>
-            <h2 className="font-pixel text-gold text-2xl sm:text-3xl leading-relaxed mb-5">
+            <h2 className="text-gold text-2xl sm:text-3xl leading-relaxed mb-5">
               Start the League Your<br />Group Keeps Talking About
             </h2>
             <p className="text-muted-foreground mb-10 text-lg leading-relaxed">
@@ -583,7 +583,7 @@ export default function LandingPage() {
         {/* ── FOOTER ───────────────────────────────────────────── */}
         <footer className="border-t border-border bg-card/30 pt-16 pb-8 px-6 relative overflow-hidden">
           <div className="absolute bottom-0 left-0 right-0 text-center pointer-events-none select-none overflow-hidden">
-            <div className="font-pixel text-[clamp(1.5rem,6vw,4rem)] text-gold/[0.025] leading-none whitespace-nowrap pb-2">
+            <div className="text-[clamp(1.5rem,6vw,4rem)] text-gold/[0.025] leading-none whitespace-nowrap pb-2">
               College Baseball Dynasty
             </div>
           </div>
@@ -594,19 +594,19 @@ export default function LandingPage() {
               <div className="md:col-span-1">
                 <div className="flex items-center gap-2 mb-4">
                   <DynastyLogo className="w-8 h-8" />
-                  <span className="font-pixel text-gold text-xs">パワプロ</span>
+                  <span className="text-gold text-xs">パワプロ</span>
                 </div>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4">
                   The online league office for solo and multiplayer college baseball dynasties.
                 </p>
-                <a href="https://www.paypal.com/donate?business=Markusfrieske%40gmail.com" target="_blank" rel="noopener noreferrer" className="text-xs text-gold/40 hover:text-gold/70 transition-colors font-pixel">
+                <a href="https://www.paypal.com/donate?business=Markusfrieske%40gmail.com" target="_blank" rel="noopener noreferrer" className="text-xs text-gold/40 hover:text-gold/70 transition-colors">
                   Support the Project ◆
                 </a>
               </div>
 
               {/* Quick Links */}
               <div>
-                <div className="font-pixel text-xs text-gold/60 tracking-widest mb-4">QUICK LINKS</div>
+                <div className="text-xs font-semibold text-gold/60 tracking-widest mb-4">QUICK LINKS</div>
                 <ul className="space-y-3">
                   {[
                     { label: "My Dynasties", href: "/dashboard" },
@@ -626,7 +626,7 @@ export default function LandingPage() {
 
               {/* Conferences */}
               <div>
-                <div className="font-pixel text-xs text-gold/60 tracking-widest mb-4">CONFERENCES</div>
+                <div className="text-xs font-semibold text-gold/60 tracking-widest mb-4">CONFERENCES</div>
                 <ul className="space-y-2">
                   {["SEC", "ACC", "Big Ten", "Big 12", "Pac-12", "AAC", "Sun Belt"].map((c) => (
                     <li key={c} className="text-sm text-muted-foreground/60">{c}</li>
@@ -637,7 +637,7 @@ export default function LandingPage() {
 
               {/* Get Involved */}
               <div>
-                <div className="font-pixel text-xs text-gold/60 tracking-widest mb-4">GET INVOLVED</div>
+                <div className="text-xs font-semibold text-gold/60 tracking-widest mb-4">GET INVOLVED</div>
                 <ul className="space-y-3">
                   <li>
                     <RetroButton variant="ghost" size="sm" onClick={() => setShowFeedbackModal(true)} className="text-muted-foreground text-xs px-0 justify-start" data-testid="button-footer-feedback">
@@ -659,13 +659,13 @@ export default function LandingPage() {
             </div>
 
             <div className="border-t border-border/40 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="font-pixel text-xs text-muted-foreground/40 tracking-widest">
+              <div className="text-xs font-semibold text-muted-foreground/40 tracking-widest">
                 © 2026 COLLEGE BASEBALL DYNASTY · OPEN BETA
               </div>
               <div className="flex gap-4">
-                <span className="font-pixel text-xs text-gold/30 tracking-widest">◆ SEASON 2026</span>
-                <span className="font-pixel text-xs text-gold/30 tracking-widest">◆ 130+ PROGRAMS</span>
-                <span className="font-pixel text-xs text-gold/30 tracking-widest">◆ 12 CONFERENCES</span>
+                <span className="text-xs font-semibold text-gold/30 tracking-widest">◆ SEASON 2026</span>
+                <span className="text-xs font-semibold text-gold/30 tracking-widest">◆ 130+ PROGRAMS</span>
+                <span className="text-xs font-semibold text-gold/30 tracking-widest">◆ 12 CONFERENCES</span>
               </div>
             </div>
           </div>
@@ -701,12 +701,12 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
         </RetroButton>
         <div className="flex items-center gap-2 mb-4">
           <Bug className="w-6 h-6 text-gold" />
-          <h2 className="font-pixel text-gold text-sm">Submit Feedback</h2>
+          <h2 className="text-gold text-sm">Submit Feedback</h2>
         </div>
         <p className="text-muted-foreground text-sm mb-6">Report a bug, request a feature, or share your feedback.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="font-pixel text-xs text-foreground block mb-2">Topic <span className="text-red-400">*</span></label>
+            <label className="text-xs font-semibold text-foreground block mb-2">Topic <span className="text-red-400">*</span></label>
             <RetroSelect value={topic} onChange={(e) => setTopic(e.target.value)} options={[
               { value: "", label: "Select a topic" },
               { value: "bug", label: "Bug Report" },
@@ -716,11 +716,11 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             ]} />
           </div>
           <div>
-            <label className="font-pixel text-xs text-foreground block mb-2">Details <span className="text-red-400">*</span></label>
+            <label className="text-xs font-semibold text-foreground block mb-2">Details <span className="text-red-400">*</span></label>
             <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Describe your bug, feature request, or feedback..." className="w-full h-24 bg-card border-2 border-border text-foreground p-3 text-sm resize-none focus:border-gold focus:outline-none" data-testid="input-feedback-details" />
           </div>
           <div>
-            <label className="font-pixel text-xs text-foreground block mb-2">Your Name (optional)</label>
+            <label className="text-xs font-semibold text-foreground block mb-2">Your Name (optional)</label>
             <RetroInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your name" data-testid="input-feedback-name" />
           </div>
           <RetroButton type="submit" className="w-full" data-testid="button-submit-feedback">Submit Feedback</RetroButton>

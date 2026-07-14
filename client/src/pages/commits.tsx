@@ -123,7 +123,7 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
       <RetroCardHeader className="pb-2">
         <div className="flex items-center gap-2">
           {classRank > 0 && (
-            <div className={`flex items-center justify-center w-8 h-8 rounded font-pixel text-sm ${classRank <= 3 ? "bg-gold/20 text-gold" : "bg-[#2d3d2d] text-gray-400"}`}>
+            <div className={`flex items-center justify-center w-8 h-8 rounded font-display text-sm font-bold ${classRank <= 3 ? "bg-gold/20 text-gold" : "bg-[#2d3d2d] text-gray-400"}`}>
               #{classRank}
             </div>
           )}
@@ -136,7 +136,7 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
           />
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="font-pixel text-sm text-[#C4A35A]">{team.name}</span>
+              <span className="font-display text-sm font-bold text-[#C4A35A]">{team.name}</span>
               {team.isCpu && (
                 <Badge variant="outline" className="text-xs px-1 py-0 h-4">CPU</Badge>
               )}
@@ -201,7 +201,7 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <History className="w-5 h-5 text-[#C4A35A]" />
-          <h2 className="font-pixel text-sm text-[#C4A35A]">PAST CLASS RANKINGS</h2>
+          <h2 className="font-display text-sm font-bold text-[#C4A35A]">PAST CLASS RANKINGS</h2>
         </div>
         {data.availableSeasons.length > 1 && (
           <div className="flex gap-1 flex-wrap">
@@ -229,14 +229,14 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
               <table className="w-full text-sm" data-testid="table-past-classes">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">#</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-gold">Team</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Commits</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">5★</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">4★+</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">3★</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Avg Stars</th>
-                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Score</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">#</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-gold">Team</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Commits</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">5★</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">4★+</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">3★</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Avg Stars</th>
+                    <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Score</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -247,14 +247,14 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
                       data-testid={`row-past-class-${snap.teamAbbr}`}
                     >
                       <td className="py-2 px-2 text-center">
-                        <span className={`font-pixel text-xs ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                        <span className={`text-xs font-semibold ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
                           #{snap.classRank}
                         </span>
                       </td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: snap.teamColor }} />
-                          <span className="font-pixel text-xs">{snap.teamAbbr}</span>
+                          <span className="text-xs font-semibold">{snap.teamAbbr}</span>
                           <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snap.teamName}</span>
                           {!snap.isCpu && <Badge variant="outline" className="text-xs px-1 py-0 h-3">You</Badge>}
                         </div>
@@ -325,7 +325,7 @@ export default function CommitsPage() {
             </RetroButton>
           </Link>
           <div>
-            <h1 className="font-pixel text-xl text-[#C4A35A]">RECRUITING COMMITS</h1>
+            <h1 className="font-display text-xl font-bold text-[#C4A35A]">RECRUITING COMMITS</h1>
             <p className="text-sm text-gray-400">
               Season {data.league.currentSeason} • {data.totalCommits} / {data.totalRecruits} signed
             </p>
@@ -347,7 +347,7 @@ export default function CommitsPage() {
             <div className="flex items-center gap-3">
               <Trophy className="w-8 h-8 text-[#C4A35A]" />
               <div>
-                <div className="text-2xl font-pixel text-white">{data.totalCommits}</div>
+                <div className="text-2xl text-white">{data.totalCommits}</div>
                 <div className="text-xs text-gray-400">Total Commits</div>
               </div>
             </div>
@@ -358,7 +358,7 @@ export default function CommitsPage() {
             <div className="flex items-center gap-3">
               <Users className="w-8 h-8 text-blue-400" />
               <div>
-                <div className="text-2xl font-pixel text-white">{teamsWithCommits.length}</div>
+                <div className="text-2xl text-white">{teamsWithCommits.length}</div>
                 <div className="text-xs text-gray-400">Teams with Commits</div>
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function CommitsPage() {
             <div className="flex items-center gap-3">
               <TrendingUp className="w-8 h-8 text-green-400" />
               <div>
-                <div className="text-2xl font-pixel text-white">
+                <div className="text-2xl text-white">
                   {data.totalRecruits - data.totalCommits}
                 </div>
                 <div className="text-xs text-gray-400">Unsigned Recruits</div>
@@ -380,7 +380,7 @@ export default function CommitsPage() {
       </div>
 
       <div className="mb-4">
-        <h2 className="font-pixel text-sm text-[#C4A35A] mb-2">CLASS RANKINGS</h2>
+        <h2 className="font-display text-sm font-bold text-[#C4A35A] mb-2">CLASS RANKINGS</h2>
         <p className="text-xs text-gray-400">Teams ranked by recruiting class quality (star ratings, overall, and depth)</p>
       </div>
 
@@ -393,7 +393,7 @@ export default function CommitsPage() {
       {teamsWithoutCommits.length > 0 && (
         <>
           <div className="mt-8 mb-4">
-            <h2 className="font-pixel text-sm text-gray-500 mb-2">TEAMS WITHOUT COMMITS</h2>
+            <h2 className="font-display text-sm font-bold text-gray-500 mb-2">TEAMS WITHOUT COMMITS</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {teamsWithoutCommits.map((teamData) => (

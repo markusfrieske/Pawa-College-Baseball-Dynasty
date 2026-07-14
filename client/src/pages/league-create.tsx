@@ -263,7 +263,7 @@ export default function LeagueCreatePage() {
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
           </div>
-          <h1 className="font-pixel text-gold text-xl">New Dynasty</h1>
+          <h1 className="text-gold text-xl">New Dynasty</h1>
           <div className="flex justify-center gap-1 mt-4">
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
@@ -287,7 +287,7 @@ export default function LeagueCreatePage() {
                   }`}
                 >
                   <Globe className={`w-5 h-5 ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`} />
-                  <span className={`text-xs font-pixel leading-tight text-center ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`}>
+                  <span className={`text-xs leading-tight text-center ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`}>
                     Full Season
                   </span>
                   <span className="text-xs text-muted-foreground text-center leading-tight">
@@ -305,7 +305,7 @@ export default function LeagueCreatePage() {
                   }`}
                 >
                   <Settings className={`w-5 h-5 ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`} />
-                  <span className={`text-xs font-pixel leading-tight text-center ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`}>
+                  <span className={`text-xs leading-tight text-center ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`}>
                     Custom
                   </span>
                   <span className="text-xs text-muted-foreground text-center leading-tight">
@@ -342,7 +342,7 @@ export default function LeagueCreatePage() {
                         data-testid={`checkbox-conference-${conf.id.replace(/\s/g, '-')}`}
                       >
                         <div
-                          className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-pixel font-bold text-white shrink-0"
+                          className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-white shrink-0"
                           style={{
                             backgroundColor: conf.primaryColor,
                             borderColor: conf.secondaryColor,
@@ -427,7 +427,7 @@ export default function LeagueCreatePage() {
                 <div className="p-3 rounded border border-gold/20 bg-gold/5 space-y-2">
                   <div className="flex items-center gap-2 mb-1">
                     <Lock className="w-3 h-3 text-gold" />
-                    <span className="text-xs font-pixel text-gold uppercase tracking-widest">Locked Rules</span>
+                    <span className="text-xs text-gold uppercase tracking-widest">Locked Rules</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>Teams</span>

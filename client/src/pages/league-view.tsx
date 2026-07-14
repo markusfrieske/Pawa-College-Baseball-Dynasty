@@ -196,7 +196,7 @@ export default function LeagueViewPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8">
-          <h2 className="font-pixel text-gold text-sm mb-4">Dynasty Not Found</h2>
+          <h2 className="text-gold text-sm mb-4">Dynasty Not Found</h2>
           <Link href="/dashboard">
             <RetroButton>Back to Dashboard</RetroButton>
           </Link>
@@ -234,7 +234,7 @@ export default function LeagueViewPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8 max-w-md">
           <Trophy className="w-12 h-12 text-gold mx-auto mb-4" />
-          <h2 className="font-pixel text-gold text-sm mb-2">Dynasty Setup Incomplete</h2>
+          <h2 className="text-gold text-sm mb-2">Dynasty Setup Incomplete</h2>
           <p className="text-sm text-muted-foreground mb-6">
             This dynasty still needs teams selected. Continue setup to pick your team and add CPU opponents.
           </p>
@@ -280,7 +280,7 @@ export default function LeagueViewPage() {
       <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-pixel text-gold text-sm">Leave Dynasty?</AlertDialogTitle>
+            <AlertDialogTitle className="text-gold text-sm">Leave Dynasty?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to leave <strong>{league.name}</strong>? Your team ({myTeam?.name}) will become CPU-controlled. This cannot be undone.
               {isCommissioner && (
@@ -324,7 +324,7 @@ export default function LeagueViewPage() {
             )}
 
             <div className="flex-1 min-w-0">
-              <h1 className="font-pixel text-gold text-sm sm:text-base truncate leading-tight" data-testid="text-league-name">
+              <h1 className="text-gold text-sm sm:text-base truncate leading-tight" data-testid="text-league-name">
                 {league.name}
               </h1>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-0.5">
@@ -334,7 +334,7 @@ export default function LeagueViewPage() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="font-pixel text-xs text-gold border-gold/40 bg-gold/10 whitespace-nowrap"
+                  className="text-xs font-semibold text-gold border-gold/40 bg-gold/10 whitespace-nowrap"
                   data-testid="text-current-phase"
                 >
                   {phaseLabels[league.currentPhase]}
@@ -347,17 +347,17 @@ export default function LeagueViewPage() {
                 {isPrimaryCommissioner ? (
                   <span className="flex items-center gap-1 shrink-0" data-testid="badge-commissioner-identity">
                     <Crown className="w-3 h-3 text-gold" />
-                    <Badge variant="outline" className="font-pixel text-xs text-gold border-gold/40 bg-gold/10">COMM</Badge>
+                    <Badge variant="outline" className="text-xs font-semibold text-gold border-gold/40 bg-gold/10">COMM</Badge>
                   </span>
                 ) : isCommissioner ? (
                   <span className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
                     <Crown className="w-3 h-3 text-blue-400" />
-                    <Badge variant="outline" className="font-pixel text-xs text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
+                    <Badge variant="outline" className="text-xs font-semibold text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
                   </span>
                 ) : null}
                 {league.progressionEnabled ? (
                   <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
                     title="Player attributes grow between seasons"
                     data-testid="badge-progression-on"
                   >
@@ -366,7 +366,7 @@ export default function LeagueViewPage() {
                   </span>
                 ) : (
                   <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-semibold bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
                     title="Player attributes do not change between seasons"
                     data-testid="badge-progression-off"
                   >
@@ -459,17 +459,17 @@ export default function LeagueViewPage() {
               <div className="container mx-auto px-4 pb-4">
                 <div className="min-w-0">
                   {hasAssignedTeam && myTeam && (
-                    <p className="font-pixel text-xs text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                    <p className="text-xs font-semibold text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                       {myTeam.name} · {phaseLabels[league.currentPhase]}
                     </p>
                   )}
                   {isLeagueOnlyCommissioner && (
-                    <p className="font-pixel text-xs text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                    <p className="text-xs font-semibold text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                       COMMISSIONER · {phaseLabels[league.currentPhase]}
                     </p>
                   )}
                   <h2
-                    className="font-pixel text-gold text-sm sm:text-base leading-snug truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
+                    className="text-gold text-sm sm:text-base leading-snug truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
                     data-testid="text-hub-season"
                   >
                     Season {league.currentSeason} · Week {league.currentWeek}
@@ -635,7 +635,7 @@ export default function LeagueViewPage() {
                 {/* ── Roster composition ──────────────────────────────── */}
                 <div className="flex items-center gap-2 -mb-1 mt-1">
                   <div className="flex-1 h-px bg-border/40" />
-                  <span className="font-pixel text-xs text-muted-foreground/50 uppercase tracking-wider">Roster</span>
+                  <span className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider">Roster</span>
                   <div className="flex-1 h-px bg-border/40" />
                 </div>
                 <MergedRosterPanel
@@ -702,29 +702,29 @@ export default function LeagueViewPage() {
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
-              <TabsTrigger value="standings" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
+              <TabsTrigger value="standings" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
                 <span className="hidden sm:inline">Standings</span>
                 <span className="sm:hidden">Stand</span>
               </TabsTrigger>
-              <TabsTrigger value="teams" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
+              <TabsTrigger value="teams" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
                 Teams
               </TabsTrigger>
-              <TabsTrigger value="rankings" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
+              <TabsTrigger value="rankings" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
                 <span className="hidden sm:inline">Rankings</span>
                 <span className="sm:hidden">Rank</span>
               </TabsTrigger>
-              <TabsTrigger value="prospects" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
+              <TabsTrigger value="prospects" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
                 Top 100
               </TabsTrigger>
-              <TabsTrigger value="awards" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
+              <TabsTrigger value="awards" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
                 <span className="hidden sm:inline">Awards</span>
                 <span className="sm:hidden">Award</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
+              <TabsTrigger value="history" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
                 <span className="hidden sm:inline">History</span>
                 <span className="sm:hidden">Hist</span>
               </TabsTrigger>
-              <TabsTrigger value="edits" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-edits">
+              <TabsTrigger value="edits" className="text-xs font-semibold whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-edits">
                 <span className="hidden sm:inline">Edits</span>
                 <span className="sm:hidden">Edits</span>
               </TabsTrigger>

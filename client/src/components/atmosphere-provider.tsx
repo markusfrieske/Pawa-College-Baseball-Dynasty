@@ -105,7 +105,7 @@ export function PostseasonBanner() {
       role="banner"
     >
       <Trophy className="w-3 h-3 shrink-0" />
-      <span className="font-pixel text-xs uppercase tracking-widest">
+      <span className="text-xs font-semibold uppercase tracking-widest">
         {mood.postseasonLabel}
       </span>
       <button

@@ -443,7 +443,7 @@ export default function CommissionerPage() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="font-pixel text-gold text-lg">Commissioner</h1>
+              <h1 className="text-gold text-lg">Commissioner</h1>
             </div>
           </div>
         </header>
@@ -472,7 +472,7 @@ export default function CommissionerPage() {
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-pixel text-gold text-lg">Commissioner</h1>
+            <h1 className="text-gold text-lg">Commissioner</h1>
           </div>
         </div>
       </header>
@@ -535,7 +535,7 @@ export default function CommissionerPage() {
           >
             <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-pixel text-xs text-red-400 mb-1">ROSTER OVERSIZE DETECTED</p>
+              <p className="text-xs font-semibold text-red-400 mb-1">ROSTER OVERSIZE DETECTED</p>
               <p className="text-xs text-muted-foreground">
                 The following teams have more than 35 players — this indicates duplicate players may
                 have been created during the last season transition:{" "}
@@ -554,7 +554,7 @@ export default function CommissionerPage() {
           >
             <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-pixel text-xs text-red-400 mb-1">SCHEDULE ISSUES DETECTED</p>
+              <p className="text-xs font-semibold text-red-400 mb-1">SCHEDULE ISSUES DETECTED</p>
               <p className="text-xs text-muted-foreground">
                 The generated schedule has critical issues (e.g. overloaded weeks). Review the{" "}
                 <span className="text-gold">Schedule Health</span> tab before starting the season.
@@ -571,7 +571,7 @@ export default function CommissionerPage() {
           >
             <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
             <div>
-              <p className="font-pixel text-xs text-yellow-400 mb-1">SCHEDULE WARNINGS</p>
+              <p className="text-xs font-semibold text-yellow-400 mb-1">SCHEDULE WARNINGS</p>
               <p className="text-xs text-muted-foreground">
                 The schedule has minor balance warnings. Check the{" "}
                 <span className="text-gold">Schedule Health</span> tab for details before starting
@@ -586,60 +586,60 @@ export default function CommissionerPage() {
             <TabsList className="bg-card border border-border inline-flex w-auto">
               <TabsTrigger
                 value="command-center"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
                 data-testid="tab-command-center"
               >
                 Command
               </TabsTrigger>
               <TabsTrigger
                 value="actions"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
               >
                 Actions
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
               >
                 Settings
               </TabsTrigger>
               <TabsTrigger
                 value="audit"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
               >
                 Audit Log
               </TabsTrigger>
               <TabsTrigger
                 value="invites"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
               >
                 Invites
               </TabsTrigger>
               {data?.league?.dynastyPreset !== "full_season" && (
                 <TabsTrigger
                   value="reports"
-                  className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                  className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
                 >
                   Reports
                 </TabsTrigger>
               )}
               <TabsTrigger
                 value="nil"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
                 data-testid="tab-nil"
               >
                 NIL
               </TabsTrigger>
               <TabsTrigger
                 value="schedule-health"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
                 data-testid="tab-schedule-health"
               >
                 Schedule
               </TabsTrigger>
               <TabsTrigger
                 value="league-editor"
-                className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
                 data-testid="tab-league-editor"
               >
                 League Editor
@@ -647,7 +647,7 @@ export default function CommissionerPage() {
               {isPrimaryCommissioner && (
                 <TabsTrigger
                   value="save-states"
-                  className="font-pixel text-xs whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+                  className="text-xs font-semibold whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
                   data-testid="tab-save-states"
                 >
                   Save States
@@ -786,7 +786,7 @@ export default function CommissionerPage() {
           data-testid="dialog-class-selection"
         >
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">
+            <DialogTitle className="text-gold text-sm">
               Choose Recruiting Class
             </DialogTitle>
             <DialogDescription>

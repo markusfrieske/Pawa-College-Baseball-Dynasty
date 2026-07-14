@@ -87,11 +87,11 @@ export function NilOverviewTab({ leagueId }: NilOverviewTabProps) {
                     onClick={() => setExpanded(isOpen ? null : team.teamId)}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground w-5 text-right shrink-0 font-pixel">
+                      <span className="text-xs text-muted-foreground w-5 text-right shrink-0">
                         #{idx + 1}
                       </span>
                       <div
-                        className="w-6 h-6 rounded shrink-0 flex items-center justify-center text-xs font-pixel font-bold"
+                        className="w-6 h-6 rounded shrink-0 flex items-center justify-center text-xs font-bold"
                         style={{ backgroundColor: team.primaryColor, color: "#fff" }}
                       >
                         {team.teamAbbr.slice(0, 2)}

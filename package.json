@@ -13,6 +13,9 @@
     "test:smoke": "PLAYWRIGHT_BROWSERS_PATH=$(ls -d /nix/store/*-playwright-browsers-chromium 2>/dev/null | head -1) playwright test tests/smoke"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.2.8",
+    "@fontsource/barlow-semi-condensed": "^5.2.7",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@google-cloud/storage": "^7.21.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",

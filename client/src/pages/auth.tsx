@@ -73,7 +73,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           <Link href="/">
             <div className="inline-flex items-center gap-3 cursor-pointer">
               <div className="w-12 h-12 bg-gold rounded-full flex items-center justify-center">
-                <span className="text-forest-dark font-pixel text-sm">CBD</span>
+                <span className="text-forest-dark font-display text-sm font-bold">CBD</span>
               </div>
             </div>
           </Link>
@@ -167,7 +167,7 @@ export function GuestWarningModal({ onContinue, onBack, isLoading }: { onContinu
       <RetroCard variant="bordered" className="max-w-md">
         <div className="flex items-center gap-3 mb-4">
           <AlertTriangle className="w-6 h-6 text-gold" />
-          <h2 className="font-pixel text-gold text-sm">Guest Mode Warning</h2>
+          <h2 className="text-gold text-sm">Guest Mode Warning</h2>
         </div>
         <p className="text-muted-foreground mb-6 leading-relaxed">
           Playing as a guest means your leagues will NOT be saved. When you leave or refresh the page, all progress will be lost. Sign in to save your leagues permanently.

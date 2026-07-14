@@ -37,7 +37,7 @@ function QuickActionCard({
       <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer relative min-h-[72px]" data-testid={`card-action-${title.toLowerCase()}`}>
         {showBadge && (
           <span
-            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-gold text-forest-dark font-pixel text-xs px-1 z-10 animate-pulse"
+            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-gold text-forest-dark text-xs font-semibold px-1 z-10 animate-pulse"
             data-testid={`badge-action-${title.toLowerCase()}`}
           >
             {badge}
@@ -45,7 +45,7 @@ function QuickActionCard({
         )}
         <div className="flex flex-col items-center justify-center text-center gap-1 py-2 h-full">
           <div className="text-gold">{icon}</div>
-          <h3 className="font-pixel text-xs text-foreground leading-tight">{title}</h3>
+          <h3 className="text-xs font-semibold text-foreground leading-tight">{title}</h3>
           <p className="text-xs text-muted-foreground leading-tight hidden sm:block">{subtitle}</p>
         </div>
       </RetroCard>
@@ -71,7 +71,7 @@ function QuickMatchupPreviewModal({ leagueId, gameId, open, onOpenChange }: { le
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-card border-border max-w-sm" data-testid="modal-quick-matchup-preview">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-xs">Matchup Preview</DialogTitle>
+          <DialogTitle className="text-gold text-xs">Matchup Preview</DialogTitle>
         </DialogHeader>
         {isLoading || !data ? (
           <div className="py-6 text-center text-sm text-muted-foreground">Loading preview...</div>
@@ -142,7 +142,7 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
       <div className="mb-4 px-4 py-3 rounded-lg bg-card/60 border border-border/40 flex items-center gap-3" data-testid="widget-next-game-bye">
         <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         <div>
-          <p className="font-pixel text-xs text-muted-foreground mb-0.5">WEEK {currentWeek}</p>
+          <p className="text-xs font-semibold text-muted-foreground mb-0.5">WEEK {currentWeek}</p>
           <p className="text-sm text-muted-foreground">Bye week — no game scheduled</p>
         </div>
       </div>
@@ -197,14 +197,14 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
     >
       <div className="bg-gold/10 px-3 py-1.5 border-b border-border flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className="font-pixel text-gold text-xs">
+          <span className="text-gold text-xs">
             {game.isComplete ? "RESULT" : "NEXT GAME"} — {phaseLabel}
           </span>
           {gameTypeLabel && (
-            <span className="font-pixel text-xs px-1 py-0.5 rounded bg-muted/60 text-muted-foreground">{gameTypeLabel}</span>
+            <span className="text-xs font-semibold px-1 py-0.5 rounded bg-muted/60 text-muted-foreground">{gameTypeLabel}</span>
           )}
         </div>
-        <span className={`font-pixel text-xs px-1.5 py-0.5 rounded ${game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50 text-muted-foreground"}`}>
+        <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50 text-muted-foreground"}`}>
           {game.isConference ? "CONF" : "OOC"}
         </span>
       </div>
@@ -220,21 +220,21 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
                   {userIsHome
                     ? <Home className="w-2.5 h-2.5 text-gold" />
                     : <Plane className="w-2.5 h-2.5 text-muted-foreground" />}
-                  <span className="font-pixel text-xs text-muted-foreground">{userIsHome ? "HOME" : "AWAY"}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{userIsHome ? "HOME" : "AWAY"}</span>
                 </div>
               </div>
             </div>
 
             <div className="text-center flex-shrink-0 w-16">
               {game.isComplete ? (
-                <div className={`font-pixel text-sm leading-none ${userWon ? "text-green-400" : "text-red-400"}`} data-testid="text-next-game-score">
+                <div className={`font-display text-sm font-bold leading-none ${userWon ? "text-green-400" : "text-red-400"}`} data-testid="text-next-game-score">
                   {userScore} – {oppScore}
                 </div>
               ) : (
-                <div className="font-pixel text-muted-foreground text-xs">VS</div>
+                <div className="text-muted-foreground text-xs">VS</div>
               )}
               {game.isComplete && (
-                <div className={`font-pixel text-xs mt-0.5 ${userWon ? "text-green-400" : "text-red-400"}`}>
+                <div className={`text-xs font-semibold mt-0.5 ${userWon ? "text-green-400" : "text-red-400"}`}>
                   {userWon ? "W" : "L"}
                 </div>
               )}
@@ -284,7 +284,7 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
                 )}
               </div>
             </div>
-            <div className="font-pixel text-muted-foreground text-xs flex-shrink-0">
+            <div className="text-muted-foreground text-xs flex-shrink-0">
               {game.isComplete ? `${game.awayScore ?? 0} – ${game.homeScore ?? 0}` : "VS"}
             </div>
             <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
@@ -614,7 +614,7 @@ export function CoachActionQueue({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs sm:text-xs">COACH ACTION QUEUE</h3>
+          <h3 className="text-gold text-xs sm:text-xs">COACH ACTION QUEUE</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -685,7 +685,7 @@ export function SinceLastAdvanceFeed({ leagueId, league }: { leagueId: string; l
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <History className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
+          <h3 className="text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -785,9 +785,9 @@ export function SinceLastAdvanceWidget({ leagueId }: { leagueId: string }) {
         <Bell className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <p className="font-pixel text-gold text-xs">SINCE LAST ADVANCE</p>
+            <p className="text-gold text-xs">SINCE LAST ADVANCE</p>
             <Link href={`/league/${leagueId}/digests`}>
-              <span className="font-pixel text-xs text-muted-foreground hover:text-gold cursor-pointer flex items-center gap-1" data-testid="link-view-all-digests">
+              <span className="text-xs font-semibold text-muted-foreground hover:text-gold cursor-pointer flex items-center gap-1" data-testid="link-view-all-digests">
                 View All <ChevronRight className="w-3 h-3" />
               </span>
             </Link>
@@ -826,7 +826,7 @@ export function ProgramSnapshotPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">PROGRAM</h3>
+            <h3 className="text-gold text-xs">PROGRAM</h3>
           </div>
           {userTeam && (
             <Link href={`/league/${leagueId}/team/${userTeam.id}`}>
@@ -838,29 +838,29 @@ export function ProgramSnapshotPanel({
       <RetroCardContent>
         <div className="grid grid-cols-2 gap-3 mb-2">
           <div>
-            <p className="font-pixel text-xs text-muted-foreground mb-1">RECORD</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">RECORD</p>
             <p className="text-2xl font-bold text-gold leading-none">{wins}-{losses}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Conf: {confWins}-{confLosses}</p>
           </div>
           <div>
-            <p className="font-pixel text-xs text-muted-foreground mb-1">AVG OVR</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">AVG OVR</p>
             <p className="text-2xl font-bold leading-none">{Math.round(overview.averageOverall)}</p>
             <div className="flex gap-1 mt-0.5 flex-wrap">
               {overview.hitGrade && (
-                <span className="font-pixel text-xs px-1 py-0.5 rounded bg-blue-500/20 text-blue-300">H:{overview.hitGrade}</span>
+                <span className="text-xs font-semibold px-1 py-0.5 rounded bg-blue-500/20 text-blue-300">H:{overview.hitGrade}</span>
               )}
               {overview.pitchGrade && (
-                <span className="font-pixel text-xs px-1 py-0.5 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
+                <span className="text-xs font-semibold px-1 py-0.5 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
               )}
               {overview.fieldGrade && (
-                <span className="font-pixel text-xs px-1 py-0.5 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
+                <span className="text-xs font-semibold px-1 py-0.5 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
               )}
             </div>
           </div>
         </div>
         {overview.topPlayer && (
           <div className="pt-2 border-t border-border/50" data-testid="text-top-player">
-            <p className="font-pixel text-xs text-muted-foreground mb-1">TOP PLAYER</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">TOP PLAYER</p>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium truncate mr-2">{overview.topPlayer.name}</span>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -903,7 +903,7 @@ export function RosterHealthPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">ROSTER DEPTH</h3>
+            <h3 className="text-gold text-xs">ROSTER DEPTH</h3>
           </div>
           <Link href={`/league/${leagueId}/roster`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Manage →</span>
@@ -913,7 +913,7 @@ export function RosterHealthPanel({
       <RetroCardContent>
         <div className="flex items-center justify-between mb-2.5">
           <div>
-            <p className="font-pixel text-xs text-muted-foreground">ROSTER</p>
+            <p className="text-xs font-semibold text-muted-foreground">ROSTER</p>
             <p className="text-2xl font-bold leading-none">
               {overview.rosterSize}<span className="text-muted-foreground text-sm">/25</span>
             </p>
@@ -924,7 +924,7 @@ export function RosterHealthPanel({
               if (count === 0) return null;
               return (
                 <div key={e} className="text-center">
-                  <p className="font-pixel text-xs text-muted-foreground">{e}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{e}</p>
                   <p className="font-bold text-sm leading-tight">{count}</p>
                 </div>
               );
@@ -933,7 +933,7 @@ export function RosterHealthPanel({
         </div>
         {atRisk.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/50" data-testid="list-positions-at-risk">
-            <span className="font-pixel text-xs text-red-400 self-center">THIN:</span>
+            <span className="text-xs font-semibold text-red-400 self-center">THIN:</span>
             {atRisk.map(pos => (
               <span key={pos} className="text-xs px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">
                 {pos}
@@ -971,7 +971,7 @@ export function RecruitingSnapshotPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">RECRUITING</h3>
+            <h3 className="text-gold text-xs">RECRUITING</h3>
           </div>
           <Link href={`/league/${leagueId}/recruiting`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Board →</span>
@@ -981,14 +981,14 @@ export function RecruitingSnapshotPanel({
       <RetroCardContent>
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div>
-            <p className="font-pixel text-xs text-muted-foreground">SIGNED</p>
+            <p className="text-xs font-semibold text-muted-foreground">SIGNED</p>
             <p className="text-2xl font-bold text-gold leading-none">{overview.recruitingSigned}</p>
             {overview.recruitingInterested > 0 && (
               <p className="text-xs text-muted-foreground mt-0.5">{overview.recruitingInterested} interested</p>
             )}
           </div>
           <div>
-            <p className="font-pixel text-xs text-muted-foreground">NIL LEFT</p>
+            <p className="text-xs font-semibold text-muted-foreground">NIL LEFT</p>
             <p className="text-2xl font-bold leading-none">{fmt(remaining)}</p>
             <p className="text-xs text-muted-foreground mt-0.5">of {fmt(overview.nilBudget)}</p>
           </div>
@@ -1054,7 +1054,7 @@ export function StandingsPreviewPanel({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Trophy className="w-4 h-4 text-gold shrink-0" />
-            <h3 className="font-pixel text-gold text-xs truncate">{headerLabel}</h3>
+            <h3 className="text-gold text-xs truncate">{headerLabel}</h3>
           </div>
           <Link href={`/league/${leagueId}?tab=standings`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer shrink-0">Full →</span>
@@ -1071,7 +1071,7 @@ export function StandingsPreviewPanel({
                 className={`flex items-center gap-2 px-1.5 py-1 rounded ${isUser ? "bg-gold/10 border border-gold/20" : ""}`}
                 data-testid={`row-standing-${team.id}`}
               >
-                <span className={`font-pixel text-xs w-4 text-center shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>{idx + 1}</span>
+                <span className={`text-xs font-semibold w-4 text-center shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>{idx + 1}</span>
                 <TeamBadge
                   abbreviation={team.abbreviation}
                   primaryColor={team.primaryColor}
@@ -1082,7 +1082,7 @@ export function StandingsPreviewPanel({
                 <span className={`flex-1 text-xs truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>
                   {team.name}
                 </span>
-                <span className={`font-pixel text-xs shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>
+                <span className={`text-xs font-semibold shrink-0 ${isUser ? "text-gold" : "text-muted-foreground"}`}>
                   {team.standings?.wins ?? 0}-{team.standings?.losses ?? 0}
                 </span>
               </div>
@@ -1302,7 +1302,7 @@ export function NeedsAttentionPanel({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <Bell className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs">NEEDS ATTENTION</h3>
+          <h3 className="text-gold text-xs">NEEDS ATTENTION</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>

@@ -395,7 +395,7 @@ function MobileCompareSheet({
         <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GitCompare className="w-3.5 h-3.5 text-gold" />
-            <span className="font-pixel text-gold text-xs uppercase tracking-wider">Compare</span>
+            <span className="text-gold text-xs uppercase tracking-wider">Compare</span>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-gold p-1" data-testid="button-close-compare">
             <X className="w-4 h-4" />
@@ -424,7 +424,7 @@ function MobileCompareSheet({
 
         <div className="px-4 py-3 space-y-1">
           {/* OVR */}
-          <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mb-2">Overall</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Overall</p>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 pb-2 border-b border-border/30">
             <span className={`text-lg font-bold text-right tabular-nums ${ovrColor(ovrA)} ${ovrA > ovrB ? "text-green-400" : ""}`}>{ovrA}</span>
             <span className="text-xs text-muted-foreground text-center w-14 uppercase tracking-wider">OVR</span>
@@ -432,7 +432,7 @@ function MobileCompareSheet({
           </div>
 
           {/* Position-specific stats */}
-          <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mt-3 mb-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-1">
             {isPitcher(playerA.position) || isPitcher(playerB.position) ? "Pitching" : "Batting & Defense"}
           </p>
           {positionStats.map(({ key, label }) => (
@@ -445,7 +445,7 @@ function MobileCompareSheet({
           ))}
 
           {/* Common stats */}
-          <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mt-3 mb-1">Mental</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-1">Mental</p>
           {COMMON_COMPARE_STATS.map(({ key, label }) => (
             <CompareStatRow
               key={key}
@@ -458,7 +458,7 @@ function MobileCompareSheet({
           {/* Abilities */}
           {allAbilities.length > 0 && (
             <>
-              <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mt-3 mb-2">Special Abilities</p>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-2">Special Abilities</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {allAbilities.map(name => {
                   const hasA = abilitiesA.includes(name);
@@ -829,11 +829,11 @@ export default function RosterViewerPage() {
                 className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSelected ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
                 style={{ backgroundColor: meta?.primaryColor ?? "#333" }}
               >
-                <span className="font-pixel text-xs leading-none text-center px-0.5" style={{ color: meta?.secondaryColor ?? "#fff" }}>
+                <span className="text-xs font-semibold leading-none text-center px-0.5" style={{ color: meta?.secondaryColor ?? "#fff" }}>
                   {meta?.abbr ?? group.conference}
                 </span>
               </div>
-              <span className={`font-pixel text-xs text-center leading-tight truncate w-full ${isSelected ? "text-gold" : "text-muted-foreground"}`}>
+              <span className={`text-xs font-semibold text-center leading-tight truncate w-full ${isSelected ? "text-gold" : "text-muted-foreground"}`}>
                 {meta?.abbr ?? group.conference}
               </span>
             </button>
@@ -861,17 +861,17 @@ export default function RosterViewerPage() {
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSel ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
                   style={{ backgroundColor: team.primaryColor || "#333" }}
                 >
-                  <span className="font-pixel text-xs leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
+                  <span className="text-xs font-semibold leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
                     {team.abbreviation}
                   </span>
                 </div>
                 {team.nationalRank > 0 && (
-                  <span className="absolute bottom-0 left-0 font-pixel text-xs leading-none px-0.5 py-px rounded-sm bg-black/75 text-gold pointer-events-none">
+                  <span className="absolute bottom-0 left-0 text-xs font-semibold leading-none px-0.5 py-px rounded-sm bg-black/75 text-gold pointer-events-none">
                     #{team.nationalRank}
                   </span>
                 )}
               </div>
-              <span className={`font-pixel text-xs text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
+              <span className={`text-xs font-semibold text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
                 {team.name.length > 10 ? team.abbreviation : team.name}
               </span>
             </button>
@@ -993,7 +993,7 @@ export default function RosterViewerPage() {
           <div className="sticky top-0 z-10 bg-gold/10 border-b border-gold/30 px-4 py-2 flex items-center justify-between gap-2" data-testid="banner-compare-mode">
             <div className="flex items-center gap-2">
               <GitCompare className="w-3 h-3 text-gold shrink-0" />
-              <span className="text-xs font-pixel text-gold">
+              <span className="text-xs text-gold">
                 {comparePlayerIdx !== null && currentRoster[comparePlayerIdx]
                   ? `${currentRoster[comparePlayerIdx].firstName} ${currentRoster[comparePlayerIdx].lastName} selected — tap another player to compare`
                   : "Tap a player to compare"}
@@ -1120,11 +1120,11 @@ export default function RosterViewerPage() {
 
             {/* Title / breadcrumb */}
             {isMobile && mobileBreadcrumb ? (
-              <span className="font-pixel text-gold text-xs truncate" data-testid="text-mobile-breadcrumb">
+              <span className="text-gold text-xs truncate" data-testid="text-mobile-breadcrumb">
                 {mobileBreadcrumb}
               </span>
             ) : (
-              <h1 className="font-pixel text-gold text-xs sm:text-sm truncate" data-testid="text-page-title">
+              <h1 className="text-gold text-xs sm:text-sm truncate" data-testid="text-page-title">
                 NCAA 2026 ROSTER VIEWER
               </h1>
             )}
@@ -1205,12 +1205,12 @@ export default function RosterViewerPage() {
               </div>
             ) : search ? (
               <>
-                <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Results</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Results</p>
                 <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
               </>
             ) : (
               <>
-                <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Select a Conference</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select a Conference</p>
                 <ConferenceGrid cols={4} />
               </>
             )}
@@ -1230,7 +1230,7 @@ export default function RosterViewerPage() {
                 data-testid="input-team-search-mobile-team"
               />
             </div>
-            <p className="font-pixel text-xs text-gold uppercase tracking-wider">Choose a Team</p>
+            <p className="text-xs font-semibold text-gold uppercase tracking-wider">Choose a Team</p>
             {confsLoading ? (
               <div className="grid grid-cols-4 gap-2">
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
@@ -1263,7 +1263,7 @@ export default function RosterViewerPage() {
                 <div className="flex-1 min-w-0">
                   {teamData ? (
                     <>
-                      <h2 className="font-pixel text-gold text-sm truncate" data-testid="text-team-header">{teamData.name}</h2>
+                      <h2 className="text-gold text-sm truncate" data-testid="text-team-header">{teamData.name}</h2>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span className="text-xs text-muted-foreground">{teamData.conference}</span>
                         <span className="text-xs text-muted-foreground">Rank #{teamData.nationalRank}</span>
@@ -1320,7 +1320,7 @@ export default function RosterViewerPage() {
               {/* Conference grid (not searching) */}
               {!search && (
                 <div className="p-3 border-b border-border/50">
-                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2 tracking-wider">Conferences</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 tracking-wider">Conferences</p>
                   <ConferenceGrid cols={3} />
                 </div>
               )}
@@ -1333,10 +1333,10 @@ export default function RosterViewerPage() {
                       <button onClick={handleBackToConfs} className="text-muted-foreground hover:text-gold transition-colors" data-testid="button-back-to-confs">
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
-                      <p className="font-pixel text-xs text-gold uppercase tracking-wider">{selectedConference}</p>
+                      <p className="text-xs font-semibold text-gold uppercase tracking-wider">{selectedConference}</p>
                     </div>
                   )}
-                  {search && <p className="font-pixel text-xs text-muted-foreground uppercase mb-2 tracking-wider">Results</p>}
+                  {search && <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 tracking-wider">Results</p>}
 
                   {search ? (
                     <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
@@ -1361,7 +1361,7 @@ export default function RosterViewerPage() {
             <div className="flex items-center justify-center h-full">
               <div className="text-center space-y-3 p-8">
                 <div className="text-4xl">⚾</div>
-                <p className="font-pixel text-gold text-sm">SELECT A TEAM</p>
+                <p className="text-gold text-sm">SELECT A TEAM</p>
                 <p className="text-muted-foreground text-sm">Choose a conference, then a team to view their 2026 roster</p>
               </div>
             </div>
@@ -1388,7 +1388,7 @@ export default function RosterViewerPage() {
                     />
                   )}
                   <div>
-                    <h2 className="font-pixel text-gold text-base" data-testid="text-team-header">{teamData.name}</h2>
+                    <h2 className="text-gold text-base" data-testid="text-team-header">{teamData.name}</h2>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-muted-foreground">{teamData.conference}</span>
                       <span className="text-xs text-muted-foreground">Rank #{teamData.nationalRank}</span>
@@ -1416,22 +1416,22 @@ export default function RosterViewerPage() {
                 <table className="w-full text-sm" data-testid="table-roster">
                   <thead className="bg-muted/30 sticky top-0 z-10">
                     <tr>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">#</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">NAME</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">POS</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">ELIG</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STARS</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">OVR</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">CON</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">PWR</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">SPD</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">ARM</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">FLD</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">VELO</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">CTRL</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STUF</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STAM</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap min-w-[120px]">ABILITIES</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">#</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">NAME</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">POS</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">ELIG</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">STARS</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">OVR</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">CON</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">PWR</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">SPD</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">ARM</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">FLD</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">VELO</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">CTRL</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">STUF</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">STAM</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap min-w-[120px]">ABILITIES</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1548,14 +1548,14 @@ export default function RosterViewerPage() {
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">Save Custom Roster</DialogTitle>
+            <DialogTitle className="text-gold text-sm">Save Custom Roster</DialogTitle>
             <DialogDescription>
               Save the current {selectedTeam} roster (with any stat edits) to your account.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="font-pixel text-xs text-foreground uppercase">Roster Name</label>
+              <label className="text-xs font-semibold text-foreground uppercase">Roster Name</label>
               <Input
                 value={saveRosterName}
                 onChange={e => setSaveRosterName(e.target.value)}
@@ -1564,7 +1564,7 @@ export default function RosterViewerPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="font-pixel text-xs text-foreground uppercase">Description (optional)</label>
+              <label className="text-xs font-semibold text-foreground uppercase">Description (optional)</label>
               <Input
                 value={saveRosterDesc}
                 onChange={e => setSaveRosterDesc(e.target.value)}
@@ -1587,7 +1587,7 @@ export default function RosterViewerPage() {
       <Dialog open={navGuardOpen} onOpenChange={setNavGuardOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">Unsaved Changes</DialogTitle>
+            <DialogTitle className="text-gold text-sm">Unsaved Changes</DialogTitle>
             <DialogDescription>You have unsaved roster edits. Do you want to save them before leaving?</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-2">

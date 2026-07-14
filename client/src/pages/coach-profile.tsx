@@ -301,7 +301,7 @@ function GradeGrid({ grades }: { grades: Record<string, string> }) {
       {Object.entries(grades).map(([label, grade]) => (
         <div key={label} className="bg-muted/30 rounded-lg p-3 flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">{label}</span>
-          <span className={`text-xl font-bold font-pixel ${gradeColor(grade)}`}>{grade}</span>
+          <span className={`text-xl font-bold ${gradeColor(grade)}`}>{grade}</span>
         </div>
       ))}
     </div>
@@ -504,7 +504,7 @@ function CoachHeader({
                   </div>
                 )}
                 <div>
-                  <h1 className="font-pixel text-gold text-lg">HC {coach.firstName} {coach.lastName}</h1>
+                  <h1 className="text-gold text-lg">HC {coach.firstName} {coach.lastName}</h1>
                   <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mt-0.5">
                     {/* Clickable archetype badge — expands breakdown panel */}
                     <button
@@ -661,7 +661,7 @@ function CareerTab({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Career Stats</h3>
+            <h3 className="font-display text-sm font-bold">Career Stats</h3>
           </div>
           <p className="text-xs text-muted-foreground">Career head coaching records and awards</p>
         </RetroCardHeader>
@@ -686,7 +686,7 @@ function CareerTab({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Season History</h3>
+            <h3 className="font-display text-sm font-bold">Season History</h3>
             {seasonHistory && seasonHistory.length > 0 && (
               <span className="text-xs text-muted-foreground ml-auto">{seasonHistory.length} season{seasonHistory.length !== 1 ? "s" : ""}</span>
             )}
@@ -710,7 +710,7 @@ function CareerTab({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Recruiting Track Record</h3>
+            <h3 className="font-display text-sm font-bold">Recruiting Track Record</h3>
           </div>
           <p className="text-xs text-muted-foreground">Career class rankings, star breakdown, and draft development</p>
         </RetroCardHeader>
@@ -803,7 +803,7 @@ function CareerTab({
                             {latestGraded.recruitingScore.toFixed(1)}/100
                           </span>
                         )}
-                        <span className={`font-bold text-2xl font-pixel ${recruitingGradeColor(latestGraded.recruitingGrade!)}`}>
+                        <span className={`font-bold text-2xl ${recruitingGradeColor(latestGraded.recruitingGrade!)}`}>
                           {latestGraded.recruitingGrade}
                         </span>
                       </div>
@@ -841,7 +841,7 @@ function CareerTab({
                           #{coachRecruitingHistory.allTimeRank} all-time in league
                         </Badge>
                       )}
-                      <span className="text-gold font-bold text-lg font-pixel">
+                      <span className="text-gold font-bold text-lg">
                         {computeRecruitingGradeClient(recruitingRecord.careerRecruitingScore)}
                       </span>
                     </div>
@@ -906,7 +906,7 @@ function CareerTab({
                           <span className="text-xs text-muted-foreground shrink-0">{row.totalSigned} signed</span>
                           <span className="shrink-0 w-8 text-center">
                             {row.recruitingGrade != null ? (
-                              <span className={`font-bold font-pixel text-xs ${recruitingGradeColor(row.recruitingGrade)}`}>
+                              <span className={`font-bold text-xs font-semibold ${recruitingGradeColor(row.recruitingGrade)}`}>
                                 {row.recruitingGrade}
                               </span>
                             ) : (
@@ -986,7 +986,7 @@ function AttributesTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolea
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Coaching Grades</h3>
+            <h3 className="font-display text-sm font-bold">Coaching Grades</h3>
           </div>
           <p className="text-xs text-muted-foreground">Derived from career performance and archetype</p>
         </RetroCardHeader>
@@ -1000,7 +1000,7 @@ function AttributesTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolea
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Archetype: {coach.archetype}</h3>
+            <h3 className="font-display text-sm font-bold">Archetype: {coach.archetype}</h3>
           </div>
         </RetroCardHeader>
         <RetroCardContent className="p-4">
@@ -1013,7 +1013,7 @@ function AttributesTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolea
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Flame className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Personality</h3>
+            <h3 className="font-display text-sm font-bold">Personality</h3>
           </div>
         </RetroCardHeader>
         <RetroCardContent className="p-4">
@@ -1036,7 +1036,7 @@ function AttributesTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolea
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Medal className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-sm">Trait Badges</h3>
+            <h3 className="font-display text-sm font-bold">Trait Badges</h3>
           </div>
           <p className="text-xs text-muted-foreground">Permanent coaching identity traits</p>
         </RetroCardHeader>
@@ -1103,11 +1103,11 @@ function PerkNode({
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex items-center gap-1.5">
-          <span className={`text-xs font-pixel px-1 py-0.5 rounded ${treeMeta.color} bg-black/20`}>{tierLabel}</span>
+          <span className={`text-xs px-1 py-0.5 rounded ${treeMeta.color} bg-black/20`}>{tierLabel}</span>
           <span className={`text-xs font-semibold ${owned ? treeMeta.color : "text-foreground"}`}>{perk.name}</span>
         </div>
         {owned ? (
-          <span className={`text-xs font-pixel ${treeMeta.color} shrink-0`}>OWNED</span>
+          <span className={`text-xs ${treeMeta.color} shrink-0`}>OWNED</span>
         ) : (
           <span className="text-xs text-muted-foreground shrink-0">{spLabel}</span>
         )}
@@ -1186,7 +1186,7 @@ function SkillsTab({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Award className="w-4 h-4 text-gold" />
-              <h3 className="font-pixel text-sm">Career Milestones</h3>
+              <h3 className="font-display text-sm font-bold">Career Milestones</h3>
             </div>
             <span className="text-xs text-muted-foreground">{totalEarned}/{totalMilestones} earned</span>
           </div>
@@ -1216,7 +1216,7 @@ function SkillsTab({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-4 h-4 text-gold" />
-              <h3 className="font-pixel text-sm">Perk Trees</h3>
+              <h3 className="font-display text-sm font-bold">Perk Trees</h3>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">{totalPerksOwned}/{totalPerks} unlocked</span>
@@ -1239,7 +1239,7 @@ function SkillsTab({
               return (
                 <div key={treeKey} className="space-y-2">
                   <div className={`flex items-center gap-1.5 pb-1.5 border-b ${meta.borderColor}`}>
-                    <span className={`text-xs font-pixel ${meta.color}`}>{meta.name}</span>
+                    <span className={`text-xs ${meta.color}`}>{meta.name}</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-tight">{meta.description}</p>
                   <div className="space-y-2 pt-1">
@@ -1356,7 +1356,7 @@ function StrategySelector({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="font-pixel text-sm">{label}</h3>
+          <h3 className="font-display text-sm font-bold">{label}</h3>
         </div>
         <p className="text-xs text-muted-foreground">{description}</p>
       </RetroCardHeader>

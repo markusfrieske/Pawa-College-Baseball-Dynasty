@@ -100,7 +100,7 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-md" data-testid="dialog-share-class">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold flex items-center gap-2">
+          <DialogTitle className="text-gold flex items-center gap-2">
             <Share2 className="w-4 h-4" />
             Share Recruiting Class
           </DialogTitle>
@@ -135,7 +135,7 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
             </p>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-muted-foreground font-pixel uppercase">Active Links ({activeShares.length})</p>
+              <p className="text-xs text-muted-foreground uppercase">Active Links ({activeShares.length})</p>
               {activeShares.map((share) => {
                 const url = `${window.location.origin}/import-class/${share.token}`;
                 const isCopied = copiedToken === share.token;

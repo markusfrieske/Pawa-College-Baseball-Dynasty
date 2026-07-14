@@ -67,7 +67,7 @@ export function AvailStrip({ playerId, availMap }: { playerId: string; availMap:
                 style={{ minWidth: 34 }}
                 data-testid={`avail-strip-${playerId}-${d}`}
               >
-                <span className="text-xs font-pixel leading-none">{d}</span>
+                <span className="text-xs leading-none">{d}</span>
                 <span className="text-xs font-bold leading-none mt-0.5">
                   {!avail ? "✕" : `${ip}IP`}
                 </span>

@@ -223,7 +223,7 @@ export default function EditRecruitsPage() {
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
-        <span className="text-xs font-pixel text-gold">{label}</span>
+        <span className="text-xs text-gold">{label}</span>
         {sortField === field && (
           sortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
         )}
@@ -244,7 +244,7 @@ export default function EditRecruitsPage() {
     return (
       <div className="min-h-screen bg-background p-4 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
-          <h1 className="font-pixel text-2xl text-red-500">ACCESS DENIED</h1>
+          <h1 className="font-display text-2xl font-bold text-red-500">ACCESS DENIED</h1>
           <p className="text-muted-foreground text-sm">
             {isGuest
               ? "Guests cannot edit recruiting classes. Join the league via an invite link and take over a team to access this page."
@@ -273,7 +273,7 @@ export default function EditRecruitsPage() {
                 {returnTo ? "Back to Setup" : "Back to Commissioner"}
               </RetroButton>
             </Link>
-            <h1 className="font-pixel text-xl text-gold">EDIT RECRUITING CLASS</h1>
+            <h1 className="font-display text-xl font-bold text-gold">EDIT RECRUITING CLASS</h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Position Filter */}
@@ -320,7 +320,7 @@ export default function EditRecruitsPage() {
         {/* Recruits Table */}
         <RetroCard>
           <RetroCardHeader>
-            <h2 className="font-pixel text-gold">Recruiting Class ({sortedRecruits.length} recruits)</h2>
+            <h2 className="text-gold">Recruiting Class ({sortedRecruits.length} recruits)</h2>
           </RetroCardHeader>
           <RetroCardContent className="p-0">
             <div className="overflow-x-auto">
@@ -332,60 +332,60 @@ export default function EditRecruitsPage() {
                     <SortHeader field="position" label="POS" />
                     <SortHeader field="overall" label="OVR" />
                     <SortHeader field="starRating" label="STARS" />
-                    <th className="px-2 py-2 text-xs font-pixel text-gold whitespace-nowrap" title="Blue Chip">BC</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-green-400 whitespace-nowrap" title="Gem">GEM</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-red-400 whitespace-nowrap" title="Bust">BUST</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-yellow-400 whitespace-nowrap" title="Generational Gem">G.GEM</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-red-600 whitespace-nowrap" title="Generational Bust">G.BUST</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">TYPE</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">YEAR</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">BATS</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">THROWS</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">HOMETOWN</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">STATE</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CONTACT</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">POWER</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SPEED</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">ARM</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">FIELD</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">VELO</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CTRL</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">STAM</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">FB</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">2S</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SL</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CB</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CH</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CT</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SNK</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">VSL</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">HSL</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SWP</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CCH</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SCB</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">PCB</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">FK</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SFF</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">SHU</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">KN</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">PROX</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">REP</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">PT</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">ACAD</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">PRES</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">FAC</th>
+                    <th className="px-2 py-2 text-xs text-gold whitespace-nowrap" title="Blue Chip">BC</th>
+                    <th className="px-2 py-2 text-xs text-green-400 whitespace-nowrap" title="Gem">GEM</th>
+                    <th className="px-2 py-2 text-xs text-red-400 whitespace-nowrap" title="Bust">BUST</th>
+                    <th className="px-2 py-2 text-xs text-yellow-400 whitespace-nowrap" title="Generational Gem">G.GEM</th>
+                    <th className="px-2 py-2 text-xs text-red-600 whitespace-nowrap" title="Generational Bust">G.BUST</th>
+                    <th className="px-2 py-2 text-xs text-gold">TYPE</th>
+                    <th className="px-2 py-2 text-xs text-gold">YEAR</th>
+                    <th className="px-2 py-2 text-xs text-gold">BATS</th>
+                    <th className="px-2 py-2 text-xs text-gold">THROWS</th>
+                    <th className="px-2 py-2 text-xs text-gold">HOMETOWN</th>
+                    <th className="px-2 py-2 text-xs text-gold">STATE</th>
+                    <th className="px-2 py-2 text-xs text-gold">CONTACT</th>
+                    <th className="px-2 py-2 text-xs text-gold">POWER</th>
+                    <th className="px-2 py-2 text-xs text-gold">SPEED</th>
+                    <th className="px-2 py-2 text-xs text-gold">ARM</th>
+                    <th className="px-2 py-2 text-xs text-gold">FIELD</th>
+                    <th className="px-2 py-2 text-xs text-gold">VELO</th>
+                    <th className="px-2 py-2 text-xs text-gold">CTRL</th>
+                    <th className="px-2 py-2 text-xs text-gold">STAM</th>
+                    <th className="px-2 py-2 text-xs text-gold">FB</th>
+                    <th className="px-2 py-2 text-xs text-gold">2S</th>
+                    <th className="px-2 py-2 text-xs text-gold">SL</th>
+                    <th className="px-2 py-2 text-xs text-gold">CB</th>
+                    <th className="px-2 py-2 text-xs text-gold">CH</th>
+                    <th className="px-2 py-2 text-xs text-gold">CT</th>
+                    <th className="px-2 py-2 text-xs text-gold">SNK</th>
+                    <th className="px-2 py-2 text-xs text-gold">VSL</th>
+                    <th className="px-2 py-2 text-xs text-gold">HSL</th>
+                    <th className="px-2 py-2 text-xs text-gold">SWP</th>
+                    <th className="px-2 py-2 text-xs text-gold">CCH</th>
+                    <th className="px-2 py-2 text-xs text-gold">SCB</th>
+                    <th className="px-2 py-2 text-xs text-gold">PCB</th>
+                    <th className="px-2 py-2 text-xs text-gold">FK</th>
+                    <th className="px-2 py-2 text-xs text-gold">SFF</th>
+                    <th className="px-2 py-2 text-xs text-gold">SHU</th>
+                    <th className="px-2 py-2 text-xs text-gold">KN</th>
+                    <th className="px-2 py-2 text-xs text-gold">PROX</th>
+                    <th className="px-2 py-2 text-xs text-gold">REP</th>
+                    <th className="px-2 py-2 text-xs text-gold">PT</th>
+                    <th className="px-2 py-2 text-xs text-gold">ACAD</th>
+                    <th className="px-2 py-2 text-xs text-gold">PRES</th>
+                    <th className="px-2 py-2 text-xs text-gold">FAC</th>
                     {/* Common Abilities */}
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">CLCH</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">GRIT</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">vsL</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">RCVY</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">STLN</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">RUN</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">THRW</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">POIS</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">HEAT</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">AGIL</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">ABILITIES</th>
+                    <th className="px-2 py-2 text-xs text-gold">CLCH</th>
+                    <th className="px-2 py-2 text-xs text-gold">GRIT</th>
+                    <th className="px-2 py-2 text-xs text-gold">vsL</th>
+                    <th className="px-2 py-2 text-xs text-gold">RCVY</th>
+                    <th className="px-2 py-2 text-xs text-gold">STLN</th>
+                    <th className="px-2 py-2 text-xs text-gold">RUN</th>
+                    <th className="px-2 py-2 text-xs text-gold">THRW</th>
+                    <th className="px-2 py-2 text-xs text-gold">POIS</th>
+                    <th className="px-2 py-2 text-xs text-gold">HEAT</th>
+                    <th className="px-2 py-2 text-xs text-gold">AGIL</th>
+                    <th className="px-2 py-2 text-xs text-gold">ABILITIES</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1312,7 +1312,7 @@ function AbilityEditor({
       </PopoverTrigger>
       <PopoverContent className="w-80 max-h-96 overflow-y-auto p-2" align="start">
         <div className="space-y-2">
-          <div className="font-pixel text-gold text-xs mb-2">SPECIAL ABILITIES</div>
+          <div className="text-gold text-xs mb-2">SPECIAL ABILITIES</div>
           {["gold", "blue", "red"].map(tier => {
             const tierAbilities = availableAbilities.filter(a => a.tier === tier);
             if (tierAbilities.length === 0) return null;

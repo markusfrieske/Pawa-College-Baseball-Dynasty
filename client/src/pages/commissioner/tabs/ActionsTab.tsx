@@ -306,13 +306,13 @@ export function ActionsTab({
                 Preflight not run — click to check
               </button>
             ) : preflight.canAdvance ? (
-              <div className="mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-xs text-green-400 font-pixel" data-testid="badge-preflight-clear">
+              <div className="mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-xs text-green-400" data-testid="badge-preflight-clear">
                 Preflight: All clear
               </div>
             ) : (
               <button
                 onClick={onSwitchToCommandCenter}
-                className="w-full mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-orange-500/50 bg-orange-500/10 text-xs text-orange-400 font-pixel hover:bg-orange-500/20 transition-colors"
+                className="w-full mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-orange-500/50 bg-orange-500/10 text-xs text-orange-400 hover:bg-orange-500/20 transition-colors"
                 data-testid="badge-preflight-blockers"
               >
                 Preflight: {preflightFail} blocker(s) — click to review
@@ -332,7 +332,7 @@ export function ActionsTab({
             <AdvanceProgressBar leagueId={league?.id || ""} isAdvancing={isAdvancing} />
 
             <div className="mt-4 pt-4 border-t border-border">
-              <p className="font-pixel text-xs text-gold uppercase mb-3">Quick Sim</p>
+              <p className="text-xs font-semibold text-gold uppercase mb-3">Quick Sim</p>
               <div className="space-y-2">
                 {!isPostseason && !isOffseason && (
                   <>
@@ -350,7 +350,7 @@ export function ActionsTab({
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-pixel text-gold text-sm">
+                          <AlertDialogTitle className="text-gold text-sm">
                             Sim to Postseason?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
@@ -387,7 +387,7 @@ export function ActionsTab({
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-pixel text-gold text-sm">
+                          <AlertDialogTitle className="text-gold text-sm">
                             Sim to College World Series?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
@@ -423,7 +423,7 @@ export function ActionsTab({
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-pixel text-gold text-sm">
+                          <AlertDialogTitle className="text-gold text-sm">
                             Sim to Offseason?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
@@ -465,7 +465,7 @@ export function ActionsTab({
                         </AlertDialogTrigger>
                         <AlertDialogContent className="bg-card border-border">
                           <AlertDialogHeader>
-                            <AlertDialogTitle className="font-pixel text-gold text-sm">
+                            <AlertDialogTitle className="text-gold text-sm">
                               Sim to College World Series?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
@@ -502,7 +502,7 @@ export function ActionsTab({
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-pixel text-gold text-sm">
+                          <AlertDialogTitle className="text-gold text-sm">
                             Sim to Offseason?
                           </AlertDialogTitle>
                           <AlertDialogDescription>
@@ -542,7 +542,7 @@ export function ActionsTab({
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-border">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-pixel text-gold text-sm">
+                        <AlertDialogTitle className="text-gold text-sm">
                           Sim to Next Season?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
@@ -608,7 +608,7 @@ export function ActionsTab({
                     </AlertDialogTrigger>
                     <AlertDialogContent className="bg-card border-border">
                       <AlertDialogHeader>
-                        <AlertDialogTitle className="font-pixel text-gold text-sm">
+                        <AlertDialogTitle className="text-gold text-sm">
                           Simulate Full Season?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
@@ -736,7 +736,7 @@ export function ActionsTab({
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-card border-border">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="font-pixel text-gold text-sm">
+                    <AlertDialogTitle className="text-gold text-sm">
                       Dedup All Rosters?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
@@ -776,7 +776,7 @@ export function ActionsTab({
                 </AlertDialogTrigger>
                 <AlertDialogContent className="bg-card border-border">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="font-pixel text-gold text-sm">
+                    <AlertDialogTitle className="text-gold text-sm">
                       Reset Season?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
@@ -809,7 +809,7 @@ export function ActionsTab({
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
         <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">
+            <DialogTitle className="text-gold text-sm">
               Import Recruiting Class
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -911,7 +911,7 @@ export function ActionsTab({
       <Dialog open={showEditTeamsDialog} onOpenChange={setShowEditTeamsDialog}>
         <DialogContent className="bg-card border-border max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">Edit Teams</DialogTitle>
+            <DialogTitle className="text-gold text-sm">Edit Teams</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Swap teams in or out of the dynasty.
             </DialogDescription>
@@ -955,7 +955,7 @@ export function ActionsTab({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Megaphone className="w-4 h-4 text-gold" />
-            <span className="font-pixel text-xs text-gold">COMMISSIONER BROADCAST</span>
+            <span className="text-xs font-semibold text-gold">COMMISSIONER BROADCAST</span>
           </div>
         </RetroCardHeader>
         <RetroCardContent className="space-y-3">

@@ -350,12 +350,12 @@ function MobileRecruitCard({
           <span className="text-xs text-muted-foreground">{yearLabel}</span>
         )}
         {typeLabel && (
-          <span className={`text-xs font-pixel px-1 rounded ${typeLabel === "XFER" ? "text-purple-300 bg-purple-500/15 border border-purple-500/30" : "text-cyan-300 bg-cyan-500/15 border border-cyan-500/30"}`}>
+          <span className={`text-xs px-1 rounded ${typeLabel === "XFER" ? "text-purple-300 bg-purple-500/15 border border-purple-500/30" : "text-cyan-300 bg-cyan-500/15 border border-cyan-500/30"}`}>
             {typeLabel}
           </span>
         )}
         {recruit.isBlueChip && (
-          <span className="text-xs font-pixel text-gold px-1 rounded border border-gold/40 bg-gold/10">CHIP</span>
+          <span className="text-xs text-gold px-1 rounded border border-gold/40 bg-gold/10">CHIP</span>
         )}
         {recruit.isGenerationalGem && (
           <Gem className="w-3 h-3 text-emerald-400" />
@@ -364,10 +364,10 @@ function MobileRecruitCard({
           <Skull className="w-3 h-3 text-red-400" />
         )}
         {positionNeed && (
-          <span className="text-xs font-pixel text-red-400 border border-red-500/40 px-1 rounded">NEED</span>
+          <span className="text-xs text-red-400 border border-red-500/40 px-1 rounded">NEED</span>
         )}
         {hasOffer && (
-          <span className="text-xs font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">OFFER</span>
+          <span className="text-xs text-gold border border-gold/40 px-1 rounded bg-gold/10">OFFER</span>
         )}
         {nilCost && !nilAffordable && (
           <DollarSign className="w-3 h-3 text-red-400 shrink-0" />
@@ -412,7 +412,7 @@ function MobileRecruitCard({
           <span className="text-xs text-muted-foreground">
             OVR <span className="text-foreground font-medium">{ovrStr}</span>
           </span>
-          <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${stageBadge.textColor} ${stageBadge.borderColor}`}>
+          <span className={`text-xs px-1.5 py-0.5 rounded border ${stageBadge.textColor} ${stageBadge.borderColor}`}>
             {stageBadge.label}
           </span>
           {typeof recruit.teamsIn === "number" && recruit.teamsIn > 1 && (
@@ -421,7 +421,7 @@ function MobileRecruitCard({
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {actionMeta && !expanded && (
-            <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${actionMeta.color}`}>
+            <span className={`text-xs px-1.5 py-0.5 rounded border ${actionMeta.color}`}>
               {actionMeta.label}
             </span>
           )}
@@ -750,7 +750,7 @@ function MobileRecapTab({
                   className={`w-4 h-4 mt-0.5 shrink-0 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}
                 />
                 <div className="min-w-0">
-                  <p className={`font-pixel text-xs uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
+                  <p className={`text-xs font-semibold uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
                     {isPositive ? "Decommit Opportunity" : "Decommitment Alert"}
                   </p>
                   <p className="text-[12px] text-foreground leading-snug">{alert.description}</p>
@@ -779,12 +779,12 @@ function MobileRecapTab({
 
       {weekRecapData && (weekRecapData.myRecruits.length > 0 || weekRecapData.hotMissed.length > 0) && (
         <div className="bg-card border border-border rounded-lg p-3 space-y-3">
-          <p className="font-pixel text-xs text-gold uppercase tracking-wider">
+          <p className="text-xs font-semibold text-gold uppercase tracking-wider">
             Week {weekRecapData.week} Recap
           </p>
           {weekRecapData.myRecruits.length > 0 && (
             <div>
-              <p className="text-xs font-pixel text-muted-foreground mb-2">YOUR TARGETS</p>
+              <p className="text-xs text-muted-foreground mb-2">YOUR TARGETS</p>
               <div className="space-y-2">
                 {weekRecapData.myRecruits.map((r) => {
                   const recruit = allRecruits.find((rec) => rec.id === r.recruitId);
@@ -818,7 +818,7 @@ function MobileRecapTab({
           )}
           {weekRecapData.hotMissed.length > 0 && (
             <div>
-              <p className="text-xs font-pixel text-amber-400 mb-2">HOT — NOT CONTACTED</p>
+              <p className="text-xs text-amber-400 mb-2">HOT — NOT CONTACTED</p>
               <div className="space-y-2">
                 {weekRecapData.hotMissed.map((r) => {
                   const recruit = allRecruits.find((rec) => rec.id === r.recruitId);
@@ -852,7 +852,7 @@ function MobileRecapTab({
 
       {displayActions.length > 0 && (
         <div className="bg-card border border-border rounded-lg p-3 space-y-2">
-          <p className="font-pixel text-xs text-gold uppercase tracking-wider">
+          <p className="text-xs font-semibold text-gold uppercase tracking-wider">
             Last Week's Actions
           </p>
           <div className="space-y-1.5 max-h-64 overflow-y-auto">
@@ -945,7 +945,7 @@ function MobileNeedsTab({
   return (
     <div className="space-y-4 pb-4">
       <div>
-        <p className="text-xs font-pixel text-muted-foreground mb-2 uppercase">Position Needs</p>
+        <p className="text-xs text-muted-foreground mb-2 uppercase">Position Needs</p>
         <div className="flex flex-wrap gap-2">
           <button
             className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
@@ -1023,7 +1023,7 @@ function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
             {battle.firstName} {battle.lastName}
           </span>
           {battle.isBlueChip && (
-            <span className="text-xs font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">CHIP</span>
+            <span className="text-xs text-gold border border-gold/40 px-1 rounded bg-gold/10">CHIP</span>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -1034,7 +1034,7 @@ function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs font-pixel px-1.5 py-0.5 rounded border border-gray-500/40 text-gray-400">
+        <span className="text-xs px-1.5 py-0.5 rounded border border-gray-500/40 text-gray-400">
           {stageLabel[battle.stage] ?? battle.stage}
         </span>
         {battle.myInterest && (
@@ -1141,7 +1141,7 @@ function RecruitingBattlesPanel({
     <div className="space-y-4 pb-4">
       {hotBattles.length > 0 && (
         <div>
-          <div className="text-xs font-pixel text-red-400 mb-2 flex items-center gap-1.5">
+          <div className="text-xs text-red-400 mb-2 flex items-center gap-1.5">
             <Flame className="w-3 h-3" />
             Hot Battles ({hotBattles.length})
           </div>
@@ -1155,7 +1155,7 @@ function RecruitingBattlesPanel({
 
       {recentCommits.length > 0 && (
         <div>
-          <div className="text-xs font-pixel text-gold mb-2 flex items-center gap-1.5">
+          <div className="text-xs text-gold mb-2 flex items-center gap-1.5">
             <GraduationCap className="w-3 h-3" />
             Recent Commits ({recentCommits.length})
           </div>
@@ -1170,7 +1170,7 @@ function RecruitingBattlesPanel({
       {commitWatchBattles.length > 0 && (
         <div>
           <button
-            className="flex items-center gap-1.5 text-xs font-pixel text-amber-400 mb-2 w-full text-left"
+            className="flex items-center gap-1.5 text-xs text-amber-400 mb-2 w-full text-left"
             onClick={() => setShowWatchlist(v => !v)}
             data-testid="btn-toggle-watchlist"
           >
@@ -1189,7 +1189,7 @@ function RecruitingBattlesPanel({
 
       {rivalryBattles.length > 0 && (
         <div>
-          <div className="text-xs font-pixel text-orange-400 mb-2 flex items-center gap-1.5">
+          <div className="text-xs text-orange-400 mb-2 flex items-center gap-1.5">
             <Flame className="w-3 h-3" />
             Rivalry Alerts ({rivalryBattles.length})
           </div>
@@ -1203,7 +1203,7 @@ function RecruitingBattlesPanel({
 
       {otherBattles.length > 0 && (
         <div>
-          <div className="text-xs font-pixel text-muted-foreground mb-2">
+          <div className="text-xs text-muted-foreground mb-2">
             All Battles ({battles.length})
           </div>
           <div className="space-y-2">
@@ -1472,7 +1472,7 @@ export function MobileRecruitingBoard({
                 <span className="relative">
                   {tab.icon}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className={`absolute -top-1 -right-1.5 text-xs font-pixel min-w-[14px] h-3.5 flex items-center justify-center rounded-full px-0.5 ${
+                    <span className={`absolute -top-1 -right-1.5 text-xs min-w-[14px] h-3.5 flex items-center justify-center rounded-full px-0.5 ${
                       tab.key === "recap" && tab.badge > 0
                         ? "bg-amber-500 text-black"
                         : "bg-gold/20 text-gold border border-gold/40"
@@ -1481,7 +1481,7 @@ export function MobileRecruitingBoard({
                     </span>
                   )}
                 </span>
-                <span className="text-xs font-pixel leading-none">{tab.label}</span>
+                <span className="text-xs leading-none">{tab.label}</span>
                 {isActive && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gold rounded-t-full" />
                 )}
@@ -1607,7 +1607,7 @@ export function MobileRecruitingBoard({
       <Sheet open={showTopicSheet} onOpenChange={(open) => { if (!open) { setShowTopicSheet(false); setPendingAction(null); } }}>
         <SheetContent side="bottom" className="pb-8">
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-pixel text-xs text-gold">
+            <SheetTitle className="text-xs font-semibold text-gold">
               {pendingAction?.type === "phone" ? "Call Topic" : "Email Topic"}
             </SheetTitle>
             <p className="text-xs text-muted-foreground">

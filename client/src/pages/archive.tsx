@@ -118,7 +118,7 @@ function PhaseLabel({ phase }: { phase: string | null }) {
 function StarRow({ stars }: { stars: number | null }) {
   if (!stars) return null;
   const colors: Record<number, string> = { 5: "text-orange-400", 4: "text-yellow-400", 3: "text-green-400", 2: "text-blue-400", 1: "text-gray-400" };
-  return <span className={`font-pixel text-xs ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
+  return <span className={`text-xs font-semibold ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
 }
 
 // ── Overview Tab ───────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gold/10 border border-gold/30">
                 <Crown className="w-6 h-6 text-gold flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-pixel text-gold text-xs mb-0.5">CWS CHAMPION</p>
+                  <p className="text-gold text-xs mb-0.5">CWS CHAMPION</p>
                   <p className="font-medium text-base leading-tight truncate">{overview.cwsChampion.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {overview.cwsChampion.wins}–{overview.cwsChampion.losses}
@@ -167,7 +167,7 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
 
           {overview.confChampions.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="font-pixel text-xs text-muted-foreground mb-2">CONFERENCE CHAMPIONS</p>
+              <p className="text-xs font-semibold text-muted-foreground mb-2">CONFERENCE CHAMPIONS</p>
               <div className="flex flex-wrap gap-2">
                 {overview.confChampions.map(c => (
                   <div key={c.teamId} className="flex items-center gap-1.5 px-2 py-1 rounded bg-background/40 border border-border/40">
@@ -199,12 +199,12 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
               overview.statLeaders.soLeader,
             ].filter(Boolean).map(leader => (
               <div key={leader!.statLabel} className="p-2 rounded bg-background/40 border border-border/40" data-testid={`stat-leader-${leader!.statLabel.toLowerCase()}`}>
-                <p className="font-pixel text-xs text-muted-foreground mb-1">{leader!.statLabel} LEADER</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">{leader!.statLabel} LEADER</p>
                 <p className="text-sm font-medium leading-tight truncate">{leader!.name}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: leader!.teamColor }} />
                   <span className="text-xs text-muted-foreground">{leader!.teamAbbr}</span>
-                  <span className="text-gold font-pixel text-xs ml-auto">{leader!.value}</span>
+                  <span className="text-gold text-xs font-semibold ml-auto">{leader!.value}</span>
                 </div>
               </div>
             ))}
@@ -214,12 +214,12 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
             <div className="mt-3 pt-3 border-t border-border/30 flex items-center gap-3 p-2 rounded bg-background/30">
               <Star className="w-4 h-4 text-gold flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-pixel text-xs text-gold">RECRUITER OF THE YEAR</p>
+                <p className="text-xs font-semibold text-gold">RECRUITER OF THE YEAR</p>
                 <p className="text-sm font-medium truncate">{overview.recruiterOfYear.coachName ?? overview.recruiterOfYear.teamName}</p>
                 <p className="text-xs text-muted-foreground">{overview.recruiterOfYear.teamAbbr}</p>
               </div>
               {overview.recruiterOfYear.grade && (
-                <span className={`font-pixel text-[14px] font-bold ${gradeColor(overview.recruiterOfYear.grade)}`}>
+                <span className={`text-sm font-semibold font-bold ${gradeColor(overview.recruiterOfYear.grade)}`}>
                   {overview.recruiterOfYear.grade}
                 </span>
               )}
@@ -248,7 +248,7 @@ function RecruitingTab({ snapshots, season }: { snapshots: RecruitSnapshot[]; se
         <RetroCard key={snap.teamId} data-testid={`card-recruiting-${snap.teamId}`}>
           <RetroCardContent className="py-3">
             <div className="flex items-start gap-3">
-              <div className={`font-pixel text-xs w-8 flex-shrink-0 ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
+              <div className={`text-xs font-semibold w-8 flex-shrink-0 ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
                 #{snap.classRank}
               </div>
               <div className="flex-1 min-w-0">
@@ -256,7 +256,7 @@ function RecruitingTab({ snapshots, season }: { snapshots: RecruitSnapshot[]; se
                   <TeamDot color={snap.color} />
                   <span className="font-medium text-sm truncate">{snap.name}</span>
                   {snap.grade && (
-                    <span className={`font-pixel text-xs font-bold ${gradeColor(snap.grade)}`}>{snap.grade}</span>
+                    <span className={`text-xs font-semibold font-bold ${gradeColor(snap.grade)}`}>{snap.grade}</span>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
@@ -380,7 +380,7 @@ function GamesTab({ games, season }: { games: LegendaryGame[]; season: number })
                     <PhaseLabel phase={g.phase} />
                     {g.week && <span className="text-xs text-muted-foreground">Wk {g.week}</span>}
                   </div>
-                  <p className="font-pixel text-xs text-gold">
+                  <p className="text-xs font-semibold text-gold">
                     {winner} {winScore} – {loseScore} {loser}
                   </p>
                   {g.headline && (
@@ -504,8 +504,8 @@ export default function ArchivePage() {
               </button>
             </Link>
             <div className="flex-1 min-w-0">
-              <p className="font-pixel text-gold text-xs">{leagueName.toUpperCase()}</p>
-              <h1 className="font-pixel text-xs text-foreground flex items-center gap-2">
+              <p className="text-gold text-xs">{leagueName.toUpperCase()}</p>
+              <h1 className="text-xs font-semibold text-foreground flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-gold" />
                 Historical Archive
               </h1>
@@ -600,7 +600,7 @@ export default function ArchivePage() {
             <RetroCardContent>
               <div className="text-center py-12 space-y-3">
                 <BookOpen className="w-12 h-12 mx-auto text-muted-foreground/30" />
-                <p className="font-pixel text-gold text-xs">No History Yet</p>
+                <p className="text-gold text-xs">No History Yet</p>
                 <p className="text-sm text-muted-foreground">
                   Complete your first season to start building your dynasty archive.
                 </p>

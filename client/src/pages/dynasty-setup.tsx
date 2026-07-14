@@ -171,7 +171,7 @@ export default function DynastySetupPage() {
           <div className="flex flex-col items-center gap-6">
             <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
             <div>
-              <h2 className="font-pixel text-gold text-xs mb-3">Starting Dynasty...</h2>
+              <h2 className="text-gold text-xs mb-3">Starting Dynasty...</h2>
               <p className="text-muted-foreground text-sm">Generating rosters, schedules, and recruiting class. This may take a moment.</p>
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function DynastySetupPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8">
-          <h2 className="font-pixel text-gold text-sm mb-4">Dynasty Not Found</h2>
+          <h2 className="text-gold text-sm mb-4">Dynasty Not Found</h2>
           <Link href="/dashboard">
             <RetroButton data-testid="button-back-dashboard">Back to Dashboard</RetroButton>
           </Link>
@@ -211,7 +211,7 @@ export default function DynastySetupPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="font-pixel text-gold text-lg">{league.name}</h1>
+                <h1 className="text-gold text-lg">{league.name}</h1>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground text-sm">Dynasty Setup</span>
                   {teams.length > 0 && (
@@ -264,7 +264,7 @@ export default function DynastySetupPage() {
           <RetroCard variant="bordered">
             <RetroCardHeader>
               <div className="flex items-center justify-between">
-                <span className="font-pixel text-gold text-xs">Teams & Coaches</span>
+                <span className="text-gold text-xs">Teams & Coaches</span>
                 {isCommissioner && (
                   <RetroButton
                     variant="outline"
@@ -341,7 +341,7 @@ export default function DynastySetupPage() {
               <>
                 <RetroCard variant="bordered">
                   <RetroCardHeader>
-                    <span className="font-pixel text-gold text-xs">Roster Source</span>
+                    <span className="text-gold text-xs">Roster Source</span>
                   </RetroCardHeader>
                   <RetroCardContent>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -368,7 +368,7 @@ export default function DynastySetupPage() {
                     {/* Per-team roster overrides */}
                     {savedRosters && savedRosters.filter(r => r.basedOn && teams.some(t => t.name === r.basedOn)).length > 0 && (
                       <div className="mt-4 space-y-2">
-                        <p className="text-xs text-muted-foreground font-pixel uppercase">Per-Team Custom Rosters</p>
+                        <p className="text-xs text-muted-foreground uppercase">Per-Team Custom Rosters</p>
                         <div className="space-y-1.5">
                           {teams.filter(t => savedRosters.some(r => r.basedOn === t.name)).map(team => {
                             const matchingRosters = savedRosters.filter(r => r.basedOn === team.name);
@@ -419,7 +419,7 @@ export default function DynastySetupPage() {
 
                 <RetroCard variant="bordered">
                   <RetroCardHeader>
-                    <span className="font-pixel text-gold text-xs">Recruiting Class</span>
+                    <span className="text-gold text-xs">Recruiting Class</span>
                   </RetroCardHeader>
                   <RetroCardContent>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -476,7 +476,7 @@ export default function DynastySetupPage() {
 
                 <RetroCard variant="bordered">
                   <RetroCardHeader>
-                    <span className="font-pixel text-gold text-xs">Season Schedule</span>
+                    <span className="text-gold text-xs">Season Schedule</span>
                   </RetroCardHeader>
                   <RetroCardContent>
                     <p className="text-sm text-muted-foreground mb-3">
@@ -507,7 +507,7 @@ export default function DynastySetupPage() {
                   <RetroCard variant="bordered">
                     <RetroCardHeader>
                       <div className="flex items-center justify-between gap-4">
-                        <span className="font-pixel text-gold text-xs">Active Invite Links</span>
+                        <span className="text-gold text-xs">Active Invite Links</span>
                         <Badge variant="outline" className="text-xs">{pendingInvites.length} active</Badge>
                       </div>
                     </RetroCardHeader>
@@ -574,7 +574,7 @@ export default function DynastySetupPage() {
       <Dialog open={showInviteDialog} onOpenChange={(open) => { setShowInviteDialog(open); if (!open) setGeneratedLink(null); }}>
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">Invite Coach</DialogTitle>
+            <DialogTitle className="text-gold text-sm">Invite Coach</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Generate a shareable link that anyone can use to join your dynasty and claim an available CPU team.
             </DialogDescription>
@@ -665,7 +665,7 @@ function SetupCheckItem({
         <div className={status === "complete" ? "text-green-400" : "text-muted-foreground"}>
           {icon}
         </div>
-        <span className="font-pixel text-xs text-foreground">{title}</span>
+        <span className="text-xs font-semibold text-foreground">{title}</span>
         {status === "complete" ? (
           <Check className="w-4 h-4 text-green-400 ml-auto" />
         ) : (

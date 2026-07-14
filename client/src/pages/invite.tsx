@@ -75,7 +75,7 @@ export default function InvitePage() {
         <RetroCard className="w-full max-w-md text-center">
           <RetroCardContent>
             <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="font-pixel text-gold text-lg mb-2">Invalid Invite</h2>
+            <h2 className="text-gold text-lg mb-2">Invalid Invite</h2>
             <p className="text-muted-foreground mb-6" data-testid="text-invite-error">
               {errorMessage}
             </p>
@@ -92,7 +92,7 @@ export default function InvitePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 text-center">
-          <h1 className="font-pixel text-gold text-xl mb-2">You're Invited!</h1>
+          <h1 className="text-gold text-xl mb-2">You're Invited!</h1>
           <p className="text-muted-foreground">
             Join <span className="text-gold">{data.league.name}</span>
           </p>

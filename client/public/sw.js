@@ -1,6 +1,5 @@
-const CACHE_NAME = 'cbd-shell-v1';
-const FONT_CACHE = 'cbd-fonts-v1';
-const STATIC_CACHE = 'cbd-static-v1';
+const CACHE_NAME = 'cbd-shell-v2';
+const STATIC_CACHE = 'cbd-static-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -18,7 +17,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== CACHE_NAME && k !== FONT_CACHE && k !== STATIC_CACHE)
+          .filter((k) => k !== CACHE_NAME && k !== STATIC_CACHE)
           .map((k) => caches.delete(k))
       )
     )
@@ -34,24 +33,10 @@ self.addEventListener('fetch', (event) => {
 
   if (url.pathname.startsWith('/api/')) return;
 
-  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
-    event.respondWith(
-      caches.open(FONT_CACHE).then((cache) =>
-        cache.match(request).then((cached) => {
-          if (cached) return cached;
-          return fetch(request).then((response) => {
-            if (response.ok) cache.put(request, response.clone());
-            return response;
-          });
-        })
-      )
-    );
-    return;
-  }
-
   const isStaticAsset =
     url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf|mp3|webp)$/) ||
     url.pathname.startsWith('/music/') ||
+    url.pathname.startsWith('/fonts/') ||
     url.pathname.startsWith('/storyline-images/');
 
   if (isStaticAsset) {

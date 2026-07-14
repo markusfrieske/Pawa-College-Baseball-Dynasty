@@ -181,7 +181,7 @@ function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryC
         {/* Top row: position badge left, blue chip right */}
         <div className="relative z-10 flex items-center justify-between px-2 pt-1.5">
           <span
-            className="font-pixel text-xs font-bold px-1.5 py-0.5 rounded"
+            className="text-xs font-semibold font-bold px-1.5 py-0.5 rounded"
             style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
             data-testid={`card-position-${recruit.id}`}
           >
@@ -208,7 +208,7 @@ function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryC
         {typeBadge ? (
           <div className="relative z-10 flex justify-center pb-1.5">
             <span
-              className={`font-pixel text-xs px-2 py-0.5 rounded ${typeBadge.className} ${typeBadge.pulse ? "animate-pulse" : ""}`}
+              className={`text-xs font-semibold px-2 py-0.5 rounded ${typeBadge.className} ${typeBadge.pulse ? "animate-pulse" : ""}`}
               data-testid={`card-type-badge-${recruit.id}`}
             >
               {typeBadge.label}
@@ -229,14 +229,14 @@ function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryC
       >
         <div>
           <StarRating rating={recruit.starRating} size="sm" />
-          <div className="font-pixel text-xs text-gray-900 leading-snug truncate mt-0.5">
+          <div className="text-xs font-semibold text-gray-900 leading-snug truncate mt-0.5">
             {recruit.firstName} {recruit.lastName}
           </div>
         </div>
         <div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-500 leading-none">{recruit.homeState}</span>
-            <span className="font-pixel text-xs font-bold leading-none" style={{ color: ovrColor }}>
+            <span className="text-xs font-semibold font-bold leading-none" style={{ color: ovrColor }}>
               {recruit.overall}
             </span>
           </div>
@@ -366,7 +366,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
       {/* Header: name / pos·ovr | stars + potential */}
       <div className="px-2 py-1 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
         <div className="min-w-0">
-          <div className="font-pixel text-xs text-[#C4A35A] truncate leading-tight">
+          <div className="text-xs font-semibold text-[#C4A35A] truncate leading-tight">
             {recruit.firstName} {recruit.lastName}
           </div>
           <div className="text-xs text-gray-500 leading-tight">
@@ -377,20 +377,20 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0">
           <StarRating rating={recruit.starRating} size="sm" />
-          <span className="font-pixel text-xs text-[#C4A35A] leading-none">POT {potGrade}</span>
+          <span className="text-xs font-semibold text-[#C4A35A] leading-none">POT {potGrade}</span>
         </div>
       </div>
 
       {/* Type badge + blue chip */}
       <div className="px-2 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
         <span
-          className={`font-pixel text-xs px-1 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
+          className={`text-xs font-semibold px-1 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
           style={{ background: badgeBg, color: badgeColor }}
         >
           {badgeLabel}
         </span>
         {recruit.isBlueChip && !isGen && !isGenBust && (
-          <span className="font-pixel text-xs text-blue-400 flex items-center gap-0.5 leading-none">
+          <span className="text-xs font-semibold text-blue-400 flex items-center gap-0.5 leading-none">
             <Crown className="w-2 h-2" />BLUE CHIP
           </span>
         )}
@@ -412,7 +412,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             return (
               <div key={label} className="flex items-center gap-0.5">
                 <span className="text-xs text-gray-500 w-4 leading-none font-mono shrink-0">{label}</span>
-                <span className="font-pixel text-xs font-bold w-[10px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
+                <span className="text-xs font-semibold font-bold w-[10px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
                 <span className="text-xs text-gray-400 leading-none font-mono">{label === "VEL" ? `${velocityToKMH(val)} KMH` : val}</span>
               </div>
             );
@@ -458,10 +458,10 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             return (
               <div key={label} className="flex items-center gap-0.5">
                 <span className="text-xs text-gray-500 w-4 leading-none font-mono shrink-0">{label}</span>
-                <span className="font-pixel text-xs text-amber-400/80 flex-1 truncate leading-none min-w-0">
+                <span className="text-xs font-semibold text-amber-400/80 flex-1 truncate leading-none min-w-0">
                   {abilName ? (abilName.length > 14 ? abilName.slice(0, 14) + "…" : abilName) : ""}
                 </span>
-                <span className="font-pixel text-xs font-bold leading-none shrink-0 ml-0.5" style={{ color: commonTierColors[tier] }}>{letter}</span>
+                <span className="text-xs font-semibold font-bold leading-none shrink-0 ml-0.5" style={{ color: commonTierColors[tier] }}>{letter}</span>
               </div>
             );
           })}
@@ -482,7 +482,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
               if (!a) return null;
               if (name === "Bad Ball Hitter") {
                 return (
-                  <span key={name} className="text-xs border rounded overflow-hidden font-pixel leading-tight inline-flex border-blue-500/40 px-0">
+                  <span key={name} className="text-xs border rounded overflow-hidden leading-tight inline-flex border-blue-500/40 px-0">
                     <span className="text-blue-400 px-0.5">Bad</span>
                     <span className="text-red-400 border-l border-red-500/40 px-0.5">Ball Hitter</span>
                   </span>
@@ -494,7 +494,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
                 ? "text-blue-400 border-blue-500/40"
                 : "text-red-400 border-red-500/40";
               return (
-                <span key={name} className={`text-xs border rounded px-0.5 font-pixel leading-tight ${tierColor}`}>
+                <span key={name} className={`text-xs border rounded px-0.5 leading-tight ${tierColor}`}>
                   {name.length > 13 ? name.slice(0, 13) + "…" : name}
                 </span>
               );

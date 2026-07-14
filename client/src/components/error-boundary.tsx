@@ -65,8 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
             style={{ borderColor: "rgba(202,168,84,0.3)", background: "#0a1a0d" }}
           >
             <h1
-              className="font-pixel text-gold text-xs mb-3"
-              style={{ fontFamily: "'Press Start 2P', monospace" }}
+              className="text-gold text-sm font-display font-bold mb-3"
             >
               {isTooManyRenders ? "Render Loop Detected" : "Something Went Wrong"}
             </h1>
@@ -100,11 +99,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <button
               onClick={() => this.handleReload()}
-              className="px-4 py-2 text-xs font-pixel text-black rounded"
-              style={{
-                fontFamily: "'Press Start 2P', monospace",
-                background: "rgb(202,168,84)",
-              }}
+              className="px-4 py-2 text-xs font-sans font-semibold text-black rounded"
+              style={{ background: "rgb(202,168,84)" }}
             >
               Reload Page
             </button>

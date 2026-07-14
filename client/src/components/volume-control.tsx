@@ -63,8 +63,7 @@ export function VolumeControl() {
       >
         <span
           className="text-xs text-[#c8aa6e] whitespace-nowrap"
-          style={{ fontFamily: "'Press Start 2P', monospace" }}
-        >
+          >
           VOL
         </span>
         <input
@@ -83,8 +82,7 @@ export function VolumeControl() {
         />
         <span
           className="text-xs text-[#c8aa6e]/70 tabular-nums"
-          style={{ fontFamily: "'Press Start 2P', monospace" }}
-        >
+          >
           {muted ? "MUTE" : `${Math.round(volume * 100)}%`}
         </span>
         <div className="w-full border-t border-[#c8aa6e]/20 pt-2 mt-1">
@@ -97,7 +95,6 @@ export function VolumeControl() {
             {sfxOn ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
             <span
               className="text-xs whitespace-nowrap"
-              style={{ fontFamily: "'Press Start 2P', monospace" }}
             >
               SFX {sfxOn ? "ON" : "OFF"}
             </span>

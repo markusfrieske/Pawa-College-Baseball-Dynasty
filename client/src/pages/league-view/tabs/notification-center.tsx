@@ -62,7 +62,7 @@ export function NotificationCenter({ leagueId }: { leagueId: string }) {
       </PopoverTrigger>
       <PopoverContent className="w-80 bg-card border-border p-0" align="end">
         <div className="p-3 border-b border-border">
-          <span className="font-pixel text-gold text-xs">NOTIFICATIONS</span>
+          <span className="text-gold text-xs">NOTIFICATIONS</span>
         </div>
         <div className="max-h-72 overflow-y-auto">
           {items.length === 0 ? (
@@ -176,14 +176,14 @@ export function PhaseDeadline({ deadline }: { deadline: Date | string }) {
       <Dialog open={showWarning} onOpenChange={setShowWarning}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-amber-400 text-sm flex items-center gap-2">
+            <DialogTitle className="text-amber-400 text-sm flex items-center gap-2">
               <Timer className="w-4 h-4" /> Phase Deadline Approaching
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mt-1">
             The commissioner has set a deadline for this phase. You have less than 24 hours to complete your actions — mark yourself ready or you may be auto-advanced.
           </p>
-          <div className={`font-pixel text-xs mt-1 ${colorClass}`}>{timeLeft}</div>
+          <div className={`text-xs font-semibold mt-1 ${colorClass}`}>{timeLeft}</div>
           <RetroButton onClick={() => setShowWarning(false)} className="mt-3 w-full" data-testid="button-dismiss-deadline-warning">
             Got It
           </RetroButton>

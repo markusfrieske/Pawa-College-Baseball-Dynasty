@@ -344,7 +344,7 @@ export default function RivalriesPage() {
           </Link>
           <div className="flex items-center gap-2 flex-1">
             <Swords className="w-4 h-4 text-gold" />
-            <h1 className="font-pixel text-xs text-gold">Coaching Rivalries</h1>
+            <h1 className="text-xs font-semibold text-gold">Coaching Rivalries</h1>
           </div>
         </div>
 
@@ -355,7 +355,7 @@ export default function RivalriesPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 text-xs font-pixel transition-colors ${
+                className={`flex-1 py-2 text-xs transition-colors ${
                   activeTab === tab
                     ? "text-gold border-b-2 border-gold -mb-px"
                     : "text-muted-foreground"

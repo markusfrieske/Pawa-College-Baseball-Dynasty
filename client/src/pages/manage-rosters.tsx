@@ -276,7 +276,7 @@ export default function ManageRostersPage() {
                 {returnTo ? "Back to Setup" : "Home"}
               </RetroButton>
             </Link>
-            <h1 className="font-pixel text-xl text-gold" data-testid="text-page-title">MANAGE ROSTERS</h1>
+            <h1 className="font-display text-xl font-bold text-gold" data-testid="text-page-title">MANAGE ROSTERS</h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {hasChanges && (
@@ -309,7 +309,7 @@ export default function ManageRostersPage() {
 
         <div className="flex items-end gap-4 flex-wrap">
           <div className="space-y-1">
-            <label className="font-pixel text-xs text-gold uppercase">Conference</label>
+            <label className="text-xs font-semibold text-gold uppercase">Conference</label>
             <Select value={selectedConference} onValueChange={handleConferenceChange}>
               <SelectTrigger className="w-48" data-testid="select-conference">
                 <SelectValue placeholder="Select conference" />
@@ -327,7 +327,7 @@ export default function ManageRostersPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="font-pixel text-xs text-gold uppercase">Team</label>
+            <label className="text-xs font-semibold text-gold uppercase">Team</label>
             <Select value={selectedTeam} onValueChange={handleTeamChange} disabled={!selectedConference}>
               <SelectTrigger className="w-56" data-testid="select-team">
                 <SelectValue placeholder="Select team" />
@@ -342,7 +342,7 @@ export default function ManageRostersPage() {
 
           {savedRosters && savedRosters.length > 0 && (
             <div className="space-y-1">
-              <label className="font-pixel text-xs text-gold uppercase">Load Saved Roster</label>
+              <label className="text-xs font-semibold text-gold uppercase">Load Saved Roster</label>
               <div className="flex items-center gap-2">
                 <Select onValueChange={handleLoadSavedRoster}>
                   <SelectTrigger className="w-56" data-testid="select-load-roster">
@@ -362,7 +362,7 @@ export default function ManageRostersPage() {
         {savedRosters && savedRosters.length > 0 && (
           <RetroCard>
             <RetroCardHeader>
-              <h2 className="font-pixel text-gold text-sm">SAVED ROSTERS</h2>
+              <h2 className="text-gold text-sm">SAVED ROSTERS</h2>
             </RetroCardHeader>
             <RetroCardContent>
               <div className="flex flex-wrap gap-2">
@@ -395,7 +395,7 @@ export default function ManageRostersPage() {
 
         {!selectedTeam && (
           <RetroCard className="text-center py-12">
-            <p className="text-muted-foreground font-pixel text-xs" data-testid="text-select-team-prompt">
+            <p className="text-muted-foreground text-xs font-semibold" data-testid="text-select-team-prompt">
               Select a conference and team to view the roster
             </p>
           </RetroCard>
@@ -411,7 +411,7 @@ export default function ManageRostersPage() {
         {selectedTeam && !rosterLoading && currentRoster.length > 0 && (
           <RetroCard className="p-0">
             <RetroCardHeader className="p-4">
-              <h2 className="font-pixel text-gold" data-testid="text-team-name">{selectedTeam} Roster</h2>
+              <h2 className="text-gold" data-testid="text-team-name">{selectedTeam} Roster</h2>
               <span className="text-muted-foreground text-xs ml-2">({currentRoster.length} players)</span>
             </RetroCardHeader>
             <RetroCardContent className="p-0">
@@ -419,21 +419,21 @@ export default function ManageRostersPage() {
                 <table className="w-full text-sm" data-testid="table-roster">
                   <thead className="bg-muted/30 sticky top-0 z-10">
                     <tr>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">#</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">NAME</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">POS</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">ELIG</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">OVR</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">CON</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">PWR</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">SPD</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">ARM</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">FLD</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">VELO</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">CTRL</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STUF</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STAM</th>
-                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">POT</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">#</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">NAME</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">POS</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">ELIG</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">OVR</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">CON</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">PWR</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">SPD</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">ARM</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">FLD</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">VELO</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">CTRL</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">STUF</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">STAM</th>
+                      <th className="px-2 py-2 text-left text-xs text-gold whitespace-nowrap">POT</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -510,14 +510,14 @@ export default function ManageRostersPage() {
       <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold">Save Custom Roster</DialogTitle>
+            <DialogTitle className="text-gold">Save Custom Roster</DialogTitle>
             <DialogDescription>
               Save the current roster (with your edits) as a custom roster set.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="font-pixel text-xs text-foreground uppercase">Roster Name</label>
+              <label className="text-xs font-semibold text-foreground uppercase">Roster Name</label>
               <Input
                 value={saveRosterName}
                 onChange={(e) => setSaveRosterName(e.target.value)}
@@ -526,7 +526,7 @@ export default function ManageRostersPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="font-pixel text-xs text-foreground uppercase">Description (optional)</label>
+              <label className="text-xs font-semibold text-foreground uppercase">Description (optional)</label>
               <Input
                 value={saveRosterDesc}
                 onChange={(e) => setSaveRosterDesc(e.target.value)}
@@ -663,7 +663,7 @@ function AbilitiesDropdown({
               if (abilities.length === 0) return null;
               return (
                 <div key={tier}>
-                  <div className={`px-2 py-1 text-xs font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                  <div className={`px-2 py-1 text-xs uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
                     {tier} Abilities ({abilities.length})
                   </div>
                   {abilities.map(ability => {
@@ -722,7 +722,7 @@ function PlayerEditPanel({
 
   const NumField = ({ field, label, disabled }: { field: keyof RealPlayer; label: string; disabled?: boolean }) => (
     <div className="space-y-0.5">
-      <label className="font-pixel text-xs text-gold uppercase">{label}</label>
+      <label className="text-xs font-semibold text-gold uppercase">{label}</label>
       <Input
         type="number"
         min={1}
@@ -738,7 +738,7 @@ function PlayerEditPanel({
 
   const TextInput = ({ field, label, className: cls }: { field: keyof RealPlayer; label: string; className?: string }) => (
     <div className="space-y-0.5">
-      <label className="font-pixel text-xs text-gold uppercase">{label}</label>
+      <label className="text-xs font-semibold text-gold uppercase">{label}</label>
       <Input
         className={`h-7 text-xs ${cls || "w-28"}`}
         value={(player[field] as string) || ""}
@@ -752,7 +752,7 @@ function PlayerEditPanel({
     <div className="space-y-4" data-testid={`panel-edit-${idx}`}>
       <div className="flex items-start gap-6 flex-wrap">
         <div className="space-y-2">
-          <p className="font-pixel text-xs text-gold mb-1">PLAYER AVATAR</p>
+          <p className="text-xs font-semibold text-gold mb-1">PLAYER AVATAR</p>
           <div className="flex items-center gap-4">
             <CoachAvatar
               skinTone={appearance.skinTone}
@@ -762,7 +762,7 @@ function PlayerEditPanel({
             />
             <div className="space-y-2">
               <div className="space-y-0.5">
-                <label className="font-pixel text-xs text-gold uppercase">Skin Tone</label>
+                <label className="text-xs font-semibold text-gold uppercase">Skin Tone</label>
                 <Select value={appearance.skinTone} onValueChange={(v) => updateAppearance("skinTone", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-skinTone-${idx}`}>
                     <SelectValue />
@@ -775,7 +775,7 @@ function PlayerEditPanel({
                 </Select>
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-xs text-gold uppercase">Hair Color</label>
+                <label className="text-xs font-semibold text-gold uppercase">Hair Color</label>
                 <Select value={appearance.hairColor} onValueChange={(v) => updateAppearance("hairColor", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairColor-${idx}`}>
                     <SelectValue />
@@ -788,7 +788,7 @@ function PlayerEditPanel({
                 </Select>
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-xs text-gold uppercase">Hair Style</label>
+                <label className="text-xs font-semibold text-gold uppercase">Hair Style</label>
                 <Select value={appearance.hairStyle} onValueChange={(v) => updateAppearance("hairStyle", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairStyle-${idx}`}>
                     <SelectValue />
@@ -809,7 +809,7 @@ function PlayerEditPanel({
             <TextInput field="firstName" label="First Name" />
             <TextInput field="lastName" label="Last Name" />
             <div className="space-y-0.5">
-              <label className="font-pixel text-xs text-gold uppercase">Position</label>
+              <label className="text-xs font-semibold text-gold uppercase">Position</label>
               <Select
                 value={player.position}
                 onValueChange={(v) => onUpdate(idx, "position", v)}
@@ -825,7 +825,7 @@ function PlayerEditPanel({
               </Select>
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-xs text-gold uppercase">Eligibility</label>
+              <label className="text-xs font-semibold text-gold uppercase">Eligibility</label>
               <Select
                 value={player.eligibility}
                 onValueChange={(v) => onUpdate(idx, "eligibility", v)}
@@ -844,7 +844,7 @@ function PlayerEditPanel({
           <div className="flex items-center gap-4 flex-wrap">
             <NumField field="jerseyNumber" label="Jersey #" />
             <div className="space-y-0.5">
-              <label className="font-pixel text-xs text-gold uppercase">Rank (OVR)</label>
+              <label className="text-xs font-semibold text-gold uppercase">Rank (OVR)</label>
               <Input
                 type="number"
                 min={1}
@@ -858,7 +858,7 @@ function PlayerEditPanel({
             <TextInput field="hometown" label="Home City" />
             <TextInput field="homeState" label="Home State" className="w-16" />
             <div className="space-y-0.5">
-              <label className="font-pixel text-xs text-gold uppercase">Potential</label>
+              <label className="text-xs font-semibold text-gold uppercase">Potential</label>
               <Select
                 value={player.potential}
                 onValueChange={(v) => onUpdate(idx, "potential", v)}
@@ -880,7 +880,7 @@ function PlayerEditPanel({
       {isPitcher ? (
         <>
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">PITCHING ATTRIBUTES</p>
+            <p className="text-xs font-semibold text-gold mb-2">PITCHING ATTRIBUTES</p>
             <div className="flex items-center gap-3 flex-wrap">
               <NumField field="velocity" label="Velocity" />
               <NumField field="control" label="Control" />
@@ -892,8 +892,8 @@ function PlayerEditPanel({
             </div>
           </div>
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">PITCH MIX</p>
-            <p className="font-pixel text-xs text-muted-foreground mb-1">FB/2S: 0 or 1 only | Others: 1-7</p>
+            <p className="text-xs font-semibold text-gold mb-2">PITCH MIX</p>
+            <p className="text-xs font-semibold text-muted-foreground mb-1">FB/2S: 0 or 1 only | Others: 1-7</p>
             <div className="flex items-center gap-3 flex-wrap">
               <NumField field="pitchFB" label="FB" />
               <NumField field="pitch2S" label="2S" />
@@ -918,7 +918,7 @@ function PlayerEditPanel({
         </>
       ) : (
         <div>
-          <p className="font-pixel text-xs text-gold mb-2">HITTING / FIELDING ATTRIBUTES</p>
+          <p className="text-xs font-semibold text-gold mb-2">HITTING / FIELDING ATTRIBUTES</p>
           <div className="flex items-center gap-3 flex-wrap">
             <NumField field="hitForAvg" label="Contact" />
             <NumField field="power" label="Power" />
@@ -931,7 +931,7 @@ function PlayerEditPanel({
       )}
 
       <div>
-        <p className="font-pixel text-xs text-gold mb-2">SECONDARY ATTRIBUTES</p>
+        <p className="text-xs font-semibold text-gold mb-2">SECONDARY ATTRIBUTES</p>
         <div className="flex items-center gap-3 flex-wrap">
           <NumField field="clutch" label="Clutch" />
           <NumField field="grit" label="Grit" />
@@ -949,7 +949,7 @@ function PlayerEditPanel({
       </div>
 
       <div>
-        <p className="font-pixel text-xs text-gold mb-2">SPECIAL ABILITIES</p>
+        <p className="text-xs font-semibold text-gold mb-2">SPECIAL ABILITIES</p>
         <AbilitiesDropdown
           selectedAbilities={player.abilities || []}
           position={player.position}

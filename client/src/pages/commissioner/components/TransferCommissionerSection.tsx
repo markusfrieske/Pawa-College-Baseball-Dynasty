@@ -121,7 +121,7 @@ export function TransferCommissionerSection({ leagueId }: TransferCommissionerSe
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-pixel text-gold text-sm">
+            <AlertDialogTitle className="text-gold text-sm">
               Transfer Commissioner Role?
             </AlertDialogTitle>
             <AlertDialogDescription>

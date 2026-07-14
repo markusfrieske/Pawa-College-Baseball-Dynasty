@@ -12,7 +12,7 @@ export const RetroSelect = forwardRef<HTMLSelectElement, RetroSelectProps>(
     return (
       <div className="space-y-2">
         {label && (
-          <label htmlFor={id} className="block font-pixel text-xs uppercase text-muted-foreground">
+          <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
             {label}
           </label>
         )}
@@ -21,7 +21,7 @@ export const RetroSelect = forwardRef<HTMLSelectElement, RetroSelectProps>(
             ref={ref}
             id={id}
             className={cn(
-              "w-full bg-input border-2 border-border text-foreground px-4 py-3 font-pixel text-xs",
+              "w-full min-h-10 bg-input border-2 border-border text-foreground px-4 py-2.5 font-sans text-sm",
               "appearance-none cursor-pointer focus:outline-none focus:border-gold",
               "transition-[border-color,box-shadow] duration-150",
               "focus:[box-shadow:var(--glow-gold-sm)]",

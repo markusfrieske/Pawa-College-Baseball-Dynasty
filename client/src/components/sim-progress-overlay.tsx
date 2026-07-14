@@ -69,7 +69,7 @@ function GameRow({ game, userTeamName, animate }: { game: SimGameResult; userTea
       >
         {game.homeTeam}
       </span>
-      <span className={`font-pixel text-xs min-w-[40px] text-center ${isUserGame ? "text-gold" : "text-foreground"}`}>
+      <span className={`text-xs font-semibold min-w-[40px] text-center ${isUserGame ? "text-gold" : "text-foreground"}`}>
         {game.homeScore} - {game.awayScore}
       </span>
       <span
@@ -137,7 +137,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
           <div className="h-[2px] w-full" style={{ background: "rgb(var(--atm-accent) / 0.55)" }} aria-hidden="true" />
           <div className="px-4 py-3 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-gold shrink-0" />
-            <DialogTitle className="font-pixel text-gold text-sm tracking-wider">
+            <DialogTitle className="text-gold text-sm tracking-wider">
               Season Simulation
             </DialogTitle>
           </div>
@@ -150,7 +150,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
           data-testid="sim-progress-scroll-area"
         >
           {!animationDone && (
-            <p className="text-xs text-muted-foreground font-pixel text-center animate-pulse">
+            <p className="text-xs text-muted-foreground text-center animate-pulse">
               Click to skip animation...
             </p>
           )}
@@ -169,19 +169,19 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
                 className={`space-y-1 ${!skipped ? "sim-section-in" : ""}`}
               >
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-pixel text-xs text-gold">
+                  <h3 className="text-xs font-semibold text-gold">
                     Week {week.week}
                   </h3>
-                  <span className="text-xs text-muted-foreground font-pixel">
+                  <span className="text-xs text-muted-foreground">
                     {formatPhase(week.phase)}
                   </span>
                   {userGames.length > 0 && (
-                    <span className={`font-pixel text-xs px-1.5 py-0.5 rounded ${userWins > userLosses ? "bg-green-900/40 text-green-400" : userLosses > userWins ? "bg-red-900/30 text-red-400" : "bg-muted/40 text-muted-foreground"}`}>
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${userWins > userLosses ? "bg-green-900/40 text-green-400" : userLosses > userWins ? "bg-red-900/30 text-red-400" : "bg-muted/40 text-muted-foreground"}`}>
                       {userWins}W-{userLosses}L
                     </span>
                   )}
                   {isRecruitingPhase && (
-                    <span className="font-pixel text-xs text-[#c8aa6e]/50 flex items-center gap-0.5">
+                    <span className="text-xs font-semibold text-[#c8aa6e]/50 flex items-center gap-0.5">
                       <Star className="w-2 h-2 inline" />
                       Recruiting
                     </span>
@@ -205,7 +205,7 @@ export function SimProgressOverlay({ open, onClose, simSummary, userTeamName }: 
               >
                 <div className="flex items-center gap-2">
                   <Trophy className="w-3 h-3 text-gold" />
-                  <h3 className="font-pixel text-xs text-gold">
+                  <h3 className="text-xs font-semibold text-gold">
                     {ps.phase}
                   </h3>
                   <div className="flex-1 border-t border-gold/30" />

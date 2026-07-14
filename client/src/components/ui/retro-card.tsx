@@ -56,7 +56,7 @@ interface RetroCardHeaderProps {
 
 export function RetroCardHeader({ children, className }: RetroCardHeaderProps) {
   return (
-    <div className={cn("font-pixel text-gold text-sm uppercase tracking-wider mb-4", className)}>
+    <div className={cn("font-display font-bold text-gold text-base tracking-[0.02em] mb-3", className)}>
       {children}
     </div>
   );

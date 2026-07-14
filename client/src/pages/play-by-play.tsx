@@ -581,7 +581,7 @@ export default function PlayByPlayPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-gold border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="font-pixel text-gold text-sm">Generating play-by-play...</p>
+          <p className="text-gold text-sm">Generating play-by-play...</p>
         </div>
       </div>
     );
@@ -591,7 +591,7 @@ export default function PlayByPlayPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="font-pixel text-red-400 text-sm mb-4">Failed to generate play-by-play</p>
+          <p className="text-red-400 text-sm mb-4">Failed to generate play-by-play</p>
           <p className="text-muted-foreground text-sm mb-4">{(error as Error)?.message || "Unknown error"}</p>
           <RetroButton variant="outline" onClick={() => setLocation(`/league/${id}/schedule`)} data-testid="button-back-schedule">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -647,7 +647,7 @@ export default function PlayByPlayPage() {
   const awayRecord = pbpData.teamRecords?.away;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-pixel" data-testid="play-by-play-page">
+    <div className="min-h-screen bg-background flex flex-col" data-testid="play-by-play-page">
       <header className="border-b border-border px-4 py-2 flex items-center justify-between gap-2">
         <RetroButton variant="ghost" size="sm" onClick={() => setLocation(`/league/${id}/schedule`)} data-testid="button-back">
           <ArrowLeft className="w-4 h-4" />
@@ -1126,7 +1126,7 @@ export default function PlayByPlayPage() {
       </div>
 
       <Dialog open={!!statsModalPlayer} onOpenChange={(open) => { if (!open) setStatsModalPlayer(null); }}>
-        <DialogContent className="bg-card border-border max-w-md font-pixel">
+        <DialogContent className="bg-card border-border max-w-md">
           {statsModalPlayer && (
             <>
               <DialogHeader>
@@ -1439,13 +1439,13 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="outline" className="text-xs font-pixel shrink-0">{position}</Badge>
-            <span className="font-pixel text-xs text-gold truncate max-w-[150px]">{name}</span>
+            <Badge variant="outline" className="text-xs shrink-0">{position}</Badge>
+            <span className="text-xs font-semibold text-gold truncate max-w-[150px]">{name}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-xs text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
+            <span className="text-xs text-muted-foreground">{type === "batter" ? "At Bat" : "Pitching"}</span>
             {overall && (
-              <span className="text-xs font-pixel text-muted-foreground flex items-center gap-0.5">
+              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                 OVR {overall}
                 <span className="flex">
                   {Array.from({ length: stars }).map((_, i) => (
@@ -1461,7 +1461,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-2">
         {statLabels.map(([key, label]) => (
           <div key={key} className="flex items-center justify-between gap-1">
-            <span className="text-xs font-pixel text-muted-foreground">{label}</span>
+            <span className="text-xs text-muted-foreground">{label}</span>
             <div className="flex items-center gap-1 flex-1">
               <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
                 <div
@@ -1469,7 +1469,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
                   style={{ width: `${Math.min(100, (stats[key] ?? 0))}%` }}
                 />
               </div>
-              <span className={`text-xs font-pixel w-6 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
+              <span className={`text-xs w-6 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
             </div>
           </div>
         ))}
@@ -1477,24 +1477,24 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
 
       {hasGameAction && gameStats && (
         <div className="border-t border-border/50 pt-2 mt-1">
-          <span className="text-xs text-muted-foreground font-pixel block mb-1">TODAY</span>
+          <span className="text-xs text-muted-foreground block mb-1">TODAY</span>
           <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
             {type === "batter" ? (
               <>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
               </>
             ) : (
               <>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
               </>
             )}
           </div>
@@ -1503,23 +1503,23 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
 
       {seasonStats && (
         <div className="border-t border-border/50 pt-2 mt-1">
-          <span className="text-xs text-muted-foreground font-pixel block mb-1">SEASON</span>
+          <span className="text-xs text-muted-foreground block mb-1">SEASON</span>
           <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
             {type === "batter" ? (
               <>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">AVG:</span> <span className="text-gold">{seasonStats.avg}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{seasonStats.hr}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{seasonStats.rbi}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{seasonStats.h}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.games}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">AVG:</span> <span className="text-gold">{seasonStats.avg}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{seasonStats.hr}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{seasonStats.rbi}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{seasonStats.h}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.games}</span></span>
               </>
             ) : (
               <>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">ERA:</span> <span className="text-gold">{seasonStats.era}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">W-L:</span> <span className="text-foreground">{seasonStats.wins}-{seasonStats.losses}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{seasonStats.pSo}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{seasonStats.pBb}</span></span>
-                <span className="text-xs font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.pitchingGames}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">ERA:</span> <span className="text-gold">{seasonStats.era}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">W-L:</span> <span className="text-foreground">{seasonStats.wins}-{seasonStats.losses}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{seasonStats.pSo}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{seasonStats.pBb}</span></span>
+                <span className="text-xs"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.pitchingGames}</span></span>
               </>
             )}
           </div>
@@ -1568,7 +1568,7 @@ function DiamondView({ bases }: { bases: boolean[] }) {
 
 function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScores: { away: number[]; home: number[] } }) {
   return (
-    <div className="space-y-6 font-pixel" data-testid="box-score-view">
+    <div className="space-y-6" data-testid="box-score-view">
       <div className="overflow-x-auto">
         <table className="w-full text-xs border border-border">
           <thead>
@@ -1632,7 +1632,7 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
 function BattingTable({ stats }: { stats: BattingStat[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs border border-border font-pixel">
+      <table className="w-full text-xs border border-border">
         <thead>
           <tr className="border-b border-border bg-card">
             <th className="text-left px-2 py-1.5 text-muted-foreground">Player</th>
@@ -1673,7 +1673,7 @@ function BattingTable({ stats }: { stats: BattingStat[] }) {
 function PitchingTable({ stats }: { stats: PitchingStat[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs border border-border font-pixel">
+      <table className="w-full text-xs border border-border">
         <thead>
           <tr className="border-b border-border bg-card">
             <th className="text-left px-2 py-1.5 text-muted-foreground">Pitcher</th>

@@ -131,10 +131,10 @@ export function MobileFilterSheet({
       <SheetContent side="bottom" className="bg-card border-border p-0 max-h-[90vh] overflow-y-auto rounded-t-xl">
         <SheetHeader className="p-4 border-b border-border sticky top-0 bg-card z-10">
           <div className="flex items-center justify-between">
-            <SheetTitle className="font-pixel text-gold text-xs">
+            <SheetTitle className="text-gold text-xs">
               FILTERS
               {activeViewCount > 0 && (
-                <span className="ml-2 text-xs bg-gold/20 border border-gold/40 text-gold px-1.5 py-0.5 rounded-full font-pixel">
+                <span className="ml-2 text-xs bg-gold/20 border border-gold/40 text-gold px-1.5 py-0.5 rounded-full">
                   {activeViewCount} active
                 </span>
               )}
@@ -152,7 +152,7 @@ export function MobileFilterSheet({
         <div className="p-4 space-y-5">
           {/* Sort */}
           <div>
-            <p className="font-pixel text-xs text-gold mb-2 flex items-center gap-1.5">
+            <p className="text-xs font-semibold text-gold mb-2 flex items-center gap-1.5">
               <ArrowUpDown className="w-3 h-3" />
               SORT BY
             </p>
@@ -167,7 +167,7 @@ export function MobileFilterSheet({
 
           {/* Position */}
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">POSITION</p>
+            <p className="text-xs font-semibold text-gold mb-2">POSITION</p>
             <RetroSelect
               options={positionOptions}
               value={positionFilter}
@@ -179,7 +179,7 @@ export function MobileFilterSheet({
 
           {/* Stars */}
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">STARS</p>
+            <p className="text-xs font-semibold text-gold mb-2">STARS</p>
             <RetroSelect
               options={starOptions}
               value={starFilter}
@@ -191,7 +191,7 @@ export function MobileFilterSheet({
 
           {/* Type */}
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">TYPE</p>
+            <p className="text-xs font-semibold text-gold mb-2">TYPE</p>
             <RetroSelect
               options={[
                 { label: "All Types", value: "all" },
@@ -208,7 +208,7 @@ export function MobileFilterSheet({
 
           {/* Home State */}
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">HOME STATE</p>
+            <p className="text-xs font-semibold text-gold mb-2">HOME STATE</p>
             <RetroSelect
               options={stateOptions}
               value={stateFilter}
@@ -220,7 +220,7 @@ export function MobileFilterSheet({
 
           {/* View Toggles */}
           <div>
-            <p className="font-pixel text-xs text-gold mb-2">VIEWS</p>
+            <p className="text-xs font-semibold text-gold mb-2">VIEWS</p>
             <div className="grid grid-cols-2 gap-2">
               <ViewToggle
                 active={showWatchlistOnly}

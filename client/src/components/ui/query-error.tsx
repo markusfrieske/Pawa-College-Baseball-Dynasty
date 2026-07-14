@@ -41,7 +41,7 @@ export function QueryError({ error, message, onRetry, compact = false, className
         <AlertTriangle className="w-6 h-6 text-destructive" />
       </div>
       <div className="space-y-1">
-        <p className="font-pixel text-xs text-destructive">Error</p>
+        <p className="text-xs font-semibold text-destructive">Error</p>
         <p className="text-sm text-muted-foreground max-w-[280px]">{displayMessage}</p>
       </div>
       {onRetry && (

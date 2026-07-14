@@ -151,7 +151,7 @@ function WarRoomSkeleton() {
 function ReadyBadge({ isReady }: { isReady: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-pixel text-xs border ${
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
         isReady
           ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
           : "bg-yellow-500/15 border-yellow-500/40 text-yellow-400"
@@ -189,7 +189,7 @@ function NextGameCard({
           <div className="flex items-center gap-3 py-1">
             <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div>
-              <p className="font-pixel text-xs text-muted-foreground mb-0.5">
+              <p className="text-xs font-semibold text-muted-foreground mb-0.5">
                 WEEK {league.currentWeek}
               </p>
               <p className="text-sm text-muted-foreground">Bye week — no game scheduled</p>
@@ -225,17 +225,17 @@ function NextGameCard({
       <div className="bg-gold/10 px-3 py-1.5 border-b border-border flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Swords className="w-3.5 h-3.5 text-gold" />
-          <span className="font-pixel text-gold text-xs">
+          <span className="text-gold text-xs">
             {isComplete ? "RESULT" : "NEXT GAME"} — {phaseLabel}
           </span>
           {gameType && (
-            <span className="font-pixel text-xs px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
+            <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
               {GAME_TYPE_LABELS[gameType] ?? gameType.toUpperCase()}
             </span>
           )}
         </div>
         <span
-          className={`font-pixel text-xs px-1.5 py-0.5 rounded ${
+          className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
             isConference
               ? "bg-blue-500/20 text-blue-400"
               : "bg-muted/50 text-muted-foreground"
@@ -265,7 +265,7 @@ function NextGameCard({
                   ) : (
                     <Plane className="w-2.5 h-2.5 text-muted-foreground" />
                   )}
-                  <span className="font-pixel text-xs text-muted-foreground">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     {isHome ? "HOME" : "AWAY"}
                   </span>
                 </div>
@@ -277,7 +277,7 @@ function NextGameCard({
               {isComplete ? (
                 <>
                   <div
-                    className={`font-pixel text-sm leading-none ${
+                    className={`font-display text-sm font-bold leading-none ${
                       userWon ? "text-emerald-400" : "text-red-400"
                     }`}
                     data-testid="text-war-room-score"
@@ -285,7 +285,7 @@ function NextGameCard({
                     {userScore} – {opponentScore}
                   </div>
                   <div
-                    className={`font-pixel text-xs mt-1 ${
+                    className={`text-xs font-semibold mt-1 ${
                       userWon ? "text-emerald-400" : "text-red-400"
                     }`}
                   >
@@ -293,7 +293,7 @@ function NextGameCard({
                   </div>
                 </>
               ) : (
-                <div className="font-pixel text-muted-foreground text-xs">VS</div>
+                <div className="text-muted-foreground text-xs">VS</div>
               )}
             </div>
 
@@ -532,7 +532,7 @@ function NeedsAttentionCard({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs sm:text-xs">NEEDS ATTENTION</h3>
+          <h3 className="text-gold text-xs sm:text-xs">NEEDS ATTENTION</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -691,7 +691,7 @@ function QuickActionsBar({
 
   return (
     <div className="mb-4" data-testid="section-quick-actions">
-      <p className="font-pixel text-xs text-muted-foreground mb-2 uppercase tracking-wider">Quick Actions</p>
+      <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Quick Actions</p>
       <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
         {actions.map(action => {
           const btn = (
@@ -740,7 +740,7 @@ function CommissionerView({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-xs sm:text-xs">COMMISSIONER VIEW</h3>
+          <h3 className="text-gold text-xs sm:text-xs">COMMISSIONER VIEW</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -756,7 +756,7 @@ function CommissionerView({
                 <span className="text-sm text-foreground">
                   {blockers.notReadyCount}/{blockers.totalHumanTeams} teams not ready
                 </span>
-                <Badge variant="outline" className="font-pixel text-xs text-yellow-400 border-yellow-500/40">
+                <Badge variant="outline" className="text-xs font-semibold text-yellow-400 border-yellow-500/40">
                   WAITING
                 </Badge>
               </div>
@@ -766,7 +766,7 @@ function CommissionerView({
                 <span className="text-sm text-foreground">
                   {blockers.unreportedGames} game{blockers.unreportedGames !== 1 ? "s" : ""} need reporting
                 </span>
-                <Badge variant="outline" className="font-pixel text-xs text-red-400 border-red-500/40">
+                <Badge variant="outline" className="text-xs font-semibold text-red-400 border-red-500/40">
                   REPORTS DUE
                 </Badge>
               </div>
@@ -802,7 +802,7 @@ function SinceLastAdvanceSection({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
+            <h3 className="text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
           </div>
         </RetroCardHeader>
         <RetroCardContent>
@@ -818,10 +818,10 @@ function SinceLastAdvanceSection({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
+            <h3 className="text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
           </div>
           <Link href={`/league/${leagueId}/ticker`}>
-            <span className="flex items-center gap-1 font-pixel text-xs text-muted-foreground hover:text-gold transition-colors" data-testid="link-war-room-ticker">
+            <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-gold transition-colors" data-testid="link-war-room-ticker">
               <Rss className="w-3 h-3" />
               Full Feed →
             </span>
@@ -892,7 +892,7 @@ export default function WarRoomPage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <RetroCard variant="bordered" className="text-center p-8 max-w-sm">
           <AlertTriangle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <h2 className="font-pixel text-gold text-xs mb-2">War Room Unavailable</h2>
+          <h2 className="text-gold text-xs mb-2">War Room Unavailable</h2>
           <p className="text-sm text-muted-foreground mb-4">Could not load your dashboard data.</p>
           <RetroButton onClick={() => refetch()} data-testid="button-war-room-retry">
             Try Again
@@ -937,11 +937,11 @@ export default function WarRoomPage() {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-pixel text-gold text-xs">WAR ROOM</span>
-                <Badge variant="outline" className="font-pixel text-xs text-gold border-gold/40 bg-gold/10">
+                <span className="text-gold text-xs">WAR ROOM</span>
+                <Badge variant="outline" className="text-xs font-semibold text-gold border-gold/40 bg-gold/10">
                   S{league.currentSeason} W{league.currentWeek}
                 </Badge>
-                <Badge variant="outline" className="font-pixel text-xs text-muted-foreground border-border whitespace-nowrap">
+                <Badge variant="outline" className="text-xs font-semibold text-muted-foreground border-border whitespace-nowrap">
                   {phaseLabel.toUpperCase()}
                 </Badge>
               </div>
@@ -971,7 +971,7 @@ export default function WarRoomPage() {
                   style={{ width: `${humanCount > 0 ? (readyCount / humanCount) * 100 : 0}%` }}
                 />
               </div>
-              <span className="flex-shrink-0 font-pixel text-xs">
+              <span className="flex-shrink-0 text-xs font-semibold">
                 {readyCount}/{humanCount} ready
               </span>
             </div>
@@ -986,7 +986,7 @@ export default function WarRoomPage() {
         {hasNoTeam && !isCommissioner && (
           <RetroCard variant="bordered" className="text-center p-8 mb-4" data-testid="card-no-team">
             <Trophy className="w-10 h-10 text-gold mx-auto mb-3" />
-            <h2 className="font-pixel text-gold text-xs mb-2">No Team Assigned</h2>
+            <h2 className="text-gold text-xs mb-2">No Team Assigned</h2>
             <p className="text-sm text-muted-foreground mb-4">
               You are not currently coaching a team in this league.
             </p>

@@ -315,7 +315,7 @@ export default function WalkonsPage() {
                 Back
               </RetroButton>
             </Link>
-            <h1 className="font-pixel text-gold text-sm">CUTS & WALK-ON BIDS</h1>
+            <h1 className="text-gold text-sm">CUTS & WALK-ON BIDS</h1>
             <div className="ml-auto flex items-center gap-3 flex-wrap">
               <Badge
                 variant={rosterCount > MAX_ROSTER ? "destructive" : rosterCount === MAX_ROSTER ? "default" : "outline"}
@@ -358,12 +358,12 @@ export default function WalkonsPage() {
             <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
               <div className="flex items-center gap-1.5">
                 <DollarSign className="w-3.5 h-3.5 text-gold" />
-                <span className="font-pixel text-xs text-muted-foreground">AVAILABLE NIL</span>
+                <span className="text-xs font-semibold text-muted-foreground">AVAILABLE NIL</span>
                 <span className="font-medium text-sm text-foreground" data-testid="nil-available">{fmtK(availableNil)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Gavel className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-pixel text-xs text-muted-foreground">COMMITTED</span>
+                <span className="text-xs font-semibold text-muted-foreground">COMMITTED</span>
                 <span className="font-medium text-sm text-amber-400" data-testid="committed-bids">
                   {fmtK(committedBids)}
                 </span>
@@ -375,7 +375,7 @@ export default function WalkonsPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-green-400" />
-                <span className="font-pixel text-xs text-muted-foreground">REMAINING</span>
+                <span className="text-xs font-semibold text-muted-foreground">REMAINING</span>
                 <span
                   className={`font-medium text-sm ${remainingNil < 0 ? "text-red-400" : "text-green-400"}`}
                   data-testid="nil-remaining"
@@ -429,7 +429,7 @@ export default function WalkonsPage() {
               <RetroCardContent>
                 {persistedOutcomes.filter(r => r.won).length > 0 && (
                   <div className="mb-4">
-                    <h3 className="font-pixel text-xs text-green-400 mb-2">SIGNED</h3>
+                    <h3 className="text-xs font-semibold text-green-400 mb-2">SIGNED</h3>
                     <div className="space-y-1.5">
                       {persistedOutcomes.filter(r => r.won).map(r => (
                         <div
@@ -455,7 +455,7 @@ export default function WalkonsPage() {
                 )}
                 {persistedOutcomes.filter(r => !r.won).length > 0 && (
                   <div>
-                    <h3 className="font-pixel text-xs text-red-400 mb-2">OUTBID ON</h3>
+                    <h3 className="text-xs font-semibold text-red-400 mb-2">OUTBID ON</h3>
                     <div className="space-y-1.5">
                       {persistedOutcomes.filter(r => !r.won).map(r => (
                         <div
@@ -537,7 +537,7 @@ export default function WalkonsPage() {
                             <span>Pot: {getPotentialGrade(player.potential)}</span>
                           )}
                           <span
-                            className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${
+                            className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${
                               player.batHand === "L"
                                 ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
                                 : player.batHand === "S"
@@ -549,7 +549,7 @@ export default function WalkonsPage() {
                             B:{player.batHand || "R"} T:{player.throwHand || "R"}
                           </span>
                           {!["P", "SP", "RP", "CP"].includes(player.position) && (player as any).trajectory != null && (
-                            <span className="font-pixel text-xs px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-roster-${player.id}`}>
+                            <span className="text-xs font-semibold px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-roster-${player.id}`}>
                               {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                             </span>
                           )}
@@ -700,7 +700,7 @@ export default function WalkonsPage() {
                                 <span>Pot: {walkon.signedTeamId ? getPotentialGrade(walkon.potential) : "???"}</span>
                               )}
                               <span
-                                className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${
+                                className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${
                                   walkon.batHand === "L"
                                     ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
                                     : walkon.batHand === "S"
@@ -712,7 +712,7 @@ export default function WalkonsPage() {
                                 B:{walkon.batHand || "R"} T:{walkon.throwHand || "R"}
                               </span>
                               {!["P", "SP", "RP", "CP"].includes(walkon.position) && walkon.trajectory != null && (
-                                <span className="font-pixel text-xs px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-walkon-${walkon.id}`}>
+                                <span className="text-xs font-semibold px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-walkon-${walkon.id}`}>
                                   {TRAJECTORY_LABELS[walkon.trajectory] ?? "LD"}
                                 </span>
                               )}
@@ -845,7 +845,7 @@ export default function WalkonsPage() {
       <AlertDialog open={!!confirmCut} onOpenChange={(open) => { if (!open) setConfirmCut(null); }}>
         <AlertDialogContent className="bg-[#1a2e1a] border-[#3a5a3a]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-pixel text-gold text-sm">Confirm Cut</AlertDialogTitle>
+            <AlertDialogTitle className="text-gold text-sm">Confirm Cut</AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground">
               Are you sure you want to cut{" "}
               <span className="text-foreground font-medium">
@@ -885,7 +885,7 @@ export default function WalkonsPage() {
       >
         <DialogContent className="bg-[#1a2e1a] border-[#3a5a3a] max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+            <DialogTitle className="text-gold text-sm flex items-center gap-2">
               <Gavel className="w-4 h-4" />
               AUCTION RESULTS
             </DialogTitle>
@@ -895,7 +895,7 @@ export default function WalkonsPage() {
               <>
                 {auctionResults.filter(r => r.won).length > 0 && (
                   <div>
-                    <h3 className="font-pixel text-xs text-green-400 mb-2">PLAYERS WON</h3>
+                    <h3 className="text-xs font-semibold text-green-400 mb-2">PLAYERS WON</h3>
                     <div className="space-y-1.5">
                       {auctionResults.filter(r => r.won).map(r => (
                         <div
@@ -922,7 +922,7 @@ export default function WalkonsPage() {
 
                 {auctionResults.filter(r => !r.won).length > 0 && (
                   <div>
-                    <h3 className="font-pixel text-xs text-red-400 mb-2">OUTBID ON</h3>
+                    <h3 className="text-xs font-semibold text-red-400 mb-2">OUTBID ON</h3>
                     <div className="space-y-1.5">
                       {auctionResults.filter(r => !r.won).map(r => (
                         <div

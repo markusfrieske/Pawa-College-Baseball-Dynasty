@@ -215,7 +215,7 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
       <div className="shrink-0 border-b border-gold/30 bg-[#071208] px-6 py-4 flex items-center gap-4">
         <BaseballDiamond topHalf={diamondTop} isActive={isAnimating} />
         <div className="flex-1 min-w-0">
-          <p className="font-pixel text-[12px] text-gold tracking-wider leading-none">
+          <p className="text-xs font-semibold text-gold tracking-wider leading-none">
             {isAnimating ? `INNING ${currentInningNum}` : isWalkoff && !skipped ? "WALK-OFF!" : "FINAL"}
           </p>
           <p className="text-xs text-muted-foreground mt-1.5">
@@ -231,7 +231,7 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
           style={{ opacity: animationDone ? 1 : 0 }}
         >
           <p
-            className="font-pixel text-2xl leading-none"
+            className="font-display text-2xl font-bold leading-none"
             style={{ color: resultColor }}
             data-testid="scoreboard-result-label"
           >
@@ -243,7 +243,7 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
         </div>
 
         {isAnimating && (
-          <span className="font-pixel text-xs text-muted-foreground animate-pulse ml-2 shrink-0">
+          <span className="text-xs font-semibold text-muted-foreground animate-pulse ml-2 shrink-0">
             SIMULATING…
           </span>
         )}
@@ -256,7 +256,7 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
         title={!animationDone ? "Click to skip animation" : undefined}
       >
         {isAnimating && (
-          <p className="font-pixel text-xs text-muted-foreground text-center animate-pulse mb-5">
+          <p className="text-xs font-semibold text-muted-foreground text-center animate-pulse mb-5">
             Tap anywhere to skip…
           </p>
         )}
@@ -269,14 +269,14 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
           >
             <thead>
               <tr>
-                <th className="py-2 px-3 text-left font-pixel text-xs text-muted-foreground font-normal w-32" />
+                <th className="py-2 px-3 text-left text-xs font-semibold text-muted-foreground font-normal w-32" />
                 {Array.from({ length: totalInnings }, (_, i) => {
                   const inningActive = isAnimating && i === revealedCount;
                   return (
                     <th
                       key={i}
                       className={`py-2 px-2 text-center font-normal text-xs min-w-[34px] transition-colors duration-150 ${
-                        inningActive ? "text-gold font-pixel" : "text-muted-foreground/60"
+                        inningActive ? "text-gold" : "text-muted-foreground/60"
                       }`}
                       data-testid={`scoreboard-inning-header-${i + 1}`}
                     >
@@ -284,13 +284,13 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
                     </th>
                   );
                 })}
-                <th className="py-2 px-3 text-center font-pixel text-xs text-gold font-normal min-w-[38px] border-l border-border/50">
+                <th className="py-2 px-3 text-center text-xs font-semibold text-gold font-normal min-w-[38px] border-l border-border/50">
                   R
                 </th>
-                <th className="py-2 px-3 text-center font-pixel text-xs text-muted-foreground font-normal min-w-[38px]">
+                <th className="py-2 px-3 text-center text-xs font-semibold text-muted-foreground font-normal min-w-[38px]">
                   H
                 </th>
-                <th className="py-2 px-3 text-center font-pixel text-xs text-muted-foreground font-normal min-w-[38px]">
+                <th className="py-2 px-3 text-center text-xs font-semibold text-muted-foreground font-normal min-w-[38px]">
                   E
                 </th>
               </tr>
@@ -306,7 +306,7 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
                   <td className="py-3 px-3">
                     <div className="flex flex-col gap-0.5">
                       <span
-                        className="font-pixel text-xs leading-none"
+                        className="text-xs font-semibold leading-none"
                         style={{
                           color: animationDone && row.isWinner ? row.color : "#ffffffcc",
                         }}
@@ -344,7 +344,7 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
 
                   {/* R total — shown after final pause */}
                   <td
-                    className="py-3 px-3 text-center font-pixel text-base border-l border-border/50 transition-opacity duration-300"
+                    className="py-3 px-3 text-center font-display text-base font-bold border-l border-border/50 transition-opacity duration-300"
                     style={{
                       opacity: showFinal ? 1 : 0,
                       color: row.isWinner ? row.color : "#ffffffaa",

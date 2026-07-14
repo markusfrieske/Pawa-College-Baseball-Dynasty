@@ -147,7 +147,7 @@ const MOOD_CONFIG = {
 function OvrPill({ delta }: { delta: number }) {
   if (!delta) return null;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-pixel font-bold px-1.5 py-0.5 rounded border
+    <span className={`inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded border
       ${delta > 0 ? "text-green-400 bg-green-500/10 border-green-500/30" : "text-red-400 bg-red-500/10 border-red-500/30"}`}>
       {delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
       {delta > 0 ? "+" : ""}{delta} OVR
@@ -164,7 +164,7 @@ function MoodMeter({ mood }: { mood?: "rising" | "steady" | "falling" }) {
       <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${cfg.bar} transition-all`} style={{ width: `${cfg.pct}%` }} />
       </div>
-      <span className={`text-xs font-pixel ${cfg.color} flex-shrink-0`}>{cfg.label.toUpperCase()}</span>
+      <span className={`text-xs ${cfg.color} flex-shrink-0`}>{cfg.label.toUpperCase()}</span>
     </div>
   );
 }
@@ -181,7 +181,7 @@ function ArcProgressBar({ stage, total, isHighInterest }: { stage: number; total
             : isHighInterest ? "bg-gold/15" : "bg-muted/40"
         }`} />
       ))}
-      <span className={`text-xs font-pixel ml-0.5 flex-shrink-0 ${isHighInterest ? "text-gold/70" : "text-muted-foreground/50"}`}>
+      <span className={`text-xs ml-0.5 flex-shrink-0 ${isHighInterest ? "text-gold/70" : "text-muted-foreground/50"}`}>
         {f}/{t}
       </span>
     </div>
@@ -201,7 +201,7 @@ function VoteBar({ counts, total, myVote, resolvedChoice }: {
         const cc = CHOICE_COLORS[c];
         return (
           <div key={c} className="flex items-center gap-2">
-            <span className={`w-4 text-xs font-pixel font-bold ${(myVote === c || c === resolvedChoice) ? "text-gold" : "text-muted-foreground"}`}>{c}</span>
+            <span className={`w-4 text-xs font-bold ${(myVote === c || c === resolvedChoice) ? "text-gold" : "text-muted-foreground"}`}>{c}</span>
             <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
               <div className={`h-full rounded-full transition-all ${isWinner && total > 0 ? "bg-gold" : "bg-muted-foreground/30"}`} style={{ width: `${pct}%` }} />
             </div>
@@ -250,7 +250,7 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
       {sl.isHighInterest && (
         <div className="px-4 py-1.5 bg-gradient-to-r from-gold/20 via-gold/8 to-transparent flex items-center gap-2 border-b border-gold/20">
           <Crown className="w-3 h-3 text-gold" />
-          <span className="text-xs font-pixel text-gold tracking-[0.2em]">FEATURED EVALUATION</span>
+          <span className="text-xs text-gold tracking-[0.2em]">FEATURED EVALUATION</span>
         </div>
       )}
 
@@ -258,11 +258,11 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
       <div className="px-4 pt-3 pb-2 flex items-center gap-2 border-b border-border/30">
         <div className="flex items-center gap-1.5">
           <Vote className="w-3.5 h-3.5 text-gold animate-pulse" />
-          <span className="font-pixel text-xs text-gold">CHAPTER {ev.week} OPEN</span>
+          <span className="text-xs font-semibold text-gold">CHAPTER {ev.week} OPEN</span>
         </div>
         <span className="text-xs text-muted-foreground ml-auto">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
         {voted && (
-          <span className="text-xs font-pixel text-green-400 flex items-center gap-1">
+          <span className="text-xs text-green-400 flex items-center gap-1">
             <CheckCircle className="w-3 h-3" /> Voted {sl.myVote}
           </span>
         )}
@@ -309,8 +309,8 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
       {/* Scouting category label */}
       <div className="mx-4 mb-2 px-3 py-1.5 rounded-lg bg-muted/20 border border-border/30 flex items-center gap-2">
         <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-        <span className="text-xs font-pixel text-gold">{sl.publicStoryLabel}</span>
-        <span className="ml-auto text-xs font-pixel text-muted-foreground/60 flex-shrink-0">{sl.publicArcStatus}</span>
+        <span className="text-xs text-gold">{sl.publicStoryLabel}</span>
+        <span className="ml-auto text-xs text-muted-foreground/60 flex-shrink-0">{sl.publicArcStatus}</span>
       </div>
 
       {/* Story event text */}
@@ -344,15 +344,15 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
               style={{ minHeight: "56px" }}
             >
               <div className="flex items-start gap-2.5">
-                <span className={`font-pixel text-base font-bold flex-shrink-0 leading-none ${isSelected || isMyVote ? cc.label : "text-muted-foreground"}`}>{c}</span>
+                <span className={`font-display text-base font-bold font-bold flex-shrink-0 leading-none ${isSelected || isMyVote ? cc.label : "text-muted-foreground"}`}>{c}</span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-xs leading-snug ${isSelected || isMyVote ? "text-foreground" : "text-foreground/80"}`}>{choiceText[c]}</p>
                   {hint && (
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                      <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${RISK_COLORS[hint.riskLevel]}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded border ${RISK_COLORS[hint.riskLevel]}`}>
                         {hint.riskLevel.toUpperCase()} RISK
                       </span>
-                      <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${REWARD_COLORS[hint.rewardLevel]}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded border ${REWARD_COLORS[hint.rewardLevel]}`}>
                         {hint.rewardLevel.toUpperCase()} REWARD
                       </span>
                       <span className="text-xs text-muted-foreground italic truncate">{hint.flavor}</span>
@@ -372,7 +372,7 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
           <button
             onClick={() => pendingChoice && voteMutation.mutate({ choice: pendingChoice })}
             disabled={!pendingChoice || voteMutation.isPending}
-            className={`w-full py-3 rounded-lg border font-pixel text-xs transition-all ${
+            className={`w-full py-3 rounded-lg border text-xs font-semibold transition-all ${
               pendingChoice
                 ? "border-gold bg-gold/10 text-gold hover:bg-gold/20 active:bg-gold/30"
                 : "border-border/30 bg-muted/10 text-muted-foreground/40 cursor-not-allowed"
@@ -389,7 +389,7 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
         <div className="px-4 pb-4 pt-1">
           <div className="flex items-center gap-1.5 mb-2">
             <BarChart2 className="w-3 h-3 text-muted-foreground" />
-            <span className="text-xs font-pixel text-muted-foreground">LIVE VOTE DISTRIBUTION</span>
+            <span className="text-xs text-muted-foreground">LIVE VOTE DISTRIBUTION</span>
           </div>
           <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} />
         </div>
@@ -400,7 +400,7 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
         <div className="border-t border-border/20 px-4 py-2">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="flex items-center gap-1.5 text-xs font-pixel text-muted-foreground hover:text-gold transition-colors"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-gold transition-colors"
             data-testid={`button-timeline-${sl.id}`}
           >
             <History className="w-3 h-3" />
@@ -433,23 +433,23 @@ function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
                 e.ovrDelta && e.ovrDelta < 0 ? "border-red-500/50 bg-red-500/10" :
                 "border-border/50 bg-muted/20"
               }`}>
-                <span className="text-xs font-pixel">{idx + 1}</span>
+                <span className="text-xs">{idx + 1}</span>
               </div>
               {idx < events.length - 1 && <div className="w-px h-4 bg-border/30 my-0.5" />}
             </div>
             <div className="flex-1 min-w-0 pb-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-xs font-pixel text-muted-foreground">Wk {e.week}</span>
+                <span className="text-xs text-muted-foreground">Wk {e.week}</span>
                 {e.ovrDelta !== null && e.ovrDelta !== 0 && <OvrPill delta={e.ovrDelta} />}
                 {arcShift && (
-                  <span className="text-xs text-amber-400 font-pixel flex items-center gap-0.5">
+                  <span className="text-xs text-amber-400 flex items-center gap-0.5">
                     <GitBranch className="w-2.5 h-2.5" /> Arc shift
                   </span>
                 )}
               </div>
               {wc && wcText && cc && (
                 <p className="text-xs text-foreground/80 leading-snug">
-                  <span className={`font-pixel text-xs mr-1.5 ${cc.label}`}>{wc}.</span>{wcText}
+                  <span className={`text-xs font-semibold mr-1.5 ${cc.label}`}>{wc}.</span>{wcText}
                 </p>
               )}
               {e.resolvedOutcomeText && (
@@ -495,13 +495,13 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
       {sl.isHighInterest && (
         <div className="px-3 py-1 bg-gradient-to-r from-gold/15 to-transparent flex items-center gap-1.5 border-b border-gold/20">
           <Crown className="w-2.5 h-2.5 text-gold" />
-          <span className="text-xs font-pixel text-gold tracking-widest">FEATURED</span>
+          <span className="text-xs text-gold tracking-widest">FEATURED</span>
         </div>
       )}
       {isCommitted && (
         <div className="px-3 py-1 bg-green-500/10 flex items-center gap-1.5 border-b border-green-500/20">
           <CheckCircle className="w-2.5 h-2.5 text-green-400" />
-          <span className="text-xs font-pixel text-green-400">
+          <span className="text-xs text-green-400">
             COMMITTED{r?.signedTeamAbbreviation ? ` — ${r.signedTeamAbbreviation}` : ""}
           </span>
         </div>
@@ -533,7 +533,7 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
           </div>
           <div className="flex-shrink-0 flex flex-col items-end gap-1">
             {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
-            <span className="text-xs font-pixel text-muted-foreground">{sl.publicStoryLabel.slice(0, 14)}</span>
+            <span className="text-xs text-muted-foreground">{sl.publicStoryLabel.slice(0, 14)}</span>
           </div>
         </div>
 
@@ -543,7 +543,7 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
             <MoodMeter mood={sl.moodHint} />
           </div>
           {sl.recruitingImpactHint && (
-            <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${
+            <span className={`text-xs px-1.5 py-0.5 rounded border ${
               sl.recruitingImpactHint === "high impact" ? "text-gold border-gold/30 bg-gold/10" :
               sl.recruitingImpactHint === "low impact" ? "text-muted-foreground border-border/30 bg-muted/10" :
               "text-blue-400 border-blue-400/30 bg-blue-400/10"
@@ -555,7 +555,7 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
         {isComplete && !sl.activeEvent && (
           <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Trophy className="w-3 h-3 text-gold" />
-            <span className="font-pixel">Arc complete</span>
+            <span className="font-sans font-semibold">Arc complete</span>
             {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
           </div>
         )}
@@ -570,7 +570,7 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
         {resolvedEvents.length > 0 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="mt-2 flex items-center gap-1 text-xs font-pixel text-muted-foreground hover:text-gold transition-colors"
+            className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-gold transition-colors"
             data-testid={`button-timeline-${sl.id}`}
           >
             <History className="w-2.5 h-2.5" />
@@ -602,7 +602,7 @@ function WeeklyHeadlines({ storylines }: { storylines: StorylineRecruit[] }) {
     <div data-testid="section-headlines">
       <div className="flex items-center gap-2 mb-2">
         <Radio className="w-3.5 h-3.5 text-gold" />
-        <span className="font-pixel text-xs text-gold">RECENT DISPATCHES</span>
+        <span className="text-xs font-semibold text-gold">RECENT DISPATCHES</span>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
         {headlines.map(({ sl, event }) => {
@@ -617,7 +617,7 @@ function WeeklyHeadlines({ storylines }: { storylines: StorylineRecruit[] }) {
               style={{ minWidth: "208px" }}
             >
               <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="text-xs font-pixel text-muted-foreground">WK {event.week}</span>
+                <span className="text-xs text-muted-foreground">WK {event.week}</span>
                 {event.ovrDelta !== null && event.ovrDelta !== 0 && <OvrPill delta={event.ovrDelta} />}
                 {sl.isHighInterest && <Crown className="w-2.5 h-2.5 text-gold" />}
               </div>
@@ -626,7 +626,7 @@ function WeeklyHeadlines({ storylines }: { storylines: StorylineRecruit[] }) {
               </p>
               {wc && wcText && cc && (
                 <p className="text-xs text-muted-foreground leading-snug">
-                  <span className={`font-pixel ${cc.label}`}>{wc}.</span> {wcText.slice(0, 60)}{wcText.length > 60 ? "…" : ""}
+                  <span className={`${cc.label}`}>{wc}.</span> {wcText.slice(0, 60)}{wcText.length > 60 ? "…" : ""}
                 </p>
               )}
               {event.resolvedAbilityGain && (
@@ -662,7 +662,7 @@ function CompletedArcsRecap({ storylines }: { storylines: StorylineRecruit[] }) 
     <div data-testid="section-completed-arcs">
       <div className="flex items-center gap-2 mb-2">
         <Award className="w-3.5 h-3.5 text-gold" />
-        <span className="font-pixel text-xs text-gold">COMPLETED ARCS</span>
+        <span className="text-xs font-semibold text-gold">COMPLETED ARCS</span>
         <span className="text-xs text-muted-foreground">{completed.length} recruit{completed.length !== 1 ? "s" : ""}</span>
       </div>
       <div className="space-y-1.5">
@@ -682,7 +682,7 @@ function CompletedArcsRecap({ storylines }: { storylines: StorylineRecruit[] }) 
               {r && <StarRating rating={r.starRank} size="sm" />}
               {sl.resolvedOvrDelta !== 0 && <OvrPill delta={sl.resolvedOvrDelta} />}
               {abilities.length > 0 && (
-                <span className="text-xs font-pixel text-blue-300 flex-shrink-0 flex items-center gap-0.5">
+                <span className="text-xs text-blue-300 flex-shrink-0 flex items-center gap-0.5">
                   <Sparkles className="w-2.5 h-2.5" /> {abilities.length}
                 </span>
               )}
@@ -704,8 +704,8 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
     <div data-testid="section-legendary-spotlight">
       <div className="flex items-center gap-2 mb-3">
         <Crown className="w-3.5 h-3.5 text-gold" />
-        <span className="font-pixel text-xs text-gold">HIGH-INTEREST STORYLINES</span>
-        <span className="font-pixel text-xs bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+        <span className="text-xs font-semibold text-gold">HIGH-INTEREST STORYLINES</span>
+        <span className="text-xs font-semibold bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
           {legends.length}
         </span>
       </div>
@@ -731,7 +731,7 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <Crown className="w-3 h-3 text-gold/70" />
-                    <span className="font-pixel text-xs tracking-widest text-gold/80">
+                    <span className="text-xs font-semibold tracking-widest text-gold/80">
                       {sl.publicStoryLabel.toUpperCase()}
                     </span>
                   </div>
@@ -758,9 +758,9 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
               <div className="px-4 pb-3">
                 <p className="text-xs text-muted-foreground italic">{sl.publicArcFlavor}</p>
                 <div className="flex items-center gap-1.5 mt-2">
-                  <span className="text-xs font-pixel text-gold">{sl.publicArcStatus}</span>
+                  <span className="text-xs text-gold">{sl.publicArcStatus}</span>
                   {sl.activeEvent && (
-                    <span className="ml-auto text-xs font-pixel bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+                    <span className="ml-auto text-xs bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
                       EVALUATION WINDOW
                     </span>
                   )}
@@ -827,9 +827,9 @@ function HealthPanel({ leagueId }: { leagueId: string }) {
       }`}>
         <div className="flex items-center gap-2 mb-3">
           <HeartPulse className={`w-4 h-4 ${health?.healthy ? "text-green-400" : "text-red-400"}`} />
-          <span className="font-pixel text-xs text-gold">STORYLINE HEALTH</span>
+          <span className="text-xs font-semibold text-gold">STORYLINE HEALTH</span>
           {health && (
-            <span className={`ml-auto text-xs font-pixel px-1.5 py-0.5 rounded border ${
+            <span className={`ml-auto text-xs px-1.5 py-0.5 rounded border ${
               health.healthy ? "text-green-400 border-green-500/30 bg-green-500/10" : "text-red-400 border-red-500/30 bg-red-500/10"
             }`}>
               {health.healthy ? "HEALTHY" : "ISSUES DETECTED"}
@@ -855,7 +855,7 @@ function HealthPanel({ leagueId }: { leagueId: string }) {
               ].map(s => (
                 <div key={s.label} className="text-center bg-muted/20 rounded-lg px-2 py-2">
                   <div className={`text-lg font-bold ${s.alert ? "text-amber-400" : "text-foreground"}`}>{s.value}</div>
-                  <div className="text-xs font-pixel text-muted-foreground">{s.label}</div>
+                  <div className="text-xs text-muted-foreground">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -875,7 +875,7 @@ function HealthPanel({ leagueId }: { leagueId: string }) {
                   }`}>
                     <div className="flex items-center gap-1.5">
                       {severityIcon(issue.severity)}
-                      <span className="font-pixel text-xs text-muted-foreground">{issue.code}</span>
+                      <span className="text-xs font-semibold text-muted-foreground">{issue.code}</span>
                     </div>
                     <p className="mt-0.5 text-foreground/80 leading-snug">{issue.message}</p>
                     {issue.detail && <p className="mt-0.5 text-muted-foreground/70 text-xs leading-snug">{issue.detail}</p>}
@@ -897,7 +897,7 @@ function HealthPanel({ leagueId }: { leagueId: string }) {
       <div className="rounded-xl border border-border/40 bg-muted/10 p-4 space-y-2">
         <div className="flex items-center gap-2 mb-3">
           <Wrench className="w-3.5 h-3.5 text-gold" />
-          <span className="font-pixel text-xs text-gold">ADMIN ACTIONS</span>
+          <span className="text-xs font-semibold text-gold">ADMIN ACTIONS</span>
         </div>
 
         <button
@@ -1033,14 +1033,14 @@ export default function StorylinesPage() {
             </Link>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h1 className="font-pixel text-[13px] text-gold">STORYLINE HUB</h1>
+                <h1 className="text-[0.8125rem] font-semibold text-gold">STORYLINE HUB</h1>
                 {leagueData && (
-                  <span className="text-xs font-pixel text-muted-foreground border border-border/40 px-1.5 py-0.5 rounded">
+                  <span className="text-xs text-muted-foreground border border-border/40 px-1.5 py-0.5 rounded">
                     S{leagueData.currentSeason} · WK{leagueData.currentWeek}
                   </span>
                 )}
                 {activeVotes > 0 && (
-                  <span className="ml-auto text-xs font-pixel bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+                  <span className="ml-auto text-xs bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
                     {activeVotes} VOTE{activeVotes !== 1 ? "S" : ""} NEEDED
                   </span>
                 )}
@@ -1058,7 +1058,7 @@ export default function StorylinesPage() {
             ].map(s => (
               <div key={s.label} className="text-center bg-muted/20 rounded-lg py-1.5 px-1">
                 <div className={`text-base font-bold leading-tight ${s.color || "text-foreground"}`}>{s.value}</div>
-                <div className="text-xs font-pixel text-muted-foreground">{s.label}</div>
+                <div className="text-xs text-muted-foreground">{s.label}</div>
               </div>
             ))}
           </div>
@@ -1069,7 +1069,7 @@ export default function StorylinesPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs font-pixel transition-all border-b-2 -mb-px ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2 text-xs transition-all border-b-2 -mb-px ${
                   currentTab === tab.id
                     ? "border-gold text-gold"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1101,7 +1101,7 @@ export default function StorylinesPage() {
             ) : withVotes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <CheckCircle className="w-12 h-12 text-green-400/30 mb-4" />
-                <h3 className="font-pixel text-xs text-gold mb-2">ALL CAUGHT UP</h3>
+                <h3 className="text-xs font-semibold text-gold mb-2">ALL CAUGHT UP</h3>
                 <p className="text-xs text-muted-foreground max-w-xs">
                   No open votes right now.{" "}
                   {withoutVotes.length > 0
@@ -1111,7 +1111,7 @@ export default function StorylinesPage() {
                 {withoutVotes.length > 0 && (
                   <button
                     onClick={() => setActiveTab("arcs")}
-                    className="mt-4 text-xs font-pixel text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-all"
+                    className="mt-4 text-xs text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-all"
                   >
                     VIEW ARCS →
                   </button>
@@ -1122,7 +1122,7 @@ export default function StorylinesPage() {
                 {withVotes.some(s => !s.myVote) && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gold/30 bg-gold/5">
                     <Vote className="w-3.5 h-3.5 text-gold" />
-                    <span className="text-xs text-gold font-pixel">{activeVotes} vote{activeVotes !== 1 ? "s" : ""} pending your decision</span>
+                    <span className="text-xs text-gold">{activeVotes} vote{activeVotes !== 1 ? "s" : ""} pending your decision</span>
                   </div>
                 )}
                 {withVotes.map(sl => <VoteCard key={sl.id} sl={sl} leagueId={leagueId!} />)}
@@ -1139,14 +1139,14 @@ export default function StorylinesPage() {
             ) : storylines.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <BookOpen className="w-12 h-12 text-muted-foreground/20 mb-4" />
-                <h3 className="font-pixel text-xs text-gold mb-2">NO STORYLINES YET</h3>
+                <h3 className="text-xs font-semibold text-gold mb-2">NO STORYLINES YET</h3>
                 <p className="text-xs text-muted-foreground max-w-xs">
                   Storyline recruits are assigned when a recruiting class is created. Advance the week to see their stories unfold.
                 </p>
                 {isCommissioner && (
                   <button
                     onClick={() => setActiveTab("command")}
-                    className="mt-4 text-xs font-pixel text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-all"
+                    className="mt-4 text-xs text-gold border border-gold/30 px-3 py-1.5 rounded-lg hover:bg-gold/10 transition-all"
                   >
                     REPAIR IN COMMAND →
                   </button>
@@ -1160,7 +1160,7 @@ export default function StorylinesPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Activity className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="font-pixel text-xs text-muted-foreground">ACTIVE ARCS</span>
+                      <span className="text-xs font-semibold text-muted-foreground">ACTIVE ARCS</span>
                       <span className="text-xs text-muted-foreground/60">{withoutVotes.length}</span>
                     </div>
                     <div className="space-y-3">
@@ -1187,7 +1187,7 @@ export default function StorylinesPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                      <span className="font-pixel text-xs text-gold">COMMITTED</span>
+                      <span className="text-xs font-semibold text-gold">COMMITTED</span>
                       <span className="text-xs text-green-400">{committedCount}</span>
                     </div>
                     <div className="space-y-1.5">

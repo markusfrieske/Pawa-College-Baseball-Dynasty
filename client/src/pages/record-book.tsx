@@ -111,7 +111,7 @@ function StarBadge({ stars }: { stars: number }) {
   const colors: Record<number, string> = {
     5: "text-orange-400", 4: "text-yellow-400", 3: "text-green-400", 2: "text-blue-400", 1: "text-gray-400",
   };
-  return <span className={`font-pixel text-xs ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
+  return <span className={`text-xs font-semibold ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
 }
 
 function TeamDot({ color }: { color: string }) {
@@ -123,7 +123,7 @@ function SectionHeader({ icon, title, subtitle }: { icon: React.ReactNode; title
     <div className="flex items-center gap-3 mb-5">
       <div className="text-gold">{icon}</div>
       <div>
-        <h2 className="font-pixel text-gold text-xs sm:text-[13px]">{title}</h2>
+        <h2 className="text-gold text-xs sm:text-[13px]">{title}</h2>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
     </div>
@@ -148,21 +148,21 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                 <Trophy className="w-5 h-5 text-gold flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-pixel text-gold text-xs">Season {s.season}</span>
+                    <span className="text-gold text-xs">Season {s.season}</span>
                     {s.championName && s.championTeamId && (
                       <Link href={`/league/${leagueId}/team/${s.championTeamId}/profile`}>
-                        <span className="font-pixel text-xs text-foreground hover:text-gold transition-colors cursor-pointer truncate">
+                        <span className="text-xs font-semibold text-foreground hover:text-gold transition-colors cursor-pointer truncate">
                           {s.championName} ({s.championW}-{s.championL})
                         </span>
                       </Link>
                     )}
                     {s.championName && !s.championTeamId && (
-                      <span className="font-pixel text-xs text-foreground truncate">
+                      <span className="text-xs font-semibold text-foreground truncate">
                         {s.championName} ({s.championW}-{s.championL})
                       </span>
                     )}
                     {s.isCwsChampion && (
-                      <span className="font-pixel text-xs bg-gold/15 text-gold border border-gold/40 rounded px-1 py-0.5">CWS</span>
+                      <span className="text-xs font-semibold bg-gold/15 text-gold border border-gold/40 rounded px-1 py-0.5">CWS</span>
                     )}
                     {!s.championName && <span className="text-xs text-muted-foreground">No champion recorded</span>}
                   </div>
@@ -171,7 +171,7 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                   )}
                 </div>
                 {s.recruitingGrade && (
-                  <span className={`font-pixel text-xs border rounded px-1.5 py-0.5 ${gradeColor(s.recruitingGrade)}`}>
+                  <span className={`text-xs font-semibold border rounded px-1.5 py-0.5 ${gradeColor(s.recruitingGrade)}`}>
                     {s.recruitingGrade}
                   </span>
                 )}
@@ -186,7 +186,7 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                 {s.winsLeader && (
                   <div className="sm:col-span-3 bg-card/60 border border-border/40 rounded p-2 flex items-center gap-2">
                     <Trophy className="w-3.5 h-3.5 text-gold flex-shrink-0" />
-                    <span className="font-pixel text-xs text-muted-foreground">BEST RECORD:</span>
+                    <span className="text-xs font-semibold text-muted-foreground">BEST RECORD:</span>
                     <Link href={`/league/${leagueId}/team/${s.winsLeader.teamId}/profile`}>
                       <span className="text-xs font-medium hover:text-gold transition-colors cursor-pointer">{s.winsLeader.name}</span>
                     </Link>
@@ -194,7 +194,7 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                   </div>
                 )}
                 <div>
-                  <p className="font-pixel text-xs text-muted-foreground mb-2">STAT LEADERS</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">STAT LEADERS</p>
                   <div className="space-y-1.5">
                     {s.hrLeader && (
                       <div className="flex items-center gap-1.5">
@@ -224,7 +224,7 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                 </div>
 
                 <div>
-                  <p className="font-pixel text-xs text-muted-foreground mb-2">CONF CHAMPIONS</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">CONF CHAMPIONS</p>
                   <div className="space-y-1">
                     {s.confChampions.map((c, i) => (
                       <div key={i} className="flex items-center gap-1.5">
@@ -239,9 +239,9 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                 </div>
 
                 <div>
-                  <p className="font-pixel text-xs text-muted-foreground mb-2">CLASS GRADE</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-2">CLASS GRADE</p>
                   {s.recruitingGrade ? (
-                    <span className={`font-pixel text-xs border rounded px-2 py-1 ${gradeColor(s.recruitingGrade)}`}>
+                    <span className={`text-xs font-semibold border rounded px-2 py-1 ${gradeColor(s.recruitingGrade)}`}>
                       {s.recruitingGrade}
                     </span>
                   ) : (
@@ -340,17 +340,17 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
             <table className="w-full text-sm" data-testid="table-career-batting">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center w-8">#</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-gold">Player</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground">Team</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Yrs</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">G</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">AB</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">AVG</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">HR</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">RBI</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">OPS</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">WAR</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center w-8">#</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-gold">Player</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground">Team</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Yrs</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">G</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">AB</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">AVG</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">HR</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">RBI</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">OPS</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">WAR</th>
                 </tr>
               </thead>
               <tbody>
@@ -371,7 +371,7 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
                         <TeamDot color={b.teamColor} />
-                        <span className="font-pixel text-xs">{b.teamAbbr}</span>
+                        <span className="text-xs font-semibold">{b.teamAbbr}</span>
                       </div>
                     </td>
                     <td className="py-2 px-2 text-center text-xs">{b.seasons}</td>
@@ -476,17 +476,17 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
             <table className="w-full text-sm" data-testid="table-career-pitching">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center w-8">#</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-gold">Player</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground">Team</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Yrs</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">W</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">L</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">IP</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">ERA</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">WHIP</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">SO</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">WAR</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center w-8">#</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-gold">Player</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground">Team</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Yrs</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">W</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">L</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">IP</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">ERA</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">WHIP</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">SO</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">WAR</th>
                 </tr>
               </thead>
               <tbody>
@@ -507,7 +507,7 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
                         <TeamDot color={p.teamColor} />
-                        <span className="font-pixel text-xs">{p.teamAbbr}</span>
+                        <span className="text-xs font-semibold">{p.teamAbbr}</span>
                       </div>
                     </td>
                     <td className="py-2 px-2 text-center text-xs">{p.seasons}</td>
@@ -585,17 +585,17 @@ function CareerFieldingSection({ leaders, onPlayerClick }: { leaders: CareerFiel
             <table className="w-full text-sm" data-testid="table-career-fielding">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center w-8">#</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-gold">Player</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground">Team</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Yrs</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">G</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">PO</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">A</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">E</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">TC</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">FLD%</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">OAA</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center w-8">#</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-gold">Player</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground">Team</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Yrs</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">G</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">PO</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">A</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">E</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">TC</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">FLD%</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">OAA</th>
                 </tr>
               </thead>
               <tbody>
@@ -616,7 +616,7 @@ function CareerFieldingSection({ leaders, onPlayerClick }: { leaders: CareerFiel
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
                         <TeamDot color={f.teamColor} />
-                        <span className="font-pixel text-xs">{f.teamAbbr}</span>
+                        <span className="text-xs font-semibold">{f.teamAbbr}</span>
                       </div>
                     </td>
                     <td className="py-2 px-2 text-center text-xs">{f.seasons}</td>
@@ -648,14 +648,14 @@ function TeamRecordsSection({ records, leagueId }: { records: TeamRecord[]; leag
             <table className="w-full text-sm" data-testid="table-team-records">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="py-2 px-3 font-pixel text-xs text-gold">Team</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">W</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">L</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Pct</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Titles</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">PS App</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">5★ Recruits</th>
-                  <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Best W</th>
+                  <th className="py-2 px-3 text-xs font-semibold text-gold">Team</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">W</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">L</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Pct</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Titles</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">PS App</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">5★ Recruits</th>
+                  <th className="py-2 px-2 text-xs font-semibold text-muted-foreground text-center">Best W</th>
                 </tr>
               </thead>
               <tbody>
@@ -667,7 +667,7 @@ function TeamRecordsSection({ records, leagueId }: { records: TeamRecord[]; leag
                         <div className="flex items-center gap-2 cursor-pointer hover:text-gold transition-colors">
                           <TeamDot color={t.teamColor} />
                           <div>
-                            <div className="font-pixel text-xs">{t.teamAbbr}</div>
+                            <div className="text-xs font-semibold">{t.teamAbbr}</div>
                             <div className="text-xs text-muted-foreground">{t.teamName}</div>
                           </div>
                         </div>
@@ -708,14 +708,14 @@ function CoachHoFSection({ coaches, leagueId }: { coaches: CoachStat[]; leagueId
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: c.teamColor + "33", border: `1px solid ${c.teamColor}66` }}>
-                <span className="font-pixel text-xs" style={{ color: c.teamColor }}>#{i + 1}</span>
+                <span className="text-xs font-semibold" style={{ color: c.teamColor }}>#{i + 1}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link href={`/league/${leagueId}/coach/${c.coachId}`}>
                     <span className="text-sm font-semibold hover:text-gold transition-colors cursor-pointer">{c.name}</span>
                   </Link>
-                  <Badge variant="outline" className="font-pixel text-xs px-1.5">{c.archetype}</Badge>
+                  <Badge variant="outline" className="text-xs font-semibold px-1.5">{c.archetype}</Badge>
                   {c.championships > 0 && (
                     <span className="flex items-center gap-0.5 text-xs text-gold bg-gold/10 border border-gold/30 rounded px-1.5 py-0.5">
                       <Trophy className="w-2.5 h-2.5" />
@@ -729,7 +729,7 @@ function CoachHoFSection({ coaches, leagueId }: { coaches: CoachStat[]; leagueId
                 </div>
                 {c.teamsCoached.length > 1 && (
                   <div className="mt-1 flex items-center gap-1 flex-wrap">
-                    <span className="font-pixel text-xs text-muted-foreground">COACHED:</span>
+                    <span className="text-xs font-semibold text-muted-foreground">COACHED:</span>
                     {c.teamsCoached.map((t, ti) => (
                       <span key={ti} className="text-xs text-muted-foreground">{t}{ti < c.teamsCoached.length - 1 ? " →" : ""}</span>
                     ))}
@@ -737,23 +737,23 @@ function CoachHoFSection({ coaches, leagueId }: { coaches: CoachStat[]; leagueId
                 )}
                 <div className="flex items-center gap-3 mt-2 flex-wrap">
                   <div className="text-center">
-                    <div className="font-pixel text-xs text-muted-foreground">Record</div>
+                    <div className="text-xs font-semibold text-muted-foreground">Record</div>
                     <div className="text-xs font-medium">{c.w}-{c.l} <span className="text-muted-foreground">({c.pct})</span></div>
                   </div>
                   <div className="text-center">
-                    <div className="font-pixel text-xs text-muted-foreground">Seasons</div>
+                    <div className="text-xs font-semibold text-muted-foreground">Seasons</div>
                     <div className="text-xs font-medium">{c.seasons}</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-pixel text-xs text-muted-foreground">Conf Titles</div>
+                    <div className="text-xs font-semibold text-muted-foreground">Conf Titles</div>
                     <div className="text-xs font-medium">{c.confChampionships}</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-pixel text-xs text-muted-foreground">CWS App</div>
+                    <div className="text-xs font-semibold text-muted-foreground">CWS App</div>
                     <div className="text-xs font-medium">{c.cwsAppearances}</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-pixel text-xs text-muted-foreground">Legacy</div>
+                    <div className="text-xs font-semibold text-muted-foreground">Legacy</div>
                     <div className="text-xs font-bold text-gold">{c.legacyScore}</div>
                   </div>
                 </div>
@@ -791,10 +791,10 @@ function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) 
             <RetroCardContent className="py-3">
               <div className="flex items-center gap-3">
                 <Target className="w-4 h-4 text-gold flex-shrink-0" />
-                <span className="font-pixel text-gold text-xs">Season {h.season}</span>
+                <span className="text-gold text-xs">Season {h.season}</span>
                 <div className="flex items-center gap-1.5 flex-wrap ml-2">
                   {h.snapshots.slice(0, 4).map(s => (
-                    <span key={s.teamId} className={`font-pixel text-xs border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>
+                    <span key={s.teamId} className={`text-xs font-semibold border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>
                       {s.teamAbbr}: {s.grade}
                     </span>
                   ))}
@@ -821,7 +821,7 @@ function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) 
               return recSortDir === "asc" ? cmp : -cmp;
             });
             const SortTh = ({ label, col }: { label: string; col: RecSort }) => (
-              <th className="py-1.5 px-2 font-pixel text-xs text-muted-foreground text-center cursor-pointer hover:text-gold select-none"
+              <th className="py-1.5 px-2 text-xs font-semibold text-muted-foreground text-center cursor-pointer hover:text-gold select-none"
                 onClick={() => handleRecSort(col)}
                 data-testid={`recruiting-sort-${col}`}>
                 {label}{recSort === col ? (recSortDir === "asc" ? " ▲" : " ▼") : ""}
@@ -834,12 +834,12 @@ function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) 
                     <thead>
                       <tr className="border-b border-border/50 text-left">
                         <SortTh label="#" col="rank" />
-                        <th className="py-1.5 px-2 font-pixel text-xs text-gold">Team</th>
+                        <th className="py-1.5 px-2 text-xs font-semibold text-gold">Team</th>
                         <SortTh label="Grade" col="grade" />
                         <SortTh label="Commits" col="totalCommits" />
                         <SortTh label="5★" col="fiveStars" />
                         <SortTh label="4★" col="fourStars" />
-                        <th className="py-1.5 px-2 font-pixel text-xs text-muted-foreground">Top Recruit</th>
+                        <th className="py-1.5 px-2 text-xs font-semibold text-muted-foreground">Top Recruit</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -852,11 +852,11 @@ function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) 
                             <td className="py-1.5 px-2">
                               <div className="flex items-center gap-1.5">
                                 <TeamDot color={s.teamColor} />
-                                <span className="font-pixel text-xs">{s.teamAbbr}</span>
+                                <span className="text-xs font-semibold">{s.teamAbbr}</span>
                               </div>
                             </td>
                             <td className="py-1.5 px-2 text-center">
-                              <span className={`font-pixel text-xs border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>{s.grade}</span>
+                              <span className={`text-xs font-semibold border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>{s.grade}</span>
                             </td>
                             <td className="py-1.5 px-2 text-center text-xs">{s.totalCommits}</td>
                             <td className="py-1.5 px-2 text-center text-xs text-orange-400">{s.fiveStars}</td>
@@ -903,7 +903,7 @@ function HallOfFameSection({ players }: { players: HoFPlayer[] }) {
     return (
       <div className="text-center py-12">
         <Star className="w-10 h-10 text-gold/40 mx-auto mb-3" />
-        <p className="font-pixel text-gold text-xs mb-2">Hall of Fame Empty</p>
+        <p className="text-gold text-xs mb-2">Hall of Fame Empty</p>
         <p className="text-sm text-muted-foreground">Players with OVR 400+ who graduate or get drafted will be inducted.</p>
       </div>
     );
@@ -923,12 +923,12 @@ function HallOfFameSection({ players }: { players: HoFPlayer[] }) {
                 <div className="relative flex-shrink-0">
                   <div className="w-11 h-11 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: p.teamColor + "33", border: `2px solid ${p.teamColor}88` }}>
-                    <span className="font-pixel text-xs font-bold" style={{ color: p.teamColor }}>
+                    <span className="text-xs font-semibold font-bold" style={{ color: p.teamColor }}>
                       {p.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                     </span>
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 bg-card border border-border/60 rounded px-0.5 py-px">
-                    <span className="font-pixel text-xs" style={{ color: p.teamColor }}>{p.position}</span>
+                    <span className="text-xs font-semibold" style={{ color: p.teamColor }}>{p.position}</span>
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -940,26 +940,26 @@ function HallOfFameSection({ players }: { players: HoFPlayer[] }) {
                     <TeamDot color={p.teamColor} />
                     <span className="text-xs text-muted-foreground">{p.teamName}</span>
                     {isDrafted && p.draftRound && (
-                      <span className="text-xs font-pixel bg-gold/10 text-gold border border-gold/30 rounded px-1 py-0.5">
+                      <span className="text-xs bg-gold/10 text-gold border border-gold/30 rounded px-1 py-0.5">
                         Rd {p.draftRound}
                       </span>
                     )}
                   </div>
                   <div className="grid grid-cols-4 gap-1 mt-2">
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
-                      <div className="font-pixel text-xs text-muted-foreground">OVR</div>
+                      <div className="text-xs font-semibold text-muted-foreground">OVR</div>
                       <div className="text-xs font-bold text-gold">{p.overall}</div>
                     </div>
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
-                      <div className="font-pixel text-xs text-muted-foreground">WAR</div>
+                      <div className="text-xs font-semibold text-muted-foreground">WAR</div>
                       <div className="text-xs font-bold text-emerald-400">{p.careerWar}</div>
                     </div>
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
-                      <div className="font-pixel text-xs text-muted-foreground">Yrs</div>
+                      <div className="text-xs font-semibold text-muted-foreground">Yrs</div>
                       <div className="text-xs font-bold">{p.seasonsPlayed}</div>
                     </div>
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
-                      <div className="font-pixel text-xs text-muted-foreground">Legacy</div>
+                      <div className="text-xs font-semibold text-muted-foreground">Legacy</div>
                       <div className="text-xs font-bold text-gold">{p.legacyScore}</div>
                     </div>
                   </div>
@@ -1018,7 +1018,7 @@ export default function RecordBookPage() {
             </Link>
             <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-gold" />
-              <h1 className="font-pixel text-gold text-xs sm:text-[13px]">RECORD BOOK</h1>
+              <h1 className="text-gold text-xs sm:text-[13px]">RECORD BOOK</h1>
             </div>
             {data?.meta && (
               <span className="text-xs text-muted-foreground ml-auto">
@@ -1131,7 +1131,7 @@ export default function RecordBookPage() {
         {data && !isLoading && data.meta.totalSeasons === 0 && (
           <div className="text-center py-16">
             <BookOpen className="w-12 h-12 text-gold/40 mx-auto mb-4" />
-            <p className="font-pixel text-gold text-xs mb-2">Record Book is Empty</p>
+            <p className="text-gold text-xs mb-2">Record Book is Empty</p>
             <p className="text-sm text-muted-foreground">
               Complete your first season to start building the dynasty almanac.
             </p>

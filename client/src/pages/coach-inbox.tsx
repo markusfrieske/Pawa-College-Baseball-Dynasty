@@ -246,7 +246,7 @@ export default function CoachInboxPage() {
         <div className="flex items-center justify-between gap-3 max-w-2xl mx-auto">
           <div className="flex items-center gap-2">
             <Inbox className="w-5 h-5 text-gold" />
-            <h1 className="font-pixel text-gold text-xs sm:text-sm">COACH INBOX</h1>
+            <h1 className="text-gold text-xs sm:text-sm">COACH INBOX</h1>
             {unreadCount > 0 && (
               <span
                 className="flex items-center justify-center w-5 h-5 rounded-full bg-gold text-xs font-bold text-black"
@@ -342,7 +342,7 @@ export default function CoachInboxPage() {
         {!isLoading && messages.length === 0 && (
           <div className="py-16 text-center" data-testid="empty-inbox">
             <Mail className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
-            <p className="font-pixel text-xs text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground">
               {showArchived ? "No archived messages" : activeTab === "unread" ? "All caught up!" : "No messages yet"}
             </p>
             {activeTab !== "all" && !showArchived && (

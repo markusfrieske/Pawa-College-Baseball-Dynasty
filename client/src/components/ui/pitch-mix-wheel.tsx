@@ -121,7 +121,7 @@ export function PitchMixWheel({ pitches = defaultPitches, className = "" }: Pitc
                 y={labelPos.y}
                 fill={pitch.rating > 0 ? "#C4A35A" : "#666"}
                 fontSize="7"
-                fontFamily="'Press Start 2P', monospace"
+                fontFamily="'IBM Plex Mono', monospace"
                 textAnchor="middle"
                 dominantBaseline="middle"
               >
@@ -141,7 +141,7 @@ export function PitchMixWheel({ pitches = defaultPitches, className = "" }: Pitc
             y={centerY}
             fill="#1a2b1a"
             fontSize="5"
-            fontFamily="'Press Start 2P', monospace"
+            fontFamily="'IBM Plex Mono', monospace"
             textAnchor="middle"
             dominantBaseline="middle"
           >
@@ -152,7 +152,7 @@ export function PitchMixWheel({ pitches = defaultPitches, className = "" }: Pitc
       
       {/* Legend */}
       <div className="mt-2 text-center">
-        <p className="text-xs text-muted-foreground font-pixel">
+        <p className="text-xs text-muted-foreground">
           {activePitches.length > 0 
             ? `Signature: ${pitchLabels[activePitches.reduce((a, b) => a.rating > b.rating ? a : b).name] || activePitches[0].name}`
             : "No pitches scouted"

@@ -140,7 +140,7 @@ export function MobileNav() {
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }} data-testid="sheet-more-menu">
           <SheetHeader>
-            <SheetTitle className="font-pixel text-xs text-gold">More</SheetTitle>
+            <SheetTitle className="text-xs font-semibold text-gold">More</SheetTitle>
             <SheetDescription className="sr-only">Additional navigation links</SheetDescription>
           </SheetHeader>
           <div className="mt-4 space-y-1">

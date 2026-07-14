@@ -95,7 +95,7 @@ export function LeagueTickerBanner({ leagueId }: { leagueId: string }) {
           const cfg = TICKER_TAG[e.eventType] ?? { tag: "NEWS", color: "text-muted-foreground" };
           return (
             <span key={i} className="flex items-center gap-3 px-6 whitespace-nowrap">
-              <span className={`font-pixel text-xs tracking-widest ${cfg.color}`}>{cfg.tag}</span>
+              <span className={`text-xs font-semibold tracking-widest ${cfg.color}`}>{cfg.tag}</span>
               <span className="text-xs text-muted-foreground/70">{e.description}</span>
               <span className="text-gold/20">◆</span>
             </span>
@@ -137,7 +137,7 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">STAT LEADERS</h3>
+            <h3 className="text-gold text-xs">STAT LEADERS</h3>
           </div>
           <Link href={`/league/${leagueId}/stats`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full Stats →</span>
@@ -152,14 +152,14 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="font-pixel text-xs text-sky-400 mb-1.5">BATTING AVG</p>
+              <p className="text-xs font-semibold text-sky-400 mb-1.5">BATTING AVG</p>
               <div className="space-y-1">
                 {batters.map((b, i) => (
                   <div key={i} className="flex items-center justify-between text-xs" data-testid={`stat-batter-${i}`}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-pixel shrink-0"
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs shrink-0"
                         style={{ backgroundColor: `#${b.teamColor ?? "4a4a4a"}22`, color: `#${b.teamColor ?? "C4A35A"}`, border: `1px solid #${b.teamColor ?? "4a4a4a"}44` }}
                       >{b.teamAbbr?.slice(0, 2) ?? "—"}</span>
                       <span className="truncate text-foreground/80">{b.name}</span>
@@ -168,14 +168,14 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
                   </div>
                 ))}
               </div>
-              <p className="font-pixel text-xs text-purple-400 mb-1.5 mt-3">ERA</p>
+              <p className="text-xs font-semibold text-purple-400 mb-1.5 mt-3">ERA</p>
               <div className="space-y-1">
                 {pitchers.map((p, i) => (
                   <div key={i} className="flex items-center justify-between text-xs" data-testid={`stat-pitcher-${i}`}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-pixel shrink-0"
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs shrink-0"
                         style={{ backgroundColor: `#${p.teamColor ?? "4a4a4a"}22`, color: `#${p.teamColor ?? "C4A35A"}`, border: `1px solid #${p.teamColor ?? "4a4a4a"}44` }}
                       >{p.teamAbbr?.slice(0, 2) ?? "—"}</span>
                       <span className="truncate text-foreground/80">{p.name}</span>
@@ -186,24 +186,24 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
               </div>
             </div>
             <div>
-              <p className="font-pixel text-xs text-amber-400 mb-1.5">HOME RUNS</p>
+              <p className="text-xs font-semibold text-amber-400 mb-1.5">HOME RUNS</p>
               <div className="space-y-1">
                 {[...batters].sort((a, b) => b.hr - a.hr).map((b, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span className="truncate text-foreground/80">{b.name}</span>
                     </div>
                     <span className="text-amber-400 font-bold shrink-0 ml-1">{b.hr}</span>
                   </div>
                 ))}
               </div>
-              <p className="font-pixel text-xs text-emerald-400 mb-1.5 mt-3">STRIKEOUTS</p>
+              <p className="text-xs font-semibold text-emerald-400 mb-1.5 mt-3">STRIKEOUTS</p>
               <div className="space-y-1">
                 {[...pitchers].sort((a, b) => b.so - a.so).map((p, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="text-xs font-semibold text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span className="truncate text-foreground/80">{p.name}</span>
                     </div>
                     <span className="text-emerald-400 font-bold shrink-0 ml-1">{p.so}</span>
@@ -267,7 +267,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">NATIONAL PULSE</h3>
+            <h3 className="text-gold text-xs">NATIONAL PULSE</h3>
           </div>
           <Link href={`/league/${leagueId}?tab=rankings`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
@@ -279,7 +279,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
 
           {/* Top 25 */}
           <div className="md:col-span-2">
-            <p className="font-pixel text-xs text-gold/70 uppercase tracking-wider mb-2">Top 25</p>
+            <p className="text-xs font-semibold text-gold/70 uppercase tracking-wider mb-2">Top 25</p>
             {isLoading ? (
               <div className="space-y-1">{[...Array(10)].map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}</div>
             ) : (
@@ -294,19 +294,19 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                         className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded text-xs cursor-pointer transition-colors ${isUser ? "bg-gold/10 border border-gold/20 hover:bg-gold/15" : "hover:bg-card/80"}`}
                         data-testid={`pulse-rank-${r.rank}`}
                       >
-                        <span className="font-pixel text-xs text-muted-foreground w-5 text-right shrink-0">{r.rank}</span>
+                        <span className="text-xs font-semibold text-muted-foreground w-5 text-right shrink-0">{r.rank}</span>
                         {delta !== 0 && (
-                          <span className={`font-pixel text-xs shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          <span className={`text-xs font-semibold shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {delta > 0 ? "▲" : "▼"}
                           </span>
                         )}
                         <span
-                          className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                           style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
                         >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
                         <span className={`flex-1 truncate text-xs ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
                         <span className="text-muted-foreground text-xs shrink-0">{Math.round(r.avgOvr)}</span>
-                        <span className={`font-pixel text-xs ${color} w-5 text-right shrink-0`}>{grade}</span>
+                        <span className={`text-xs font-semibold ${color} w-5 text-right shrink-0`}>{grade}</span>
                       </div>
                     </Link>
                   );
@@ -322,7 +322,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
           <div className="space-y-4">
             {notableEvents.length > 0 && (
               <div>
-                <p className="font-pixel text-xs text-sky-400/70 uppercase tracking-wider mb-2">
+                <p className="text-xs font-semibold text-sky-400/70 uppercase tracking-wider mb-2">
                   <Radio className="w-2.5 h-2.5 inline mr-1" />Notable
                 </p>
                 <div className="space-y-2">
@@ -330,7 +330,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                     const cfg = TICKER_TAG[e.eventType] ?? { tag: "NEWS", color: "text-muted-foreground" };
                     return (
                       <div key={i} className="space-y-0.5">
-                        <span className={`font-pixel text-xs ${cfg.color}`}>{cfg.tag}</span>
+                        <span className={`text-xs font-semibold ${cfg.color}`}>{cfg.tag}</span>
                         <p className="text-xs text-foreground/70 leading-snug line-clamp-2">{e.description}</p>
                       </div>
                     );
@@ -341,7 +341,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
 
             {bubbleTeams.length > 0 && (
               <div>
-                <p className="font-pixel text-xs text-amber-400/70 uppercase tracking-wider mb-2">
+                <p className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider mb-2">
                   <Target className="w-2.5 h-2.5 inline mr-1" />Bubble
                 </p>
                 <div className="space-y-1">
@@ -350,9 +350,9 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                     return (
                       <Link key={r.teamId} href={`/league/${leagueId}/team/${r.teamId}`}>
                         <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded text-xs cursor-pointer ${isUser ? "text-gold" : "text-foreground/70 hover:text-foreground"}`} data-testid={`bubble-row-${r.teamId}`}>
-                          <span className="font-pixel text-xs text-muted-foreground w-4 text-right shrink-0">#{r.rank}</span>
+                          <span className="text-xs font-semibold text-muted-foreground w-4 text-right shrink-0">#{r.rank}</span>
                           <span
-                            className="w-4 h-4 rounded-full flex items-center justify-center font-pixel text-[6px] shrink-0 overflow-hidden"
+                            className="w-4 h-4 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 overflow-hidden"
                             style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}` }}
                           >{r.abbreviation?.slice(0, 2) ?? "—"}</span>
                           <span className="flex-1 truncate text-xs">{r.teamName}</span>
@@ -386,7 +386,7 @@ export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">POWER RANKINGS</h3>
+            <h3 className="text-gold text-xs">POWER RANKINGS</h3>
           </div>
           <Link href={`/league/${leagueId}?tab=rankings`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
@@ -408,19 +408,19 @@ export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
                     className={`flex items-center gap-2 py-1 px-1.5 rounded text-xs cursor-pointer transition-colors ${isUser ? "bg-gold/10 border border-gold/20 hover:bg-gold/15" : "hover:bg-card/80 hover:border hover:border-border/60"}`}
                     data-testid={`rank-row-${r.teamId}`}
                   >
-                    <span className="font-pixel text-xs text-muted-foreground w-4 text-right shrink-0">{r.rank}</span>
+                    <span className="text-xs font-semibold text-muted-foreground w-4 text-right shrink-0">{r.rank}</span>
                     {delta !== 0 && (
-                      <span className={`font-pixel text-xs shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      <span className={`text-xs font-semibold shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {delta > 0 ? "▲" : "▼"}
                       </span>
                     )}
                     <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                       style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
                     >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
                     <span className={`flex-1 truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
                     <span className="text-muted-foreground text-xs shrink-0">{Math.round(r.avgOvr)}</span>
-                    <span className={`font-pixel text-xs ${color} w-5 text-right shrink-0`}>{grade}</span>
+                    <span className={`text-xs font-semibold ${color} w-5 text-right shrink-0`}>{grade}</span>
                   </div>
                 </Link>
               );
@@ -471,9 +471,9 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
       onClick={() => setSelectedPlayerId(p.id)}
       data-testid={`prospect-row-${p.id}`}
     >
-      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+      <span className="text-xs font-semibold text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
       <span
-        className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
+        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
         style={{ backgroundColor: `#${p.teamPrimaryColor ?? "4a4a4a"}22`, color: `#${p.teamPrimaryColor ?? "C4A35A"}`, border: `1px solid #${p.teamPrimaryColor ?? "4a4a4a"}44` }}
       >{p.teamAbbreviation?.slice(0, 2) ?? "—"}</span>
       <span className="truncate text-foreground/80 flex-1">{p.firstName[0]}. {p.lastName}</span>
@@ -489,7 +489,7 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Star className="w-4 h-4 text-gold" />
-              <h3 className="font-pixel text-gold text-xs">TOP MLB PROSPECTS</h3>
+              <h3 className="text-gold text-xs">TOP MLB PROSPECTS</h3>
             </div>
             <Link href={`/league/${leagueId}?tab=prospects`}>
               <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Top 100 →</span>
@@ -502,7 +502,7 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="font-pixel text-xs text-sky-400 mb-1.5">HITTERS</p>
+                <p className="text-xs font-semibold text-sky-400 mb-1.5">HITTERS</p>
                 <div className="space-y-0.5">
                   {hitters.map((p, i) => (
                     <ProspectRow key={p.id} p={p} i={i} accentClass="text-gold" />
@@ -510,7 +510,7 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
                 </div>
               </div>
               <div>
-                <p className="font-pixel text-xs text-purple-400 mb-1.5">PITCHERS</p>
+                <p className="text-xs font-semibold text-purple-400 mb-1.5">PITCHERS</p>
                 <div className="space-y-0.5">
                   {pitchers.map((p, i) => (
                     <ProspectRow key={p.id} p={p} i={i} accentClass="text-purple-400" />
@@ -557,7 +557,7 @@ function NewsPostCard({
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-pixel text-gold text-xs leading-tight">{post.title}</h3>
+          <h3 className="text-gold text-xs leading-tight">{post.title}</h3>
           {canDelete && (
             <button
               onClick={onDelete}
@@ -574,7 +574,7 @@ function NewsPostCard({
         <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{post.content}</p>
         <div className="flex items-center gap-2 mt-3">
           {post.authorName && (
-            <span className="text-xs font-pixel text-gold/70 border border-gold/20 rounded px-1.5 py-0.5">
+            <span className="text-xs text-gold/70 border border-gold/20 rounded px-1.5 py-0.5">
               {post.authorName}
             </span>
           )}
@@ -669,7 +669,7 @@ export function LeagueNewsPanel({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Newspaper className="w-4 h-4 text-gold" />
-          <h2 className="font-pixel text-gold text-xs">LEAGUE NEWS</h2>
+          <h2 className="text-gold text-xs">LEAGUE NEWS</h2>
         </div>
         {canPost && (
           <RetroButton
@@ -688,12 +688,12 @@ export function LeagueNewsPanel({
       {showForm && canPost && (
         <RetroCard className="mb-6 border-gold/30" data-testid="form-news-post">
           <RetroCardHeader>
-            <h3 className="font-pixel text-xs text-gold">NEW POST</h3>
+            <h3 className="text-xs font-semibold text-gold">NEW POST</h3>
           </RetroCardHeader>
           <RetroCardContent>
             <div className="space-y-3">
               <div>
-                <label className="font-pixel text-xs text-muted-foreground block mb-1">HEADLINE *</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">HEADLINE *</label>
                 <input
                   value={title}
                   onChange={e => setTitle(e.target.value)}
@@ -704,7 +704,7 @@ export function LeagueNewsPanel({
                 />
               </div>
               <div>
-                <label className="font-pixel text-xs text-muted-foreground block mb-1">BODY *</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1">BODY *</label>
                 <textarea
                   value={body}
                   onChange={e => setBody(e.target.value)}
@@ -717,7 +717,7 @@ export function LeagueNewsPanel({
                 <p className="text-xs text-muted-foreground text-right mt-0.5">{body.length}/5000</p>
               </div>
               <div>
-                <label className="font-pixel text-xs text-muted-foreground block mb-1 flex items-center gap-1">
+                <label className="text-xs font-semibold text-muted-foreground block mb-1 flex items-center gap-1">
                   <Image className="w-3 h-3" /> IMAGE (optional)
                 </label>
                 {imagePreview ? (
@@ -804,7 +804,7 @@ export function MergedRosterPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-xs">ROSTER</h3>
+            <h3 className="text-gold text-xs">ROSTER</h3>
           </div>
           <Link href={`/league/${leagueId}/roster`}>
             <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Manage →</span>
@@ -815,7 +815,7 @@ export function MergedRosterPanel({
         {/* Depth row: size + eligibility */}
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="font-pixel text-xs text-muted-foreground">ROSTER</p>
+            <p className="text-xs font-semibold text-muted-foreground">ROSTER</p>
             <p className="text-2xl font-bold leading-none">
               {overview.rosterSize}<span className="text-muted-foreground text-sm">/25</span>
             </p>
@@ -826,7 +826,7 @@ export function MergedRosterPanel({
               if (count === 0) return null;
               return (
                 <div key={e} className="text-center">
-                  <p className="font-pixel text-xs text-muted-foreground">{e}</p>
+                  <p className="text-xs font-semibold text-muted-foreground">{e}</p>
                   <p className="font-bold text-sm leading-tight">{count}</p>
                 </div>
               );
@@ -837,27 +837,27 @@ export function MergedRosterPanel({
         {/* Strength row: avg OVR + grades */}
         <div className="flex items-center gap-4 py-2 border-y border-border/40 mb-3">
           <div>
-            <p className="font-pixel text-xs text-muted-foreground">AVG OVR</p>
+            <p className="text-xs font-semibold text-muted-foreground">AVG OVR</p>
             <p className="text-xl font-bold text-gold leading-none">{Math.round(overview.averageOverall)}</p>
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {overview.hitGrade && (
-              <span className="font-pixel text-xs px-1.5 py-1 rounded bg-sky-500/20 text-sky-300">H:{overview.hitGrade}</span>
+              <span className="text-xs font-semibold px-1.5 py-1 rounded bg-sky-500/20 text-sky-300">H:{overview.hitGrade}</span>
             )}
             {overview.pitchGrade && (
-              <span className="font-pixel text-xs px-1.5 py-1 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
+              <span className="text-xs font-semibold px-1.5 py-1 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
             )}
             {overview.fieldGrade && (
-              <span className="font-pixel text-xs px-1.5 py-1 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
+              <span className="text-xs font-semibold px-1.5 py-1 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
             )}
           </div>
           <div className="ml-auto flex gap-3">
             <div className="text-center">
-              <p className="font-pixel text-xs text-sky-400">HIT</p>
+              <p className="text-xs font-semibold text-sky-400">HIT</p>
               <p className="text-sm font-bold text-sky-400">{overview.hitterAvg || "—"}</p>
             </div>
             <div className="text-center">
-              <p className="font-pixel text-xs text-purple-400">PITCH</p>
+              <p className="text-xs font-semibold text-purple-400">PITCH</p>
               <p className="text-sm font-bold text-purple-400">{overview.pitcherAvg || "—"}</p>
             </div>
           </div>
@@ -871,7 +871,7 @@ export function MergedRosterPanel({
             const barWidth = maxStarCount > 0 ? Math.round((count / maxStarCount) * 100) : 0;
             return (
               <div key={stars} className="flex items-center gap-2">
-                <span className={`font-pixel text-xs w-5 shrink-0 ${STAR_TEXT_COLORS[stars]}`}>{stars}★</span>
+                <span className={`text-xs font-semibold w-5 shrink-0 ${STAR_TEXT_COLORS[stars]}`}>{stars}★</span>
                 <div className="flex-1 bg-background/60 rounded-full h-2 overflow-hidden">
                   <div className={`h-full rounded-full ${STAR_COLORS[stars]}`} style={{ width: `${barWidth}%` }} />
                 </div>
@@ -886,7 +886,7 @@ export function MergedRosterPanel({
         {/* Thin positions */}
         {atRisk.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/40">
-            <span className="font-pixel text-xs text-red-400 self-center">THIN:</span>
+            <span className="text-xs font-semibold text-red-400 self-center">THIN:</span>
             {atRisk.map(pos => (
               <span key={pos} className="text-xs px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">{pos}</span>
             ))}
@@ -1064,7 +1064,7 @@ export function NewsroomPanel({
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2">
             <Newspaper className="w-4 h-4 text-gold" />
-            <h2 className="font-pixel text-gold text-xs">LEAGUE NEWSROOM</h2>
+            <h2 className="text-gold text-xs">LEAGUE NEWSROOM</h2>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Segmented tab buttons */}
@@ -1074,7 +1074,7 @@ export function NewsroomPanel({
                   key={t.key}
                   onClick={() => setTab(t.key)}
                   data-testid={`newsroom-tab-${t.key}`}
-                  className={`relative px-2.5 py-1 font-pixel text-xs whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                  className={`relative px-2.5 py-1 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
                     tab === t.key
                       ? "bg-gold text-forest-dark"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1082,7 +1082,7 @@ export function NewsroomPanel({
                 >
                   {t.label}
                   {t.badge > 0 && (
-                    <span className="min-w-[14px] h-[14px] rounded-full bg-red-500 text-white font-pixel text-xs flex items-center justify-center px-0.5 animate-pulse">
+                    <span className="min-w-[14px] h-[14px] rounded-full bg-red-500 text-white text-xs font-semibold flex items-center justify-center px-0.5 animate-pulse">
                       {t.badge}
                     </span>
                   )}
@@ -1109,7 +1109,7 @@ export function NewsroomPanel({
         {/* ── Post creation form — open to all league members ────────────── */}
         {showPostForm && canPost && (
           <div className="mb-4 p-3 bg-background/50 border border-gold/20 rounded-lg space-y-2.5" data-testid="form-news-post">
-            <p className="font-pixel text-xs text-gold">NEW POST</p>
+            <p className="text-xs font-semibold text-gold">NEW POST</p>
             <input
               value={postTitle}
               onChange={e => setPostTitle(e.target.value)}
@@ -1191,7 +1191,7 @@ export function NewsroomPanel({
                   </div>
                   {isCommissioner && (
                     <div>
-                      <p className="font-pixel text-xs text-muted-foreground/60 mb-1.5">SUGGESTED POSTS</p>
+                      <p className="text-xs font-semibold text-muted-foreground/60 mb-1.5">SUGGESTED POSTS</p>
                       <div className="flex flex-wrap gap-2">
                         {["Preseason prediction", "Recruiting rumor", "Season recap", "Commissioner note"].map(prompt => (
                           <button
@@ -1222,13 +1222,13 @@ export function NewsroomPanel({
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="font-pixel text-xs text-gold/60 border border-gold/20 rounded px-1">POST</span>
+                              <span className="text-xs font-semibold text-gold/60 border border-gold/20 rounded px-1">POST</span>
                               <span className="text-xs text-muted-foreground">{fmtDate(post.createdAt)}</span>
                               {post.authorName && (
-                                <span className="text-xs font-pixel text-gold/70">{post.authorName}</span>
+                                <span className="text-xs text-gold/70">{post.authorName}</span>
                               )}
                             </div>
-                            <p className="font-pixel text-xs text-foreground leading-snug truncate">{post.title}</p>
+                            <p className="text-xs font-semibold text-foreground leading-snug truncate">{post.title}</p>
                           </div>
                           {(isCommissioner || (!!currentUserId && post.authorId === currentUserId)) && (
                             <button
@@ -1266,7 +1266,7 @@ export function NewsroomPanel({
                       key={f.key}
                       onClick={() => setActFilter(f.key as NrFilterKey)}
                       data-testid={`newsroom-filter-${f.key.toLowerCase().replace(/[,]/g, "-")}`}
-                      className={`px-2 py-0.5 rounded text-xs font-pixel border transition-colors ${
+                      className={`px-2 py-0.5 rounded text-xs border transition-colors ${
                         actFilter === f.key
                           ? "bg-gold/20 text-gold border-gold/50"
                           : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
@@ -1294,7 +1294,7 @@ export function NewsroomPanel({
                           className="flex items-start gap-2 px-2 py-2 rounded hover:bg-card/50 transition-colors"
                           data-testid={`newsroom-event-${ev.id}`}
                         >
-                          <span className={`shrink-0 font-pixel text-xs px-1 py-0.5 rounded border whitespace-nowrap mt-0.5 ${chip.cls}`}>
+                          <span className={`shrink-0 text-xs font-semibold px-1 py-0.5 rounded border whitespace-nowrap mt-0.5 ${chip.cls}`}>
                             {chip.label}
                           </span>
                           <div className="flex-1 min-w-0">
@@ -1329,7 +1329,7 @@ export function NewsroomPanel({
                       <div className="px-3 py-2 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <Zap className="w-3.5 h-3.5 text-gold" />
-                          <span className="font-pixel text-xs text-gold">{pendingVotes} vote{pendingVotes !== 1 ? "s" : ""} pending</span>
+                          <span className="text-xs font-semibold text-gold">{pendingVotes} vote{pendingVotes !== 1 ? "s" : ""} pending</span>
                         </div>
                         <Link href={`/league/${leagueId}/storylines`}>
                           <RetroButton size="sm" variant="outline" className="border-gold/40 text-gold text-xs" data-testid="newsroom-vote-cta">
@@ -1354,9 +1354,9 @@ export function NewsroomPanel({
                                 {sl.recruit?.position && <span className="text-muted-foreground text-xs ml-1">({sl.recruit.position})</span>}
                               </span>
                               {hasVote ? (
-                                <span className="flex items-center gap-0.5 text-xs text-gold font-pixel shrink-0"><Zap className="w-2.5 h-2.5" /> VOTE</span>
+                                <span className="flex items-center gap-0.5 text-xs text-gold shrink-0"><Zap className="w-2.5 h-2.5" /> VOTE</span>
                               ) : sl.resolvedOvrDelta ? (
-                                <span className={`text-xs font-pixel shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                <span className={`text-xs shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>
                                   {(sl.resolvedOvrDelta ?? 0) > 0 ? "+" : ""}{sl.resolvedOvrDelta} OVR
                                 </span>
                               ) : null}
@@ -1396,18 +1396,18 @@ export function NewsroomPanel({
             className="hidden lg:flex flex-col gap-3 w-[210px] shrink-0 ml-5 pl-5 border-l border-border/30"
             data-testid="newsroom-pulse"
           >
-            <p className="font-pixel text-xs text-muted-foreground/50 uppercase tracking-wider">League Pulse</p>
+            <p className="text-xs font-semibold text-muted-foreground/50 uppercase tracking-wider">League Pulse</p>
 
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Ready</span>
-                <span className={`font-pixel text-xs ${readyCount >= humanCount ? "text-emerald-400" : "text-gold"}`}>
+                <span className={`text-xs font-semibold ${readyCount >= humanCount ? "text-emerald-400" : "text-gold"}`}>
                   {readyCount}/{humanCount}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Votes pending</span>
-                <span className={`font-pixel text-xs ${pendingVotes > 0 ? "text-gold animate-pulse" : "text-muted-foreground"}`}>
+                <span className={`text-xs font-semibold ${pendingVotes > 0 ? "text-gold animate-pulse" : "text-muted-foreground"}`}>
                   {pendingVotes}
                 </span>
               </div>
@@ -1557,7 +1557,7 @@ export function ThisWeekPanel({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-gold" />
-          <span className="font-pixel text-gold text-xs">{phaseLabel.toUpperCase()}</span>
+          <span className="text-gold text-xs">{phaseLabel.toUpperCase()}</span>
         </div>
         <span className="text-xs text-muted-foreground">Season {season} · Week {week}</span>
       </div>
@@ -1565,7 +1565,7 @@ export function ThisWeekPanel({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {/* Advance readiness */}
         <div>
-          <p className="font-pixel text-xs text-muted-foreground/70 mb-1">ADVANCE</p>
+          <p className="text-xs font-semibold text-muted-foreground/70 mb-1">ADVANCE</p>
           {allReady ? (
             <p className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
               <CheckCircle className="w-3.5 h-3.5" /> All ready
@@ -1585,7 +1585,7 @@ export function ThisWeekPanel({
         {/* NIL budget */}
         {nilBudget > 0 ? (
           <div>
-            <p className="font-pixel text-xs text-muted-foreground/70 mb-1">NIL BUDGET</p>
+            <p className="text-xs font-semibold text-muted-foreground/70 mb-1">NIL BUDGET</p>
             <p className={`text-sm font-medium ${nilRemPct < 20 ? "text-red-400" : nilRemPct < 50 ? "text-amber-400" : "text-emerald-400"}`}>
               {nilRemPct}% left
             </p>
@@ -1596,7 +1596,7 @@ export function ThisWeekPanel({
         {/* Recruiting summary */}
         {overview != null ? (
           <div>
-            <p className="font-pixel text-xs text-muted-foreground/70 mb-1">RECRUITING</p>
+            <p className="text-xs font-semibold text-muted-foreground/70 mb-1">RECRUITING</p>
             <p className="text-sm font-medium text-foreground">
               {overview.recruitingSigned ?? 0} signed
             </p>
@@ -1609,7 +1609,7 @@ export function ThisWeekPanel({
         {/* Next game */}
         {myNextGame && myTeamId ? (
           <div>
-            <p className="font-pixel text-xs text-muted-foreground/70 mb-1">NEXT GAME</p>
+            <p className="text-xs font-semibold text-muted-foreground/70 mb-1">NEXT GAME</p>
             <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
               {myNextGame.homeTeamId === myTeamId ? (
                 <><span className="text-xs text-muted-foreground/60">vs</span> {myNextGame.awayTeam.abbreviation}</>

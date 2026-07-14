@@ -64,7 +64,7 @@ function CompareModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-card border-border max-w-3xl" data-testid="compare-modal">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm">
+          <DialogTitle className="text-gold text-sm">
             Compare Recruits
           </DialogTitle>
         </DialogHeader>

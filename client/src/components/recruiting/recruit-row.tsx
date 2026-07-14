@@ -1117,7 +1117,7 @@ function RecruitRow({
           {/* Trajectory row — hitters only; always shown, revealed after 50% scouted (blue chips always revealed) */}
           {!isPitcherRecruit && (
             <div className="flex items-center gap-1" data-testid={`traj-row-${recruit.id}`}>
-              <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
+              <span className="text-xs font-semibold text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
               {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null ? (
                 <>
                   <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-xs" />
@@ -1129,14 +1129,14 @@ function RecruitRow({
                   }`}>{TRAJECTORY_FULL_LABELS[recruit.trajectory] ?? ""}</span>
                 </>
               ) : (
-                <span className="font-pixel text-xs font-bold" style={{ color: "#374151" }}>?</span>
+                <span className="text-xs font-semibold font-bold" style={{ color: "#374151" }}>?</span>
               )}
             </div>
           )}
 
           {/* Row 1 — ATTRIBUTES */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">ATTRIBUTES</span>
+            <span className="text-xs font-semibold text-muted-foreground/50 uppercase w-[76px] shrink-0">ATTRIBUTES</span>
             {primaryAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
@@ -1148,11 +1148,11 @@ function RecruitRow({
                   {isSigningDayLocked ? (
                     <Lock className="w-2.5 h-2.5 text-gold/50" />
                   ) : isVelRevealed ? (
-                    <span className="font-pixel text-xs font-bold text-sky-300/90">
+                    <span className="text-xs font-semibold font-bold text-sky-300/90">
                       {velocityToKMH(val)} KMH
                     </span>
                   ) : (
-                    <span className="font-pixel text-xs font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                    <span className="text-xs font-semibold font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
                       {grade ? grade.letter : "?"}
                     </span>
                   )}
@@ -1178,7 +1178,7 @@ function RecruitRow({
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">PITCH MIX</span>
+                <span className="text-xs font-semibold text-muted-foreground/50 uppercase w-[76px] shrink-0">PITCH MIX</span>
                 {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
                     <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
@@ -1196,7 +1196,7 @@ function RecruitRow({
 
           {/* Row 2 — COMMON abilities */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">COMMON</span>
+            <span className="text-xs font-semibold text-muted-foreground/50 uppercase w-[76px] shrink-0">COMMON</span>
             {commonAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
@@ -1207,7 +1207,7 @@ function RecruitRow({
                   {isSigningDayLocked ? (
                     <Lock className="w-2.5 h-2.5 text-gold/50" />
                   ) : (
-                    <span className="font-pixel text-xs font-bold" style={{ color: grade ? (COMMON_TIER_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                    <span className="text-xs font-semibold font-bold" style={{ color: grade ? (COMMON_TIER_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
                       {grade ? grade.letter : "?"}
                     </span>
                   )}
@@ -1218,7 +1218,7 @@ function RecruitRow({
 
           {/* Row 3 — SPECIAL abilities */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[8px] text-muted-foreground/50 uppercase w-[76px] shrink-0">SPECIAL</span>
+            <span className="text-xs font-semibold text-muted-foreground/50 uppercase w-[76px] shrink-0">SPECIAL</span>
             {(() => {
               const abilitiesList = (recruit.abilities as string[] | null | undefined) || [];
               // Filter to only gold/blue/red special abilities first, then apply fog-of-war slice
@@ -1269,7 +1269,7 @@ function RecruitRow({
 
       {showPhonePicker && (
         <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-phone-${recruit.id}`}>
-          <p className="text-xs font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+          <p className="text-xs text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pitchOptions.map(opt => (
               <button
@@ -1309,7 +1309,7 @@ function RecruitRow({
 
       {showEmailPicker && (
         <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-email-${recruit.id}`}>
-          <p className="text-xs font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+          <p className="text-xs text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pitchOptions.map(opt => (
               <button
@@ -1349,7 +1349,7 @@ function RecruitRow({
 
       {recruit.interest?.notes && (
         <div className="mt-2 px-4 py-2 bg-gold/10 border border-gold/20 rounded text-sm text-muted-foreground">
-          <span className="text-gold font-pixel text-xs">NOTE: </span>
+          <span className="text-gold text-xs font-semibold">NOTE: </span>
           {recruit.interest.notes}
         </div>
       )}
@@ -1357,7 +1357,7 @@ function RecruitRow({
       <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">
+            <DialogTitle className="text-gold text-sm">
               Notes for {recruit.firstName} {recruit.lastName}
             </DialogTitle>
           </DialogHeader>
@@ -1426,7 +1426,7 @@ function RecruitRow({
                   const hasOffer = recruit.interest?.hasOffer;
                   return (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-pixel text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
+                      <span className="text-xs text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
                         #{userIdx + 1} of {visibleSchools.length}
                       </span>
                       {!hasOffer && (

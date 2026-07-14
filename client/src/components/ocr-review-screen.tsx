@@ -313,7 +313,7 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-pixel text-gold/80">{team.abbreviation} • {batting.length} batters</span>
+        <span className="text-xs text-gold/80">{team.abbreviation} • {batting.length} batters</span>
       </div>
       {batting.map((b, i) => (
         <div
@@ -374,7 +374,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
 
   return (
     <div className="space-y-3">
-      <span className="text-xs font-pixel text-gold/80">{team.abbreviation} • {pitching.length} pitchers</span>
+      <span className="text-xs text-gold/80">{team.abbreviation} • {pitching.length} pitchers</span>
       {pitching.map((p, i) => (
         <div key={p.playerId} className="border border-border/40 rounded-lg p-2.5 space-y-2" data-testid={`row-review-pitcher-${side}-${i}`}>
           <div className="flex items-center gap-2">
@@ -547,7 +547,7 @@ export function OcrReviewScreen({
     <div className="space-y-3" data-testid="ocr-review-screen">
       <div className="flex items-center gap-2 px-1">
         <Sparkles className="w-3.5 h-3.5 text-gold" />
-        <span className="text-xs font-pixel text-gold">Review Extracted Box Score</span>
+        <span className="text-xs text-gold">Review Extracted Box Score</span>
       </div>
       <p className="text-xs text-muted-foreground px-1">
         Tap any field to edit it. <span className="text-gold">Gold sparkle</span> = OCR value, <span className="text-yellow-400">yellow warning</span> = low-confidence read, <span className="text-blue-300">blue pencil</span> = you corrected it.
@@ -560,17 +560,17 @@ export function OcrReviewScreen({
             <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
             <span className="text-xs text-muted-foreground">{awayTeam.abbreviation}</span>
             {showInnings ? (
-              <span className="font-pixel text-xl text-gold" data-testid="review-away-score">{awayScore}</span>
+              <span className="font-display text-xl font-bold text-gold" data-testid="review-away-score">{awayScore}</span>
             ) : (
               <NumberField value={awayScore} onChange={v => onChangeAwayScore(v)} testId="review-away-score" source={fieldMeta["score.awayScore"]} width="w-12" />
             )}
           </div>
-          <span className="font-pixel text-muted-foreground text-sm">@</span>
+          <span className="text-muted-foreground text-sm">@</span>
           <div className="flex flex-col items-center gap-1 flex-1">
             <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
             <span className="text-xs text-muted-foreground">{homeTeam.abbreviation}</span>
             {showInnings ? (
-              <span className="font-pixel text-xl text-gold" data-testid="review-home-score">{homeScore}</span>
+              <span className="font-display text-xl font-bold text-gold" data-testid="review-home-score">{homeScore}</span>
             ) : (
               <NumberField value={homeScore} onChange={v => onChangeHomeScore(v)} testId="review-home-score" source={fieldMeta["score.homeScore"]} width="w-12" />
             )}

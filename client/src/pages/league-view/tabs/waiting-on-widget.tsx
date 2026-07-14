@@ -207,7 +207,7 @@ function SigningDayRevealModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-background border-gold/40 max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-xs flex items-center gap-2">
+          <DialogTitle className="text-gold text-xs flex items-center gap-2">
             <Award className="w-4 h-4" />
             DECISION DAY
           </DialogTitle>
@@ -234,12 +234,12 @@ function SigningDayRevealModal({
           </div>
         ) : (
           <div className="py-2 space-y-4">
-            <div className="text-center text-xs text-muted-foreground font-pixel">
+            <div className="text-center text-xs text-muted-foreground">
               {currentIdx + 1} / {recruits.length} UNDECIDED
             </div>
             <div className="text-center space-y-1">
               <StarRating rating={current.starRating} />
-              <p className="font-pixel text-white text-sm mt-1">{current.firstName} {current.lastName}</p>
+              <p className="text-white text-sm mt-1">{current.firstName} {current.lastName}</p>
               <p className="text-xs text-muted-foreground">{current.position} · {current.homeState}</p>
             </div>
 
@@ -277,7 +277,7 @@ function SigningDayRevealModal({
               <>
                 <div className="bg-gold/10 border border-gold/50 rounded p-4 text-center space-y-1 animate-in fade-in duration-300">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider">commits to</p>
-                  <p className="font-pixel text-gold text-base">
+                  <p className="text-gold text-base">
                     {current.committingTo?.teamName ?? school1?.teamName ?? "Undecided"}
                   </p>
                 </div>
@@ -429,7 +429,7 @@ export function WaitingOnWidget({
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <Users className={`w-4 h-4 shrink-0 ${allReady ? "text-green-400" : "text-gold"}`} />
-            <span className={`font-pixel text-xs ${allReady ? "text-green-400" : "text-gold"}`}>
+            <span className={`text-xs font-semibold ${allReady ? "text-green-400" : "text-gold"}`}>
               {allReady ? "ALL READY" : "WAITING ON"}
             </span>
             <span className="text-xs text-muted-foreground hidden sm:inline">
@@ -619,7 +619,7 @@ export function WaitingOnWidget({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <CalendarClock className="w-3 h-3 text-gold/70 shrink-0" />
-                  <span className="font-pixel text-xs text-muted-foreground">NEXT ADVANCE</span>
+                  <span className="text-xs font-semibold text-muted-foreground">NEXT ADVANCE</span>
                 </div>
                 {isCommissioner && (
                   <button
@@ -694,11 +694,11 @@ export function WaitingOnWidget({
         <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
           <DialogContent className="bg-card border-border max-w-sm">
             <DialogHeader>
-              <DialogTitle className="font-pixel text-gold text-xs">SET ADVANCE SCHEDULE</DialogTitle>
+              <DialogTitle className="text-gold text-xs">SET ADVANCE SCHEDULE</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>
-                <label className="font-pixel text-xs text-muted-foreground block mb-1.5">NEXT ADVANCE DATE/TIME (EST)</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">NEXT ADVANCE DATE/TIME (EST)</label>
                 <input
                   type="datetime-local"
                   value={scheduleInput}
@@ -709,7 +709,7 @@ export function WaitingOnWidget({
                 <p className="text-xs text-muted-foreground mt-1">Visible to all coaches as a countdown timer</p>
               </div>
               <div>
-                <label className="font-pixel text-xs text-muted-foreground block mb-1.5">SCHEDULE NOTE (optional)</label>
+                <label className="text-xs font-semibold text-muted-foreground block mb-1.5">SCHEDULE NOTE (optional)</label>
                 <input
                   value={scheduleNote}
                   onChange={e => setScheduleNote(e.target.value)}

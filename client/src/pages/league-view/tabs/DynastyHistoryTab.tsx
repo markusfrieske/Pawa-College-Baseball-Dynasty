@@ -66,7 +66,7 @@ function DynastyTrendsCard({ leagueId }: { leagueId: string }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {data.seasons.map(s => (
               <div key={s.season} className="text-center">
-                <p className="font-pixel text-xs text-gold">S{s.season}</p>
+                <p className="text-xs font-semibold text-gold">S{s.season}</p>
                 <p className="text-sm font-mono">{s.wins}-{s.losses}</p>
                 <p className="text-xs text-muted-foreground">OVR: {s.avgOverall}</p>
               </div>
@@ -121,7 +121,7 @@ export function AllTimeRecruitingLeaderboard({ leagueId }: { leagueId: string })
             {leaders.map((entry, i) => (
               <div key={entry.coachId} className="flex items-center justify-between py-2 px-1 border-b border-border/20" data-testid={`all-time-leader-${i}`}>
                 <div className="flex items-center gap-2">
-                  <span className={`font-pixel text-xs w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-semibold w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
                     {i === 0 ? "★" : `#${entry.rank}`}
                   </span>
                   <span className="text-sm font-medium">{entry.coachName}</span>
@@ -129,7 +129,7 @@ export function AllTimeRecruitingLeaderboard({ leagueId }: { leagueId: string })
                   <span className="text-xs text-muted-foreground">{entry.seasonCount} season{entry.seasonCount !== 1 ? "s" : ""}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`font-bold font-pixel text-xs ${gradeColorLV(entry.bestGrade)}`}>
+                  <span className={`font-bold text-xs font-semibold ${gradeColorLV(entry.bestGrade)}`}>
                     Best: {entry.bestGrade}
                   </span>
                   <span className="text-xs text-muted-foreground">{entry.careerRecruitingScore?.toFixed(1)}</span>
@@ -167,7 +167,7 @@ export function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
         <RetroCardContent>
           <div className="text-center py-12 text-muted-foreground">
             <History className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p className="font-pixel text-xs text-gold mb-2">No History Yet</p>
+            <p className="text-xs font-semibold text-gold mb-2">No History Yet</p>
             <p className="text-sm">Complete your first season to start building your dynasty history.</p>
           </div>
         </RetroCardContent>
@@ -191,7 +191,7 @@ export function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
             {data.seasons.map(season => (
               <div key={season.season} className="border-b border-border/50 pb-4 last:border-0" data-testid={`history-season-${season.season}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-pixel text-gold text-xs">SEASON {season.season}</p>
+                  <p className="text-gold text-xs">SEASON {season.season}</p>
                   {season.season === data.currentSeason && (
                     <Badge variant="outline" className="text-xs">Current</Badge>
                   )}
@@ -233,11 +233,11 @@ export function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
                 )}
                 {season.topClassRankings && season.topClassRankings.length > 0 && (
                   <div className="mt-2 pt-2 border-t border-border/30">
-                    <p className="font-pixel text-xs text-muted-foreground mb-1">TOP RECRUITING CLASSES</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">TOP RECRUITING CLASSES</p>
                     <div className="flex flex-wrap gap-1">
                       {season.topClassRankings.map(cls => (
                         <div key={cls.teamId} className="flex items-center gap-1 text-xs">
-                          <span className={`font-pixel text-xs ${cls.classRank === 1 ? "text-gold" : "text-muted-foreground"}`}>#{cls.classRank}</span>
+                          <span className={`text-xs font-semibold ${cls.classRank === 1 ? "text-gold" : "text-muted-foreground"}`}>#{cls.classRank}</span>
                           <span className="text-foreground">{cls.teamAbbr}</span>
                           <span className="text-muted-foreground">({cls.totalCommits} commits{cls.fiveStars > 0 ? `, ${cls.fiveStars}x5★` : ""})</span>
                           {cls.classRank < season.topClassRankings.length && <span className="text-border">·</span>}
@@ -249,10 +249,10 @@ export function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
                 {season.recruiterOfYear && (
                   <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-2">
                     <Star className="w-3 h-3 text-gold flex-shrink-0" />
-                    <span className="font-pixel text-xs text-gold">RECRUITER OF THE YEAR</span>
+                    <span className="text-xs font-semibold text-gold">RECRUITER OF THE YEAR</span>
                     <span className="text-xs font-medium">{season.recruiterOfYear.coachName}</span>
                     <Badge variant="outline" className="text-xs">{season.recruiterOfYear.teamAbbr}</Badge>
-                    <span className={`font-pixel text-xs font-bold ml-auto ${
+                    <span className={`text-xs font-semibold font-bold ml-auto ${
                       season.recruiterOfYear.recruitingGrade.startsWith("A") ? "text-gold" :
                       season.recruiterOfYear.recruitingGrade.startsWith("B") ? "text-green-400" : "text-yellow-400"
                     }`}>{season.recruiterOfYear.recruitingGrade}</span>

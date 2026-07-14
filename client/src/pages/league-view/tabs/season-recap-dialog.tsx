@@ -40,7 +40,7 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-background border-gold/30 max-w-lg max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+          <DialogTitle className="text-gold text-sm flex items-center gap-2">
             <Trophy className="w-5 h-5" />
             Season {season} Recap
           </DialogTitle>
@@ -64,7 +64,7 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
                     name={data.cwsChampion.name}
                     size="md"
                   />
-                  <span className="font-pixel text-gold text-sm">{data.cwsChampion.name}</span>
+                  <span className="text-gold text-sm">{data.cwsChampion.name}</span>
                 </div>
                 {data.cwsRunnerUp && (
                   <p className="text-xs text-muted-foreground mt-2">
@@ -80,7 +80,7 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
             </div>
 
             <div>
-              <p className="font-pixel text-gold text-xs mb-2">TOP 10 TEAMS</p>
+              <p className="text-gold text-xs mb-2">TOP 10 TEAMS</p>
               <div className="space-y-1">
                 {data.teams.map((team, i) => (
                   <div
@@ -116,7 +116,7 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
           <div className="border-t border-border/50 pt-4 mt-2">
             <div className="flex items-center gap-2 mb-3">
               <BookOpen className="w-4 h-4 text-gold" />
-              <p className="font-pixel text-gold text-xs">STORYLINE SEASON WRAP</p>
+              <p className="text-gold text-xs">STORYLINE SEASON WRAP</p>
             </div>
             <div className="space-y-2 max-h-56 overflow-y-auto" data-testid="storyline-season-wrap">
               {wrapData.entries.map((entry) => {

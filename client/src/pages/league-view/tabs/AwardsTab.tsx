@@ -106,7 +106,7 @@ function RecruitingLeaderboardCard({ leagueId, season }: { leagueId: string; sea
               <details key={entry.coachId} className="group" data-testid={`recruiting-leader-${i}`}>
                 <summary className="flex items-center justify-between py-2 px-1 rounded cursor-pointer hover:bg-muted/20 list-none border-b border-border/20">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`font-pixel text-xs w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
+                    <span className={`text-xs font-semibold w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
                       {i === 0 ? "★" : `#${entry.rank}`}
                     </span>
                     <span className="text-sm font-medium">{entry.coachName}</span>
@@ -127,7 +127,7 @@ function RecruitingLeaderboardCard({ leagueId, season }: { leagueId: string; sea
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{entry.totalSigned} signed</span>
-                    <span className={`font-bold font-pixel text-xs ${gradeColorLV(entry.recruitingGrade || "F")}`}>
+                    <span className={`font-bold text-xs font-semibold ${gradeColorLV(entry.recruitingGrade || "F")}`}>
                       {entry.recruitingGrade || "—"}
                     </span>
                     <span className="text-xs text-muted-foreground">{entry.recruitingScore?.toFixed(0)}</span>
@@ -176,7 +176,7 @@ export function AwardsTab({ leagueId }: { leagueId: string }) {
         <RetroCardContent>
           <div className="flex flex-col items-center justify-center py-12 gap-3" data-testid="awards-not-available">
             <Award className="w-10 h-10 text-muted-foreground/40" />
-            <p className="font-pixel text-sm text-muted-foreground">Awards Not Yet Available</p>
+            <p className="font-display text-sm font-bold text-muted-foreground">Awards Not Yet Available</p>
             <p className="text-xs text-muted-foreground/70 text-center max-w-md">
               Awards will be revealed after the regular season is complete.
               Current phase: {phaseLabels[data.currentPhase || ""] || data.currentPhase}
@@ -194,7 +194,7 @@ export function AwardsTab({ leagueId }: { leagueId: string }) {
         <div className="flex items-center gap-3">
           <div className="text-gold">{icon}</div>
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground font-pixel">{title}</p>
+            <p className="text-xs text-muted-foreground">{title}</p>
             <p className="font-medium text-sm">{player.playerName}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
               <span>{player.position}</span>
@@ -212,7 +212,7 @@ export function AwardsTab({ leagueId }: { leagueId: string }) {
     if (!team || team.length === 0) return null;
     return (
       <div data-testid={`position-team-${title.toLowerCase().replace(/\s/g, "-")}`}>
-        <p className="font-pixel text-xs text-muted-foreground mb-2">{title.toUpperCase()}</p>
+        <p className="text-xs font-semibold text-muted-foreground mb-2">{title.toUpperCase()}</p>
         <div className="space-y-1">
           {team.map((entry, i) => entry.player && (
             <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">

@@ -45,7 +45,7 @@ class ReportGameErrorBoundary extends Component<
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6">
           <AlertTriangle className="w-10 h-10 text-red-400" />
-          <p className="font-pixel text-gold text-sm">Report Game Failed to Load</p>
+          <p className="text-gold text-sm">Report Game Failed to Load</p>
           <p className="text-muted-foreground text-xs text-center max-w-sm">{this.state.message}</p>
           <Link href={this.props.leagueId ? `/league/${this.props.leagueId}/schedule` : "/"} className="text-gold hover:underline text-sm flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" /> {this.props.leagueId ? "Back to Schedule" : "Go Home"}
@@ -203,7 +203,7 @@ function ScoreStepper({
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <span className="text-xs font-pixel text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className="text-xs text-muted-foreground uppercase tracking-wide">{label}</span>
       <button
         type="button"
         onClick={() => onChange(value + 1)}
@@ -219,7 +219,7 @@ function ScoreStepper({
         max={99}
         value={value}
         onChange={e => onChange(Math.max(0, parseInt(e.target.value) || 0))}
-        className="w-16 h-16 text-center text-3xl font-pixel text-gold bg-muted/40 border-2 border-gold/60 rounded-lg focus:outline-none focus:border-gold"
+        className="w-16 h-16 text-center text-3xl text-gold bg-muted/40 border-2 border-gold/60 rounded-lg focus:outline-none focus:border-gold"
         data-testid={`${testId}-input`}
         aria-label={`${label} score`}
       />
@@ -790,7 +790,7 @@ function ReportGameInner() {
               </Link>
             )}
             <div className="flex-1 min-w-0">
-              <h1 className="font-pixel text-gold text-xs truncate">
+              <h1 className="text-gold text-xs truncate">
                 {isEditMode ? "Edit Game Report" : phase === "submitted" ? "Report Submitted" : "Report Game Result"}
               </h1>
               <p className="text-xs text-muted-foreground truncate">
@@ -798,7 +798,7 @@ function ReportGameInner() {
               </p>
             </div>
             {phase !== "submitted" && (
-              <div className="flex items-center gap-1 shrink-0 text-xs font-pixel">
+              <div className="flex items-center gap-1 shrink-0 text-xs">
                 <span className={phase === "score" ? "text-gold" : "text-muted-foreground"} data-testid="step-upload">1 Upload</span>
                 <ChevronRight className="w-2 h-2 text-muted-foreground/50" />
                 <span className={phase === "review" ? "text-gold" : "text-muted-foreground"} data-testid="step-review">2 Review</span>
@@ -1128,7 +1128,7 @@ function ScoreEntryStep({
                     label="Away"
                     testId="score-away"
                   />
-                  <span className="font-pixel text-muted-foreground text-lg pb-4">@</span>
+                  <span className="text-muted-foreground text-lg pb-4">@</span>
                   <ScoreStepper
                     value={homeScore}
                     onChange={onChangeHome}
@@ -1138,7 +1138,7 @@ function ScoreEntryStep({
                 </>
               ) : (
                 <div className="text-center">
-                  <div className="flex items-center gap-2 font-pixel text-3xl">
+                  <div className="flex items-center gap-2 font-display text-3xl font-bold">
                     <span className={displayAway > displayHome ? "text-gold" : "text-muted-foreground"}>{displayAway}</span>
                     <span className="text-muted-foreground text-sm">@</span>
                     <span className={displayHome > displayAway ? "text-gold" : "text-muted-foreground"}>{displayHome}</span>
@@ -1302,7 +1302,7 @@ function SubmittedPhase({
       </div>
 
       <div>
-        <p className="font-pixel text-gold text-sm mb-1">
+        <p className="text-gold text-sm mb-1">
           {isAutoFinalized ? "Result Finalized" : "Report Submitted"}
         </p>
         <p className="text-xs text-muted-foreground max-w-xs">
@@ -1319,7 +1319,7 @@ function SubmittedPhase({
             <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
             <span className="text-xs text-muted-foreground">{awayTeam.abbreviation}</span>
           </div>
-          <div className="flex items-center gap-2 font-pixel text-2xl">
+          <div className="flex items-center gap-2 font-display text-2xl font-bold">
             <span className={awayScore > homeScore ? "text-gold" : "text-muted-foreground"}>{awayScore}</span>
             <span className="text-muted-foreground text-sm">@</span>
             <span className={homeScore > awayScore ? "text-gold" : "text-muted-foreground"}>{homeScore}</span>
@@ -1400,7 +1400,7 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gold">{label} Batting</h3>
-        <span className="text-xs font-pixel text-muted-foreground" data-testid="text-batter-count">{batting.length} batters</span>
+        <span className="text-xs text-muted-foreground" data-testid="text-batter-count">{batting.length} batters</span>
       </div>
 
       {available.length > 0 && (
@@ -1588,7 +1588,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-pixel text-gold">{team.name}</h3>
+          <h3 className="text-xs text-gold">{team.name}</h3>
           <RetroButton size="sm" variant="outline" onClick={onAdd} data-testid={`button-add-pitcher-${team.id}`}>+ Pitcher</RetroButton>
         </div>
         <div className="overflow-x-auto">
@@ -1670,7 +1670,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
     });
     return (
       <div className="space-y-1">
-        <div className="text-xs font-pixel text-gold/80 mb-1">{label}</div>
+        <div className="text-xs text-gold/80 mb-1">{label}</div>
         <div className="grid gap-1">
           {pitchers.map(p => {
             const slot = p.slots[gameDay] as PitcherAvailSlot | undefined;
@@ -1683,8 +1683,8 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
                 <TooltipTrigger asChild>
                   <div className={`flex items-center gap-2 px-2 py-1 rounded border text-xs cursor-default ${color}`} data-testid={`avail-row-${teamId}-${p.playerId}`}>
                     <span className="flex-1 truncate">{p.name}</span>
-                    {p.pitchingRole && <span className="font-pixel text-xs text-muted-foreground">{p.pitchingRole}</span>}
-                    <span className={`font-pixel text-xs ${statusColor}`}>{statusText}</span>
+                    {p.pitchingRole && <span className="text-xs font-semibold text-muted-foreground">{p.pitchingRole}</span>}
+                    <span className={`text-xs font-semibold ${statusColor}`}>{statusText}</span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="left" className="max-w-[240px]">
@@ -1706,7 +1706,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
         <div className="border border-border/60 rounded-lg overflow-hidden">
           <button className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
             onClick={() => setAvailOpen(o => !o)} data-testid="toggle-avail-panel">
-            <span className="font-pixel text-gold text-xs">PITCHING AVAILABILITY — {gameDay}</span>
+            <span className="text-gold text-xs">PITCHING AVAILABILITY — {gameDay}</span>
             <span className="text-muted-foreground text-xs">{availOpen ? "▲" : "▼"}</span>
           </button>
           {availOpen && (
@@ -1745,7 +1745,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
     <div className="space-y-4">
       <RetroCard>
         <RetroCardHeader>
-          <span className="font-pixel text-gold text-xs">Final Score</span>
+          <span className="text-gold text-xs">Final Score</span>
         </RetroCardHeader>
         <RetroCardContent>
           <div className="flex items-center justify-between gap-4">
@@ -1753,7 +1753,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
               <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
               <span className="text-sm font-medium">{awayTeam.name}</span>
             </div>
-            <div className="flex items-center gap-3 font-pixel text-2xl">
+            <div className="flex items-center gap-3 font-display text-2xl font-bold">
               <span className={awayScore > homeScore ? "text-gold" : "text-muted-foreground"}>{awayScore}</span>
               <span className="text-muted-foreground text-sm">@</span>
               <span className={homeScore > awayScore ? "text-gold" : "text-muted-foreground"}>{homeScore}</span>
@@ -1802,12 +1802,12 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
 
       {(homeBatting.length > 0 || awayBatting.length > 0) && (
         <RetroCard>
-          <RetroCardHeader><span className="font-pixel text-gold text-xs">Batting</span></RetroCardHeader>
+          <RetroCardHeader><span className="text-gold text-xs">Batting</span></RetroCardHeader>
           <RetroCardContent className="space-y-4">
             {[{ team: awayTeam, batting: awayBatting }, { team: homeTeam, batting: homeBatting }].map(({ team, batting }) =>
               batting.length > 0 ? (
                 <div key={team.id}>
-                  <p className="text-xs font-pixel text-gold/80 mb-1">{team.abbreviation}</p>
+                  <p className="text-xs text-gold/80 mb-1">{team.abbreviation}</p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                       <thead>
@@ -1840,12 +1840,12 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
 
       {(homePitching.length > 0 || awayPitching.length > 0) && (
         <RetroCard>
-          <RetroCardHeader><span className="font-pixel text-gold text-xs">Pitching</span></RetroCardHeader>
+          <RetroCardHeader><span className="text-gold text-xs">Pitching</span></RetroCardHeader>
           <RetroCardContent className="space-y-4">
             {[{ team: awayTeam, pitching: awayPitching }, { team: homeTeam, pitching: homePitching }].map(({ team, pitching }) =>
               pitching.length > 0 ? (
                 <div key={team.id}>
-                  <p className="text-xs font-pixel text-gold/80 mb-1">{team.abbreviation}</p>
+                  <p className="text-xs text-gold/80 mb-1">{team.abbreviation}</p>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs border-collapse">
                       <thead>
@@ -1859,8 +1859,8 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
                           <tr key={i} className="border-b border-gold/10">
                             <td className="py-1 pr-2 truncate max-w-[80px]">
                               {p.name}
-                              {p.win && <span className="ml-1 text-green-400 font-pixel text-xs">W</span>}
-                              {p.loss && <span className="ml-1 text-red-400 font-pixel text-xs">L</span>}
+                              {p.win && <span className="ml-1 text-green-400 text-xs font-semibold">W</span>}
+                              {p.loss && <span className="ml-1 text-red-400 text-xs font-semibold">L</span>}
                             </td>
                             <td className="text-center px-1 py-1">{p.ip}</td>
                             <td className="text-center px-1 py-1">{p.er}</td>

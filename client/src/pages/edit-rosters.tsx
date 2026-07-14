@@ -203,7 +203,7 @@ export default function EditRostersPage() {
       onClick={() => handleSort(field)}
     >
       <div className="flex items-center gap-1">
-        <span className="text-xs font-pixel text-gold">{label}</span>
+        <span className="text-xs text-gold">{label}</span>
         {sortField === field && (
           sortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
         )}
@@ -224,7 +224,7 @@ export default function EditRostersPage() {
     return (
       <div className="min-h-screen bg-background p-4 flex items-center justify-center">
         <div className="text-center space-y-4 max-w-md">
-          <h1 className="font-pixel text-2xl text-red-500">ACCESS DENIED</h1>
+          <h1 className="font-display text-2xl font-bold text-red-500">ACCESS DENIED</h1>
           <p className="text-muted-foreground text-sm">
             {isGuest
               ? "Guests cannot edit rosters. Join the league via an invite link and take over a team to access roster management."
@@ -253,7 +253,7 @@ export default function EditRostersPage() {
                 Back to Commissioner
               </RetroButton>
             </Link>
-            <h1 className="font-pixel text-xl text-gold">EDIT ROSTERS</h1>
+            <h1 className="font-display text-xl font-bold text-gold">EDIT ROSTERS</h1>
           </div>
           <div className="flex items-center gap-2">
             {hasChanges && (
@@ -289,7 +289,7 @@ export default function EditRostersPage() {
               <TabsTrigger 
                 key={team.id} 
                 value={team.id}
-                className="text-xs font-pixel"
+                className="text-xs"
                 data-testid={`tab-team-${team.id}`}
               >
                 {team.abbreviation}
@@ -301,7 +301,7 @@ export default function EditRostersPage() {
             <TabsContent key={team.id} value={team.id}>
               <RetroCard>
                 <RetroCardHeader>
-                  <h2 className="font-pixel text-gold">{team.name} Roster</h2>
+                  <h2 className="text-gold">{team.name} Roster</h2>
                 </RetroCardHeader>
                 <RetroCardContent className="p-0">
                   {rosterLoading ? (
@@ -313,53 +313,53 @@ export default function EditRostersPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-muted/30 sticky top-0">
                           <tr>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold w-8"></th>
+                            <th className="px-2 py-2 text-xs text-gold w-8"></th>
                             <SortHeader field="lastName" label="NAME" />
                             <SortHeader field="position" label="POS" />
                             <SortHeader field="eligibility" label="ELIG" />
                             <SortHeader field="overall" label="OVR" />
                             <SortHeader field="starRating" label="STARS" />
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">B/T</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">TRAJ</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">HOMETOWN</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">STATE</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CONTACT</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">POWER</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SPEED</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">ARM</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">FIELD</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">VELO</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CTRL</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">STAM</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">FB</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">2S</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SL</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CB</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CH</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CT</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SNK</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">VSL</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">HSL</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SWP</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CCH</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SCB</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">PCB</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">FK</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SFF</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">SHU</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">KN</th>
+                            <th className="px-2 py-2 text-xs text-gold">B/T</th>
+                            <th className="px-2 py-2 text-xs text-gold">TRAJ</th>
+                            <th className="px-2 py-2 text-xs text-gold">HOMETOWN</th>
+                            <th className="px-2 py-2 text-xs text-gold">STATE</th>
+                            <th className="px-2 py-2 text-xs text-gold">CONTACT</th>
+                            <th className="px-2 py-2 text-xs text-gold">POWER</th>
+                            <th className="px-2 py-2 text-xs text-gold">SPEED</th>
+                            <th className="px-2 py-2 text-xs text-gold">ARM</th>
+                            <th className="px-2 py-2 text-xs text-gold">FIELD</th>
+                            <th className="px-2 py-2 text-xs text-gold">VELO</th>
+                            <th className="px-2 py-2 text-xs text-gold">CTRL</th>
+                            <th className="px-2 py-2 text-xs text-gold">STAM</th>
+                            <th className="px-2 py-2 text-xs text-gold">FB</th>
+                            <th className="px-2 py-2 text-xs text-gold">2S</th>
+                            <th className="px-2 py-2 text-xs text-gold">SL</th>
+                            <th className="px-2 py-2 text-xs text-gold">CB</th>
+                            <th className="px-2 py-2 text-xs text-gold">CH</th>
+                            <th className="px-2 py-2 text-xs text-gold">CT</th>
+                            <th className="px-2 py-2 text-xs text-gold">SNK</th>
+                            <th className="px-2 py-2 text-xs text-gold">VSL</th>
+                            <th className="px-2 py-2 text-xs text-gold">HSL</th>
+                            <th className="px-2 py-2 text-xs text-gold">SWP</th>
+                            <th className="px-2 py-2 text-xs text-gold">CCH</th>
+                            <th className="px-2 py-2 text-xs text-gold">SCB</th>
+                            <th className="px-2 py-2 text-xs text-gold">PCB</th>
+                            <th className="px-2 py-2 text-xs text-gold">FK</th>
+                            <th className="px-2 py-2 text-xs text-gold">SFF</th>
+                            <th className="px-2 py-2 text-xs text-gold">SHU</th>
+                            <th className="px-2 py-2 text-xs text-gold">KN</th>
                             {/* Common Abilities */}
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">CLCH</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">GRIT</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">vsL</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">RCVY</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">STLN</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">RUN</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">THRW</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">POIS</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">HEAT</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">AGIL</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">ABILITIES</th>
+                            <th className="px-2 py-2 text-xs text-gold">CLCH</th>
+                            <th className="px-2 py-2 text-xs text-gold">GRIT</th>
+                            <th className="px-2 py-2 text-xs text-gold">vsL</th>
+                            <th className="px-2 py-2 text-xs text-gold">RCVY</th>
+                            <th className="px-2 py-2 text-xs text-gold">STLN</th>
+                            <th className="px-2 py-2 text-xs text-gold">RUN</th>
+                            <th className="px-2 py-2 text-xs text-gold">THRW</th>
+                            <th className="px-2 py-2 text-xs text-gold">POIS</th>
+                            <th className="px-2 py-2 text-xs text-gold">HEAT</th>
+                            <th className="px-2 py-2 text-xs text-gold">AGIL</th>
+                            <th className="px-2 py-2 text-xs text-gold">ABILITIES</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -404,7 +404,7 @@ export default function EditRostersPage() {
                                           />
                                         </div>
                                         <div className="space-y-0.5">
-                                          <p className="font-pixel text-xs text-gold uppercase tracking-wide">Skin Tone</p>
+                                          <p className="text-xs font-semibold text-gold uppercase tracking-wide">Skin Tone</p>
                                           <Select value={currentSkinTone} onValueChange={(v) => updatePlayer(player.id, "skinTone", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-skintone-${player.id}`}>
                                               <SelectValue />
@@ -417,7 +417,7 @@ export default function EditRostersPage() {
                                           </Select>
                                         </div>
                                         <div className="space-y-0.5">
-                                          <p className="font-pixel text-xs text-gold uppercase tracking-wide">Hair Color</p>
+                                          <p className="text-xs font-semibold text-gold uppercase tracking-wide">Hair Color</p>
                                           <Select value={currentHairColor} onValueChange={(v) => updatePlayer(player.id, "hairColor", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-haircolor-${player.id}`}>
                                               <SelectValue />
@@ -430,7 +430,7 @@ export default function EditRostersPage() {
                                           </Select>
                                         </div>
                                         <div className="space-y-0.5">
-                                          <p className="font-pixel text-xs text-gold uppercase tracking-wide">Hair Style</p>
+                                          <p className="text-xs font-semibold text-gold uppercase tracking-wide">Hair Style</p>
                                           <Select value={currentHairStyle} onValueChange={(v) => updatePlayer(player.id, "hairStyle", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-hairstyle-${player.id}`}>
                                               <SelectValue />
@@ -535,7 +535,7 @@ export default function EditRostersPage() {
                                 {/* B/T */}
                                 <td className="px-2 py-1">
                                   <div className="flex items-center gap-1">
-                                    <span className="text-xs text-muted-foreground font-pixel">B:</span>
+                                    <span className="text-xs text-muted-foreground">B:</span>
                                     <Select
                                       value={getPlayerValue(player, "batHand")}
                                       onValueChange={(v) => updatePlayer(player.id, "batHand", v)}
@@ -549,7 +549,7 @@ export default function EditRostersPage() {
                                         ))}
                                       </SelectContent>
                                     </Select>
-                                    <span className="text-xs text-muted-foreground font-pixel">T:</span>
+                                    <span className="text-xs text-muted-foreground">T:</span>
                                     <Select
                                       value={getPlayerValue(player, "throwHand")}
                                       onValueChange={(v) => updatePlayer(player.id, "throwHand", v)}
@@ -1251,7 +1251,7 @@ function AbilityEditor({
       </PopoverTrigger>
       <PopoverContent className="w-80 max-h-96 overflow-y-auto p-2" align="start">
         <div className="space-y-2">
-          <div className="font-pixel text-gold text-xs mb-2">SPECIAL ABILITIES</div>
+          <div className="text-gold text-xs mb-2">SPECIAL ABILITIES</div>
           {["gold", "blue", "red"].map(tier => {
             const tierAbilities = availableAbilities.filter(a => a.tier === tier);
             if (tierAbilities.length === 0) return null;

@@ -132,7 +132,7 @@ function PillarSection({
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-gold" />
           <div>
-            <h3 className="text-sm font-pixel text-foreground">{title}</h3>
+            <h3 className="text-sm text-foreground">{title}</h3>
             <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
           </div>
         </div>
@@ -164,7 +164,7 @@ function IdentitySummary({ identity }: { identity: IdentityData }) {
   return (
     <RetroCard className="mb-4">
       <RetroCardContent className="py-3">
-        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-widest font-pixel">
+        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-widest">
           Current Identity
         </p>
         <div className="flex flex-wrap gap-2">
@@ -291,7 +291,7 @@ export default function IdentityPage() {
             </button>
           </Link>
           <div>
-            <h1 className="font-pixel text-sm text-gold">Team Identity</h1>
+            <h1 className="font-display text-sm font-bold text-gold">Team Identity</h1>
             <p className="text-xs text-muted-foreground mt-0.5">
               Define your program's style across 4 pillars
             </p>

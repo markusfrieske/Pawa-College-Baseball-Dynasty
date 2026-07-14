@@ -306,7 +306,7 @@ export default function DeparturesPage() {
       <div className="min-h-screen bg-background p-6 flex items-center justify-center">
         <RetroCard>
           <RetroCardContent>
-            <p className="text-muted-foreground font-pixel text-xs">No departure data available</p>
+            <p className="text-muted-foreground text-xs font-semibold">No departure data available</p>
           </RetroCardContent>
         </RetroCard>
       </div>
@@ -330,7 +330,7 @@ export default function DeparturesPage() {
           <RetroButton variant="ghost" size="sm" onClick={() => setLocation(`/league/${leagueId}`)} data-testid="button-back">
             <ArrowLeft className="w-4 h-4" />
           </RetroButton>
-          <h1 className="font-pixel text-gold text-lg uppercase tracking-wider" data-testid="text-page-title">
+          <h1 className="text-gold text-lg uppercase tracking-wider" data-testid="text-page-title">
             Offseason Departures
           </h1>
           <Badge className="bg-amber-600/30 text-amber-400 border-amber-600/50 no-default-hover-elevate no-default-active-elevate" data-testid="badge-season">
@@ -353,7 +353,7 @@ export default function DeparturesPage() {
                     size="md"
                   />
                   <div>
-                    <p className="font-pixel text-xs text-gold uppercase" data-testid="text-team-name">{userTeam.teamName}</p>
+                    <p className="text-xs font-semibold text-gold uppercase" data-testid="text-team-name">{userTeam.teamName}</p>
                     <p className="text-sm text-muted-foreground">
                       {totalDepartures} player{totalDepartures !== 1 ? "s" : ""} departing
                       {pendingActions > 0 && (
@@ -366,11 +366,11 @@ export default function DeparturesPage() {
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="text-center">
-                    <p className="font-pixel text-xs text-muted-foreground uppercase">NIL Budget</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">NIL Budget</p>
                     <p className="text-sm text-gold font-bold" data-testid="text-nil-budget">${userTeam.nilRemaining.toLocaleString()}</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-pixel text-xs text-muted-foreground uppercase">Roster</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Roster</p>
                     <p className="text-sm text-foreground font-bold" data-testid="text-roster-size">{userTeam.rosterSize}</p>
                   </div>
                 </div>
@@ -421,7 +421,7 @@ export default function DeparturesPage() {
                       <PartyPopper className="w-6 h-6 text-green-400" />
                     </div>
                     <div>
-                      <p className="font-pixel text-xs text-green-400 uppercase mb-1">No Departures This Season</p>
+                      <p className="text-xs font-semibold text-green-400 uppercase mb-1">No Departures This Season</p>
                       <p className="text-sm text-muted-foreground">
                         Every player on your roster is returning next season. No seniors graduated, no draft declarations, and no transfer requests.
                       </p>
@@ -524,7 +524,7 @@ export default function DeparturesPage() {
                   <div>
                     {userTeam.departuresFinalized ? (
                       <>
-                        <p className="font-pixel text-xs text-green-400 uppercase mb-1 flex items-center gap-2">
+                        <p className="text-xs font-semibold text-green-400 uppercase mb-1 flex items-center gap-2">
                           <CheckCircle className="w-4 h-4" /> Departures Submitted
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -543,7 +543,7 @@ export default function DeparturesPage() {
                       </>
                     ) : (
                       <>
-                        <p className="font-pixel text-xs text-gold uppercase mb-1">Ready to Submit?</p>
+                        <p className="text-xs font-semibold text-gold uppercase mb-1">Ready to Submit?</p>
                         <p className="text-sm text-muted-foreground">
                           {pendingActions > 0
                             ? `You have ${pendingActions} retention action${pendingActions !== 1 ? "s" : ""} remaining. Make your offers before submitting.`
@@ -565,7 +565,7 @@ export default function DeparturesPage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card border-border">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="font-pixel text-gold text-sm">Finalize Departures?</AlertDialogTitle>
+                          <AlertDialogTitle className="text-gold text-sm">Finalize Departures?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Once finalized, all departure decisions are locked. Graduated seniors will leave, draft declarations will be processed, and transfer portal entries will be confirmed. This cannot be undone.
                           </AlertDialogDescription>
@@ -634,7 +634,7 @@ export default function DeparturesPage() {
                       </div>
                       {departing.length > 0 && (
                         <div>
-                          <p className="text-xs font-pixel text-muted-foreground mb-2 uppercase">Departing</p>
+                          <p className="text-xs text-muted-foreground mb-2 uppercase">Departing</p>
                           <div className="space-y-1">
                             {departing.map(p => {
                               const dep = departureMap.get(p.id);
@@ -652,7 +652,7 @@ export default function DeparturesPage() {
                       )}
                       {staying.length > 0 && (
                         <div>
-                          <p className="text-xs font-pixel text-muted-foreground mb-2 uppercase">Returning</p>
+                          <p className="text-xs text-muted-foreground mb-2 uppercase">Returning</p>
                           <div className="space-y-1">
                             {staying.map(p => (
                               <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-muted/20 cursor-pointer hover:bg-muted/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-staying-${p.id}`}>
@@ -715,7 +715,7 @@ export default function DeparturesPage() {
                         size="sm"
                       />
                       <div>
-                        <p className="font-pixel text-xs text-foreground uppercase">
+                        <p className="text-xs font-semibold text-foreground uppercase">
                           {team.teamName}
                           {isUserTeam && <span className="text-gold ml-2">(You)</span>}
                           {team.isCpu && <span className="text-muted-foreground ml-2">(CPU)</span>}
@@ -740,7 +740,7 @@ export default function DeparturesPage() {
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       {team.graduates.length > 0 && (
                         <div>
-                          <p className="font-pixel text-xs text-blue-400 uppercase mb-2 flex items-center gap-1">
+                          <p className="text-xs font-semibold text-blue-400 uppercase mb-2 flex items-center gap-1">
                             <GraduationCap className="w-3 h-3" /> Graduates
                           </p>
                           {team.graduates.map(p => (
@@ -750,7 +750,7 @@ export default function DeparturesPage() {
                       )}
                       {team.draftDeclarations.length > 0 && (
                         <div>
-                          <p className="font-pixel text-xs text-amber-400 uppercase mb-2 flex items-center gap-1">
+                          <p className="text-xs font-semibold text-amber-400 uppercase mb-2 flex items-center gap-1">
                             <Trophy className="w-3 h-3" /> Draft Declarations
                           </p>
                           {team.draftDeclarations.map(p => (
@@ -760,7 +760,7 @@ export default function DeparturesPage() {
                       )}
                       {team.transfers.length > 0 && (
                         <div>
-                          <p className="font-pixel text-xs text-purple-400 uppercase mb-2 flex items-center gap-1">
+                          <p className="text-xs font-semibold text-purple-400 uppercase mb-2 flex items-center gap-1">
                             <ArrowRightLeft className="w-3 h-3" /> Transfer Portal
                           </p>
                           {team.transfers.map(p => (
@@ -787,7 +787,7 @@ export default function DeparturesPage() {
       <Dialog open={!!draftRetainPlayer} onOpenChange={(open) => !open && setDraftRetainPlayer(null)}>
         <DialogContent className="bg-card border-2 border-gold max-w-md">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm uppercase">
+            <DialogTitle className="text-gold text-sm uppercase">
               Make NIL Offer
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm">
@@ -810,7 +810,7 @@ export default function DeparturesPage() {
               </div>
 
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-xs text-muted-foreground uppercase">Draft Interest Range</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Draft Interest Range</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-foreground">${(draftRetainPlayer.draftAskMin || 50000).toLocaleString()}</span>
                   <span className="text-xs text-muted-foreground">to</span>
@@ -822,7 +822,7 @@ export default function DeparturesPage() {
               </div>
 
               <div>
-                <label className="font-pixel text-xs text-muted-foreground uppercase block mb-2">
+                <label className="text-xs font-semibold text-muted-foreground uppercase block mb-2">
                   Your NIL Offer
                 </label>
                 <div className="flex items-center gap-2">
@@ -862,7 +862,7 @@ export default function DeparturesPage() {
 
               {/* Estimated Chance */}
               <div className="bg-background/30 p-3 border border-border">
-                <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
                 <div className="flex items-center gap-3">
                   <Progress
                     value={nilOfferAmount >= (draftRetainPlayer.draftAskMax || 100000) ? 95 :
@@ -902,7 +902,7 @@ export default function DeparturesPage() {
       <Dialog open={!!transferRetainPlayer} onOpenChange={(open) => !open && setTransferRetainPlayer(null)}>
         <DialogContent className="bg-card border-2 border-gold max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm uppercase">
+            <DialogTitle className="text-gold text-sm uppercase">
               Convince to Stay
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm">
@@ -929,7 +929,7 @@ export default function DeparturesPage() {
 
               {/* NIL Offer Section */}
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-xs text-gold uppercase flex items-center gap-1">
+                <p className="text-xs font-semibold text-gold uppercase flex items-center gap-1">
                   <DollarSign className="w-3 h-3" /> NIL Sweetener (Optional)
                 </p>
                 <div className="flex items-center gap-2">
@@ -951,7 +951,7 @@ export default function DeparturesPage() {
 
               {/* Player Promise Section */}
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-xs text-gold uppercase flex items-center gap-1">
+                <p className="text-xs font-semibold text-gold uppercase flex items-center gap-1">
                   <Target className="w-3 h-3" /> Player Promise (Optional)
                 </p>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -981,7 +981,7 @@ export default function DeparturesPage() {
                 )}
                 {selectedPlayerPromise && selectedPlayerPromise !== "leadershipRole" && (
                   <div className="mt-2">
-                    <p className="font-pixel text-xs text-muted-foreground uppercase mb-1">Ambition Level</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Ambition Level</p>
                     <div className="flex gap-2">
                       {DIFFICULTY_OPTIONS.map(d => (
                         <RetroButton
@@ -1001,7 +1001,7 @@ export default function DeparturesPage() {
 
               {/* Team Promise Section */}
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-xs text-gold uppercase flex items-center gap-1">
+                <p className="text-xs font-semibold text-gold uppercase flex items-center gap-1">
                   <Shield className="w-3 h-3" /> Team Promise (Optional)
                 </p>
                 <p className="text-xs text-muted-foreground mb-2">
@@ -1026,7 +1026,7 @@ export default function DeparturesPage() {
                 </div>
                 {selectedTeamPromise && (
                   <div className="mt-2">
-                    <p className="font-pixel text-xs text-muted-foreground uppercase mb-1">Ambition Level</p>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Ambition Level</p>
                     <div className="flex gap-2">
                       {DIFFICULTY_OPTIONS.map(d => (
                         <RetroButton
@@ -1046,7 +1046,7 @@ export default function DeparturesPage() {
 
               {/* Retention Chance Preview */}
               <div className="bg-background/30 p-3 border border-border">
-                <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
                 <div className="flex items-center gap-3">
                   <Progress value={calculateRetentionChance()} className="flex-1 h-3" />
                   <span className="text-sm font-bold text-gold min-w-[40px] text-right">
@@ -1117,7 +1117,7 @@ export default function DeparturesPage() {
               {retentionResult.success ? (
                 <>
                   <CheckCircle className="w-12 h-12 text-green-400 mx-auto" />
-                  <p className="font-pixel text-green-400 text-sm uppercase">Player Retained!</p>
+                  <p className="text-green-400 text-sm uppercase">Player Retained!</p>
                   <p className="text-sm text-foreground">
                     {retentionResult.playerName} has decided to stay on the team!
                   </p>
@@ -1125,7 +1125,7 @@ export default function DeparturesPage() {
               ) : (
                 <>
                   <XCircle className="w-12 h-12 text-red-400 mx-auto" />
-                  <p className="font-pixel text-red-400 text-sm uppercase">Offer Rejected</p>
+                  <p className="text-red-400 text-sm uppercase">Offer Rejected</p>
                   <p className="text-sm text-foreground">
                     {retentionResult.playerName} has decided to move on despite your offer.
                   </p>

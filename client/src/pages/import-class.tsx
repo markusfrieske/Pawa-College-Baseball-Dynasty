@@ -136,7 +136,7 @@ export default function ImportClassPage() {
         <RetroCard className="w-full max-w-md text-center">
           <RetroCardContent className="py-8">
             <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="font-pixel text-gold text-lg mb-2">Link Unavailable</h2>
+            <h2 className="text-gold text-lg mb-2">Link Unavailable</h2>
             <p className="text-muted-foreground mb-6" data-testid="text-import-class-error">
               This share link is invalid, expired, or has been revoked by the owner.
             </p>
@@ -186,9 +186,9 @@ export default function ImportClassPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 cursor-pointer" data-testid="link-home-logo">
             <div className="w-8 h-8 bg-gold rounded-full flex items-center justify-center shrink-0">
-              <span className="text-forest-dark font-pixel text-xs">CBD</span>
+              <span className="text-forest-dark text-xs font-semibold">CBD</span>
             </div>
-            <span className="font-pixel text-gold text-sm hidden sm:block">College Baseball Dynasty</span>
+            <span className="text-gold text-sm hidden sm:block">College Baseball Dynasty</span>
           </Link>
           {user ? (
             <Link href="/dashboard">
@@ -213,7 +213,7 @@ export default function ImportClassPage() {
           <RetroCardHeader>
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="min-w-0">
-                <h1 className="font-pixel text-gold text-lg mb-1" data-testid="text-import-class-name">{preview.className}</h1>
+                <h1 className="text-gold text-lg mb-1" data-testid="text-import-class-name">{preview.className}</h1>
                 {preview.description && (
                   <p className="text-muted-foreground text-sm mb-2" data-testid="text-import-class-desc">{preview.description}</p>
                 )}
@@ -239,7 +239,7 @@ export default function ImportClassPage() {
 
               <div className="shrink-0">
                 {imported ? (
-                  <div className="flex items-center gap-2 text-green-400 text-sm font-pixel" data-testid="text-imported-success">
+                  <div className="flex items-center gap-2 text-green-400 text-sm" data-testid="text-imported-success">
                     <CheckCircle2 className="w-4 h-4" />
                     Saved!
                   </div>
@@ -274,25 +274,25 @@ export default function ImportClassPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <RetroCard data-testid="stat-avg-ovr">
             <RetroCardContent className="py-3 text-center">
-              <p className="font-pixel text-gold text-lg">{avgOvr || "—"}</p>
+              <p className="text-gold text-lg">{avgOvr || "—"}</p>
               <p className="text-xs text-muted-foreground mt-1">Avg OVR</p>
             </RetroCardContent>
           </RetroCard>
           <RetroCard data-testid="stat-blue-chips">
             <RetroCardContent className="py-3 text-center">
-              <p className="font-pixel text-amber-400 text-lg">{blueChipCount}</p>
+              <p className="text-amber-400 text-lg">{blueChipCount}</p>
               <p className="text-xs text-muted-foreground mt-1">Blue Chips</p>
             </RetroCardContent>
           </RetroCard>
           <RetroCard data-testid="stat-gen-gems">
             <RetroCardContent className="py-3 text-center">
-              <p className="font-pixel text-purple-400 text-lg">{genGemCount}</p>
+              <p className="text-purple-400 text-lg">{genGemCount}</p>
               <p className="text-xs text-muted-foreground mt-1">Gen Gems</p>
             </RetroCardContent>
           </RetroCard>
           <RetroCard data-testid="stat-gen-busts">
             <RetroCardContent className="py-3 text-center">
-              <p className="font-pixel text-red-400 text-lg">{genBustCount}</p>
+              <p className="text-red-400 text-lg">{genBustCount}</p>
               <p className="text-xs text-muted-foreground mt-1">Gen Busts</p>
             </RetroCardContent>
           </RetroCard>
@@ -302,7 +302,7 @@ export default function ImportClassPage() {
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <RetroCard data-testid="card-star-dist">
             <RetroCardHeader>
-              <span className="font-pixel text-xs text-gold uppercase">Star Distribution</span>
+              <span className="text-xs font-semibold text-gold uppercase">Star Distribution</span>
             </RetroCardHeader>
             <RetroCardContent className="space-y-1.5">
               {starDist.length > 0 ? starDist.map(({ star, count }) => (
@@ -329,13 +329,13 @@ export default function ImportClassPage() {
 
           <RetroCard data-testid="card-position-dist">
             <RetroCardHeader>
-              <span className="font-pixel text-xs text-gold uppercase">Position Mix</span>
+              <span className="text-xs font-semibold text-gold uppercase">Position Mix</span>
             </RetroCardHeader>
             <RetroCardContent>
               <div className="grid grid-cols-3 gap-2">
                 {sortedPos.map(([pos, count]) => (
                   <div key={pos} className="text-center">
-                    <p className="font-pixel text-sm text-foreground">{count}</p>
+                    <p className="font-display text-sm font-bold text-foreground">{count}</p>
                     <p className="text-xs text-muted-foreground">{pos}</p>
                   </div>
                 ))}
@@ -349,7 +349,7 @@ export default function ImportClassPage() {
           <RetroCardHeader>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gold" />
-              <span className="font-pixel text-xs text-gold uppercase">Recruits ({recruits.length})</span>
+              <span className="text-xs font-semibold text-gold uppercase">Recruits ({recruits.length})</span>
             </div>
           </RetroCardHeader>
           <RetroCardContent className="p-0">
@@ -431,7 +431,7 @@ export default function ImportClassPage() {
 
         {imported && (
           <div className="mt-6 text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 text-green-400 font-pixel text-sm" data-testid="text-imported-success-bottom">
+            <div className="flex items-center justify-center gap-2 text-green-400 font-display text-sm font-bold" data-testid="text-imported-success-bottom">
               <CheckCircle2 className="w-5 h-5" />
               Class saved to your library!
             </div>

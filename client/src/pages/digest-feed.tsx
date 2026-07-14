@@ -37,7 +37,7 @@ function CategorySection({
         data-testid={`toggle-${testId}`}
       >
         <div className="text-gold">{icon}</div>
-        <p className="font-pixel text-gold text-xs flex-1">{title}</p>
+        <p className="text-gold text-xs flex-1">{title}</p>
         <Badge variant="outline" className="text-xs border-border">{count}</Badge>
         {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
       </button>
@@ -54,7 +54,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
       <RetroCardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="font-pixel text-gold text-xs">
+            <p className="text-gold text-xs">
               Season {digest.season} · Week {digest.week}
             </p>
             <p className="text-xs text-muted-foreground capitalize">{digest.phase.replace(/_/g, " ")}</p>
@@ -202,7 +202,7 @@ export default function DigestFeedPage() {
             </Link>
             <div className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-gold" />
-              <h1 className="font-pixel text-gold text-xs sm:text-[13px]">LEAGUE NEWS</h1>
+              <h1 className="text-gold text-xs sm:text-[13px]">LEAGUE NEWS</h1>
             </div>
           </div>
         </div>

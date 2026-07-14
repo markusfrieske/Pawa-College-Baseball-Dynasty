@@ -74,7 +74,7 @@ function CcCard({
     >
       <div className="flex items-center gap-1.5 mb-2">
         <span className={`shrink-0 ${headerCls[accent]}`}>{icon}</span>
-        <span className={`font-pixel text-xs uppercase tracking-wider ${headerCls[accent]}`}>
+        <span className={`text-xs font-semibold uppercase tracking-wider ${headerCls[accent]}`}>
           {title}
         </span>
         {badge !== undefined && badge > 0 && (
@@ -212,7 +212,7 @@ export function RecruitingCommandCenter({
       >
         <div className="flex items-center gap-2">
           <Zap className="w-3.5 h-3.5 text-gold" />
-          <span className="font-pixel text-xs text-gold uppercase tracking-wider">
+          <span className="text-xs font-semibold text-gold uppercase tracking-wider">
             Command Center
           </span>
           {alertCount > 0 && (

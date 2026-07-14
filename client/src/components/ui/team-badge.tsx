@@ -9,26 +9,22 @@ interface TeamBadgeProps {
   className?: string;
 }
 
-function abbrFontSize(abbreviation: string, size: "xs" | "sm" | "md" | "lg"): string {
-  const len = abbreviation?.length ?? 0;
-  if (size === "xs") {
-    if (len <= 2) return "text-[7px]";
-    return "text-[5px]";
-  }
+function abbrFontSize(len: number, size: "xs" | "sm" | "md" | "lg"): string {
+  if (size === "xs") return "text-[0.5rem]";
   if (size === "sm") {
-    if (len <= 2) return "text-[9px]";
-    if (len === 3) return "text-[7px]";
-    return "text-[5px]";
+    if (len <= 2) return "text-sm";
+    if (len === 3) return "text-xs";
+    return "text-[0.625rem]";
   }
   if (size === "md") {
-    if (len <= 2) return "text-xs";
-    if (len === 3) return "text-[9px]";
-    return "text-[7px]";
+    if (len <= 2) return "text-base";
+    if (len === 3) return "text-sm";
+    return "text-xs";
   }
   // lg
-  if (len <= 2) return "text-sm";
-  if (len === 3) return "text-xs";
-  return "text-[9px]";
+  if (len <= 2) return "text-xl";
+  if (len === 3) return "text-base";
+  return "text-sm";
 }
 
 export function TeamBadge({
@@ -46,7 +42,7 @@ export function TeamBadge({
     lg: "w-16 h-16",
   };
 
-  // Truncate abbreviation to fit the circle at each size
+  // Truncate to fit the circle at each size
   const displayAbbr = size === "xs"
     ? (abbreviation?.slice(0, 2) ?? "")
     : size === "sm"
@@ -56,7 +52,7 @@ export function TeamBadge({
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-pixel font-bold border-2 shrink-0 overflow-hidden",
+        "rounded-full flex items-center justify-center font-sans font-bold border-2 shrink-0 overflow-hidden",
         sizes[size],
         className,
       )}
@@ -68,7 +64,7 @@ export function TeamBadge({
       aria-label={name ?? abbreviation}
       data-testid="team-badge-letter"
     >
-      <span className={cn("leading-none text-center", abbrFontSize(displayAbbr, size))}>
+      <span className={cn("leading-none text-center", abbrFontSize(displayAbbr?.length ?? 0, size))}>
         {displayAbbr}
       </span>
     </div>

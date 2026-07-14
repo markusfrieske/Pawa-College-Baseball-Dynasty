@@ -65,7 +65,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-3">
             <Trophy className="w-6 h-6 text-gold" />
-            <span className="font-pixel text-gold text-lg">Season {season} Complete</span>
+            <span className="text-gold text-lg">Season {season} Complete</span>
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             Here's a recap of the completed season.

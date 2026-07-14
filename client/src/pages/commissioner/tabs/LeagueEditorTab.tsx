@@ -136,7 +136,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="bg-card border-border max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-xs text-gold">Confirm Edit</DialogTitle>
+          <DialogTitle className="text-xs font-semibold text-gold">Confirm Edit</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {competitive
               ? "This edit affects game-balance fields. A reason and effective season are required."
@@ -145,7 +145,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-pixel text-muted-foreground block mb-1">Reason *</label>
+            <label className="text-xs text-muted-foreground block mb-1">Reason *</label>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -156,7 +156,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
           </div>
           {competitive && (
             <div>
-              <label className="text-xs font-pixel text-muted-foreground block mb-1">
+              <label className="text-xs text-muted-foreground block mb-1">
                 Effective Season *
                 <span className="text-muted-foreground font-normal ml-1">(required for competitive edits)</span>
               </label>
@@ -349,13 +349,13 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
             <RetroCard className="p-4">
               <div className="flex items-center gap-4">
                 <div
-                  className="w-16 h-16 rounded flex items-center justify-center font-pixel text-sm font-bold border-2"
+                  className="w-16 h-16 rounded flex items-center justify-center font-display text-sm font-bold font-bold border-2"
                   style={{ backgroundColor: primaryColor, borderColor: secondaryColor, color: secondaryColor }}
                 >
                   {abbrev}
                 </div>
                 <div>
-                  <p className="font-pixel text-xs text-gold">{getVal("name", selected.name)}</p>
+                  <p className="text-xs font-semibold text-gold">{getVal("name", selected.name)}</p>
                   <p className="text-xs text-muted-foreground">{getVal("city", selected.city)}, {getVal("state", selected.state)}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">v{selected.editorVersion}</p>
                   {lowContrast && (
@@ -380,7 +380,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
             {/* Identity Fields */}
             <RetroCard>
               <RetroCardHeader className="pb-2">
-                <p className="font-pixel text-xs text-muted-foreground uppercase">Identity</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Identity</p>
               </RetroCardHeader>
               <RetroCardContent className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -393,7 +393,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     { label: "Stadium Name", field: "stadiumName", maxLen: 120 },
                   ].map(({ label, field, maxLen }) => (
                     <div key={field}>
-                      <label className="text-xs font-pixel text-muted-foreground block mb-1">{label}</label>
+                      <label className="text-xs text-muted-foreground block mb-1">{label}</label>
                       <input
                         value={getVal(field, "") as string}
                         onChange={e => setEdit(field, e.target.value)}
@@ -404,7 +404,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     </div>
                   ))}
                   <div>
-                    <label className="text-xs font-pixel text-muted-foreground block mb-1">Primary Color</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Primary Color</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -421,7 +421,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-pixel text-muted-foreground block mb-1">Secondary Color</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Secondary Color</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -445,7 +445,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
             <RetroCard>
               <RetroCardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <p className="font-pixel text-xs text-muted-foreground uppercase">Competitive Attributes</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase">Competitive Attributes</p>
                   {!competitiveEnabled && (
                     <Badge variant="outline" className="text-xs border-yellow-500/40 text-yellow-400">Disabled</Badge>
                   )}
@@ -480,7 +480,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   <div>
-                    <label className="text-xs font-pixel text-muted-foreground block mb-1">NIL Budget</label>
+                    <label className="text-xs text-muted-foreground block mb-1">NIL Budget</label>
                     <input
                       type="number" min={0} value={getVal("nilBudget", selected.nilBudget) as number}
                       onChange={e => setEdit("nilBudget", parseInt(e.target.value) || 0)}
@@ -490,7 +490,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-pixel text-muted-foreground block mb-1">Enrollment</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Enrollment</label>
                     <input
                       type="number" min={0} value={getVal("enrollment", selected.enrollment) as number}
                       onChange={e => setEdit("enrollment", parseInt(e.target.value) || 0)}
@@ -751,7 +751,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             <RetroCard className="p-3">
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="font-pixel text-xs text-gold">{selected.firstName} {selected.lastName}</p>
+                  <p className="text-xs font-semibold text-gold">{selected.firstName} {selected.lastName}</p>
                   <p className="text-xs text-muted-foreground">{selected.position} · {selected.eligibility} · {selected.teamName}</p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
@@ -781,7 +781,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                   <TabsTrigger
                     key={t}
                     value={t}
-                    className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark capitalize"
+                    className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark capitalize"
                   >
                     {t}
                   </TabsTrigger>
@@ -801,7 +801,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         { label: "Jersey #", field: "jerseyNumber", type: "number" },
                       ].map(({ label, field, type }) => (
                         <div key={field}>
-                          <label className="text-xs font-pixel text-muted-foreground block mb-1">{label}</label>
+                          <label className="text-xs text-muted-foreground block mb-1">{label}</label>
                           <input
                             type={type} value={getVal(field, "") as string | number}
                             onChange={e => setEdit(field, type === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
@@ -811,7 +811,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </div>
                       ))}
                       <div>
-                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Position</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Position</label>
                         <Select value={getVal("position", selected.position) as string} onValueChange={v => setEdit("position", v)}>
                           <SelectTrigger className="h-7 text-xs" data-testid="select-player-position">
                             <SelectValue />
@@ -824,7 +824,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Eligibility</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Eligibility</label>
                         <Select value={getVal("eligibility", selected.eligibility) as string} onValueChange={v => setEdit("eligibility", v)}>
                           <SelectTrigger className="h-7 text-xs" data-testid="select-player-eligibility">
                             <SelectValue />
@@ -956,7 +956,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                   <RetroCardContent className="pt-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Skin Tone</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Skin Tone</label>
                         <Select value={getVal("skinTone", selected.skinTone ?? "light") as string} onValueChange={v => setEdit("skinTone", v)}>
                           <SelectTrigger className="h-7 text-xs" data-testid="select-player-skinTone">
                             <SelectValue />
@@ -967,7 +967,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Hair Color</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Hair Color</label>
                         <Select value={getVal("hairColor", selected.hairColor ?? "brown") as string} onValueChange={v => setEdit("hairColor", v)}>
                           <SelectTrigger className="h-7 text-xs" data-testid="select-player-hairColor">
                             <SelectValue />
@@ -978,7 +978,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Hair Style</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Hair Style</label>
                         <Select value={getVal("hairStyle", selected.hairStyle ?? "short") as string} onValueChange={v => setEdit("hairStyle", v)}>
                           <SelectTrigger className="h-7 text-xs" data-testid="select-player-hairStyle">
                             <SelectValue />
@@ -989,7 +989,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Facial Hair</label>
+                        <label className="text-xs text-muted-foreground block mb-1">Facial Hair</label>
                         <Select value={getVal("facialHair", selected.facialHair ?? "none") as string} onValueChange={v => setEdit("facialHair", v)}>
                           <SelectTrigger className="h-7 text-xs" data-testid="select-player-facialHair">
                             <SelectValue />
@@ -1192,13 +1192,13 @@ function ChangeLogTab({ leagueId }: { leagueId: string }) {
       <Dialog open={!!reverseTarget} onOpenChange={v => !v && setReverseTarget(null)}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-xs text-red-400">Reverse Batch</DialogTitle>
+            <DialogTitle className="text-xs font-semibold text-red-400">Reverse Batch</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               This will restore the previous values for {reverseTarget?.changes.length} field(s) on {reverseTarget?.entityLabel}.
             </DialogDescription>
           </DialogHeader>
           <div>
-            <label className="text-xs font-pixel text-muted-foreground block mb-1">Reason for reversal *</label>
+            <label className="text-xs text-muted-foreground block mb-1">Reason for reversal *</label>
             <textarea
               value={reverseReason}
               onChange={e => setReverseReason(e.target.value)}
@@ -1235,7 +1235,7 @@ export function LeagueEditorTab({ leagueId, isPrimaryCommissioner = false }: { l
   return (
     <div className="space-y-4">
       <div>
-        <p className="font-pixel text-xs text-gold mb-1">League Editor</p>
+        <p className="text-xs font-semibold text-gold mb-1">League Editor</p>
         <p className="text-xs text-muted-foreground">
           Edit school identity, player attributes, and abilities. All changes are versioned and logged.
         </p>
@@ -1245,21 +1245,21 @@ export function LeagueEditorTab({ leagueId, isPrimaryCommissioner = false }: { l
         <TabsList className="bg-card border border-border">
           <TabsTrigger
             value="schools"
-            className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+            className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
             data-testid="tab-editor-schools"
           >
             <Building2 className="w-3 h-3 mr-1" />Schools
           </TabsTrigger>
           <TabsTrigger
             value="players"
-            className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+            className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
             data-testid="tab-editor-players"
           >
             <Users className="w-3 h-3 mr-1" />Players
           </TabsTrigger>
           <TabsTrigger
             value="changelog"
-            className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+            className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
             data-testid="tab-editor-changelog"
           >
             <Clock className="w-3 h-3 mr-1" />Change Log
