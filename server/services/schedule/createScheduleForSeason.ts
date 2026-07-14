@@ -1,17 +1,21 @@
 /**
  * createScheduleForSeason — authoritative schedule-generation entry point.
  *
- * Routes calls to the exact Full Season scheduler (buildFullSeasonSchedule)
- * for dynastyPreset === "full_season" leagues, and to the legacy custom
- * scheduler (generateSchedule) for all other presets.
+ * Two public paths:
+ *  1. createScheduleForSeason   — initial creation during dynasty setup / season
+ *     rollover. Skips if a complete schedule already exists (idempotent for the
+ *     setup flow).
+ *  2. publishFullSeasonSchedule — commissioner-triggered explicit republish.
+ *     Never short-circuits: always rebuilds and atomically replaces only the
+ *     unlocked (isComplete=false) future regular games.
  *
- * All Phase-4 schedule entry points must go through this function so that
- * Season 1 and every subsequent season use the same code path.
+ * Both paths share the same core build → validate → transact logic via the
+ * internal _buildAndPublish helper.
  */
 
 import { db } from "../../db";
 import { games, leagues, auditLogs } from "../../../shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, ne } from "drizzle-orm";
 import { storage } from "../../storage";
 import { generateSchedule } from "../../recruit-engine";
 import {
@@ -24,6 +28,8 @@ import {
 const EXPECTED_TOTAL_GAMES = 4172;
 const GAME_CHUNK = 500;
 
+// ─── Public: initial creation ────────────────────────────────────────────────
+
 export async function createScheduleForSeason(
   leagueId: string,
   season: number = 1
@@ -31,15 +37,41 @@ export async function createScheduleForSeason(
   const league = await storage.getLeague(leagueId);
 
   if (league?.dynastyPreset === "full_season") {
-    await createFullSeasonSchedule(leagueId, season);
+    await _initialCreateFullSeasonSchedule(leagueId, season);
   } else {
     await generateSchedule(leagueId, season);
   }
 }
 
+// ─── Public: explicit commissioner republish ──────────────────────────────────
+
 /**
- * Preview-only: builds the schedule as a pure function and returns summary
- * stats without writing anything to the database.  Safe to call repeatedly.
+ * Rebuild and atomically publish the schedule for the given season.
+ * Unlike createScheduleForSeason this never short-circuits: it is designed for
+ * explicit commissioner-triggered republishing of an already-published schedule.
+ * Only unlocked (isComplete = false) regular games are replaced; completed games
+ * are left untouched.
+ *
+ * Returns the number of new games written.
+ */
+export async function publishFullSeasonSchedule(
+  leagueId: string,
+  season: number
+): Promise<number> {
+  const league = await storage.getLeague(leagueId);
+  if (league?.dynastyPreset !== "full_season") {
+    throw new Error(
+      `[publishFullSeasonSchedule] League ${leagueId} is not a full_season dynasty`
+    );
+  }
+  return _buildAndPublish(leagueId, season, /* calledByExplicitPublish */ true);
+}
+
+// ─── Public: preview (pure, no DB writes) ────────────────────────────────────
+
+/**
+ * Build the schedule as a pure function and return summary stats without
+ * writing anything to the database. Safe to call repeatedly.
  */
 export async function previewFullSeasonSchedule(
   leagueId: string,
@@ -104,48 +136,68 @@ export async function previewFullSeasonSchedule(
   };
 }
 
-async function createFullSeasonSchedule(
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Initial creation path — skips when the schedule is already complete.
+ * This avoids regenerating a good schedule on every restart / season rollover.
+ */
+async function _initialCreateFullSeasonSchedule(
   leagueId: string,
   season: number
 ): Promise<void> {
-  const league = await storage.getLeague(leagueId);
   const existingGames = await storage.getGamesByLeagueSeason(leagueId, season);
   const existingRegular = existingGames.filter((g) => g.phase === "regular");
 
   if (existingRegular.length === EXPECTED_TOTAL_GAMES) {
     console.log(
-      `[createScheduleForSeason] FS schedule already complete for season ${season} (${existingRegular.length} games) — skipping`
+      `[createScheduleForSeason] FS schedule already complete for season ${season} ` +
+      `(${existingRegular.length} games) — skipping. Use publish endpoint to force republish.`
     );
     return;
   }
 
   if (existingRegular.length > 0) {
     console.warn(
-      `[createScheduleForSeason] Partial schedule (${existingRegular.length} games) found for season ${season} — deleting unlocked games and regenerating`
+      `[createScheduleForSeason] Partial schedule (${existingRegular.length} / ${EXPECTED_TOTAL_GAMES} games) ` +
+      `found for season ${season} — rebuilding`
     );
   }
 
+  await _buildAndPublish(leagueId, season, false);
+}
+
+/**
+ * Core: build → validate → atomically publish.
+ *
+ * @param explicitPublish  When true the audit log action is "schedule_republished"
+ *   (commissioner-triggered) instead of "schedule_published" (initial creation).
+ * @returns  Number of new games written into the database.
+ */
+async function _buildAndPublish(
+  leagueId: string,
+  season: number,
+  explicitPublish: boolean
+): Promise<number> {
+  const league = await storage.getLeague(leagueId);
   const teams = await storage.getTeamsByLeague(leagueId);
   const conferences = await storage.getConferencesByLeague(leagueId);
 
   const seedVal = league?.scheduleSeed != null ? parseInt(league.scheduleSeed, 10) : 0;
-  const scheduleGames = buildFullSeasonSchedule({
-    leagueId,
-    season,
-    teams: teams.map((t) => ({
-      id: t.id,
-      conferenceId: t.conferenceId ?? "",
-      name: t.name,
-    })),
-    conferences: conferences.map((c) => ({ id: c.id, name: c.name })),
-    seed: Number.isFinite(seedVal) ? seedVal : 0,
-  });
-
-  const scheduleTeams = teams.map((t) => ({
+  const scheduleTeams: ScheduleTeam[] = teams.map((t) => ({
     id: t.id,
     conferenceId: t.conferenceId ?? "",
     name: t.name,
   }));
+
+  const scheduleGames = buildFullSeasonSchedule({
+    leagueId,
+    season,
+    teams: scheduleTeams,
+    conferences: conferences.map((c) => ({ id: c.id, name: c.name })),
+    seed: Number.isFinite(seedVal) ? seedVal : 0,
+  });
+
   const errors = validateFullSeasonSchedule(scheduleGames, scheduleTeams);
   if (errors.length > 0) {
     const msg = errors.map((e) => `${e.code}: ${e.message}`).join("; ");
@@ -155,8 +207,8 @@ async function createFullSeasonSchedule(
   }
 
   await db.transaction(async (tx) => {
-    // Delete only unlocked (not-yet-played) regular-phase games so that any
-    // games already marked complete are never removed.
+    // Only delete unlocked (not-yet-played) regular games so that completed
+    // games are never removed.  This is the key invariant for republishing.
     await tx
       .delete(games)
       .where(
@@ -171,21 +223,27 @@ async function createFullSeasonSchedule(
       await tx.insert(games).values(scheduleGames.slice(i, i + GAME_CHUNK));
     }
 
-    // Bump scheduleVersion to track every atomic publish.
+    // Bump scheduleVersion on every atomic publish so callers can detect
+    // staleness by comparing version numbers.
     await tx
       .update(leagues)
       .set({ scheduleVersion: sql`COALESCE(schedule_version, 0) + 1` })
       .where(eq(leagues.id, leagueId));
 
-    // Write audit log entry.
+    // Durable audit trail.
     await tx.insert(auditLogs).values({
       leagueId,
-      action: "schedule_published",
-      details: `Season ${season} FS schedule published: ${scheduleGames.length} games`,
+      action: explicitPublish ? "schedule_republished" : "schedule_published",
+      details:
+        `Season ${season} FS schedule ${explicitPublish ? "re" : ""}published: ` +
+        `${scheduleGames.length} games`,
     });
   });
 
   console.log(
-    `[createScheduleForSeason] FS season ${season} schedule created: ${scheduleGames.length} games`
+    `[createScheduleForSeason] FS season ${season} schedule ` +
+    `${explicitPublish ? "re" : ""}published: ${scheduleGames.length} games`
   );
+
+  return scheduleGames.length;
 }

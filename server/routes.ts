@@ -58,7 +58,7 @@ import { registerCoachMessageRoutes } from "./routes/coach-messages";
 import { registerRivalryRoutes } from "./routes/rivalries";
 import { registerNewsRoutes } from "./routes/news";
 import { registerIdentityRoutes } from "./routes/identity";
-import { createScheduleForSeason, previewFullSeasonSchedule } from "./services/schedule/createScheduleForSeason";
+import { createScheduleForSeason, previewFullSeasonSchedule, publishFullSeasonSchedule } from "./services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
   generateRecruits,
@@ -763,6 +763,28 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to preview schedule:", error);
       res.status(500).json({ message: "Failed to preview schedule" });
+    }
+  });
+
+  // ── Schedule publish (commissioner-only, atomic) ─────────────────────────
+  // Rebuilds and atomically replaces only unlocked future regular-phase games.
+  // Bumps scheduleVersion and writes an audit_log row inside the same
+  // transaction.  Completed games are never removed.
+  app.post("/api/leagues/:id/schedule/publish", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = (req.session as any).userId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== userId) {
+        return res.status(403).json({ message: "Only the commissioner can publish the schedule" });
+      }
+      const season = Number(req.body?.season) || league.currentSeason || 1;
+      const gamesWritten = await publishFullSeasonSchedule(leagueId, season);
+      res.json({ ok: true, leagueId, season, gamesWritten });
+    } catch (error: any) {
+      console.error("Failed to publish schedule:", error);
+      res.status(500).json({ message: error?.message ?? "Failed to publish schedule" });
     }
   });
 
