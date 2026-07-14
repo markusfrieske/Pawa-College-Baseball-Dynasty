@@ -61,6 +61,8 @@ export const leagues = pgTable("leagues", {
   currentPhaseStep: text("current_phase_step"),
   /** Monotonically-increasing version number, bumped on every atomic schedule publish. */
   scheduleVersion: integer("schedule_version").notNull().default(0),
+  /** When true, commissioners can edit prestige/facilities/NIL and other competitive attributes via the League Editor. */
+  commissionerCompetitiveEditsEnabled: boolean("commissioner_competitive_edits_enabled").notNull().default(true),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

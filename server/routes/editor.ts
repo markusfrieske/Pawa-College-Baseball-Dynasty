@@ -205,7 +205,7 @@ export function registerEditorRoutes(app: Express): void {
           nationalRank: r.national_rank,
           editorVersion: r.editor_version ?? 1,
         })),
-        competitiveEditsEnabled: (league as any)?.commissionerCompetitiveEditsEnabled ?? true,
+        competitiveEditsEnabled: league?.commissionerCompetitiveEditsEnabled ?? true,
       });
     } catch (err) {
       console.error("[editor] GET schools error:", err);
@@ -368,11 +368,14 @@ export function registerEditorRoutes(app: Express): void {
 
       const hasCompetitive = allFieldKeys.some(k => TEAM_COMPETITIVE_FIELDS.has(k));
 
-      // Validate competitive gate
+      // Validate competitive gate + require effectiveSeason
       if (hasCompetitive) {
         const league = await storage.getLeague(leagueId);
-        if (!(league as any)?.commissionerCompetitiveEditsEnabled) {
+        if (!league?.commissionerCompetitiveEditsEnabled) {
           return res.status(403).json({ message: "Competitive edits are disabled for this league" });
+        }
+        if (!effectiveSeason || effectiveSeason < 1) {
+          return res.status(400).json({ message: "effectiveSeason is required for competitive edits" });
         }
       }
 
@@ -484,6 +487,13 @@ export function registerEditorRoutes(app: Express): void {
       const forbidden = allFieldKeys.filter(k => !identityKeys.has(k) && !competitiveKeys.has(k));
       if (forbidden.length > 0) {
         return res.status(400).json({ message: `Forbidden or unknown fields: ${forbidden.join(", ")}` });
+      }
+
+      const hasCompetitivePlayer = allFieldKeys.some(k => competitiveKeys.has(k));
+
+      // Require effectiveSeason for player competitive edits
+      if (hasCompetitivePlayer && (!effectiveSeason || effectiveSeason < 1)) {
+        return res.status(400).json({ message: "effectiveSeason is required for competitive player edits" });
       }
 
       const parsed = PLAYER_ALL_SCHEMA.safeParse(changes);

@@ -743,11 +743,9 @@ export default function CommissionerPage() {
             <ScheduleHealthTab leagueId={id!} />
           </TabsContent>
 
-          {isPrimaryCommissioner && (
-            <TabsContent value="league-editor">
-              <LeagueEditorTab leagueId={id!} />
-            </TabsContent>
-          )}
+          <TabsContent value="league-editor">
+            <LeagueEditorTab leagueId={id!} isPrimaryCommissioner={isPrimaryCommissioner} />
+          </TabsContent>
 
           {isPrimaryCommissioner && (
             <TabsContent value="save-states">

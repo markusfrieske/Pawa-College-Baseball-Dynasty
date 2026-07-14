@@ -130,13 +130,17 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
 }) {
   const [reason, setReason] = useState("");
   const [season, setSeason] = useState<string>("");
+  const seasonNum = season ? parseInt(season) : undefined;
+  const isValid = reason.trim().length > 0 && (!competitive || (seasonNum !== undefined && seasonNum >= 1));
   return (
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="bg-card border-border max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-pixel text-[11px] text-gold">Confirm Edit</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            {competitive ? "This edit affects game-balance fields and will be logged publicly." : "This edit will be logged in the Change Log."}
+            {competitive
+              ? "This edit affects game-balance fields. A reason and effective season are required."
+              : "This edit will be logged in the Change Log."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -152,22 +156,28 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
           </div>
           {competitive && (
             <div>
-              <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Effective Season (optional)</label>
+              <label className="text-[9px] font-pixel text-muted-foreground block mb-1">
+                Effective Season *
+                <span className="text-muted-foreground font-normal ml-1">(required for competitive edits)</span>
+              </label>
               <input
                 type="number" min={1} value={season}
                 onChange={e => setSeason(e.target.value)}
                 placeholder="e.g. 3"
-                className="w-full bg-background border border-border rounded p-2 text-xs"
+                className={`w-full bg-background border rounded p-2 text-xs ${!season ? "border-yellow-500/50" : "border-border"}`}
                 data-testid="input-effective-season"
               />
+              {!season && (
+                <p className="text-[9px] text-yellow-400 mt-1">Enter the season this change takes effect.</p>
+              )}
             </div>
           )}
         </div>
         <DialogFooter className="gap-2 mt-2">
           <RetroButton variant="secondary" size="sm" onClick={onClose} disabled={isPending}>Cancel</RetroButton>
           <RetroButton
-            size="sm" onClick={() => onConfirm(reason, season ? parseInt(season) : undefined)}
-            disabled={!reason.trim() || isPending}
+            size="sm" onClick={() => onConfirm(reason, seasonNum)}
+            disabled={!isValid || isPending}
             data-testid="btn-confirm-edit"
           >
             {isPending ? "Saving..." : "Save Edit"}
@@ -1163,7 +1173,7 @@ function ChangeLogTab({ leagueId }: { leagueId: string }) {
 // MAIN LEAGUE EDITOR TAB
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function LeagueEditorTab({ leagueId }: { leagueId: string }) {
+export function LeagueEditorTab({ leagueId, isPrimaryCommissioner = false }: { leagueId: string; isPrimaryCommissioner?: boolean }) {
   const [activeTab, setActiveTab] = useState("schools");
 
   return (
