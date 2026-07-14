@@ -58,6 +58,7 @@ import { registerCoachMessageRoutes } from "./routes/coach-messages";
 import { registerRivalryRoutes } from "./routes/rivalries";
 import { registerNewsRoutes } from "./routes/news";
 import { registerIdentityRoutes } from "./routes/identity";
+import { registerEditorRoutes } from "./routes/editor";
 import { createScheduleForSeason, previewFullSeasonSchedule, publishFullSeasonSchedule } from "./services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
@@ -476,6 +477,7 @@ export async function registerRoutes(
   registerRivalryRoutes(app);
   registerNewsRoutes(app);
   registerIdentityRoutes(app);
+  registerEditorRoutes(app);
   registerObjectStorageRoutes(app);
 
   // ── Catalog ───────────────────────────────────────────────────────────────

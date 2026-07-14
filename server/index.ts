@@ -432,6 +432,43 @@ app.use((req, res, next) => {
         console.log("[startup-migration] recruit-top-schools-unique-v1: deduped + UNIQUE INDEX added");
       });
 
+      // ── league-editor-v1 ──────────────────────────────────────────────────
+      // Versioned commissioner league editor: editor_version cols, audit tables,
+      // and the commissionerCompetitiveEditsEnabled league setting.
+      await once('league-editor-v1', async () => {
+        await pool.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS editor_version integer NOT NULL DEFAULT 1`);
+        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS editor_version integer NOT NULL DEFAULT 1`);
+        await pool.query(`ALTER TABLE leagues ADD COLUMN IF NOT EXISTS commissioner_competitive_edits_enabled boolean NOT NULL DEFAULT true`);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS league_edit_batches (
+            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+            league_id varchar NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+            actor_id varchar NOT NULL,
+            entity_type text NOT NULL,
+            entity_id varchar NOT NULL,
+            reason text NOT NULL,
+            effective_season integer,
+            idempotency_key text NOT NULL,
+            is_reversed boolean NOT NULL DEFAULT false,
+            reversed_by_batch_id varchar,
+            created_at timestamp NOT NULL DEFAULT now()
+          )
+        `);
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS league_edit_changes (
+            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+            batch_id varchar NOT NULL REFERENCES league_edit_batches(id) ON DELETE CASCADE,
+            field_name text NOT NULL,
+            before_json jsonb,
+            after_json jsonb
+          )
+        `);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_edit_batches_league_id ON league_edit_batches(league_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_edit_batches_idem ON league_edit_batches(league_id, idempotency_key)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_edit_changes_batch_id ON league_edit_changes(batch_id)`);
+        console.log("[startup-migration] league-editor-v1: editor_version cols, audit tables, and setting added");
+      });
+
     } catch (e) {
       console.error("[startup-migrations] sequential runner failed:", e);
     }
