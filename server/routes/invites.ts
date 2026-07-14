@@ -233,6 +233,10 @@ export function registerInviteRoutes(app: Express): void {
       if (err instanceof HttpError) {
         return res.status(err.status).json({ message: err.message });
       }
+      // Unique-constraint violation (23505): same user or same team claimed concurrently.
+      if ((err as any)?.code === "23505") {
+        return res.status(409).json({ message: "This team or coach slot has already been claimed" });
+      }
       console.error("Failed to accept invite:", err);
       return res.status(500).json({ message: "Failed to accept invite" });
     } finally {

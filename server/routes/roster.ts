@@ -14,57 +14,84 @@
 import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess } from "../route-helpers";
+import { requireAuth, requireLeagueMember, hasCommissionerAccess } from "../route-helpers";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 
-// Strict allowlist for the commissioner player-PATCH endpoint.
-// Only fields listed here can be updated; all other body keys are silently dropped.
-const playerPatchSchema = z.object({
-  position: z.string().max(10).optional(),
+// ── Player PATCH allowlists ───────────────────────────────────────────────────
+//
+// Two separate strict schemas guard the commissioner bulk-edit endpoint:
+//
+//  • playerIdentityPatchSchema  — structural/identity fields (position, eligibility).
+//    No impact on game-balance computations.
+//
+//  • playerCompetitivePatchSchema — game-balance fields (attributes, abilities,
+//    pitch mix, potential).  Changing these directly affects simulation outcomes.
+//
+// The PATCH handler validates against a merged strict schema so both groups can
+// be updated in a single request, but unknown/forbidden fields (e.g. teamId,
+// overall, leagueId, pendingDeparture) always return 400.
+
+/** Identity / structural fields — non-competitive. */
+export const playerIdentityPatchSchema = z.object({
+  position:    z.string().max(10).optional(),
   eligibility: z.enum(["FR", "SO", "JR", "SR"]).optional(),
-  abilities: z.array(z.string()).optional(),
-  potential: z.number().int().min(0).max(100).optional(),
-  hitForAvg: z.number().int().min(0).max(100).optional(),
-  power: z.number().int().min(0).max(100).optional(),
-  speed: z.number().int().min(0).max(100).optional(),
-  arm: z.number().int().min(0).max(100).optional(),
-  fielding: z.number().int().min(0).max(100).optional(),
+}).strict();
+
+/** Competitive / game-balance fields — affects simulation outcomes. */
+export const playerCompetitivePatchSchema = z.object({
+  abilities:       z.array(z.string()).optional(),
+  potential:       z.number().int().min(0).max(100).optional(),
+  // Hitter attributes
+  hitForAvg:       z.number().int().min(0).max(100).optional(),
+  power:           z.number().int().min(0).max(100).optional(),
+  speed:           z.number().int().min(0).max(100).optional(),
+  arm:             z.number().int().min(0).max(100).optional(),
+  fielding:        z.number().int().min(0).max(100).optional(),
   errorResistance: z.number().int().min(0).max(100).optional(),
-  clutch: z.number().int().min(0).max(100).optional(),
-  vsLHP: z.number().int().min(0).max(100).optional(),
-  grit: z.number().int().min(0).max(100).optional(),
-  stealing: z.number().int().min(0).max(100).optional(),
-  running: z.number().int().min(0).max(100).optional(),
-  throwing: z.number().int().min(0).max(100).optional(),
-  recovery: z.number().int().min(0).max(100).optional(),
-  catcherAbility: z.number().int().min(0).max(100).optional(),
-  velocity: z.number().int().min(0).max(100).optional(),
-  control: z.number().int().min(0).max(100).optional(),
-  stamina: z.number().int().min(0).max(100).optional(),
-  stuff: z.number().int().min(0).max(100).optional(),
-  wRISP: z.number().int().min(0).max(100).optional(),
-  vsLefty: z.number().int().min(0).max(100).optional(),
-  poise: z.number().int().min(0).max(100).optional(),
-  heater: z.number().int().min(0).max(100).optional(),
-  agile: z.number().int().min(0).max(100).optional(),
-  pitchFB: z.number().int().min(0).max(7).optional(),
-  pitch2S: z.number().int().min(0).max(7).optional(),
-  pitchSL: z.number().int().min(0).max(7).optional(),
-  pitchCB: z.number().int().min(0).max(7).optional(),
-  pitchCH: z.number().int().min(0).max(7).optional(),
-  pitchCT: z.number().int().min(0).max(7).optional(),
-  pitchSNK: z.number().int().min(0).max(7).optional(),
-  pitchSPL: z.number().int().min(0).max(7).optional(),
-  pitchSHU: z.number().int().min(0).max(7).optional(),
-  pitchCCH: z.number().int().min(0).max(7).optional(),
-  pitchHSL: z.number().int().min(0).max(7).optional(),
-  pitchSWP: z.number().int().min(0).max(7).optional(),
-  pitchKN: z.number().int().min(0).max(7).optional(),
-  pitchVSL: z.number().int().min(0).max(7).optional(),
-  pitchSFF: z.number().int().min(0).max(7).optional(),
-  pitchFK: z.number().int().min(0).max(7).optional(),
-  pitchSCB: z.number().int().min(0).max(7).optional(),
-  pitchPCB: z.number().int().min(0).max(7).optional(),
+  clutch:          z.number().int().min(0).max(100).optional(),
+  vsLHP:           z.number().int().min(0).max(100).optional(),
+  grit:            z.number().int().min(0).max(100).optional(),
+  stealing:        z.number().int().min(0).max(100).optional(),
+  running:         z.number().int().min(0).max(100).optional(),
+  throwing:        z.number().int().min(0).max(100).optional(),
+  recovery:        z.number().int().min(0).max(100).optional(),
+  catcherAbility:  z.number().int().min(0).max(100).optional(),
+  // Pitcher attributes
+  velocity:        z.number().int().min(0).max(100).optional(),
+  control:         z.number().int().min(0).max(100).optional(),
+  stamina:         z.number().int().min(0).max(100).optional(),
+  stuff:           z.number().int().min(0).max(100).optional(),
+  wRISP:           z.number().int().min(0).max(100).optional(),
+  vsLefty:         z.number().int().min(0).max(100).optional(),
+  poise:           z.number().int().min(0).max(100).optional(),
+  heater:          z.number().int().min(0).max(100).optional(),
+  agile:           z.number().int().min(0).max(100).optional(),
+  // Pitch mix (0-7 per pitch)
+  pitchFB:         z.number().int().min(0).max(7).optional(),
+  pitch2S:         z.number().int().min(0).max(7).optional(),
+  pitchSL:         z.number().int().min(0).max(7).optional(),
+  pitchCB:         z.number().int().min(0).max(7).optional(),
+  pitchCH:         z.number().int().min(0).max(7).optional(),
+  pitchCT:         z.number().int().min(0).max(7).optional(),
+  pitchSNK:        z.number().int().min(0).max(7).optional(),
+  pitchSPL:        z.number().int().min(0).max(7).optional(),
+  pitchSHU:        z.number().int().min(0).max(7).optional(),
+  pitchCCH:        z.number().int().min(0).max(7).optional(),
+  pitchHSL:        z.number().int().min(0).max(7).optional(),
+  pitchSWP:        z.number().int().min(0).max(7).optional(),
+  pitchKN:         z.number().int().min(0).max(7).optional(),
+  pitchVSL:        z.number().int().min(0).max(7).optional(),
+  pitchSFF:        z.number().int().min(0).max(7).optional(),
+  pitchFK:         z.number().int().min(0).max(7).optional(),
+  pitchSCB:        z.number().int().min(0).max(7).optional(),
+  pitchPCB:        z.number().int().min(0).max(7).optional(),
+}).strict();
+
+// Combined handler schema: accepts either or both groups; rejects everything else.
+// Built from the two allowlists' .shape so the merged result is also strict.
+const playerPatchSchema = z.object({
+  ...playerIdentityPatchSchema.shape,
+  ...playerCompetitivePatchSchema.shape,
 }).strict();
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
@@ -76,7 +103,7 @@ import {
 import { invalidateLeague } from "../cache";
 
 export function registerRosterRoutes(app: Express): void {
-  app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:id/roster", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
       const requestedTeamId = req.query.teamId as string | undefined;
@@ -114,7 +141,7 @@ export function registerRosterRoutes(app: Express): void {
   });
 
   // Pitcher availability endpoint
-  app.get("/api/leagues/:id/pitcher-availability", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:id/pitcher-availability", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
       const teamId = req.query.teamId as string | undefined;
@@ -177,7 +204,7 @@ export function registerRosterRoutes(app: Express): void {
   });
 
   // Get single player by id
-  app.get("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:id/players/:playerId", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const player = await storage.getPlayer(req.params.playerId as string);
       if (!player) return res.status(404).json({ message: "Player not found" });
@@ -189,7 +216,7 @@ export function registerRosterRoutes(app: Express): void {
   });
 
   // Update player (commissioner only)
-  app.patch("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
+  app.patch("/api/leagues/:id/players/:playerId", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -297,7 +324,7 @@ export function registerRosterRoutes(app: Express): void {
   });
 
   // Declare player for draft (commissioner or owning coach)
-  app.post("/api/leagues/:id/players/:playerId/declare-draft", requireAuth, async (req, res) => {
+  app.post("/api/leagues/:id/players/:playerId/declare-draft", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -398,7 +425,7 @@ export function registerRosterRoutes(app: Express): void {
   });
 
   // Enter player into transfer portal (commissioner or owning coach)
-  app.post("/api/leagues/:id/players/:playerId/enter-portal", requireAuth, async (req, res) => {
+  app.post("/api/leagues/:id/players/:playerId/enter-portal", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -487,7 +514,7 @@ export function registerRosterRoutes(app: Express): void {
   });
 
   // Get players leaving (graduates, draft declarations, transfer portal) - summary by team
-  app.get("/api/leagues/:id/players-leaving", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:id/players-leaving", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {

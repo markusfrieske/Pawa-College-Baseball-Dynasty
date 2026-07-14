@@ -232,6 +232,14 @@ import { pool } from "./db";
 
 export async function acquireAdvanceLock(leagueId: string): Promise<boolean> {
   try {
+    // Remove any stale lock left by a prior crash/restart (> 10 min old).
+    // This is per-league so it cannot interfere with active locks on other leagues,
+    // and it avoids the global TRUNCATE-on-startup that breaks multi-instance safety.
+    await pool.query(
+      `DELETE FROM league_advance_locks
+        WHERE league_id = $1 AND locked_at < now() - interval '10 minutes'`,
+      [leagueId],
+    );
     const result = await pool.query(
       `INSERT INTO league_advance_locks (league_id, locked_at)
        VALUES ($1, now())

@@ -1478,9 +1478,6 @@ app.use((req, res, next) => {
       locked_at timestamptz NOT NULL DEFAULT now()
     );
 
-    -- Clear any locks left by a prior crash so a restart is always clean.
-    TRUNCATE league_advance_locks;
-
     -- One human coach per league per user (partial index: cpu coaches have null user_id).
     CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_user
       ON coaches (league_id, user_id)
