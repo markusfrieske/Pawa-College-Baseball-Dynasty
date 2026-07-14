@@ -10,6 +10,13 @@ import { requireAuth, hasCommissionerAccess, ensureCoachTraits } from "../route-
 import { invalidateLeague } from "../cache";
 import { pool } from "../db";
 
+/** Thrown inside the invite-accept transaction to short-circuit with a specific HTTP status. */
+class HttpError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+  }
+}
+
 export function registerInviteRoutes(app: Express): void {
   // ── Create an invite link (commissioner only) ─────────────────────────────
   app.post("/api/leagues/:id/invites", requireAuth, async (req, res) => {
@@ -95,131 +102,178 @@ export function registerInviteRoutes(app: Express): void {
   });
 
   // ── Accept an invite link (authenticated) ───────────────────────────────
-  // The entire claim flow runs inside a serialized DB transaction to prevent
-  // two concurrent requests from claiming the same invite code or the same
-  // team slot simultaneously.
+  //
+  // The entire claim flow (validate → lock → create coach → update invite →
+  // update team) runs inside a single serialized DB transaction on one dedicated
+  // connection.  Every mutation uses `client.query()` on that same connection so
+  // all changes are visible to each other and are released atomically on COMMIT.
+  //
+  // Concurrent accepts for the same code or the same team both SELECT...FOR UPDATE
+  // — the second one blocks until the first commits, then sees status≠'pending' or
+  // is_cpu=false and returns 409 Conflict.
   app.post("/api/invites/:code/accept", requireAuth, async (req, res) => {
+    const userId = req.session.userId!;
+    const code = req.params.code as string;
+    const { teamId, coachData } = req.body as {
+      teamId?: string;
+      coachData?: {
+        firstName?: string;
+        lastName?: string;
+        archetype?: string;
+        skinTone?: string;
+        hairColor?: string;
+        hairStyle?: string;
+      };
+    };
+
+    // Validate required body fields before acquiring the DB connection.
+    if (!teamId) {
+      return res.status(400).json({ message: "Team selection is required" });
+    }
+
+    // Variables that need to survive the transaction scope for post-commit work.
+    let claimedLeagueId: string | undefined;
+    let newCoachId: string | null = null;
+
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
-      // Lock the invite row for the duration of this transaction so concurrent
-      // accept requests queue instead of racing.
-      const inviteRows = await client.query(
-        `SELECT * FROM league_invites WHERE invite_code = $1 FOR UPDATE`,
-        [req.params.code as string],
+      // ── Step 1: lock the invite row ──────────────────────────────────────
+      const { rows: invRows } = await client.query<{
+        id: string; status: string; expires_at: string | null; league_id: string;
+      }>(
+        `SELECT id, status, expires_at, league_id
+           FROM league_invites
+          WHERE invite_code = $1
+            FOR UPDATE`,
+        [code],
       );
-      const inviteRow = inviteRows.rows[0];
-      if (!inviteRow) {
-        await client.query("ROLLBACK");
-        return res.status(404).json({ message: "Invite not found" });
+      const invRow = invRows[0];
+      if (!invRow) throw new HttpError(404, "Invite not found");
+      if (invRow.status !== "pending") {
+        throw new HttpError(409, "This invite link has already been used or revoked");
       }
-      if (inviteRow.status !== "pending") {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ message: "This invite link has already been used or revoked" });
-      }
-      if (inviteRow.expires_at && new Date(inviteRow.expires_at) <= new Date()) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ message: "This invite link has expired" });
+      if (invRow.expires_at && new Date(invRow.expires_at) <= new Date()) {
+        throw new HttpError(400, "This invite link has expired");
       }
 
-      const invite = await storage.getLeagueInviteByCode(req.params.code as string);
-      if (!invite) { await client.query("ROLLBACK"); return res.status(404).json({ message: "Invite not found" }); }
+      const leagueId = invRow.league_id;
+      claimedLeagueId = leagueId;
 
-      const userId = req.session.userId!;
-      const user = await storage.getUser(userId);
-      if (!user) { await client.query("ROLLBACK"); return res.status(401).json({ message: "Authentication required" }); }
-
-      // Reject if user already has a coach record in this league (unique constraint guard).
+      // ── Step 2: duplicate-user guard ─────────────────────────────────────
+      // Two simultaneous accepts by the same user both SELECT here; whoever
+      // committed first will already have inserted a coaches row, so the
+      // second sees rowCount=1 and returns 409.
       const dupCheck = await client.query(
         `SELECT id FROM coaches WHERE league_id = $1 AND user_id = $2 LIMIT 1`,
-        [invite.leagueId, userId],
+        [leagueId, userId],
       );
-      if (dupCheck.rowCount && dupCheck.rowCount > 0) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ message: "You are already a coach in this league" });
+      if ((dupCheck.rowCount ?? 0) > 0) {
+        throw new HttpError(409, "You are already a coach in this league");
       }
 
-      const { teamId, coachData } = req.body;
-      if (!teamId) { await client.query("ROLLBACK"); return res.status(400).json({ message: "Team selection is required" }); }
-
-      // Lock the team row so two simultaneous accepts can't both grab the same team.
-      const teamRows = await client.query(
-        `SELECT * FROM teams WHERE id = $1 FOR UPDATE`,
+      // ── Step 3: lock the target team row ─────────────────────────────────
+      const { rows: tmRows } = await client.query<{
+        id: string; is_cpu: boolean; league_id: string; coach_id: string | null;
+      }>(
+        `SELECT id, is_cpu, league_id, coach_id
+           FROM teams
+          WHERE id = $1
+            FOR UPDATE`,
         [teamId],
       );
-      const teamRow = teamRows.rows[0];
-      if (!teamRow || !teamRow.is_cpu) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ message: "This team is not available" });
-      }
-      if (teamRow.league_id !== invite.leagueId) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ message: "Invalid team selection" });
-      }
+      const tmRow = tmRows[0];
+      if (!tmRow) throw new HttpError(400, "This team is not available");
+      if (!tmRow.is_cpu) throw new HttpError(409, "This team has already been claimed");
+      if (tmRow.league_id !== leagueId) throw new HttpError(400, "Invalid team selection");
 
-      const team = await storage.getTeam(teamId);
-      if (!team) { await client.query("ROLLBACK"); return res.status(404).json({ message: "Team not found" }); }
+      // ── Step 4: retire any CPU coaches currently on this team ────────────
+      await client.query(
+        `UPDATE coaches SET team_id = NULL WHERE team_id = $1 AND user_id IS NULL`,
+        [teamId],
+      );
 
-      const baseCoachData = {
-        firstName: coachData?.firstName || "New",
-        lastName: coachData?.lastName || "Coach",
-        leagueId: invite.leagueId,
-        teamId,
-        archetype: coachData?.archetype || "Balanced",
-        userId,
-        scoutingSkill: 1,
-        evaluationSkill: 1,
-        pitchingRecruitingSkill: 1,
-        hittingRecruitingSkill: 1,
-        ...(coachData ? {
-          skinTone: coachData.skinTone || "light",
-          hairColor: coachData.hairColor || "brown",
-          hairStyle: coachData.hairStyle || "short",
-        } : {}),
-      };
+      // ── Step 5: create the human coach inside the transaction ─────────────
+      const firstName = coachData?.firstName || "New";
+      const lastName  = coachData?.lastName  || "Coach";
+      const archetype = coachData?.archetype || "Balanced";
+      const skinTone  = coachData?.skinTone  || "light";
+      const hairColor = coachData?.hairColor || "brown";
+      const hairStyle = coachData?.hairStyle || "short";
 
-      // Retire the existing CPU coach before creating the human coach so
-      // getCoachesByLeague() never returns two coaches for the same team.
-      if (team.coachId) {
-        const existingCoach = await storage.getCoach(team.coachId);
-        if (existingCoach && !existingCoach.userId) {
-          await storage.updateCoach(existingCoach.id, { teamId: null } as any);
-          console.log(`[inviteJoin] Retired CPU coach ${existingCoach.id} from team ${teamId}`);
-        }
-      }
+      const { rows: coachRows } = await client.query<{ id: string }>(
+        `INSERT INTO coaches
+           (user_id, team_id, league_id, first_name, last_name, archetype,
+            skin_tone, hair_color, hair_style)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING id`,
+        [userId, teamId, leagueId, firstName, lastName, archetype,
+         skinTone, hairColor, hairStyle],
+      );
+      newCoachId = coachRows[0].id;
 
-      const coach = await storage.createCoach(baseCoachData);
+      // ── Step 6: mark the invite as accepted ──────────────────────────────
+      await client.query(
+        `UPDATE league_invites
+            SET status = 'accepted', team_id = $1, accepted_by_id = $2
+          WHERE id = $3`,
+        [teamId, userId, invRow.id],
+      );
 
-      await storage.updateLeagueInvite(invite.id, {
-        status: "accepted",
-        teamId,
-        acceptedById: userId,
-      });
-
-      await storage.updateTeam(teamId, { isCpu: false, coachId: coach.id });
+      // ── Step 7: claim the team for the human coach ───────────────────────
+      await client.query(
+        `UPDATE teams SET is_cpu = false, coach_id = $1 WHERE id = $2`,
+        [newCoachId, teamId],
+      );
 
       await client.query("COMMIT");
-
-      try { await ensureCoachTraits(coach, 1); } catch (err) {
-        console.error("[inviteJoin] ensureCoachTraits failed:", err);
-      }
-
-      await storage.createAuditLog({
-        leagueId: invite.leagueId,
-        userId,
-        action: "Invite Accepted",
-        details: `${user.email || "A player"} joined the league and selected ${team.name}`,
-      });
-
-      res.json({ success: true, leagueId: invite.leagueId, teamId });
-    } catch (error) {
+    } catch (err) {
       await client.query("ROLLBACK").catch(() => {});
-      console.error("Failed to accept invite:", error);
-      res.status(500).json({ message: "Failed to accept invite" });
+      if (err instanceof HttpError) {
+        return res.status(err.status).json({ message: err.message });
+      }
+      console.error("Failed to accept invite:", err);
+      return res.status(500).json({ message: "Failed to accept invite" });
     } finally {
       client.release();
     }
+
+    // ── Post-commit: best-effort coach enrichment and audit log ──────────────
+    // These run outside the transaction so a failure here does NOT roll back the
+    // invite acceptance.
+    if (newCoachId) {
+      try {
+        const coach = await storage.getCoach(newCoachId);
+        if (coach) {
+          await ensureCoachTraits(coach, 1).catch(err =>
+            console.error("[inviteJoin] ensureCoachTraits failed:", err),
+          );
+        }
+      } catch (err) {
+        console.error("[inviteJoin] post-commit coach setup failed:", err);
+      }
+    }
+
+    if (claimedLeagueId) {
+      try {
+        const [user, team] = await Promise.all([
+          storage.getUser(userId),
+          storage.getTeam(teamId),
+        ]);
+        await storage.createAuditLog({
+          leagueId: claimedLeagueId,
+          userId,
+          action: "Invite Accepted",
+          details: `${user?.email || "A player"} joined the league and selected ${team?.name || teamId}`,
+        });
+        invalidateLeague(claimedLeagueId);
+      } catch (err) {
+        console.error("[inviteJoin] audit log failed:", err);
+      }
+    }
+
+    res.json({ success: true, leagueId: claimedLeagueId, teamId });
   });
 
   // ── Revoke an invite link (commissioner only) ────────────────────────────

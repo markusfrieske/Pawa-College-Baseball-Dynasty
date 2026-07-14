@@ -48,13 +48,23 @@ async function processNextJob(): Promise<void> {
   }
 }
 
-/** Reset any orphaned "running" jobs (from a prior crash) to "pending". */
+/**
+ * Reset only pre-lease "running" jobs at startup.
+ *
+ * Jobs that have a valid lease are left alone — claimNextPendingJob() will
+ * reclaim them automatically once their lease_expires_at passes.  Only jobs
+ * with a NULL lease_expires_at (created before the lease feature) are reset
+ * to "pending" here so they can be retried.
+ */
 async function resetOrphanedJobs(): Promise<void> {
   try {
     const orphans = await storage.getOrphanedLeagueJobs();
     for (const job of orphans) {
-      console.warn(`[job-runner] Resetting orphaned job ${job.id} (was "running" at startup)`);
+      console.warn(`[job-runner] Resetting pre-lease orphaned job ${job.id} to pending`);
       await storage.updateLeagueJob(job.id, { status: "pending", progress: 0 });
+    }
+    if (orphans.length === 0) {
+      console.log("[job-runner] No pre-lease orphaned jobs found at startup");
     }
   } catch (e) {
     console.error("[job-runner] Failed to reset orphaned jobs:", e);

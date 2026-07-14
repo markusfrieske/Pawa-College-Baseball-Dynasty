@@ -2247,6 +2247,10 @@ export const league_jobs = pgTable("league_jobs", {
   progress: integer("progress").notNull().default(0), // 0-100
   errorMessage: text("error_message"),
   metadata: jsonb("metadata"),
+  // Lease fields: prevent double-claim without blanket startup resets.
+  lockedBy: text("locked_by"),           // runner instance identifier
+  leaseExpiresAt: timestamp("lease_expires_at"), // reclaimed after this time passes
+  attemptCount: integer("attempt_count").notNull().default(0), // how many times claimed
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => [

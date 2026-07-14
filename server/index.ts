@@ -1485,8 +1485,18 @@ app.use((req, res, next) => {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_user
       ON coaches (league_id, user_id)
       WHERE user_id IS NOT NULL;
+
+    -- One human coach per team per league (prevents two users claiming the same team).
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_team
+      ON coaches (league_id, team_id)
+      WHERE user_id IS NOT NULL AND team_id IS NOT NULL;
+
+    -- Job lease columns for expiry-based reclaim (idempotent ADD COLUMN IF NOT EXISTS).
+    ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS locked_by        text;
+    ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS lease_expires_at timestamptz;
+    ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS attempt_count    integer NOT NULL DEFAULT 0;
   `).then(() => {
-    console.log("[startup-migration] security-hardening-v1: advance locks table + coaches unique index ensured");
+    console.log("[startup-migration] security-hardening-v1: advance locks + coach unique indexes + job lease columns ensured");
   }).catch(e => console.warn("[startup-migration] security-hardening-v1 failed (non-fatal):", e));
 
   })();

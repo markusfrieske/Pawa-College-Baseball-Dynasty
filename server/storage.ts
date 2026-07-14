@@ -2605,25 +2605,50 @@ export class DatabaseStorage implements IStorage {
    */
   async claimNextPendingJob(): Promise<LeagueJob | undefined> {
     const { pool: pgPool } = await import("./db");
+    // Claim either a genuinely pending job OR a running job whose lease expired.
+    // SET locked_by / lease_expires_at so multi-instance runners don't double-claim,
+    // and bump attempt_count for observability.
     const result = await pgPool.query<LeagueJob>(`
       UPDATE league_jobs
-      SET status = 'running', updated_at = now()
-      WHERE id = (
-        SELECT id FROM league_jobs
-        WHERE status = 'pending'
-        ORDER BY created_at ASC
-        LIMIT 1
-        FOR UPDATE SKIP LOCKED
-      )
-      RETURNING *
+         SET status           = 'running',
+             updated_at       = now(),
+             locked_by        = 'runner',
+             lease_expires_at = now() + interval '10 minutes',
+             attempt_count    = attempt_count + 1
+       WHERE id = (
+               SELECT id FROM league_jobs
+                WHERE status = 'pending'
+                   OR (status = 'running' AND lease_expires_at IS NOT NULL AND lease_expires_at < now())
+             ORDER BY created_at ASC
+                LIMIT 1
+                 FOR UPDATE SKIP LOCKED
+             )
+    RETURNING *
     `);
     return result.rows[0] ?? undefined;
   }
 
+  /**
+   * Returns jobs that are still "running" but have no lease (created before the
+   * lease feature) so startJobRunner() can reset them on startup.
+   * Jobs with an active or expired lease are handled by claimNextPendingJob().
+   */
   async getOrphanedLeagueJobs(): Promise<LeagueJob[]> {
-    return db.select().from(league_jobs)
-      .where(eq(league_jobs.status, "running"))
-      .orderBy(asc(league_jobs.createdAt));
+    const { pool: pgPool } = await import("./db");
+    try {
+      const result = await pgPool.query<LeagueJob>(`
+        SELECT * FROM league_jobs
+         WHERE status = 'running' AND lease_expires_at IS NULL
+         ORDER BY created_at ASC
+      `);
+      return result.rows;
+    } catch (e: any) {
+      // 42703 = undefined_column — lease_expires_at may not exist yet on first
+      // boot if the startup migration hasn't completed yet.  Return empty so the
+      // runner proceeds without error; the next poll cycle will work correctly.
+      if (e?.code === "42703") return [];
+      throw e;
+    }
   }
 
   // ── FS Postseason entries ──────────────────────────────────────────────────

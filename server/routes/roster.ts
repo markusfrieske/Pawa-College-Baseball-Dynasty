@@ -65,7 +65,7 @@ const playerPatchSchema = z.object({
   pitchFK: z.number().int().min(0).max(7).optional(),
   pitchSCB: z.number().int().min(0).max(7).optional(),
   pitchPCB: z.number().int().min(0).max(7).optional(),
-});
+}).strict();
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
 import type { Player } from "@shared/schema";

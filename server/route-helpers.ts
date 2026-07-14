@@ -29,6 +29,63 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
   next();
 };
 
+/**
+ * Middleware: requires the authenticated user to be a member of the league
+ * identified by `req.params.id`.  Commissioners and co-commissioners pass
+ * automatically; ordinary users must have a coach record in the league.
+ *
+ * Returns 401 if unauthenticated, 404 if the league doesn't exist, 403 if
+ * the user has no membership.
+ */
+export function requireLeagueMember(req: Request, res: Response, next: NextFunction): void {
+  const leagueId = req.params.id as string;
+  const userId   = req.session?.userId;
+
+  if (!userId) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  (async () => {
+    const league = await storage.getLeague(leagueId);
+    if (!league) { res.status(404).json({ message: "League not found" }); return; }
+    if (hasCommissionerAccess(league, userId)) { next(); return; }
+    const coaches = await storage.getCoachesByLeague(leagueId);
+    if (isLeagueMember(coaches, userId)) { next(); return; }
+    res.status(403).json({ message: "Access denied: not a league member" });
+  })().catch(next);
+}
+
+/**
+ * Middleware factory: requires the authenticated user to own the team
+ * identified by `req.params[teamParam]` (defaults to `"teamId"`).
+ * Commissioners always pass.
+ *
+ * Returns 401, 403, or 404 as appropriate.
+ */
+export function requireTeamOwner(teamParam: string = "teamId") {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const leagueId = req.params.id as string;
+    const teamId   = req.params[teamParam] as string;
+    const userId   = req.session?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    (async () => {
+      const league = await storage.getLeague(leagueId);
+      if (!league) { res.status(404).json({ message: "League not found" }); return; }
+      if (hasCommissionerAccess(league, userId)) { next(); return; }
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const myCoach = coaches.find((c: { userId?: string | null }) => c.userId === userId);
+      if (myCoach && (myCoach as any).teamId === teamId) { next(); return; }
+      res.status(403).json({ message: "Access denied: team ownership required" });
+    })().catch(next);
+  };
+}
+
 export function hasCommissionerAccess(
   league: { commissionerId: string; coCommissionerIds?: unknown },
   userId: string | undefined,
