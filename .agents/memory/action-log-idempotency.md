@@ -1,14 +1,19 @@
 ---
 name: Action-log idempotency pattern
-description: How recruiting action handlers prevent race conditions (duplicate logs + double-spent points) in multiplayer leagues.
+description: How recruiting action handlers prevent race conditions (duplicate logs + double-spent points) in multiplayer leagues via a unified service.
 ---
 
 ## Rule
-Each recruiting action handler (phone, email, visit, head_coach_visit, offer) must:
+All recruiting actions (phone, email, visit, head_coach_visit, offer) MUST go through `executeRecruitingAction()` in `server/services/recruitingActionService.ts`. This is the ONLY correct way to execute a recruiting action — direct calls to `createRecruitingAction`, `updateRecruitingInterest`, or `atomicSpendRecruitPoints` from a route or simulation loop bypass the ordering contract.
+
+## Correct execution order (enforced by the service)
 1. Compute the interest gain first (no DB writes yet).
-2. Insert the action log row with `ON CONFLICT DO NOTHING`.
-3. If the insert returns `undefined` (conflict), return an idempotent 200 — do NOT update interest or charge points.
-4. Only after a successful insert: update recruiting interest, update top schools, then call `atomicSpendRecruitPoints`.
+2. Insert the action log row (ON CONFLICT DO NOTHING — idempotency gate).
+3. If insert returns null (conflict) → return early, 0 side-effects.
+4. **Atomic spend BEFORE interest** — `atomicSpendRecruitPoints(coachId, cost, max)` runs first.
+   If spend fails (concurrent race exhausted budget) → return `spendFailed: true`, no interest written.
+5. Only after successful spend: update recruiting interest (create/increment).
+6. Update top-school accumulated interest.
 
 ## DB enforcement
 Two partial unique indexes on `recruiting_actions_log`:
@@ -24,8 +29,11 @@ UPDATE coaches SET recruit_actions_used = recruit_actions_used + $cost
 WHERE id = $coachId AND recruit_actions_used + $cost <= $max
 ```
 Returns `true` if a row was updated, `false` if the coach is out of points.
-This replaces the read-then-write `updateCoach({ recruitActionsUsed: used + cost })` pattern.
 
-**Why:** In a 14-human multiplayer league two concurrent HTTP requests can both pass the points pre-check, both insert an action log row, and both charge points — resulting in duplicate interest gains and double-spent weekly budget. The action log unique constraint is the atomic gate; only one request wins the insert.
+## CPU vs human parity
+- Human routes: pass `coachId = userCoach.id`; service performs atomicSpend per action.
+- CPU routes: pass `coachId = null`; service skips atomicSpend (CPU enforces budget via local `remaining` variable before calling the service). Interest update and top-school update ordering is still guaranteed.
 
-**How to apply:** Any new recruiting action type added in the future must follow this same gate pattern and be added to the appropriate partial index (weekly-cap or seasonal-cap).
+**Why:** The key ordering bug was: old code updated interest/top-schools BEFORE atomicSpend. If spend failed concurrently, interest was already mutated (partial state). The service guarantees spend-first ordering atomically.
+
+**How to apply:** Any new recruiting action type must be routed through `executeRecruitingAction` and added to the appropriate partial unique index (weekly-cap or seasonal-cap).

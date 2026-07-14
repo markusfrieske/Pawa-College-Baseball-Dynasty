@@ -51,6 +51,7 @@ import {
   ARCHETYPE_SEASON_SCOUT_BONUS,
 } from "@shared/recruitingBalance";
 import { computeRecruitingEconomyWithLedger } from "../services/recruitingEconomyService";
+import { executeRecruitingAction } from "../services/recruitingActionService";
 import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import {
   getAttributesToRevealCount,
@@ -1115,49 +1116,29 @@ export function registerRecruitingRoutes(app: Express): void {
       });
       const totalInterestGain = pitchResults.reduce((s, pr) => s + pr.gain, 0);
 
-      // ── Gate: log action atomically before touching interest or points ────
-      // ON CONFLICT DO NOTHING enforces one phone per (recruit, team, week).
       const topicSummary = pitchResults.map(p => `${p.topic} (${p.matchLevel}, +${p.gain}%)`).join(", ");
-      const phoneLogged = await storage.createRecruitingAction({
+      const phoneResult = await executeRecruitingAction({
+        actionType: "phone",
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
         leagueId: req.params.id as string,
+        coachId: userCoach?.id ?? null,
         week: league.currentWeek,
         season: league.currentSeason,
-        actionType: "phone",
-        interestChange: totalInterestGain,
+        interestGain: totalInterestGain,
+        cost: phoneCost,
+        maxAllowed: maxRecruitingActions,
         notes: `Phone call: ${topicSummary}`,
-      });
-      if (!phoneLogged) {
+      }, storage);
+      if (phoneResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
       }
-
-      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      if (!interest) {
-        interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId as string,
-          teamId: userTeam.id,
-          interestLevel: totalInterestGain,
-        });
-      } else {
-        interest = await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + totalInterestGain),
-        });
-      }
-
-      const phoneTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
-      const phoneUserTopSchool = phoneTopSchools.find(ts => ts.teamId === userTeam.id);
-      if (phoneUserTopSchool) {
-        await storage.updateRecruitTopSchool(phoneUserTopSchool.id, { 
-          accumulatedInterest: (phoneUserTopSchool.accumulatedInterest || 0) + totalInterestGain 
-        });
-      }
-
-      if (userCoach) {
-        await storage.atomicSpendRecruitPoints(userCoach.id, phoneCost, maxRecruitingActions);
+      if (phoneResult.spendFailed) {
+        return res.status(400).json({ message: "Not enough recruiting points remaining." });
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + phoneCost);
+      const interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       invalidateLeague(req.params.id as string);
       res.json({ 
         interest, 
@@ -1223,48 +1204,28 @@ export function registerRecruitingRoutes(app: Express): void {
       const interestGain = Math.max(1, Math.round(rawEmailGain * emailTopicMod));
       assertInterestGainSane("email", interestGain, baseGain);
 
-      // ── Gate: log action atomically before touching interest or points ────
-      const emailLogged = await storage.createRecruitingAction({
+      const emailResult = await executeRecruitingAction({
+        actionType: "email",
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
         leagueId: req.params.id as string,
+        coachId: userCoach?.id ?? null,
         week: league.currentWeek,
         season: league.currentSeason,
-        actionType: "email",
-        interestChange: interestGain,
+        interestGain,
+        cost: 1,
+        maxAllowed: maxRecruitingActions,
         notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
-      });
-      if (!emailLogged) {
+      }, storage);
+      if (emailResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
       }
-
-      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      if (!interest) {
-        interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId as string,
-          teamId: userTeam.id,
-          interestLevel: interestGain,
-        });
-      } else {
-        interest = await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
-        });
-      }
-
-      // Sync top schools interest
-      const emailTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
-      const emailUserTopSchool = emailTopSchools.find(ts => ts.teamId === userTeam.id);
-      if (emailUserTopSchool) {
-        await storage.updateRecruitTopSchool(emailUserTopSchool.id, { 
-          accumulatedInterest: (emailUserTopSchool.accumulatedInterest || 0) + interestGain 
-        });
-      }
-
-      if (userCoach) {
-        await storage.atomicSpendRecruitPoints(userCoach.id, 1, maxRecruitingActions);
+      if (emailResult.spendFailed) {
+        return res.status(400).json({ message: "Not enough recruiting points remaining." });
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      const interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       invalidateLeague(req.params.id as string);
       res.json({ 
         interest, 
@@ -1328,47 +1289,28 @@ export function registerRecruitingRoutes(app: Express): void {
       const { baseGain, interestGain, totalMultiplier } = computeVisitGain(recruit, userTeam, userCoach);
       assertInterestGainSane("visit", interestGain, baseGain);
 
-      // ── Gate: log action atomically before touching interest or points ────
-      const visitLogged = await storage.createRecruitingAction({
+      const visitResult = await executeRecruitingAction({
+        actionType: "visit",
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
         leagueId: req.params.id as string,
+        coachId: userCoach?.id ?? null,
         week: league.currentWeek,
         season: league.currentSeason,
-        actionType: "visit",
-        interestChange: interestGain,
+        interestGain,
+        cost: actionCost,
+        maxAllowed: maxRecruitingActions,
         notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
-      });
-      if (!visitLogged) {
+      }, storage);
+      if (visitResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
       }
-
-      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      if (!interest) {
-        interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId as string,
-          teamId: userTeam.id,
-          interestLevel: interestGain,
-        });
-      } else {
-        interest = await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
-        });
-      }
-
-      const visitTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
-      const visitUserTopSchool = visitTopSchools.find(ts => ts.teamId === userTeam.id);
-      if (visitUserTopSchool) {
-        await storage.updateRecruitTopSchool(visitUserTopSchool.id, { 
-          accumulatedInterest: (visitUserTopSchool.accumulatedInterest || 0) + interestGain 
-        });
-      }
-
-      if (userCoach) {
-        await storage.atomicSpendRecruitPoints(userCoach.id, actionCost, maxRecruitingActions);
+      if (visitResult.spendFailed) {
+        return res.status(400).json({ message: "Not enough recruiting points remaining." });
       }
 
       const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
+      const interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       invalidateLeague(req.params.id as string);
       res.json({ 
         interest, 
@@ -1434,47 +1376,28 @@ export function registerRecruitingRoutes(app: Express): void {
       const interestGain = Math.max(5, Math.round(rawHcvGain * hcvPrestigeMod));
       assertInterestGainSane("head_coach_visit", interestGain, baseGain);
 
-      // ── Gate: log action atomically before touching interest or points ────
-      const hcvLogged = await storage.createRecruitingAction({
+      const hcvResult = await executeRecruitingAction({
+        actionType: "head_coach_visit",
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
         leagueId: req.params.id as string,
+        coachId: userCoach?.id ?? null,
         week: league.currentWeek,
         season: league.currentSeason,
-        actionType: "head_coach_visit",
-        interestChange: interestGain,
+        interestGain,
+        cost: actionCost,
+        maxAllowed: maxRecruitingActions,
         notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
-      });
-      if (!hcvLogged) {
+      }, storage);
+      if (hcvResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
       }
-
-      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      if (!interest) {
-        interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId as string,
-          teamId: userTeam.id,
-          interestLevel: interestGain,
-        });
-      } else {
-        interest = await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
-        });
-      }
-
-      const hcvTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
-      const hcvUserTopSchool = hcvTopSchools.find(ts => ts.teamId === userTeam.id);
-      if (hcvUserTopSchool) {
-        await storage.updateRecruitTopSchool(hcvUserTopSchool.id, { 
-          accumulatedInterest: (hcvUserTopSchool.accumulatedInterest || 0) + interestGain 
-        });
-      }
-
-      if (userCoach) {
-        await storage.atomicSpendRecruitPoints(userCoach.id, actionCost, maxRecruitingActions);
+      if (hcvResult.spendFailed) {
+        return res.status(400).json({ message: "Not enough recruiting points remaining." });
       }
 
       const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
+      const interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       invalidateLeague(req.params.id as string);
       res.json({ 
         interest, 
@@ -1533,50 +1456,29 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "Already offered scholarship" });
       }
 
-      // ── Gate: log action atomically before touching interest or points ────
-      const offerLogged = await storage.createRecruitingAction({
+      const offerResult = await executeRecruitingAction({
+        actionType: "offer",
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
         leagueId: req.params.id as string,
+        coachId: userCoach?.id ?? null,
         week: league.currentWeek,
         season: league.currentSeason,
-        actionType: "offer",
-        interestChange: interestGain,
+        interestGain,
+        hasOffer: true,
+        cost: 1,
+        maxAllowed: maxRecruitingActions,
         notes: `Offered scholarship (+${interestGain}% interest)`,
-      });
-      if (!offerLogged) {
+      }, storage);
+      if (offerResult.alreadyDone) {
         return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
       }
-
-      let interest: typeof existingOfferInterest;
-      if (!existingOfferInterest) {
-        interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId as string,
-          teamId: userTeam.id,
-          interestLevel: interestGain,
-          hasOffer: true,
-        });
-      } else {
-        interest = await storage.updateRecruitingInterest(existingOfferInterest.id, {
-          interestLevel: Math.min(100, (existingOfferInterest.interestLevel || 0) + interestGain),
-          hasOffer: true,
-        });
-      }
-
-      // Sync top schools interest
-      const offerTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
-      const offerUserTopSchool = offerTopSchools.find(ts => ts.teamId === userTeam.id);
-      if (offerUserTopSchool) {
-        await storage.updateRecruitTopSchool(offerUserTopSchool.id, { 
-          accumulatedInterest: (offerUserTopSchool.accumulatedInterest || 0) + interestGain 
-        });
-      }
-
-      if (userCoach) {
-        await storage.atomicSpendRecruitPoints(userCoach.id, 1, maxRecruitingActions);
+      if (offerResult.spendFailed) {
+        return res.status(400).json({ message: "Not enough recruiting points remaining." });
       }
 
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      const interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       invalidateLeague(req.params.id as string);
       res.json({ interest, interestGain, actionsRemaining });
     } catch (error) {

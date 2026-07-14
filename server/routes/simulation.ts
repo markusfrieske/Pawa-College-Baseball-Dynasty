@@ -12,6 +12,7 @@ import { z } from "zod";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
+import { executeRecruitingAction } from "../services/recruitingActionService";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
 import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, LastSeasonStats, AdvanceDigestCategories } from "@shared/schema";
@@ -4598,7 +4599,6 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
     ).length;
     let cpuSeasonVisitsUsed = cpuSeasonCampusVisitsUsed + cpuSeasonHcVisitsUsed;
     let pointsSpent = 0;
-    const pendingTopSchoolGains = new Map<string, number>();
     for (let i = 0; i < focusedRecruits.length && pointsSpent < actionsBudget; i++) {
       const { recruit, interest } = focusedRecruits[i];
       const remaining = actionsBudget - pointsSpent;
@@ -4721,40 +4721,32 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
         });
       }
       
-      if (!interest) {
-        await storage.createRecruitingInterest({
-          recruitId: recruit.id,
-          teamId: team.id,
-          interestLevel: interestGain,
-          hasOffer: actionType === "offer",
-        });
-      } else {
-        await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
-          hasOffer: interest.hasOffer || actionType === "offer",
-        });
-      }
-
-      // Accumulate interest gain for top-schools update (batched after the loop)
-      pendingTopSchoolGains.set(recruit.id, (pendingTopSchoolGains.get(recruit.id) || 0) + interestGain);
-
       const isForced = forcedHumanTeamIds.has(team.id);
       const isAlertableAction = team.isAutoPilot || isDeadlineForced;
-      await storage.createRecruitingAction({
+      // CPU budget is enforced via the local `remaining` variable before this point.
+      // Pass coachId=null so the service skips atomicSpendRecruitPoints; CPU spend
+      // is tracked locally and written to the ledger below. The service still handles
+      // the idempotency gate (log), interest update, and top-schools update in the
+      // correct order (log first, then side-effects).
+      await executeRecruitingAction({
+        actionType,
         recruitId: recruit.id,
         teamId: team.id,
-        leagueId: leagueId,
-        week: week,
-        season: season,
-        actionType: actionType,
-        interestChange: interestGain,
+        leagueId,
+        coachId: null,
+        week,
+        season,
+        interestGain,
+        hasOffer: actionType === "offer",
+        cost,
+        maxAllowed: actionsBudget,
         notes: team.isAutoPilot
           ? `CPU (Auto-Pilot) ${actionType}`
           : isForced
             ? `CPU (Fill-In) ${actionType}`
             : `CPU ${actionType} action`,
         isAutoPilot: team.isAutoPilot || isForced,
-      });
+      }, storage);
 
       // Collect alert entry for coach notification (auto-pilot or deadline-forced)
       if (isAlertableAction) {
@@ -4798,27 +4790,6 @@ async function runCpuRecruiting(leagueId: string, week: number, season: number, 
         }
       } catch (ledgerErr) {
         console.warn("[cpu-recruiting] Failed to charge ledger:", ledgerErr);
-      }
-    }
-
-    // Batch-update recruit_top_schools for this CPU team so ranking reflects actual recruiting activity.
-    // Human action handlers update accumulatedInterest per action; we mirror that here after the loop.
-    if (pendingTopSchoolGains.size > 0) {
-      try {
-        const teamTopSchools = await storage.getTopSchoolsByTeam(team.id);
-        const topSchoolMap = new Map(teamTopSchools.map(ts => [ts.recruitId, ts]));
-        await Promise.all(
-          Array.from(pendingTopSchoolGains.entries()).map(async ([recruitId, gainTotal]) => {
-            const row = topSchoolMap.get(recruitId);
-            if (row) {
-              await storage.updateRecruitTopSchool(row.id, {
-                accumulatedInterest: (row.accumulatedInterest || 0) + gainTotal,
-              });
-            }
-          })
-        );
-      } catch (tsErr) {
-        console.error("[cpu-recruiting] Failed to update recruit_top_schools:", tsErr);
       }
     }
 
