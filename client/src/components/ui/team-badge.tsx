@@ -18,8 +18,8 @@ export function TeamBadge({
   className,
 }: TeamBadgeProps) {
   const sizes = {
-    xs: "w-6 h-6 text-[7px]",
-    sm: "w-8 h-8 text-[8px]",
+    xs: "w-6 h-6 text-xs",
+    sm: "w-8 h-8 text-xs",
     md: "w-12 h-12 text-xs",
     lg: "w-16 h-16 text-sm",
   };

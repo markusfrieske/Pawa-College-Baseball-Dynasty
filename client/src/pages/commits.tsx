@@ -138,7 +138,7 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
             <div className="flex items-center gap-2">
               <span className="font-pixel text-sm text-[#C4A35A]">{team.name}</span>
               {team.isCpu && (
-                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">CPU</Badge>
+                <Badge variant="outline" className="text-xs px-1 py-0 h-4">CPU</Badge>
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400">
@@ -152,8 +152,8 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
                     <StarRating rating={Math.round(avgStarRating)} size="sm" />
                     {avgStarRating.toFixed(1)} avg
                   </span>
-                  {fiveStars > 0 && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-gold/50 text-gold">{fiveStars}x 5-Star</Badge>}
-                  {fourStars > 0 && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-blue-400/50 text-blue-400">{fourStars}x 4+Star</Badge>}
+                  {fiveStars > 0 && <Badge variant="outline" className="text-xs px-1 py-0 h-4 border-gold/50 text-gold">{fiveStars}x 5-Star</Badge>}
+                  {fourStars > 0 && <Badge variant="outline" className="text-xs px-1 py-0 h-4 border-blue-400/50 text-blue-400">{fourStars}x 4+Star</Badge>}
                 </>
               )}
             </div>
@@ -229,14 +229,14 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
               <table className="w-full text-sm" data-testid="table-past-classes">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">#</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-gold">Team</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Commits</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">5★</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">4★+</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">3★</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Avg Stars</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Score</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">#</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-gold">Team</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Commits</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">5★</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">4★+</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">3★</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Avg Stars</th>
+                    <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">Score</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -247,16 +247,16 @@ function PastClassesSection({ leagueId }: { leagueId: string }) {
                       data-testid={`row-past-class-${snap.teamAbbr}`}
                     >
                       <td className="py-2 px-2 text-center">
-                        <span className={`font-pixel text-[9px] ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                        <span className={`font-pixel text-xs ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
                           #{snap.classRank}
                         </span>
                       </td>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: snap.teamColor }} />
-                          <span className="font-pixel text-[8px]">{snap.teamAbbr}</span>
+                          <span className="font-pixel text-xs">{snap.teamAbbr}</span>
                           <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snap.teamName}</span>
-                          {!snap.isCpu && <Badge variant="outline" className="text-[7px] px-1 py-0 h-3">You</Badge>}
+                          {!snap.isCpu && <Badge variant="outline" className="text-xs px-1 py-0 h-3">You</Badge>}
                         </div>
                       </td>
                       <td className="py-2 px-2 text-center text-xs font-medium">{snap.totalCommits}</td>

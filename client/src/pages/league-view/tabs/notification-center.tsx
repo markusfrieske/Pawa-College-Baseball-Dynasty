@@ -54,7 +54,7 @@ export function NotificationCenter({ leagueId }: { leagueId: string }) {
         <button className="relative p-2 rounded hover:bg-gold/10 transition-colors" data-testid="button-notifications">
           <Bell className="w-5 h-5 text-muted-foreground hover:text-gold" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}

@@ -136,20 +136,20 @@ function TickerEventCard({ event, isNew, onViewRecap }: { event: LeagueEvent; is
 
         <div className="flex items-center gap-2 mt-1 flex-wrap">
           {event.teamName && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {event.teamAbbreviation ?? event.teamName}
             </span>
           )}
-          <span className="text-[10px] text-muted-foreground/60">
+          <span className="text-xs text-muted-foreground/60">
             S{event.season} W{event.week}
           </span>
-          <span className="text-[10px] text-muted-foreground/50">
+          <span className="text-xs text-muted-foreground/50">
             {relativeTime(event.createdAt)}
           </span>
           {event.eventType === "GAME_RESULT" && onViewRecap && typeof (event.metadata as Record<string, unknown>)?.gameId === "string" && (
             <button
               type="button"
-              className="text-[10px] text-gold/70 hover:text-gold underline underline-offset-2"
+              className="text-xs text-gold/70 hover:text-gold underline underline-offset-2"
               onClick={() => onViewRecap((event.metadata as Record<string, string>).gameId)}
               data-testid={`ticker-recap-${event.id}`}
             >
@@ -266,12 +266,12 @@ export default function LeagueTickerPage() {
             </button>
           </Link>
           <div>
-            <h1 className="font-pixel text-gold text-[11px] sm:text-[13px] leading-tight">LEAGUE TICKER</h1>
+            <h1 className="font-pixel text-gold text-xs sm:text-[13px] leading-tight">LEAGUE TICKER</h1>
             <p className="text-xs text-muted-foreground mt-0.5">What's happening across the league</p>
           </div>
           {(tickerData?.unreadCount ?? 0) > 0 && (
             <span
-              className="ml-auto text-[10px] font-medium bg-gold text-background px-2 py-0.5 rounded-full"
+              className="ml-auto text-xs font-medium bg-gold text-background px-2 py-0.5 rounded-full"
               data-testid="badge-unread-count"
             >
               {tickerData!.unreadCount > 98 ? "99+" : tickerData!.unreadCount} new

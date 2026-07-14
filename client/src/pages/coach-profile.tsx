@@ -808,7 +808,7 @@ function CareerTab({
                         </span>
                       </div>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mb-3 italic">{summary}</p>
+                    <p className="text-xs text-muted-foreground mb-3 italic">{summary}</p>
                     {bd && (
                       <div className="space-y-1.5">
                         {Object.entries(RECRUITING_BREAKDOWN_LABELS).map(([key, { label, weight }]) => {
@@ -816,11 +816,11 @@ function CareerTab({
                           const barColor = val >= 75 ? "bg-gold" : val >= 50 ? "bg-green-500" : "bg-muted-foreground/40";
                           return (
                             <div key={key} className="flex items-center gap-2">
-                              <span className="text-[9px] text-muted-foreground w-28 shrink-0">{label} <span className="text-muted-foreground/50">({weight})</span></span>
+                              <span className="text-xs text-muted-foreground w-28 shrink-0">{label} <span className="text-muted-foreground/50">({weight})</span></span>
                               <div className="flex-1 bg-muted/40 rounded-full h-1.5">
                                 <div className={`${barColor} rounded-full h-1.5 transition-all`} style={{ width: `${val}%` }} />
                               </div>
-                              <span className={`text-[9px] w-6 text-right font-medium ${val >= 75 ? "text-gold" : val >= 50 ? "text-green-400" : "text-muted-foreground"}`}>{val}</span>
+                              <span className={`text-xs w-6 text-right font-medium ${val >= 75 ? "text-gold" : val >= 50 ? "text-green-400" : "text-muted-foreground"}`}>{val}</span>
                             </div>
                           );
                         })}
@@ -837,7 +837,7 @@ function CareerTab({
                     <p className="text-xs text-muted-foreground font-medium">Career Recruiting Grade</p>
                     <div className="flex items-center gap-2">
                       {coachRecruitingHistory && coachRecruitingHistory.allTimeRank != null && (
-                        <Badge variant="outline" className="text-[7px] border-gold/40 text-gold">
+                        <Badge variant="outline" className="text-xs border-gold/40 text-gold">
                           #{coachRecruitingHistory.allTimeRank} all-time in league
                         </Badge>
                       )}
@@ -870,7 +870,7 @@ function CareerTab({
                     return milestones.length > 0 ? (
                       <div className="flex flex-wrap gap-1 pt-1">
                         {milestones.map((m, i) => (
-                          <span key={i} className="text-[9px] text-muted-foreground bg-muted/30 rounded px-2 py-0.5">{m}</span>
+                          <span key={i} className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-0.5">{m}</span>
                         ))}
                       </div>
                     ) : null;
@@ -895,7 +895,7 @@ function CareerTab({
                               </span>
                             ) : "—"}
                           </span>
-                          <span className="flex items-center gap-1 text-[10px] flex-1 min-w-0">
+                          <span className="flex items-center gap-1 text-xs flex-1 min-w-0">
                             {row.fiveStars > 0 && <span className="text-yellow-400 font-medium">{row.fiveStars}★★★★★</span>}
                             {row.fourStars > 0 && <span className="text-orange-400">{row.fourStars}★★★★</span>}
                             {row.threeStars > 0 && <span className="text-blue-400">{row.threeStars}★★★</span>}
@@ -903,14 +903,14 @@ function CareerTab({
                               <span className="text-muted-foreground">{row.twoStars + row.oneStars}★/★★</span>
                             )}
                           </span>
-                          <span className="text-[10px] text-muted-foreground shrink-0">{row.totalSigned} signed</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{row.totalSigned} signed</span>
                           <span className="shrink-0 w-8 text-center">
                             {row.recruitingGrade != null ? (
-                              <span className={`font-bold font-pixel text-[10px] ${recruitingGradeColor(row.recruitingGrade)}`}>
+                              <span className={`font-bold font-pixel text-xs ${recruitingGradeColor(row.recruitingGrade)}`}>
                                 {row.recruitingGrade}
                               </span>
                             ) : (
-                              <span className="text-[10px] text-muted-foreground">—</span>
+                              <span className="text-xs text-muted-foreground">—</span>
                             )}
                           </span>
                           <span className="w-3 h-3 shrink-0 flex items-center justify-center">
@@ -921,7 +921,7 @@ function CareerTab({
                       const breakdownPanel = hasBreakdown && (
                         <div className="px-4 py-3 bg-muted/10 space-y-1.5">
                           {row.recruitingScore != null && (
-                            <p className="text-[9px] text-muted-foreground mb-2">
+                            <p className="text-xs text-muted-foreground mb-2">
                               Overall score: <span className="font-medium text-foreground">{row.recruitingScore.toFixed(1)}/100</span>
                             </p>
                           )}
@@ -931,13 +931,13 @@ function CareerTab({
                             const textColor = val >= 75 ? "text-gold" : val >= 50 ? "text-green-400" : "text-muted-foreground";
                             return (
                               <div key={key} className="flex items-center gap-2">
-                                <span className="text-[9px] text-muted-foreground w-32 shrink-0">
+                                <span className="text-xs text-muted-foreground w-32 shrink-0">
                                   {label} <span className="text-muted-foreground/50">({weight})</span>
                                 </span>
                                 <div className="flex-1 bg-muted/40 rounded-full h-1.5">
                                   <div className={`${barColor} rounded-full h-1.5 transition-all`} style={{ width: `${val}%` }} />
                                 </div>
-                                <span className={`text-[9px] w-6 text-right font-medium ${textColor}`}>{val}</span>
+                                <span className={`text-xs w-6 text-right font-medium ${textColor}`}>{val}</span>
                               </div>
                             );
                           })}
@@ -1103,17 +1103,17 @@ function PerkNode({
     >
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-pixel px-1 py-0.5 rounded ${treeMeta.color} bg-black/20`}>{tierLabel}</span>
+          <span className={`text-xs font-pixel px-1 py-0.5 rounded ${treeMeta.color} bg-black/20`}>{tierLabel}</span>
           <span className={`text-xs font-semibold ${owned ? treeMeta.color : "text-foreground"}`}>{perk.name}</span>
         </div>
         {owned ? (
-          <span className={`text-[10px] font-pixel ${treeMeta.color} shrink-0`}>OWNED</span>
+          <span className={`text-xs font-pixel ${treeMeta.color} shrink-0`}>OWNED</span>
         ) : (
-          <span className="text-[10px] text-muted-foreground shrink-0">{spLabel}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{spLabel}</span>
         )}
       </div>
-      <p className="text-[11px] text-muted-foreground leading-tight mb-1.5">{perk.description}</p>
-      <p className={`text-[11px] font-medium leading-tight ${owned ? treeMeta.color : "text-gold/80"}`}>{perk.effect}</p>
+      <p className="text-xs text-muted-foreground leading-tight mb-1.5">{perk.description}</p>
+      <p className={`text-xs font-medium leading-tight ${owned ? treeMeta.color : "text-gold/80"}`}>{perk.effect}</p>
       {isOwnCoach && !owned && (
         <div className="mt-2">
           {canUnlock ? (
@@ -1127,7 +1127,7 @@ function PerkNode({
               Unlock ({spLabel})
             </RetroButton>
           ) : (
-            <p className="text-[11px] text-muted-foreground text-center py-1">{unlockCheck.reason}</p>
+            <p className="text-xs text-muted-foreground text-center py-1">{unlockCheck.reason}</p>
           )}
         </div>
       )}
@@ -1241,7 +1241,7 @@ function SkillsTab({
                   <div className={`flex items-center gap-1.5 pb-1.5 border-b ${meta.borderColor}`}>
                     <span className={`text-xs font-pixel ${meta.color}`}>{meta.name}</span>
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-tight">{meta.description}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{meta.description}</p>
                   <div className="space-y-2 pt-1">
                     {perks.map(perk => {
                       const check = canUnlockPerk(coach, perk.id);
@@ -1279,7 +1279,7 @@ function SkillsTab({
                 { label: "Draft Pick", value: `+${XP_AWARDS.DRAFT_PICK}` },
                 { label: "Portal Retention", value: `+${XP_AWARDS.RETENTION}` },
               ].map(({ label, value }) => (
-                <div key={label} className="flex justify-between items-center text-[11px] py-0.5">
+                <div key={label} className="flex justify-between items-center text-xs py-0.5">
                   <span className="text-muted-foreground">{label}</span>
                   <span className="text-gold font-semibold">{value}</span>
                 </div>

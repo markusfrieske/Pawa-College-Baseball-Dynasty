@@ -182,7 +182,7 @@ export function ReportStatusBadge({ status }: { status?: ReportStatus | string |
   const cfg = REPORT_STATUS_CONFIG[status as ReportStatus];
   if (!cfg) return null;
   return (
-    <Badge variant="outline" className={`text-[8px] ${cfg.className} gap-0.5`} data-testid={cfg.testId}>
+    <Badge variant="outline" className={`text-xs ${cfg.className} gap-0.5`} data-testid={cfg.testId}>
       {cfg.icon} {cfg.label}
     </Badge>
   );
@@ -203,7 +203,7 @@ function ScoreStepper({
 }) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <span className="text-[9px] font-pixel text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className="text-xs font-pixel text-muted-foreground uppercase tracking-wide">{label}</span>
       <button
         type="button"
         onClick={() => onChange(value + 1)}
@@ -793,12 +793,12 @@ function ReportGameInner() {
               <h1 className="font-pixel text-gold text-xs truncate">
                 {isEditMode ? "Edit Game Report" : phase === "submitted" ? "Report Submitted" : "Report Game Result"}
               </h1>
-              <p className="text-[10px] text-muted-foreground truncate">
+              <p className="text-xs text-muted-foreground truncate">
                 {awayTeam.abbreviation} @ {homeTeam.abbreviation}
               </p>
             </div>
             {phase !== "submitted" && (
-              <div className="flex items-center gap-1 shrink-0 text-[8px] font-pixel">
+              <div className="flex items-center gap-1 shrink-0 text-xs font-pixel">
                 <span className={phase === "score" ? "text-gold" : "text-muted-foreground"} data-testid="step-upload">1 Upload</span>
                 <ChevronRight className="w-2 h-2 text-muted-foreground/50" />
                 <span className={phase === "review" ? "text-gold" : "text-muted-foreground"} data-testid="step-review">2 Review</span>
@@ -846,7 +846,7 @@ function ReportGameInner() {
             )}
 
             {hasOcrData && (
-              <div className="flex items-start gap-2 p-2.5 bg-gold/5 border border-gold/20 rounded text-[9px] text-gold/80" data-testid="banner-ocr-autofilled">
+              <div className="flex items-start gap-2 p-2.5 bg-gold/5 border border-gold/20 rounded text-xs text-gold/80" data-testid="banner-ocr-autofilled">
                 <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
                 <span>Form auto-filled from screenshots — fields marked ✦ came from OCR. Correct anything that looks wrong, then continue to review.</span>
               </div>
@@ -880,7 +880,7 @@ function ReportGameInner() {
               awayHits={awayHits}
             />
 
-            <div className="text-[10px] text-muted-foreground px-1">Box score detail (optional)</div>
+            <div className="text-xs text-muted-foreground px-1">Box score detail (optional)</div>
 
             <CollapsibleSection
               label={`${homeTeam.name} Batting`}
@@ -949,14 +949,14 @@ function ReportGameInner() {
             )}
 
             {pendingOcrCount > 0 && (
-              <div className="flex items-center gap-2 p-2.5 bg-yellow-900/20 border border-yellow-700/40 rounded text-[9px] text-yellow-300" data-testid="banner-ocr-pending">
+              <div className="flex items-center gap-2 p-2.5 bg-yellow-900/20 border border-yellow-700/40 rounded text-xs text-yellow-300" data-testid="banner-ocr-pending">
                 <Loader2 className="w-3 h-3 shrink-0 animate-spin" />
                 <span>Still reading {pendingOcrCount} screenshot{pendingOcrCount !== 1 ? "s" : ""} — wait for them to finish for the best auto-fill.</span>
               </div>
             )}
 
             {allOcrSettled && (
-              <div className="flex items-center gap-2 p-2.5 bg-green-900/20 border border-green-700/40 rounded text-[9px] text-green-300" data-testid="banner-ocr-complete">
+              <div className="flex items-center gap-2 p-2.5 bg-green-900/20 border border-green-700/40 rounded text-xs text-green-300" data-testid="banner-ocr-complete">
                 <CheckCircle className="w-3 h-3 shrink-0" />
                 <span>All screenshots read — form is ready to review.</span>
               </div>
@@ -974,7 +974,7 @@ function ReportGameInner() {
 
         {phase === "review" && (
           <>
-            <div className="flex items-start gap-2 p-2.5 bg-muted/30 border border-border rounded text-[9px] text-muted-foreground" data-testid="banner-review-before-submit">
+            <div className="flex items-start gap-2 p-2.5 bg-muted/30 border border-border rounded text-xs text-muted-foreground" data-testid="banner-review-before-submit">
               <ClipboardCheck className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
               <span>
                 {hasOcrData
@@ -1116,7 +1116,7 @@ function ScoreEntryStep({
                 size="md"
               />
               <span className="text-xs font-medium text-center leading-tight">{awayTeam.name}</span>
-              <span className="text-[9px] text-muted-foreground">Away</span>
+              <span className="text-xs text-muted-foreground">Away</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -1143,7 +1143,7 @@ function ScoreEntryStep({
                     <span className="text-muted-foreground text-sm">@</span>
                     <span className={displayHome > displayAway ? "text-gold" : "text-muted-foreground"}>{displayHome}</span>
                   </div>
-                  <p className="text-[9px] text-muted-foreground mt-1">From inning totals</p>
+                  <p className="text-xs text-muted-foreground mt-1">From inning totals</p>
                 </div>
               )}
             </div>
@@ -1157,7 +1157,7 @@ function ScoreEntryStep({
                 size="md"
               />
               <span className="text-xs font-medium text-center leading-tight">{homeTeam.name}</span>
-              <span className="text-[9px] text-muted-foreground">Home</span>
+              <span className="text-xs text-muted-foreground">Home</span>
             </div>
           </div>
         </RetroCardContent>
@@ -1233,7 +1233,7 @@ function ScoreEntryStep({
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-8">H</span>
               <span className="text-sm font-medium">{awayHits > 0 ? awayHits : <span className="text-muted-foreground">—</span>}</span>
-              <span className="text-[9px] text-muted-foreground">(from batting)</span>
+              <span className="text-xs text-muted-foreground">(from batting)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-8">E</span>
@@ -1247,7 +1247,7 @@ function ScoreEntryStep({
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-8">H</span>
               <span className="text-sm font-medium">{homeHits > 0 ? homeHits : <span className="text-muted-foreground">—</span>}</span>
-              <span className="text-[9px] text-muted-foreground">(from batting)</span>
+              <span className="text-xs text-muted-foreground">(from batting)</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground w-8">E</span>
@@ -1317,7 +1317,7 @@ function SubmittedPhase({
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex flex-col items-center gap-1">
             <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
-            <span className="text-[9px] text-muted-foreground">{awayTeam.abbreviation}</span>
+            <span className="text-xs text-muted-foreground">{awayTeam.abbreviation}</span>
           </div>
           <div className="flex items-center gap-2 font-pixel text-2xl">
             <span className={awayScore > homeScore ? "text-gold" : "text-muted-foreground"}>{awayScore}</span>
@@ -1326,7 +1326,7 @@ function SubmittedPhase({
           </div>
           <div className="flex flex-col items-center gap-1">
             <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
-            <span className="text-[9px] text-muted-foreground">{homeTeam.abbreviation}</span>
+            <span className="text-xs text-muted-foreground">{homeTeam.abbreviation}</span>
           </div>
         </div>
         <div className="flex justify-center pb-3">
@@ -1339,7 +1339,7 @@ function SubmittedPhase({
           <Clock className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs text-yellow-300 font-medium">Waiting for confirmation</p>
-            <p className="text-[10px] text-yellow-400/70 mt-0.5">The opposing coach will see a confirm/dispute prompt on their schedule page.</p>
+            <p className="text-xs text-yellow-400/70 mt-0.5">The opposing coach will see a confirm/dispute prompt on their schedule page.</p>
           </div>
         </div>
       )}
@@ -1400,16 +1400,16 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gold">{label} Batting</h3>
-        <span className="text-[10px] font-pixel text-muted-foreground" data-testid="text-batter-count">{batting.length} batters</span>
+        <span className="text-xs font-pixel text-muted-foreground" data-testid="text-batter-count">{batting.length} batters</span>
       </div>
 
       {available.length > 0 && (
         <div>
-          <p className="text-[10px] text-muted-foreground mb-1">Add batter:</p>
+          <p className="text-xs text-muted-foreground mb-1">Add batter:</p>
           <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
             {available.slice(0, 30).map(p => (
               <button key={p.id} onClick={() => addBatter(p)}
-                className="text-[9px] px-2 py-1 bg-muted/40 border border-border rounded hover:border-gold hover:text-gold transition-colors"
+                className="text-xs px-2 py-1 bg-muted/40 border border-border rounded hover:border-gold hover:text-gold transition-colors"
                 data-testid={`button-add-batter-${p.id}`}>
                 {p.firstName} {p.lastName} ({p.position})
               </button>
@@ -1442,7 +1442,7 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: {
                 <tr key={b.playerId} className={`border-b border-gold/10 ${b.needsName ? "bg-yellow-900/20" : ""}`}>
                   <td className="p-1 text-foreground font-medium truncate max-w-[80px]" title={b.needsName ? "OCR couldn't read a name for this row — edit it in the review step" : undefined}>
                     {b.name}
-                    {b.needsName && <span className="text-yellow-400 text-[9px] ml-1">(needs name)</span>}
+                    {b.needsName && <span className="text-yellow-400 text-xs ml-1">(needs name)</span>}
                   </td>
                   {(["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"] as (keyof BatterEntry)[]).map(field => (
                     <td key={field} className="p-0.5">
@@ -1493,7 +1493,7 @@ const GAME_TYPE_LABEL: Record<string, string> = { midweek: "WED", friday: "FRI",
 function PitcherAvailTooltip({ p, slot, day }: { p: PitcherAvailRow; slot: PitcherAvailSlot; day: string }) {
   if (slot.daysOfRest === 99 || !p.lastPitchedDay) {
     return (
-      <div className="text-[10px] space-y-0.5">
+      <div className="text-xs space-y-0.5">
         <div className="font-semibold text-green-400">{day}: Fresh</div>
         <div className="text-muted-foreground">No recent appearances</div>
         <div>Full strength — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
@@ -1506,7 +1506,7 @@ function PitcherAvailTooltip({ p, slot, day }: { p: PitcherAvailRow; slot: Pitch
   const lastDay = AVAIL_DAY_LABEL[p.lastPitchedDay] ?? p.lastPitchedDay;
   if (!slot.available) {
     return (
-      <div className="text-[10px] space-y-0.5">
+      <div className="text-xs space-y-0.5">
         <div className="font-semibold text-red-400">{day}: Unavailable</div>
         <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({p.lastPitchedOuts} outs)</div>
         <div>Needs <span className="font-bold">{restNeeded}d</span> rest — only <span className="text-red-400 font-bold">{restHad}d</span> available</div>
@@ -1515,7 +1515,7 @@ function PitcherAvailTooltip({ p, slot, day }: { p: PitcherAvailRow; slot: Pitch
   }
   if (slot.limited) {
     return (
-      <div className="text-[10px] space-y-0.5">
+      <div className="text-xs space-y-0.5">
         <div className="font-semibold text-yellow-400">{day}: Limited</div>
         <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({p.lastPitchedOuts} outs)</div>
         <div>{restHad}d rest, {restNeeded}d required — capped at <span className="text-yellow-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
@@ -1523,7 +1523,7 @@ function PitcherAvailTooltip({ p, slot, day }: { p: PitcherAvailRow; slot: Pitch
     );
   }
   return (
-    <div className="text-[10px] space-y-0.5">
+    <div className="text-xs space-y-0.5">
       <div className="font-semibold text-green-400">{day}: Full strength</div>
       <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({p.lastPitchedOuts} outs)</div>
       <div>{restHad}d rest — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
@@ -1670,7 +1670,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
     });
     return (
       <div className="space-y-1">
-        <div className="text-[10px] font-pixel text-gold/80 mb-1">{label}</div>
+        <div className="text-xs font-pixel text-gold/80 mb-1">{label}</div>
         <div className="grid gap-1">
           {pitchers.map(p => {
             const slot = p.slots[gameDay] as PitcherAvailSlot | undefined;
@@ -1683,8 +1683,8 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
                 <TooltipTrigger asChild>
                   <div className={`flex items-center gap-2 px-2 py-1 rounded border text-xs cursor-default ${color}`} data-testid={`avail-row-${teamId}-${p.playerId}`}>
                     <span className="flex-1 truncate">{p.name}</span>
-                    {p.pitchingRole && <span className="font-pixel text-[8px] text-muted-foreground">{p.pitchingRole}</span>}
-                    <span className={`font-pixel text-[9px] ${statusColor}`}>{statusText}</span>
+                    {p.pitchingRole && <span className="font-pixel text-xs text-muted-foreground">{p.pitchingRole}</span>}
+                    <span className={`font-pixel text-xs ${statusColor}`}>{statusText}</span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="left" className="max-w-[240px]">
@@ -1706,7 +1706,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
         <div className="border border-border/60 rounded-lg overflow-hidden">
           <button className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
             onClick={() => setAvailOpen(o => !o)} data-testid="toggle-avail-panel">
-            <span className="font-pixel text-gold text-[9px]">PITCHING AVAILABILITY — {gameDay}</span>
+            <span className="font-pixel text-gold text-xs">PITCHING AVAILABILITY — {gameDay}</span>
             <span className="text-muted-foreground text-xs">{availOpen ? "▲" : "▼"}</span>
           </button>
           {availOpen && (
@@ -1807,9 +1807,9 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
             {[{ team: awayTeam, batting: awayBatting }, { team: homeTeam, batting: homeBatting }].map(({ team, batting }) =>
               batting.length > 0 ? (
                 <div key={team.id}>
-                  <p className="text-[9px] font-pixel text-gold/80 mb-1">{team.abbreviation}</p>
+                  <p className="text-xs font-pixel text-gold/80 mb-1">{team.abbreviation}</p>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-[9px] border-collapse">
+                    <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-gold/20">
                           <th className="text-left py-1 pr-2 text-muted-foreground">Name</th>
@@ -1845,9 +1845,9 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
             {[{ team: awayTeam, pitching: awayPitching }, { team: homeTeam, pitching: homePitching }].map(({ team, pitching }) =>
               pitching.length > 0 ? (
                 <div key={team.id}>
-                  <p className="text-[9px] font-pixel text-gold/80 mb-1">{team.abbreviation}</p>
+                  <p className="text-xs font-pixel text-gold/80 mb-1">{team.abbreviation}</p>
                   <div className="overflow-x-auto">
-                    <table className="w-full text-[9px] border-collapse">
+                    <table className="w-full text-xs border-collapse">
                       <thead>
                         <tr className="border-b border-gold/20">
                           <th className="text-left py-1 pr-2 text-muted-foreground">Name</th>
@@ -1859,8 +1859,8 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
                           <tr key={i} className="border-b border-gold/10">
                             <td className="py-1 pr-2 truncate max-w-[80px]">
                               {p.name}
-                              {p.win && <span className="ml-1 text-green-400 font-pixel text-[6px]">W</span>}
-                              {p.loss && <span className="ml-1 text-red-400 font-pixel text-[6px]">L</span>}
+                              {p.win && <span className="ml-1 text-green-400 font-pixel text-xs">W</span>}
+                              {p.loss && <span className="ml-1 text-red-400 font-pixel text-xs">L</span>}
                             </td>
                             <td className="text-center px-1 py-1">{p.ip}</td>
                             <td className="text-center px-1 py-1">{p.er}</td>
@@ -1882,13 +1882,13 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
       {(hardErrors.length > 0 || issues.filter(i => i.severity === "soft").length > 0) && (
         <div className="space-y-2">
           {hardErrors.map(issue => (
-            <div key={issue.id} className="flex items-start gap-2 p-2.5 rounded text-[10px] leading-snug bg-red-900/20 border border-red-700/40 text-red-300" data-testid={`review-error-${issue.id}`}>
+            <div key={issue.id} className="flex items-start gap-2 p-2.5 rounded text-xs leading-snug bg-red-900/20 border border-red-700/40 text-red-300" data-testid={`review-error-${issue.id}`}>
               <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span>{issue.message}</span>
             </div>
           ))}
           {issues.filter(i => i.severity === "soft").map(issue => (
-            <div key={issue.id} className="flex items-start gap-2 p-2.5 rounded text-[10px] leading-snug bg-yellow-900/20 border border-yellow-700/40 text-yellow-300" data-testid={`review-warning-${issue.id}`}>
+            <div key={issue.id} className="flex items-start gap-2 p-2.5 rounded text-xs leading-snug bg-yellow-900/20 border border-yellow-700/40 text-yellow-300" data-testid={`review-warning-${issue.id}`}>
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span>{issue.message}</span>
             </div>
@@ -1902,7 +1902,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
                 className="w-3.5 h-3.5 accent-gold"
                 data-testid="checkbox-ack-review-warnings-step"
               />
-              <span className="text-[10px] text-yellow-200">I've reviewed the warnings above and confirm the data is correct.</span>
+              <span className="text-xs text-yellow-200">I've reviewed the warnings above and confirm the data is correct.</span>
             </label>
           )}
         </div>

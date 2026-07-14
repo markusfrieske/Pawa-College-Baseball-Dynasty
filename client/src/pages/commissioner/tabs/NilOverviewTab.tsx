@@ -87,11 +87,11 @@ export function NilOverviewTab({ leagueId }: NilOverviewTabProps) {
                     onClick={() => setExpanded(isOpen ? null : team.teamId)}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-[9px] text-muted-foreground w-5 text-right shrink-0 font-pixel">
+                      <span className="text-xs text-muted-foreground w-5 text-right shrink-0 font-pixel">
                         #{idx + 1}
                       </span>
                       <div
-                        className="w-6 h-6 rounded shrink-0 flex items-center justify-center text-[8px] font-pixel font-bold"
+                        className="w-6 h-6 rounded shrink-0 flex items-center justify-center text-xs font-pixel font-bold"
                         style={{ backgroundColor: team.primaryColor, color: "#fff" }}
                       >
                         {team.teamAbbr.slice(0, 2)}
@@ -104,17 +104,17 @@ export function NilOverviewTab({ leagueId }: NilOverviewTabProps) {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-[9px] text-muted-foreground truncate">
+                          <span className="text-xs text-muted-foreground truncate">
                             {team.conferenceName}
                           </span>
                           {team.bonusTotal > 0 && (
-                            <Badge className="text-[7px] px-1 py-0 bg-gold/20 text-gold border-gold/40 h-3.5">
+                            <Badge className="text-xs px-1 py-0 bg-gold/20 text-gold border-gold/40 h-3.5">
                               <Zap className="w-2 h-2 mr-0.5" />+$
                               {(team.bonusTotal / 1_000).toFixed(0)}K bonus
                             </Badge>
                           )}
                           {!team.isCpu && (
-                            <Badge className="text-[7px] px-1 py-0 bg-blue-500/20 text-blue-400 border-blue-500/40 h-3.5">
+                            <Badge className="text-xs px-1 py-0 bg-blue-500/20 text-blue-400 border-blue-500/40 h-3.5">
                               Human
                             </Badge>
                           )}
@@ -136,19 +136,19 @@ export function NilOverviewTab({ leagueId }: NilOverviewTabProps) {
                           <p className="text-gold font-bold text-xs">
                             ${(team.nilBudget / 1_000_000).toFixed(2)}M
                           </p>
-                          <p className="text-[8px] text-muted-foreground">Total</p>
+                          <p className="text-xs text-muted-foreground">Total</p>
                         </div>
                         <div className="p-1.5 bg-red-500/10 rounded">
                           <p className="text-red-400 font-bold text-xs">
                             ${(team.nilSpent / 1_000_000).toFixed(2)}M
                           </p>
-                          <p className="text-[8px] text-muted-foreground">Spent ({spentPct}%)</p>
+                          <p className="text-xs text-muted-foreground">Spent ({spentPct}%)</p>
                         </div>
                         <div className="p-1.5 bg-green-500/10 rounded">
                           <p className="text-green-400 font-bold text-xs">
                             ${(team.nilRemaining / 1_000_000).toFixed(2)}M
                           </p>
-                          <p className="text-[8px] text-muted-foreground">Remaining</p>
+                          <p className="text-xs text-muted-foreground">Remaining</p>
                         </div>
                       </div>
                       {team.earnings.map((e) => (

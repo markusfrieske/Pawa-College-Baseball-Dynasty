@@ -90,7 +90,7 @@ function RecruitingLeaderboardCard({ leagueId, season }: { leagueId: string; sea
         <div className="flex items-center gap-2 w-full">
           <Star className="w-4 h-4 text-gold" />
           <span>Recruiter of the Year Leaderboard</span>
-          <Badge variant="outline" className="text-[8px] ml-auto">Season {season}</Badge>
+          <Badge variant="outline" className="text-xs ml-auto">Season {season}</Badge>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -106,28 +106,28 @@ function RecruitingLeaderboardCard({ leagueId, season }: { leagueId: string; sea
               <details key={entry.coachId} className="group" data-testid={`recruiting-leader-${i}`}>
                 <summary className="flex items-center justify-between py-2 px-1 rounded cursor-pointer hover:bg-muted/20 list-none border-b border-border/20">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`font-pixel text-[9px] w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
+                    <span className={`font-pixel text-xs w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
                       {i === 0 ? "★" : `#${entry.rank}`}
                     </span>
                     <span className="text-sm font-medium">{entry.coachName}</span>
-                    <Badge variant="outline" className="text-[7px]">{entry.teamAbbr}</Badge>
+                    <Badge variant="outline" className="text-xs">{entry.teamAbbr}</Badge>
                     {entry.classRank != null && (
-                      <Badge variant="outline" className={`text-[7px] ${entry.classRank <= 3 ? "border-gold/50 text-gold" : ""}`}>
+                      <Badge variant="outline" className={`text-xs ${entry.classRank <= 3 ? "border-gold/50 text-gold" : ""}`}>
                         #{entry.classRank} class
                       </Badge>
                     )}
                     {entry.classStarAvg != null && (
-                      <span className="text-[9px] text-yellow-400">{entry.classStarAvg.toFixed(1)}★ avg</span>
+                      <span className="text-xs text-yellow-400">{entry.classStarAvg.toFixed(1)}★ avg</span>
                     )}
                     {entry.topRecruitName && (
-                      <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
                         Top: {entry.topRecruitName}{entry.topRecruitOvr != null ? ` (${entry.topRecruitOvr})` : ""}
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{entry.totalSigned} signed</span>
-                    <span className={`font-bold font-pixel text-[11px] ${gradeColorLV(entry.recruitingGrade || "F")}`}>
+                    <span className={`font-bold font-pixel text-xs ${gradeColorLV(entry.recruitingGrade || "F")}`}>
                       {entry.recruitingGrade || "—"}
                     </span>
                     <span className="text-xs text-muted-foreground">{entry.recruitingScore?.toFixed(0)}</span>
@@ -138,8 +138,8 @@ function RecruitingLeaderboardCard({ leagueId, season }: { leagueId: string; sea
                   <div className="px-6 py-2 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-muted/10 rounded-b border-b border-border/20">
                     {Object.entries(BREAKDOWN_LABELS).map(([key, { label, weight }]) => (
                       <div key={key} className="text-center">
-                        <p className="text-[9px] text-muted-foreground">{label}</p>
-                        <p className="text-[9px] text-muted-foreground/60">{weight}</p>
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground/60">{weight}</p>
                         <p className={`text-sm font-bold ${(entry.recruitingBreakdown![key] ?? 0) >= 75 ? "text-gold" : (entry.recruitingBreakdown![key] ?? 0) >= 50 ? "text-green-400" : "text-muted-foreground"}`}>
                           {entry.recruitingBreakdown![key] ?? 0}
                         </p>
@@ -194,12 +194,12 @@ export function AwardsTab({ leagueId }: { leagueId: string }) {
         <div className="flex items-center gap-3">
           <div className="text-gold">{icon}</div>
           <div className="flex-1">
-            <p className="text-[9px] text-muted-foreground font-pixel">{title}</p>
+            <p className="text-xs text-muted-foreground font-pixel">{title}</p>
             <p className="font-medium text-sm">{player.playerName}</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
               <span>{player.position}</span>
               <span className="text-gold font-bold">{player.overall} OVR</span>
-              <Badge variant="outline" className="text-[8px]">{player.eligibility}</Badge>
+              <Badge variant="outline" className="text-xs">{player.eligibility}</Badge>
               <span>{player.teamName}</span>
             </div>
           </div>
@@ -212,22 +212,22 @@ export function AwardsTab({ leagueId }: { leagueId: string }) {
     if (!team || team.length === 0) return null;
     return (
       <div data-testid={`position-team-${title.toLowerCase().replace(/\s/g, "-")}`}>
-        <p className="font-pixel text-[9px] text-muted-foreground mb-2">{title.toUpperCase()}</p>
+        <p className="font-pixel text-xs text-muted-foreground mb-2">{title.toUpperCase()}</p>
         <div className="space-y-1">
           {team.map((entry, i) => entry.player && (
             <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[7px] min-w-[28px] justify-center">{entry.position}</Badge>
+                <Badge variant="outline" className="text-xs min-w-[28px] justify-center">{entry.position}</Badge>
                 <span>{entry.player.playerName}</span>
               </div>
               <div className="flex items-center gap-2 text-right">
                 {entry.player.era != null && entry.player.strikeouts != null && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {entry.player.era} ERA / {entry.player.strikeouts} K
                   </span>
                 )}
                 {entry.player.avg != null && entry.player.hr != null && entry.player.rbi != null && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {entry.player.avg} / {entry.player.hr} HR / {entry.player.rbi} RBI
                   </span>
                 )}
@@ -338,7 +338,7 @@ export function AwardsTab({ leagueId }: { leagueId: string }) {
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-4">{i + 1}.</span>
                     <span>{p.playerName}</span>
-                    <Badge variant="outline" className="text-[7px]">{p.position}</Badge>
+                    <Badge variant="outline" className="text-xs">{p.position}</Badge>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-gold font-bold">{p.overall}</span>

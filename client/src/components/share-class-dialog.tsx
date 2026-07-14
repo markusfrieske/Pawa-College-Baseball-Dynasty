@@ -135,7 +135,7 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
             </p>
           ) : (
             <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground font-pixel uppercase">Active Links ({activeShares.length})</p>
+              <p className="text-xs text-muted-foreground font-pixel uppercase">Active Links ({activeShares.length})</p>
               {activeShares.map((share) => {
                 const url = `${window.location.origin}/import-class/${share.token}`;
                 const isCopied = copiedToken === share.token;
@@ -146,13 +146,13 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
                     data-testid={`share-link-row-${share.id}`}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="font-mono text-[10px] text-muted-foreground truncate">{url}</p>
+                      <p className="font-mono text-xs text-muted-foreground truncate">{url}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <Badge variant="secondary" className="text-[8px] px-1 py-0">
+                        <Badge variant="secondary" className="text-xs px-1 py-0">
                           {share.importCount} import{share.importCount !== 1 ? "s" : ""}
                         </Badge>
                         {share.createdAt && (
-                          <span className="text-[9px] text-muted-foreground/60">
+                          <span className="text-xs text-muted-foreground/60">
                             {new Date(share.createdAt).toLocaleDateString()}
                           </span>
                         )}
@@ -167,7 +167,7 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
                         title="Copy link"
                       >
                         {isCopied ? (
-                          <span className="text-[10px] text-green-400">✓</span>
+                          <span className="text-xs text-green-400">✓</span>
                         ) : (
                           <Copy className="w-3 h-3 text-muted-foreground" />
                         )}

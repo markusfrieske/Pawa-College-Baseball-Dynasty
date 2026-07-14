@@ -146,7 +146,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                     <RetroCardContent className="space-y-2">
                       {data.leagueDraftPicks.map((pick, i) => (
                         <div key={i} className="flex items-center gap-2 text-sm" data-testid={`draft-pick-${i}`}>
-                          <Badge variant="secondary" className="text-[10px] min-w-[44px] justify-center">
+                          <Badge variant="secondary" className="text-xs min-w-[44px] justify-center">
                             Rd {pick.draftRound}
                           </Badge>
                           <span className="font-medium">{pick.playerName}</span>
@@ -187,7 +187,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                           <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Your Drafted Players</p>
                           {data.userDepartures.draftPicks.map((pick, i) => (
                             <div key={i} className="flex items-center gap-2 text-sm">
-                              <Badge variant="secondary" className="text-[10px] min-w-[44px] justify-center">
+                              <Badge variant="secondary" className="text-xs min-w-[44px] justify-center">
                                 Rd {pick.draftRound}
                               </Badge>
                               <span className="font-medium">{pick.playerName}</span>

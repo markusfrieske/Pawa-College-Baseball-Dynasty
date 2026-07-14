@@ -10,6 +10,7 @@ import {
   ArrowRight, GitMerge, TrendingUp, BarChart3,
   Shield, Users, Database, ChevronDown, Wand2,
   Gamepad2, FileText, CheckSquare, Radio, BarChart2,
+  Globe, Settings,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -89,7 +90,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-1 sm:gap-2">
               <div className="flex items-center gap-2 text-gold" data-testid="display-user">
                 <User className="w-5 h-5" />
-                <span className="font-pixel text-[8px] sm:text-[10px] hidden sm:block truncate max-w-[100px]">
+                <span className="font-pixel text-xs sm:text-xs hidden sm:block truncate max-w-[100px]">
                   {user.email.split("@")[0]}
                 </span>
               </div>
@@ -145,14 +146,14 @@ export default function LandingPage() {
             <div className="max-w-xl">
               <div className="flex flex-wrap items-center gap-3 mb-8">
                 <div
-                  className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 text-gold/80 text-[10px] font-pixel tracking-wider"
+                  className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 text-gold/80 text-xs font-pixel tracking-wider"
                   style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
                 >
                   <span className="text-gold">◆</span> SEASON 2026 <span className="text-gold">◆</span>
                 </div>
                 {onlineData !== undefined && (
                   <div
-                    className="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/20 px-3 py-1.5 text-[10px] font-pixel tracking-wider"
+                    className="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/20 px-3 py-1.5 text-xs font-pixel tracking-wider"
                     style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
                     data-testid="badge-users-online"
                   >
@@ -179,34 +180,40 @@ export default function LandingPage() {
                 style={{ textShadow: "0 1px 8px rgba(0,0,0,0.95), 0 2px 20px rgba(0,0,0,0.85)" }}
               >
                 <p className="hidden sm:block mb-3">
-                  Build a solo or multiplayer college baseball dynasty with 3,700+ players across 149 schools. Recruit every week, manage your roster, play or report your series, track stats and standings, and chase the College World Series across 20 seasons.
+                  Build a solo or multiplayer college baseball dynasty with 3,700+ players across 149 schools. Recruit every week, manage your roster, simulate or report your series, track stats and standings, and chase the College World Series across 20 seasons.
                 </p>
                 <p className="hidden sm:block">
-                  Play it as a full dynasty sim, or use it as a companion hub for running a friends league in eBaseball Power Pros 2026-2027. Recruiting, schedules, box scores, standings, postseason history, and league management all live in one place.
+                  Run a full 149-team dynasty with all 12 conferences, or build a custom multiplayer league with the schools and rules your group wants. Recruiting, schedules, box scores, standings, postseason history, and league management all live in one place.
                 </p>
                 <p className="sm:hidden">
-                  Build a college baseball dynasty with 3,700+ players across 149 schools. Recruit, manage your roster, report your series, and chase the College World Series.
+                  Build a college baseball dynasty with 3,700+ players across 149 schools. Recruit, manage your roster, and chase the College World Series.
                 </p>
               </div>
 
               <p
-                className="hidden sm:block font-pixel text-gold/60 text-[9px] tracking-widest mb-5"
+                className="hidden sm:block font-pixel text-gold/60 text-xs tracking-widest mb-5"
                 style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
               >
                 Recruit the future. Run the league. Chase Omaha.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link href="/register">
-                  <RetroButton variant="shimmer" size="lg" className="w-full sm:w-auto px-10 flex items-center gap-2" data-testid="button-get-started">
-                    Get Started <ArrowRight className="w-4 h-4" />
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                <Link href="/league/create?mode=full_season">
+                  <RetroButton variant="shimmer" size="lg" className="w-full sm:w-auto px-8 flex items-center gap-2" data-testid="button-full-season">
+                    Full Season Dynasty <ArrowRight className="w-4 h-4" />
                   </RetroButton>
                 </Link>
-                <Link href="/roster-viewer">
-                  <RetroButton variant="outline" size="lg" className="w-full sm:w-auto px-10" data-testid="button-view-rosters">
-                    View Rosters
+                <Link href="/league/create?mode=custom">
+                  <RetroButton variant="outline" size="lg" className="w-full sm:w-auto px-8 flex items-center gap-2" data-testid="button-custom-league">
+                    Custom Multiplayer <Users className="w-4 h-4" />
                   </RetroButton>
                 </Link>
+              </div>
+              <div className="flex flex-wrap gap-4 text-white/60 text-xs mb-8"
+                style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+              >
+                <span className="flex items-center gap-1.5"><Globe className="w-3 h-3 text-gold/60" /> All 12 confs · 149 teams · 56-game season</span>
+                <span className="flex items-center gap-1.5"><Settings className="w-3 h-3 text-gold/60" /> Custom: pick conferences, teams &amp; length</span>
               </div>
 
               <div
@@ -256,8 +263,8 @@ export default function LandingPage() {
           <div className="ticker-track">
             {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
               <span key={i} className="flex items-center gap-3 px-6 whitespace-nowrap">
-                <span className={`font-pixel text-[8px] tracking-widest ${item.color}`}>{item.tag}</span>
-                <span className="text-[11px] text-muted-foreground/70">{item.text}</span>
+                <span className={`font-pixel text-xs tracking-widest ${item.color}`}>{item.tag}</span>
+                <span className="text-xs text-muted-foreground/70">{item.text}</span>
                 <span className="text-gold/20">◆</span>
               </span>
             ))}
@@ -268,7 +275,7 @@ export default function LandingPage() {
         <section className="py-20 px-6 border-b border-border">
           <div className="container mx-auto max-w-5xl">
             <div className="text-center mb-14">
-              <p className="font-pixel text-[9px] text-gold/50 tracking-widest mb-3">HOW IT WORKS</p>
+              <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">HOW IT WORKS</p>
               <h2 className="font-pixel text-gold text-xl sm:text-2xl leading-relaxed mb-4">Your Week in the Dynasty</h2>
               <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
                 Every advance creates a new set of decisions. Check your matchup, scout your board, play your games, submit results, and lock in when your program is ready.
@@ -292,8 +299,8 @@ export default function LandingPage() {
                 {
                   num: "03",
                   icon: <Gamepad2 className="w-6 h-6" />,
-                  label: "Play the Games",
-                  desc: "Play your series in Power Pros with the league schedule as your guide.",
+                  label: "Simulate or Play",
+                  desc: "Let the sim engine run your games automatically, or play them yourself and report the result.",
                 },
                 {
                   num: "04",
@@ -309,9 +316,9 @@ export default function LandingPage() {
                 },
               ].map((step, i) => (
                 <div key={step.num} className="relative flex flex-col gap-3 p-5 bg-card/40 border border-border/50 rounded-sm hover:border-gold/30 transition-colors">
-                  <div className="font-pixel text-[9px] text-gold/30 tracking-widest">{step.num}</div>
+                  <div className="font-pixel text-xs text-gold/30 tracking-widest">{step.num}</div>
                   <div className="text-gold">{step.icon}</div>
-                  <div className="font-pixel text-[10px] text-foreground leading-relaxed">{step.label}</div>
+                  <div className="font-pixel text-xs text-foreground leading-relaxed">{step.label}</div>
                   <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
                   {i < 4 && (
                     <div className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 hidden sm:flex">
@@ -328,7 +335,7 @@ export default function LandingPage() {
         <section className="py-20 px-6 border-b border-border bg-card/20">
           <div className="container mx-auto max-w-5xl">
             <div className="text-center mb-14">
-              <p className="font-pixel text-[9px] text-gold/50 tracking-widest mb-3">BUILT AROUND THE LEAGUE NIGHT RITUAL</p>
+              <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">BUILT AROUND THE LEAGUE NIGHT RITUAL</p>
               <h2 className="font-pixel text-gold text-xl sm:text-2xl leading-relaxed mb-4">The Weekly Home Base</h2>
               <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
                 This is not just a roster database. It is the live command center every coach in your dynasty returns to every week.
@@ -378,7 +385,7 @@ export default function LandingPage() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/30 to-transparent" />
                   <div className="absolute bottom-0 left-0 p-6">
-                    <p className="font-pixel text-[8px] text-gold/60 tracking-widest mb-2">{card.tag}</p>
+                    <p className="font-pixel text-xs text-gold/60 tracking-widest mb-2">{card.tag}</p>
                     <h3 className="font-pixel text-gold text-sm leading-relaxed mb-2">{card.title}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed mb-3 max-w-[280px]">{card.desc}</p>
                     <Link href={card.href}>
@@ -398,7 +405,7 @@ export default function LandingPage() {
           <div className="container mx-auto max-w-5xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <p className="font-pixel text-[9px] text-gold/50 tracking-widest mb-3">RECRUITING</p>
+                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">RECRUITING</p>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Recruiting That Feels Like a Game</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Prospects are not solved on day one. Storylines, scouting, showcases, injuries, position changes, and coach choices shape what each player becomes over time.
@@ -424,7 +431,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── POWER PROS GAME REPORTING ────────────────────────── */}
+        {/* ── GAME REPORTING ───────────────────────────────────── */}
         <section className="py-20 px-6 border-b border-border bg-card/20">
           <div className="container mx-auto max-w-5xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -432,16 +439,16 @@ export default function LandingPage() {
                 <img src="/screenshots/postseason.jpg" alt="Game reporting and box score" className="w-full h-auto block" />
               </div>
               <div className="order-1 md:order-2">
-                <p className="font-pixel text-[9px] text-gold/50 tracking-widest mb-3">GAME REPORTING</p>
+                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">GAME REPORTING</p>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Connect the Field to the League</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Play your games in Power Pros, then bring the result back into the dynasty. Reports become standings, player stats, records, and storylines.
+                  Auto-sim your games instantly, or play them yourself and bring the result back into the dynasty. Reports become standings, player stats, records, and storylines.
                 </p>
                 <ul className="space-y-3">
                   {[
                     "Line score and full box score entry",
                     "Screenshot evidence for league transparency",
-                    "OCR-assisted stat capture from Power Pros screenshots",
+                    "OCR-assisted stat capture from uploaded screenshots",
                     "Commissioner review for disputed results",
                     "Stats flow into leaderboards, player pages, and dynasty history",
                   ].map((pt) => (
@@ -460,7 +467,7 @@ export default function LandingPage() {
           <div className="container mx-auto max-w-5xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
-                <p className="font-pixel text-[9px] text-gold/50 tracking-widest mb-3">COMMISSIONER TOOLS</p>
+                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">COMMISSIONER TOOLS</p>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Advance Without Fear</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Multiplayer leagues need trust. Commissioners can see who is ready, what is missing, what changed, and whether a rollback point exists before advancing.
@@ -494,7 +501,7 @@ export default function LandingPage() {
                 <img src="/screenshots/rankings.jpg" alt="Stats and league history" className="w-full h-auto block" />
               </div>
               <div className="order-1 md:order-2">
-                <p className="font-pixel text-[9px] text-gold/50 tracking-widest mb-3">STATS AND HISTORY</p>
+                <p className="font-pixel text-xs text-gold/50 tracking-widest mb-3">STATS AND HISTORY</p>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Every Week Becomes History</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
                   Standings, leaders, player cards, records, postseason runs, and recruiting classes build a league story that lasts season after season.
@@ -529,7 +536,7 @@ export default function LandingPage() {
               ].map((stat) => (
                 <div key={stat.label} className="bg-card/40 border border-border/50 rounded-sm p-6 text-center hover:border-gold/20 transition-colors">
                   <div className="font-pixel text-gold text-2xl sm:text-3xl mb-1">{stat.num}</div>
-                  <div className="font-pixel text-[10px] text-foreground mb-1">{stat.label}</div>
+                  <div className="font-pixel text-xs text-foreground mb-1">{stat.label}</div>
                   <div className="text-muted-foreground text-xs">{stat.sub}</div>
                 </div>
               ))}
@@ -554,14 +561,19 @@ export default function LandingPage() {
             <p className="text-muted-foreground mb-10 text-lg leading-relaxed">
               Create a dynasty, invite coaches, play your games, and let the app handle the league office.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/league/create">
-                <RetroButton size="lg" className="px-12 flex items-center gap-2" data-testid="button-join-now">
-                  Create League <ArrowRight className="w-4 h-4" />
+            <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
+              <Link href="/league/create?mode=full_season">
+                <RetroButton size="lg" className="px-10 flex items-center gap-2" data-testid="button-cta-full-season">
+                  Full Season Dynasty <Globe className="w-4 h-4" />
+                </RetroButton>
+              </Link>
+              <Link href="/league/create?mode=custom">
+                <RetroButton variant="outline" size="lg" className="px-10 flex items-center gap-2" data-testid="button-cta-custom">
+                  Custom Multiplayer <Users className="w-4 h-4" />
                 </RetroButton>
               </Link>
               <Link href="/guest">
-                <RetroButton variant="outline" size="lg" className="px-12" data-testid="button-explore-demo">
+                <RetroButton variant="ghost" size="lg" className="px-10" data-testid="button-explore-demo">
                   Explore Demo
                 </RetroButton>
               </Link>
@@ -583,10 +595,10 @@ export default function LandingPage() {
               <div className="md:col-span-1">
                 <div className="flex items-center gap-2 mb-4">
                   <DynastyLogo className="w-8 h-8" />
-                  <span className="font-pixel text-gold text-[10px]">パワプロ</span>
+                  <span className="font-pixel text-gold text-xs">パワプロ</span>
                 </div>
                 <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-                  The online league office for multiplayer college baseball dynasties built around Power Pros.
+                  The online league office for solo and multiplayer college baseball dynasties.
                 </p>
                 <a href="https://www.paypal.com/donate?business=Markusfrieske%40gmail.com" target="_blank" rel="noopener noreferrer" className="text-xs text-gold/40 hover:text-gold/70 transition-colors font-pixel">
                   Support the Project ◆
@@ -595,7 +607,7 @@ export default function LandingPage() {
 
               {/* Quick Links */}
               <div>
-                <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-4">QUICK LINKS</div>
+                <div className="font-pixel text-xs text-gold/60 tracking-widest mb-4">QUICK LINKS</div>
                 <ul className="space-y-3">
                   {[
                     { label: "My Dynasties", href: "/dashboard" },
@@ -615,7 +627,7 @@ export default function LandingPage() {
 
               {/* Conferences */}
               <div>
-                <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-4">CONFERENCES</div>
+                <div className="font-pixel text-xs text-gold/60 tracking-widest mb-4">CONFERENCES</div>
                 <ul className="space-y-2">
                   {["SEC", "ACC", "Big Ten", "Big 12", "Pac-12", "AAC", "Sun Belt"].map((c) => (
                     <li key={c} className="text-sm text-muted-foreground/60">{c}</li>
@@ -626,7 +638,7 @@ export default function LandingPage() {
 
               {/* Get Involved */}
               <div>
-                <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-4">GET INVOLVED</div>
+                <div className="font-pixel text-xs text-gold/60 tracking-widest mb-4">GET INVOLVED</div>
                 <ul className="space-y-3">
                   <li>
                     <RetroButton variant="ghost" size="sm" onClick={() => setShowFeedbackModal(true)} className="text-muted-foreground text-xs px-0 justify-start" data-testid="button-footer-feedback">
@@ -648,13 +660,13 @@ export default function LandingPage() {
             </div>
 
             <div className="border-t border-border/40 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="font-pixel text-[8px] text-muted-foreground/40 tracking-widest">
+              <div className="font-pixel text-xs text-muted-foreground/40 tracking-widest">
                 © 2026 COLLEGE BASEBALL DYNASTY · OPEN BETA
               </div>
               <div className="flex gap-4">
-                <span className="font-pixel text-[8px] text-gold/30 tracking-widest">◆ SEASON 2026</span>
-                <span className="font-pixel text-[8px] text-gold/30 tracking-widest">◆ 130+ PROGRAMS</span>
-                <span className="font-pixel text-[8px] text-gold/30 tracking-widest">◆ 12 CONFERENCES</span>
+                <span className="font-pixel text-xs text-gold/30 tracking-widest">◆ SEASON 2026</span>
+                <span className="font-pixel text-xs text-gold/30 tracking-widest">◆ 130+ PROGRAMS</span>
+                <span className="font-pixel text-xs text-gold/30 tracking-widest">◆ 12 CONFERENCES</span>
               </div>
             </div>
           </div>
@@ -695,7 +707,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
         <p className="text-muted-foreground text-sm mb-6">Report a bug, request a feature, or share your feedback.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="font-pixel text-[10px] text-foreground block mb-2">Topic <span className="text-red-400">*</span></label>
+            <label className="font-pixel text-xs text-foreground block mb-2">Topic <span className="text-red-400">*</span></label>
             <RetroSelect value={topic} onChange={(e) => setTopic(e.target.value)} options={[
               { value: "", label: "Select a topic" },
               { value: "bug", label: "Bug Report" },
@@ -705,11 +717,11 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
             ]} />
           </div>
           <div>
-            <label className="font-pixel text-[10px] text-foreground block mb-2">Details <span className="text-red-400">*</span></label>
+            <label className="font-pixel text-xs text-foreground block mb-2">Details <span className="text-red-400">*</span></label>
             <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Describe your bug, feature request, or feedback..." className="w-full h-24 bg-card border-2 border-border text-foreground p-3 text-sm resize-none focus:border-gold focus:outline-none" data-testid="input-feedback-details" />
           </div>
           <div>
-            <label className="font-pixel text-[10px] text-foreground block mb-2">Your Name (optional)</label>
+            <label className="font-pixel text-xs text-foreground block mb-2">Your Name (optional)</label>
             <RetroInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter your name" data-testid="input-feedback-name" />
           </div>
           <RetroButton type="submit" className="w-full" data-testid="button-submit-feedback">Submit Feedback</RetroButton>

@@ -90,7 +90,7 @@ export class ErrorBoundary extends Component<Props, State> {
                     <p className="text-amber-400 text-xs font-mono font-bold mb-2">
                       Component Stack (check the first component listed below)
                     </p>
-                    <pre className="text-amber-200/80 text-[10px] font-mono whitespace-pre-wrap overflow-auto max-h-64">
+                    <pre className="text-amber-200/80 text-xs font-mono whitespace-pre-wrap overflow-auto max-h-64">
                       {this.state.componentStack.trim()}
                     </pre>
                   </div>

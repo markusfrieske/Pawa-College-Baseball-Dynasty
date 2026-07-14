@@ -526,7 +526,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
           flexShrink: 0,
           borderBottom: "1px solid rgba(0,0,0,0.2)",
         }}>
-          <span className="font-pixel" style={{ fontSize: "8px", color: "#fff", letterSpacing: "0.06em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="font-pixel" style={{ fontSize: "12px", color: "#fff", letterSpacing: "0.06em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {signingTeamAbbrev}
           </span>
         </div>
@@ -563,7 +563,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       <div style={{ display: "flex", justifyContent: "center", padding: "4px 8px", background: "#f0ebe0", flexShrink: 0 }}>
         <span
           className={`font-pixel ${badgePulse ? "animate-pulse" : ""}`}
-          style={{ fontSize: "9px", padding: "3px 7px", borderRadius: "3px", background: badgeBg, color: badgeColor }}
+          style={{ fontSize: "12px", padding: "3px 7px", borderRadius: "3px", background: badgeBg, color: badgeColor }}
           data-testid={`card-type-badge-${recruit.id}`}
         >
           {badgeLabel}
@@ -572,7 +572,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
 
       {/* Name */}
       <div style={{ background: "#1a1a1a", padding: "4px 9px", flexShrink: 0 }}>
-        <div className="font-pixel" style={{ fontSize: "9px", color: "#f5f0e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <div className="font-pixel" style={{ fontSize: "12px", color: "#f5f0e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {recruit.firstName} {recruit.lastName}
         </div>
       </div>
@@ -601,7 +601,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
         {potGrade && (
           <div style={{ display: "flex", alignItems: "baseline", gap: "3px" }}>
             <span className="font-pixel" style={{ fontSize: "15px", color: "#a78bfa", lineHeight: 1 }}>{potGrade}</span>
-            <span style={{ fontSize: "9px", color: "#6b7280", lineHeight: 1 }}>POT</span>
+            <span style={{ fontSize: "12px", color: "#6b7280", lineHeight: 1 }}>POT</span>
           </div>
         )}
       </div>
@@ -609,12 +609,12 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       {/* Handedness + Location */}
       <div style={{ background: "#0d0d0d", padding: "4px 9px 6px", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2px" }}>
-          <span style={{ fontSize: "9px", color: "#6b7280", fontFamily: "monospace" }}>B:{batHand} · T:{throwHand}</span>
+          <span style={{ fontSize: "12px", color: "#6b7280", fontFamily: "monospace" }}>B:{batHand} · T:{throwHand}</span>
           <span className="font-pixel" style={{ fontSize: "10px", fontWeight: "bold", color: "#C4A35A" }} data-testid={`card-pos-rank-${recruit.id}`}>
             #{recruit.positionRank} {recruit.position}
           </span>
         </div>
-        <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+        <span style={{ fontSize: "12px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
           {location}
         </span>
       </div>
@@ -656,7 +656,7 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a3a1a]">
           <div>
-            <div className="font-pixel text-[11px] text-[#C4A35A]">BATTLE REPORT</div>
+            <div className="font-pixel text-xs text-[#C4A35A]">BATTLE REPORT</div>
             <div className="text-xs text-gray-400 mt-0.5">{recruit.firstName} {recruit.lastName} · {recruit.position} · {recruit.starRating}★</div>
           </div>
           <button
@@ -681,7 +681,7 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
               {recruit.signedTeamId == null ? "UNSIGNED" : didWin ? "SIGNED" : "LOST"}
             </div>
             {r.finalInterest != null && (
-              <div className="text-[10px] text-gray-500 mt-1">
+              <div className="text-xs text-gray-500 mt-1">
                 Final interest: {r.finalInterest.toFixed(1)}%
                 {r.wonBy != null && r.wonBy > 0 && (
                   <span className="text-green-500 ml-2">+{r.wonBy.toFixed(1)}% ahead of #{2} school</span>
@@ -689,14 +689,14 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
               </div>
             )}
             {r.offerWeek != null && (
-              <div className="text-[9px] text-gray-600 mt-0.5">Offer extended: Week {r.offerWeek}</div>
+              <div className="text-xs text-gray-600 mt-0.5">Offer extended: Week {r.offerWeek}</div>
             )}
           </div>
 
           {/* Competition breakdown */}
           {r.topSchools.length > 0 && (
             <div>
-              <div className="font-pixel text-[9px] text-gray-600 uppercase mb-2 tracking-wide">Top Schools</div>
+              <div className="font-pixel text-xs text-gray-600 uppercase mb-2 tracking-wide">Top Schools</div>
               <div className="space-y-1.5">
                 {r.topSchools.map((ts, i) => (
                   <div
@@ -705,12 +705,12 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
                     style={{ background: i === 0 ? "#0f2a0f" : "#111" }}
                     data-testid={`battle-school-${i}`}
                   >
-                    <span className="font-pixel text-[9px] text-gray-600 w-4">#{i + 1}</span>
+                    <span className="font-pixel text-xs text-gray-600 w-4">#{i + 1}</span>
                     <span className="text-xs text-white flex-1 truncate">{ts.teamName}</span>
                     {ts.hadOffer && (
-                      <span className="text-[8px] text-[#C4A35A] border border-[#C4A35A]/30 rounded px-1 py-0.5">OFFER</span>
+                      <span className="text-xs text-[#C4A35A] border border-[#C4A35A]/30 rounded px-1 py-0.5">OFFER</span>
                     )}
-                    <span className="font-pixel text-[9px] text-gray-400 w-12 text-right">
+                    <span className="font-pixel text-xs text-gray-400 w-12 text-right">
                       {ts.interestLevel.toFixed(1)}%
                     </span>
                   </div>
@@ -722,7 +722,7 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
           {/* My actions breakdown */}
           {myA && (
             <div>
-              <div className="font-pixel text-[9px] text-gray-600 uppercase mb-2 tracking-wide">Your Recruiting Actions</div>
+              <div className="font-pixel text-xs text-gray-600 uppercase mb-2 tracking-wide">Your Recruiting Actions</div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                 {actionItems.map(({ label, value }) => (
                   <div key={label} className="flex justify-between text-xs py-0.5 border-b border-[#1a2e1a]">
@@ -738,7 +738,7 @@ function BattleReportModal({ recruit, onClose }: { recruit: RevealRecruit; onClo
           {r.nilCost > 0 && (
             <div className="flex justify-between text-xs px-1">
               <span className="text-gray-500">NIL Cost</span>
-              <span className="text-[#C4A35A] font-pixel text-[10px]">${r.nilCost.toLocaleString()}</span>
+              <span className="text-[#C4A35A] font-pixel text-xs">${r.nilCost.toLocaleString()}</span>
             </div>
           )}
         </div>
@@ -853,10 +853,10 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
       <div className="px-2.5 py-1.5 border-b border-[#2d3d2d] shrink-0">
         <div className="flex items-start justify-between gap-1 mb-1">
           <div className="min-w-0">
-            <div className="text-[10px] font-semibold text-[#C4A35A] truncate leading-tight">
+            <div className="text-xs font-semibold text-[#C4A35A] truncate leading-tight">
               {recruit.firstName} {recruit.lastName}
             </div>
-            <div className="text-[9px] text-gray-500 leading-tight mt-0.5">
+            <div className="text-xs text-gray-500 leading-tight mt-0.5">
               {recruit.position} · T:{recruit.throwHand ?? "R"} · B:{recruit.batHand ?? "R"}
             </div>
           </div>
@@ -865,12 +865,12 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
         <div className="flex items-baseline gap-3">
           <div className="flex items-baseline gap-1">
             <span className="text-[18px] font-bold text-[#C4A35A] leading-none tabular-nums">{recruit.overall}</span>
-            <span className="text-[9px] text-gray-500 leading-none">OVR</span>
+            <span className="text-xs text-gray-500 leading-none">OVR</span>
           </div>
           {potGrade && (
             <div className="flex items-baseline gap-1">
               <span className="text-[13px] font-bold text-purple-400 leading-none">{potGrade}</span>
-              <span className="text-[9px] text-gray-500 leading-none">POT</span>
+              <span className="text-xs text-gray-500 leading-none">POT</span>
             </div>
           )}
         </div>
@@ -879,13 +879,13 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
       {/* Type badge + blue chip */}
       <div className="px-2.5 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
         <span
-          className={`text-[8px] px-1.5 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
+          className={`text-xs px-1.5 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
           style={{ background: badgeBg, color: badgeColor }}
         >
           {badgeLabel}
         </span>
         {recruit.isBlueChip && !isGen && !isGenBust && (
-          <span className="text-[8px] text-blue-400 flex items-center gap-0.5 leading-none">
+          <span className="text-xs text-blue-400 flex items-center gap-0.5 leading-none">
             <Crown className="w-3 h-3" />BLUE CHIP
           </span>
         )}
@@ -893,14 +893,14 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
 
       {/* ATTRIBUTES */}
       <div className="px-2.5 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
-        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">ATTRIBUTES</div>
+        <div className="font-pixel text-xs text-gray-600 uppercase mb-1 leading-none tracking-wide">ATTRIBUTES</div>
         <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5">
           {primaryAttrs.map(({ label, val }) => (
             <div key={label} className="flex items-center justify-between bg-[#0a1a0a] rounded px-1.5 py-0.5 gap-1">
-              <span className="text-[9px] text-gray-500 leading-none shrink-0">{label}</span>
+              <span className="text-xs text-gray-500 leading-none shrink-0">{label}</span>
               <div className="flex items-center gap-1 shrink-0">
                 <LetterGrade value={val} size="sm" />
-                <span className="text-[9px] text-gray-400 leading-none w-[18px] text-right tabular-nums">{val}</span>
+                <span className="text-xs text-gray-400 leading-none w-[18px] text-right tabular-nums">{val}</span>
               </div>
             </div>
           ))}
@@ -909,16 +909,16 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
 
       {/* COMMON ABILITIES */}
       <div className="px-2.5 pt-1 pb-0.5 border-t border-[#1a2e1a] shrink-0">
-        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">COMMON ABILITIES</div>
+        <div className="font-pixel text-xs text-gray-600 uppercase mb-1 leading-none tracking-wide">COMMON ABILITIES</div>
         <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5">
           {commonAbils.map(({ label, val, key }) => {
             const abilName = attrToAbility[key];
             return (
               <div key={label} className="flex items-center justify-between bg-[#0a1a0a] rounded px-1.5 py-0.5 gap-1">
-                <span className="text-[9px] text-gray-500 leading-none shrink-0">{label}</span>
+                <span className="text-xs text-gray-500 leading-none shrink-0">{label}</span>
                 <div className="flex items-center gap-1 shrink-0 min-w-0">
                   {abilName && (
-                    <span className="text-[7px] text-amber-400/80 truncate leading-none max-w-[52px]">
+                    <span className="text-xs text-amber-400/80 truncate leading-none max-w-[52px]">
                       {abilName.length > 8 ? abilName.slice(0, 8) + "…" : abilName}
                     </span>
                   )}
@@ -932,9 +932,9 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
 
       {/* SPECIAL ABILITIES */}
       <div className="px-2.5 pt-1 pb-1.5 border-t border-[#1a2e1a] flex-1 min-h-0">
-        <div className="font-pixel text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide">SPECIAL ABILITIES</div>
+        <div className="font-pixel text-xs text-gray-600 uppercase mb-1 leading-none tracking-wide">SPECIAL ABILITIES</div>
         {specialAbilities.length === 0 ? (
-          <div className="text-[9px] text-gray-600 italic">None</div>
+          <div className="text-xs text-gray-600 italic">None</div>
         ) : (
           <div className="flex flex-wrap gap-1">
             {specialAbilities.slice(0, 5).map(name => {
@@ -946,13 +946,13 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
                 ? "text-blue-400 border-blue-500/40"
                 : "text-red-400 border-red-500/40";
               return (
-                <span key={name} className={`text-[8px] border rounded px-1 py-0.5 leading-tight ${tierColor}`}>
+                <span key={name} className={`text-xs border rounded px-1 py-0.5 leading-tight ${tierColor}`}>
                   {name.length > 11 ? name.slice(0, 11) + "…" : name}
                 </span>
               );
             })}
             {specialAbilities.length > 5 && (
-              <span className="text-[9px] text-gray-500 leading-none">+{specialAbilities.length - 5} more</span>
+              <span className="text-xs text-gray-500 leading-none">+{specialAbilities.length - 5} more</span>
             )}
           </div>
         )}
@@ -961,7 +961,7 @@ function RevealCardBack({ recruit, onBattleReport }: { recruit: RevealRecruit; o
       {/* Battle Report button — only when analytics are available */}
       {onBattleReport && recruit.recruitingResult && (
         <button
-          className="mx-2.5 mb-2 shrink-0 w-[calc(100%-20px)] text-[9px] text-[#C4A35A] border border-[#C4A35A]/30 rounded py-1 hover:bg-[#C4A35A]/10 transition-colors"
+          className="mx-2.5 mb-2 shrink-0 w-[calc(100%-20px)] text-xs text-[#C4A35A] border border-[#C4A35A]/30 rounded py-1 hover:bg-[#C4A35A]/10 transition-colors"
           onClick={e => { e.stopPropagation(); onBattleReport(); }}
           data-testid="button-battle-report"
         >
@@ -1131,14 +1131,14 @@ function SealedCard({
     >
       {/* Header */}
       <div style={{ background: "#1a1a1a", padding: "5px 8px", textAlign: "center" }}>
-        <span className="font-pixel" style={{ fontSize: "6px", color: "#e5c97a", letterSpacing: "0.12em" }}>
+        <span className="font-pixel" style={{ fontSize: "12px", color: "#e5c97a", letterSpacing: "0.12em" }}>
           LETTER OF INTENT
         </span>
       </div>
 
       {/* Position strip */}
       <div style={{ background: posColor, height: "20px", display: "flex", alignItems: "center", paddingLeft: "8px" }}>
-        <span className="font-pixel" style={{ fontSize: "8px", color: "#fff", fontWeight: "bold" }}>{recruit.position}</span>
+        <span className="font-pixel" style={{ fontSize: "12px", color: "#fff", fontWeight: "bold" }}>{recruit.position}</span>
       </div>
 
       {/* Silhouette area */}
@@ -1154,14 +1154,14 @@ function SealedCard({
 
       {/* State hint */}
       <div style={{ background: "#f0ebe0", padding: "4px 8px", borderTop: "1px solid #ddd8cc" }}>
-        <span style={{ fontSize: "8px", color: "#888", fontFamily: "monospace" }}>{recruit.homeState}</span>
+        <span style={{ fontSize: "12px", color: "#888", fontFamily: "monospace" }}>{recruit.homeState}</span>
       </div>
 
       {/* Signed stamp */}
       <div style={{ padding: "6px 8px 8px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "#f8f4ec" }}>
         <StarRating rating={recruit.starRating} size="sm" />
         <div style={{ width: 36, height: 36, borderRadius: "50%", border: "2.5px solid #b91c1c", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(185,28,28,0.06)", gap: 1, flexShrink: 0 }}>
-          <span className="font-pixel" style={{ fontSize: "5px", color: "#b91c1c", textAlign: "center", lineHeight: 1.2 }}>SIGNED</span>
+          <span className="font-pixel" style={{ fontSize: "12px", color: "#b91c1c", textAlign: "center", lineHeight: 1.2 }}>SIGNED</span>
           <span className="font-pixel" style={{ fontSize: "4.5px", color: "#b91c1c", lineHeight: 1 }}>NLI</span>
         </div>
       </div>
@@ -1173,7 +1173,7 @@ function SealedCard({
       >
         <div className="flex flex-col items-center gap-1">
           <ChevronRight className="w-5 h-5 text-[#C4A35A]" />
-          <span className="font-pixel text-[#C4A35A] text-[8px]">REVEAL</span>
+          <span className="font-pixel text-[#C4A35A] text-xs">REVEAL</span>
         </div>
       </div>
     </div>
@@ -1234,7 +1234,7 @@ function RevealIntroLobby({
         )}
 
         {/* Season label */}
-        <div className="font-pixel text-[10px] text-[#C4A35A]/50 tracking-[0.25em]">
+        <div className="font-pixel text-xs text-[#C4A35A]/50 tracking-[0.25em]">
           SEASON {season} · SIGNING DAY
         </div>
 
@@ -1247,7 +1247,7 @@ function RevealIntroLobby({
             Your class is sealed.
           </h1>
           {teamEntry && (
-            <div className="font-pixel text-[11px] text-white/50 mt-2">
+            <div className="font-pixel text-xs text-white/50 mt-2">
               {teamEntry.team.name} Recruiting Class
             </div>
           )}
@@ -1260,7 +1260,7 @@ function RevealIntroLobby({
 
         {/* Count */}
         <div
-          className="font-pixel text-[10px] tracking-widest px-4 py-2 rounded border"
+          className="font-pixel text-xs tracking-widest px-4 py-2 rounded border"
           style={{ color: "#C4A35A", borderColor: "#C4A35A33", background: "rgba(196,163,90,0.06)" }}
         >
           {recruitCount} SIGNED RECRUIT{recruitCount !== 1 ? "S" : ""}
@@ -1289,7 +1289,7 @@ function RevealIntroLobby({
         </div>
 
         {reducedMotion && (
-          <div className="text-[10px] text-gray-600 mt-1">Reduced motion active — skipping animations</div>
+          <div className="text-xs text-gray-600 mt-1">Reduced motion active — skipping animations</div>
         )}
       </div>
     </div>
@@ -1353,7 +1353,7 @@ function HeroSpotlight({
       >
         {/* Tier label */}
         <div
-          className="font-pixel text-[9px] tracking-[0.2em] px-3 py-1 rounded"
+          className="font-pixel text-xs tracking-[0.2em] px-3 py-1 rounded"
           style={{ color: glowColor, background: `${glowColor}18`, border: `1px solid ${glowColor}44` }}
         >
           {label.toUpperCase()}
@@ -1382,25 +1382,25 @@ function HeroSpotlight({
         <div className="flex gap-5 text-center">
           <div>
             <div className="font-pixel text-xl leading-none" style={{ color: glowColor }}>{recruit.overall}</div>
-            <div className="text-[10px] text-gray-500 mt-1">OVR</div>
+            <div className="text-xs text-gray-500 mt-1">OVR</div>
           </div>
           {potGrade && (
             <div>
               <div className="font-pixel text-xl text-purple-400 leading-none">{potGrade}</div>
-              <div className="text-[10px] text-gray-500 mt-1">POT</div>
+              <div className="text-xs text-gray-500 mt-1">POT</div>
             </div>
           )}
           {topTool && (
             <div>
               <div className="font-pixel text-xl text-white leading-none">{topTool.val}</div>
-              <div className="text-[10px] text-gray-500 mt-1">{topTool.label}</div>
+              <div className="text-xs text-gray-500 mt-1">{topTool.label}</div>
             </div>
           )}
         </div>
 
         {/* Top special ability */}
         {topAbility && (
-          <div className="font-pixel text-[9px] text-amber-400 tracking-widest">
+          <div className="font-pixel text-xs text-amber-400 tracking-widest">
             {topAbility}
           </div>
         )}
@@ -1716,7 +1716,7 @@ export default function SigningDayRevealPage() {
                 {/* Controls bar */}
                 <div className="flex flex-wrap items-center gap-3 mb-5 p-4 rounded-lg" style={{ background: "#0a180a", border: "1px solid #1a3a1a" }}>
                   <div className="flex-1 min-w-0">
-                    <div className="font-pixel text-[11px] text-[#C4A35A]">
+                    <div className="font-pixel text-xs text-[#C4A35A]">
                       {myTeamEntry?.team.name ?? "Your Class"}
                     </div>
                     <div className="text-xs text-gray-600 mt-0.5">
@@ -1834,10 +1834,10 @@ export default function SigningDayRevealPage() {
                   className="px-4 py-2.5 relative text-left"
                   data-testid={`tab-${key}`}
                 >
-                  <div className={`font-pixel text-[11px] leading-tight transition-colors ${signingTab === key ? "text-[#C4A35A]" : "text-gray-500 hover:text-gray-300"}`}>
+                  <div className={`font-pixel text-xs leading-tight transition-colors ${signingTab === key ? "text-[#C4A35A]" : "text-gray-500 hover:text-gray-300"}`}>
                     {label}
                   </div>
-                  <div className="text-[9px] text-gray-600 mt-0.5">{sub}</div>
+                  <div className="text-xs text-gray-600 mt-0.5">{sub}</div>
                   {signingTab === key && (
                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C4A35A]" />
                   )}
@@ -1889,7 +1889,7 @@ export default function SigningDayRevealPage() {
                   ].map(({ label, value }) => (
                     <div key={label} className="flex flex-col items-center min-w-[52px]">
                       <span className="font-pixel text-xl text-white">{value}</span>
-                      <span className="text-[10px] text-gray-500">{label}</span>
+                      <span className="text-xs text-gray-500">{label}</span>
                     </div>
                   ))}
                 </div>
@@ -1956,7 +1956,7 @@ export default function SigningDayRevealPage() {
                 {gemRecruit && gemPhase === "revealed" && (
                   <div className="flex justify-center mt-3" data-testid="gem-card-section">
                     <div
-                      className="font-pixel text-amber-400 text-[9px] tracking-widest"
+                      className="font-pixel text-amber-400 text-xs tracking-widest"
                       style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
                       data-testid="gem-label"
                     >
@@ -1987,7 +1987,7 @@ export default function SigningDayRevealPage() {
                           </div>
                         </div>
                         <div className="shrink-0 text-right">
-                          <div className="font-pixel text-[10px] text-gray-500">SORTED HIGHEST → LOWEST OVR</div>
+                          <div className="font-pixel text-xs text-gray-500">SORTED HIGHEST → LOWEST OVR</div>
                         </div>
                       </div>
 
@@ -2044,7 +2044,7 @@ export default function SigningDayRevealPage() {
                       {gemRecruit && gemPhase === "revealed" && (
                         <div className="flex justify-center mt-3" data-testid="gem-card-section">
                           <div
-                            className="font-pixel text-amber-400 text-[9px] tracking-widest"
+                            className="font-pixel text-amber-400 text-xs tracking-widest"
                             style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
                             data-testid="gem-label"
                           >
@@ -2070,7 +2070,7 @@ export default function SigningDayRevealPage() {
                           ].map(({ label, value }) => (
                             <div key={label} className="flex flex-col items-center min-w-[52px]">
                               <span className="font-pixel text-lg text-white">{value}</span>
-                              <span className="text-[10px] text-gray-500">{label}</span>
+                              <span className="text-xs text-gray-500">{label}</span>
                             </div>
                           ))}
                         </div>
@@ -2186,7 +2186,7 @@ function PostRevealSummary({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-pixel text-sm text-white">{entry.team.name}</span>
-                    {isMyTeam && <span className="text-[10px] font-pixel text-[#C4A35A]">(You)</span>}
+                    {isMyTeam && <span className="text-xs font-pixel text-[#C4A35A]">(You)</span>}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {entry.recruits.length} commits · Avg OVR {avgOvr}

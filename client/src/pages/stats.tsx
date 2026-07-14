@@ -184,7 +184,7 @@ export default function StatsPage() {
                     value={selectedConference}
                     onChange={e => setSelectedConference(e.target.value)}
                     className="bg-card border border-border text-xs text-foreground px-2 py-1 rounded font-pixel"
-                    style={{ fontSize: "9px" }}
+                    style={{ fontSize: "12px" }}
                     data-testid="conference-filter"
                   >
                     <option value="all">All Conferences</option>
@@ -198,7 +198,7 @@ export default function StatsPage() {
                     value={selectedSeason ?? data.season}
                     onChange={e => setSelectedSeason(parseInt(e.target.value))}
                     className="bg-card border border-border text-xs text-foreground px-2 py-1 rounded font-pixel"
-                    style={{ fontSize: "9px" }}
+                    style={{ fontSize: "12px" }}
                     data-testid="season-selector"
                   >
                     {Array.from({ length: currentSeason }, (_, i) => currentSeason - i).map(s => (
@@ -233,18 +233,18 @@ export default function StatsPage() {
                     <table className="w-full text-sm" data-testid="table-team-stats">
                       <thead>
                         <tr className="border-b border-border text-left">
-                          <th className="py-2 px-2 font-pixel text-[8px] text-gold">Team</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">G</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">AVG</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">OBP</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SLG</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">OPS</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">R</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">HR</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SB</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">RPG</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">RAPG</th>
-                          <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">E</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-gold">Team</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">G</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">AVG</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">OBP</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">SLG</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">OPS</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">R</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">HR</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">SB</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">RPG</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">RAPG</th>
+                          <th className="py-2 px-2 font-pixel text-xs text-muted-foreground text-center">E</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -253,7 +253,7 @@ export default function StatsPage() {
                             <td className="py-2 px-2">
                               <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: ts.teamColor }} />
-                                <span className="font-pixel text-[8px]">{ts.teamAbbr}</span>
+                                <span className="font-pixel text-xs">{ts.teamAbbr}</span>
                               </div>
                             </td>
                             <td className="py-2 px-2 text-center text-xs">{ts.games}</td>
@@ -320,45 +320,45 @@ export default function StatsPage() {
                       <table className="w-full text-sm" data-testid="table-batting-leaders">
                         <thead>
                           <tr className="border-b border-border text-left">
-                            <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center w-6">#</th>
-                            <th className="py-2 px-1 font-pixel text-[8px] text-gold">Player</th>
-                            <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground">Team</th>
-                            <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">G</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center w-6">#</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-gold">Player</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-muted-foreground">Team</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">G</th>
                             {battingView === "traditional" && <>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">AB</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">AVG</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OBP</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SLG</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OPS</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">H</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">HR</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">RBI</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SB</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WAR</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">AB</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">AVG</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">OBP</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">SLG</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">OPS</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">H</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">HR</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">RBI</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">SB</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">WAR</th>
                             </>}
                             {battingView === "advanced" && <>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">wOBA</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">wRC+</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OPS+</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">BABIP</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OPS</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">BB</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SO</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WAR</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">wOBA</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">wRC+</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">OPS+</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">BABIP</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">OPS</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">BB</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">SO</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">WAR</th>
                             </>}
                             {battingView === "statcast" && <>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">Avg EV</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">Barrel%</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">HardHit%</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">AVG</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SLG</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">HR</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">Avg EV</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">Barrel%</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">HardHit%</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">AVG</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">SLG</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">HR</th>
                             </>}
                             {battingView === "defense" && <>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">FLD%</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OAA</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">DRS</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">E</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">FLD%</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">OAA</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">DRS</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">E</th>
                             </>}
                           </tr>
                         </thead>
@@ -370,7 +370,7 @@ export default function StatsPage() {
                               <td className="py-2 px-1">
                                 <div className="flex items-center gap-1">
                                   <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: b.teamColor }} />
-                                  <span className="font-pixel text-[7px]">{b.teamAbbr}</span>
+                                  <span className="font-pixel text-xs">{b.teamAbbr}</span>
                                 </div>
                               </td>
                               <td className="py-2 px-1 text-center text-xs">{b.games}</td>
@@ -454,30 +454,30 @@ export default function StatsPage() {
                       <table className="w-full text-sm" data-testid="table-pitching-leaders">
                         <thead>
                           <tr className="border-b border-border text-left">
-                            <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center w-6">#</th>
-                            <th className="py-2 px-1 font-pixel text-[8px] text-gold">Player</th>
-                            <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground">Team</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center w-6">#</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-gold">Player</th>
+                            <th className="py-2 px-1 font-pixel text-xs text-muted-foreground">Team</th>
                             {pitchingView === "traditional" && <>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">W</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">L</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">ERA</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">FIP</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">IP</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">H</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">BB</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SO</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WHIP</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WAR</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">W</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">L</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">ERA</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">FIP</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">IP</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">H</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">BB</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">SO</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">WHIP</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">WAR</th>
                             </>}
                             {pitchingView === "advanced" && <>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SIERA</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">K%</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">BB%</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">Whiff%</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">Spin</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">ERA</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">FIP</th>
-                              <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WAR</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">SIERA</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">K%</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">BB%</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">Whiff%</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">Spin</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">ERA</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">FIP</th>
+                              <th className="py-2 px-1 font-pixel text-xs text-muted-foreground text-center">WAR</th>
                             </>}
                           </tr>
                         </thead>
@@ -489,7 +489,7 @@ export default function StatsPage() {
                               <td className="py-2 px-1">
                                 <div className="flex items-center gap-1">
                                   <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: p.teamColor }} />
-                                  <span className="font-pixel text-[7px]">{p.teamAbbr}</span>
+                                  <span className="font-pixel text-xs">{p.teamAbbr}</span>
                                 </div>
                               </td>
                               {pitchingView === "traditional" && <>

@@ -169,7 +169,7 @@ function AbilitiesEditor({
                 ? "bg-red-600/20 text-red-400 border-red-600/30"
                 : "bg-blue-600/20 text-blue-400 border-blue-600/30";
               return (
-                <Badge key={ab} variant="outline" className={`text-[8px] ${cls}`}>
+                <Badge key={ab} variant="outline" className={`text-xs ${cls}`}>
                   {ab}
                   <button className="ml-1" onClick={e => { e.stopPropagation(); toggle(ab); }} data-testid={`remove-ability-${ab}`}>
                     <X className="w-2 h-2" />
@@ -200,7 +200,7 @@ function AbilitiesEditor({
               if (!list.length) return null;
               return (
                 <div key={tier}>
-                  <div className={`px-2 py-0.5 text-[9px] font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                  <div className={`px-2 py-0.5 text-xs font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
                     {tier} ({list.length})
                   </div>
                   {list.map(ability => {
@@ -217,7 +217,7 @@ function AbilitiesEditor({
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className={`${tierColor(tier)} font-medium`}>{ability.name}</span>
-                          <p className="text-muted-foreground text-[9px] truncate">{ability.description}</p>
+                          <p className="text-muted-foreground text-xs truncate">{ability.description}</p>
                         </div>
                       </div>
                     );
@@ -426,7 +426,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge 
-                  className="text-[10px] text-white"
+                  className="text-xs text-white"
                   style={{ backgroundColor: posColor }}
                   data-testid="badge-position"
                 >
@@ -435,7 +435,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {player.originalPosition && player.originalPosition !== player.position && (
                   <Badge
                     variant="outline"
-                    className="text-[9px] border-orange-500 text-orange-400"
+                    className="text-xs border-orange-500 text-orange-400"
                     data-testid="badge-converted-position"
                     title={`Originally played ${player.originalPosition}`}
                   >
@@ -445,7 +445,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {isPitcher ? (
                   <Badge
                     variant="outline"
-                    className={`text-[9px] ${throws === "L" ? "border-blue-500/60 text-blue-400 bg-blue-500/10" : "border-border text-muted-foreground"}`}
+                    className={`text-xs ${throws === "L" ? "border-blue-500/60 text-blue-400 bg-blue-500/10" : "border-border text-muted-foreground"}`}
                     data-testid="badge-handedness"
                   >
                     {throws}HP
@@ -453,7 +453,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 ) : (
                   <Badge
                     variant="outline"
-                    className={`text-[9px] ${bats === "L" ? "border-blue-500/60 text-blue-400 bg-blue-500/10" : bats === "S" ? "border-purple-500/60 text-purple-400 bg-purple-500/10" : "border-border text-muted-foreground"}`}
+                    className={`text-xs ${bats === "L" ? "border-blue-500/60 text-blue-400 bg-blue-500/10" : bats === "S" ? "border-purple-500/60 text-purple-400 bg-purple-500/10" : "border-border text-muted-foreground"}`}
                     data-testid="badge-handedness"
                   >
                     Bats {bats}
@@ -471,7 +471,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {player.playArchetypeId && ARCHETYPES_BY_ID[player.playArchetypeId] && (
                   <Badge
                     variant="outline"
-                    className="text-[8px] border-gold/40 text-gold/80 bg-gold/5 font-pixel"
+                    className="text-xs border-gold/40 text-gold/80 bg-gold/5 font-pixel"
                     data-testid="badge-archetype"
                     title={ARCHETYPES_BY_ID[player.playArchetypeId].description}
                   >
@@ -484,7 +484,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               </h2>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                 <span>{eligibilityLabel[player.eligibility] || player.eligibility}</span>
-                {!isPitcher && <span className="text-[10px]">Throws {throws}</span>}
+                {!isPitcher && <span className="text-xs">Throws {throws}</span>}
               </div>
             </div>
           </div>
@@ -558,7 +558,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                     <div key={key} className="flex items-center justify-between px-1.5 py-0.5 bg-muted/20 rounded">
                       <span className="text-xs text-foreground">{pitchLabels[key] || key}</span>
                       {isBinary ? (
-                        <span className="text-[10px] font-bold text-gold px-1 py-0.5 bg-gold/10 rounded border border-gold/30" data-testid={`pitch-rating-${key}`}>Yes</span>
+                        <span className="text-xs font-bold text-gold px-1 py-0.5 bg-gold/10 rounded border border-gold/30" data-testid={`pitch-rating-${key}`}>Yes</span>
                       ) : (
                         <span className="text-xs font-bold text-gold" data-testid={`pitch-rating-${key}`}>{rating}</span>
                       )}
@@ -631,7 +631,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                         <span className="bg-red-600/20 text-red-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(239,68,68,0.70)" }}>Ball Hitter</span>
                       </Badge>
                       {isStoryAcquired && (
-                        <span className={`text-[9px] font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
+                        <span className={`text-xs font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
                           <Sparkles className="w-2.5 h-2.5" />STORY
                         </span>
                       )}
@@ -650,7 +650,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                       {abilityName}
                     </Badge>
                     {isStoryAcquired && (
-                      <span className={`text-[9px] font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
+                      <span className={`text-xs font-pixel ${storyBadgeColor} flex items-center gap-0.5`} title="Acquired through a storyline arc">
                         <Sparkles className="w-2.5 h-2.5" />STORY
                       </span>
                     )}
@@ -686,7 +686,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               <div className="px-4 pb-4 space-y-4">
                 {/* Numeric Attributes */}
                 <div>
-                  <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">
+                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">
                     {isPitcher ? "Pitching Attributes" : "Hitting Attributes"}
                   </p>
                   <div className="grid grid-cols-3 gap-2">
@@ -699,7 +699,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                           { field: "stuff", label: "STUF" },
                         ] as const).map(({ field, label }) => (
                           <div key={field} className="space-y-0.5">
-                            <label className="font-pixel text-[8px] text-gold block">{label}</label>
+                            <label className="font-pixel text-xs text-gold block">{label}</label>
                             <Input
                               type="number"
                               min={1}
@@ -723,7 +723,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                           { field: "errorResistance", label: "ERR" },
                         ] as const).map(({ field, label }) => (
                           <div key={field} className="space-y-0.5">
-                            <label className="font-pixel text-[8px] text-gold block">{label}</label>
+                            <label className="font-pixel text-xs text-gold block">{label}</label>
                             <Input
                               type="number"
                               min={1}
@@ -743,7 +743,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 {/* Trajectory (hitters only) */}
                 {!isPitcher && (
                   <div>
-                    <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Trajectory</p>
+                    <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Trajectory</p>
                     <Select
                       value={String(player.trajectory ?? 2)}
                       onValueChange={val => onUpdate("trajectory", parseInt(val))}
@@ -764,7 +764,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
                 {/* Common Abilities */}
                 <div>
-                  <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Common Abilities</p>
+                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Common Abilities</p>
                   <div className="grid grid-cols-3 gap-2">
                     {(isPitcher ? (
                       [
@@ -789,7 +789,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                       ] as const
                     )).map(({ field, label }) => (
                       <div key={field} className="space-y-0.5">
-                        <label className="font-pixel text-[8px] text-gold block">{label}</label>
+                        <label className="font-pixel text-xs text-gold block">{label}</label>
                         <Input
                           type="number"
                           min={1}
@@ -806,7 +806,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
                 {/* Special Abilities */}
                 <div>
-                  <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Special Abilities</p>
+                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Special Abilities</p>
                   <AbilitiesEditor
                     abilities={player.abilities ?? []}
                     position={player.position}
@@ -939,7 +939,7 @@ function OvrCell({ seasons, idx }: { seasons: CareerSeasonRow[]; idx: number }) 
     <td className="py-1 px-1 text-center" data-testid={`text-career-ovr-${s.season}`}>
       <span className="font-bold text-gold">{s.endSeasonOvr}</span>
       {delta != null && delta !== 0 && (
-        <span className={`ml-0.5 text-[9px] font-bold ${delta > 0 ? "text-green-400" : "text-red-400"}`}>
+        <span className={`ml-0.5 text-xs font-bold ${delta > 0 ? "text-green-400" : "text-red-400"}`}>
           {delta > 0 ? "+" : ""}{delta}
         </span>
       )}
@@ -950,29 +950,29 @@ function OvrCell({ seasons, idx }: { seasons: CareerSeasonRow[]; idx: number }) 
 function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
   return (
     <div>
-      {label && <p className="font-pixel text-[8px] text-muted-foreground mb-1">{label}</p>}
+      {label && <p className="font-pixel text-xs text-muted-foreground mb-1">{label}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-xs" data-testid="table-career-pitching">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OVR</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">W</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">L</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">ERA</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">IP</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SO</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">FIP</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">WHIP</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">K%</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Whiff%</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">OVR</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">W</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">L</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">ERA</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">IP</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">SO</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">FIP</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">WHIP</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">K%</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">Whiff%</th>
             </tr>
           </thead>
           <tbody>
             {seasons.map((s, idx) => (
               <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
-                <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <td className="py-1 px-1 font-pixel text-xs text-gold">S{s.season}</td>
                 <OvrCell seasons={seasons} idx={idx} />
                 <td className="py-1 px-1 text-center">{s.pitchingGames}</td>
                 <td className="py-1 px-1 text-center">{s.wins}</td>
@@ -996,29 +996,29 @@ function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; la
 function BattingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
   return (
     <div>
-      {label && <p className="font-pixel text-[8px] text-muted-foreground mb-1">{label}</p>}
+      {label && <p className="font-pixel text-xs text-muted-foreground mb-1">{label}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-xs" data-testid="table-career-batting">
           <thead>
             <tr className="border-b border-border text-left">
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OVR</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AB</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AVG</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OPS</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">HR</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">RBI</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SB</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">wOBA</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">EV</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Brl%</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">OVR</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">AB</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">AVG</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">OPS</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">HR</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">RBI</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">SB</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">wOBA</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">EV</th>
+              <th className="py-1 px-1 font-pixel text-xs text-muted-foreground text-center">Brl%</th>
             </tr>
           </thead>
           <tbody>
             {seasons.map((s, idx) => (
               <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
-                <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <td className="py-1 px-1 font-pixel text-xs text-gold">S{s.season}</td>
                 <OvrCell seasons={seasons} idx={idx} />
                 <td className="py-1 px-1 text-center">{s.games}</td>
                 <td className="py-1 px-1 text-center">{s.ab}</td>
@@ -1152,7 +1152,7 @@ function CommonAbilityRow({ label, value, delta, goldAbilityName }: { label: str
       <div className="flex items-center gap-1">
         {goldAbilityName && (
           <span
-            className="text-[8px] font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
+            className="text-xs font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
             style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
             title={goldAbilityName}
             data-testid={`common-ability-gold-badge-${label.toLowerCase().replace(/\s/g, "-")}`}

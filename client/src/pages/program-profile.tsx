@@ -221,12 +221,12 @@ export default function ProgramProfilePage() {
                     </span>
                   )}
                   {isCommissioner && (
-                    <Badge variant="outline" className="text-[9px] border-gold text-gold font-pixel" data-testid="badge-commissioner-team">
+                    <Badge variant="outline" className="text-xs border-gold text-gold font-pixel" data-testid="badge-commissioner-team">
                       COMMISSIONER · {commissionerSeasons}S
                     </Badge>
                   )}
                   {team.isCpu && (
-                    <Badge variant="outline" className="text-[9px] border-orange-400/60 text-orange-400 font-pixel">
+                    <Badge variant="outline" className="text-xs border-orange-400/60 text-orange-400 font-pixel">
                       CPU
                     </Badge>
                   )}
@@ -247,23 +247,23 @@ export default function ProgramProfilePage() {
                       </span>
                     </Link>
                     {coach.archetype && (
-                      <Badge variant="outline" className="text-[9px] border-gold/40 text-gold/70">
+                      <Badge variant="outline" className="text-xs border-gold/40 text-gold/70">
                         {ARCHETYPE_LABELS[coach.archetype] ?? coach.archetype}
                       </Badge>
                     )}
-                    <span className="text-[10px] text-muted-foreground font-pixel">Lv.{coach.level}</span>
+                    <span className="text-xs text-muted-foreground font-pixel">Lv.{coach.level}</span>
                   </div>
                 )}
               </div>
               <div className="text-right flex flex-col gap-2 items-end">
                 <div>
                   <div className="text-3xl font-bold text-foreground">{team.prestige}</div>
-                  <div className="text-[9px] text-muted-foreground font-pixel">PRESTIGE</div>
+                  <div className="text-xs text-muted-foreground font-pixel">PRESTIGE</div>
                 </div>
                 {scoutingData?.[team.name]?.nationalRank && (
                   <div data-testid="badge-national-rank-profile">
                     <div className="text-2xl font-bold text-gold">#{scoutingData[team.name].nationalRank}</div>
-                    <div className="text-[9px] text-muted-foreground font-pixel">NATIONAL RANK</div>
+                    <div className="text-xs text-muted-foreground font-pixel">NATIONAL RANK</div>
                   </div>
                 )}
               </div>
@@ -291,7 +291,7 @@ export default function ProgramProfilePage() {
               <Zap className="w-4 h-4 text-gold" />
               Program Attributes
               {hasEverEvolved && (
-                <span className="text-[8px] text-muted-foreground font-pixel ml-1">season-over-season</span>
+                <span className="text-xs text-muted-foreground font-pixel ml-1">season-over-season</span>
               )}
             </div>
           </RetroCardHeader>
@@ -348,7 +348,7 @@ export default function ProgramProfilePage() {
                 />
               </div>
               {!hasEverEvolved && (
-                <p className="text-[9px] text-muted-foreground mt-3 text-center font-pixel">
+                <p className="text-xs text-muted-foreground mt-3 text-center font-pixel">
                   Attributes will evolve after your first completed season.
                 </p>
               )}
@@ -363,18 +363,18 @@ export default function ProgramProfilePage() {
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-gold" />
                 Season {currentSeason} — Current
-                <Badge variant="outline" className="text-[8px] border-green-500/60 text-green-400 font-pixel">LIVE</Badge>
+                <Badge variant="outline" className="text-xs border-green-500/60 text-green-400 font-pixel">LIVE</Badge>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-foreground">{currentSeasonStats.wins}-{currentSeasonStats.losses}</div>
-                  <div className="text-[9px] text-muted-foreground font-pixel mt-0.5">OVERALL</div>
+                  <div className="text-xs text-muted-foreground font-pixel mt-0.5">OVERALL</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-foreground">{currentSeasonStats.confWins}-{currentSeasonStats.confLosses}</div>
-                  <div className="text-[9px] text-muted-foreground font-pixel mt-0.5">CONFERENCE</div>
+                  <div className="text-xs text-muted-foreground font-pixel mt-0.5">CONFERENCE</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-foreground">
@@ -382,7 +382,7 @@ export default function ProgramProfilePage() {
                       ? ((currentSeasonStats.wins / (currentSeasonStats.wins + currentSeasonStats.losses)) * 100).toFixed(1)
                       : "0.0"}%
                   </div>
-                  <div className="text-[9px] text-muted-foreground font-pixel mt-0.5">WIN %</div>
+                  <div className="text-xs text-muted-foreground font-pixel mt-0.5">WIN %</div>
                 </div>
               </div>
             </RetroCardContent>
@@ -402,7 +402,7 @@ export default function ProgramProfilePage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[380px]">
                   <thead>
-                    <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
+                    <tr className="border-b border-border text-muted-foreground font-pixel text-xs">
                       <th className="text-left py-2 px-2">Season</th>
                       <th className="text-center py-2 px-2">W</th>
                       <th className="text-center py-2 px-2">L</th>
@@ -414,7 +414,7 @@ export default function ProgramProfilePage() {
                   <tbody>
                     {seasonHistory.map((row) => (
                       <tr key={row.season} className="border-b border-border/50 hover:bg-card/50" data-testid={`row-season-${row.season}`}>
-                        <td className="py-2 px-2 font-pixel text-[9px] text-gold">S{row.season}</td>
+                        <td className="py-2 px-2 font-pixel text-xs text-gold">S{row.season}</td>
                         <td className="py-2 px-2 text-center font-bold text-green-500">{row.wins}</td>
                         <td className="py-2 px-2 text-center font-bold text-red-500">{row.losses}</td>
                         <td className="py-2 px-2 text-center text-muted-foreground hidden sm:table-cell">
@@ -424,7 +424,7 @@ export default function ProgramProfilePage() {
                           {ordinal(row.confFinish)}
                         </td>
                         <td className="py-2 px-2 text-center">
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-pixel ${postseasonBadge(row.postseasonResult)}`}>
+                          <span className={`text-xs px-1.5 py-0.5 rounded border font-pixel ${postseasonBadge(row.postseasonResult)}`}>
                             {row.postseasonResult}
                           </span>
                         </td>
@@ -447,7 +447,7 @@ export default function ProgramProfilePage() {
               </div>
             </RetroCardHeader>
             <RetroCardContent>
-              <p className="text-[10px] text-muted-foreground mb-3">Top 5 highest-rated players to ever wear this uniform.</p>
+              <p className="text-xs text-muted-foreground mb-3">Top 5 highest-rated players to ever wear this uniform.</p>
               <div className="space-y-2">
                 {recruitingHoF.map((player, i) => {
                   const draftBadge = draftRoundLabel(player.draftRound);
@@ -460,24 +460,24 @@ export default function ProgramProfilePage() {
                   const statusStyle = statusConfig[player.status] ?? { label: player.status, cls: "border-border text-muted-foreground" };
                   return (
                     <div key={i} className="flex items-center gap-3 p-2 rounded bg-muted/20 hover:bg-muted/30 transition-colors" data-testid={`row-hof-${i}`}>
-                      <span className="font-pixel text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">#{i + 1}</span>
+                      <span className="font-pixel text-xs text-muted-foreground w-4 text-right flex-shrink-0">#{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-sm">
                             {player.firstName} {player.lastName}
                           </span>
-                          <span className="text-[10px] text-muted-foreground">{player.position}</span>
-                          <Badge variant="outline" className={`text-[8px] ${statusStyle.cls}`}>
+                          <span className="text-xs text-muted-foreground">{player.position}</span>
+                          <Badge variant="outline" className={`text-xs ${statusStyle.cls}`}>
                             {statusStyle.label}
                           </Badge>
                           {draftBadge && player.status !== "drafted" && (
-                            <Badge variant="outline" className={`text-[8px] ${draftBadge.cls}`}>
+                            <Badge variant="outline" className={`text-xs ${draftBadge.cls}`}>
                               {draftBadge.label}
                             </Badge>
                           )}
                         </div>
                         {player.season && (
-                          <div className="text-[9px] text-muted-foreground mt-0.5">Season {player.season}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">Season {player.season}</div>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
@@ -485,7 +485,7 @@ export default function ProgramProfilePage() {
                         <div className="text-right">
                           <div className={`font-bold text-sm ${ovRColor(player.signingOvr)}`}>{player.signingOvr}</div>
                           {player.overall !== player.signingOvr && (
-                            <div className="text-[8px] text-muted-foreground">→ {player.overall}</div>
+                            <div className="text-xs text-muted-foreground">→ {player.overall}</div>
                           )}
                         </div>
                       </div>
@@ -493,7 +493,7 @@ export default function ProgramProfilePage() {
                   );
                 })}
               </div>
-              <p className="text-[9px] text-muted-foreground mt-2 text-right">Ranked by signing OVR · developed OVR shown when different</p>
+              <p className="text-xs text-muted-foreground mt-2 text-right">Ranked by signing OVR · developed OVR shown when different</p>
             </RetroCardContent>
           </RetroCard>
         )}
@@ -508,23 +508,23 @@ export default function ProgramProfilePage() {
               </div>
             </RetroCardHeader>
             <RetroCardContent>
-              <p className="text-[10px] text-muted-foreground mb-3">Players drafted to professional baseball from this program.</p>
+              <p className="text-xs text-muted-foreground mb-3">Players drafted to professional baseball from this program.</p>
               <div className="space-y-2">
                 {topDraftedPlayers.map((player, i) => {
                   const draftBadge = draftRoundLabel(player.draftRound);
                   return (
                     <div key={i} className="flex items-center gap-3 p-2 rounded bg-muted/20 hover:bg-muted/30 transition-colors" data-testid={`row-draft-${i}`}>
                       {draftBadge && (
-                        <Badge variant="outline" className={`text-[8px] font-pixel flex-shrink-0 ${draftBadge.cls}`}>
+                        <Badge variant="outline" className={`text-xs font-pixel flex-shrink-0 ${draftBadge.cls}`}>
                           {draftBadge.label}
                         </Badge>
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{player.firstName} {player.lastName}</span>
-                          <span className="text-[10px] text-muted-foreground">{player.position}</span>
+                          <span className="text-xs text-muted-foreground">{player.position}</span>
                         </div>
-                        <div className="text-[9px] text-muted-foreground">Season {player.departedSeason}</div>
+                        <div className="text-xs text-muted-foreground">Season {player.departedSeason}</div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <StarsDisplay stars={player.starRating} />
@@ -557,10 +557,10 @@ function StatTile({ icon, label, value, sub, gold }: { icon: React.ReactNode; la
       <RetroCardContent className="py-4 px-3">
         <div className="flex items-center gap-2 text-muted-foreground mb-1">
           {icon}
-          <span className="font-pixel text-[7px]">{label.toUpperCase()}</span>
+          <span className="font-pixel text-xs">{label.toUpperCase()}</span>
         </div>
         <div className={`text-2xl font-bold ${gold ? "text-amber-400" : "text-foreground"}`}>{value}</div>
-        {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
+        {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
       </RetroCardContent>
     </RetroCard>
   );
@@ -568,7 +568,7 @@ function StatTile({ icon, label, value, sub, gold }: { icon: React.ReactNode; la
 
 function StarsDisplay({ stars }: { stars: number }) {
   return (
-    <span className={`font-pixel text-[9px] ${starColor(stars)}`}>
+    <span className={`font-pixel text-xs ${starColor(stars)}`}>
       {"★".repeat(Math.max(0, stars))}
     </span>
   );
@@ -593,7 +593,7 @@ function DeltaBadge({ prev, curr }: { prev: number; curr: number }) {
   const isUp = delta > 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[9px] font-pixel px-1 py-0.5 rounded border ${
+      className={`inline-flex items-center gap-0.5 text-xs font-pixel px-1 py-0.5 rounded border ${
         isUp
           ? "bg-green-500/15 text-green-400 border-green-500/30"
           : "bg-red-500/15 text-red-400 border-red-500/30"
@@ -629,7 +629,7 @@ function ProgramAttrRow({
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-center gap-1.5">
               {icon}
-              <span className="font-pixel text-[8px] text-muted-foreground">{label.toUpperCase()}</span>
+              <span className="font-pixel text-xs text-muted-foreground">{label.toUpperCase()}</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="font-bold text-sm text-foreground">{value}</span>
@@ -638,7 +638,7 @@ function ProgramAttrRow({
           </div>
           <AttrPips value={value} />
           {prev !== null && prev !== value && (
-            <div className="text-[8px] text-muted-foreground font-pixel">was {prev}</div>
+            <div className="text-xs text-muted-foreground font-pixel">was {prev}</div>
           )}
         </div>
       </TooltipTrigger>

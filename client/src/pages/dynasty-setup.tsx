@@ -508,7 +508,7 @@ export default function DynastySetupPage() {
                     <RetroCardHeader>
                       <div className="flex items-center justify-between gap-4">
                         <span className="font-pixel text-gold text-xs">Active Invite Links</span>
-                        <Badge variant="outline" className="text-[8px]">{pendingInvites.length} active</Badge>
+                        <Badge variant="outline" className="text-xs">{pendingInvites.length} active</Badge>
                       </div>
                     </RetroCardHeader>
                     <RetroCardContent>
@@ -525,7 +525,7 @@ export default function DynastySetupPage() {
                                   {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-muted-foreground shrink-0">
+                              <span className="text-xs text-muted-foreground shrink-0">
                                 {new Date(invite.createdAt).toLocaleDateString()}
                               </span>
                             </div>
@@ -533,7 +533,7 @@ export default function DynastySetupPage() {
                               <input
                                 readOnly
                                 value={`${window.location.origin}/invite/${invite.inviteCode}`}
-                                className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground font-mono select-all"
+                                className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-xs text-foreground font-mono select-all"
                                 onClick={(e) => (e.target as HTMLInputElement).select()}
                                 data-testid={`input-invite-url-${invite.inviteCode}`}
                               />
@@ -665,7 +665,7 @@ function SetupCheckItem({
         <div className={status === "complete" ? "text-green-400" : "text-muted-foreground"}>
           {icon}
         </div>
-        <span className="font-pixel text-[10px] text-foreground">{title}</span>
+        <span className="font-pixel text-xs text-foreground">{title}</span>
         {status === "complete" ? (
           <Check className="w-4 h-4 text-green-400 ml-auto" />
         ) : (

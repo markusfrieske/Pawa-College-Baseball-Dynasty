@@ -601,7 +601,7 @@ export default function RecruitProfilePage() {
               />
               {recruit.isBlueChip && (
                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
-                  <span className="text-[10px] text-white font-bold">B</span>
+                  <span className="text-xs text-white font-bold">B</span>
                 </div>
               )}
             </div>
@@ -635,7 +635,7 @@ export default function RecruitProfilePage() {
                 {recruit.isBlueChip && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-blue-500 text-white border-blue-400 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-blue-500 text-white border-blue-400 no-default-hover-elevate no-default-active-elevate">
                         <Star className="w-3 h-3 mr-0.5 fill-current" />
                         BLUE CHIP
                       </Badge>
@@ -646,7 +646,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
                         <Star className="w-3.5 h-3.5 mr-0.5 fill-current" />
                         GENERATIONAL GEM
                       </Badge>
@@ -657,7 +657,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
                         <Skull className="w-3.5 h-3.5 mr-0.5" />
                         GENERATIONAL BUST
                       </Badge>
@@ -668,7 +668,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && recruit.isGem && !(recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-green-500/15 text-green-400 border-green-500/40 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-green-500/15 text-green-400 border-green-500/40 no-default-hover-elevate no-default-active-elevate">
                         <Gem className="w-3.5 h-3.5 mr-0.5" />
                         GEM
                       </Badge>
@@ -679,7 +679,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && recruit.isBust && !(recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-red-500/15 text-red-400 border-red-500/40 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-red-500/15 text-red-400 border-red-500/40 no-default-hover-elevate no-default-active-elevate">
                         <XCircle className="w-3.5 h-3.5 mr-0.5" />
                         BUST
                       </Badge>
@@ -690,7 +690,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).playerArchetype === "late_bloomer" && !(recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate">
                         <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
                         LATE BLOOMER
                       </Badge>
@@ -701,7 +701,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).playerArchetype === "overdraft" && !(recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate">
                         <TrendingDown className="w-3.5 h-3.5 mr-0.5" />
                         OVERDRAFT
                       </Badge>
@@ -712,7 +712,7 @@ export default function RecruitProfilePage() {
                 {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).playerArchetype === "raw" && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <Badge className="text-[9px] bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate">
+                      <Badge className="text-xs bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate">
                         <Zap className="w-3.5 h-3.5 mr-0.5" />
                         RAW
                       </Badge>
@@ -814,7 +814,7 @@ export default function RecruitProfilePage() {
           <div className="mb-6 flex items-center gap-3 p-3 border border-green-600/50 bg-green-900/20">
             <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
             <div className="flex-1">
-              <p className="font-pixel text-green-400 text-[10px] uppercase">Committed</p>
+              <p className="font-pixel text-green-400 text-xs uppercase">Committed</p>
               <p className="text-xs text-muted-foreground">Recruiting actions are no longer available.</p>
             </div>
             {recruit.signedTeamName && (
@@ -834,7 +834,7 @@ export default function RecruitProfilePage() {
 
         {showProfilePhonePicker && (
           <div className="p-3 bg-muted/30 border border-border rounded" data-testid="profile-pitch-picker-phone">
-            <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+            <p className="text-xs font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
             <div className="flex flex-wrap gap-1.5 mb-3">
               {pitchOptions.map(opt => (
                 <button
@@ -878,7 +878,7 @@ export default function RecruitProfilePage() {
 
         {showProfileEmailPicker && (
           <div className="p-3 bg-muted/30 border border-border rounded" data-testid="profile-pitch-picker-email">
-            <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+            <p className="text-xs font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
             <div className="flex flex-wrap gap-1.5 mb-3">
               {pitchOptions.map(opt => (
                 <button
@@ -1255,19 +1255,19 @@ export default function RecruitProfilePage() {
                       const userIdx = visibleSchools.findIndex(s => s.teamId === data?.team?.id);
                       if (userIdx >= 0) {
                         return (
-                          <span className="text-[9px] font-pixel text-gold" data-testid="text-user-school-rank-profile">
+                          <span className="text-xs font-pixel text-gold" data-testid="text-user-school-rank-profile">
                             #{userIdx + 1} of {visibleSchools.length}
                           </span>
                         );
                       }
                       return (
-                        <span className="text-[9px] text-muted-foreground/60" data-testid="text-user-school-absent-profile">
+                        <span className="text-xs text-muted-foreground/60" data-testid="text-user-school-absent-profile">
                           Not Listed
                         </span>
                       );
                     })()}
                   </div>
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge variant="outline" className="text-xs">
                     {recruit.stage === "top3" ? "Top 3" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top8" ? "Top 8" : "Open"}
                   </Badge>
                 </div>
@@ -1320,7 +1320,7 @@ export default function RecruitProfilePage() {
               <RetroCardContent>
                 <div className="flex flex-col items-center gap-3 py-4 text-center">
                   <CheckCircle className="w-10 h-10 text-green-400" />
-                  <p className="font-pixel text-green-400 text-[10px] uppercase">Committed</p>
+                  <p className="font-pixel text-green-400 text-xs uppercase">Committed</p>
                   {recruit.signedTeamName && (
                     <div className="flex items-center gap-2 mt-1">
                       <TeamBadge
@@ -1381,7 +1381,7 @@ export default function RecruitProfilePage() {
                     <BookOpen className="w-4 h-4 text-gold" />
                     <span>Storyline Arc</span>
                     {storylineArcData.storylineRecruit.isLegendary && (
-                      <Badge className="ml-auto bg-yellow-500/20 text-yellow-300 border-yellow-500/50 text-[9px] font-pixel flex items-center gap-1">
+                      <Badge className="ml-auto bg-yellow-500/20 text-yellow-300 border-yellow-500/50 text-xs font-pixel flex items-center gap-1">
                         <Sparkles className="w-3 h-3" />
                         Legendary
                       </Badge>
@@ -1424,20 +1424,20 @@ export default function RecruitProfilePage() {
                           data-testid={`storyline-event-${event.id}`}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-muted-foreground">
+                            <span className="text-xs text-muted-foreground">
                               Ch. {idx + 1} — Wk {event.week}
                               {event.archetypeNameAtEvent && event.archetypeAtEvent !== storylineArcData.storylineRecruit?.archetype && (
                                 <span className="ml-1 text-gold/70">({event.archetypeNameAtEvent})</span>
                               )}
                             </span>
                             {event.ovrDelta !== null && event.ovrDelta !== 0 && (
-                              <span className={`text-[10px] font-bold flex items-center gap-0.5 ${event.ovrDelta > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-ovr-delta-${event.id}`}>
+                              <span className={`text-xs font-bold flex items-center gap-0.5 ${event.ovrDelta > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-ovr-delta-${event.id}`}>
                                 {event.ovrDelta > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                                 {event.ovrDelta > 0 ? "+" : ""}{event.ovrDelta} OVR
                               </span>
                             )}
                             {(event.ovrDelta === null || event.ovrDelta === 0) && (
-                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                                 <Minus className="w-3 h-3" /> No change
                               </span>
                             )}
@@ -1447,14 +1447,14 @@ export default function RecruitProfilePage() {
                           </p>
                           {event.resolvedChoiceLabel && (
                             <div className="flex items-start gap-1 mt-1">
-                              <Badge variant="outline" className="text-[9px] text-gold border-gold/40 shrink-0">
+                              <Badge variant="outline" className="text-xs text-gold border-gold/40 shrink-0">
                                 {event.resolvedChoice}
                               </Badge>
-                              <span className="text-[10px] text-muted-foreground">{event.resolvedChoiceLabel}</span>
+                              <span className="text-xs text-muted-foreground">{event.resolvedChoiceLabel}</span>
                             </div>
                           )}
                           {event.resolvedOutcomeText && (
-                            <p className="text-[10px] text-muted-foreground/70 mt-1 italic line-clamp-2" data-testid={`text-outcome-${event.id}`}>
+                            <p className="text-xs text-muted-foreground/70 mt-1 italic line-clamp-2" data-testid={`text-outcome-${event.id}`}>
                               {event.resolvedOutcomeText}
                             </p>
                           )}
@@ -1517,7 +1517,7 @@ export default function RecruitProfilePage() {
 
             {actionResultModal?.eventCard && (
               <div className="w-full rounded border border-[#c8aa6e]/30 bg-[#0a1a0a] px-4 py-3" data-testid="visit-event-card">
-                <p className="font-['Press_Start_2P'] text-[10px] leading-relaxed text-[#c8aa6e]" data-testid="visit-event-headline">
+                <p className="font-['Press_Start_2P'] text-xs leading-relaxed text-[#c8aa6e]" data-testid="visit-event-headline">
                   {actionResultModal.eventCard.headline}
                 </p>
                 <div className="my-2 h-px bg-[#c8aa6e]/20" />
@@ -1737,7 +1737,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                   </select>
                 </div>
               </div>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Appearance</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Appearance</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Skin Tone</label>
@@ -1764,7 +1764,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                   </select>
                 </div>
               </div>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Rankings</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Rankings</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Overall (150-650)</label>
@@ -1814,7 +1814,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
             <>
               {isRecruitPitcher ? (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">Velocity</label>
@@ -1832,7 +1832,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                 </>
               ) : (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Fielder Attributes (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">Contact</label>
@@ -1868,7 +1868,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
             <>
               {isRecruitPitcher ? (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-xs text-muted-foreground">W/RISP</label><RetroInput type="number" min={1} max={99} value={formData.wRISP} onChange={(e) => setFormData({ ...formData, wRISP: parseInt(e.target.value) || 50 })} /></div>
                     <div><label className="text-xs text-muted-foreground">vs Lefty</label><RetroInput type="number" min={1} max={99} value={formData.vsLefty} onChange={(e) => setFormData({ ...formData, vsLefty: parseInt(e.target.value) || 50 })} /></div>
@@ -1881,7 +1881,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                 </>
               ) : (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-xs text-muted-foreground">Clutch</label><RetroInput type="number" min={1} max={99} value={formData.clutch} onChange={(e) => setFormData({ ...formData, clutch: parseInt(e.target.value) || 50 })} /></div>
                     <div><label className="text-xs text-muted-foreground">vs LHP</label><RetroInput type="number" min={1} max={99} value={formData.vsLHP} onChange={(e) => setFormData({ ...formData, vsLHP: parseInt(e.target.value) || 50 })} /></div>
@@ -1899,11 +1899,11 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
 
           {activeTab === "pitches" && isRecruitPitcher && (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitch Mix</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitch Mix</h4>
               <div className="text-xs text-muted-foreground mb-2">
                 Toggles = presence only (0/1). Rated pitches = 0 (none) to 7 (elite).
               </div>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1 mt-1">Presence Toggles</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1 mt-1">Presence Toggles</h4>
               <div className="grid grid-cols-2 gap-3 mt-2">
                 {PITCH_DEFS.filter(p => p.binary).map(({ key, label }) => (
                   <div key={key}>
@@ -1920,7 +1920,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                   </div>
                 ))}
               </div>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1 mt-3">Rated Pitches (0–7)</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1 mt-3">Rated Pitches (0–7)</h4>
               <div className="grid grid-cols-2 gap-3 mt-2">
                 {PITCH_DEFS.filter(p => !p.binary).map(({ key, label }) => (
                   <div key={key}>
@@ -1941,7 +1941,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
 
           {activeTab === "priorities" && (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Recruit Priorities</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Recruit Priorities</h4>
               <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Proximity to Home</label>
@@ -1989,7 +1989,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
 
           {activeTab === "abilities" && (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Special Abilities</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Special Abilities</h4>
               <div className="text-xs text-muted-foreground mb-2">
                 Enter ability IDs separated by commas (e.g., explosive_fb, quick_hands)
               </div>
@@ -2265,7 +2265,7 @@ function RecruitCommonAbilitiesSection({
           <div className="flex items-center gap-1">
             {goldAbilityName && (
               <span
-                className="text-[8px] font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
+                className="text-xs font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
                 style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
                 title={goldAbilityName}
               >

@@ -146,7 +146,7 @@ export function InvitesTab({ leagueId, invites }: InvitesTabProps) {
         <RetroCard>
           <RetroCardHeader className="flex items-center justify-between gap-4">
             <span>Active Links</span>
-            <Badge variant="outline" className="text-[8px]">
+            <Badge variant="outline" className="text-xs">
               {pendingInvites.length} active
             </Badge>
           </RetroCardHeader>
@@ -163,7 +163,7 @@ export function InvitesTab({ leagueId, invites }: InvitesTabProps) {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {statusBadge(invite.status)}
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(invite.createdAt).toLocaleDateString()}
                       {invite.expiresAt && (
                         <span
@@ -183,7 +183,7 @@ export function InvitesTab({ leagueId, invites }: InvitesTabProps) {
                   <input
                     readOnly
                     value={`${window.location.origin}/invite/${invite.inviteCode}`}
-                    className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground font-mono select-all"
+                    className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-xs text-foreground font-mono select-all"
                     onClick={(e) => (e.target as HTMLInputElement).select()}
                     data-testid={`input-invite-url-${invite.inviteCode}`}
                   />
@@ -219,7 +219,7 @@ export function InvitesTab({ leagueId, invites }: InvitesTabProps) {
         <RetroCard>
           <RetroCardHeader className="flex items-center justify-between gap-4">
             <span>Past Invites</span>
-            <Badge variant="outline" className="text-[8px]">
+            <Badge variant="outline" className="text-xs">
               {pastInvites.length} total
             </Badge>
           </RetroCardHeader>
@@ -236,7 +236,7 @@ export function InvitesTab({ leagueId, invites }: InvitesTabProps) {
                     <p className="text-sm truncate">
                       {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Created: {new Date(invite.createdAt).toLocaleDateString()}
                     </p>
                   </div>

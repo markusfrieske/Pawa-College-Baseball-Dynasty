@@ -136,7 +136,7 @@ function GradeCell({
       <span className={`text-base font-bold font-pixel leading-none ${gradeColor(grade.letter)}`}>
         {grade.letter}
       </span>
-      <p className="text-[8px] text-muted-foreground font-pixel">{label}</p>
+      <p className="text-xs text-muted-foreground font-pixel">{label}</p>
       <GradeBar score={grade.score} />
     </div>
   );
@@ -147,7 +147,7 @@ function PlayerChip({ label, icon: Icon, player }: { label: string; icon: React.
     <div className="flex-1 p-2 bg-background/60 rounded border border-border/50 opacity-40 min-w-0">
       <div className="flex items-center gap-1 mb-1">
         <Icon className="w-3 h-3 text-muted-foreground" />
-        <p className="text-[9px] font-pixel text-muted-foreground">{label}</p>
+        <p className="text-xs font-pixel text-muted-foreground">{label}</p>
       </div>
       <p className="text-xs text-muted-foreground">—</p>
     </div>
@@ -156,15 +156,15 @@ function PlayerChip({ label, icon: Icon, player }: { label: string; icon: React.
     <div className="flex-1 p-2 bg-background/60 rounded border border-border/50 min-w-0" data-testid={`scouting-player-${label.toLowerCase().replace(/\s+/g, "-")}`}>
       <div className="flex items-center gap-1 mb-1">
         <Icon className="w-3 h-3 text-muted-foreground" />
-        <p className="text-[9px] font-pixel text-muted-foreground">{label}</p>
+        <p className="text-xs font-pixel text-muted-foreground">{label}</p>
       </div>
       <p className="text-xs font-medium truncate leading-tight">{player.name}</p>
       <div className="flex items-center gap-1 mt-0.5">
-        <span className="text-[9px] text-muted-foreground">{player.position} · {player.eligibility}</span>
+        <span className="text-xs text-muted-foreground">{player.position} · {player.eligibility}</span>
       </div>
       <div className="flex items-center justify-between mt-1">
         <StarDots count={player.starRating} />
-        <span className="text-[10px] text-muted-foreground font-mono">{player.overall}</span>
+        <span className="text-xs text-muted-foreground font-mono">{player.overall}</span>
       </div>
     </div>
   );
@@ -185,8 +185,8 @@ function AttrPip({
     <div className="flex flex-col gap-0.5" data-testid={`scouting-attr-${label.toLowerCase()}`}>
       <div className="flex items-center gap-1 min-w-0">
         <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
-        <span className="text-[8px] text-muted-foreground font-pixel truncate flex-1 min-w-0">{label}</span>
-        <span className="text-[8px] font-bold text-foreground ml-auto shrink-0">{value}</span>
+        <span className="text-xs text-muted-foreground font-pixel truncate flex-1 min-w-0">{label}</span>
+        <span className="text-xs font-bold text-foreground ml-auto shrink-0">{value}</span>
       </div>
       <GradeBar score={value} />
     </div>
@@ -211,7 +211,7 @@ export function TeamScoutingPanel({ teamName, info, onClose }: TeamScoutingPanel
     return (
       <div className="bg-card border border-border/60 rounded-lg flex items-center justify-center py-5 gap-3 text-muted-foreground/50">
         <MousePointerClick className="w-4 h-4" />
-        <span className="font-pixel text-[10px]">Click any team to scout it</span>
+        <span className="font-pixel text-xs">Click any team to scout it</span>
       </div>
     );
   }
@@ -227,13 +227,13 @@ export function TeamScoutingPanel({ teamName, info, onClose }: TeamScoutingPanel
     >
       {/* Header row */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border/50 gap-2">
-        <span className="font-pixel text-gold text-[11px] truncate flex-1 min-w-0">{teamName}</span>
+        <span className="font-pixel text-gold text-xs truncate flex-1 min-w-0">{teamName}</span>
         <div className="shrink-0 flex items-center gap-1.5">
           <div className="flex items-center gap-1 border border-gold/40 rounded px-1.5 py-0.5 bg-gold/10">
             <Trophy className="w-2.5 h-2.5 text-gold" />
-            <span className="font-pixel text-[9px] text-gold">#{info.nationalRank}</span>
+            <span className="font-pixel text-xs text-gold">#{info.nationalRank}</span>
           </div>
-          <span className="text-[9px] text-muted-foreground font-pixel">{info.conference}</span>
+          <span className="text-xs text-muted-foreground font-pixel">{info.conference}</span>
           {onClose && (
             <button
               onClick={onClose}
@@ -274,33 +274,33 @@ export function TeamScoutingPanel({ teamName, info, onClose }: TeamScoutingPanel
           <div className="flex flex-col items-center gap-0.5 p-2 bg-background/60 rounded border border-border/50 min-w-[52px]">
             <DollarSign className="w-3.5 h-3.5 text-gold" />
             <p className="text-sm font-bold text-gold leading-none">{nilFormatted}</p>
-            <p className="text-[8px] text-muted-foreground font-pixel">NIL</p>
+            <p className="text-xs text-muted-foreground font-pixel">NIL</p>
           </div>
           <div className="flex flex-col items-center gap-0.5 p-2 bg-background/60 rounded border border-border/50 min-w-[52px]">
             <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-            <p className="text-[10px] font-medium leading-tight truncate w-full text-center">{info.city}</p>
-            <p className="text-[8px] text-muted-foreground">{info.state}</p>
+            <p className="text-xs font-medium leading-tight truncate w-full text-center">{info.city}</p>
+            <p className="text-xs text-muted-foreground">{info.state}</p>
           </div>
           <div className="flex flex-col items-center gap-0.5 p-2 bg-background/60 rounded border border-border/50 min-w-[52px]">
             <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
             <span className={`text-sm font-bold font-pixel leading-none ${gradeColor(info.recruitingAdvantage.grade)}`}>
               {info.recruitingAdvantage.grade}
             </span>
-            <p className="text-[8px] text-muted-foreground font-pixel">Recruit</p>
+            <p className="text-xs text-muted-foreground font-pixel">Recruit</p>
           </div>
           <div className="flex flex-col items-center gap-0.5 p-2 bg-background/60 rounded border border-border/50 min-w-[52px]">
             <Trophy className="w-3.5 h-3.5 text-muted-foreground" />
             <p className="text-sm font-bold text-gold leading-none">
               {rankOrdinal(info.projectedConferenceFinish.rank)}
             </p>
-            <p className="text-[8px] text-muted-foreground">/{info.projectedConferenceFinish.total}</p>
+            <p className="text-xs text-muted-foreground">/{info.projectedConferenceFinish.total}</p>
           </div>
         </div>
       </div>
 
       {/* Program Attributes row */}
       <div className="px-3 pb-2.5 pt-0 border-t border-border/30 mt-0">
-        <p className="font-pixel text-[8px] text-muted-foreground uppercase tracking-wider mb-1.5 pt-2">Program Attributes</p>
+        <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mb-1.5 pt-2">Program Attributes</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-3 gap-y-2" data-testid="scouting-program-attributes">
           <AttrPip icon={Trophy}   iconColor="text-gold"          value={info.prestige}    label="Prestige" />
           <AttrPip icon={Wrench}   iconColor="text-blue-400"      value={info.facilities}  label="Facilities" />

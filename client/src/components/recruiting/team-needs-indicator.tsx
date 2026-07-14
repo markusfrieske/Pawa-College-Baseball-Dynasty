@@ -39,7 +39,7 @@ export function TeamNeedsIndicator({
     <div className="mt-4 pt-4 border-t border-border" data-testid="team-needs-indicator">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <Users className="w-4 h-4 text-gold" />
-        <span className="font-pixel text-[10px] text-gold">NEXT YEAR FORECAST</span>
+        <span className="font-pixel text-xs text-gold">NEXT YEAR FORECAST</span>
         <span className="text-xs text-muted-foreground ml-auto">
           {nextYearRosterSize}/25 players
         </span>
@@ -76,7 +76,7 @@ export function TeamNeedsIndicator({
                 {status === "ok" && <AlertTriangle className="w-3 h-3 text-yellow-500" />}
                 {status === "full" && <CheckCircle className="w-3 h-3 text-green-500" />}
               </div>
-              <p className="font-pixel text-[10px] text-foreground">{pos}</p>
+              <p className="font-pixel text-xs text-foreground">{pos}</p>
               <p className={`text-xs font-bold ${
                 status === "need" ? "text-red-400" : status === "ok" ? "text-yellow-400" : "text-green-400"
               }`}>

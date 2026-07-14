@@ -65,7 +65,7 @@ function AbilityPill({ name }: { name: string }) {
       ? "bg-red-600/20 text-red-400 border-red-600/30"
       : "bg-blue-600/20 text-blue-400 border-blue-600/30";
   return (
-    <Badge variant="outline" className={`text-[8px] px-1 py-0 ${cls}`}>
+    <Badge variant="outline" className={`text-xs px-1 py-0 ${cls}`}>
       {name}
     </Badge>
   );
@@ -118,7 +118,7 @@ function InlineStatCell({
           }
         }}
         onClick={(e) => e.stopPropagation()}
-        className="w-10 h-6 text-[11px] text-center bg-muted/60 border border-gold/50 rounded focus:outline-none focus:border-gold text-foreground"
+        className="w-10 h-6 text-xs text-center bg-muted/60 border border-gold/50 rounded focus:outline-none focus:border-gold text-foreground"
         data-testid={`input-stat-${field}-${playerId}`}
       />
     );
@@ -171,7 +171,7 @@ function AbilitiesToggle({
   return (
     <div className="relative">
       <div
-        className="flex items-center gap-1 border border-border rounded px-1.5 py-0.5 cursor-pointer min-h-[24px] bg-background/50 text-[9px] max-w-[180px]"
+        className="flex items-center gap-1 border border-border rounded px-1.5 py-0.5 cursor-pointer min-h-[24px] bg-background/50 text-xs max-w-[180px]"
         onClick={() => setOpen((v) => !v)}
         data-testid="abilities-toggle-trigger"
       >
@@ -187,7 +187,7 @@ function AbilitiesToggle({
         <div className="absolute z-50 top-full left-0 mt-1 w-56 bg-card border border-border rounded-md shadow-lg max-h-48 overflow-hidden flex flex-col">
           <div className="p-1.5 border-b border-border">
             <input
-              className="w-full h-6 text-[10px] px-2 bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
+              className="w-full h-6 text-xs px-2 bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -202,7 +202,7 @@ function AbilitiesToggle({
               return (
                 <div key={tier}>
                   <div
-                    className={`px-2 py-0.5 text-[8px] font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}
+                    className={`px-2 py-0.5 text-xs font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}
                   >
                     {tier}
                   </div>
@@ -211,7 +211,7 @@ function AbilitiesToggle({
                     return (
                       <div
                         key={ability.name}
-                        className={`flex items-center gap-1.5 px-2 py-1 cursor-pointer text-[10px] hover:bg-muted/30 ${selected ? "bg-muted/20" : ""}`}
+                        className={`flex items-center gap-1.5 px-2 py-1 cursor-pointer text-xs hover:bg-muted/30 ${selected ? "bg-muted/20" : ""}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           toggle(ability.name);
@@ -233,7 +233,7 @@ function AbilitiesToggle({
           </div>
           <div className="p-1 border-t border-border flex justify-end">
             <button
-              className="text-[9px] text-gold hover:text-gold/80 px-2 py-0.5"
+              className="text-xs text-gold hover:text-gold/80 px-2 py-0.5"
               onClick={() => setOpen(false)}
               data-testid="abilities-toggle-done"
             >
@@ -482,7 +482,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                   <RetroButton
                     size="sm"
                     variant="primary"
-                    className="h-7 px-3 text-[10px]"
+                    className="h-7 px-3 text-xs"
                     onClick={saveAllPlayers}
                     disabled={savingAll}
                     loading={savingAll}
@@ -498,28 +498,28 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left px-3 py-2 font-pixel text-[8px] text-muted-foreground uppercase min-w-[160px]">
+                        <th className="text-left px-3 py-2 font-pixel text-xs text-muted-foreground uppercase min-w-[160px]">
                           Player
                         </th>
-                        <th className="px-2 py-2 font-pixel text-[8px] text-muted-foreground uppercase">
+                        <th className="px-2 py-2 font-pixel text-xs text-muted-foreground uppercase">
                           Pos
                         </th>
-                        <th className="px-2 py-2 font-pixel text-[8px] text-muted-foreground uppercase">
+                        <th className="px-2 py-2 font-pixel text-xs text-muted-foreground uppercase">
                           Elig
                         </th>
-                        <th className="px-2 py-2 font-pixel text-[8px] text-muted-foreground uppercase">
+                        <th className="px-2 py-2 font-pixel text-xs text-muted-foreground uppercase">
                           OVR
                         </th>
                         <th
-                          className="px-2 py-2 font-pixel text-[8px] text-muted-foreground uppercase"
+                          className="px-2 py-2 font-pixel text-xs text-muted-foreground uppercase"
                           colSpan={3}
                         >
                           Primary Attrs
                         </th>
-                        <th className="px-2 py-2 font-pixel text-[8px] text-muted-foreground uppercase min-w-[120px]">
+                        <th className="px-2 py-2 font-pixel text-xs text-muted-foreground uppercase min-w-[120px]">
                           Abilities
                         </th>
-                        <th className="px-2 py-2 font-pixel text-[8px] text-muted-foreground uppercase min-w-[80px]"></th>
+                        <th className="px-2 py-2 font-pixel text-xs text-muted-foreground uppercase min-w-[80px]"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50">
@@ -569,7 +569,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                   onValueChange={(v) => updateField(p.id, "position", v)}
                                 >
                                   <SelectTrigger
-                                    className="h-6 text-[10px] px-1 w-14"
+                                    className="h-6 text-xs px-1 w-14"
                                     data-testid={`select-pos-${p.id}`}
                                   >
                                     <SelectValue />
@@ -592,7 +592,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                   onValueChange={(v) => updateField(p.id, "eligibility", v)}
                                 >
                                   <SelectTrigger
-                                    className="h-6 text-[10px] px-1 w-14"
+                                    className="h-6 text-xs px-1 w-14"
                                     data-testid={`select-elig-${p.id}`}
                                   >
                                     <SelectValue />
@@ -632,13 +632,13 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                         onUpdate={(f, v) => updateField(p.id, f, v)}
                                       />
                                       <span
-                                        className={`text-[9px] font-bold ${gradeColor(grade)}`}
+                                        className={`text-xs font-bold ${gradeColor(grade)}`}
                                         data-testid={`grade-primary-${attr.field}-${p.id}`}
                                       >
                                         {grade}
                                       </span>
                                     </div>
-                                    <p className="text-[8px] text-muted-foreground">{attr.label}</p>
+                                    <p className="text-xs text-muted-foreground">{attr.label}</p>
                                   </td>
                                 );
                               })}
@@ -651,7 +651,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                     <AbilityPill key={ab} name={ab} />
                                   ))}
                                   {(ep.abilities ?? []).length > 3 && (
-                                    <span className="text-[8px] text-muted-foreground">
+                                    <span className="text-xs text-muted-foreground">
                                       +{(ep.abilities ?? []).length - 3}
                                     </span>
                                   )}
@@ -667,7 +667,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                       <RetroButton
                                         size="sm"
                                         variant="outline"
-                                        className="h-6 px-1.5 text-[9px]"
+                                        className="h-6 px-1.5 text-xs"
                                         onClick={() => discardEdits(p.id)}
                                         disabled={savingAll}
                                         data-testid={`button-discard-${p.id}`}
@@ -677,7 +677,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                       <RetroButton
                                         size="sm"
                                         variant="primary"
-                                        className="h-6 px-2 text-[9px]"
+                                        className="h-6 px-2 text-xs"
                                         onClick={() => savePlayer(p)}
                                         disabled={savingAll || savingId === p.id}
                                         loading={savingId === p.id}
@@ -701,7 +701,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                   <div className="space-y-3">
                                     {isPit ? (
                                       <div>
-                                        <p className="font-pixel text-[8px] text-gold uppercase mb-1.5">
+                                        <p className="font-pixel text-xs text-gold uppercase mb-1.5">
                                           Pitcher Attributes
                                         </p>
                                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
@@ -731,13 +731,13 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                                     onUpdate={(f, v) => updateField(p.id, f, v)}
                                                   />
                                                   <span
-                                                    className={`text-[9px] font-bold ${gradeColor(grade)}`}
+                                                    className={`text-xs font-bold ${gradeColor(grade)}`}
                                                     data-testid={`grade-${attr.field}-${p.id}`}
                                                   >
                                                     {grade}
                                                   </span>
                                                 </div>
-                                                <p className="text-[8px] text-muted-foreground mt-0.5">
+                                                <p className="text-xs text-muted-foreground mt-0.5">
                                                   {attr.label}
                                                 </p>
                                               </div>
@@ -747,7 +747,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                       </div>
                                     ) : (
                                       <div>
-                                        <p className="font-pixel text-[8px] text-gold uppercase mb-1.5">
+                                        <p className="font-pixel text-xs text-gold uppercase mb-1.5">
                                           Fielder Attributes
                                         </p>
                                         <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
@@ -779,13 +779,13 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                                     onUpdate={(f, v) => updateField(p.id, f, v)}
                                                   />
                                                   <span
-                                                    className={`text-[9px] font-bold ${gradeColor(grade)}`}
+                                                    className={`text-xs font-bold ${gradeColor(grade)}`}
                                                     data-testid={`grade-${attr.field}-${p.id}`}
                                                   >
                                                     {grade}
                                                   </span>
                                                 </div>
-                                                <p className="text-[8px] text-muted-foreground mt-0.5">
+                                                <p className="text-xs text-muted-foreground mt-0.5">
                                                   {attr.label}
                                                 </p>
                                               </div>
@@ -796,7 +796,7 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                     )}
 
                                     <div>
-                                      <p className="font-pixel text-[8px] text-gold uppercase mb-1.5">
+                                      <p className="font-pixel text-xs text-gold uppercase mb-1.5">
                                         Special Abilities
                                       </p>
                                       <AbilitiesToggle
@@ -831,11 +831,11 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                             data-testid={`button-history-toggle-${p.id}`}
                                           >
                                             <History className="w-3 h-3 text-muted-foreground" />
-                                            <span className="font-pixel text-[8px] text-muted-foreground uppercase group-hover:text-foreground transition-colors">
+                                            <span className="font-pixel text-xs text-muted-foreground uppercase group-hover:text-foreground transition-colors">
                                               Edit History
                                             </span>
                                             {playerHistory.length > 0 && (
-                                              <span className="text-[8px] bg-muted/50 text-muted-foreground rounded px-1 ml-0.5">
+                                              <span className="text-xs bg-muted/50 text-muted-foreground rounded px-1 ml-0.5">
                                                 {playerHistory.length}
                                               </span>
                                             )}
@@ -852,14 +852,14 @@ export function RosterEditorTab({ leagueId, auditLogs = [] }: RosterEditorTabPro
                                               data-testid={`history-panel-${p.id}`}
                                             >
                                               {playerHistory.length === 0 ? (
-                                                <p className="text-[10px] text-muted-foreground/60 pl-5">
+                                                <p className="text-xs text-muted-foreground/60 pl-5">
                                                   No edit history yet.
                                                 </p>
                                               ) : (
                                                 playerHistory.map((log) => (
                                                   <div
                                                     key={log.id}
-                                                    className="pl-5 text-[10px] text-muted-foreground"
+                                                    className="pl-5 text-xs text-muted-foreground"
                                                   >
                                                     <span className="text-foreground/70">
                                                       {log.details}

@@ -211,7 +211,7 @@ export function SettingsTab({
                       title={opt.description}
                     >
                       <div className="font-medium text-xs">{opt.label}</div>
-                      <div className="text-[10px] opacity-60 mt-0.5 leading-tight hidden sm:block">
+                      <div className="text-xs opacity-60 mt-0.5 leading-tight hidden sm:block">
                         {opt.description}
                       </div>
                     </button>
@@ -303,18 +303,18 @@ export function SettingsTab({
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium truncate">{coachName}</p>
                           {coach.abbreviation && (
-                            <span className="font-pixel text-[9px] text-gold shrink-0">
+                            <span className="font-pixel text-xs text-gold shrink-0">
                               {coach.abbreviation}
                             </span>
                           )}
                           {coach.isAutoPilot && (
-                            <Badge className="text-[8px] bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0 px-1">
+                            <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0 px-1">
                               AUTO-PILOT
                             </Badge>
                           )}
                         </div>
                         {coach.archetype && (
-                          <p className="text-[10px] text-muted-foreground/70 truncate">
+                          <p className="text-xs text-muted-foreground/70 truncate">
                             {coach.archetype}
                           </p>
                         )}
@@ -421,19 +421,19 @@ export function SettingsTab({
                           {coach.firstName} {coach.lastName}
                         </p>
                         {coach.archetype && (
-                          <p className="text-[10px] text-muted-foreground/70 truncate">
+                          <p className="text-xs text-muted-foreground/70 truncate">
                             {coach.archetype}
                           </p>
                         )}
                         <p className="text-xs text-muted-foreground truncate">{coach.email}</p>
                       </div>
                       {isPrimary && (
-                        <Badge className="text-[8px] bg-gold/20 text-gold border-gold/40 shrink-0">
+                        <Badge className="text-xs bg-gold/20 text-gold border-gold/40 shrink-0">
                           COMMISSIONER
                         </Badge>
                       )}
                       {isDelegate && !isPrimary && (
-                        <Badge className="text-[8px] bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0">
+                        <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0">
                           DELEGATE
                         </Badge>
                       )}

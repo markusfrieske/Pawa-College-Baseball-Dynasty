@@ -67,13 +67,13 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
           Power Rankings
         </div>
       </RetroCardHeader>
-      <p className="text-[10px] text-muted-foreground mb-4">
+      <p className="text-xs text-muted-foreground mb-4">
         Avg OVR of full roster (150–650 scale). Hitters and Pitchers show position-group avg OVR. Click a rival to compare.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
+            <tr className="border-b border-border text-muted-foreground font-pixel text-xs">
               <th className="text-left py-2 px-2">#</th>
               <th className="text-left py-2 px-2">Team</th>
               <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("avgOvr")}>Avg OVR{sortArrow("avgOvr")}</th>
@@ -106,7 +106,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                         </span>
                         {entry.rankDelta != null && entry.rankDelta !== 0 && (
                           <span
-                            className={`font-pixel text-[8px] leading-none ${entry.rankDelta > 0 ? "text-green-400" : "text-red-400"}`}
+                            className={`font-pixel text-xs leading-none ${entry.rankDelta > 0 ? "text-green-400" : "text-red-400"}`}
                             title={`${entry.rankDelta > 0 ? "+" : ""}${entry.rankDelta} since last week`}
                             data-testid={`rank-delta-${entry.teamId}`}
                           >
@@ -114,7 +114,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                           </span>
                         )}
                         {entry.rankDelta === 0 && (
-                          <span className="font-pixel text-[8px] text-muted-foreground/50" title="No change">—</span>
+                          <span className="font-pixel text-xs text-muted-foreground/50" title="No change">—</span>
                         )}
                       </div>
                     </td>
@@ -135,7 +135,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                             </span>
                           </Link>
                           {isUser && (
-                            <span className="ml-1.5 text-[9px] font-pixel text-gold/70">YOU</span>
+                            <span className="ml-1.5 text-xs font-pixel text-gold/70">YOU</span>
                           )}
                         </div>
                       </div>
@@ -145,7 +145,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-sm ${gradeColor(ovrGrade)}`}>{ovrGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.avgOvr}</span>
+                            <span className="text-xs text-muted-foreground">{entry.avgOvr}</span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>{percentileLabel(entry.ovrPercentile)} overall (avg OVR)</TooltipContent>
@@ -156,7 +156,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-xs ${gradeColor(hitGrade)}`}>{hitGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.hitterAvgOvr}</span>
+                            <span className="text-xs text-muted-foreground">{entry.hitterAvgOvr}</span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>{percentileLabel(entry.hitterPercentile)} in Hitters (avg OVR of position players)</TooltipContent>
@@ -167,7 +167,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-xs ${gradeColor(pitchGrade)}`}>{pitchGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.pitcherAvgOvr}</span>
+                            <span className="text-xs text-muted-foreground">{entry.pitcherAvgOvr}</span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>{percentileLabel(entry.pitcherPercentile)} in Pitchers (avg OVR of pitching staff)</TooltipContent>
@@ -178,7 +178,7 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-xs ${gradeColor(recruGrade)}`}>{entry.hasSignedRecruits ? recruGrade : "—"}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.hasSignedRecruits ? entry.recruitingScore : "—"}</span>
+                            <span className="text-xs text-muted-foreground">{entry.hasSignedRecruits ? entry.recruitingScore : "—"}</span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>{entry.hasSignedRecruits ? `${percentileLabel(entry.recruitingPercentile)} in Recruiting (avg OVR of signed class)` : "No signed recruits yet"}</TooltipContent>
@@ -223,11 +223,11 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <TeamBadge abbreviation={userEntry.abbreviation} primaryColor={userEntry.primaryColor} secondaryColor={userEntry.secondaryColor} name={userEntry.teamName} size="sm" />
-          <span className="font-pixel text-gold text-[9px]">YOU</span>
+          <span className="font-pixel text-gold text-xs">YOU</span>
         </div>
-        <span className="font-pixel text-[9px] text-muted-foreground">HEAD-TO-HEAD</span>
+        <span className="font-pixel text-xs text-muted-foreground">HEAD-TO-HEAD</span>
         <div className="flex items-center gap-2">
-          <span className="font-pixel text-[9px] text-foreground">{rivalEntry.teamName}</span>
+          <span className="font-pixel text-xs text-foreground">{rivalEntry.teamName}</span>
           <TeamBadge abbreviation={rivalEntry.abbreviation} primaryColor={rivalEntry.primaryColor} secondaryColor={rivalEntry.secondaryColor} name={rivalEntry.teamName} size="sm" />
         </div>
       </div>
@@ -242,7 +242,7 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
 
         return (
           <div key={label} className="space-y-1" data-testid={`compare-row-${label.replace(/\s/g, "-").toLowerCase()}`}>
-            <div className="flex justify-between text-[9px] text-muted-foreground">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span className={userWins ? "text-green-400 font-semibold" : ""}>{userVal}</span>
               <span>{label}</span>
               <span className={rivalWins ? "text-green-400 font-semibold" : ""}>{rivalVal}</span>
@@ -263,7 +263,7 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
               </div>
             </div>
             {delta !== 0 && (
-              <p className="text-[9px] text-center">
+              <p className="text-xs text-center">
                 <span className={delta > 0 ? "text-green-400" : "text-red-400"}>
                   {delta > 0 ? `+${delta}` : delta} advantage for {delta > 0 ? "you" : rivalEntry.teamName}
                 </span>
@@ -274,7 +274,7 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
       })}
 
       <div className="pt-2 border-t border-border/50">
-        <div className="flex justify-between text-[9px]">
+        <div className="flex justify-between text-xs">
           <span className={userEntry.avgOvr >= rivalEntry.avgOvr ? "text-gold font-semibold" : "text-muted-foreground"}>
             Avg OVR: {userEntry.avgOvr} (#{userEntry.rank})
           </span>

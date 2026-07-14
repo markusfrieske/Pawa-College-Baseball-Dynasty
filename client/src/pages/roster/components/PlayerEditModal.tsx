@@ -197,7 +197,7 @@ export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: Pla
                   </select>
                 </div>
               </div>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Appearance</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Appearance</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Skin Tone</label>
@@ -275,7 +275,7 @@ export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: Pla
             <>
               {isPlayerPitcher ? (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">Velocity</label>
@@ -293,7 +293,7 @@ export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: Pla
                 </>
               ) : (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Fielder Attributes (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">Contact</label>
@@ -329,7 +329,7 @@ export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: Pla
             <>
               {isPlayerPitcher ? (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">W/RISP</label>
@@ -363,7 +363,7 @@ export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: Pla
                 </>
               ) : (
                 <>
-                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
+                  <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground">Clutch</label>
@@ -407,7 +407,7 @@ export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: Pla
 
           {activeTab === "abilities" && (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Special Abilities</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Special Abilities</h4>
               <div className="text-xs text-muted-foreground mb-2">
                 Enter ability IDs separated by commas (e.g., explosive_fb, quick_hands)
               </div>

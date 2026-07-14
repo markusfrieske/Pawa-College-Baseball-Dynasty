@@ -656,11 +656,11 @@ export default function PlayByPlayPage() {
           {pbpData.gameInfo && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="w-3 h-3" />
-              <span className="text-[10px]" data-testid="text-venue">{pbpData.gameInfo.venue}</span>
-              <span className="text-[10px] text-gold">|</span>
-              <span className="text-[10px]" data-testid="text-week">Wk {pbpData.gameInfo.week}</span>
-              <span className="text-[10px] text-gold">|</span>
-              <span className="text-[10px]" data-testid="text-game-type">{pbpData.gameInfo.gameTypeLabel}</span>
+              <span className="text-xs" data-testid="text-venue">{pbpData.gameInfo.venue}</span>
+              <span className="text-xs text-gold">|</span>
+              <span className="text-xs" data-testid="text-week">Wk {pbpData.gameInfo.week}</span>
+              <span className="text-xs text-gold">|</span>
+              <span className="text-xs" data-testid="text-game-type">{pbpData.gameInfo.gameTypeLabel}</span>
             </div>
           )}
         </div>
@@ -673,9 +673,9 @@ export default function PlayByPlayPage() {
             <div className="flex items-center gap-2 mb-3 px-1">
               <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} size="sm" />
               <div className="min-w-0 flex-1">
-                <span className="text-[11px] text-foreground truncate block">{pbpData.awayTeam.name}</span>
+                <span className="text-xs text-foreground truncate block">{pbpData.awayTeam.name}</span>
                 {awayRecord && (
-                  <span className="text-[9px] text-muted-foreground">({awayRecord.wins}-{awayRecord.losses})</span>
+                  <span className="text-xs text-muted-foreground">({awayRecord.wins}-{awayRecord.losses})</span>
                 )}
               </div>
             </div>
@@ -693,23 +693,23 @@ export default function PlayByPlayPage() {
                     }`}
                     data-testid={`away-lineup-${i}`}
                   >
-                    <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                    <span className={`w-4 text-center text-xs ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
                     <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} eyeStyle={p.eyeStyle || undefined} eyebrowStyle={p.eyebrowStyle || undefined} mouthStyle={p.mouthStyle || undefined} eyeBlack={p.eyeBlack ?? undefined} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
-                    <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
-                    <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
+                    <span className={`${positionColor(p.position)} text-white text-xs px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
+                    <span className={`text-xs truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
                       <Star className={`w-2.5 h-2.5 fill-current ${starColor(stars)}`} />
-                      <span className="text-[8px] text-muted-foreground">{p.overall || 300}</span>
+                      <span className="text-xs text-muted-foreground">{p.overall || 300}</span>
                     </div>
                   </div>
                 );
               })}
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1">
-                  <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
+                  <span className="w-4 text-center text-xs text-muted-foreground">P</span>
                   <PlayerAvatar skinTone={pbpData.awayPitcher.skinTone} hairColor={pbpData.awayPitcher.hairColor} hairStyle={pbpData.awayPitcher.hairStyle} facialHair={pbpData.awayPitcher.facialHair || "none"} eyeStyle={pbpData.awayPitcher.eyeStyle || undefined} eyebrowStyle={pbpData.awayPitcher.eyebrowStyle || undefined} mouthStyle={pbpData.awayPitcher.mouthStyle || undefined} eyeBlack={pbpData.awayPitcher.eyeBlack ?? undefined} playerId={pbpData.awayPitcher.id} headwear={pbpData.awayPitcher.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
-                  <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
-                  <span className="text-[10px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
+                  <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
+                  <span className="text-xs text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
                 </div>
               </div>
             </div>
@@ -720,14 +720,14 @@ export default function PlayByPlayPage() {
               <div className="flex items-center gap-3 lg:gap-5">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} size="lg" />
                 <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] text-muted-foreground uppercase">{pbpData.awayTeam.abbreviation}</span>
-                  {awayRecord && <span className="text-[8px] text-muted-foreground mb-1">({awayRecord.wins}-{awayRecord.losses})</span>}
+                  <span className="text-xs text-muted-foreground uppercase">{pbpData.awayTeam.abbreviation}</span>
+                  {awayRecord && <span className="text-xs text-muted-foreground mb-1">({awayRecord.wins}-{awayRecord.losses})</span>}
                   <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-110 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
                 </div>
               </div>
               <div className="flex flex-col items-center gap-1">
                 {gameOver ? (
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[11px]">FINAL</Badge>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">FINAL</Badge>
                 ) : (
                   <div className="flex flex-col items-center">
                     <span className="text-xl text-gold" data-testid="inning-display">
@@ -738,8 +738,8 @@ export default function PlayByPlayPage() {
               </div>
               <div className="flex items-center gap-3 lg:gap-5">
                 <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-[10px] text-muted-foreground uppercase">{pbpData.homeTeam.abbreviation}</span>
-                  {homeRecord && <span className="text-[8px] text-muted-foreground mb-1">({homeRecord.wins}-{homeRecord.losses})</span>}
+                  <span className="text-xs text-muted-foreground uppercase">{pbpData.homeTeam.abbreviation}</span>
+                  {homeRecord && <span className="text-xs text-muted-foreground mb-1">({homeRecord.wins}-{homeRecord.losses})</span>}
                   <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-110 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
                 </div>
                 <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} size="lg" />
@@ -805,7 +805,7 @@ export default function PlayByPlayPage() {
 
                       <div className="border border-border rounded bg-card/80 px-3 py-2.5 flex flex-col gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-green-400 w-3">B</span>
+                          <span className="text-xs text-green-400 w-3">B</span>
                           <div className="flex gap-1.5">
                             {[0, 1, 2, 3].map(i => (
                               <div key={`b${i}`} className={`w-4 h-4 rounded-full border ${i < pitchBalls ? "bg-green-400 border-green-500" : "border-border bg-muted/30"}`} />
@@ -813,7 +813,7 @@ export default function PlayByPlayPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-yellow-400 w-3">S</span>
+                          <span className="text-xs text-yellow-400 w-3">S</span>
                           <div className="flex gap-1.5">
                             {[0, 1, 2].map(i => (
                               <div key={`s${i}`} className={`w-4 h-4 rounded-full border ${i < pitchStrikes ? "bg-yellow-400 border-yellow-500" : "border-border bg-muted/30"}`} />
@@ -821,7 +821,7 @@ export default function PlayByPlayPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-red-400 w-3">O</span>
+                          <span className="text-xs text-red-400 w-3">O</span>
                           <div className="flex gap-1.5">
                             {[0, 1, 2].map(i => (
                               <div key={`o${i}`} className={`w-4 h-4 rounded-full border ${i < currentOuts ? "bg-red-400 border-red-500" : "border-border bg-muted/30"}`} />
@@ -849,21 +849,21 @@ export default function PlayByPlayPage() {
                             jerseyColor={battingTeam.primaryColor}
                             className="w-7 h-7 shrink-0"
                           />
-                          <span className={`${positionColor(currentLineup[currentAtBat.batterIndex]?.position ?? "")} text-white text-[9px] px-1.5 py-0.5 rounded leading-none`}>{currentLineup[currentAtBat.batterIndex]?.position}</span>
+                          <span className={`${positionColor(currentLineup[currentAtBat.batterIndex]?.position ?? "")} text-white text-xs px-1.5 py-0.5 rounded leading-none`}>{currentLineup[currentAtBat.batterIndex]?.position}</span>
                           <span className="text-sm text-gold truncate max-w-[180px]">{currentAtBat.batterName}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
+                        <span className="text-xs text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
                       </div>
                     )}
 
                     {displayedDescription && (
                       <div className="bg-card/80 border border-border rounded px-4 py-2 max-w-sm text-center" data-testid="play-description">
-                        <p className="text-[11px] text-foreground">{displayedDescription}</p>
+                        <p className="text-xs text-foreground">{displayedDescription}</p>
                       </div>
                     )}
 
                     <div className="overflow-x-auto max-w-sm w-full mt-1">
-                      <table className="w-full text-[10px]" data-testid="linescore-table">
+                      <table className="w-full text-xs" data-testid="linescore-table">
                         <thead>
                           <tr className="border-b border-border">
                             <th className="text-left px-2 py-1 text-muted-foreground w-14">TEAM</th>
@@ -1018,9 +1018,9 @@ export default function PlayByPlayPage() {
             <div className="flex items-center gap-2 mb-3 px-1">
               <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} size="sm" />
               <div className="min-w-0 flex-1">
-                <span className="text-[11px] text-foreground truncate block">{pbpData.homeTeam.name}</span>
+                <span className="text-xs text-foreground truncate block">{pbpData.homeTeam.name}</span>
                 {homeRecord && (
-                  <span className="text-[9px] text-muted-foreground">({homeRecord.wins}-{homeRecord.losses})</span>
+                  <span className="text-xs text-muted-foreground">({homeRecord.wins}-{homeRecord.losses})</span>
                 )}
               </div>
             </div>
@@ -1038,35 +1038,35 @@ export default function PlayByPlayPage() {
                     }`}
                     data-testid={`home-lineup-${i}`}
                   >
-                    <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                    <span className={`w-4 text-center text-xs ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
                     <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} eyeStyle={p.eyeStyle || undefined} eyebrowStyle={p.eyebrowStyle || undefined} mouthStyle={p.mouthStyle || undefined} eyeBlack={p.eyeBlack ?? undefined} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
-                    <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
-                    <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
+                    <span className={`${positionColor(p.position)} text-white text-xs px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
+                    <span className={`text-xs truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
                       <Star className={`w-2.5 h-2.5 fill-current ${starColor(stars)}`} />
-                      <span className="text-[8px] text-muted-foreground">{p.overall || 300}</span>
+                      <span className="text-xs text-muted-foreground">{p.overall || 300}</span>
                     </div>
                   </div>
                 );
               })}
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1">
-                  <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
+                  <span className="w-4 text-center text-xs text-muted-foreground">P</span>
                   <PlayerAvatar skinTone={pbpData.homePitcher.skinTone} hairColor={pbpData.homePitcher.hairColor} hairStyle={pbpData.homePitcher.hairStyle} facialHair={pbpData.homePitcher.facialHair || "none"} eyeStyle={pbpData.homePitcher.eyeStyle || undefined} eyebrowStyle={pbpData.homePitcher.eyebrowStyle || undefined} mouthStyle={pbpData.homePitcher.mouthStyle || undefined} eyeBlack={pbpData.homePitcher.eyeBlack ?? undefined} playerId={pbpData.homePitcher.id} headwear={pbpData.homePitcher.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
-                  <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
-                  <span className="text-[10px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
+                  <span className="bg-red-500 text-white text-xs px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
+                  <span className="text-xs text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
                 </div>
               </div>
             </div>
 
             {pbpData.conferenceStandings && pbpData.conferenceStandings.length > 0 && (
               <div className="mt-4 pt-3 border-t border-border">
-                <span className="text-[9px] text-gold mb-2 block" data-testid="text-conference-name">{pbpData.conferenceInfo?.homeName || "Conference"}</span>
+                <span className="text-xs text-gold mb-2 block" data-testid="text-conference-name">{pbpData.conferenceInfo?.homeName || "Conference"}</span>
                 <div className="space-y-0.5" data-testid="conference-standings">
                   {pbpData.conferenceStandings.slice(0, 8).map((s) => {
                     const isPlaying = s.teamId === pbpData.homeTeam.id || s.teamId === pbpData.awayTeam.id;
                     return (
-                      <div key={s.teamId} className={`flex items-center gap-1 text-[8px] px-1 py-0.5 rounded ${isPlaying ? "text-gold" : "text-muted-foreground"}`} data-testid={`standing-${s.abbreviation}`}>
+                      <div key={s.teamId} className={`flex items-center gap-1 text-xs px-1 py-0.5 rounded ${isPlaying ? "text-gold" : "text-muted-foreground"}`} data-testid={`standing-${s.abbreviation}`}>
                         <span className="w-8 truncate">{s.abbreviation}</span>
                         <span className="flex-1 text-right">{s.confWins}-{s.confLosses}</span>
                         <span className="text-muted-foreground/50 ml-1">({s.wins}-{s.losses})</span>
@@ -1084,17 +1084,17 @@ export default function PlayByPlayPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} size="sm" />
-                <span className="text-[7px] truncate">{pbpData.awayTeam.abbreviation}</span>
+                <span className="text-xs truncate">{pbpData.awayTeam.abbreviation}</span>
               </div>
               <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
                 {pbpData.awayLineup.slice(0, 9).map((p, i) => {
                   const isActive = currentHalf === "top" && currentAtBat?.batterIndex === i;
                   return (
-                    <span key={p.playerId} className={`text-[8px] flex items-center gap-0.5 ${
+                    <span key={p.playerId} className={`text-xs flex items-center gap-0.5 ${
                       isActive ? "text-gold font-bold" : "text-muted-foreground"
                     }`}>
                       {i + 1}.
-                      <span className={`${positionColor(p.position)} text-white text-[6px] px-0.5 rounded leading-none`}>{p.position}</span>
+                      <span className={`${positionColor(p.position)} text-white text-xs px-0.5 rounded leading-none`}>{p.position}</span>
                       {p.lastName}
                     </span>
                   );
@@ -1104,17 +1104,17 @@ export default function PlayByPlayPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
                 <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} size="sm" />
-                <span className="text-[7px] truncate">{pbpData.homeTeam.abbreviation}</span>
+                <span className="text-xs truncate">{pbpData.homeTeam.abbreviation}</span>
               </div>
               <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
                 {pbpData.homeLineup.slice(0, 9).map((p, i) => {
                   const isActive = currentHalf === "bottom" && currentAtBat?.batterIndex === i;
                   return (
-                    <span key={p.playerId} className={`text-[8px] flex items-center gap-0.5 ${
+                    <span key={p.playerId} className={`text-xs flex items-center gap-0.5 ${
                       isActive ? "text-gold font-bold" : "text-muted-foreground"
                     }`}>
                       {i + 1}.
-                      <span className={`${positionColor(p.position)} text-white text-[6px] px-0.5 rounded leading-none`}>{p.position}</span>
+                      <span className={`${positionColor(p.position)} text-white text-xs px-0.5 rounded leading-none`}>{p.position}</span>
                       {p.lastName}
                     </span>
                   );
@@ -1148,14 +1148,14 @@ export default function PlayByPlayPage() {
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[9px] shrink-0">{statsModalPlayer.position}</Badge>
+                      <Badge variant="outline" className="text-xs shrink-0">{statsModalPlayer.position}</Badge>
                       <span className="text-sm truncate">{statsModalPlayer.name}</span>
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
                       <TeamBadge abbreviation={statsModalPlayer.team.abbreviation} primaryColor={statsModalPlayer.team.primaryColor} secondaryColor={statsModalPlayer.team.secondaryColor} name={statsModalPlayer.team.name} size="sm" />
-                      <span className="text-[10px] text-muted-foreground">{statsModalPlayer.team.name}</span>
+                      <span className="text-xs text-muted-foreground">{statsModalPlayer.team.name}</span>
                       {statsModalPlayer.overall && (
-                        <span className="text-[10px] text-muted-foreground ml-1">OVR {statsModalPlayer.overall}</span>
+                        <span className="text-xs text-muted-foreground ml-1">OVR {statsModalPlayer.overall}</span>
                       )}
                     </div>
                   </div>
@@ -1164,17 +1164,17 @@ export default function PlayByPlayPage() {
 
               {statsModalPlayer.gameStats && (
                 <div className="border border-border rounded p-3 bg-background/50">
-                  <h4 className="text-[10px] text-gold mb-2">TODAY'S GAME</h4>
+                  <h4 className="text-xs text-gold mb-2">TODAY'S GAME</h4>
                   {statsModalPlayer.type === "batter" ? (
                     <div className="grid grid-cols-4 gap-2">
                       {[["AB", "ab"], ["H", "h"], ["HR", "hr"], ["RBI", "rbi"], ["BB", "bb"], ["SO", "so"]].map(([label, key]) => (
                         <div key={key} className="text-center">
-                          <div className="text-[9px] text-muted-foreground">{label}</div>
+                          <div className="text-xs text-muted-foreground">{label}</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.gameStats![key]}</div>
                         </div>
                       ))}
                       <div className="text-center">
-                        <div className="text-[9px] text-muted-foreground">AVG</div>
+                        <div className="text-xs text-muted-foreground">AVG</div>
                         <div className="text-sm text-gold">
                           {Number(statsModalPlayer.gameStats!.ab) > 0
                             ? (Number(statsModalPlayer.gameStats!.h) / Number(statsModalPlayer.gameStats!.ab)).toFixed(3)
@@ -1186,7 +1186,7 @@ export default function PlayByPlayPage() {
                     <div className="grid grid-cols-4 gap-2">
                       {[["IP", "ip"], ["H", "h"], ["R", "r"], ["ER", "er"], ["BB", "bb"], ["SO", "so"]].map(([label, key]) => (
                         <div key={key} className="text-center">
-                          <div className="text-[9px] text-muted-foreground">{label}</div>
+                          <div className="text-xs text-muted-foreground">{label}</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.gameStats![key]}</div>
                         </div>
                       ))}
@@ -1197,52 +1197,52 @@ export default function PlayByPlayPage() {
 
               {statsModalPlayer.seasonStats ? (
                 <div className="border border-border rounded p-3 bg-background/50">
-                  <h4 className="text-[10px] text-gold mb-2">SEASON STATS</h4>
+                  <h4 className="text-xs text-gold mb-2">SEASON STATS</h4>
                   {statsModalPlayer.type === "batter" ? (
                     <div className="space-y-3">
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">G</div>
+                          <div className="text-xs text-muted-foreground">G</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.games}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">AB</div>
+                          <div className="text-xs text-muted-foreground">AB</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.ab}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">AVG</div>
+                          <div className="text-xs text-muted-foreground">AVG</div>
                           <div className="text-sm text-gold font-bold">{statsModalPlayer.seasonStats.avg}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">R</div>
+                          <div className="text-xs text-muted-foreground">R</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.r}</div>
                         </div>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">H</div>
+                          <div className="text-xs text-muted-foreground">H</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.h}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">HR</div>
+                          <div className="text-xs text-muted-foreground">HR</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.hr}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">RBI</div>
+                          <div className="text-xs text-muted-foreground">RBI</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.rbi}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">BB</div>
+                          <div className="text-xs text-muted-foreground">BB</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.bb}</div>
                         </div>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">SO</div>
+                          <div className="text-xs text-muted-foreground">SO</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.so}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">OBP</div>
+                          <div className="text-xs text-muted-foreground">OBP</div>
                           <div className="text-sm text-foreground">
                             {(statsModalPlayer.seasonStats.ab + statsModalPlayer.seasonStats.bb) > 0
                               ? ((statsModalPlayer.seasonStats.h + statsModalPlayer.seasonStats.bb) / (statsModalPlayer.seasonStats.ab + statsModalPlayer.seasonStats.bb)).toFixed(3)
@@ -1250,7 +1250,7 @@ export default function PlayByPlayPage() {
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">SLG</div>
+                          <div className="text-xs text-muted-foreground">SLG</div>
                           <div className="text-sm text-foreground">
                             {statsModalPlayer.seasonStats.ab > 0
                               ? (((statsModalPlayer.seasonStats.h - statsModalPlayer.seasonStats.hr) + statsModalPlayer.seasonStats.hr * 4) / statsModalPlayer.seasonStats.ab).toFixed(3)
@@ -1263,37 +1263,37 @@ export default function PlayByPlayPage() {
                     <div className="space-y-3">
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">G</div>
+                          <div className="text-xs text-muted-foreground">G</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pitchingGames}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">W</div>
+                          <div className="text-xs text-muted-foreground">W</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.wins}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">L</div>
+                          <div className="text-xs text-muted-foreground">L</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.losses}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">ERA</div>
+                          <div className="text-xs text-muted-foreground">ERA</div>
                           <div className="text-sm text-gold font-bold">{statsModalPlayer.seasonStats.era}</div>
                         </div>
                       </div>
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">IP</div>
+                          <div className="text-xs text-muted-foreground">IP</div>
                           <div className="text-sm text-foreground">{(statsModalPlayer.seasonStats.ipOuts / 3).toFixed(1)}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">H</div>
+                          <div className="text-xs text-muted-foreground">H</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pHits}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">ER</div>
+                          <div className="text-xs text-muted-foreground">ER</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pEr}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">WHIP</div>
+                          <div className="text-xs text-muted-foreground">WHIP</div>
                           <div className="text-sm text-foreground">
                             {statsModalPlayer.seasonStats.ipOuts > 0
                               ? (((statsModalPlayer.seasonStats.pHits + statsModalPlayer.seasonStats.pBb) * 3) / statsModalPlayer.seasonStats.ipOuts).toFixed(2)
@@ -1303,15 +1303,15 @@ export default function PlayByPlayPage() {
                       </div>
                       <div className="grid grid-cols-4 gap-2">
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">K</div>
+                          <div className="text-xs text-muted-foreground">K</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pSo}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">BB</div>
+                          <div className="text-xs text-muted-foreground">BB</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pBb}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">K/BB</div>
+                          <div className="text-xs text-muted-foreground">K/BB</div>
                           <div className="text-sm text-foreground">
                             {statsModalPlayer.seasonStats.pBb > 0
                               ? (statsModalPlayer.seasonStats.pSo / statsModalPlayer.seasonStats.pBb).toFixed(2)
@@ -1319,7 +1319,7 @@ export default function PlayByPlayPage() {
                           </div>
                         </div>
                         <div className="text-center">
-                          <div className="text-[9px] text-muted-foreground">K/9</div>
+                          <div className="text-xs text-muted-foreground">K/9</div>
                           <div className="text-sm text-foreground">
                             {statsModalPlayer.seasonStats.ipOuts > 0
                               ? ((statsModalPlayer.seasonStats.pSo * 27) / statsModalPlayer.seasonStats.ipOuts).toFixed(1)
@@ -1332,7 +1332,7 @@ export default function PlayByPlayPage() {
                 </div>
               ) : (
                 <div className="border border-border rounded p-3 bg-background/50 text-center">
-                  <span className="text-[10px] text-muted-foreground">No season stats available</span>
+                  <span className="text-xs text-muted-foreground">No season stats available</span>
                 </div>
               )}
 
@@ -1439,13 +1439,13 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <Badge variant="outline" className="text-[9px] font-pixel shrink-0">{position}</Badge>
-            <span className="font-pixel text-[9px] text-gold truncate max-w-[150px]">{name}</span>
+            <Badge variant="outline" className="text-xs font-pixel shrink-0">{position}</Badge>
+            <span className="font-pixel text-xs text-gold truncate max-w-[150px]">{name}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[9px] text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
+            <span className="text-xs text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
             {overall && (
-              <span className="text-[9px] font-pixel text-muted-foreground flex items-center gap-0.5">
+              <span className="text-xs font-pixel text-muted-foreground flex items-center gap-0.5">
                 OVR {overall}
                 <span className="flex">
                   {Array.from({ length: stars }).map((_, i) => (
@@ -1461,7 +1461,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-2">
         {statLabels.map(([key, label]) => (
           <div key={key} className="flex items-center justify-between gap-1">
-            <span className="text-[10px] font-pixel text-muted-foreground">{label}</span>
+            <span className="text-xs font-pixel text-muted-foreground">{label}</span>
             <div className="flex items-center gap-1 flex-1">
               <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
                 <div
@@ -1469,7 +1469,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
                   style={{ width: `${Math.min(100, (stats[key] ?? 0))}%` }}
                 />
               </div>
-              <span className={`text-[11px] font-pixel w-6 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
+              <span className={`text-xs font-pixel w-6 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
             </div>
           </div>
         ))}
@@ -1477,24 +1477,24 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
 
       {hasGameAction && gameStats && (
         <div className="border-t border-border/50 pt-2 mt-1">
-          <span className="text-[8px] text-muted-foreground font-pixel block mb-1">TODAY</span>
+          <span className="text-xs text-muted-foreground font-pixel block mb-1">TODAY</span>
           <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
             {type === "batter" ? (
               <>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
               </>
             ) : (
               <>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
               </>
             )}
           </div>
@@ -1503,23 +1503,23 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
 
       {seasonStats && (
         <div className="border-t border-border/50 pt-2 mt-1">
-          <span className="text-[8px] text-muted-foreground font-pixel block mb-1">SEASON</span>
+          <span className="text-xs text-muted-foreground font-pixel block mb-1">SEASON</span>
           <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
             {type === "batter" ? (
               <>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">AVG:</span> <span className="text-gold">{seasonStats.avg}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{seasonStats.hr}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{seasonStats.rbi}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{seasonStats.h}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.games}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">AVG:</span> <span className="text-gold">{seasonStats.avg}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{seasonStats.hr}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{seasonStats.rbi}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{seasonStats.h}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.games}</span></span>
               </>
             ) : (
               <>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">ERA:</span> <span className="text-gold">{seasonStats.era}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">W-L:</span> <span className="text-foreground">{seasonStats.wins}-{seasonStats.losses}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{seasonStats.pSo}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{seasonStats.pBb}</span></span>
-                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.pitchingGames}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">ERA:</span> <span className="text-gold">{seasonStats.era}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">W-L:</span> <span className="text-foreground">{seasonStats.wins}-{seasonStats.losses}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{seasonStats.pSo}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{seasonStats.pBb}</span></span>
+                <span className="text-xs font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.pitchingGames}</span></span>
               </>
             )}
           </div>
@@ -1570,7 +1570,7 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
   return (
     <div className="space-y-6 font-pixel" data-testid="box-score-view">
       <div className="overflow-x-auto">
-        <table className="w-full text-[10px] border border-border">
+        <table className="w-full text-xs border border-border">
           <thead>
             <tr className="border-b border-border bg-card">
               <th className="text-left px-3 py-2 text-muted-foreground">TEAM</th>
@@ -1607,21 +1607,21 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
 
       <div className="grid lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-[11px] text-gold mb-2 flex items-center gap-2">
+          <h3 className="text-xs text-gold mb-2 flex items-center gap-2">
             <TeamBadge abbreviation={data.awayTeam.abbreviation} primaryColor={data.awayTeam.primaryColor} secondaryColor={data.awayTeam.secondaryColor} name={data.awayTeam.name} size="sm" />
             {data.awayTeam.name} Batting
           </h3>
           <BattingTable stats={data.awayBatting} />
-          <h3 className="text-[11px] text-gold mt-4 mb-2">{data.awayTeam.name} Pitching</h3>
+          <h3 className="text-xs text-gold mt-4 mb-2">{data.awayTeam.name} Pitching</h3>
           <PitchingTable stats={data.awayPitching} />
         </div>
         <div>
-          <h3 className="text-[11px] text-gold mb-2 flex items-center gap-2">
+          <h3 className="text-xs text-gold mb-2 flex items-center gap-2">
             <TeamBadge abbreviation={data.homeTeam.abbreviation} primaryColor={data.homeTeam.primaryColor} secondaryColor={data.homeTeam.secondaryColor} name={data.homeTeam.name} size="sm" />
             {data.homeTeam.name} Batting
           </h3>
           <BattingTable stats={data.homeBatting} />
-          <h3 className="text-[11px] text-gold mt-4 mb-2">{data.homeTeam.name} Pitching</h3>
+          <h3 className="text-xs text-gold mt-4 mb-2">{data.homeTeam.name} Pitching</h3>
           <PitchingTable stats={data.homePitching} />
         </div>
       </div>
@@ -1632,7 +1632,7 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
 function BattingTable({ stats }: { stats: BattingStat[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[10px] border border-border font-pixel">
+      <table className="w-full text-xs border border-border font-pixel">
         <thead>
           <tr className="border-b border-border bg-card">
             <th className="text-left px-2 py-1.5 text-muted-foreground">Player</th>
@@ -1673,7 +1673,7 @@ function BattingTable({ stats }: { stats: BattingStat[] }) {
 function PitchingTable({ stats }: { stats: PitchingStat[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[10px] border border-border font-pixel">
+      <table className="w-full text-xs border border-border font-pixel">
         <thead>
           <tr className="border-b border-border bg-card">
             <th className="text-left px-2 py-1.5 text-muted-foreground">Pitcher</th>

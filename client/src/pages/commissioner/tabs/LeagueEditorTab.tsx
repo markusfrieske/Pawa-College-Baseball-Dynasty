@@ -106,7 +106,7 @@ function AttrInput({ label, field, value, onChange }: {
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[9px] text-muted-foreground w-20 shrink-0">{label}</span>
+      <span className="text-xs text-muted-foreground w-20 shrink-0">{label}</span>
       <input
         type="range" min={0} max={100} value={value}
         onChange={e => onChange(field, parseInt(e.target.value))}
@@ -116,7 +116,7 @@ function AttrInput({ label, field, value, onChange }: {
       <input
         type="number" min={0} max={100} value={value}
         onChange={e => onChange(field, Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-        className="w-10 text-[10px] bg-card border border-border rounded px-1 py-0.5 text-center"
+        className="w-10 text-xs bg-card border border-border rounded px-1 py-0.5 text-center"
         data-testid={`input-${field}`}
       />
     </div>
@@ -136,7 +136,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="bg-card border-border max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-[11px] text-gold">Confirm Edit</DialogTitle>
+          <DialogTitle className="font-pixel text-xs text-gold">Confirm Edit</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {competitive
               ? "This edit affects game-balance fields. A reason and effective season are required."
@@ -145,7 +145,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Reason *</label>
+            <label className="text-xs font-pixel text-muted-foreground block mb-1">Reason *</label>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -156,7 +156,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
           </div>
           {competitive && (
             <div>
-              <label className="text-[9px] font-pixel text-muted-foreground block mb-1">
+              <label className="text-xs font-pixel text-muted-foreground block mb-1">
                 Effective Season *
                 <span className="text-muted-foreground font-normal ml-1">(required for competitive edits)</span>
               </label>
@@ -168,7 +168,7 @@ function ReasonModal({ open, onClose, onConfirm, isPending, competitive }: {
                 data-testid="input-effective-season"
               />
               {!season && (
-                <p className="text-[9px] text-yellow-400 mt-1">Enter the season this change takes effect.</p>
+                <p className="text-xs text-yellow-400 mt-1">Enter the season this change takes effect.</p>
               )}
             </div>
           )}
@@ -310,7 +310,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
           />
         </div>
         <Select value={confFilter} onValueChange={setConfFilter}>
-          <SelectTrigger className="h-7 text-[10px]" data-testid="select-conf-filter">
+          <SelectTrigger className="h-7 text-xs" data-testid="select-conf-filter">
             <SelectValue placeholder="All Conferences" />
           </SelectTrigger>
           <SelectContent>
@@ -355,11 +355,11 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                   {abbrev}
                 </div>
                 <div>
-                  <p className="font-pixel text-[10px] text-gold">{getVal("name", selected.name)}</p>
+                  <p className="font-pixel text-xs text-gold">{getVal("name", selected.name)}</p>
                   <p className="text-xs text-muted-foreground">{getVal("city", selected.city)}, {getVal("state", selected.state)}</p>
-                  <p className="text-[9px] text-muted-foreground mt-0.5">v{selected.editorVersion}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">v{selected.editorVersion}</p>
                   {lowContrast && (
-                    <p className="text-[9px] text-yellow-400 mt-1">
+                    <p className="text-xs text-yellow-400 mt-1">
                       Low color contrast ({colorContrast!.toFixed(1)}:1) — text may be hard to read
                     </p>
                   )}
@@ -380,7 +380,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
             {/* Identity Fields */}
             <RetroCard>
               <RetroCardHeader className="pb-2">
-                <p className="font-pixel text-[9px] text-muted-foreground uppercase">Identity</p>
+                <p className="font-pixel text-xs text-muted-foreground uppercase">Identity</p>
               </RetroCardHeader>
               <RetroCardContent className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
@@ -393,7 +393,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     { label: "Stadium Name", field: "stadiumName", maxLen: 120 },
                   ].map(({ label, field, maxLen }) => (
                     <div key={field}>
-                      <label className="text-[9px] font-pixel text-muted-foreground block mb-1">{label}</label>
+                      <label className="text-xs font-pixel text-muted-foreground block mb-1">{label}</label>
                       <input
                         value={getVal(field, "") as string}
                         onChange={e => setEdit(field, e.target.value)}
@@ -404,7 +404,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     </div>
                   ))}
                   <div>
-                    <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Primary Color</label>
+                    <label className="text-xs font-pixel text-muted-foreground block mb-1">Primary Color</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -421,7 +421,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     </div>
                   </div>
                   <div>
-                    <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Secondary Color</label>
+                    <label className="text-xs font-pixel text-muted-foreground block mb-1">Secondary Color</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="color"
@@ -445,9 +445,9 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
             <RetroCard>
               <RetroCardHeader className="pb-2">
                 <div className="flex items-center gap-2">
-                  <p className="font-pixel text-[9px] text-muted-foreground uppercase">Competitive Attributes</p>
+                  <p className="font-pixel text-xs text-muted-foreground uppercase">Competitive Attributes</p>
                   {!competitiveEnabled && (
-                    <Badge variant="outline" className="text-[8px] border-yellow-500/40 text-yellow-400">Disabled</Badge>
+                    <Badge variant="outline" className="text-xs border-yellow-500/40 text-yellow-400">Disabled</Badge>
                   )}
                 </div>
               </RetroCardHeader>
@@ -467,7 +467,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     { label: "Marketing", field: "marketing", min: 1, max: 10 },
                   ].map(({ label, field, min, max }) => (
                     <div key={field} className="flex items-center gap-2">
-                      <label className="text-[9px] text-muted-foreground w-20 shrink-0">{label}</label>
+                      <label className="text-xs text-muted-foreground w-20 shrink-0">{label}</label>
                       <input
                         type="range" min={min} max={max} value={getVal(field, 5) as number}
                         onChange={e => setEdit(field, parseInt(e.target.value))}
@@ -480,7 +480,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-3">
                   <div>
-                    <label className="text-[9px] font-pixel text-muted-foreground block mb-1">NIL Budget</label>
+                    <label className="text-xs font-pixel text-muted-foreground block mb-1">NIL Budget</label>
                     <input
                       type="number" min={0} value={getVal("nilBudget", selected.nilBudget) as number}
                       onChange={e => setEdit("nilBudget", parseInt(e.target.value) || 0)}
@@ -490,7 +490,7 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Enrollment</label>
+                    <label className="text-xs font-pixel text-muted-foreground block mb-1">Enrollment</label>
                     <input
                       type="number" min={0} value={getVal("enrollment", selected.enrollment) as number}
                       onChange={e => setEdit("enrollment", parseInt(e.target.value) || 0)}
@@ -641,7 +641,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
       <div className="w-64 flex flex-col gap-2 shrink-0">
         {/* Filters */}
         <Select value={teamId} onValueChange={v => { setTeamId(v); setSelectedId(null); setEdits({}); }}>
-          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-team">
+          <SelectTrigger className="h-7 text-xs" data-testid="select-player-team">
             <SelectValue placeholder="All Teams" />
           </SelectTrigger>
           <SelectContent>
@@ -651,7 +651,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
         </Select>
         <div className="flex gap-1">
           <Select value={posFilter} onValueChange={setPosFilter}>
-            <SelectTrigger className="h-7 text-[10px] flex-1" data-testid="select-player-pos">
+            <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-player-pos">
               <SelectValue placeholder="Pos" />
             </SelectTrigger>
             <SelectContent>
@@ -662,7 +662,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             </SelectContent>
           </Select>
           <Select value={eligFilter} onValueChange={setEligFilter}>
-            <SelectTrigger className="h-7 text-[10px] flex-1" data-testid="select-player-elig">
+            <SelectTrigger className="h-7 text-xs flex-1" data-testid="select-player-elig">
               <SelectValue placeholder="Yr" />
             </SelectTrigger>
             <SelectContent>
@@ -685,9 +685,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
         {rosterHealth && (
           <div className="shrink-0">
             {rosterHealth.issues.length === 0 ? (
-              <p className="text-[9px] text-green-400">All position groups covered</p>
+              <p className="text-xs text-green-400">All position groups covered</p>
             ) : (
-              <p className="text-[9px] text-yellow-400">Missing: {rosterHealth.issues.join(", ")}</p>
+              <p className="text-xs text-yellow-400">Missing: {rosterHealth.issues.join(", ")}</p>
             )}
           </div>
         )}
@@ -706,9 +706,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             >
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{p.firstName} {p.lastName}</p>
-                <p className="text-[9px] text-muted-foreground">{p.position} · {p.eligibility} · {p.teamAbbr}</p>
+                <p className="text-xs text-muted-foreground">{p.position} · {p.eligibility} · {p.teamAbbr}</p>
               </div>
-              <span className={`text-[10px] shrink-0 ${ovrColor(p.overall)}`}>{p.overall}</span>
+              <span className={`text-xs shrink-0 ${ovrColor(p.overall)}`}>{p.overall}</span>
             </button>
           ))}
           {!isLoading && playersData?.players.length === 0 && (
@@ -721,17 +721,17 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             <button
               onClick={() => setPlayerPage(p => Math.max(1, p - 1))}
               disabled={playerPage <= 1}
-              className="text-[9px] text-muted-foreground disabled:opacity-30 hover:text-foreground px-1"
+              className="text-xs text-muted-foreground disabled:opacity-30 hover:text-foreground px-1"
             >
               Prev
             </button>
-            <span className="text-[9px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {playerPage}/{Math.ceil(playersData.total / playersData.pageSize)}
             </span>
             <button
               onClick={() => setPlayerPage(p => Math.min(Math.ceil(playersData.total / playersData.pageSize), p + 1))}
               disabled={playerPage >= Math.ceil(playersData.total / playersData.pageSize)}
-              className="text-[9px] text-muted-foreground disabled:opacity-30 hover:text-foreground px-1"
+              className="text-xs text-muted-foreground disabled:opacity-30 hover:text-foreground px-1"
             >
               Next
             </button>
@@ -751,12 +751,12 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             <RetroCard className="p-3">
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="font-pixel text-[10px] text-gold">{selected.firstName} {selected.lastName}</p>
+                  <p className="font-pixel text-xs text-gold">{selected.firstName} {selected.lastName}</p>
                   <p className="text-xs text-muted-foreground">{selected.position} · {selected.eligibility} · {selected.teamName}</p>
                 </div>
                 <div className="ml-auto flex items-center gap-3">
                   {hasChanges && (
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       OVR preview:{" "}
                       <span className={ovrColor(selected.overall)}>{selected.overall}</span>
                       {" → "}
@@ -781,7 +781,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                   <TabsTrigger
                     key={t}
                     value={t}
-                    className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark capitalize"
+                    className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark capitalize"
                   >
                     {t}
                   </TabsTrigger>
@@ -801,7 +801,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         { label: "Jersey #", field: "jerseyNumber", type: "number" },
                       ].map(({ label, field, type }) => (
                         <div key={field}>
-                          <label className="text-[9px] font-pixel text-muted-foreground block mb-1">{label}</label>
+                          <label className="text-xs font-pixel text-muted-foreground block mb-1">{label}</label>
                           <input
                             type={type} value={getVal(field, "") as string | number}
                             onChange={e => setEdit(field, type === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
@@ -811,9 +811,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </div>
                       ))}
                       <div>
-                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Position</label>
+                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Position</label>
                         <Select value={getVal("position", selected.position) as string} onValueChange={v => setEdit("position", v)}>
-                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-position">
+                          <SelectTrigger className="h-7 text-xs" data-testid="select-player-position">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -824,9 +824,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Eligibility</label>
+                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Eligibility</label>
                         <Select value={getVal("eligibility", selected.eligibility) as string} onValueChange={v => setEdit("eligibility", v)}>
-                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-eligibility">
+                          <SelectTrigger className="h-7 text-xs" data-testid="select-player-eligibility">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -854,7 +854,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         onChange={(f, v) => setEdit(f, v)} />
                     ))}
                     <div className="flex items-center gap-2 pt-1 border-t border-border mt-2">
-                      <span className="text-[9px] text-muted-foreground w-20 shrink-0">Potential</span>
+                      <span className="text-xs text-muted-foreground w-20 shrink-0">Potential</span>
                       <input
                         type="range" min={0} max={100} value={getVal("potential", selected.potential ?? 71) as number}
                         onChange={e => setEdit("potential", parseInt(e.target.value))}
@@ -863,7 +863,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                       <input
                         type="number" min={0} max={100} value={getVal("potential", selected.potential ?? 71) as number}
                         onChange={e => setEdit("potential", Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
-                        className="w-10 text-[10px] bg-card border border-border rounded px-1 py-0.5 text-center"
+                        className="w-10 text-xs bg-card border border-border rounded px-1 py-0.5 text-center"
                       />
                     </div>
                   </RetroCardContent>
@@ -874,7 +874,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
               <TabsContent value="abilities">
                 <RetroCard>
                   <RetroCardContent className="pt-3">
-                    <p className="text-[9px] text-muted-foreground mb-2">Select abilities (0-7 total)</p>
+                    <p className="text-xs text-muted-foreground mb-2">Select abilities (0-7 total)</p>
                     <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
                       {ALL_ABILITIES.map(a => {
                         const current = getVal("abilities", selected.abilities) as string[];
@@ -906,12 +906,12 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                               className="accent-gold"
                             />
                             <span className="font-medium">{a.name}</span>
-                            <span className="ml-auto text-[9px] opacity-60">{a.tier}</span>
+                            <span className="ml-auto text-xs opacity-60">{a.tier}</span>
                           </label>
                         );
                       })}
                     </div>
-                    <p className="text-[9px] text-muted-foreground mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       Selected: {(getVal("abilities", selected.abilities) as string[]).length} / 7
                     </p>
                   </RetroCardContent>
@@ -922,7 +922,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
               <TabsContent value="pitching">
                 <RetroCard>
                   <RetroCardContent className="pt-3">
-                    <p className="text-[9px] text-muted-foreground mb-3">Pitch mix levels (0 = does not throw). Levels 1-7 indicate proficiency.</p>
+                    <p className="text-xs text-muted-foreground mb-3">Pitch mix levels (0 = does not throw). Levels 1-7 indicate proficiency.</p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                       {([
                         ["FB","pitchFB"], ["2S","pitch2S"], ["SL","pitchSL"], ["CB","pitchCB"],
@@ -932,7 +932,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         ["SCB","pitchSCB"], ["PCB","pitchPCB"],
                       ] as [string, string][]).map(([label, field]) => (
                         <div key={field} className="flex items-center gap-2">
-                          <span className="text-[9px] text-muted-foreground w-8 shrink-0 font-mono">{label}</span>
+                          <span className="text-xs text-muted-foreground w-8 shrink-0 font-mono">{label}</span>
                           <input
                             type="range" min={0} max={7}
                             value={getVal(field, 0) as number}
@@ -940,7 +940,7 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                             className="flex-1 h-1 accent-gold"
                             data-testid={`slider-${field}`}
                           />
-                          <span className="text-[10px] w-4 text-right shrink-0">
+                          <span className="text-xs w-4 text-right shrink-0">
                             {getVal(field, 0) as number}
                           </span>
                         </div>
@@ -956,9 +956,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                   <RetroCardContent className="pt-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Skin Tone</label>
+                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Skin Tone</label>
                         <Select value={getVal("skinTone", selected.skinTone ?? "light") as string} onValueChange={v => setEdit("skinTone", v)}>
-                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-skinTone">
+                          <SelectTrigger className="h-7 text-xs" data-testid="select-player-skinTone">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -967,9 +967,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Hair Color</label>
+                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Hair Color</label>
                         <Select value={getVal("hairColor", selected.hairColor ?? "brown") as string} onValueChange={v => setEdit("hairColor", v)}>
-                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-hairColor">
+                          <SelectTrigger className="h-7 text-xs" data-testid="select-player-hairColor">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -978,9 +978,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Hair Style</label>
+                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Hair Style</label>
                         <Select value={getVal("hairStyle", selected.hairStyle ?? "short") as string} onValueChange={v => setEdit("hairStyle", v)}>
-                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-hairStyle">
+                          <SelectTrigger className="h-7 text-xs" data-testid="select-player-hairStyle">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -989,9 +989,9 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
                         </Select>
                       </div>
                       <div>
-                        <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Facial Hair</label>
+                        <label className="text-xs font-pixel text-muted-foreground block mb-1">Facial Hair</label>
                         <Select value={getVal("facialHair", selected.facialHair ?? "none") as string} onValueChange={v => setEdit("facialHair", v)}>
-                          <SelectTrigger className="h-7 text-[10px]" data-testid="select-player-facialHair">
+                          <SelectTrigger className="h-7 text-xs" data-testid="select-player-facialHair">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1074,7 +1074,7 @@ function ChangeLogTab({ leagueId }: { leagueId: string }) {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <Select value={entityType} onValueChange={v => { setEntityType(v); setPage(1); }}>
-          <SelectTrigger className="w-36 h-7 text-[10px]" data-testid="select-log-type">
+          <SelectTrigger className="w-36 h-7 text-xs" data-testid="select-log-type">
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
           <SelectContent>
@@ -1100,27 +1100,27 @@ function ChangeLogTab({ leagueId }: { leagueId: string }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                       variant="outline"
-                      className={`text-[8px] ${batch.entityType === "team" ? "border-blue-500/40 text-blue-400" : "border-green-500/40 text-green-400"}`}
+                      className={`text-xs ${batch.entityType === "team" ? "border-blue-500/40 text-blue-400" : "border-green-500/40 text-green-400"}`}
                     >
                       {batch.entityType === "team" ? "School" : "Player"}
                     </Badge>
                     <span className="text-xs font-medium truncate max-w-[180px]">{batch.entityLabel ?? batch.entityId.slice(0, 8)}</span>
-                    {batch.isReversed && <Badge variant="outline" className="text-[8px] border-red-500/40 text-red-400">Reversed</Badge>}
+                    {batch.isReversed && <Badge variant="outline" className="text-xs border-red-500/40 text-red-400">Reversed</Badge>}
                     {batch.effectiveSeason && (
-                      <span className="text-[9px] text-muted-foreground">Season {batch.effectiveSeason}</span>
+                      <span className="text-xs text-muted-foreground">Season {batch.effectiveSeason}</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">"{batch.reason}"</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="w-2.5 h-2.5" />
                       {new Date(batch.createdAt).toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <User className="w-2.5 h-2.5" />
                       {batch.actorEmail ?? batch.actorId.slice(0, 8)}
                     </span>
-                    <span className="text-[9px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {batch.changes.length} field{batch.changes.length !== 1 ? "s" : ""}
                     </span>
                   </div>
@@ -1158,7 +1158,7 @@ function ChangeLogTab({ leagueId }: { leagueId: string }) {
               {expandedId === batch.id && batch.changes.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-border space-y-1">
                   {batch.changes.map(c => (
-                    <div key={c.id} className="flex items-center gap-2 text-[10px]">
+                    <div key={c.id} className="flex items-center gap-2 text-xs">
                       <span className="text-muted-foreground w-28 shrink-0">{fieldLabel(c.fieldName)}</span>
                       <span className="text-red-400/80 line-through truncate max-w-[120px]">{fmtVal(c.beforeJson)}</span>
                       <ChevronRight className="w-2.5 h-2.5 text-muted-foreground shrink-0" />
@@ -1192,13 +1192,13 @@ function ChangeLogTab({ leagueId }: { leagueId: string }) {
       <Dialog open={!!reverseTarget} onOpenChange={v => !v && setReverseTarget(null)}>
         <DialogContent className="bg-card border-border max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-pixel text-[11px] text-red-400">Reverse Batch</DialogTitle>
+            <DialogTitle className="font-pixel text-xs text-red-400">Reverse Batch</DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               This will restore the previous values for {reverseTarget?.changes.length} field(s) on {reverseTarget?.entityLabel}.
             </DialogDescription>
           </DialogHeader>
           <div>
-            <label className="text-[9px] font-pixel text-muted-foreground block mb-1">Reason for reversal *</label>
+            <label className="text-xs font-pixel text-muted-foreground block mb-1">Reason for reversal *</label>
             <textarea
               value={reverseReason}
               onChange={e => setReverseReason(e.target.value)}
@@ -1235,7 +1235,7 @@ export function LeagueEditorTab({ leagueId, isPrimaryCommissioner = false }: { l
   return (
     <div className="space-y-4">
       <div>
-        <p className="font-pixel text-[10px] text-gold mb-1">League Editor</p>
+        <p className="font-pixel text-xs text-gold mb-1">League Editor</p>
         <p className="text-xs text-muted-foreground">
           Edit school identity, player attributes, and abilities. All changes are versioned and logged.
         </p>
@@ -1245,21 +1245,21 @@ export function LeagueEditorTab({ leagueId, isPrimaryCommissioner = false }: { l
         <TabsList className="bg-card border border-border">
           <TabsTrigger
             value="schools"
-            className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+            className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
             data-testid="tab-editor-schools"
           >
             <Building2 className="w-3 h-3 mr-1" />Schools
           </TabsTrigger>
           <TabsTrigger
             value="players"
-            className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+            className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
             data-testid="tab-editor-players"
           >
             <Users className="w-3 h-3 mr-1" />Players
           </TabsTrigger>
           <TabsTrigger
             value="changelog"
-            className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
+            className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark"
             data-testid="tab-editor-changelog"
           >
             <Clock className="w-3 h-3 mr-1" />Change Log

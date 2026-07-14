@@ -62,7 +62,7 @@ export function VolumeControl() {
         data-testid="volume-slider-panel"
       >
         <span
-          className="text-[10px] text-[#c8aa6e] whitespace-nowrap"
+          className="text-xs text-[#c8aa6e] whitespace-nowrap"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
           VOL
@@ -82,7 +82,7 @@ export function VolumeControl() {
           data-testid="input-volume-slider"
         />
         <span
-          className="text-[9px] text-[#c8aa6e]/70 tabular-nums"
+          className="text-xs text-[#c8aa6e]/70 tabular-nums"
           style={{ fontFamily: "'Press Start 2P', monospace" }}
         >
           {muted ? "MUTE" : `${Math.round(volume * 100)}%`}
@@ -96,7 +96,7 @@ export function VolumeControl() {
           >
             {sfxOn ? <Bell className="w-3.5 h-3.5" /> : <BellOff className="w-3.5 h-3.5" />}
             <span
-              className="text-[9px] whitespace-nowrap"
+              className="text-xs whitespace-nowrap"
               style={{ fontFamily: "'Press Start 2P', monospace" }}
             >
               SFX {sfxOn ? "ON" : "OFF"}

@@ -44,7 +44,7 @@ import {
 import {
   LeagueTickerBanner, StatsLeadersPanel, PowerRankingsWidget,
   TopProspectsWidget, MergedRosterPanel, NewsroomPanel,
-  NationalPulsePanel,
+  NationalPulsePanel, ThisWeekPanel,
 } from "./league-view/hub-panels";
 import { StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
 import { SigningDaySummaryCard, ProgramChangesCard, OffseasonSummary } from "./league-view/tabs/offseason-widgets";
@@ -106,6 +106,12 @@ export default function LeagueViewPage() {
 
   const { data: overview } = useQuery<DashboardOverview>({
     queryKey: ["/api/leagues", id, "dashboard-overview"],
+    enabled: !!league && league.currentPhase !== "dynasty_setup",
+    staleTime: 30_000,
+  });
+
+  const { data: readyStatus } = useQuery<import("./league-view/types").ReadyStatusData>({
+    queryKey: ["/api/leagues", id, "ready-status"],
     enabled: !!league && league.currentPhase !== "dynasty_setup",
     staleTime: 30_000,
   });
@@ -328,7 +334,7 @@ export default function LeagueViewPage() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10 whitespace-nowrap"
+                  className="font-pixel text-xs text-gold border-gold/40 bg-gold/10 whitespace-nowrap"
                   data-testid="text-current-phase"
                 >
                   {phaseLabels[league.currentPhase]}
@@ -341,17 +347,17 @@ export default function LeagueViewPage() {
                 {isPrimaryCommissioner ? (
                   <span className="flex items-center gap-1 shrink-0" data-testid="badge-commissioner-identity">
                     <Crown className="w-3 h-3 text-gold" />
-                    <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMM</Badge>
+                    <Badge variant="outline" className="font-pixel text-xs text-gold border-gold/40 bg-gold/10">COMM</Badge>
                   </span>
                 ) : isCommissioner ? (
                   <span className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
                     <Crown className="w-3 h-3 text-blue-400" />
-                    <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
+                    <Badge variant="outline" className="font-pixel text-xs text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
                   </span>
                 ) : null}
                 {league.progressionEnabled ? (
                   <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-[7px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
                     title="Player attributes grow between seasons"
                     data-testid="badge-progression-on"
                   >
@@ -360,7 +366,7 @@ export default function LeagueViewPage() {
                   </span>
                 ) : (
                   <span
-                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-[7px] bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-pixel text-xs bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
                     title="Player attributes do not change between seasons"
                     data-testid="badge-progression-off"
                   >
@@ -453,12 +459,12 @@ export default function LeagueViewPage() {
               <div className="container mx-auto px-4 pb-4">
                 <div className="min-w-0">
                   {hasAssignedTeam && myTeam && (
-                    <p className="font-pixel text-[8px] text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                    <p className="font-pixel text-xs text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                       {myTeam.name} · {phaseLabels[league.currentPhase]}
                     </p>
                   )}
                   {isLeagueOnlyCommissioner && (
-                    <p className="font-pixel text-[8px] text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                    <p className="font-pixel text-xs text-gold/80 mb-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                       COMMISSIONER · {phaseLabels[league.currentPhase]}
                     </p>
                   )}
@@ -527,6 +533,16 @@ export default function LeagueViewPage() {
             </button>
           </div>
         )}
+
+        {/* ── THIS WEEK: Command Center ────────────────────────────── */}
+        <ThisWeekPanel
+          leagueId={id!}
+          league={league}
+          myTeamId={myTeam?.id}
+          overview={overview}
+          readyStatus={readyStatus ?? undefined}
+          isCommissioner={isCommissioner}
+        />
 
         {/* ═══════════════════════════════════════════════════════════
             COCKPIT GRID — 3-column on desktop, stacked on mobile
@@ -619,7 +635,7 @@ export default function LeagueViewPage() {
                 {/* ── Roster composition ──────────────────────────────── */}
                 <div className="flex items-center gap-2 -mb-1 mt-1">
                   <div className="flex-1 h-px bg-border/40" />
-                  <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase tracking-wider">Roster</span>
+                  <span className="font-pixel text-xs text-muted-foreground/50 uppercase tracking-wider">Roster</span>
                   <div className="flex-1 h-px bg-border/40" />
                 </div>
                 <MergedRosterPanel
@@ -686,29 +702,29 @@ export default function LeagueViewPage() {
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
-              <TabsTrigger value="standings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
+              <TabsTrigger value="standings" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
                 <span className="hidden sm:inline">Standings</span>
                 <span className="sm:hidden">Stand</span>
               </TabsTrigger>
-              <TabsTrigger value="teams" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
+              <TabsTrigger value="teams" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
                 Teams
               </TabsTrigger>
-              <TabsTrigger value="rankings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
+              <TabsTrigger value="rankings" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
                 <span className="hidden sm:inline">Rankings</span>
                 <span className="sm:hidden">Rank</span>
               </TabsTrigger>
-              <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
+              <TabsTrigger value="prospects" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
                 Top 100
               </TabsTrigger>
-              <TabsTrigger value="awards" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
+              <TabsTrigger value="awards" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
                 <span className="hidden sm:inline">Awards</span>
                 <span className="sm:hidden">Award</span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
+              <TabsTrigger value="history" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
                 <span className="hidden sm:inline">History</span>
                 <span className="sm:hidden">Hist</span>
               </TabsTrigger>
-              <TabsTrigger value="edits" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-edits">
+              <TabsTrigger value="edits" className="font-pixel text-xs whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-edits">
                 <span className="hidden sm:inline">Edits</span>
                 <span className="sm:hidden">Edits</span>
               </TabsTrigger>

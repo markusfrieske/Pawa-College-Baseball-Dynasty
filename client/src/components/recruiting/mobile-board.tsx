@@ -173,7 +173,7 @@ function ActionBtn({
 }) {
   const btn = (
     <button
-      className={`flex-1 flex items-center justify-center gap-1 text-[10px] font-medium py-1.5 rounded border transition-colors min-w-0 ${
+      className={`flex-1 flex items-center justify-center gap-1 text-xs font-medium py-1.5 rounded border transition-colors min-w-0 ${
         done
           ? "border-emerald-500/40 text-emerald-400 bg-emerald-500/5"
           : disabled || pending
@@ -202,7 +202,7 @@ function ActionBtn({
     return (
       <Tooltip>
         <TooltipTrigger asChild>{btn}</TooltipTrigger>
-        <TooltipContent side="top" className="text-[11px]">
+        <TooltipContent side="top" className="text-xs">
           {disabledReason}
         </TooltipContent>
       </Tooltip>
@@ -340,22 +340,22 @@ function MobileRecruitCard({
         {recruit.starRating > 0 ? (
           <StarRating rating={recruit.starRating} size="sm" />
         ) : (
-          <span className="text-[10px] text-muted-foreground">Unrated</span>
+          <span className="text-xs text-muted-foreground">Unrated</span>
         )}
         {recruit.classRank && (
-          <span className="text-[10px] text-muted-foreground font-mono">#{recruit.classRank}</span>
+          <span className="text-xs text-muted-foreground font-mono">#{recruit.classRank}</span>
         )}
         <PositionBadge position={recruit.position} />
         {yearLabel && (
-          <span className="text-[10px] text-muted-foreground">{yearLabel}</span>
+          <span className="text-xs text-muted-foreground">{yearLabel}</span>
         )}
         {typeLabel && (
-          <span className={`text-[10px] font-pixel px-1 rounded ${typeLabel === "XFER" ? "text-purple-300 bg-purple-500/15 border border-purple-500/30" : "text-cyan-300 bg-cyan-500/15 border border-cyan-500/30"}`}>
+          <span className={`text-xs font-pixel px-1 rounded ${typeLabel === "XFER" ? "text-purple-300 bg-purple-500/15 border border-purple-500/30" : "text-cyan-300 bg-cyan-500/15 border border-cyan-500/30"}`}>
             {typeLabel}
           </span>
         )}
         {recruit.isBlueChip && (
-          <span className="text-[10px] font-pixel text-gold px-1 rounded border border-gold/40 bg-gold/10">CHIP</span>
+          <span className="text-xs font-pixel text-gold px-1 rounded border border-gold/40 bg-gold/10">CHIP</span>
         )}
         {recruit.isGenerationalGem && (
           <Gem className="w-3 h-3 text-emerald-400" />
@@ -364,10 +364,10 @@ function MobileRecruitCard({
           <Skull className="w-3 h-3 text-red-400" />
         )}
         {positionNeed && (
-          <span className="text-[10px] font-pixel text-red-400 border border-red-500/40 px-1 rounded">NEED</span>
+          <span className="text-xs font-pixel text-red-400 border border-red-500/40 px-1 rounded">NEED</span>
         )}
         {hasOffer && (
-          <span className="text-[10px] font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">OFFER</span>
+          <span className="text-xs font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">OFFER</span>
         )}
         {nilCost && !nilAffordable && (
           <DollarSign className="w-3 h-3 text-red-400 shrink-0" />
@@ -383,7 +383,7 @@ function MobileRecruitCard({
           {recruit.firstName} {recruit.lastName}
         </span>
         {(recruit.hometown || recruit.homeState) && (
-          <span className="text-[11px] text-muted-foreground truncate">
+          <span className="text-xs text-muted-foreground truncate">
             {[recruit.hometown, recruit.homeState].filter(Boolean).join(", ")}
           </span>
         )}
@@ -392,8 +392,8 @@ function MobileRecruitCard({
       {/* Row 3: Interest bar */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <span className={`text-[11px] font-medium ${interestColor}`}>{interestLabel}</span>
-          <span className="text-[11px] text-muted-foreground">{interestLevel}%</span>
+          <span className={`text-xs font-medium ${interestColor}`}>{interestLabel}</span>
+          <span className="text-xs text-muted-foreground">{interestLevel}%</span>
         </div>
         <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden">
           <div
@@ -406,22 +406,22 @@ function MobileRecruitCard({
       {/* Row 4: Scout / OVR / stage / expand toggle */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             Scout <span className="text-foreground font-medium">{Math.round(scoutPct)}%</span>
           </span>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             OVR <span className="text-foreground font-medium">{ovrStr}</span>
           </span>
-          <span className={`text-[10px] font-pixel px-1.5 py-0.5 rounded border ${stageBadge.textColor} ${stageBadge.borderColor}`}>
+          <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${stageBadge.textColor} ${stageBadge.borderColor}`}>
             {stageBadge.label}
           </span>
           {typeof recruit.teamsIn === "number" && recruit.teamsIn > 1 && (
-            <span className="text-[10px] text-orange-400 font-medium">{recruit.teamsIn} teams</span>
+            <span className="text-xs text-orange-400 font-medium">{recruit.teamsIn} teams</span>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {actionMeta && !expanded && (
-            <span className={`text-[10px] font-pixel px-1.5 py-0.5 rounded border ${actionMeta.color}`}>
+            <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${actionMeta.color}`}>
               {actionMeta.label}
             </span>
           )}
@@ -444,7 +444,7 @@ function MobileRecruitCard({
         >
           {/* NIL info if available */}
           {nilCost && scoutPct >= 50 && (
-            <div className={`flex items-center gap-1.5 text-[10px] px-1.5 py-1 rounded border ${nilAffordable ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}`}>
+            <div className={`flex items-center gap-1.5 text-xs px-1.5 py-1 rounded border ${nilAffordable ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400"}`}>
               <DollarSign className="w-3 h-3 shrink-0" />
               <span>NIL: ${nilCost >= 1000000 ? `${(nilCost / 1000000).toFixed(1)}M` : nilCost >= 1000 ? `${Math.round(nilCost / 1000)}K` : nilCost}</span>
               {!nilAffordable && <span className="ml-auto">Over budget</span>}
@@ -454,11 +454,11 @@ function MobileRecruitCard({
           {/* Top schools snippet */}
           {recruit.topSchools && recruit.topSchools.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[10px] text-muted-foreground">Top:</span>
+              <span className="text-xs text-muted-foreground">Top:</span>
               {recruit.topSchools.slice(0, 3).map((s) => (
                 <span
                   key={s.teamId}
-                  className="text-[10px] font-medium px-1 rounded"
+                  className="text-xs font-medium px-1 rounded"
                   style={{ color: `#${s.primaryColor?.replace("#", "") || "888"}` }}
                 >
                   {s.abbreviation}
@@ -572,7 +572,7 @@ function MobileRecruitCard({
 
           {/* Details link */}
           <button
-            className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground border border-border/40 rounded py-1.5 hover:border-gold/50 hover:text-gold transition-colors w-full"
+            className="flex items-center justify-center gap-1 text-xs text-muted-foreground border border-border/40 rounded py-1.5 hover:border-gold/50 hover:text-gold transition-colors w-full"
             onClick={onSelect}
             data-testid={`mobile-card-details-${recruit.id}`}
           >
@@ -750,13 +750,13 @@ function MobileRecapTab({
                   className={`w-4 h-4 mt-0.5 shrink-0 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}
                 />
                 <div className="min-w-0">
-                  <p className={`font-pixel text-[9px] uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
+                  <p className={`font-pixel text-xs uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
                     {isPositive ? "Decommit Opportunity" : "Decommitment Alert"}
                   </p>
                   <p className="text-[12px] text-foreground leading-snug">{alert.description}</p>
                   {matchedRecruit && (
                     <button
-                      className={`mt-1.5 text-[11px] font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}
+                      className={`mt-1.5 text-xs font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}
                       onClick={() => onSelectRecruit(matchedRecruit)}
                       data-testid={`mobile-decommit-view-${alert.id}`}
                     >
@@ -779,12 +779,12 @@ function MobileRecapTab({
 
       {weekRecapData && (weekRecapData.myRecruits.length > 0 || weekRecapData.hotMissed.length > 0) && (
         <div className="bg-card border border-border rounded-lg p-3 space-y-3">
-          <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">
+          <p className="font-pixel text-xs text-gold uppercase tracking-wider">
             Week {weekRecapData.week} Recap
           </p>
           {weekRecapData.myRecruits.length > 0 && (
             <div>
-              <p className="text-[10px] font-pixel text-muted-foreground mb-2">YOUR TARGETS</p>
+              <p className="text-xs font-pixel text-muted-foreground mb-2">YOUR TARGETS</p>
               <div className="space-y-2">
                 {weekRecapData.myRecruits.map((r) => {
                   const recruit = allRecruits.find((rec) => rec.id === r.recruitId);
@@ -805,7 +805,7 @@ function MobileRecapTab({
                         {r.starRating > 0 && <StarRating rating={r.starRating} size="sm" />}
                       </div>
                       {r.otherTeamActionCount > 0 && (
-                        <span className="text-[10px] text-orange-400 shrink-0 flex items-center gap-1">
+                        <span className="text-xs text-orange-400 shrink-0 flex items-center gap-1">
                           <Zap className="w-3 h-3" />
                           {r.otherTeamActionCount}
                         </span>
@@ -818,7 +818,7 @@ function MobileRecapTab({
           )}
           {weekRecapData.hotMissed.length > 0 && (
             <div>
-              <p className="text-[10px] font-pixel text-amber-400 mb-2">HOT — NOT CONTACTED</p>
+              <p className="text-xs font-pixel text-amber-400 mb-2">HOT — NOT CONTACTED</p>
               <div className="space-y-2">
                 {weekRecapData.hotMissed.map((r) => {
                   const recruit = allRecruits.find((rec) => rec.id === r.recruitId);
@@ -837,7 +837,7 @@ function MobileRecapTab({
                           {r.name}
                         </button>
                       </div>
-                      <span className="text-[10px] text-amber-400 shrink-0 flex items-center gap-1">
+                      <span className="text-xs text-amber-400 shrink-0 flex items-center gap-1">
                         <Zap className="w-3 h-3" />
                         {r.otherTeamActionCount}
                       </span>
@@ -852,14 +852,14 @@ function MobileRecapTab({
 
       {displayActions.length > 0 && (
         <div className="bg-card border border-border rounded-lg p-3 space-y-2">
-          <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">
+          <p className="font-pixel text-xs text-gold uppercase tracking-wider">
             Last Week's Actions
           </p>
           <div className="space-y-1.5 max-h-64 overflow-y-auto">
             {displayActions.map((action) => (
               <div
                 key={action.id}
-                className="flex items-center justify-between gap-2 text-[11px] py-1 px-2 bg-background/50 rounded"
+                className="flex items-center justify-between gap-2 text-xs py-1 px-2 bg-background/50 rounded"
                 data-testid={`mobile-history-${action.id}`}
               >
                 <div className="flex items-center gap-2 min-w-0">
@@ -937,7 +937,7 @@ function MobileNeedsTab({
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
         <Users className="w-12 h-12 opacity-30" />
         <p className="text-sm text-center">No position needs identified</p>
-        <p className="text-[11px] text-center opacity-70">Your roster depth looks good for next season</p>
+        <p className="text-xs text-center opacity-70">Your roster depth looks good for next season</p>
       </div>
     );
   }
@@ -945,10 +945,10 @@ function MobileNeedsTab({
   return (
     <div className="space-y-4 pb-4">
       <div>
-        <p className="text-[10px] font-pixel text-muted-foreground mb-2 uppercase">Position Needs</p>
+        <p className="text-xs font-pixel text-muted-foreground mb-2 uppercase">Position Needs</p>
         <div className="flex flex-wrap gap-2">
           <button
-            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+            className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
               selectedPos === null
                 ? "bg-red-500/20 border-red-500/60 text-red-300"
                 : "border-border text-muted-foreground hover:border-red-500/40"
@@ -961,7 +961,7 @@ function MobileNeedsTab({
           {needs.map((p) => (
             <button
               key={p.position}
-              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors ${
+              className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                 selectedPos === p.position
                   ? "bg-red-500/20 border-red-500/60 text-red-300"
                   : "border-border text-muted-foreground hover:border-red-500/40"
@@ -1016,29 +1016,29 @@ function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           {battle.starRank && battle.starRank > 0 && (
-            <span className="text-gold text-[10px] shrink-0">{stars}</span>
+            <span className="text-gold text-xs shrink-0">{stars}</span>
           )}
           <PositionBadge position={battle.position} />
           <span className="text-sm font-semibold text-foreground truncate">
             {battle.firstName} {battle.lastName}
           </span>
           {battle.isBlueChip && (
-            <span className="text-[10px] font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">CHIP</span>
+            <span className="text-xs font-pixel text-gold border border-gold/40 px-1 rounded bg-gold/10">CHIP</span>
           )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className={`text-[10px] font-medium ${intensityColor}`}>
+          <span className={`text-xs font-medium ${intensityColor}`}>
             {battle.humanRivalCount} rival{battle.humanRivalCount !== 1 ? "s" : ""}
           </span>
           {battle.rivalryAlert && <RivalryAlertBadge />}
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] font-pixel px-1.5 py-0.5 rounded border border-gray-500/40 text-gray-400">
+        <span className="text-xs font-pixel px-1.5 py-0.5 rounded border border-gray-500/40 text-gray-400">
           {stageLabel[battle.stage] ?? battle.stage}
         </span>
         {battle.myInterest && (
-          <span className="text-[10px] text-foreground">
+          <span className="text-xs text-foreground">
             My interest: <span className="font-medium text-gold">{battle.myInterest.interestLevel}%</span>
           </span>
         )}
@@ -1051,7 +1051,7 @@ function BattleRecruitCard({ battle }: BattleRecruitCardProps) {
           {battle.topSchools.slice(0, 4).map((s) => (
             <div key={s.teamId} className="flex items-center gap-1">
               <span
-                className={`text-[10px] font-medium ${s.isMyTeam ? "underline underline-offset-2" : ""}`}
+                className={`text-xs font-medium ${s.isMyTeam ? "underline underline-offset-2" : ""}`}
                 style={{ color: `#${s.primaryColor?.replace("#", "") || "888"}` }}
               >
                 {s.abbreviation}
@@ -1084,7 +1084,7 @@ function CommitAnnouncementCard({ commit }: { commit: CommitAnnouncement }) {
         <p className="text-[12px] font-semibold text-foreground truncate">
           {commit.firstName} {commit.lastName}
         </p>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {commit.position}
           {commit.signedTeamName && (
             <span className={commit.isMyTeam ? "text-gold" : ""}> → {commit.signedTeamAbbreviation || commit.signedTeamName}</span>
@@ -1141,7 +1141,7 @@ function RecruitingBattlesPanel({
     <div className="space-y-4 pb-4">
       {hotBattles.length > 0 && (
         <div>
-          <div className="text-[10px] font-pixel text-red-400 mb-2 flex items-center gap-1.5">
+          <div className="text-xs font-pixel text-red-400 mb-2 flex items-center gap-1.5">
             <Flame className="w-3 h-3" />
             Hot Battles ({hotBattles.length})
           </div>
@@ -1155,7 +1155,7 @@ function RecruitingBattlesPanel({
 
       {recentCommits.length > 0 && (
         <div>
-          <div className="text-[10px] font-pixel text-gold mb-2 flex items-center gap-1.5">
+          <div className="text-xs font-pixel text-gold mb-2 flex items-center gap-1.5">
             <GraduationCap className="w-3 h-3" />
             Recent Commits ({recentCommits.length})
           </div>
@@ -1170,7 +1170,7 @@ function RecruitingBattlesPanel({
       {commitWatchBattles.length > 0 && (
         <div>
           <button
-            className="flex items-center gap-1.5 text-[10px] font-pixel text-amber-400 mb-2 w-full text-left"
+            className="flex items-center gap-1.5 text-xs font-pixel text-amber-400 mb-2 w-full text-left"
             onClick={() => setShowWatchlist(v => !v)}
             data-testid="btn-toggle-watchlist"
           >
@@ -1189,7 +1189,7 @@ function RecruitingBattlesPanel({
 
       {rivalryBattles.length > 0 && (
         <div>
-          <div className="text-[10px] font-pixel text-orange-400 mb-2 flex items-center gap-1.5">
+          <div className="text-xs font-pixel text-orange-400 mb-2 flex items-center gap-1.5">
             <Flame className="w-3 h-3" />
             Rivalry Alerts ({rivalryBattles.length})
           </div>
@@ -1203,7 +1203,7 @@ function RecruitingBattlesPanel({
 
       {otherBattles.length > 0 && (
         <div>
-          <div className="text-[10px] font-pixel text-muted-foreground mb-2">
+          <div className="text-xs font-pixel text-muted-foreground mb-2">
             All Battles ({battles.length})
           </div>
           <div className="space-y-2">
@@ -1217,7 +1217,7 @@ function RecruitingBattlesPanel({
       {battles.length === 0 && recentCommits.length === 0 && (
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground">
           <Flame className="w-10 h-10 opacity-30" />
-          <p className="text-[11px]">No heated battles yet this week</p>
+          <p className="text-xs">No heated battles yet this week</p>
         </div>
       )}
     </div>
@@ -1472,7 +1472,7 @@ export function MobileRecruitingBoard({
                 <span className="relative">
                   {tab.icon}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <span className={`absolute -top-1 -right-1.5 text-[8px] font-pixel min-w-[14px] h-3.5 flex items-center justify-center rounded-full px-0.5 ${
+                    <span className={`absolute -top-1 -right-1.5 text-xs font-pixel min-w-[14px] h-3.5 flex items-center justify-center rounded-full px-0.5 ${
                       tab.key === "recap" && tab.badge > 0
                         ? "bg-amber-500 text-black"
                         : "bg-gold/20 text-gold border border-gold/40"
@@ -1481,7 +1481,7 @@ export function MobileRecruitingBoard({
                     </span>
                   )}
                 </span>
-                <span className="text-[9px] font-pixel leading-none">{tab.label}</span>
+                <span className="text-xs font-pixel leading-none">{tab.label}</span>
                 {isActive && (
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gold rounded-t-full" />
                 )}
@@ -1517,7 +1517,7 @@ export function MobileRecruitingBoard({
                 <Search className="w-3.5 h-3.5 mr-1" />
                 Filter
                 {activeFilterChips.length > 0 && (
-                  <span className="ml-1 text-[9px] bg-background/30 px-1 rounded font-bold">
+                  <span className="ml-1 text-xs bg-background/30 px-1 rounded font-bold">
                     {activeFilterChips.length}
                   </span>
                 )}
@@ -1530,7 +1530,7 @@ export function MobileRecruitingBoard({
                 {activeFilterChips.map((chip) => (
                   <span
                     key={chip}
-                    className="text-[10px] bg-gold/10 border border-gold/40 text-gold px-2 py-0.5 rounded-full font-medium"
+                    className="text-xs bg-gold/10 border border-gold/40 text-gold px-2 py-0.5 rounded-full font-medium"
                   >
                     {chip}
                   </span>
@@ -1538,7 +1538,7 @@ export function MobileRecruitingBoard({
               </div>
             )}
 
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {boardRecruits.length} recruit{boardRecruits.length !== 1 ? "s" : ""}
               {boardSearch && ` matching "${boardSearch}"`}
             </p>
@@ -1553,7 +1553,7 @@ export function MobileRecruitingBoard({
 
         {activeTab === "targets" && (
           <div className="space-y-3">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {targetRecruits.length} targeted recruit{targetRecruits.length !== 1 ? "s" : ""}
             </p>
             <MobileRecruitList
@@ -1607,10 +1607,10 @@ export function MobileRecruitingBoard({
       <Sheet open={showTopicSheet} onOpenChange={(open) => { if (!open) { setShowTopicSheet(false); setPendingAction(null); } }}>
         <SheetContent side="bottom" className="pb-8">
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-pixel text-[11px] text-gold">
+            <SheetTitle className="font-pixel text-xs text-gold">
               {pendingAction?.type === "phone" ? "Call Topic" : "Email Topic"}
             </SheetTitle>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Choose a topic to pitch, or send without one
             </p>
           </SheetHeader>

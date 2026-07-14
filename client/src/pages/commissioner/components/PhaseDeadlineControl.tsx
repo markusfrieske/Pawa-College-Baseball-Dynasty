@@ -77,7 +77,7 @@ export function PhaseDeadlineControl({
             <RetroButton
               size="sm"
               variant="outline"
-              className="h-6 px-2 text-[9px]"
+              className="h-6 px-2 text-xs"
               onClick={() => setDeadlineMutation.mutate(null)}
               disabled={setDeadlineMutation.isPending}
               data-testid="button-clear-deadline"

@@ -18,7 +18,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Newspaper, TrendingUp, BarChart2, Users, Star, Trash2,
   PlusCircle, Image, ChevronRight, Activity, Swords, Zap,
-  Globe, Radio, Target,
+  Globe, Radio, Target, Calendar, CheckCircle, Clock, AlertTriangle,
+  BookOpen, DollarSign,
 } from "lucide-react";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import { apiRequest } from "@/lib/queryClient";
@@ -94,8 +95,8 @@ export function LeagueTickerBanner({ leagueId }: { leagueId: string }) {
           const cfg = TICKER_TAG[e.eventType] ?? { tag: "NEWS", color: "text-muted-foreground" };
           return (
             <span key={i} className="flex items-center gap-3 px-6 whitespace-nowrap">
-              <span className={`font-pixel text-[8px] tracking-widest ${cfg.color}`}>{cfg.tag}</span>
-              <span className="text-[11px] text-muted-foreground/70">{e.description}</span>
+              <span className={`font-pixel text-xs tracking-widest ${cfg.color}`}>{cfg.tag}</span>
+              <span className="text-xs text-muted-foreground/70">{e.description}</span>
               <span className="text-gold/20">◆</span>
             </span>
           );
@@ -136,10 +137,10 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <BarChart2 className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px]">STAT LEADERS</h3>
+            <h3 className="font-pixel text-gold text-xs">STAT LEADERS</h3>
           </div>
           <Link href={`/league/${leagueId}/stats`}>
-            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full Stats →</span>
+            <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full Stats →</span>
           </Link>
         </div>
       </RetroCardHeader>
@@ -147,18 +148,18 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
         {isLoading ? (
           <div className="space-y-1.5">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}</div>
         ) : noGames ? (
-          <p className="text-[10px] text-muted-foreground text-center py-4">Stats update after games are played</p>
+          <p className="text-xs text-muted-foreground text-center py-4">Stats update after games are played</p>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="font-pixel text-[7px] text-sky-400 mb-1.5">BATTING AVG</p>
+              <p className="font-pixel text-xs text-sky-400 mb-1.5">BATTING AVG</p>
               <div className="space-y-1">
                 {batters.map((b, i) => (
                   <div key={i} className="flex items-center justify-between text-xs" data-testid={`stat-batter-${i}`}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-pixel shrink-0"
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-pixel shrink-0"
                         style={{ backgroundColor: `#${b.teamColor ?? "4a4a4a"}22`, color: `#${b.teamColor ?? "C4A35A"}`, border: `1px solid #${b.teamColor ?? "4a4a4a"}44` }}
                       >{b.teamAbbr?.slice(0, 2) ?? "—"}</span>
                       <span className="truncate text-foreground/80">{b.name}</span>
@@ -167,14 +168,14 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
                   </div>
                 ))}
               </div>
-              <p className="font-pixel text-[7px] text-purple-400 mb-1.5 mt-3">ERA</p>
+              <p className="font-pixel text-xs text-purple-400 mb-1.5 mt-3">ERA</p>
               <div className="space-y-1">
                 {pitchers.map((p, i) => (
                   <div key={i} className="flex items-center justify-between text-xs" data-testid={`stat-pitcher-${i}`}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[7px] font-pixel shrink-0"
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-pixel shrink-0"
                         style={{ backgroundColor: `#${p.teamColor ?? "4a4a4a"}22`, color: `#${p.teamColor ?? "C4A35A"}`, border: `1px solid #${p.teamColor ?? "4a4a4a"}44` }}
                       >{p.teamAbbr?.slice(0, 2) ?? "—"}</span>
                       <span className="truncate text-foreground/80">{p.name}</span>
@@ -185,24 +186,24 @@ export function StatsLeadersPanel({ leagueId }: { leagueId: string }) {
               </div>
             </div>
             <div>
-              <p className="font-pixel text-[7px] text-amber-400 mb-1.5">HOME RUNS</p>
+              <p className="font-pixel text-xs text-amber-400 mb-1.5">HOME RUNS</p>
               <div className="space-y-1">
                 {[...batters].sort((a, b) => b.hr - a.hr).map((b, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span className="truncate text-foreground/80">{b.name}</span>
                     </div>
                     <span className="text-amber-400 font-bold shrink-0 ml-1">{b.hr}</span>
                   </div>
                 ))}
               </div>
-              <p className="font-pixel text-[7px] text-emerald-400 mb-1.5 mt-3">STRIKEOUTS</p>
+              <p className="font-pixel text-xs text-emerald-400 mb-1.5 mt-3">STRIKEOUTS</p>
               <div className="space-y-1">
                 {[...pitchers].sort((a, b) => b.so - a.so).map((p, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+                      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
                       <span className="truncate text-foreground/80">{p.name}</span>
                     </div>
                     <span className="text-emerald-400 font-bold shrink-0 ml-1">{p.so}</span>
@@ -266,10 +267,10 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Globe className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px]">NATIONAL PULSE</h3>
+            <h3 className="font-pixel text-gold text-xs">NATIONAL PULSE</h3>
           </div>
           <Link href={`/league/${leagueId}?tab=rankings`}>
-            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
+            <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
           </Link>
         </div>
       </RetroCardHeader>
@@ -278,7 +279,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
 
           {/* Top 25 */}
           <div className="md:col-span-2">
-            <p className="font-pixel text-[7px] text-gold/70 uppercase tracking-wider mb-2">Top 25</p>
+            <p className="font-pixel text-xs text-gold/70 uppercase tracking-wider mb-2">Top 25</p>
             {isLoading ? (
               <div className="space-y-1">{[...Array(10)].map((_, i) => <Skeleton key={i} className="h-5 w-full" />)}</div>
             ) : (
@@ -293,25 +294,25 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                         className={`flex items-center gap-1.5 py-0.5 px-1.5 rounded text-xs cursor-pointer transition-colors ${isUser ? "bg-gold/10 border border-gold/20 hover:bg-gold/15" : "hover:bg-card/80"}`}
                         data-testid={`pulse-rank-${r.rank}`}
                       >
-                        <span className="font-pixel text-[8px] text-muted-foreground w-5 text-right shrink-0">{r.rank}</span>
+                        <span className="font-pixel text-xs text-muted-foreground w-5 text-right shrink-0">{r.rank}</span>
                         {delta !== 0 && (
-                          <span className={`font-pixel text-[7px] shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          <span className={`font-pixel text-xs shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {delta > 0 ? "▲" : "▼"}
                           </span>
                         )}
                         <span
-                          className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[6px] shrink-0"
+                          className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
                           style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
                         >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
-                        <span className={`flex-1 truncate text-[11px] ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
-                        <span className="text-muted-foreground text-[10px] shrink-0">{Math.round(r.avgOvr)}</span>
-                        <span className={`font-pixel text-[8px] ${color} w-5 text-right shrink-0`}>{grade}</span>
+                        <span className={`flex-1 truncate text-xs ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
+                        <span className="text-muted-foreground text-xs shrink-0">{Math.round(r.avgOvr)}</span>
+                        <span className={`font-pixel text-xs ${color} w-5 text-right shrink-0`}>{grade}</span>
                       </div>
                     </Link>
                   );
                 })}
                 {top25.length === 0 && (
-                  <p className="text-[10px] text-muted-foreground text-center py-4">Rankings update after the season starts</p>
+                  <p className="text-xs text-muted-foreground text-center py-4">Rankings update after the season starts</p>
                 )}
               </div>
             )}
@@ -321,7 +322,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
           <div className="space-y-4">
             {notableEvents.length > 0 && (
               <div>
-                <p className="font-pixel text-[7px] text-sky-400/70 uppercase tracking-wider mb-2">
+                <p className="font-pixel text-xs text-sky-400/70 uppercase tracking-wider mb-2">
                   <Radio className="w-2.5 h-2.5 inline mr-1" />Notable
                 </p>
                 <div className="space-y-2">
@@ -329,8 +330,8 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                     const cfg = TICKER_TAG[e.eventType] ?? { tag: "NEWS", color: "text-muted-foreground" };
                     return (
                       <div key={i} className="space-y-0.5">
-                        <span className={`font-pixel text-[7px] ${cfg.color}`}>{cfg.tag}</span>
-                        <p className="text-[10px] text-foreground/70 leading-snug line-clamp-2">{e.description}</p>
+                        <span className={`font-pixel text-xs ${cfg.color}`}>{cfg.tag}</span>
+                        <p className="text-xs text-foreground/70 leading-snug line-clamp-2">{e.description}</p>
                       </div>
                     );
                   })}
@@ -340,7 +341,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
 
             {bubbleTeams.length > 0 && (
               <div>
-                <p className="font-pixel text-[7px] text-amber-400/70 uppercase tracking-wider mb-2">
+                <p className="font-pixel text-xs text-amber-400/70 uppercase tracking-wider mb-2">
                   <Target className="w-2.5 h-2.5 inline mr-1" />Bubble
                 </p>
                 <div className="space-y-1">
@@ -349,18 +350,18 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                     return (
                       <Link key={r.teamId} href={`/league/${leagueId}/team/${r.teamId}`}>
                         <div className={`flex items-center gap-1.5 py-0.5 px-1 rounded text-xs cursor-pointer ${isUser ? "text-gold" : "text-foreground/70 hover:text-foreground"}`} data-testid={`bubble-row-${r.teamId}`}>
-                          <span className="font-pixel text-[8px] text-muted-foreground w-4 text-right shrink-0">#{r.rank}</span>
+                          <span className="font-pixel text-xs text-muted-foreground w-4 text-right shrink-0">#{r.rank}</span>
                           <span
-                            className="w-4 h-4 rounded-full flex items-center justify-center font-pixel text-[6px] shrink-0"
+                            className="w-4 h-4 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
                             style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}` }}
                           >{r.abbreviation?.slice(0, 2) ?? "—"}</span>
-                          <span className="flex-1 truncate text-[10px]">{r.teamName}</span>
+                          <span className="flex-1 truncate text-xs">{r.teamName}</span>
                         </div>
                       </Link>
                     );
                   })}
                 </div>
-                <p className="text-[9px] text-muted-foreground/60 mt-1">At-large contenders</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">At-large contenders</p>
               </div>
             )}
           </div>
@@ -385,10 +386,10 @@ export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px]">POWER RANKINGS</h3>
+            <h3 className="font-pixel text-gold text-xs">POWER RANKINGS</h3>
           </div>
           <Link href={`/league/${leagueId}?tab=rankings`}>
-            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
+            <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Full →</span>
           </Link>
         </div>
       </RetroCardHeader>
@@ -407,19 +408,19 @@ export function PowerRankingsWidget({ leagueId }: { leagueId: string }) {
                     className={`flex items-center gap-2 py-1 px-1.5 rounded text-xs cursor-pointer transition-colors ${isUser ? "bg-gold/10 border border-gold/20 hover:bg-gold/15" : "hover:bg-card/80 hover:border hover:border-border/60"}`}
                     data-testid={`rank-row-${r.teamId}`}
                   >
-                    <span className="font-pixel text-[8px] text-muted-foreground w-4 text-right shrink-0">{r.rank}</span>
+                    <span className="font-pixel text-xs text-muted-foreground w-4 text-right shrink-0">{r.rank}</span>
                     {delta !== 0 && (
-                      <span className={`font-pixel text-[7px] shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      <span className={`font-pixel text-xs shrink-0 ${delta > 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {delta > 0 ? "▲" : "▼"}
                       </span>
                     )}
                     <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
+                      className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
                       style={{ backgroundColor: `#${r.primaryColor ?? "4a4a4a"}33`, color: `#${r.primaryColor ?? "C4A35A"}`, border: `1px solid #${r.primaryColor ?? "4a4a4a"}55` }}
                     >{r.abbreviation?.slice(0, 3) ?? "—"}</span>
                     <span className={`flex-1 truncate ${isUser ? "text-gold font-medium" : "text-foreground/80"}`}>{r.teamName}</span>
-                    <span className="text-muted-foreground text-[10px] shrink-0">{Math.round(r.avgOvr)}</span>
-                    <span className={`font-pixel text-[8px] ${color} w-5 text-right shrink-0`}>{grade}</span>
+                    <span className="text-muted-foreground text-xs shrink-0">{Math.round(r.avgOvr)}</span>
+                    <span className={`font-pixel text-xs ${color} w-5 text-right shrink-0`}>{grade}</span>
                   </div>
                 </Link>
               );
@@ -470,13 +471,13 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
       onClick={() => setSelectedPlayerId(p.id)}
       data-testid={`prospect-row-${p.id}`}
     >
-      <span className="font-pixel text-[7px] text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
+      <span className="font-pixel text-xs text-muted-foreground/60 w-3 shrink-0">{i + 1}</span>
       <span
-        className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-[7px] shrink-0"
+        className="w-5 h-5 rounded-full flex items-center justify-center font-pixel text-xs shrink-0"
         style={{ backgroundColor: `#${p.teamPrimaryColor ?? "4a4a4a"}22`, color: `#${p.teamPrimaryColor ?? "C4A35A"}`, border: `1px solid #${p.teamPrimaryColor ?? "4a4a4a"}44` }}
       >{p.teamAbbreviation?.slice(0, 2) ?? "—"}</span>
       <span className="truncate text-foreground/80 flex-1">{p.firstName[0]}. {p.lastName}</span>
-      <span className="text-[9px] text-muted-foreground shrink-0">{p.position}</span>
+      <span className="text-xs text-muted-foreground shrink-0">{p.position}</span>
       <span className={`${accentClass} font-bold shrink-0 ml-1`}>{p.overall}</span>
     </button>
   );
@@ -488,10 +489,10 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Star className="w-4 h-4 text-gold" />
-              <h3 className="font-pixel text-gold text-[9px]">TOP MLB PROSPECTS</h3>
+              <h3 className="font-pixel text-gold text-xs">TOP MLB PROSPECTS</h3>
             </div>
             <Link href={`/league/${leagueId}?tab=prospects`}>
-              <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Top 100 →</span>
+              <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Top 100 →</span>
             </Link>
           </div>
         </RetroCardHeader>
@@ -501,7 +502,7 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="font-pixel text-[7px] text-sky-400 mb-1.5">HITTERS</p>
+                <p className="font-pixel text-xs text-sky-400 mb-1.5">HITTERS</p>
                 <div className="space-y-0.5">
                   {hitters.map((p, i) => (
                     <ProspectRow key={p.id} p={p} i={i} accentClass="text-gold" />
@@ -509,7 +510,7 @@ export function TopProspectsWidget({ leagueId }: { leagueId: string }) {
                 </div>
               </div>
               <div>
-                <p className="font-pixel text-[7px] text-purple-400 mb-1.5">PITCHERS</p>
+                <p className="font-pixel text-xs text-purple-400 mb-1.5">PITCHERS</p>
                 <div className="space-y-0.5">
                   {pitchers.map((p, i) => (
                     <ProspectRow key={p.id} p={p} i={i} accentClass="text-purple-400" />
@@ -556,7 +557,7 @@ function NewsPostCard({
       )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-pixel text-gold text-[10px] leading-tight">{post.title}</h3>
+          <h3 className="font-pixel text-gold text-xs leading-tight">{post.title}</h3>
           {canDelete && (
             <button
               onClick={onDelete}
@@ -573,11 +574,11 @@ function NewsPostCard({
         <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{post.content}</p>
         <div className="flex items-center gap-2 mt-3">
           {post.authorName && (
-            <span className="text-[9px] font-pixel text-gold/70 border border-gold/20 rounded px-1.5 py-0.5">
+            <span className="text-xs font-pixel text-gold/70 border border-gold/20 rounded px-1.5 py-0.5">
               {post.authorName}
             </span>
           )}
-          <p className="text-[10px] text-muted-foreground">{fmtDate(post.createdAt)}</p>
+          <p className="text-xs text-muted-foreground">{fmtDate(post.createdAt)}</p>
         </div>
       </div>
     </article>
@@ -668,7 +669,7 @@ export function LeagueNewsPanel({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Newspaper className="w-4 h-4 text-gold" />
-          <h2 className="font-pixel text-gold text-[10px]">LEAGUE NEWS</h2>
+          <h2 className="font-pixel text-gold text-xs">LEAGUE NEWS</h2>
         </div>
         {canPost && (
           <RetroButton
@@ -687,12 +688,12 @@ export function LeagueNewsPanel({
       {showForm && canPost && (
         <RetroCard className="mb-6 border-gold/30" data-testid="form-news-post">
           <RetroCardHeader>
-            <h3 className="font-pixel text-[9px] text-gold">NEW POST</h3>
+            <h3 className="font-pixel text-xs text-gold">NEW POST</h3>
           </RetroCardHeader>
           <RetroCardContent>
             <div className="space-y-3">
               <div>
-                <label className="font-pixel text-[8px] text-muted-foreground block mb-1">HEADLINE *</label>
+                <label className="font-pixel text-xs text-muted-foreground block mb-1">HEADLINE *</label>
                 <input
                   value={title}
                   onChange={e => setTitle(e.target.value)}
@@ -703,7 +704,7 @@ export function LeagueNewsPanel({
                 />
               </div>
               <div>
-                <label className="font-pixel text-[8px] text-muted-foreground block mb-1">BODY *</label>
+                <label className="font-pixel text-xs text-muted-foreground block mb-1">BODY *</label>
                 <textarea
                   value={body}
                   onChange={e => setBody(e.target.value)}
@@ -713,10 +714,10 @@ export function LeagueNewsPanel({
                   className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50 resize-none"
                   data-testid="input-news-body"
                 />
-                <p className="text-[10px] text-muted-foreground text-right mt-0.5">{body.length}/5000</p>
+                <p className="text-xs text-muted-foreground text-right mt-0.5">{body.length}/5000</p>
               </div>
               <div>
-                <label className="font-pixel text-[8px] text-muted-foreground block mb-1 flex items-center gap-1">
+                <label className="font-pixel text-xs text-muted-foreground block mb-1 flex items-center gap-1">
                   <Image className="w-3 h-3" /> IMAGE (optional)
                 </label>
                 {imagePreview ? (
@@ -765,7 +766,7 @@ export function LeagueNewsPanel({
           <Newspaper className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">No posts yet</p>
           {canPost && (
-            <p className="text-[10px] text-muted-foreground mt-1">Use the Post button above to share league news</p>
+            <p className="text-xs text-muted-foreground mt-1">Use the Post button above to share league news</p>
           )}
         </RetroCard>
       ) : (
@@ -803,10 +804,10 @@ export function MergedRosterPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px]">ROSTER</h3>
+            <h3 className="font-pixel text-gold text-xs">ROSTER</h3>
           </div>
           <Link href={`/league/${leagueId}/roster`}>
-            <span className="text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer">Manage →</span>
+            <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">Manage →</span>
           </Link>
         </div>
       </RetroCardHeader>
@@ -814,7 +815,7 @@ export function MergedRosterPanel({
         {/* Depth row: size + eligibility */}
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="font-pixel text-[8px] text-muted-foreground">ROSTER</p>
+            <p className="font-pixel text-xs text-muted-foreground">ROSTER</p>
             <p className="text-2xl font-bold leading-none">
               {overview.rosterSize}<span className="text-muted-foreground text-sm">/25</span>
             </p>
@@ -825,7 +826,7 @@ export function MergedRosterPanel({
               if (count === 0) return null;
               return (
                 <div key={e} className="text-center">
-                  <p className="font-pixel text-[7px] text-muted-foreground">{e}</p>
+                  <p className="font-pixel text-xs text-muted-foreground">{e}</p>
                   <p className="font-bold text-sm leading-tight">{count}</p>
                 </div>
               );
@@ -836,27 +837,27 @@ export function MergedRosterPanel({
         {/* Strength row: avg OVR + grades */}
         <div className="flex items-center gap-4 py-2 border-y border-border/40 mb-3">
           <div>
-            <p className="font-pixel text-[7px] text-muted-foreground">AVG OVR</p>
+            <p className="font-pixel text-xs text-muted-foreground">AVG OVR</p>
             <p className="text-xl font-bold text-gold leading-none">{Math.round(overview.averageOverall)}</p>
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {overview.hitGrade && (
-              <span className="font-pixel text-[7px] px-1.5 py-1 rounded bg-sky-500/20 text-sky-300">H:{overview.hitGrade}</span>
+              <span className="font-pixel text-xs px-1.5 py-1 rounded bg-sky-500/20 text-sky-300">H:{overview.hitGrade}</span>
             )}
             {overview.pitchGrade && (
-              <span className="font-pixel text-[7px] px-1.5 py-1 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
+              <span className="font-pixel text-xs px-1.5 py-1 rounded bg-purple-500/20 text-purple-300">P:{overview.pitchGrade}</span>
             )}
             {overview.fieldGrade && (
-              <span className="font-pixel text-[7px] px-1.5 py-1 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
+              <span className="font-pixel text-xs px-1.5 py-1 rounded bg-green-500/20 text-green-300">F:{overview.fieldGrade}</span>
             )}
           </div>
           <div className="ml-auto flex gap-3">
             <div className="text-center">
-              <p className="font-pixel text-[7px] text-sky-400">HIT</p>
+              <p className="font-pixel text-xs text-sky-400">HIT</p>
               <p className="text-sm font-bold text-sky-400">{overview.hitterAvg || "—"}</p>
             </div>
             <div className="text-center">
-              <p className="font-pixel text-[7px] text-purple-400">PITCH</p>
+              <p className="font-pixel text-xs text-purple-400">PITCH</p>
               <p className="text-sm font-bold text-purple-400">{overview.pitcherAvg || "—"}</p>
             </div>
           </div>
@@ -870,11 +871,11 @@ export function MergedRosterPanel({
             const barWidth = maxStarCount > 0 ? Math.round((count / maxStarCount) * 100) : 0;
             return (
               <div key={stars} className="flex items-center gap-2">
-                <span className={`font-pixel text-[7px] w-5 shrink-0 ${STAR_TEXT_COLORS[stars]}`}>{stars}★</span>
+                <span className={`font-pixel text-xs w-5 shrink-0 ${STAR_TEXT_COLORS[stars]}`}>{stars}★</span>
                 <div className="flex-1 bg-background/60 rounded-full h-2 overflow-hidden">
                   <div className={`h-full rounded-full ${STAR_COLORS[stars]}`} style={{ width: `${barWidth}%` }} />
                 </div>
-                <span className="text-[10px] text-muted-foreground w-12 shrink-0 text-right">
+                <span className="text-xs text-muted-foreground w-12 shrink-0 text-right">
                   {count} <span className="text-muted-foreground/60">({pct}%)</span>
                 </span>
               </div>
@@ -885,9 +886,9 @@ export function MergedRosterPanel({
         {/* Thin positions */}
         {atRisk.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-2 border-t border-border/40">
-            <span className="font-pixel text-[8px] text-red-400 self-center">THIN:</span>
+            <span className="font-pixel text-xs text-red-400 self-center">THIN:</span>
             {atRisk.map(pos => (
-              <span key={pos} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">{pos}</span>
+              <span key={pos} className="text-xs px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/30">{pos}</span>
             ))}
           </div>
         )}
@@ -1063,7 +1064,7 @@ export function NewsroomPanel({
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2">
             <Newspaper className="w-4 h-4 text-gold" />
-            <h2 className="font-pixel text-gold text-[10px]">LEAGUE NEWSROOM</h2>
+            <h2 className="font-pixel text-gold text-xs">LEAGUE NEWSROOM</h2>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             {/* Segmented tab buttons */}
@@ -1073,7 +1074,7 @@ export function NewsroomPanel({
                   key={t.key}
                   onClick={() => setTab(t.key)}
                   data-testid={`newsroom-tab-${t.key}`}
-                  className={`relative px-2.5 py-1 font-pixel text-[7px] whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                  className={`relative px-2.5 py-1 font-pixel text-xs whitespace-nowrap flex items-center gap-1.5 transition-colors ${
                     tab === t.key
                       ? "bg-gold text-forest-dark"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1081,7 +1082,7 @@ export function NewsroomPanel({
                 >
                   {t.label}
                   {t.badge > 0 && (
-                    <span className="min-w-[14px] h-[14px] rounded-full bg-red-500 text-white font-pixel text-[7px] flex items-center justify-center px-0.5 animate-pulse">
+                    <span className="min-w-[14px] h-[14px] rounded-full bg-red-500 text-white font-pixel text-xs flex items-center justify-center px-0.5 animate-pulse">
                       {t.badge}
                     </span>
                   )}
@@ -1093,7 +1094,7 @@ export function NewsroomPanel({
                 size="sm"
                 variant="outline"
                 onClick={() => { setTab("posts"); setShowPostForm(v => !v); setPostImageError(null); }}
-                className="border-gold/40 text-gold hover:bg-gold/10 text-[9px] whitespace-nowrap"
+                className="border-gold/40 text-gold hover:bg-gold/10 text-xs whitespace-nowrap"
                 data-testid="button-toggle-news-form"
               >
                 <PlusCircle className="w-3 h-3 mr-1" />
@@ -1108,7 +1109,7 @@ export function NewsroomPanel({
         {/* ── Post creation form — open to all league members ────────────── */}
         {showPostForm && canPost && (
           <div className="mb-4 p-3 bg-background/50 border border-gold/20 rounded-lg space-y-2.5" data-testid="form-news-post">
-            <p className="font-pixel text-[8px] text-gold">NEW POST</p>
+            <p className="font-pixel text-xs text-gold">NEW POST</p>
             <input
               value={postTitle}
               onChange={e => setPostTitle(e.target.value)}
@@ -1139,7 +1140,7 @@ export function NewsroomPanel({
             ) : (
               <label className="flex items-center gap-2 cursor-pointer border border-dashed border-border/40 hover:border-gold/40 rounded px-3 py-1.5 transition-colors">
                 <Image className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] text-muted-foreground">Add image (optional)...</span>
+                <span className="text-xs text-muted-foreground">Add image (optional)...</span>
                 <input type="file" accept="image/*" className="hidden" onChange={handlePostImageSelect} data-testid="input-news-image-file" />
               </label>
             )}
@@ -1173,30 +1174,30 @@ export function NewsroomPanel({
               ) : posts.length === 0 ? (
                 <div className="py-4 space-y-3" data-testid="newsroom-posts-empty">
                   <div className="text-center py-2">
-                    <p className="text-[11px] text-muted-foreground">No posts yet</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">{phaseLabel} is underway</p>
+                    <p className="text-xs text-muted-foreground">No posts yet</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">{phaseLabel} is underway</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {pendingVotes > 0 && (
                       <Link href={`/league/${leagueId}/storylines`}>
-                        <span className="flex items-center gap-1 text-[9px] px-2 py-1 rounded border border-gold/30 bg-gold/5 text-gold cursor-pointer hover:bg-gold/10 transition-colors" data-testid="chip-pending-votes">
+                        <span className="flex items-center gap-1 text-xs px-2 py-1 rounded border border-gold/30 bg-gold/5 text-gold cursor-pointer hover:bg-gold/10 transition-colors" data-testid="chip-pending-votes">
                           <Zap className="w-2.5 h-2.5" /> {pendingVotes} storyline vote{pendingVotes !== 1 ? "s" : ""} pending
                         </span>
                       </Link>
                     )}
-                    <span className="text-[9px] px-2 py-1 rounded border border-border/40 text-muted-foreground">
+                    <span className="text-xs px-2 py-1 rounded border border-border/40 text-muted-foreground">
                       {readyCount}/{humanCount} coaches ready
                     </span>
                   </div>
                   {isCommissioner && (
                     <div>
-                      <p className="font-pixel text-[7px] text-muted-foreground/60 mb-1.5">SUGGESTED POSTS</p>
+                      <p className="font-pixel text-xs text-muted-foreground/60 mb-1.5">SUGGESTED POSTS</p>
                       <div className="flex flex-wrap gap-2">
                         {["Preseason prediction", "Recruiting rumor", "Season recap", "Commissioner note"].map(prompt => (
                           <button
                             key={prompt}
                             onClick={() => { setPostTitle(prompt); setShowPostForm(true); }}
-                            className="text-[9px] px-2 py-1 rounded border border-border/40 text-muted-foreground hover:border-gold/40 hover:text-gold transition-colors"
+                            className="text-xs px-2 py-1 rounded border border-border/40 text-muted-foreground hover:border-gold/40 hover:text-gold transition-colors"
                             data-testid={`chip-post-prompt-${prompt.toLowerCase().replace(/\s+/g, "-")}`}
                           >
                             {prompt}
@@ -1221,13 +1222,13 @@ export function NewsroomPanel({
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="font-pixel text-[7px] text-gold/60 border border-gold/20 rounded px-1">POST</span>
-                              <span className="text-[9px] text-muted-foreground">{fmtDate(post.createdAt)}</span>
+                              <span className="font-pixel text-xs text-gold/60 border border-gold/20 rounded px-1">POST</span>
+                              <span className="text-xs text-muted-foreground">{fmtDate(post.createdAt)}</span>
                               {post.authorName && (
-                                <span className="text-[9px] font-pixel text-gold/70">{post.authorName}</span>
+                                <span className="text-xs font-pixel text-gold/70">{post.authorName}</span>
                               )}
                             </div>
-                            <p className="font-pixel text-[9px] text-foreground leading-snug truncate">{post.title}</p>
+                            <p className="font-pixel text-xs text-foreground leading-snug truncate">{post.title}</p>
                           </div>
                           {(isCommissioner || (!!currentUserId && post.authorId === currentUserId)) && (
                             <button
@@ -1247,7 +1248,7 @@ export function NewsroomPanel({
                               <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
                             </div>
                           )}
-                          <p className="text-[11px] text-foreground/80 leading-relaxed whitespace-pre-wrap mt-2">{post.content}</p>
+                          <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap mt-2">{post.content}</p>
                         </div>
                       )}
                     </div>
@@ -1265,7 +1266,7 @@ export function NewsroomPanel({
                       key={f.key}
                       onClick={() => setActFilter(f.key as NrFilterKey)}
                       data-testid={`newsroom-filter-${f.key.toLowerCase().replace(/[,]/g, "-")}`}
-                      className={`px-2 py-0.5 rounded text-[9px] font-pixel border transition-colors ${
+                      className={`px-2 py-0.5 rounded text-xs font-pixel border transition-colors ${
                         actFilter === f.key
                           ? "bg-gold/20 text-gold border-gold/50"
                           : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
@@ -1280,8 +1281,8 @@ export function NewsroomPanel({
                 ) : filteredEvents.length === 0 ? (
                   <div className="py-6 text-center" data-testid="newsroom-activity-empty">
                     <Activity className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-[11px] text-muted-foreground">No activity yet</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">{phaseLabel} — activity appears after coaches recruit, post, or advance</p>
+                    <p className="text-xs text-muted-foreground">No activity yet</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">{phaseLabel} — activity appears after coaches recruit, post, or advance</p>
                   </div>
                 ) : (
                   <div className="space-y-0.5 max-h-72 overflow-y-auto pr-1" data-testid="newsroom-activity-list">
@@ -1293,16 +1294,16 @@ export function NewsroomPanel({
                           className="flex items-start gap-2 px-2 py-2 rounded hover:bg-card/50 transition-colors"
                           data-testid={`newsroom-event-${ev.id}`}
                         >
-                          <span className={`shrink-0 font-pixel text-[7px] px-1 py-0.5 rounded border whitespace-nowrap mt-0.5 ${chip.cls}`}>
+                          <span className={`shrink-0 font-pixel text-xs px-1 py-0.5 rounded border whitespace-nowrap mt-0.5 ${chip.cls}`}>
                             {chip.label}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] text-foreground/80 leading-snug">{ev.description}</p>
+                            <p className="text-xs text-foreground/80 leading-snug">{ev.description}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               {ev.teamName && (
-                                <span className="text-[9px] text-muted-foreground truncate max-w-[120px]">{ev.teamName}</span>
+                                <span className="text-xs text-muted-foreground truncate max-w-[120px]">{ev.teamName}</span>
                               )}
-                              <span className="text-[9px] text-muted-foreground ml-auto shrink-0">{formatRelativeTime(ev.createdAt)}</span>
+                              <span className="text-xs text-muted-foreground ml-auto shrink-0">{formatRelativeTime(ev.createdAt)}</span>
                             </div>
                           </div>
                         </div>
@@ -1319,8 +1320,8 @@ export function NewsroomPanel({
                 {storylines.length === 0 ? (
                   <div className="py-6 text-center" data-testid="newsroom-storylines-empty">
                     <Swords className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-[11px] text-muted-foreground">No active storylines</p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-1">Storylines unlock during recruiting as recruits advance</p>
+                    <p className="text-xs text-muted-foreground">No active storylines</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Storylines unlock during recruiting as recruits advance</p>
                   </div>
                 ) : (
                   <div className="space-y-2" data-testid="newsroom-storylines-list">
@@ -1328,10 +1329,10 @@ export function NewsroomPanel({
                       <div className="px-3 py-2 bg-gold/10 border border-gold/30 rounded-lg flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <Zap className="w-3.5 h-3.5 text-gold" />
-                          <span className="font-pixel text-[9px] text-gold">{pendingVotes} vote{pendingVotes !== 1 ? "s" : ""} pending</span>
+                          <span className="font-pixel text-xs text-gold">{pendingVotes} vote{pendingVotes !== 1 ? "s" : ""} pending</span>
                         </div>
                         <Link href={`/league/${leagueId}/storylines`}>
-                          <RetroButton size="sm" variant="outline" className="border-gold/40 text-gold text-[8px]" data-testid="newsroom-vote-cta">
+                          <RetroButton size="sm" variant="outline" className="border-gold/40 text-gold text-xs" data-testid="newsroom-vote-cta">
                             Vote now <ChevronRight className="w-3 h-3 ml-1" />
                           </RetroButton>
                         </Link>
@@ -1348,14 +1349,14 @@ export function NewsroomPanel({
                           >
                             <div className="flex items-center gap-2 mb-1">
                               {sl.isLegendary && <Star className="w-3 h-3 text-gold shrink-0" />}
-                              <span className="text-[11px] font-medium truncate flex-1 text-foreground/80">
+                              <span className="text-xs font-medium truncate flex-1 text-foreground/80">
                                 {sl.recruit?.firstName} {sl.recruit?.lastName}
-                                {sl.recruit?.position && <span className="text-muted-foreground text-[9px] ml-1">({sl.recruit.position})</span>}
+                                {sl.recruit?.position && <span className="text-muted-foreground text-xs ml-1">({sl.recruit.position})</span>}
                               </span>
                               {hasVote ? (
-                                <span className="flex items-center gap-0.5 text-[9px] text-gold font-pixel shrink-0"><Zap className="w-2.5 h-2.5" /> VOTE</span>
+                                <span className="flex items-center gap-0.5 text-xs text-gold font-pixel shrink-0"><Zap className="w-2.5 h-2.5" /> VOTE</span>
                               ) : sl.resolvedOvrDelta ? (
-                                <span className={`text-[9px] font-pixel shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>
+                                <span className={`text-xs font-pixel shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>
                                   {(sl.resolvedOvrDelta ?? 0) > 0 ? "+" : ""}{sl.resolvedOvrDelta} OVR
                                 </span>
                               ) : null}
@@ -1364,7 +1365,7 @@ export function NewsroomPanel({
                               <div className="flex-1 h-1 bg-background/60 rounded-full overflow-hidden">
                                 <div className="h-full bg-gold/40 rounded-full" style={{ width: `${arcPct}%` }} />
                               </div>
-                              <span className="text-[9px] text-muted-foreground shrink-0">Wk {sl.currentArcStage ?? 0}</span>
+                              <span className="text-xs text-muted-foreground shrink-0">Wk {sl.currentArcStage ?? 0}</span>
                             </div>
                           </div>
                         </Link>
@@ -1372,14 +1373,14 @@ export function NewsroomPanel({
                     })}
                     {storylines.length > 5 && (
                       <Link href={`/league/${leagueId}/storylines`}>
-                        <p className="text-[10px] text-muted-foreground text-center hover:text-gold transition-colors pt-1" data-testid="newsroom-more-storylines">
+                        <p className="text-xs text-muted-foreground text-center hover:text-gold transition-colors pt-1" data-testid="newsroom-more-storylines">
                           +{storylines.length - 5} more arcs on the War Board
                         </p>
                       </Link>
                     )}
                     <div className="pt-1">
                       <Link href={`/league/${leagueId}/storylines`}>
-                        <RetroButton size="sm" variant="outline" className="w-full border-border/50 text-[9px]" data-testid="newsroom-warboard-btn">
+                        <RetroButton size="sm" variant="outline" className="w-full border-border/50 text-xs" data-testid="newsroom-warboard-btn">
                           <Swords className="w-3 h-3 mr-1.5" /> Open War Board
                         </RetroButton>
                       </Link>
@@ -1395,28 +1396,28 @@ export function NewsroomPanel({
             className="hidden lg:flex flex-col gap-3 w-[210px] shrink-0 ml-5 pl-5 border-l border-border/30"
             data-testid="newsroom-pulse"
           >
-            <p className="font-pixel text-[8px] text-muted-foreground/50 uppercase tracking-wider">League Pulse</p>
+            <p className="font-pixel text-xs text-muted-foreground/50 uppercase tracking-wider">League Pulse</p>
 
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Ready</span>
-                <span className={`font-pixel text-[9px] ${readyCount >= humanCount ? "text-emerald-400" : "text-gold"}`}>
+                <span className="text-xs text-muted-foreground">Ready</span>
+                <span className={`font-pixel text-xs ${readyCount >= humanCount ? "text-emerald-400" : "text-gold"}`}>
                   {readyCount}/{humanCount}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Votes pending</span>
-                <span className={`font-pixel text-[9px] ${pendingVotes > 0 ? "text-gold animate-pulse" : "text-muted-foreground"}`}>
+                <span className="text-xs text-muted-foreground">Votes pending</span>
+                <span className={`font-pixel text-xs ${pendingVotes > 0 ? "text-gold animate-pulse" : "text-muted-foreground"}`}>
                   {pendingVotes}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Phase</span>
-                <span className="text-[10px] text-foreground/70 text-right max-w-[100px] leading-snug">{phaseLabel}</span>
+                <span className="text-xs text-muted-foreground">Phase</span>
+                <span className="text-xs text-foreground/70 text-right max-w-[100px] leading-snug">{phaseLabel}</span>
               </div>
               <div className="pt-2 border-t border-border/30">
-                <p className="text-[9px] text-muted-foreground/60 mb-0.5">Latest signing</p>
-                <p className="text-[10px] text-foreground/60 leading-snug line-clamp-2">
+                <p className="text-xs text-muted-foreground/60 mb-0.5">Latest signing</p>
+                <p className="text-xs text-foreground/60 leading-snug line-clamp-2">
                   {latestSigning ? latestSigning.description : "None yet"}
                 </p>
               </div>
@@ -1426,7 +1427,7 @@ export function NewsroomPanel({
               {isCommissioner && (
                 <button
                   onClick={() => { setTab("posts"); setShowPostForm(true); }}
-                  className="w-full text-left flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-gold transition-colors py-0.5"
+                  className="w-full text-left flex items-center gap-1.5 text-xs text-muted-foreground hover:text-gold transition-colors py-0.5"
                   data-testid="pulse-action-post"
                 >
                   <PlusCircle className="w-3 h-3 shrink-0" /> Post an update
@@ -1434,18 +1435,18 @@ export function NewsroomPanel({
               )}
               {pendingVotes > 0 && (
                 <Link href={`/league/${leagueId}/storylines`}>
-                  <div className="flex items-center gap-1.5 text-[10px] text-gold hover:underline py-0.5 cursor-pointer" data-testid="pulse-action-vote">
+                  <div className="flex items-center gap-1.5 text-xs text-gold hover:underline py-0.5 cursor-pointer" data-testid="pulse-action-vote">
                     <Zap className="w-3 h-3 shrink-0" /> Vote on storylines
                   </div>
                 </Link>
               )}
               <Link href={`/league/${leagueId}/recruiting`}>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-gold transition-colors py-0.5 cursor-pointer" data-testid="pulse-action-recruit">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-gold transition-colors py-0.5 cursor-pointer" data-testid="pulse-action-recruit">
                   <ChevronRight className="w-3 h-3 shrink-0" /> Recruiting board
                 </div>
               </Link>
               <Link href={`/league/${leagueId}/schedule`}>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-gold transition-colors py-0.5 cursor-pointer" data-testid="pulse-action-schedule">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-gold transition-colors py-0.5 cursor-pointer" data-testid="pulse-action-schedule">
                   <ChevronRight className="w-3 h-3 shrink-0" /> Schedule
                 </div>
               </Link>
@@ -1455,5 +1456,204 @@ export function NewsroomPanel({
         </div>
       </RetroCardContent>
     </RetroCard>
+  );
+}
+
+// ─── This Week Command Center ────────────────────────────────────────────────
+
+const PHASE_LABELS: Record<string, string> = {
+  preseason: "Preseason",
+  spring_training: "Spring Training",
+  regular_season: "Regular Season",
+  conference_championship: "Conf. Championship",
+  super_regionals: "Super Regionals",
+  cws: "College World Series",
+  offseason: "Offseason",
+  offseason_recruiting_1: "Recruiting Phase 1",
+  offseason_recruiting_2: "Recruiting Phase 2",
+  offseason_recruiting_3: "Recruiting Phase 3",
+  offseason_recruiting_4: "Recruiting Phase 4",
+  offseason_signing_day: "Signing Day",
+  offseason_walkons: "Walk-on Phase",
+  offseason_departures: "Departures",
+};
+
+interface ThisWeekSchedule {
+  games: Array<{
+    id: string;
+    homeTeamId: string;
+    awayTeamId: string;
+    isComplete: boolean;
+    homeTeam: { name: string; abbreviation: string };
+    awayTeam: { name: string; abbreviation: string };
+    isConference: boolean;
+    gameType: string | null;
+  }>;
+  currentWeek: number;
+  humanTeamIds: string[];
+}
+
+function fmtNilAmt(amount: number): string {
+  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
+  if (amount >= 1_000) return `$${Math.round(amount / 1_000)}K`;
+  return `$${amount}`;
+}
+
+function isEntryReady(entry: ReadyStatusData["readyStatus"][number]): boolean {
+  return entry.isReady || (entry.isAutoPilot ?? false);
+}
+
+export function ThisWeekPanel({
+  leagueId,
+  league,
+  myTeamId,
+  overview,
+  readyStatus,
+  isCommissioner,
+}: {
+  leagueId: string;
+  league: LeagueDetails;
+  myTeamId?: string;
+  overview?: DashboardOverview | null;
+  readyStatus?: ReadyStatusData | null;
+  isCommissioner?: boolean;
+}) {
+  const phase = league.currentPhase ?? "preseason";
+  const phaseLabel = PHASE_LABELS[phase] ?? phase;
+  const week = league.currentWeek ?? 1;
+  const season = league.currentSeason ?? 1;
+
+  const isInSeason = ["regular_season", "spring_training"].includes(phase);
+
+  const { data: sched } = useQuery<ThisWeekSchedule>({
+    queryKey: ["/api/leagues", leagueId, "schedule"],
+    enabled: isInSeason,
+    staleTime: 60000,
+  });
+
+  const nilBudget = overview?.nilBudget ?? 0;
+  const nilSpent = overview?.nilSpent ?? 0;
+  const nilRemAmt = nilBudget - nilSpent;
+  const nilRemPct = nilBudget > 0 ? Math.round((nilRemAmt / nilBudget) * 100) : 100;
+
+  const readyCount = readyStatus?.readyCount ?? 0;
+  const humanCount = readyStatus?.humanCount ?? 1;
+  const allReady = readyStatus?.allHumansReady ?? false;
+
+  const myNextGame = myTeamId
+    ? sched?.games.filter(g => !g.isComplete && (g.homeTeamId === myTeamId || g.awayTeamId === myTeamId)).at(0)
+    : undefined;
+
+  const myReadyEntry = readyStatus?.readyStatus.find(r => r.teamId === myTeamId);
+  const amReady = myReadyEntry ? isEntryReady(myReadyEntry) : false;
+
+  return (
+    <div
+      className="rounded border border-gold/20 bg-card/40 px-4 py-3 mb-4"
+      data-testid="panel-this-week"
+      role="region"
+      aria-label="This week command center"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-gold" />
+          <span className="font-pixel text-gold text-xs">{phaseLabel.toUpperCase()}</span>
+        </div>
+        <span className="text-xs text-muted-foreground">Season {season} · Week {week}</span>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {/* Advance readiness */}
+        <div>
+          <p className="font-pixel text-xs text-muted-foreground/70 mb-1">ADVANCE</p>
+          {allReady ? (
+            <p className="flex items-center gap-1 text-emerald-400 text-sm font-medium">
+              <CheckCircle className="w-3.5 h-3.5" /> All ready
+            </p>
+          ) : (
+            <p className="flex items-center gap-1 text-amber-400 text-sm font-medium">
+              <Clock className="w-3.5 h-3.5" /> {readyCount}/{humanCount} ready
+            </p>
+          )}
+          {myTeamId && (
+            <p className={`text-xs mt-0.5 ${amReady ? "text-emerald-400/70" : "text-muted-foreground/60"}`}>
+              You: {amReady ? "ready" : "pending"}
+            </p>
+          )}
+        </div>
+
+        {/* NIL budget */}
+        {nilBudget > 0 ? (
+          <div>
+            <p className="font-pixel text-xs text-muted-foreground/70 mb-1">NIL BUDGET</p>
+            <p className={`text-sm font-medium ${nilRemPct < 20 ? "text-red-400" : nilRemPct < 50 ? "text-amber-400" : "text-emerald-400"}`}>
+              {nilRemPct}% left
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">{fmtNilAmt(nilRemAmt)} remaining</p>
+          </div>
+        ) : null}
+
+        {/* Recruiting summary */}
+        {overview != null ? (
+          <div>
+            <p className="font-pixel text-xs text-muted-foreground/70 mb-1">RECRUITING</p>
+            <p className="text-sm font-medium text-foreground">
+              {overview.recruitingSigned ?? 0} signed
+            </p>
+            <p className="text-xs text-muted-foreground/60 mt-0.5">
+              {overview.recruitingInterested ?? 0} interested
+            </p>
+          </div>
+        ) : null}
+
+        {/* Next game */}
+        {myNextGame && myTeamId ? (
+          <div>
+            <p className="font-pixel text-xs text-muted-foreground/70 mb-1">NEXT GAME</p>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              {myNextGame.homeTeamId === myTeamId ? (
+                <><span className="text-xs text-muted-foreground/60">vs</span> {myNextGame.awayTeam.abbreviation}</>
+              ) : (
+                <><span className="text-xs text-muted-foreground/60">@</span> {myNextGame.homeTeam.abbreviation}</>
+              )}
+            </p>
+            {myNextGame.isConference && (
+              <p className="text-xs text-gold/60 mt-0.5">conf. series</p>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Quick navigation links */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5 mt-3 pt-3 border-t border-border/40">
+        <Link href={`/league/${leagueId}/schedule`}>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground hover:text-gold transition-colors" data-testid="thisweek-link-schedule">
+            <Calendar className="w-3 h-3" /> Schedule
+          </span>
+        </Link>
+        <Link href={`/league/${leagueId}/recruiting`}>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground hover:text-gold transition-colors" data-testid="thisweek-link-recruiting">
+            <BookOpen className="w-3 h-3" /> Recruiting
+          </span>
+        </Link>
+        <Link href={`/league/${leagueId}/roster`}>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground hover:text-gold transition-colors" data-testid="thisweek-link-roster">
+            <Users className="w-3 h-3" /> Roster
+          </span>
+        </Link>
+        <Link href={`/league/${leagueId}/stats`}>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground hover:text-gold transition-colors" data-testid="thisweek-link-stats">
+            <BarChart2 className="w-3 h-3" /> Stats
+          </span>
+        </Link>
+        {isCommissioner && (
+          <Link href={`/league/${leagueId}/commissioner`}>
+            <span className="flex items-center gap-1 text-xs text-gold/70 hover:text-gold transition-colors" data-testid="thisweek-link-commissioner">
+              <AlertTriangle className="w-3 h-3" /> Commissioner
+            </span>
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }

@@ -335,7 +335,7 @@ export function ReadyStatusSection({
           <div className="space-y-4">
             {stalledTeams.length > 0 && (
               <div>
-                <p className="font-pixel text-[9px] text-amber-400 uppercase mb-2 flex items-center gap-1">
+                <p className="font-pixel text-xs text-amber-400 uppercase mb-2 flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Waiting ({stalledTeams.length})
                 </p>
                 <div className="space-y-2">
@@ -371,21 +371,21 @@ export function ReadyStatusSection({
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-pixel text-[10px] text-gold">
+                            <span className="font-pixel text-xs text-gold">
                               {team.abbreviation}
                             </span>
                             <span className="text-sm">{team.coachName}</span>
                             {team.isAutoPilot ? (
-                              <span className="text-[9px] font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded flex items-center gap-0.5">
+                              <span className="text-xs font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded flex items-center gap-0.5">
                                 <Bot className="w-2.5 h-2.5" /> AUTO-PILOT
                               </span>
                             ) : (
-                              <span className="text-[9px] font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">
+                              <span className="text-xs font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">
                                 WAITING
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                             {team.isAutoPilot && isRecruitingPhase ? (
                               <span className="text-blue-400/70">
                                 CPU took {team.currentWeekActionCount} action
@@ -424,7 +424,7 @@ export function ReadyStatusSection({
                           {!team.isAutoPilot && timeLeft && (
                             <div className="flex items-center gap-1 mt-1">
                               <Timer className="w-3 h-3 text-amber-400" />
-                              <span className="text-[10px] text-amber-400">{timeLeft}</span>
+                              <span className="text-xs text-amber-400">{timeLeft}</span>
                             </div>
                           )}
                         </div>
@@ -534,7 +534,7 @@ export function ReadyStatusSection({
             {readyTeams.length > 0 && (
               <div>
                 {stalledTeams.length > 0 && (
-                  <p className="font-pixel text-[9px] text-green-500 uppercase mb-2 flex items-center gap-1">
+                  <p className="font-pixel text-xs text-green-500 uppercase mb-2 flex items-center gap-1">
                     <Check className="w-3 h-3" /> Ready ({readyTeams.length})
                   </p>
                 )}
@@ -560,17 +560,17 @@ export function ReadyStatusSection({
                           ) : (
                             <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
                           )}
-                          <span className="font-pixel text-[10px] text-gold">
+                          <span className="font-pixel text-xs text-gold">
                             {team.abbreviation}
                           </span>
                           <span className="text-sm text-muted-foreground">{team.coachName}</span>
                           {team.isAutoPilot && (
-                            <span className="text-[9px] font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded">
+                            <span className="text-xs font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded">
                               AUTO-PILOT
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           {isRecruitingPhase && !team.isAutoPilot && (
                             <span>
                               {team.currentWeekActionCount} action

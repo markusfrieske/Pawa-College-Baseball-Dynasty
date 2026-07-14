@@ -9,7 +9,7 @@ interface TrajectoryIconProps {
 export function TrajectoryIcon({
   trajectory,
   iconSize = "w-3 h-3",
-  textSize = "text-[9px]",
+  textSize = "text-xs",
 }: TrajectoryIconProps) {
   const color =
     trajectory === 1 ? "text-emerald-400" :

@@ -258,7 +258,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
             <div className="bg-gold/20 px-3 py-2 border-b border-border flex items-center justify-between">
               <span className="font-pixel text-gold text-xs">BATTING ORDER</span>
               {canDrag && (
-                <span className="text-[9px] text-muted-foreground">Drag or click to assign</span>
+                <span className="text-xs text-muted-foreground">Drag or click to assign</span>
               )}
             </div>
             <div className="p-2 space-y-1">
@@ -291,7 +291,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                     }}
                     data-testid={`slot-batting-${slot}`}
                   >
-                    <span className="font-pixel text-gold text-[10px] w-6 flex-shrink-0 text-center">{slot}</span>
+                    <span className="font-pixel text-gold text-xs w-6 flex-shrink-0 text-center">{slot}</span>
                     {player ? (
                       <div
                         className="flex items-center gap-2 flex-1 min-w-0"
@@ -327,7 +327,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                           return (
                             <div className="relative flex-shrink-0" onClick={e => e.stopPropagation()}>
                               <button
-                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
+                                className={`text-xs font-bold px-1.5 py-0.5 rounded border transition-colors ${
                                   canDrag
                                     ? "border-border/60 bg-muted/30 hover:border-gold/60 hover:bg-gold/10 cursor-pointer text-muted-foreground hover:text-gold"
                                     : "border-transparent bg-muted/20 text-muted-foreground cursor-default"
@@ -343,7 +343,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                                   {DEF_POSITIONS.map(pos => (
                                     <button
                                       key={pos}
-                                      className={`text-[9px] font-bold px-1.5 py-1 rounded transition-colors ${
+                                      className={`text-xs font-bold px-1.5 py-1 rounded transition-colors ${
                                         pos === defPos
                                           ? "bg-gold text-black"
                                           : "hover:bg-gold/20 text-muted-foreground hover:text-gold"
@@ -363,10 +363,10 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                           );
                         })()}
                         <span className="text-xs truncate flex-1">{player.firstName.charAt(0)}. {player.lastName}</span>
-                        <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                        <span className="text-xs text-muted-foreground hidden sm:inline">
                           {isPitcher(player.position) ? `VEL ${player.velocity || 0} / CTL ${player.control || 0}` : `HIT ${player.hitForAvg || 0} / PWR ${player.power || 0} / SPD ${player.speed || 0}`}
                         </span>
-                        <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
+                        <span className="text-xs text-muted-foreground">{player.eligibility}</span>
                         <span className="text-xs font-bold text-gold">{player.overall}</span>
                         {canDrag && (
                           <button
@@ -438,7 +438,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                       />
                       <PositionBadge position={p.position} size="sm" />
                       <span className="text-xs truncate flex-1">{p.firstName.charAt(0)}. {p.lastName}</span>
-                      <span className="text-[9px] text-muted-foreground hidden sm:inline">{keyStats}</span>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">{keyStats}</span>
                       <span className="text-xs font-bold text-gold">{p.overall}</span>
                     </div>
                   );
@@ -459,7 +459,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
               <div key={sectionLabel} className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid={testId}>
                 <div className="bg-gold/20 px-3 py-2 border-b border-border flex items-center justify-between">
                   <span className="font-pixel text-gold text-xs">{sectionLabel}</span>
-                  {canDrag && <span className="text-[9px] text-muted-foreground">Drag or click</span>}
+                  {canDrag && <span className="text-xs text-muted-foreground">Drag or click</span>}
                 </div>
                 <div className="p-2 space-y-1">
                   {slots.map(({ role, label, player }) => {
@@ -491,7 +491,7 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                         }}
                         data-testid={`slot-pitching-${role}`}
                       >
-                        <span className="font-pixel text-gold text-[9px] w-10 flex-shrink-0">{label}</span>
+                        <span className="font-pixel text-gold text-xs w-10 flex-shrink-0">{label}</span>
                         {player ? (
                           <div
                             className="flex items-center gap-2 flex-1 min-w-0"
@@ -521,11 +521,11 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                             />
                             <PositionBadge position={player.position} size="sm" />
                             <span className="text-xs truncate flex-1">{player.firstName.charAt(0)}. {player.lastName}</span>
-                            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                            <span className="text-xs text-muted-foreground hidden sm:inline">
                               VEL {player.velocity || 0} / CTL {player.control || 0} / STM {player.stamina || 0}
                             </span>
-                            <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
-                            <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
+                            <span className="text-xs text-muted-foreground">{player.eligibility}</span>
+                            <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
                               {player.throwHand}HP
                             </span>
                             <span className="text-xs font-bold text-gold">{player.overall}</span>
@@ -605,8 +605,8 @@ export function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leag
                       />
                       <PositionBadge position={p.position} size="sm" />
                       <span className="text-xs truncate flex-1">{p.firstName.charAt(0)}. {p.lastName}</span>
-                      <span className="text-[9px] text-muted-foreground hidden sm:inline">{keyStats}</span>
-                      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">{keyStats}</span>
+                      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
                         {p.throwHand}HP
                       </span>
                       <span className="text-xs font-bold text-gold">{p.overall}</span>

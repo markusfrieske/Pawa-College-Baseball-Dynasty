@@ -30,7 +30,7 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
 
         {won.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-pixel text-[9px] text-green-400 mb-2 uppercase">Signed</h3>
+            <h3 className="font-pixel text-xs text-green-400 mb-2 uppercase">Signed</h3>
             <div className="space-y-1.5">
               {won.map(r => (
                 <div
@@ -42,12 +42,12 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
                     <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
                     <div>
                       <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                      <p className="text-[9px] text-muted-foreground">{r.position} · {r.overall} OVR</p>
+                      <p className="text-xs text-muted-foreground">{r.position} · {r.overall} OVR</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-green-400">{fmtKLeague(r.pricePaid)}</p>
-                    <p className="text-[8px] text-muted-foreground">your bid: {fmtKLeague(r.yourBid)}</p>
+                    <p className="text-xs text-muted-foreground">your bid: {fmtKLeague(r.yourBid)}</p>
                   </div>
                 </div>
               ))}
@@ -57,7 +57,7 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
 
         {lost.length > 0 && (
           <div className="mb-4">
-            <h3 className="font-pixel text-[9px] text-red-400 mb-2 uppercase">Outbid On</h3>
+            <h3 className="font-pixel text-xs text-red-400 mb-2 uppercase">Outbid On</h3>
             <div className="space-y-1.5">
               {lost.map(r => (
                 <div
@@ -69,13 +69,13 @@ export function WalkonAuctionSummaryModal({ outcomes, onDismiss }: {
                     <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
                     <div>
                       <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                      <p className="text-[9px] text-muted-foreground">{r.position} · {r.overall} OVR</p>
+                      <p className="text-xs text-muted-foreground">{r.position} · {r.overall} OVR</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                    <p className="text-xs text-muted-foreground">won by {r.winnerTeamName}</p>
                     <p className="text-sm font-medium text-red-400">{fmtKLeague(r.pricePaid)}</p>
-                    <p className="text-[8px] text-muted-foreground">your bid: {fmtKLeague(r.yourBid)}</p>
+                    <p className="text-xs text-muted-foreground">your bid: {fmtKLeague(r.yourBid)}</p>
                   </div>
                 </div>
               ))}

@@ -90,7 +90,7 @@ export function AdvanceProgressBar({ leagueId, isAdvancing }: AdvanceProgressBar
                 <div className="w-2.5 h-2.5 rounded-full border border-border/60" />
               )}
               <span
-                className={`font-pixel text-[6px] leading-tight text-center ${
+                className={`font-pixel text-xs leading-tight text-center ${
                   active ? "text-gold" : done ? "text-muted-foreground" : "text-muted-foreground/50"
                 }`}
               >

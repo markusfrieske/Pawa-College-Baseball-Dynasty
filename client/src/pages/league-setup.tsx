@@ -240,7 +240,7 @@ function StepIndicator({
       >
         {step}
       </div>
-      <span className={`font-pixel text-[10px] ${active ? "text-gold" : "text-muted-foreground"}`}>
+      <span className={`font-pixel text-xs ${active ? "text-gold" : "text-muted-foreground"}`}>
         {label}
       </span>
     </div>
@@ -296,7 +296,7 @@ function TeamTile({
           style={{ backgroundColor: team.primaryColor }}
         >
           <span
-            className="font-pixel text-[8px] leading-none text-center px-0.5"
+            className="font-pixel text-xs leading-none text-center px-0.5"
             style={{ color: team.secondaryColor || "#ffffff" }}
           >
             {team.abbreviation}
@@ -313,19 +313,19 @@ function TeamTile({
           </div>
         )}
         {confRank && !isSelected && !isHuman && (
-          <div className={`absolute -top-1 -left-1 font-pixel text-[7px] leading-none px-1 py-0.5 rounded bg-background/80 border border-border/60 ${prestigeColor}`}>
+          <div className={`absolute -top-1 -left-1 font-pixel text-xs leading-none px-1 py-0.5 rounded bg-background/80 border border-border/60 ${prestigeColor}`}>
             #{confRank}
           </div>
         )}
       </div>
       <p
-        className={`text-[9px] font-pixel text-center leading-tight w-[60px] truncate ${
+        className={`text-xs font-pixel text-center leading-tight w-[60px] truncate ${
           isSelected ? "text-gold" : isAvailable ? "text-muted-foreground" : "text-muted-foreground/50"
         }`}
       >
         {team.name}
       </p>
-      <span className={`font-pixel text-[7px] leading-none ${isSelected ? "text-gold/70" : prestigeColor}`}>
+      <span className={`font-pixel text-xs leading-none ${isSelected ? "text-gold/70" : prestigeColor}`}>
         {"★".repeat(Math.min(prestige, 5))}{"☆".repeat(Math.max(0, 5 - Math.min(prestige, 5)))}
       </span>
     </button>
@@ -432,7 +432,7 @@ function TeamSelectionStep({
                 key={s.value}
                 type="button"
                 onClick={() => setSort(s.value)}
-                className={`px-2 py-1 text-[10px] font-pixel rounded border transition-colors ${
+                className={`px-2 py-1 text-xs font-pixel rounded border transition-colors ${
                   sort === s.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
                 }`}
                 data-testid={`button-team-sort-${s.value}`}
@@ -441,7 +441,7 @@ function TeamSelectionStep({
               </button>
             ))}
           </div>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {filteredSorted.length} / {teams.length}
           </span>
         </div>
@@ -671,7 +671,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
     <div className="mt-6 space-y-3">
       {/* Philosophy */}
       <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-philosophy">
-        <h4 className="font-pixel text-[10px] text-gold uppercase mb-3">Coaching Philosophy</h4>
+        <h4 className="font-pixel text-xs text-gold uppercase mb-3">Coaching Philosophy</h4>
         <div className="space-y-2.5">
           {philosophy.map((p) => {
             const { label, color, dot } = IMPORTANCE_LABELS[p.importance] ?? IMPORTANCE_LABELS["somewhat"];
@@ -680,11 +680,11 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
               <div key={p.statement} className="flex items-start gap-3">
                 <div className="flex items-center gap-1.5 w-20 shrink-0 pt-0.5">
                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-                  <span className={`font-pixel text-[8px] ${color}`}>{label}</span>
+                  <span className={`font-pixel text-xs ${color}`}>{label}</span>
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-medium leading-tight">{p.statement}</p>
-                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{desc}</p>
+                  <p className="text-xs text-muted-foreground leading-tight mt-0.5">{desc}</p>
                 </div>
               </div>
             );
@@ -694,14 +694,14 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
 
       {/* Starting Traits */}
       <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-traits">
-        <h4 className="font-pixel text-[10px] text-gold uppercase mb-3">Starting Traits</h4>
+        <h4 className="font-pixel text-xs text-gold uppercase mb-3">Starting Traits</h4>
         <div className="flex flex-wrap gap-2">
           <TooltipProvider>
             {traits.map((trait) => (
               <Tooltip key={trait.id}>
                 <TooltipTrigger asChild>
                   <span
-                    className={`text-[10px] px-2 py-1 rounded border cursor-default font-medium ${TRAIT_TIER_COLORS[trait.tier]}`}
+                    className={`text-xs px-2 py-1 rounded border cursor-default font-medium ${TRAIT_TIER_COLORS[trait.tier]}`}
                     data-testid={`trait-badge-${trait.id}`}
                   >
                     {trait.name}
@@ -718,15 +718,15 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
 
       {/* Skill Boosts */}
       <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-skills">
-        <h4 className="font-pixel text-[10px] text-gold uppercase mb-1">Skill Boosts</h4>
-        <p className="text-[10px] text-muted-foreground mb-4">Higher bars mean faster skill-tree progress. Scouting reveals recruit attributes faster. Evaluation sharpens player ratings. Pitchers/Hitters boost recruiting for those positions.</p>
+        <h4 className="font-pixel text-xs text-gold uppercase mb-1">Skill Boosts</h4>
+        <p className="text-xs text-muted-foreground mb-4">Higher bars mean faster skill-tree progress. Scouting reveals recruit attributes faster. Evaluation sharpens player ratings. Pitchers/Hitters boost recruiting for those positions.</p>
         <div className="grid grid-cols-4 gap-3">
           {skillItems.map((skill) => (
             <div key={skill.key} className="flex flex-col items-center gap-2" data-testid={`skill-${skill.key}`}>
               <div className={`p-2 bg-card border border-border rounded ${skill.color}`}>
                 <skill.icon className="w-4 h-4" />
               </div>
-              <span className="text-[8px] text-muted-foreground font-pixel">{skill.label}</span>
+              <span className="text-xs text-muted-foreground font-pixel">{skill.label}</span>
               <div className="flex items-center gap-1">
                 <div className="flex gap-0.5">
                   {[1, 2, 3, 4].map((n) => (
@@ -736,7 +736,7 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
                     />
                   ))}
                 </div>
-                <span className="font-pixel text-[10px] text-gold w-4">+{skill.value}</span>
+                <span className="font-pixel text-xs text-gold w-4">+{skill.value}</span>
               </div>
             </div>
           ))}

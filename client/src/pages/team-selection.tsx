@@ -86,7 +86,7 @@ function TeamTile({
           style={{ backgroundColor: team.primaryColor }}
         >
           <span
-            className="font-pixel text-[8px] leading-none text-center px-0.5"
+            className="font-pixel text-xs leading-none text-center px-0.5"
             style={{ color: team.secondaryColor || "#ffffff" }}
           >
             {team.abbreviation}
@@ -100,7 +100,7 @@ function TeamTile({
       </div>
       {nationalRank !== undefined && (
         <span
-          className="text-[8px] leading-none font-pixel text-muted-foreground"
+          className="text-xs leading-none font-pixel text-muted-foreground"
           data-testid={`text-rank-${team.abbreviation}`}
         >
           #{nationalRank}
@@ -381,7 +381,7 @@ export default function TeamSelectionPage() {
             <button
               key={opt.value}
               onClick={() => setTeamSort(opt.value)}
-              className={`px-2 py-1 text-[10px] font-pixel rounded border transition-colors ${
+              className={`px-2 py-1 text-xs font-pixel rounded border transition-colors ${
                 teamSort === opt.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
               }`}
               data-testid={`button-sort-${opt.value}`}
@@ -414,7 +414,7 @@ export default function TeamSelectionPage() {
                         const targets = getConferenceTargets(data.league.maxTeams, data.conferences.length);
                         const target = targets[confIdx];
                         return (
-                          <span className="text-[10px] text-muted-foreground font-pixel">
+                          <span className="text-xs text-muted-foreground font-pixel">
                             target {target}
                           </span>
                         );

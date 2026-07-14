@@ -88,15 +88,15 @@ function gradeColor(g: string | null) {
 function DepartureLabel({ type, round }: { type: string; round: number | null }) {
   if (type === "drafted" || type === "declared") {
     return (
-      <Badge className="text-[8px] bg-yellow-500/20 border-yellow-500/40 text-yellow-400">
+      <Badge className="text-xs bg-yellow-500/20 border-yellow-500/40 text-yellow-400">
         {round ? `Rd ${round} Pick` : "Drafted"}
       </Badge>
     );
   }
-  if (type === "transfer_portal") return <Badge variant="outline" className="text-[8px] text-purple-400 border-purple-500/40">Transfer</Badge>;
-  if (type === "graduated") return <Badge variant="outline" className="text-[8px] text-sky-400 border-sky-500/40">Grad</Badge>;
-  if (type === "cut_juco") return <Badge variant="outline" className="text-[8px]">JUCO</Badge>;
-  return <Badge variant="outline" className="text-[8px]">{type}</Badge>;
+  if (type === "transfer_portal") return <Badge variant="outline" className="text-xs text-purple-400 border-purple-500/40">Transfer</Badge>;
+  if (type === "graduated") return <Badge variant="outline" className="text-xs text-sky-400 border-sky-500/40">Grad</Badge>;
+  if (type === "cut_juco") return <Badge variant="outline" className="text-xs">JUCO</Badge>;
+  return <Badge variant="outline" className="text-xs">{type}</Badge>;
 }
 
 function PhaseLabel({ phase }: { phase: string | null }) {
@@ -112,13 +112,13 @@ function PhaseLabel({ phase }: { phase: string | null }) {
   };
   const label = labels[phase ?? ""] ?? phase ?? "—";
   const cls = colors[phase ?? ""] ?? "text-muted-foreground border-border/40";
-  return <Badge variant="outline" className={`text-[8px] ${cls}`}>{label}</Badge>;
+  return <Badge variant="outline" className={`text-xs ${cls}`}>{label}</Badge>;
 }
 
 function StarRow({ stars }: { stars: number | null }) {
   if (!stars) return null;
   const colors: Record<number, string> = { 5: "text-orange-400", 4: "text-yellow-400", 3: "text-green-400", 2: "text-blue-400", 1: "text-gray-400" };
-  return <span className={`font-pixel text-[8px] ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
+  return <span className={`font-pixel text-xs ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
 }
 
 // ── Overview Tab ───────────────────────────────────────────────────────────────
@@ -140,7 +140,7 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
               <div className="flex items-center gap-3 p-3 rounded-lg bg-gold/10 border border-gold/30">
                 <Crown className="w-6 h-6 text-gold flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-pixel text-gold text-[10px] mb-0.5">CWS CHAMPION</p>
+                  <p className="font-pixel text-gold text-xs mb-0.5">CWS CHAMPION</p>
                   <p className="font-medium text-base leading-tight truncate">{overview.cwsChampion.name}</p>
                   <p className="text-xs text-muted-foreground">
                     {overview.cwsChampion.wins}–{overview.cwsChampion.losses}
@@ -152,7 +152,7 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
                 <div className="flex items-center gap-3 px-3 py-2 rounded bg-background/40 border border-border/40">
                   <Medal className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-muted-foreground">Runner-Up</p>
+                    <p className="text-xs text-muted-foreground">Runner-Up</p>
                     <p className="text-sm font-medium truncate">{overview.cwsRunnerUp.name}</p>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -167,13 +167,13 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
 
           {overview.confChampions.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/30">
-              <p className="font-pixel text-[8px] text-muted-foreground mb-2">CONFERENCE CHAMPIONS</p>
+              <p className="font-pixel text-xs text-muted-foreground mb-2">CONFERENCE CHAMPIONS</p>
               <div className="flex flex-wrap gap-2">
                 {overview.confChampions.map(c => (
                   <div key={c.teamId} className="flex items-center gap-1.5 px-2 py-1 rounded bg-background/40 border border-border/40">
                     <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: c.color }} />
                     <span className="text-xs font-medium">{c.abbr}</span>
-                    <span className="text-[9px] text-muted-foreground">{c.confName}</span>
+                    <span className="text-xs text-muted-foreground">{c.confName}</span>
                   </div>
                 ))}
               </div>
@@ -199,12 +199,12 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
               overview.statLeaders.soLeader,
             ].filter(Boolean).map(leader => (
               <div key={leader!.statLabel} className="p-2 rounded bg-background/40 border border-border/40" data-testid={`stat-leader-${leader!.statLabel.toLowerCase()}`}>
-                <p className="font-pixel text-[8px] text-muted-foreground mb-1">{leader!.statLabel} LEADER</p>
+                <p className="font-pixel text-xs text-muted-foreground mb-1">{leader!.statLabel} LEADER</p>
                 <p className="text-sm font-medium leading-tight truncate">{leader!.name}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="w-1.5 h-1.5 rounded-sm" style={{ backgroundColor: leader!.teamColor }} />
-                  <span className="text-[10px] text-muted-foreground">{leader!.teamAbbr}</span>
-                  <span className="text-gold font-pixel text-[10px] ml-auto">{leader!.value}</span>
+                  <span className="text-xs text-muted-foreground">{leader!.teamAbbr}</span>
+                  <span className="text-gold font-pixel text-xs ml-auto">{leader!.value}</span>
                 </div>
               </div>
             ))}
@@ -214,9 +214,9 @@ function OverviewTab({ overview, season }: { overview: ArchiveOverview; season: 
             <div className="mt-3 pt-3 border-t border-border/30 flex items-center gap-3 p-2 rounded bg-background/30">
               <Star className="w-4 h-4 text-gold flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="font-pixel text-[8px] text-gold">RECRUITER OF THE YEAR</p>
+                <p className="font-pixel text-xs text-gold">RECRUITER OF THE YEAR</p>
                 <p className="text-sm font-medium truncate">{overview.recruiterOfYear.coachName ?? overview.recruiterOfYear.teamName}</p>
-                <p className="text-[10px] text-muted-foreground">{overview.recruiterOfYear.teamAbbr}</p>
+                <p className="text-xs text-muted-foreground">{overview.recruiterOfYear.teamAbbr}</p>
               </div>
               {overview.recruiterOfYear.grade && (
                 <span className={`font-pixel text-[14px] font-bold ${gradeColor(overview.recruiterOfYear.grade)}`}>
@@ -248,7 +248,7 @@ function RecruitingTab({ snapshots, season }: { snapshots: RecruitSnapshot[]; se
         <RetroCard key={snap.teamId} data-testid={`card-recruiting-${snap.teamId}`}>
           <RetroCardContent className="py-3">
             <div className="flex items-start gap-3">
-              <div className={`font-pixel text-[11px] w-8 flex-shrink-0 ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
+              <div className={`font-pixel text-xs w-8 flex-shrink-0 ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
                 #{snap.classRank}
               </div>
               <div className="flex-1 min-w-0">
@@ -256,17 +256,17 @@ function RecruitingTab({ snapshots, season }: { snapshots: RecruitSnapshot[]; se
                   <TeamDot color={snap.color} />
                   <span className="font-medium text-sm truncate">{snap.name}</span>
                   {snap.grade && (
-                    <span className={`font-pixel text-[10px] font-bold ${gradeColor(snap.grade)}`}>{snap.grade}</span>
+                    <span className={`font-pixel text-xs font-bold ${gradeColor(snap.grade)}`}>{snap.grade}</span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                   <span>{snap.totalCommits} commits</span>
                   {snap.fiveStars > 0 && <span className="text-orange-400">{snap.fiveStars}× 5★</span>}
                   {snap.fourStars > 0 && <span className="text-yellow-400">{snap.fourStars}× 4★</span>}
                   {snap.threeStars > 0 && <span>{snap.threeStars}× 3★</span>}
                 </div>
                 {snap.topRecruitName && (
-                  <p className="text-[10px] mt-1">
+                  <p className="text-xs mt-1">
                     <span className="text-muted-foreground">Top: </span>
                     <span className="font-medium">{snap.topRecruitName}</span>
                     {snap.topRecruitOvr && <span className="text-muted-foreground ml-1">({snap.topRecruitOvr} OVR)</span>}
@@ -329,10 +329,10 @@ function DepartedTab({ departed, season }: { departed: DepartedStar[]; season: n
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-medium text-sm">{d.firstName} {d.lastName}</span>
-                    <Badge variant="outline" className="text-[8px] shrink-0">{d.position}</Badge>
+                    <Badge variant="outline" className="text-xs shrink-0">{d.position}</Badge>
                     <DepartureLabel type={d.departureType} round={d.draftRound} />
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <TeamDot color={d.teamColor} />
                     <span>{d.teamAbbr}</span>
                     <span>·</span>
@@ -378,9 +378,9 @@ function GamesTab({ games, season }: { games: LegendaryGame[]; season: number })
                   <div className="flex items-center gap-2 mb-1">
                     {i === 0 && <Zap className="w-3 h-3 text-gold flex-shrink-0" />}
                     <PhaseLabel phase={g.phase} />
-                    {g.week && <span className="text-[9px] text-muted-foreground">Wk {g.week}</span>}
+                    {g.week && <span className="text-xs text-muted-foreground">Wk {g.week}</span>}
                   </div>
-                  <p className="font-pixel text-[9px] text-gold">
+                  <p className="font-pixel text-xs text-gold">
                     {winner} {winScore} – {loseScore} {loser}
                   </p>
                   {g.headline && (
@@ -389,19 +389,19 @@ function GamesTab({ games, season }: { games: LegendaryGame[]; season: number })
                 </div>
               </div>
               {g.playerOfGame && (
-                <div className="text-[10px] flex items-center gap-1.5 text-muted-foreground">
+                <div className="text-xs flex items-center gap-1.5 text-muted-foreground">
                   <Star className="w-3 h-3 text-gold" />
                   <span className="font-medium text-foreground">{g.playerOfGame.name}</span>
                   <span>{g.playerOfGame.stat}</span>
                 </div>
               )}
               {g.turningPoint && (
-                <p className="text-[10px] text-muted-foreground italic line-clamp-2">{g.turningPoint}</p>
+                <p className="text-xs text-muted-foreground italic line-clamp-2">{g.turningPoint}</p>
               )}
               {Array.isArray(g.badges) && g.badges.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                   {g.badges.map((b, bi) => (
-                    <Badge key={bi} variant="outline" className="text-[7px] border-gold/30 text-gold/80">{b}</Badge>
+                    <Badge key={bi} variant="outline" className="text-xs border-gold/30 text-gold/80">{b}</Badge>
                   ))}
                 </div>
               )}
@@ -504,8 +504,8 @@ export default function ArchivePage() {
               </button>
             </Link>
             <div className="flex-1 min-w-0">
-              <p className="font-pixel text-gold text-[9px]">{leagueName.toUpperCase()}</p>
-              <h1 className="font-pixel text-[11px] text-foreground flex items-center gap-2">
+              <p className="font-pixel text-gold text-xs">{leagueName.toUpperCase()}</p>
+              <h1 className="font-pixel text-xs text-foreground flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-gold" />
                 Historical Archive
               </h1>
@@ -562,7 +562,7 @@ export default function ArchivePage() {
               ].map(tab => (
                 <TabsTrigger key={tab.value} value={tab.value} className="flex flex-col gap-0.5 py-2 px-1 min-h-[52px]" data-testid={`tab-archive-${tab.value}`}>
                   {tab.icon}
-                  <span className="text-[8px] leading-tight">{tab.label}</span>
+                  <span className="text-xs leading-tight">{tab.label}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -620,7 +620,7 @@ export default function ArchivePage() {
                 <Award className="w-4 h-4 text-gold flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium">Record Book</p>
-                  <p className="text-[9px] text-muted-foreground">All-time leaders</p>
+                  <p className="text-xs text-muted-foreground">All-time leaders</p>
                 </div>
               </div>
             </Link>
@@ -629,7 +629,7 @@ export default function ArchivePage() {
                 <BarChart2 className="w-4 h-4 text-gold flex-shrink-0" />
                 <div>
                   <p className="text-xs font-medium">Dynasty History</p>
-                  <p className="text-[9px] text-muted-foreground">Season trends</p>
+                  <p className="text-xs text-muted-foreground">Season trends</p>
                 </div>
               </div>
             </Link>

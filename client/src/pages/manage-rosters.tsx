@@ -309,7 +309,7 @@ export default function ManageRostersPage() {
 
         <div className="flex items-end gap-4 flex-wrap">
           <div className="space-y-1">
-            <label className="font-pixel text-[10px] text-gold uppercase">Conference</label>
+            <label className="font-pixel text-xs text-gold uppercase">Conference</label>
             <Select value={selectedConference} onValueChange={handleConferenceChange}>
               <SelectTrigger className="w-48" data-testid="select-conference">
                 <SelectValue placeholder="Select conference" />
@@ -327,7 +327,7 @@ export default function ManageRostersPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="font-pixel text-[10px] text-gold uppercase">Team</label>
+            <label className="font-pixel text-xs text-gold uppercase">Team</label>
             <Select value={selectedTeam} onValueChange={handleTeamChange} disabled={!selectedConference}>
               <SelectTrigger className="w-56" data-testid="select-team">
                 <SelectValue placeholder="Select team" />
@@ -342,7 +342,7 @@ export default function ManageRostersPage() {
 
           {savedRosters && savedRosters.length > 0 && (
             <div className="space-y-1">
-              <label className="font-pixel text-[10px] text-gold uppercase">Load Saved Roster</label>
+              <label className="font-pixel text-xs text-gold uppercase">Load Saved Roster</label>
               <div className="flex items-center gap-2">
                 <Select onValueChange={handleLoadSavedRoster}>
                   <SelectTrigger className="w-56" data-testid="select-load-roster">
@@ -369,7 +369,7 @@ export default function ManageRostersPage() {
                 {savedRosters.map(r => (
                   <div key={r.id} className="flex items-center gap-2 bg-muted/30 border border-border px-3 py-2 rounded-md" data-testid={`saved-roster-${r.id}`}>
                     <span className="text-sm text-foreground">{r.name}</span>
-                    <Badge variant="outline" className="text-muted-foreground text-[10px]">{r.basedOn}</Badge>
+                    <Badge variant="outline" className="text-muted-foreground text-xs">{r.basedOn}</Badge>
                     <RetroButton
                       variant="ghost"
                       size="icon"
@@ -464,7 +464,7 @@ export default function ManageRostersPage() {
                               </div>
                             </td>
                             <td className="px-2 py-1.5">
-                              <Badge variant="outline" className="text-[10px]">{player.position}</Badge>
+                              <Badge variant="outline" className="text-xs">{player.position}</Badge>
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.eligibility}</td>
                             <td className="px-2 py-1.5 font-bold text-foreground">{ovr}</td>
@@ -517,7 +517,7 @@ export default function ManageRostersPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="font-pixel text-[10px] text-foreground uppercase">Roster Name</label>
+              <label className="font-pixel text-xs text-foreground uppercase">Roster Name</label>
               <Input
                 value={saveRosterName}
                 onChange={(e) => setSaveRosterName(e.target.value)}
@@ -526,7 +526,7 @@ export default function ManageRostersPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="font-pixel text-[10px] text-foreground uppercase">Description (optional)</label>
+              <label className="font-pixel text-xs text-foreground uppercase">Description (optional)</label>
               <Input
                 value={saveRosterDesc}
                 onChange={(e) => setSaveRosterDesc(e.target.value)}
@@ -625,7 +625,7 @@ function AbilitiesDropdown({
                 <Badge
                   key={ab}
                   variant={tierBadgeVariant(ability?.tier || "blue")}
-                  className={`text-[8px] ${ability?.tier === "gold" ? "bg-yellow-600/20 text-yellow-500 border-yellow-600/30" : ability?.tier === "red" ? "" : "bg-blue-600/20 text-blue-400 border-blue-600/30"}`}
+                  className={`text-xs ${ability?.tier === "gold" ? "bg-yellow-600/20 text-yellow-500 border-yellow-600/30" : ability?.tier === "red" ? "" : "bg-blue-600/20 text-blue-400 border-blue-600/30"}`}
                 >
                   {ab}
                   <button
@@ -663,7 +663,7 @@ function AbilitiesDropdown({
               if (abilities.length === 0) return null;
               return (
                 <div key={tier}>
-                  <div className={`px-2 py-1 text-[10px] font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                  <div className={`px-2 py-1 text-xs font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
                     {tier} Abilities ({abilities.length})
                   </div>
                   {abilities.map(ability => {
@@ -683,7 +683,7 @@ function AbilitiesDropdown({
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className={`${tierColor(tier)} font-medium`}>{ability.name}</span>
-                          <p className="text-muted-foreground text-[10px] truncate">{ability.description}</p>
+                          <p className="text-muted-foreground text-xs truncate">{ability.description}</p>
                         </div>
                       </div>
                     );
@@ -722,7 +722,7 @@ function PlayerEditPanel({
 
   const NumField = ({ field, label, disabled }: { field: keyof RealPlayer; label: string; disabled?: boolean }) => (
     <div className="space-y-0.5">
-      <label className="font-pixel text-[8px] text-gold uppercase">{label}</label>
+      <label className="font-pixel text-xs text-gold uppercase">{label}</label>
       <Input
         type="number"
         min={1}
@@ -738,7 +738,7 @@ function PlayerEditPanel({
 
   const TextInput = ({ field, label, className: cls }: { field: keyof RealPlayer; label: string; className?: string }) => (
     <div className="space-y-0.5">
-      <label className="font-pixel text-[8px] text-gold uppercase">{label}</label>
+      <label className="font-pixel text-xs text-gold uppercase">{label}</label>
       <Input
         className={`h-7 text-xs ${cls || "w-28"}`}
         value={(player[field] as string) || ""}
@@ -752,7 +752,7 @@ function PlayerEditPanel({
     <div className="space-y-4" data-testid={`panel-edit-${idx}`}>
       <div className="flex items-start gap-6 flex-wrap">
         <div className="space-y-2">
-          <p className="font-pixel text-[10px] text-gold mb-1">PLAYER AVATAR</p>
+          <p className="font-pixel text-xs text-gold mb-1">PLAYER AVATAR</p>
           <div className="flex items-center gap-4">
             <CoachAvatar
               skinTone={appearance.skinTone}
@@ -762,7 +762,7 @@ function PlayerEditPanel({
             />
             <div className="space-y-2">
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Skin Tone</label>
+                <label className="font-pixel text-xs text-gold uppercase">Skin Tone</label>
                 <Select value={appearance.skinTone} onValueChange={(v) => updateAppearance("skinTone", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-skinTone-${idx}`}>
                     <SelectValue />
@@ -775,7 +775,7 @@ function PlayerEditPanel({
                 </Select>
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Hair Color</label>
+                <label className="font-pixel text-xs text-gold uppercase">Hair Color</label>
                 <Select value={appearance.hairColor} onValueChange={(v) => updateAppearance("hairColor", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairColor-${idx}`}>
                     <SelectValue />
@@ -788,7 +788,7 @@ function PlayerEditPanel({
                 </Select>
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Hair Style</label>
+                <label className="font-pixel text-xs text-gold uppercase">Hair Style</label>
                 <Select value={appearance.hairStyle} onValueChange={(v) => updateAppearance("hairStyle", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairStyle-${idx}`}>
                     <SelectValue />
@@ -809,7 +809,7 @@ function PlayerEditPanel({
             <TextInput field="firstName" label="First Name" />
             <TextInput field="lastName" label="Last Name" />
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Position</label>
+              <label className="font-pixel text-xs text-gold uppercase">Position</label>
               <Select
                 value={player.position}
                 onValueChange={(v) => onUpdate(idx, "position", v)}
@@ -825,7 +825,7 @@ function PlayerEditPanel({
               </Select>
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Eligibility</label>
+              <label className="font-pixel text-xs text-gold uppercase">Eligibility</label>
               <Select
                 value={player.eligibility}
                 onValueChange={(v) => onUpdate(idx, "eligibility", v)}
@@ -844,7 +844,7 @@ function PlayerEditPanel({
           <div className="flex items-center gap-4 flex-wrap">
             <NumField field="jerseyNumber" label="Jersey #" />
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Rank (OVR)</label>
+              <label className="font-pixel text-xs text-gold uppercase">Rank (OVR)</label>
               <Input
                 type="number"
                 min={1}
@@ -858,7 +858,7 @@ function PlayerEditPanel({
             <TextInput field="hometown" label="Home City" />
             <TextInput field="homeState" label="Home State" className="w-16" />
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Potential</label>
+              <label className="font-pixel text-xs text-gold uppercase">Potential</label>
               <Select
                 value={player.potential}
                 onValueChange={(v) => onUpdate(idx, "potential", v)}
@@ -880,7 +880,7 @@ function PlayerEditPanel({
       {isPitcher ? (
         <>
           <div>
-            <p className="font-pixel text-[10px] text-gold mb-2">PITCHING ATTRIBUTES</p>
+            <p className="font-pixel text-xs text-gold mb-2">PITCHING ATTRIBUTES</p>
             <div className="flex items-center gap-3 flex-wrap">
               <NumField field="velocity" label="Velocity" />
               <NumField field="control" label="Control" />
@@ -892,8 +892,8 @@ function PlayerEditPanel({
             </div>
           </div>
           <div>
-            <p className="font-pixel text-[10px] text-gold mb-2">PITCH MIX</p>
-            <p className="font-pixel text-[8px] text-muted-foreground mb-1">FB/2S: 0 or 1 only | Others: 1-7</p>
+            <p className="font-pixel text-xs text-gold mb-2">PITCH MIX</p>
+            <p className="font-pixel text-xs text-muted-foreground mb-1">FB/2S: 0 or 1 only | Others: 1-7</p>
             <div className="flex items-center gap-3 flex-wrap">
               <NumField field="pitchFB" label="FB" />
               <NumField field="pitch2S" label="2S" />
@@ -918,7 +918,7 @@ function PlayerEditPanel({
         </>
       ) : (
         <div>
-          <p className="font-pixel text-[10px] text-gold mb-2">HITTING / FIELDING ATTRIBUTES</p>
+          <p className="font-pixel text-xs text-gold mb-2">HITTING / FIELDING ATTRIBUTES</p>
           <div className="flex items-center gap-3 flex-wrap">
             <NumField field="hitForAvg" label="Contact" />
             <NumField field="power" label="Power" />
@@ -931,7 +931,7 @@ function PlayerEditPanel({
       )}
 
       <div>
-        <p className="font-pixel text-[10px] text-gold mb-2">SECONDARY ATTRIBUTES</p>
+        <p className="font-pixel text-xs text-gold mb-2">SECONDARY ATTRIBUTES</p>
         <div className="flex items-center gap-3 flex-wrap">
           <NumField field="clutch" label="Clutch" />
           <NumField field="grit" label="Grit" />
@@ -949,7 +949,7 @@ function PlayerEditPanel({
       </div>
 
       <div>
-        <p className="font-pixel text-[10px] text-gold mb-2">SPECIAL ABILITIES</p>
+        <p className="font-pixel text-xs text-gold mb-2">SPECIAL ABILITIES</p>
         <AbilitiesDropdown
           selectedAbilities={player.abilities || []}
           position={player.position}
@@ -959,14 +959,14 @@ function PlayerEditPanel({
       </div>
 
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-muted-foreground text-[10px]">
+        <Badge variant="outline" className="text-muted-foreground text-xs">
           OVR: {calcOVR(player)}
         </Badge>
-        <Badge variant="outline" className="text-muted-foreground text-[10px]">
+        <Badge variant="outline" className="text-muted-foreground text-xs">
           Potential: {player.potential}
         </Badge>
         {player.abilities && player.abilities.length > 0 && (
-          <Badge variant="outline" className="text-muted-foreground text-[10px]">
+          <Badge variant="outline" className="text-muted-foreground text-xs">
             Abilities: {player.abilities.length}
           </Badge>
         )}

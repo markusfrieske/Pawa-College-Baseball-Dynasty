@@ -165,22 +165,22 @@ function BracketNode({
         >
           <div className="flex items-center gap-1 min-w-0 flex-1">
             {(game.homeSeed ?? 0) > 0 && (
-              <span className="text-[9px] font-pixel text-gold w-4 flex-shrink-0 leading-none pt-0.5">
+              <span className="text-xs font-pixel text-gold w-4 flex-shrink-0 leading-none pt-0.5">
                 {game.homeSeed}
               </span>
             )}
             <div className="min-w-0">
-              <p className={`text-[10px] leading-tight truncate font-medium
+              <p className={`text-xs leading-tight truncate font-medium
                 ${homeWon ? "text-gold" : awayWon ? "text-muted-foreground/70" : ""}`}>
                 {game.homeTeam?.name || "TBD"}
               </p>
-              <p className="text-[8px] text-muted-foreground leading-tight">
+              <p className="text-xs text-muted-foreground leading-tight">
                 {homeSeedEntry?.conferenceName || game.homeTeam?.conferenceName || ""}
                 {homeSeedEntry && <span className="ml-1 opacity-70">{homeSeedEntry.wins}-{homeSeedEntry.losses}</span>}
               </p>
             </div>
           </div>
-          <span className={`text-[10px] font-pixel flex-shrink-0 ml-1 pt-0.5
+          <span className={`text-xs font-pixel flex-shrink-0 ml-1 pt-0.5
             ${homeWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
             {game.isComplete ? game.homeScore : "-"}
           </span>
@@ -195,22 +195,22 @@ function BracketNode({
         >
           <div className="flex items-center gap-1 min-w-0 flex-1">
             {(game.awaySeed ?? 0) > 0 && (
-              <span className="text-[9px] font-pixel text-gold w-4 flex-shrink-0 leading-none pt-0.5">
+              <span className="text-xs font-pixel text-gold w-4 flex-shrink-0 leading-none pt-0.5">
                 {game.awaySeed}
               </span>
             )}
             <div className="min-w-0">
-              <p className={`text-[10px] leading-tight truncate font-medium
+              <p className={`text-xs leading-tight truncate font-medium
                 ${awayWon ? "text-gold" : homeWon ? "text-muted-foreground/70" : ""}`}>
                 {game.awayTeam?.name || "TBD"}
               </p>
-              <p className="text-[8px] text-muted-foreground leading-tight">
+              <p className="text-xs text-muted-foreground leading-tight">
                 {awaySeedEntry?.conferenceName || game.awayTeam?.conferenceName || ""}
                 {awaySeedEntry && <span className="ml-1 opacity-70">{awaySeedEntry.wins}-{awaySeedEntry.losses}</span>}
               </p>
             </div>
           </div>
-          <span className={`text-[10px] font-pixel flex-shrink-0 ml-1 pt-0.5
+          <span className={`text-xs font-pixel flex-shrink-0 ml-1 pt-0.5
             ${awayWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
             {game.isComplete ? game.awayScore : "-"}
           </span>
@@ -218,7 +218,7 @@ function BracketNode({
 
         {!game.isComplete && (
           <div className="border-t border-border/30 px-2 py-0.5 text-center">
-            <span className="text-[7px] font-pixel text-gold/60">UPCOMING</span>
+            <span className="text-xs font-pixel text-gold/60">UPCOMING</span>
           </div>
         )}
       </div>
@@ -226,8 +226,8 @@ function BracketNode({
       {/* Hover box score overlay */}
       {hovered && game.isComplete && hasBoxScore && (
         <div className="absolute z-50 bottom-full mb-1 left-0 bg-background border border-gold/30 rounded shadow-xl p-2 min-w-[200px]">
-          <p className="text-[8px] font-pixel text-gold mb-1.5">Box Score</p>
-          <table className="text-[9px] w-full">
+          <p className="text-xs font-pixel text-gold mb-1.5">Box Score</p>
+          <table className="text-xs w-full">
             <thead>
               <tr className="text-muted-foreground">
                 <th className="text-left font-normal w-16">Team</th>
@@ -300,30 +300,30 @@ function BracketSideView({
 
   return (
     <div className="flex-1 min-w-0">
-      <p className="text-[9px] font-pixel text-gold text-center mb-2 uppercase tracking-wide">
+      <p className="text-xs font-pixel text-gold text-center mb-2 uppercase tracking-wide">
         {sideLabel}
       </p>
       <div className="flex items-start gap-3 overflow-x-auto pb-2">
         {/* Byes column */}
         {byeSeeds.length > 0 && (
           <div className="flex flex-col gap-2 flex-shrink-0">
-            <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center">Byes</p>
+            <p className="text-xs font-pixel text-muted-foreground uppercase mb-1 text-center">Byes</p>
             {byeSeeds.map(s => (
               <div
                 key={s.teamId}
                 className="border border-gold/30 rounded bg-gold/5 px-2 py-2 min-w-[130px]"
               >
                 <div className="flex items-center gap-1">
-                  <span className="text-[9px] font-pixel text-gold w-4">{s.seed}</span>
+                  <span className="text-xs font-pixel text-gold w-4">{s.seed}</span>
                   <div>
-                    <p className="text-[10px] font-medium truncate">{s.name}</p>
-                    <p className="text-[8px] text-muted-foreground">
+                    <p className="text-xs font-medium truncate">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">
                       {s.conferenceName}
                       <span className="ml-1 opacity-70">{s.wins}-{s.losses}</span>
                     </p>
                   </div>
                 </div>
-                <p className="text-[7px] font-pixel text-gold/50 mt-1 text-center">BYE</p>
+                <p className="text-xs font-pixel text-gold/50 mt-1 text-center">BYE</p>
               </div>
             ))}
           </div>
@@ -332,7 +332,7 @@ function BracketSideView({
         {/* Round columns */}
         {rounds.map((roundGames, ri) => (
           <div key={ri} className="flex flex-col gap-2 flex-shrink-0">
-            <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center">
+            <p className="text-xs font-pixel text-muted-foreground uppercase mb-1 text-center">
               {ri === rounds.length - 1 && rounds.length > 1 ? "Semifinal" : `Round ${ri + 1}`}
             </p>
             {roundGames.map(g => (
@@ -343,17 +343,17 @@ function BracketSideView({
 
         {/* CWS Bound */}
         <div className="flex flex-col justify-center flex-shrink-0">
-          <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center">CWS Bound</p>
+          <p className="text-xs font-pixel text-muted-foreground uppercase mb-1 text-center">CWS Bound</p>
           {cwsTeamId ? (
             <div className="border border-gold/30 rounded bg-gold/10 px-2 py-2 min-w-[80px] text-center">
               {cwsSeed ? (
                 <>
-                  <span className="text-[9px] font-pixel text-gold mr-1">{cwsSeed.seed}</span>
-                  <span className="text-[10px] font-pixel text-gold">{cwsSeed.abbreviation}</span>
-                  <p className="text-[8px] text-muted-foreground mt-0.5">{cwsSeed.conferenceName}</p>
+                  <span className="text-xs font-pixel text-gold mr-1">{cwsSeed.seed}</span>
+                  <span className="text-xs font-pixel text-gold">{cwsSeed.abbreviation}</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">{cwsSeed.conferenceName}</p>
                 </>
               ) : (
-                <span className="text-[10px] font-pixel text-gold">
+                <span className="text-xs font-pixel text-gold">
                   {cwsTeamId === finalGame?.homeTeamId
                     ? finalGame?.homeTeam?.abbreviation
                     : finalGame?.awayTeam?.abbreviation}
@@ -362,7 +362,7 @@ function BracketSideView({
             </div>
           ) : (
             <div className="border border-border/50 rounded bg-muted/20 px-2 py-2 min-w-[80px] text-center">
-              <p className="text-[10px] font-pixel text-muted-foreground">TBD</p>
+              <p className="text-xs font-pixel text-muted-foreground">TBD</p>
             </div>
           )}
         </div>
@@ -390,11 +390,11 @@ function ConfChampSection({
   return (
     <div className="border border-border rounded bg-muted/20 overflow-hidden">
       <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
-        <span className="text-[10px] font-pixel text-gold truncate pr-2">{confName} Championship</span>
+        <span className="text-xs font-pixel text-gold truncate pr-2">{confName} Championship</span>
         {game.isComplete ? (
-          <Badge className="text-[8px] bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0">Final</Badge>
+          <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0">Final</Badge>
         ) : (
-          <Badge variant="outline" className="text-[8px] text-gold border-gold/30 flex-shrink-0">Upcoming</Badge>
+          <Badge variant="outline" className="text-xs text-gold border-gold/30 flex-shrink-0">Upcoming</Badge>
         )}
       </div>
 
@@ -403,12 +403,12 @@ function ConfChampSection({
         <div className={`flex items-center justify-between ${homeWon ? "text-gold" : awayWon ? "text-muted-foreground" : ""}`}>
           <div className="flex items-center gap-1.5 min-w-0">
             {(game.homeSeed ?? 0) > 0 && (
-              <span className="text-[9px] font-pixel text-gold w-4 flex-shrink-0">{game.homeSeed}</span>
+              <span className="text-xs font-pixel text-gold w-4 flex-shrink-0">{game.homeSeed}</span>
             )}
             <div className="min-w-0">
               <p className="text-xs font-medium truncate">{game.homeTeam?.name || "TBD"}</p>
               {standings && (
-                <p className="text-[8px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {standings.teams.find(t => t.teamId === game.homeTeamId)
                     ? `${standings.teams.find(t => t.teamId === game.homeTeamId)!.confWins}-${standings.teams.find(t => t.teamId === game.homeTeamId)!.confLosses} conf`
                     : ""}
@@ -424,12 +424,12 @@ function ConfChampSection({
         <div className={`flex items-center justify-between ${awayWon ? "text-gold" : homeWon ? "text-muted-foreground" : ""}`}>
           <div className="flex items-center gap-1.5 min-w-0">
             {(game.awaySeed ?? 0) > 0 && (
-              <span className="text-[9px] font-pixel text-gold w-4 flex-shrink-0">{game.awaySeed}</span>
+              <span className="text-xs font-pixel text-gold w-4 flex-shrink-0">{game.awaySeed}</span>
             )}
             <div className="min-w-0">
               <p className="text-xs font-medium truncate">{game.awayTeam?.name || "TBD"}</p>
               {standings && (
-                <p className="text-[8px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {standings.teams.find(t => t.teamId === game.awayTeamId)
                     ? `${standings.teams.find(t => t.teamId === game.awayTeamId)!.confWins}-${standings.teams.find(t => t.teamId === game.awayTeamId)!.confLosses} conf`
                     : ""}
@@ -445,10 +445,10 @@ function ConfChampSection({
       {/* Conf standings — all teams */}
       {standings && (
         <div className="border-t border-border/40 px-3 py-2">
-          <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1">Conf Standings</p>
-          <table className="w-full text-[10px]">
+          <p className="text-xs font-pixel text-muted-foreground uppercase mb-1">Conf Standings</p>
+          <table className="w-full text-xs">
             <thead>
-              <tr className="text-[8px] text-muted-foreground">
+              <tr className="text-xs text-muted-foreground">
                 <th className="text-left font-normal py-0.5">Team</th>
                 <th className="text-center font-normal w-12">Conf</th>
                 <th className="text-center font-normal w-10">Pct</th>
@@ -504,7 +504,7 @@ function ConfChampBracket({
           <div key={game.id} className="flex items-start gap-2">
             {/* Matchup column */}
             <div className="flex flex-col gap-1 flex-1 min-w-0">
-              <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center truncate">
+              <p className="text-xs font-pixel text-muted-foreground uppercase mb-1 text-center truncate">
                 {confName}
               </p>
               <BracketNode game={game} seeds={seeds} />
@@ -515,24 +515,24 @@ function ConfChampBracket({
 
             {/* SR Bound box */}
             <div className="flex flex-col flex-shrink-0">
-              <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1 text-center">SR Bound</p>
+              <p className="text-xs font-pixel text-muted-foreground uppercase mb-1 text-center">SR Bound</p>
               {winnerId ? (
                 <div className="border border-gold/30 rounded bg-gold/10 px-2 py-2 min-w-[72px] text-center">
                   {winnerSeed ? (
                     <>
-                      <span className="text-[9px] font-pixel text-gold mr-1">{winnerSeed.seed}</span>
-                      <span className="text-[10px] font-pixel text-gold">{winnerSeed.abbreviation}</span>
-                      <p className="text-[8px] text-muted-foreground mt-0.5">{winnerSeed.conferenceName}</p>
+                      <span className="text-xs font-pixel text-gold mr-1">{winnerSeed.seed}</span>
+                      <span className="text-xs font-pixel text-gold">{winnerSeed.abbreviation}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{winnerSeed.conferenceName}</p>
                     </>
                   ) : (
-                    <span className="text-[10px] font-pixel text-gold">
+                    <span className="text-xs font-pixel text-gold">
                       {winnerTeam?.abbreviation || "—"}
                     </span>
                   )}
                 </div>
               ) : (
                 <div className="border border-border/50 rounded bg-muted/20 px-2 py-2 min-w-[72px] text-center">
-                  <p className="text-[10px] font-pixel text-muted-foreground">TBD</p>
+                  <p className="text-xs font-pixel text-muted-foreground">TBD</p>
                 </div>
               )}
             </div>
@@ -565,10 +565,10 @@ function CWSSection({ games, seeds }: { games: PostseasonGame[]; seeds: SeedEntr
         <div className="flex items-center justify-center gap-6 py-2 border border-border/30 rounded bg-muted/20">
           <div className="text-right">
             {seeds.find(s => s.teamId === homeId) && (
-              <span className="text-[9px] font-pixel text-gold mr-1">{seeds.find(s => s.teamId === homeId)!.seed}</span>
+              <span className="text-xs font-pixel text-gold mr-1">{seeds.find(s => s.teamId === homeId)!.seed}</span>
             )}
             <span className="text-sm font-medium">{games[0]?.homeTeam?.abbreviation || "TBD"}</span>
-            <p className="text-[8px] text-muted-foreground">{games[0]?.homeTeam?.conferenceName || ""}</p>
+            <p className="text-xs text-muted-foreground">{games[0]?.homeTeam?.conferenceName || ""}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center gap-2 font-pixel text-xl">
@@ -580,14 +580,14 @@ function CWSSection({ games, seeds }: { games: PostseasonGame[]; seeds: SeedEntr
                 {winsMap[awayId]?.wins ?? 0}
               </span>
             </div>
-            <p className="text-[8px] text-muted-foreground font-pixel">Best of 3</p>
+            <p className="text-xs text-muted-foreground font-pixel">Best of 3</p>
           </div>
           <div className="text-left">
             <span className="text-sm font-medium">{games[0]?.awayTeam?.abbreviation || "TBD"}</span>
             {seeds.find(s => s.teamId === awayId) && (
-              <span className="text-[9px] font-pixel text-gold ml-1">{seeds.find(s => s.teamId === awayId)!.seed}</span>
+              <span className="text-xs font-pixel text-gold ml-1">{seeds.find(s => s.teamId === awayId)!.seed}</span>
             )}
-            <p className="text-[8px] text-muted-foreground">{games[0]?.awayTeam?.conferenceName || ""}</p>
+            <p className="text-xs text-muted-foreground">{games[0]?.awayTeam?.conferenceName || ""}</p>
           </div>
         </div>
       )}
@@ -607,7 +607,7 @@ function CWSSection({ games, seeds }: { games: PostseasonGame[]; seeds: SeedEntr
             {champion.team?.name} — CWS Champion!
           </p>
           {champion.seed && (
-            <p className="text-[10px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Seed #{champion.seed.seed} · {champion.seed.conferenceName}
             </p>
           )}
@@ -628,19 +628,19 @@ function SeedingSidebar({ seeds }: { seeds: SeedEntry[] }) {
           className="flex items-center gap-2 px-2 py-1.5 rounded bg-muted/20 border border-border/30 hover:border-gold/30 transition-colors"
           data-testid={`seed-row-${s.seed}`}
         >
-          <span className="text-[10px] font-pixel text-gold w-5 flex-shrink-0">{s.seed}</span>
+          <span className="text-xs font-pixel text-gold w-5 flex-shrink-0">{s.seed}</span>
           <div
             className="w-2 h-2 rounded-full flex-shrink-0"
             style={{ backgroundColor: s.primaryColor || "#FFD700" }}
           />
           <div className="min-w-0 flex-1">
             <p className="text-xs truncate">{s.name}</p>
-            <p className="text-[8px] text-muted-foreground truncate">{s.conferenceName}</p>
+            <p className="text-xs text-muted-foreground truncate">{s.conferenceName}</p>
           </div>
           {s.isConfChamp && (
             <Star className="w-3 h-3 text-gold flex-shrink-0" aria-label="Conference Champion" />
           )}
-          <span className="text-[10px] text-muted-foreground flex-shrink-0 font-pixel">
+          <span className="text-xs text-muted-foreground flex-shrink-0 font-pixel">
             {s.wins}-{s.losses}
           </span>
         </div>
@@ -660,10 +660,10 @@ function StatsPanel({ stats }: { stats: PostseasonData["stats"] }) {
     <div className="grid sm:grid-cols-2 gap-4">
       {topBatters.length > 0 && (
         <div>
-          <p className="text-[9px] font-pixel text-gold uppercase mb-2">Batting Leaders</p>
-          <table className="w-full text-[10px]">
+          <p className="text-xs font-pixel text-gold uppercase mb-2">Batting Leaders</p>
+          <table className="w-full text-xs">
             <thead>
-              <tr className="text-[8px] text-muted-foreground border-b border-border/30">
+              <tr className="text-xs text-muted-foreground border-b border-border/30">
                 <th className="text-left font-normal pb-1">Player</th>
                 <th className="text-center font-normal pb-1 w-12">AVG</th>
                 <th className="text-center font-normal pb-1 w-8">HR</th>
@@ -675,7 +675,7 @@ function StatsPanel({ stats }: { stats: PostseasonData["stats"] }) {
                 <tr key={i} className="border-t border-border/20">
                   <td className="py-1">
                     <p className="truncate max-w-[100px]">{b.name}</p>
-                    <p className="text-[8px] text-muted-foreground">{b.teamAbbr}</p>
+                    <p className="text-xs text-muted-foreground">{b.teamAbbr}</p>
                   </td>
                   <td className="text-center font-pixel text-gold">{b.avg}</td>
                   <td className="text-center">{b.hr}</td>
@@ -688,10 +688,10 @@ function StatsPanel({ stats }: { stats: PostseasonData["stats"] }) {
       )}
       {topPitchers.length > 0 && (
         <div>
-          <p className="text-[9px] font-pixel text-gold uppercase mb-2">Pitching Leaders</p>
-          <table className="w-full text-[10px]">
+          <p className="text-xs font-pixel text-gold uppercase mb-2">Pitching Leaders</p>
+          <table className="w-full text-xs">
             <thead>
-              <tr className="text-[8px] text-muted-foreground border-b border-border/30">
+              <tr className="text-xs text-muted-foreground border-b border-border/30">
                 <th className="text-left font-normal pb-1">Player</th>
                 <th className="text-center font-normal pb-1 w-12">ERA</th>
                 <th className="text-center font-normal pb-1 w-8">IP</th>
@@ -703,7 +703,7 @@ function StatsPanel({ stats }: { stats: PostseasonData["stats"] }) {
                 <tr key={i} className="border-t border-border/20">
                   <td className="py-1">
                     <p className="truncate max-w-[100px]">{p.name}</p>
-                    <p className="text-[8px] text-muted-foreground">{p.teamAbbr} · {p.wins}-{p.losses}</p>
+                    <p className="text-xs text-muted-foreground">{p.teamAbbr} · {p.wins}-{p.losses}</p>
                   </td>
                   <td className="text-center font-pixel text-gold">{p.era}</td>
                   <td className="text-center">{p.ip}</td>
@@ -780,10 +780,10 @@ function FSSRSeriesView({ srSeries }: { srSeries: FSSeries[] }) {
         return (
           <div
             key={s.id}
-            className={`bg-muted/30 rounded p-2 border text-[10px] ${isDone ? "border-border" : "border-gold/30"}`}
+            className={`bg-muted/30 rounded p-2 border text-xs ${isDone ? "border-border" : "border-gold/30"}`}
             data-testid={`fs-sr-series-${s.bracketSlot}`}
           >
-            <p className="text-[7px] font-pixel text-gold/70 uppercase mb-1">{s.bracketSlot}</p>
+            <p className="text-xs font-pixel text-gold/70 uppercase mb-1">{s.bracketSlot}</p>
             <div className={`flex items-center justify-between py-0.5 ${hw ? "text-gold" : ""}`}>
               <span className="truncate flex-1">{s.homeTeam?.abbreviation || "TBD"}</span>
               <span className="font-pixel ml-1 text-xs">{s.homeWins}</span>
@@ -793,7 +793,7 @@ function FSSRSeriesView({ srSeries }: { srSeries: FSSeries[] }) {
               <span className="truncate flex-1">{s.awayTeam?.abbreviation || "TBD"}</span>
               <span className="font-pixel ml-1 text-xs">{s.awayWins}</span>
             </div>
-            <p className={`text-[7px] text-center font-pixel mt-0.5 ${isDone ? "text-gold" : "text-muted-foreground"}`}>
+            <p className={`text-xs text-center font-pixel mt-0.5 ${isDone ? "text-gold" : "text-muted-foreground"}`}>
               {isDone && s.winner ? `${s.winner.abbreviation} wins` : "Bo3"}
             </p>
           </div>
@@ -808,12 +808,12 @@ function FSCWSMiniGame({ g, label }: { g: FSCWSGame; label: string }) {
   const aw = g.isComplete && (g.awayScore ?? 0) > (g.homeScore ?? 0);
   return (
     <div className="bg-muted/20 rounded p-1.5 border border-border/50">
-      <p className="text-[6px] font-pixel text-muted-foreground uppercase mb-0.5">{label}</p>
-      <div className={`flex justify-between text-[9px] ${hw ? "text-gold" : aw ? "text-muted-foreground/60" : ""}`}>
+      <p className="text-xs font-pixel text-muted-foreground uppercase mb-0.5">{label}</p>
+      <div className={`flex justify-between text-xs ${hw ? "text-gold" : aw ? "text-muted-foreground/60" : ""}`}>
         <span className="truncate">{g.homeTeam?.abbreviation || "TBD"}</span>
         <span className="font-pixel ml-1">{g.isComplete ? g.homeScore : "–"}</span>
       </div>
-      <div className={`flex justify-between text-[9px] ${aw ? "text-gold" : hw ? "text-muted-foreground/60" : ""}`}>
+      <div className={`flex justify-between text-xs ${aw ? "text-gold" : hw ? "text-muted-foreground/60" : ""}`}>
         <span className="truncate">{g.awayTeam?.abbreviation || "TBD"}</span>
         <span className="font-pixel ml-1">{g.isComplete ? g.awayScore : "–"}</span>
       </div>
@@ -841,14 +841,14 @@ function FSCWSBracketView({ bracketId, games }: { bracketId: "A" | "B"; games: F
   const bracketChamp = bf2Winner ?? (bf1Winner && wbr2Winner && bf1Winner.name === wbr2Winner.name ? wbr2Winner : null);
 
   if ([...wbr1, ...wbr2, ...lbr1, ...lbr2, ...bf1, ...bf2].length === 0) {
-    return <p className="text-[9px] text-muted-foreground font-pixel text-center py-2">Awaiting bracket</p>;
+    return <p className="text-xs text-muted-foreground font-pixel text-center py-2">Awaiting bracket</p>;
   }
 
   return (
     <div className="space-y-2">
       {wbr1.length > 0 && (
         <div>
-          <p className="text-[7px] font-pixel text-gold/70 uppercase mb-0.5">WBR1</p>
+          <p className="text-xs font-pixel text-gold/70 uppercase mb-0.5">WBR1</p>
           <div className="space-y-1">
             {wbr1.map(x => <FSCWSMiniGame key={x.id} g={x} label={x.bracketSide ?? "WBR1"} />)}
           </div>
@@ -858,13 +858,13 @@ function FSCWSBracketView({ bracketId, games }: { bracketId: "A" | "B"; games: F
         <div className="grid grid-cols-2 gap-1">
           {wbr2.length > 0 && (
             <div>
-              <p className="text-[7px] font-pixel text-gold/70 uppercase mb-0.5">WBR2</p>
+              <p className="text-xs font-pixel text-gold/70 uppercase mb-0.5">WBR2</p>
               {wbr2.map(x => <FSCWSMiniGame key={x.id} g={x} label="WBR2" />)}
             </div>
           )}
           {lbr1.length > 0 && (
             <div>
-              <p className="text-[7px] font-pixel text-amber-400/70 uppercase mb-0.5">LBR1</p>
+              <p className="text-xs font-pixel text-amber-400/70 uppercase mb-0.5">LBR1</p>
               {lbr1.map(x => <FSCWSMiniGame key={x.id} g={x} label="LBR1" />)}
             </div>
           )}
@@ -872,13 +872,13 @@ function FSCWSBracketView({ bracketId, games }: { bracketId: "A" | "B"; games: F
       )}
       {lbr2.length > 0 && (
         <div>
-          <p className="text-[7px] font-pixel text-amber-400/70 uppercase mb-0.5">LBR2</p>
+          <p className="text-xs font-pixel text-amber-400/70 uppercase mb-0.5">LBR2</p>
           {lbr2.map(x => <FSCWSMiniGame key={x.id} g={x} label="LBR2" />)}
         </div>
       )}
       {bf1.length > 0 && (
         <div>
-          <p className="text-[7px] font-pixel text-gold uppercase mb-0.5">Bracket Final</p>
+          <p className="text-xs font-pixel text-gold uppercase mb-0.5">Bracket Final</p>
           <div className="space-y-1">
             {bf1.map(x => <FSCWSMiniGame key={x.id} g={x} label="BF1" />)}
             {bf2.map(x => <FSCWSMiniGame key={x.id} g={x} label="BF2 (If Nec.)" />)}
@@ -887,8 +887,8 @@ function FSCWSBracketView({ bracketId, games }: { bracketId: "A" | "B"; games: F
       )}
       {bracketChamp && (
         <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center">
-          <p className="text-[6px] font-pixel text-muted-foreground">BRACKET {bracketId} CHAMP</p>
-          <p className="text-gold font-pixel text-[9px]">{bracketChamp.abbreviation}</p>
+          <p className="text-xs font-pixel text-muted-foreground">BRACKET {bracketId} CHAMP</p>
+          <p className="text-gold font-pixel text-xs">{bracketChamp.abbreviation}</p>
         </div>
       )}
     </div>
@@ -911,18 +911,18 @@ function FSCWSView({ cwsGames }: { cwsGames: FSCWSGame[] }) {
     <div className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
         <div>
-          <p className="font-pixel text-[9px] text-gold mb-2 uppercase">Bracket A (Seeds 1,4,5,8)</p>
+          <p className="font-pixel text-xs text-gold mb-2 uppercase">Bracket A (Seeds 1,4,5,8)</p>
           <FSCWSBracketView bracketId="A" games={cwsGames} />
         </div>
         <div>
-          <p className="font-pixel text-[9px] text-gold mb-2 uppercase">Bracket B (Seeds 2,3,6,7)</p>
+          <p className="font-pixel text-xs text-gold mb-2 uppercase">Bracket B (Seeds 2,3,6,7)</p>
           <FSCWSBracketView bracketId="B" games={cwsGames} />
         </div>
       </div>
 
       {finalGames.length > 0 && g1 && (
         <div className="border-t border-gold/20 pt-3">
-          <p className="font-pixel text-[9px] text-gold uppercase text-center mb-2">CWS Final (Best of 3)</p>
+          <p className="font-pixel text-xs text-gold uppercase text-center mb-2">CWS Final (Best of 3)</p>
           <div className="flex items-center justify-center gap-6 py-2 border border-border/30 rounded bg-muted/20 mb-3">
             <div className="text-right">
               <span className="text-sm font-medium">{g1.homeTeam?.abbreviation || "TBD"}</span>
@@ -1004,7 +1004,7 @@ export default function PostseasonHubPage() {
         <div>
           <h1 className="font-pixel text-gold text-xs tracking-wide">POSTSEASON</h1>
           {data && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Season {data.season} · {phaseLabel(data.phase)}
             </p>
           )}
@@ -1012,7 +1012,7 @@ export default function PostseasonHubPage() {
         {data && (
           <Badge
             variant="outline"
-            className={`ml-auto text-[9px] font-pixel ${
+            className={`ml-auto text-xs font-pixel ${
               ["conference_championship", "super_regionals", "cws"].includes(data.phase)
                 ? "border-gold/50 text-gold"
                 : "border-border text-muted-foreground"
@@ -1078,7 +1078,7 @@ export default function PostseasonHubPage() {
 
                 {/* Conference Championship Bracket */}
                 <div className="mt-4">
-                  <h3 className="font-pixel text-[9px] text-gold mb-2 uppercase tracking-wide flex items-center gap-2">
+                  <h3 className="font-pixel text-xs text-gold mb-2 uppercase tracking-wide flex items-center gap-2">
                     <ChevronRight className="w-3 h-3" />
                     Conference Championship Bracket
                   </h3>
@@ -1185,10 +1185,10 @@ export default function PostseasonHubPage() {
                           className="flex items-center gap-2 px-2 py-1.5 rounded bg-muted/20 border border-border/30"
                           data-testid={`fs-national-seed-${e.nationalSeed}`}
                         >
-                          <span className="text-[10px] font-pixel text-gold w-5 flex-shrink-0">{e.nationalSeed}</span>
+                          <span className="text-xs font-pixel text-gold w-5 flex-shrink-0">{e.nationalSeed}</span>
                           <div className="min-w-0 flex-1">
                             <p className="text-xs truncate">{e.team?.name ?? "—"}</p>
-                            <p className="text-[8px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               {e.wins}-{e.losses}
                               {e.selectionReason && (
                                 <span className="ml-1 text-muted-foreground/60" title={e.selectionReason}>
@@ -1198,7 +1198,7 @@ export default function PostseasonHubPage() {
                             </p>
                           </div>
                           <span
-                            className={`text-[7px] font-pixel flex-shrink-0 px-1 rounded ${
+                            className={`text-xs font-pixel flex-shrink-0 px-1 rounded ${
                               e.qualificationType === "auto_bid"
                                 ? "text-gold bg-gold/10"
                                 : "text-muted-foreground"
@@ -1241,7 +1241,7 @@ export default function PostseasonHubPage() {
                 <RetroCardContent>
                   <div className="mb-2 flex items-center gap-2">
                     <Star className="w-3 h-3 text-gold" />
-                    <span className="text-[9px] text-muted-foreground">= Conference Champion</span>
+                    <span className="text-xs text-muted-foreground">= Conference Champion</span>
                   </div>
                   <SeedingSidebar seeds={data.seeds} />
                 </RetroCardContent>

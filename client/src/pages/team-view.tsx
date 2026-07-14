@@ -177,22 +177,22 @@ export default function TeamViewPage() {
         <Tabs defaultValue="summary" className="space-y-6">
           <div className="overflow-x-auto pb-px -mx-1 px-1">
             <TabsList className="bg-card border border-border flex-nowrap min-w-max gap-1">
-              <TabsTrigger value="summary" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="summary" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Summary
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="schedule" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Schedule
               </TabsTrigger>
-              <TabsTrigger value="roster" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="roster" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Roster
               </TabsTrigger>
-              <TabsTrigger value="coaches" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="coaches" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Coaches
               </TabsTrigger>
-              <TabsTrigger value="school" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="school" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 School
               </TabsTrigger>
-              <TabsTrigger value="history" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              <TabsTrigger value="history" className="font-pixel text-xs data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 History
               </TabsTrigger>
             </TabsList>
@@ -322,15 +322,15 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
         <div className="grid grid-cols-3 gap-2 mb-4 text-center">
           <div className="p-2 bg-gold/10 rounded">
             <p className="text-gold font-bold text-sm">${(nilData.nilBudget / 1_000_000).toFixed(2)}M</p>
-            <p className="text-[9px] text-muted-foreground">Total Budget</p>
+            <p className="text-xs text-muted-foreground">Total Budget</p>
           </div>
           <div className="p-2 bg-red-500/10 rounded">
             <p className="text-red-400 font-bold text-sm">${(nilData.nilSpent / 1_000_000).toFixed(2)}M</p>
-            <p className="text-[9px] text-muted-foreground">Spent</p>
+            <p className="text-xs text-muted-foreground">Spent</p>
           </div>
           <div className="p-2 bg-green-500/10 rounded">
             <p className="text-green-400 font-bold text-sm">${(nilData.nilRemaining / 1_000_000).toFixed(2)}M</p>
-            <p className="text-[9px] text-muted-foreground">Remaining</p>
+            <p className="text-xs text-muted-foreground">Remaining</p>
           </div>
         </div>
 
@@ -348,7 +348,7 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
           {bonusRows.length > 0 && (
             <>
               <div className="border-t border-border/40 pt-1.5 mt-1.5">
-                <p className="text-[9px] text-gold font-pixel mb-1">PERFORMANCE BONUSES</p>
+                <p className="text-xs text-gold font-pixel mb-1">PERFORMANCE BONUSES</p>
               </div>
               {bonusRows.map(e => (
                 <div key={e.id} className="flex items-center justify-between text-xs">
@@ -370,21 +370,21 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
 
           {nilData.confPeer && nilData.confPeer.total > 1 && (
             <div className="border-t border-border/40 pt-1.5 mt-1.5">
-              <p className="text-[9px] text-gold font-pixel mb-1.5">CONFERENCE COMPARISON</p>
+              <p className="text-xs text-gold font-pixel mb-1.5">CONFERENCE COMPARISON</p>
               <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="p-1.5 bg-muted/20 rounded">
                   <p className="font-bold text-xs text-foreground">
                     #{nilData.confPeer.rank}<span className="text-muted-foreground">/{nilData.confPeer.total}</span>
                   </p>
-                  <p className="text-[8px] text-muted-foreground">Conf Rank</p>
+                  <p className="text-xs text-muted-foreground">Conf Rank</p>
                 </div>
                 <div className="p-1.5 bg-muted/20 rounded">
                   <p className="font-bold text-xs text-muted-foreground">${(nilData.confPeer.avg / 1_000_000).toFixed(2)}M</p>
-                  <p className="text-[8px] text-muted-foreground">Conf Avg</p>
+                  <p className="text-xs text-muted-foreground">Conf Avg</p>
                 </div>
                 <div className="p-1.5 bg-muted/20 rounded">
                   <p className="font-bold text-xs text-muted-foreground">${(nilData.confPeer.max / 1_000_000).toFixed(2)}M</p>
-                  <p className="text-[8px] text-muted-foreground">Conf High</p>
+                  <p className="text-xs text-muted-foreground">Conf High</p>
                 </div>
               </div>
               <div className="mt-1.5 w-full bg-muted/30 rounded h-1">
@@ -393,7 +393,7 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
                   style={{ width: `${nilData.confPeer.max > 0 ? Math.round((nilData.nilBudget / nilData.confPeer.max) * 100) : 0}%` }}
                 />
               </div>
-              <p className="text-[8px] text-muted-foreground text-right mt-0.5">vs conference leader</p>
+              <p className="text-xs text-muted-foreground text-right mt-0.5">vs conference leader</p>
             </div>
           )}
         </div>
@@ -450,7 +450,7 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
           <RetroCardHeader className="flex items-center justify-between gap-4">
             <span>Impact Players</span>
             <Link href={`/league/${leagueId}/roster`}>
-              <span className="text-gold text-[8px] hover:underline cursor-pointer">View Full Roster</span>
+              <span className="text-gold text-xs hover:underline cursor-pointer">View Full Roster</span>
             </Link>
           </RetroCardHeader>
           <RetroCardContent>
@@ -650,7 +650,7 @@ function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }
       <RetroCardHeader className="flex items-center justify-between gap-4">
         <span>Season Schedule</span>
         <Link href={`/league/${leagueId}/schedule`}>
-          <span className="text-gold text-[8px] hover:underline cursor-pointer">Full Schedule</span>
+          <span className="text-gold text-xs hover:underline cursor-pointer">Full Schedule</span>
         </Link>
       </RetroCardHeader>
       <RetroCardContent>
@@ -720,7 +720,7 @@ function CoachesTab({ team }: { team: TeamDetails }) {
           <RetroCardHeader>
             <div className="flex items-center gap-2">
               Head Coach
-              {isCpuCoach && <Badge variant="outline" className="text-[8px]">CPU</Badge>}
+              {isCpuCoach && <Badge variant="outline" className="text-xs">CPU</Badge>}
             </div>
           </RetroCardHeader>
           <RetroCardContent>
@@ -814,7 +814,7 @@ function CoachesTab({ team }: { team: TeamDetails }) {
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             Scout Director
-            <Badge variant="outline" className="text-[8px] bg-gold/10 text-gold border-gold">Coming Soon</Badge>
+            <Badge variant="outline" className="text-xs bg-gold/10 text-gold border-gold">Coming Soon</Badge>
           </div>
         </RetroCardHeader>
         <RetroCardContent className="text-center py-12">
@@ -917,7 +917,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
         <RetroCard key={group.label}>
           <RetroCardHeader className="flex items-center justify-between gap-4">
             <span>{group.label}</span>
-            <span className="text-muted-foreground text-[8px]">{group.players.length} Players</span>
+            <span className="text-muted-foreground text-xs">{group.players.length} Players</span>
           </RetroCardHeader>
 
           <div className="overflow-x-auto">
@@ -947,7 +947,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                       {player.firstName} {player.lastName}
                     </td>
                     <td className="text-center py-3 px-2">
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge variant="outline" className="text-xs">
                         {player.position}
                       </Badge>
                     </td>
@@ -958,7 +958,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                       <span className="font-bold text-gold">{player.overall}</span>
                     </td>
                     <td className="text-center py-3 px-2">
-                      <span className={`font-pixel text-[10px] ${
+                      <span className={`font-pixel text-xs ${
                         player.starRating >= 4
                           ? "text-gold"
                           : player.starRating >= 3
@@ -969,7 +969,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                       </span>
                     </td>
                     <td className="text-center py-3 px-2">
-                      <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-${player.id}`}>
+                      <span className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-${player.id}`}>
                         B:{player.batHand || "R"} T:{player.throwHand || "R"}
                       </span>
                     </td>
@@ -1082,7 +1082,7 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
 
           {isPlayerPitcher ? (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Pitcher Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Velocity</label>
@@ -1121,7 +1121,7 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
             </>
           ) : (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes</h4>
+              <h4 className="font-pixel text-gold text-xs border-b border-border pb-1">Fielder Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Contact</label>

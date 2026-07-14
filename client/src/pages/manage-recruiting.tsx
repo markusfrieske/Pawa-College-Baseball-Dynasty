@@ -291,7 +291,7 @@ function AbilitiesDropdown({
                 <Badge
                   key={ab}
                   variant={tierBadgeVariant(ability?.tier || "blue")}
-                  className={`text-[8px] ${ability?.tier === "gold" ? "bg-yellow-600/20 text-yellow-500 border-yellow-600/30" : ability?.tier === "red" ? "" : "bg-blue-600/20 text-blue-400 border-blue-600/30"}`}
+                  className={`text-xs ${ability?.tier === "gold" ? "bg-yellow-600/20 text-yellow-500 border-yellow-600/30" : ability?.tier === "red" ? "" : "bg-blue-600/20 text-blue-400 border-blue-600/30"}`}
                 >
                   {ab}
                   <button
@@ -329,7 +329,7 @@ function AbilitiesDropdown({
               if (abilities.length === 0) return null;
               return (
                 <div key={tier}>
-                  <div className={`px-2 py-1 text-[10px] font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                  <div className={`px-2 py-1 text-xs font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
                     {tier} Abilities ({abilities.length})
                   </div>
                   {abilities.map(ability => {
@@ -349,7 +349,7 @@ function AbilitiesDropdown({
                         </div>
                         <div className="flex-1 min-w-0">
                           <span className={`${tierColor(tier)} font-medium`}>{ability.name}</span>
-                          <p className="text-muted-foreground text-[10px] truncate">{ability.description}</p>
+                          <p className="text-muted-foreground text-xs truncate">{ability.description}</p>
                         </div>
                       </div>
                     );
@@ -745,17 +745,17 @@ export default function ManageRecruitingPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-pixel text-xs text-foreground" data-testid={`class-name-${cls.id}`}>{cls.name}</span>
-                          <Badge variant="secondary" className="text-[10px]" data-testid={`class-count-${cls.id}`}>
+                          <Badge variant="secondary" className="text-xs" data-testid={`class-count-${cls.id}`}>
                             {cls.recruitCount} recruits
                           </Badge>
                           {themeLabel && (
-                            <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/40" data-testid={`class-theme-${cls.id}`}>{themeLabel}</Badge>
+                            <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/40" data-testid={`class-theme-${cls.id}`}>{themeLabel}</Badge>
                           )}
                           {source === "import" && (
-                            <Badge variant="outline" className="text-[10px] text-blue-400 border-blue-400/40" data-testid={`class-source-${cls.id}`}>Imported</Badge>
+                            <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/40" data-testid={`class-source-${cls.id}`}>Imported</Badge>
                           )}
                           {editingId === cls.id && (
-                            <Badge variant="outline" className="text-[10px] text-gold border-gold">Active</Badge>
+                            <Badge variant="outline" className="text-xs text-gold border-gold">Active</Badge>
                           )}
                         </div>
                         {cls.description && (
@@ -763,32 +763,32 @@ export default function ManageRecruitingPage() {
                         )}
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                           {starCounts.map(({ star, count }) => (
-                            <span key={star} className="text-[10px] text-muted-foreground" data-testid={`class-stars-${cls.id}-${star}`}>
+                            <span key={star} className="text-xs text-muted-foreground" data-testid={`class-stars-${cls.id}-${star}`}>
                               {"★".repeat(star)} {count}
                             </span>
                           ))}
                           {summary && summary.avgOvr > 0 && (
-                            <span className="text-[10px] text-muted-foreground" data-testid={`class-avgovr-${cls.id}`}>
+                            <span className="text-xs text-muted-foreground" data-testid={`class-avgovr-${cls.id}`}>
                               Avg {summary.avgOvr} OVR
                             </span>
                           )}
                           {summary && summary.blueChips > 0 && (
-                            <span className="text-[10px] text-amber-400" data-testid={`class-bluechips-${cls.id}`}>
+                            <span className="text-xs text-amber-400" data-testid={`class-bluechips-${cls.id}`}>
                               {summary.blueChips} BC
                             </span>
                           )}
                           {summary && summary.genGems > 0 && (
-                            <span className="text-[10px] text-purple-400" data-testid={`class-gengems-${cls.id}`}>
+                            <span className="text-xs text-purple-400" data-testid={`class-gengems-${cls.id}`}>
                               {summary.genGems} GG
                             </span>
                           )}
                           {summary && summary.genBusts > 0 && (
-                            <span className="text-[10px] text-red-400" data-testid={`class-genbusts-${cls.id}`}>
+                            <span className="text-xs text-red-400" data-testid={`class-genbusts-${cls.id}`}>
                               {summary.genBusts} GB
                             </span>
                           )}
                           {savedDate && (
-                            <span className="text-[10px] text-muted-foreground/60" data-testid={`class-date-${cls.id}`}>
+                            <span className="text-xs text-muted-foreground/60" data-testid={`class-date-${cls.id}`}>
                               Saved {savedDate}
                             </span>
                           )}
@@ -852,8 +852,8 @@ export default function ManageRecruitingPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-pixel text-xs text-foreground">{cls.name}</span>
-                        <Badge variant="secondary" className="text-[10px]">{cls.recruitCount} recruits</Badge>
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/30">Local</Badge>
+                        <Badge variant="secondary" className="text-xs">{cls.recruitCount} recruits</Badge>
+                        <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">Local</Badge>
                       </div>
                       {cls.description && (
                         <p className="text-muted-foreground text-xs mt-1 truncate">{cls.description}</p>
@@ -1012,11 +1012,11 @@ export default function ManageRecruitingPage() {
                                 </div>
                               </td>
                               <td className="px-2 py-1">
-                                <Badge variant="outline" className="text-[10px]">{recruit.position}</Badge>
+                                <Badge variant="outline" className="text-xs">{recruit.position}</Badge>
                               </td>
                               <td className="px-2 py-1 font-bold text-foreground text-xs">{recruit.overall}</td>
                               <td className="px-2 py-1">
-                                <span className="text-gold font-pixel text-[10px]">{"*".repeat(recruit.starRating)}</span>
+                                <span className="text-gold font-pixel text-xs">{"*".repeat(recruit.starRating)}</span>
                               </td>
                               <td className="px-2 py-1 text-muted-foreground text-xs">{recruit.jerseyNumber || "--"}</td>
                               <td className="px-2 py-1 text-muted-foreground text-xs">{recruit.homeState}</td>
@@ -1025,7 +1025,7 @@ export default function ManageRecruitingPage() {
                               <td className="px-2 py-1">
                                 <div className="flex flex-wrap gap-1 max-w-[200px]">
                                   {recruit.abilities.length > 0 ? recruit.abilities.map((ab, ai) => (
-                                    <Badge key={ai} variant="secondary" className="text-[8px]" data-testid={`badge-ability-${idx}-${ai}`}>
+                                    <Badge key={ai} variant="secondary" className="text-xs" data-testid={`badge-ability-${idx}-${ai}`}>
                                       {ab}
                                     </Badge>
                                   )) : (
@@ -1093,7 +1093,7 @@ export default function ManageRecruitingPage() {
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <label className="font-pixel text-[10px] text-foreground block mb-2">Class Name</label>
+                <label className="font-pixel text-xs text-foreground block mb-2">Class Name</label>
                 <Input
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
@@ -1102,7 +1102,7 @@ export default function ManageRecruitingPage() {
                 />
               </div>
               <div>
-                <label className="font-pixel text-[10px] text-foreground block mb-2">Description (optional)</label>
+                <label className="font-pixel text-xs text-foreground block mb-2">Description (optional)</label>
                 <Input
                   value={classDescription}
                   onChange={(e) => setClassDescription(e.target.value)}
@@ -1178,7 +1178,7 @@ export default function ManageRecruitingPage() {
                   onClick={() => { setLeaguePickerOpen(false); setWizardLeagueId(l.id); setWizardOpen(true); }}
                   data-testid={`button-pick-league-${l.id}`}
                 >
-                  <div className="font-pixel text-[10px] text-gold">{l.name}</div>
+                  <div className="font-pixel text-xs text-gold">{l.name}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 capitalize">{l.currentPhase?.replace(/_/g, " ")}</div>
                 </button>
               ))}
@@ -1263,7 +1263,7 @@ function RecruitEditPanel({
     <div className="space-y-4" data-testid={`panel-edit-recruit-${originalIndex}`}>
       <div className="flex items-start gap-6 flex-wrap">
         <div className="space-y-2">
-          <p className="font-pixel text-[10px] text-gold mb-1">RECRUIT AVATAR</p>
+          <p className="font-pixel text-xs text-gold mb-1">RECRUIT AVATAR</p>
           <div className="flex items-center gap-4">
             <PlayerPortrait
               skinTone={appearance.skinTone}
@@ -1274,7 +1274,7 @@ function RecruitEditPanel({
             />
             <div className="space-y-2">
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Skin Tone</label>
+                <label className="font-pixel text-xs text-gold uppercase">Skin Tone</label>
                 <Select value={appearance.skinTone} onValueChange={(v) => updateAppearance("skinTone", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-skinTone-recruit-${originalIndex}`}>
                     <SelectValue />
@@ -1287,7 +1287,7 @@ function RecruitEditPanel({
                 </Select>
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Hair Color</label>
+                <label className="font-pixel text-xs text-gold uppercase">Hair Color</label>
                 <Select value={appearance.hairColor} onValueChange={(v) => updateAppearance("hairColor", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairColor-recruit-${originalIndex}`}>
                     <SelectValue />
@@ -1300,7 +1300,7 @@ function RecruitEditPanel({
                 </Select>
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Hair Style</label>
+                <label className="font-pixel text-xs text-gold uppercase">Hair Style</label>
                 <Select value={appearance.hairStyle} onValueChange={(v) => updateAppearance("hairStyle", v)}>
                   <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairStyle-recruit-${originalIndex}`}>
                     <SelectValue />
@@ -1319,7 +1319,7 @@ function RecruitEditPanel({
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">First Name</label>
+              <label className="font-pixel text-xs text-gold uppercase">First Name</label>
               <Input
                 className="h-7 w-28 text-xs"
                 value={recruit.firstName}
@@ -1328,7 +1328,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Last Name</label>
+              <label className="font-pixel text-xs text-gold uppercase">Last Name</label>
               <Input
                 className="h-7 w-28 text-xs"
                 value={recruit.lastName}
@@ -1337,7 +1337,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Position</label>
+              <label className="font-pixel text-xs text-gold uppercase">Position</label>
               <Select value={recruit.position} onValueChange={(v) => onUpdate(originalIndex, "position", v)}>
                 <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-position-recruit-${originalIndex}`}>
                   <SelectValue />
@@ -1350,7 +1350,7 @@ function RecruitEditPanel({
               </Select>
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Stars</label>
+              <label className="font-pixel text-xs text-gold uppercase">Stars</label>
               <Select value={String(recruit.starRating)} onValueChange={(v) => onUpdate(originalIndex, "starRating", parseInt(v))}>
                 <SelectTrigger className="h-7 w-14 text-xs" data-testid={`select-stars-recruit-${originalIndex}`}>
                   <SelectValue />
@@ -1365,7 +1365,7 @@ function RecruitEditPanel({
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Jersey #</label>
+              <label className="font-pixel text-xs text-gold uppercase">Jersey #</label>
               <Input
                 type="number"
                 min={1}
@@ -1377,7 +1377,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Overall</label>
+              <label className="font-pixel text-xs text-gold uppercase">Overall</label>
               <Input
                 type="number"
                 min={1}
@@ -1389,7 +1389,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Rank</label>
+              <label className="font-pixel text-xs text-gold uppercase">Rank</label>
               <Input
                 type="number"
                 min={0}
@@ -1401,7 +1401,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Home City</label>
+              <label className="font-pixel text-xs text-gold uppercase">Home City</label>
               <Input
                 className="h-7 w-28 text-xs"
                 value={recruit.hometown}
@@ -1410,7 +1410,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Home State</label>
+              <label className="font-pixel text-xs text-gold uppercase">Home State</label>
               <Input
                 className="h-7 w-16 text-xs"
                 maxLength={2}
@@ -1420,7 +1420,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Potential</label>
+              <label className="font-pixel text-xs text-gold uppercase">Potential</label>
               <Select value={recruit.potential} onValueChange={(v) => onUpdate(originalIndex, "potential", v)}>
                 <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-potential-recruit-${originalIndex}`}>
                   <SelectValue />
@@ -1437,11 +1437,11 @@ function RecruitEditPanel({
       </div>
 
       <div>
-        <p className="font-pixel text-[10px] text-gold mb-2">ATTRIBUTES</p>
+        <p className="font-pixel text-xs text-gold mb-2">ATTRIBUTES</p>
         {recruit.position === "P" ? (
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Velocity</label>
+              <label className="font-pixel text-xs text-gold uppercase">Velocity</label>
               <Input
                 type="number"
                 min={0}
@@ -1453,7 +1453,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Control</label>
+              <label className="font-pixel text-xs text-gold uppercase">Control</label>
               <Input
                 type="number"
                 min={0}
@@ -1465,7 +1465,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Stuff</label>
+              <label className="font-pixel text-xs text-gold uppercase">Stuff</label>
               <Input
                 type="number"
                 min={0}
@@ -1477,7 +1477,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Stamina</label>
+              <label className="font-pixel text-xs text-gold uppercase">Stamina</label>
               <Input
                 type="number"
                 min={0}
@@ -1492,7 +1492,7 @@ function RecruitEditPanel({
         ) : (
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Hit for Avg</label>
+              <label className="font-pixel text-xs text-gold uppercase">Hit for Avg</label>
               <Input
                 type="number"
                 min={0}
@@ -1504,7 +1504,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Power</label>
+              <label className="font-pixel text-xs text-gold uppercase">Power</label>
               <Input
                 type="number"
                 min={0}
@@ -1516,7 +1516,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Speed</label>
+              <label className="font-pixel text-xs text-gold uppercase">Speed</label>
               <Input
                 type="number"
                 min={0}
@@ -1528,7 +1528,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Arm</label>
+              <label className="font-pixel text-xs text-gold uppercase">Arm</label>
               <Input
                 type="number"
                 min={0}
@@ -1540,7 +1540,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Fielding</label>
+              <label className="font-pixel text-xs text-gold uppercase">Fielding</label>
               <Input
                 type="number"
                 min={0}
@@ -1552,7 +1552,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">Error Res</label>
+              <label className="font-pixel text-xs text-gold uppercase">Error Res</label>
               <Input
                 type="number"
                 min={0}
@@ -1568,10 +1568,10 @@ function RecruitEditPanel({
       </div>
 
       <div>
-        <p className="font-pixel text-[10px] text-gold mb-2">COMMON ABILITIES</p>
+        <p className="font-pixel text-xs text-gold mb-2">COMMON ABILITIES</p>
         <div className="flex items-center gap-4 flex-wrap">
           <div className="space-y-0.5">
-            <label className="font-pixel text-[8px] text-gold uppercase">Clutch</label>
+            <label className="font-pixel text-xs text-gold uppercase">Clutch</label>
             <Input
               type="number"
               min={0}
@@ -1583,7 +1583,7 @@ function RecruitEditPanel({
             />
           </div>
           <div className="space-y-0.5">
-            <label className="font-pixel text-[8px] text-gold uppercase">Grit</label>
+            <label className="font-pixel text-xs text-gold uppercase">Grit</label>
             <Input
               type="number"
               min={0}
@@ -1595,7 +1595,7 @@ function RecruitEditPanel({
             />
           </div>
           <div className="space-y-0.5">
-            <label className="font-pixel text-[8px] text-gold uppercase">Running</label>
+            <label className="font-pixel text-xs text-gold uppercase">Running</label>
             <Input
               type="number"
               min={0}
@@ -1607,7 +1607,7 @@ function RecruitEditPanel({
             />
           </div>
           <div className="space-y-0.5">
-            <label className="font-pixel text-[8px] text-gold uppercase">Agile</label>
+            <label className="font-pixel text-xs text-gold uppercase">Agile</label>
             <Input
               type="number"
               min={0}
@@ -1621,7 +1621,7 @@ function RecruitEditPanel({
           {recruit.position === "P" ? (
             <>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Poise</label>
+                <label className="font-pixel text-xs text-gold uppercase">Poise</label>
                 <Input
                   type="number"
                   min={0}
@@ -1633,7 +1633,7 @@ function RecruitEditPanel({
                 />
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Heater</label>
+                <label className="font-pixel text-xs text-gold uppercase">Heater</label>
                 <Input
                   type="number"
                   min={0}
@@ -1645,7 +1645,7 @@ function RecruitEditPanel({
                 />
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Recovery</label>
+                <label className="font-pixel text-xs text-gold uppercase">Recovery</label>
                 <Input
                   type="number"
                   min={0}
@@ -1657,7 +1657,7 @@ function RecruitEditPanel({
                 />
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">vs Lefty</label>
+                <label className="font-pixel text-xs text-gold uppercase">vs Lefty</label>
                 <Input
                   type="number"
                   min={0}
@@ -1672,7 +1672,7 @@ function RecruitEditPanel({
           ) : (
             <>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">vs LHP</label>
+                <label className="font-pixel text-xs text-gold uppercase">vs LHP</label>
                 <Input
                   type="number"
                   min={0}
@@ -1684,7 +1684,7 @@ function RecruitEditPanel({
                 />
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">w/ RISP</label>
+                <label className="font-pixel text-xs text-gold uppercase">w/ RISP</label>
                 <Input
                   type="number"
                   min={0}
@@ -1696,7 +1696,7 @@ function RecruitEditPanel({
                 />
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Stealing</label>
+                <label className="font-pixel text-xs text-gold uppercase">Stealing</label>
                 <Input
                   type="number"
                   min={0}
@@ -1708,7 +1708,7 @@ function RecruitEditPanel({
                 />
               </div>
               <div className="space-y-0.5">
-                <label className="font-pixel text-[8px] text-gold uppercase">Throwing</label>
+                <label className="font-pixel text-xs text-gold uppercase">Throwing</label>
                 <Input
                   type="number"
                   min={0}
@@ -1726,10 +1726,10 @@ function RecruitEditPanel({
 
       {recruit.position === "P" && (
         <div>
-          <p className="font-pixel text-[10px] text-gold mb-2">PITCH MIX</p>
+          <p className="font-pixel text-xs text-gold mb-2">PITCH MIX</p>
           <div className="flex items-center gap-4 flex-wrap">
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">FB</label>
+              <label className="font-pixel text-xs text-gold uppercase">FB</label>
               <Input
                 type="number"
                 min={0}
@@ -1741,7 +1741,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">2S</label>
+              <label className="font-pixel text-xs text-gold uppercase">2S</label>
               <Input
                 type="number"
                 min={0}
@@ -1753,7 +1753,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">SL</label>
+              <label className="font-pixel text-xs text-gold uppercase">SL</label>
               <Input
                 type="number"
                 min={0}
@@ -1765,7 +1765,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">CB</label>
+              <label className="font-pixel text-xs text-gold uppercase">CB</label>
               <Input
                 type="number"
                 min={0}
@@ -1777,7 +1777,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">CH</label>
+              <label className="font-pixel text-xs text-gold uppercase">CH</label>
               <Input
                 type="number"
                 min={0}
@@ -1789,7 +1789,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">CT</label>
+              <label className="font-pixel text-xs text-gold uppercase">CT</label>
               <Input
                 type="number"
                 min={0}
@@ -1801,7 +1801,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">SNK</label>
+              <label className="font-pixel text-xs text-gold uppercase">SNK</label>
               <Input
                 type="number"
                 min={0}
@@ -1813,7 +1813,7 @@ function RecruitEditPanel({
               />
             </div>
             <div className="space-y-0.5">
-              <label className="font-pixel text-[8px] text-gold uppercase">SPL</label>
+              <label className="font-pixel text-xs text-gold uppercase">SPL</label>
               <Input
                 type="number"
                 min={0}
@@ -1829,7 +1829,7 @@ function RecruitEditPanel({
       )}
 
       <div>
-        <p className="font-pixel text-[10px] text-gold mb-2">SPECIAL ABILITIES</p>
+        <p className="font-pixel text-xs text-gold mb-2">SPECIAL ABILITIES</p>
         <AbilitiesDropdown
           selectedAbilities={recruit.abilities || []}
           position={recruit.position}

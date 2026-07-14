@@ -111,12 +111,12 @@ function MessageCard({
                 )}
                 <Badge
                   variant="outline"
-                  className={`text-[9px] px-1.5 py-0 ${meta.color} border-current/30 font-medium`}
+                  className={`text-xs px-1.5 py-0 ${meta.color} border-current/30 font-medium`}
                 >
                   {meta.label}
                 </Badge>
               </div>
-              <span className="flex-shrink-0 text-[10px] text-muted-foreground whitespace-nowrap">
+              <span className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">
                 {timeAgo(msg.createdAt)}
               </span>
             </div>
@@ -138,7 +138,7 @@ function MessageCard({
                   variant="primary"
                   size="sm"
                   onClick={handleCta}
-                  className="text-[11px] px-3 py-1.5 min-h-[36px]"
+                  className="text-xs px-3 py-1.5 min-h-[36px]"
                   data-testid={`btn-msg-cta-${msg.id}`}
                 >
                   {msg.ctaLabel}
@@ -149,7 +149,7 @@ function MessageCard({
                 <button
                   type="button"
                   onClick={() => onRead(msg.id)}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors min-h-[36px] px-2"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[36px] px-2"
                   data-testid={`btn-msg-read-${msg.id}`}
                   aria-label="Mark as read"
                 >
@@ -160,7 +160,7 @@ function MessageCard({
               <button
                 type="button"
                 onClick={() => onArchive(msg.id)}
-                className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors min-h-[36px] px-2 ml-auto"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[36px] px-2 ml-auto"
                 data-testid={`btn-msg-archive-${msg.id}`}
                 aria-label="Archive"
               >
@@ -246,10 +246,10 @@ export default function CoachInboxPage() {
         <div className="flex items-center justify-between gap-3 max-w-2xl mx-auto">
           <div className="flex items-center gap-2">
             <Inbox className="w-5 h-5 text-gold" />
-            <h1 className="font-pixel text-gold text-[11px] sm:text-sm">COACH INBOX</h1>
+            <h1 className="font-pixel text-gold text-xs sm:text-sm">COACH INBOX</h1>
             {unreadCount > 0 && (
               <span
-                className="flex items-center justify-center w-5 h-5 rounded-full bg-gold text-[9px] font-bold text-black"
+                className="flex items-center justify-center w-5 h-5 rounded-full bg-gold text-xs font-bold text-black"
                 data-testid="badge-inbox-unread"
               >
                 {unreadCount > 99 ? "99+" : unreadCount}
@@ -272,7 +272,7 @@ export default function CoachInboxPage() {
                 size="sm"
                 onClick={() => markAllReadMut.mutate()}
                 disabled={markAllReadMut.isPending}
-                className="text-[10px] min-h-[36px]"
+                className="text-xs min-h-[36px]"
                 data-testid="btn-mark-all-read"
               >
                 <MailCheck className="w-3.5 h-3.5 mr-1" />
@@ -294,7 +294,7 @@ export default function CoachInboxPage() {
                   role="tab"
                   aria-selected={isActive}
                   onClick={() => switchTab(key)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors min-h-[36px] whitespace-nowrap ${
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-md text-xs font-medium transition-colors min-h-[36px] whitespace-nowrap ${
                     isActive
                       ? "bg-gold text-black"
                       : "bg-card text-muted-foreground hover:text-foreground hover:bg-card/80"
@@ -303,7 +303,7 @@ export default function CoachInboxPage() {
                 >
                   {label}
                   {key === "unread" && unreadCount > 0 && (
-                    <span className="ml-1.5 bg-black/20 text-[9px] px-1 rounded-full">
+                    <span className="ml-1.5 bg-black/20 text-xs px-1 rounded-full">
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
@@ -318,7 +318,7 @@ export default function CoachInboxPage() {
           <button
             type="button"
             onClick={() => { setShowArchived(v => !v); setOffset(0); }}
-            className={`flex items-center gap-1.5 text-[10px] px-2 py-1 rounded transition-colors min-h-[32px] ${
+            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded transition-colors min-h-[32px] ${
               showArchived ? "text-gold" : "text-muted-foreground hover:text-foreground"
             }`}
             data-testid="btn-toggle-archived"
@@ -342,7 +342,7 @@ export default function CoachInboxPage() {
         {!isLoading && messages.length === 0 && (
           <div className="py-16 text-center" data-testid="empty-inbox">
             <Mail className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
-            <p className="font-pixel text-[10px] text-muted-foreground">
+            <p className="font-pixel text-xs text-muted-foreground">
               {showArchived ? "No archived messages" : activeTab === "unread" ? "All caught up!" : "No messages yet"}
             </p>
             {activeTab !== "all" && !showArchived && (

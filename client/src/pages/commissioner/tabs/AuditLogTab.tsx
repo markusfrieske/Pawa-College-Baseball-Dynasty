@@ -12,7 +12,7 @@ export function AuditLogTab({ logs }: AuditLogTabProps) {
     <RetroCard>
       <RetroCardHeader className="flex items-center justify-between gap-4">
         <span>Audit Log</span>
-        <Badge variant="outline" className="text-[8px]">
+        <Badge variant="outline" className="text-xs">
           {logs.length} entries
         </Badge>
       </RetroCardHeader>
@@ -26,7 +26,7 @@ export function AuditLogTab({ logs }: AuditLogTabProps) {
               {log.details && (
                 <p className="text-xs text-muted-foreground mt-1">{log.details}</p>
               )}
-              <p className="text-[10px] text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 {new Date(log.timestamp).toLocaleString()}
               </p>
             </div>

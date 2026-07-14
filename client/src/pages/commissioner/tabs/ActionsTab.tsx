@@ -300,19 +300,19 @@ export function ActionsTab({
             {preflight === undefined ? (
               <button
                 onClick={onSwitchToCommandCenter}
-                className="w-full mb-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-muted/40 bg-muted/10 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="w-full mb-3 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded border border-muted/40 bg-muted/10 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 data-testid="badge-preflight-not-run"
               >
                 Preflight not run — click to check
               </button>
             ) : preflight.canAdvance ? (
-              <div className="mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-[10px] text-green-400 font-pixel" data-testid="badge-preflight-clear">
+              <div className="mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-green-500/40 bg-green-500/10 text-xs text-green-400 font-pixel" data-testid="badge-preflight-clear">
                 Preflight: All clear
               </div>
             ) : (
               <button
                 onClick={onSwitchToCommandCenter}
-                className="w-full mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-orange-500/50 bg-orange-500/10 text-[10px] text-orange-400 font-pixel hover:bg-orange-500/20 transition-colors"
+                className="w-full mb-3 flex items-center gap-1.5 px-3 py-1.5 rounded border border-orange-500/50 bg-orange-500/10 text-xs text-orange-400 font-pixel hover:bg-orange-500/20 transition-colors"
                 data-testid="badge-preflight-blockers"
               >
                 Preflight: {preflightFail} blocker(s) — click to review
@@ -332,7 +332,7 @@ export function ActionsTab({
             <AdvanceProgressBar leagueId={league?.id || ""} isAdvancing={isAdvancing} />
 
             <div className="mt-4 pt-4 border-t border-border">
-              <p className="font-pixel text-[8px] text-gold uppercase mb-3">Quick Sim</p>
+              <p className="font-pixel text-xs text-gold uppercase mb-3">Quick Sim</p>
               <div className="space-y-2">
                 {!isPostseason && !isOffseason && (
                   <>
@@ -955,7 +955,7 @@ export function ActionsTab({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Megaphone className="w-4 h-4 text-gold" />
-            <span className="font-pixel text-[10px] text-gold">COMMISSIONER BROADCAST</span>
+            <span className="font-pixel text-xs text-gold">COMMISSIONER BROADCAST</span>
           </div>
         </RetroCardHeader>
         <RetroCardContent className="space-y-3">

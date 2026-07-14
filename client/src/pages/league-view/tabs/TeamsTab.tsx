@@ -70,7 +70,7 @@ function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leag
             </div>
 
             <div className="border border-border/50 rounded-md p-3 space-y-1">
-              <p className="font-pixel text-gold text-[10px] mb-2 text-center">RECORD</p>
+              <p className="font-pixel text-gold text-xs mb-2 text-center">RECORD</p>
               <CompareStatRow label="W-L" valueA={`${data.teamA.wins}-${data.teamA.losses}`} valueB={`${data.teamB.wins}-${data.teamB.losses}`} highlight />
               <CompareStatRow label="Conf W-L" valueA={`${data.teamA.confWins}-${data.teamA.confLosses}`} valueB={`${data.teamB.confWins}-${data.teamB.confLosses}`} />
               <CompareStatRow label="Runs Scored" valueA={data.teamA.runsScored} valueB={data.teamB.runsScored} />
@@ -78,7 +78,7 @@ function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leag
             </div>
 
             <div className="border border-border/50 rounded-md p-3 space-y-1">
-              <p className="font-pixel text-gold text-[10px] mb-2 text-center">ROSTER</p>
+              <p className="font-pixel text-gold text-xs mb-2 text-center">ROSTER</p>
               <CompareStatRow label="Roster Size" valueA={data.teamA.rosterSize} valueB={data.teamB.rosterSize} />
               <CompareStatRow label="Avg Overall" valueA={data.teamA.avgOverall} valueB={data.teamB.avgOverall} highlight />
               <CompareStatRow label="Avg Pitcher" valueA={data.teamA.avgPitcher} valueB={data.teamB.avgPitcher} />
@@ -90,7 +90,7 @@ function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leag
             </div>
 
             <div className="border border-border/50 rounded-md p-3 space-y-1">
-              <p className="font-pixel text-gold text-[10px] mb-2 text-center">PROGRAM</p>
+              <p className="font-pixel text-gold text-xs mb-2 text-center">PROGRAM</p>
               <CompareStatRow label="Prestige" valueA={data.teamA.prestige} valueB={data.teamB.prestige} highlight />
               <CompareStatRow label="Facilities" valueA={data.teamA.facilities} valueB={data.teamB.facilities} />
             </div>
@@ -98,7 +98,7 @@ function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leag
             <div className="grid grid-cols-2 gap-4">
               {[data.teamA, data.teamB].map((team, idx) => (
                 <div key={idx} className="border border-border/50 rounded-md p-3">
-                  <p className="font-pixel text-[10px] text-gold mb-2">TOP 5 PLAYERS - {team.abbreviation}</p>
+                  <p className="font-pixel text-xs text-gold mb-2">TOP 5 PLAYERS - {team.abbreviation}</p>
                   {team.topPlayers.map((p, i) => (
                     <div key={i} className="flex items-center justify-between text-xs py-0.5">
                       <span className="truncate">{p.name} <span className="text-muted-foreground">({p.position}, Yr {p.year})</span></span>
@@ -214,7 +214,7 @@ export function TeamsTab({ league }: { league: LeagueDetails }) {
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-medium text-foreground">{team.name}</p>
                         {leagueRankMap.has(team.id) && (
-                          <span className="font-pixel text-[8px] text-gold/70" data-testid={`badge-league-rank-card-${team.id}`}>
+                          <span className="font-pixel text-xs text-gold/70" data-testid={`badge-league-rank-card-${team.id}`}>
                             #{leagueRankMap.get(team.id)}
                           </span>
                         )}
@@ -235,7 +235,7 @@ export function TeamsTab({ league }: { league: LeagueDetails }) {
                             )}
                           </div>
                           {(team.coach as any).archetype && (
-                            <div className="text-[10px] text-muted-foreground/60">{(team.coach as any).archetype}</div>
+                            <div className="text-xs text-muted-foreground/60">{(team.coach as any).archetype}</div>
                           )}
                         </div>
                       </>

@@ -130,7 +130,7 @@ export function RecapModal({
         {/* ── Header bar ── */}
         <div className="flex items-center gap-2 px-4 py-2.5 bg-gold/10 border-b border-gold/20">
           <Newspaper className="w-3.5 h-3.5 text-gold flex-shrink-0" />
-          <span className="font-pixel text-gold text-[9px] tracking-wide">GAME RECAP</span>
+          <span className="font-pixel text-gold text-xs tracking-wide">GAME RECAP</span>
           {badges.length > 0 && (
             <div className="flex gap-1 ml-auto flex-wrap justify-end">
               {badges.map(b => {
@@ -139,7 +139,7 @@ export function RecapModal({
                 return (
                   <span
                     key={b}
-                    className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${cfg.className}`}
+                    className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${cfg.className}`}
                   >
                     {cfg.label}
                   </span>
@@ -175,7 +175,7 @@ export function RecapModal({
                 {/* Away team */}
                 <div className="text-center flex-1 min-w-0">
                   <p
-                    className="font-pixel text-[10px] mb-1 truncate"
+                    className="font-pixel text-xs mb-1 truncate"
                     style={{ color: recap.awayTeamColor || undefined }}
                     data-testid="recap-away-abbr"
                   >
@@ -187,19 +187,19 @@ export function RecapModal({
                   >
                     {recap.awayScore}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-1 truncate">{recap.awayTeamName}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{recap.awayTeamName}</p>
                 </div>
 
                 {/* VS divider */}
                 <div className="flex flex-col items-center flex-shrink-0">
-                  <span className="font-pixel text-[8px] text-muted-foreground/60">FINAL</span>
+                  <span className="font-pixel text-xs text-muted-foreground/60">FINAL</span>
                   <span className="text-muted-foreground/40 text-lg leading-none mt-0.5">—</span>
                 </div>
 
                 {/* Home team */}
                 <div className="text-center flex-1 min-w-0">
                   <p
-                    className="font-pixel text-[10px] mb-1 truncate"
+                    className="font-pixel text-xs mb-1 truncate"
                     style={{ color: recap.homeTeamColor || undefined }}
                     data-testid="recap-home-abbr"
                   >
@@ -211,7 +211,7 @@ export function RecapModal({
                   >
                     {recap.homeScore}
                   </p>
-                  <p className="text-[10px] text-muted-foreground mt-1 truncate">{recap.homeTeamName}</p>
+                  <p className="text-xs text-muted-foreground mt-1 truncate">{recap.homeTeamName}</p>
                 </div>
               </div>
 
@@ -226,15 +226,15 @@ export function RecapModal({
               {/* Meta */}
               <div className="flex items-center justify-center gap-3 mt-2 flex-wrap">
                 {recap.phase && (
-                  <span className="font-pixel text-[7px] px-2 py-0.5 rounded bg-muted/50 text-muted-foreground uppercase">
+                  <span className="font-pixel text-xs px-2 py-0.5 rounded bg-muted/50 text-muted-foreground uppercase">
                     {recap.phase.replace(/_/g, " ")}
                   </span>
                 )}
-                <span className="font-pixel text-[7px] text-muted-foreground/60">
+                <span className="font-pixel text-xs text-muted-foreground/60">
                   S{recap.season} · W{recap.week}
                 </span>
                 {recap.statsIncomplete && (
-                  <span className="font-pixel text-[7px] text-yellow-600/80">STATS INCOMPLETE</span>
+                  <span className="font-pixel text-xs text-yellow-600/80">STATS INCOMPLETE</span>
                 )}
               </div>
             </div>
@@ -243,7 +243,7 @@ export function RecapModal({
             {recap.lineScore && recap.lineScore.length > 0 && (
               <div className="px-3 py-3">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <span className="font-pixel text-[8px] text-muted-foreground uppercase tracking-wider">Line Score</span>
+                  <span className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Line Score</span>
                 </div>
                 <LineScoreTable
                   innings={recap.lineScore as number[][]}
@@ -262,7 +262,7 @@ export function RecapModal({
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Star className="w-3 h-3 text-gold" />
-                  <span className="font-pixel text-[8px] text-gold uppercase tracking-wider">Player of the Game</span>
+                  <span className="font-pixel text-xs text-gold uppercase tracking-wider">Player of the Game</span>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded bg-gold/5 border border-gold/20">
                   <Trophy className="w-5 h-5 text-gold flex-shrink-0" />
@@ -272,7 +272,7 @@ export function RecapModal({
                         {(recap.playerOfGame as any).name}
                       </p>
                       <span
-                        className="font-pixel text-[7px] px-1.5 py-0.5 rounded"
+                        className="font-pixel text-xs px-1.5 py-0.5 rounded"
                         style={{
                           backgroundColor: `${(recap.playerOfGame as any).teamColor || "#888"}30`,
                           color: (recap.playerOfGame as any).teamColor || "#aaa",
@@ -284,7 +284,7 @@ export function RecapModal({
                     <p className="text-sm text-muted-foreground mt-0.5" data-testid="recap-potg-stat">
                       {(recap.playerOfGame as any).statLine}
                     </p>
-                    <p className="text-[10px] text-gold/70 mt-0.5 italic">
+                    <p className="text-xs text-gold/70 mt-0.5 italic">
                       {(recap.playerOfGame as any).highlight}
                     </p>
                   </div>
@@ -297,7 +297,7 @@ export function RecapModal({
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Zap className="w-3 h-3 text-amber-400" />
-                  <span className="font-pixel text-[8px] text-amber-400/80 uppercase tracking-wider">Turning Point</span>
+                  <span className="font-pixel text-xs text-amber-400/80 uppercase tracking-wider">Turning Point</span>
                 </div>
                 <p className="text-sm text-foreground/80" data-testid="recap-turning-point">
                   {recap.turningPoint}
@@ -310,14 +310,14 @@ export function RecapModal({
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Users className="w-3 h-3 text-blue-400" />
-                  <span className="font-pixel text-[8px] text-muted-foreground uppercase tracking-wider">Top Performers</span>
+                  <span className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Top Performers</span>
                 </div>
                 <div className="space-y-1.5">
                   {(recap.topHitters as any[]).map((hitter: any, i: number) => (
                     <div key={i} className="flex items-center justify-between gap-2 text-sm">
                       <div className="flex items-center gap-2 min-w-0">
                         <span
-                          className="font-pixel text-[7px] px-1 py-0.5 rounded bg-muted/40 text-muted-foreground flex-shrink-0"
+                          className="font-pixel text-xs px-1 py-0.5 rounded bg-muted/40 text-muted-foreground flex-shrink-0"
                         >
                           {hitter.teamAbbr}
                         </span>
@@ -335,15 +335,15 @@ export function RecapModal({
               <div className="px-4 py-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <TrendingUp className="w-3 h-3 text-emerald-400" />
-                  <span className="font-pixel text-[8px] text-muted-foreground uppercase tracking-wider">Pitching Decision</span>
+                  <span className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Pitching Decision</span>
                 </div>
                 <div className="space-y-1.5">
                   {(recap.pitchingLine as any).winner && (
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="font-pixel text-[7px] text-emerald-400 border border-emerald-700/40 px-1 py-0.5 rounded">W</span>
+                        <span className="font-pixel text-xs text-emerald-400 border border-emerald-700/40 px-1 py-0.5 rounded">W</span>
                         <span className="text-foreground/90">{(recap.pitchingLine as any).winner.name}</span>
-                        <span className="font-pixel text-[7px] text-muted-foreground">{(recap.pitchingLine as any).winner.teamAbbr}</span>
+                        <span className="font-pixel text-xs text-muted-foreground">{(recap.pitchingLine as any).winner.teamAbbr}</span>
                       </div>
                       <span className="text-muted-foreground text-xs">
                         {(recap.pitchingLine as any).winner.ip} IP · {(recap.pitchingLine as any).winner.so} K · {(recap.pitchingLine as any).winner.er} ER
@@ -353,9 +353,9 @@ export function RecapModal({
                   {(recap.pitchingLine as any).loser && (
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="font-pixel text-[7px] text-red-400 border border-red-700/40 px-1 py-0.5 rounded">L</span>
+                        <span className="font-pixel text-xs text-red-400 border border-red-700/40 px-1 py-0.5 rounded">L</span>
                         <span className="text-foreground/90">{(recap.pitchingLine as any).loser.name}</span>
-                        <span className="font-pixel text-[7px] text-muted-foreground">{(recap.pitchingLine as any).loser.teamAbbr}</span>
+                        <span className="font-pixel text-xs text-muted-foreground">{(recap.pitchingLine as any).loser.teamAbbr}</span>
                       </div>
                       <span className="text-muted-foreground text-xs">
                         {(recap.pitchingLine as any).loser.ip} IP · {(recap.pitchingLine as any).loser.so} K · {(recap.pitchingLine as any).loser.er} ER
@@ -365,9 +365,9 @@ export function RecapModal({
                   {(recap.pitchingLine as any).save && (
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <div className="flex items-center gap-2">
-                        <span className="font-pixel text-[7px] text-blue-400 border border-blue-700/40 px-1 py-0.5 rounded">SV</span>
+                        <span className="font-pixel text-xs text-blue-400 border border-blue-700/40 px-1 py-0.5 rounded">SV</span>
                         <span className="text-foreground/90">{(recap.pitchingLine as any).save.name}</span>
-                        <span className="font-pixel text-[7px] text-muted-foreground">{(recap.pitchingLine as any).save.teamAbbr}</span>
+                        <span className="font-pixel text-xs text-muted-foreground">{(recap.pitchingLine as any).save.teamAbbr}</span>
                       </div>
                       <span className="text-muted-foreground text-xs">
                         {(recap.pitchingLine as any).save.ip} IP
@@ -389,7 +389,7 @@ export function RecapModal({
                 )}
                 {recap.seriesStatus && (
                   <div className="flex items-start gap-2 text-sm">
-                    <span className="font-pixel text-[7px] text-muted-foreground mt-1 flex-shrink-0">SERIES</span>
+                    <span className="font-pixel text-xs text-muted-foreground mt-1 flex-shrink-0">SERIES</span>
                     <span className="text-foreground/80" data-testid="recap-series">{recap.seriesStatus}</span>
                   </div>
                 )}

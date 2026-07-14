@@ -44,7 +44,7 @@ export function ActionButton({
         {icon}
         {label}
       </div>
-      <p className="text-[10px] text-muted-foreground font-normal whitespace-normal leading-tight">
+      <p className="text-xs text-muted-foreground font-normal whitespace-normal leading-tight">
         {description}
       </p>
     </RetroButton>

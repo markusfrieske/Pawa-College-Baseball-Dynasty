@@ -242,26 +242,26 @@ function RecruitDetailModal({
           <>
             {s.era != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">ERA</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">ERA</span>
+                <span className="text-xs text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
               </div>
             )}
             {s.ip != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">IP</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">IP</span>
+                <span className="text-xs text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
               </div>
             )}
             {s.k != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">K</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">{s.k}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">K</span>
+                <span className="text-xs text-purple-300/90 font-mono">{s.k}</span>
               </div>
             )}
             {s.whip != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">WHIP</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">WHIP</span>
+                <span className="text-xs text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
               </div>
             )}
           </>
@@ -269,26 +269,26 @@ function RecruitDetailModal({
           <>
             {s.avg != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">AVG</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">AVG</span>
+                <span className="text-xs text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
               </div>
             )}
             {s.obp != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">OBP</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">OBP</span>
+                <span className="text-xs text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
               </div>
             )}
             {s.hr != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">HR</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">{s.hr}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">HR</span>
+                <span className="text-xs text-purple-300/90 font-mono">{s.hr}</span>
               </div>
             )}
             {s.rbi != null && (
               <div className="flex items-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground/60 font-mono">RBI</span>
-                <span className="text-[10px] text-purple-300/90 font-mono">{s.rbi}</span>
+                <span className="text-xs text-muted-foreground/60 font-mono">RBI</span>
+                <span className="text-xs text-purple-300/90 font-mono">{s.rbi}</span>
               </div>
             )}
           </>
@@ -301,11 +301,11 @@ function RecruitDetailModal({
         const isSigningDayLocked = !revealed && sdLocked.has(key) && scoutPct >= 100;
         return (
           <div key={key} className="flex items-center gap-0.5">
-            <span className="text-[9px] text-muted-foreground/60 font-mono">{label}</span>
+            <span className="text-xs text-muted-foreground/60 font-mono">{label}</span>
             {isSigningDayLocked ? (
               <Lock className="w-2.5 h-2.5 text-gold/50" />
             ) : (
-              <span className="font-pixel text-[10px] font-bold" style={{ color: grade ? (MODAL_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+              <span className="font-pixel text-xs font-bold" style={{ color: grade ? (MODAL_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
                 {grade ? grade.letter : "?"}
               </span>
             )}
@@ -402,13 +402,13 @@ function RecruitDetailModal({
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
               {recruit.position !== "P" && (scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null && (
-                <Badge variant="outline" className={`flex items-center gap-0.5 text-[9px] no-default-hover-elevate no-default-active-elevate ${
+                <Badge variant="outline" className={`flex items-center gap-0.5 text-xs no-default-hover-elevate no-default-active-elevate ${
                   recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
                   recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
                   recruit.trajectory === 4 ? "border-red-500/50 text-red-400" :
                   "border-slate-500/50 text-slate-400"
                 }`} data-testid="badge-detail-traj">
-                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[9px]" />
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-xs" />
                 </Badge>
               )}
             </div>
@@ -416,16 +416,16 @@ function RecruitDetailModal({
 
           {recruit.recruitType === "TRANSFER" && (recruit as any).originPrestige != null && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-purple-900/20 border border-purple-500/30 rounded" data-testid="transfer-prestige-target">
-              <span className="text-[10px] text-purple-300 font-pixel">Prestige Target</span>
-              <span className="text-[10px] text-purple-200">{Math.max(1, (recruit as any).originPrestige - 2)}–{Math.min(10, (recruit as any).originPrestige + 2)}</span>
-              <span className="text-[9px] text-muted-foreground">(origin: {(recruit as any).originPrestige})</span>
+              <span className="text-xs text-purple-300 font-pixel">Prestige Target</span>
+              <span className="text-xs text-purple-200">{Math.max(1, (recruit as any).originPrestige - 2)}–{Math.min(10, (recruit as any).originPrestige + 2)}</span>
+              <span className="text-xs text-muted-foreground">(origin: {(recruit as any).originPrestige})</span>
             </div>
           )}
 
           {sdLocked.size > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
               <Lock className="w-3 h-3 text-gold/70 shrink-0" />
-              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed at Signing Day Reveal</span>
+              <span className="text-xs text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed at Signing Day Reveal</span>
             </div>
           )}
 
@@ -449,14 +449,14 @@ function RecruitDetailModal({
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
                 {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
+                    <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
                   ))
                 ) : (
                   active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                    <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
                       {label}·{(recruit as any)[k]}
                     </span>
                   ))
@@ -468,7 +468,7 @@ function RecruitDetailModal({
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
+                <h4 className="font-pixel text-xs text-gold mb-3">Attributes</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {attrs.map((attr, idx) => {
                     const isSigningDayLocked = sdLocked.has(attr.key);
@@ -495,13 +495,13 @@ function RecruitDetailModal({
                 </div>
               </div>
               <div>
-                <h4 className="font-pixel text-[10px] text-gold mb-3">Pitch Mix</h4>
+                <h4 className="font-pixel text-xs text-gold mb-3">Pitch Mix</h4>
                 <PitchMixDial pitches={generatePitchMix()} className="w-32 h-32 mx-auto" />
               </div>
             </div>
           ) : (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
+              <h4 className="font-pixel text-xs text-gold mb-3">Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 {attrs.map((attr, idx) => {
                   const isSigningDayLocked = sdLocked.has(attr.key);
@@ -527,7 +527,7 @@ function RecruitDetailModal({
 
           {/* Common Abilities Section */}
           <div>
-            <h4 className="font-pixel text-[10px] text-gold mb-3">Common Abilities</h4>
+            <h4 className="font-pixel text-xs text-gold mb-3">Common Abilities</h4>
             <div className="grid grid-cols-2 gap-2">
               {recruit.position === "P" ? (
                 <>
@@ -557,7 +557,7 @@ function RecruitDetailModal({
           </div>
 
           <div>
-            <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
+            <h4 className="font-pixel text-xs text-gold mb-3">Priorities</h4>
             <div className="grid grid-cols-2 gap-3">
               {priorities.map((p) => {
                 const priorityLabels: Record<string, string> = {
@@ -592,7 +592,7 @@ function RecruitDetailModal({
           {/* Abilities Section */}
           {(recruit.abilities as string[] || []).length > 0 && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">
+              <h4 className="font-pixel text-xs text-gold mb-3">
                 Special Abilities ({isFullyRevealed ? (recruit.abilities as string[]).length : `${revealedAbilitiesCount}/?`})
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -630,23 +630,23 @@ function RecruitDetailModal({
           {/* Intangibles / Dev Traits */}
           {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= TRAJECTORY_REVEAL_THRESHOLD) && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles</h4>
+              <h4 className="font-pixel text-xs text-gold mb-3">Intangibles</h4>
               <div className="grid grid-cols-2 gap-3">
                 {recruit.personality && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Personality</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Personality</span>
                     <span className="text-sm font-medium text-foreground capitalize">{(recruit.personality as string).replace(/_/g, " ")}</span>
                   </div>
                 )}
                 {recruit.workEthic && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
                   </div>
                 )}
                 {recruit.workEthicScore != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="flex items-center gap-1.5">
                       <span className={`font-pixel text-sm font-bold ${
                         recruit.workEthicScore >= 90 ? "text-emerald-400" :
@@ -659,7 +659,7 @@ function RecruitDetailModal({
                 )}
                 {recruit.coachability != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Coachability</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Coachability</span>
                     <span className="flex items-center gap-1.5">
                       <span className={`font-pixel text-sm font-bold ${
                         recruit.coachability >= 90 ? "text-emerald-400" :
@@ -674,7 +674,7 @@ function RecruitDetailModal({
                   recruit.playerArchetype === "overdraft" ? scoutPct >= ARCHETYPE_REVEAL_THRESHOLD : scoutPct >= TRAJECTORY_REVEAL_THRESHOLD
                 ) && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Development Profile</span>
                     <span className={`text-sm font-medium ${
                       recruit.playerArchetype === "late_bloomer" ? "text-emerald-400" :
                       recruit.playerArchetype === "overdraft" ? "text-orange-400" :
@@ -695,7 +695,7 @@ function RecruitDetailModal({
                     recruit.isGem ? "bg-green-500/10 border-green-500/30" : 
                     recruit.isBust ? "bg-red-500/10 border-red-500/30" : "bg-muted/30 border-border/50"
                   }`}>
-                    <span className="text-[10px] text-muted-foreground block mb-1">Scout Assessment</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Scout Assessment</span>
                     <span className={`text-sm font-medium ${
                       recruit.isGenerationalGem ? "text-amber-400" :
                       recruit.isGenerationalBust ? "text-red-400" :
@@ -717,7 +717,7 @@ function RecruitDetailModal({
 
           {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
             <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
-              <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
+              <h4 className="font-pixel text-xs text-muted-foreground mb-1">Intangibles</h4>
               <p className="text-xs text-muted-foreground italic">Unknown — scout to 50% to begin revealing work ethic and development traits.</p>
             </div>
           )}
@@ -726,7 +726,7 @@ function RecruitDetailModal({
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded">
               <div className="flex items-center gap-2 text-red-400 mb-1">
                 <HelpCircle className="w-4 h-4" />
-                <span className="font-pixel text-[10px]">Dealbreaker</span>
+                <span className="font-pixel text-xs">Dealbreaker</span>
               </div>
               <p className="text-sm text-foreground">{recruit.dealbreaker}</p>
             </div>
@@ -740,14 +740,14 @@ function RecruitDetailModal({
             }`} data-testid="nil-cost-banner">
               <div className="flex items-center gap-2">
                 <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`} />
-                <span className="text-[10px] text-muted-foreground">NIL Est. to Sign</span>
+                <span className="text-xs text-muted-foreground">NIL Est. to Sign</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`font-pixel text-xs font-bold ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`}>
                   {formatNilRange(recruit.nilCost)}
                 </span>
                 {nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining && (
-                  <span className="flex items-center gap-1 text-[9px] text-red-400">
+                  <span className="flex items-center gap-1 text-xs text-red-400">
                     <Lock className="w-2.5 h-2.5" />
                     Over budget
                   </span>
@@ -761,7 +761,7 @@ function RecruitDetailModal({
               <p className="font-pixel text-xs mb-1" style={{ color: (recruit as RecruitWithInterest).signedTeamPrimaryColor || "#ccc" }}>
                 Signed with {(recruit as RecruitWithInterest).signedTeamName || "Unknown"}
               </p>
-              <p className="text-[10px] text-muted-foreground">This recruit is no longer available</p>
+              <p className="text-xs text-muted-foreground">This recruit is no longer available</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -866,7 +866,7 @@ function RecruitDetailModal({
 
           {showModalPhonePicker && recruit && (
             <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-phone">
-              <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+              <p className="text-xs font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {modalPitchOptions.map(opt => (
                   <button
@@ -906,7 +906,7 @@ function RecruitDetailModal({
 
           {showModalEmailPicker && recruit && (
             <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-email">
-              <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+              <p className="text-xs font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {modalPitchOptions.map(opt => (
                   <button
@@ -947,7 +947,7 @@ function RecruitDetailModal({
           {/* Competing Schools */}
           {recruit.topSchools && recruit.topSchools.length > 0 && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">
+              <h4 className="font-pixel text-xs text-gold mb-3">
                 {recruit.stage === "top3" ? "Top 3 Schools" : recruit.stage === "top5" ? "Top 5 Schools" : recruit.stage === "top8" ? "Top 8 Schools" : "Competing Schools"}
               </h4>
               <CompetingSchoolsList
@@ -1019,13 +1019,13 @@ function RecruitDetailModal({
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
               {recruit.position !== "P" && (scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null && (
-                <Badge variant="outline" className={`flex items-center gap-0.5 text-[9px] no-default-hover-elevate no-default-active-elevate ${
+                <Badge variant="outline" className={`flex items-center gap-0.5 text-xs no-default-hover-elevate no-default-active-elevate ${
                   recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
                   recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
                   recruit.trajectory === 4 ? "border-red-500/50 text-red-400" :
                   "border-slate-500/50 text-slate-400"
                 }`} data-testid="badge-detail-traj">
-                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[9px]" />
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-xs" />
                 </Badge>
               )}
             </div>
@@ -1033,16 +1033,16 @@ function RecruitDetailModal({
 
           {recruit.recruitType === "TRANSFER" && (recruit as any).originPrestige != null && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-purple-900/20 border border-purple-500/30 rounded" data-testid="transfer-prestige-target">
-              <span className="text-[10px] text-purple-300 font-pixel">Prestige Target</span>
-              <span className="text-[10px] text-purple-200">{Math.max(1, (recruit as any).originPrestige - 2)}–{Math.min(10, (recruit as any).originPrestige + 2)}</span>
-              <span className="text-[9px] text-muted-foreground">(origin: {(recruit as any).originPrestige})</span>
+              <span className="text-xs text-purple-300 font-pixel">Prestige Target</span>
+              <span className="text-xs text-purple-200">{Math.max(1, (recruit as any).originPrestige - 2)}–{Math.min(10, (recruit as any).originPrestige + 2)}</span>
+              <span className="text-xs text-muted-foreground">(origin: {(recruit as any).originPrestige})</span>
             </div>
           )}
 
           {sdLocked.size > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
               <Lock className="w-3 h-3 text-gold/70 shrink-0" />
-              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed at Signing Day Reveal</span>
+              <span className="text-xs text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed at Signing Day Reveal</span>
             </div>
           )}
 
@@ -1066,14 +1066,14 @@ function RecruitDetailModal({
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
                 {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
+                    <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
                   ))
                 ) : (
                   active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                    <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
                       {label}·{(recruit as any)[k]}
                     </span>
                   ))
@@ -1085,7 +1085,7 @@ function RecruitDetailModal({
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
+                <h4 className="font-pixel text-xs text-gold mb-3">Attributes</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {attrs.map((attr, idx) => {
                     const isSigningDayLocked = sdLocked.has(attr.key);
@@ -1112,13 +1112,13 @@ function RecruitDetailModal({
                 </div>
               </div>
               <div>
-                <h4 className="font-pixel text-[10px] text-gold mb-3">Pitch Mix</h4>
+                <h4 className="font-pixel text-xs text-gold mb-3">Pitch Mix</h4>
                 <PitchMixDial pitches={generatePitchMix()} className="w-32 h-32 mx-auto" />
               </div>
             </div>
           ) : (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
+              <h4 className="font-pixel text-xs text-gold mb-3">Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 {attrs.map((attr, idx) => {
                   const isSigningDayLocked = sdLocked.has(attr.key);
@@ -1144,7 +1144,7 @@ function RecruitDetailModal({
 
           {/* Common Abilities Section */}
           <div>
-            <h4 className="font-pixel text-[10px] text-gold mb-3">Common Abilities</h4>
+            <h4 className="font-pixel text-xs text-gold mb-3">Common Abilities</h4>
             <div className="grid grid-cols-2 gap-2">
               {recruit.position === "P" ? (
                 <>
@@ -1174,7 +1174,7 @@ function RecruitDetailModal({
           </div>
 
           <div>
-            <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
+            <h4 className="font-pixel text-xs text-gold mb-3">Priorities</h4>
             <div className="grid grid-cols-2 gap-3">
               {priorities.map((p) => {
                 const priorityLabels: Record<string, string> = {
@@ -1209,7 +1209,7 @@ function RecruitDetailModal({
           {/* Abilities Section */}
           {(recruit.abilities as string[] || []).length > 0 && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">
+              <h4 className="font-pixel text-xs text-gold mb-3">
                 Special Abilities ({isFullyRevealed ? (recruit.abilities as string[]).length : `${revealedAbilitiesCount}/?`})
               </h4>
               <div className="flex flex-wrap gap-2">
@@ -1247,23 +1247,23 @@ function RecruitDetailModal({
           {/* Intangibles / Dev Traits */}
           {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= TRAJECTORY_REVEAL_THRESHOLD) && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles</h4>
+              <h4 className="font-pixel text-xs text-gold mb-3">Intangibles</h4>
               <div className="grid grid-cols-2 gap-3">
                 {recruit.personality && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Personality</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Personality</span>
                     <span className="text-sm font-medium text-foreground capitalize">{(recruit.personality as string).replace(/_/g, " ")}</span>
                   </div>
                 )}
                 {recruit.workEthic && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
                   </div>
                 )}
                 {recruit.workEthicScore != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="flex items-center gap-1.5">
                       <span className={`font-pixel text-sm font-bold ${
                         recruit.workEthicScore >= 90 ? "text-emerald-400" :
@@ -1276,7 +1276,7 @@ function RecruitDetailModal({
                 )}
                 {recruit.coachability != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Coachability</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Coachability</span>
                     <span className="flex items-center gap-1.5">
                       <span className={`font-pixel text-sm font-bold ${
                         recruit.coachability >= 90 ? "text-emerald-400" :
@@ -1291,7 +1291,7 @@ function RecruitDetailModal({
                   recruit.playerArchetype === "overdraft" ? scoutPct >= ARCHETYPE_REVEAL_THRESHOLD : scoutPct >= TRAJECTORY_REVEAL_THRESHOLD
                 ) && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
-                    <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Development Profile</span>
                     <span className={`text-sm font-medium ${
                       recruit.playerArchetype === "late_bloomer" ? "text-emerald-400" :
                       recruit.playerArchetype === "overdraft" ? "text-orange-400" :
@@ -1312,7 +1312,7 @@ function RecruitDetailModal({
                     recruit.isGem ? "bg-green-500/10 border-green-500/30" : 
                     recruit.isBust ? "bg-red-500/10 border-red-500/30" : "bg-muted/30 border-border/50"
                   }`}>
-                    <span className="text-[10px] text-muted-foreground block mb-1">Scout Assessment</span>
+                    <span className="text-xs text-muted-foreground block mb-1">Scout Assessment</span>
                     <span className={`text-sm font-medium ${
                       recruit.isGenerationalGem ? "text-amber-400" :
                       recruit.isGenerationalBust ? "text-red-400" :
@@ -1334,7 +1334,7 @@ function RecruitDetailModal({
 
           {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
             <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
-              <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
+              <h4 className="font-pixel text-xs text-muted-foreground mb-1">Intangibles</h4>
               <p className="text-xs text-muted-foreground italic">Unknown — scout to 50% to begin revealing work ethic and development traits.</p>
             </div>
           )}
@@ -1343,7 +1343,7 @@ function RecruitDetailModal({
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded">
               <div className="flex items-center gap-2 text-red-400 mb-1">
                 <HelpCircle className="w-4 h-4" />
-                <span className="font-pixel text-[10px]">Dealbreaker</span>
+                <span className="font-pixel text-xs">Dealbreaker</span>
               </div>
               <p className="text-sm text-foreground">{recruit.dealbreaker}</p>
             </div>
@@ -1357,14 +1357,14 @@ function RecruitDetailModal({
             }`} data-testid="nil-cost-banner">
               <div className="flex items-center gap-2">
                 <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`} />
-                <span className="text-[10px] text-muted-foreground">NIL Est. to Sign</span>
+                <span className="text-xs text-muted-foreground">NIL Est. to Sign</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`font-pixel text-xs font-bold ${nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining ? "text-red-400" : "text-gold"}`}>
                   {formatNilRange(recruit.nilCost)}
                 </span>
                 {nilRemaining != null && Math.ceil(recruit.nilCost * 1.25) > nilRemaining && (
-                  <span className="flex items-center gap-1 text-[9px] text-red-400">
+                  <span className="flex items-center gap-1 text-xs text-red-400">
                     <Lock className="w-2.5 h-2.5" />
                     Over budget
                   </span>
@@ -1378,7 +1378,7 @@ function RecruitDetailModal({
               <p className="font-pixel text-xs mb-1" style={{ color: (recruit as RecruitWithInterest).signedTeamPrimaryColor || "#ccc" }}>
                 Signed with {(recruit as RecruitWithInterest).signedTeamName || "Unknown"}
               </p>
-              <p className="text-[10px] text-muted-foreground">This recruit is no longer available</p>
+              <p className="text-xs text-muted-foreground">This recruit is no longer available</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -1483,7 +1483,7 @@ function RecruitDetailModal({
 
           {showModalPhonePicker && recruit && (
             <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-phone">
-              <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+              <p className="text-xs font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {modalPitchOptions.map(opt => (
                   <button
@@ -1523,7 +1523,7 @@ function RecruitDetailModal({
 
           {showModalEmailPicker && recruit && (
             <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-email">
-              <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+              <p className="text-xs font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {modalPitchOptions.map(opt => (
                   <button
@@ -1564,7 +1564,7 @@ function RecruitDetailModal({
           {/* Competing Schools */}
           {recruit.topSchools && recruit.topSchools.length > 0 && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">
+              <h4 className="font-pixel text-xs text-gold mb-3">
                 {recruit.stage === "top3" ? "Top 3 Schools" : recruit.stage === "top5" ? "Top 5 Schools" : recruit.stage === "top8" ? "Top 8 Schools" : "Competing Schools"}
               </h4>
               <CompetingSchoolsList

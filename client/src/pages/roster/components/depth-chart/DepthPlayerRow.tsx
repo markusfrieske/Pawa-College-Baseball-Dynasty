@@ -88,7 +88,7 @@ export function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, 
             <div className="font-pixel text-gold text-xs">
               #{p.jerseyNumber} {p.firstName} {p.lastName}
             </div>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>{p.position}</span>
               <span className="inline-flex items-center gap-0.5">OVR {p.overall}{p.progressionDeltas?.overall != null && p.progressionDeltas.overall !== 0 && (p.progressionDeltas.overall > 0 ? <ArrowUp className="w-2 h-2 text-green-400" /> : <ArrowDown className="w-2 h-2 text-red-400" />)}</span>
               <span className="flex items-center gap-0.5">
@@ -101,14 +101,14 @@ export function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, 
                 ))}
               </span>
             </div>
-            <div className="text-[10px] text-muted-foreground">{keyStats}</div>
+            <div className="text-xs text-muted-foreground">{keyStats}</div>
           </div>
         </TooltipContent>
       </Tooltip>
-      <span className="text-[9px] text-muted-foreground/80 font-medium">
+      <span className="text-xs text-muted-foreground/80 font-medium">
         {p.eligibility || 'FR'}
       </span>
-      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${isPitcher(p.position) ? (p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60") : (p.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : p.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60")}`} data-testid={`badge-hand-depth-${p.id}`}>
+      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${isPitcher(p.position) ? (p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60") : (p.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : p.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60")}`} data-testid={`badge-hand-depth-${p.id}`}>
         {isPitcher(p.position) ? `${p.throwHand}HP` : `${p.batHand}/${p.throwHand}`}
       </span>
       <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>

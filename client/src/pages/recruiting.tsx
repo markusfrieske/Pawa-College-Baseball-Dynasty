@@ -629,7 +629,7 @@ export default function RecruitingPage() {
                       <span className="text-xs text-amber-300">{actionLabel[entry.action] ?? entry.action}</span>
                       <span className="text-xs text-green-400">+{entry.interestGain}%</span>
                       {entry.isDeadlineForced && (
-                        <span className="text-[9px] text-orange-400 border border-orange-400/50 px-1 rounded">DEADLINE</span>
+                        <span className="text-xs text-orange-400 border border-orange-400/50 px-1 rounded">DEADLINE</span>
                       )}
                     </div>
                   </div>
@@ -688,7 +688,7 @@ export default function RecruitingPage() {
                 )}
                 {leagueData && (
                   <span
-                    className="text-[10px] font-pixel text-muted-foreground border border-border/50 rounded px-2 py-0.5 bg-black/20"
+                    className="text-xs font-pixel text-muted-foreground border border-border/50 rounded px-2 py-0.5 bg-black/20"
                     data-testid="text-recruiting-week-phase"
                   >
                     Wk {leagueData.currentWeek} · S{leagueData.currentSeason}
@@ -793,8 +793,8 @@ export default function RecruitingPage() {
                     data-testid="badge-rising-program"
                   >
                     <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="font-pixel text-[9px] text-emerald-400 uppercase tracking-wider">Rising Program</span>
-                    <span className="text-[9px] text-emerald-300/80 font-mono">+{boostPct}% School Bonus</span>
+                    <span className="font-pixel text-xs text-emerald-400 uppercase tracking-wider">Rising Program</span>
+                    <span className="text-xs text-emerald-300/80 font-mono">+{boostPct}% School Bonus</span>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-[220px] text-center text-xs">
@@ -962,9 +962,9 @@ export default function RecruitingPage() {
             >
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-gold" />
-                <span className="font-pixel text-[10px] text-gold">WEEKLY RECRUITING PLAN</span>
+                <span className="font-pixel text-xs text-gold">WEEKLY RECRUITING PLAN</span>
                 {recommendationsData.weeklyPlan.highRisk.length > 0 && (
-                  <span className="text-[9px] text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
+                  <span className="text-xs text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
                     {recommendationsData.weeklyPlan.highRisk.length} at risk
                   </span>
                 )}
@@ -1005,11 +1005,11 @@ export default function RecruitingPage() {
                   <div className="md:col-span-2 border-t border-border pt-2">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Uncovered Position Needs</span>
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Uncovered Position Needs</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {recommendationsData.weeklyPlan.uncoveredNeeds.map((pos) => (
-                        <Badge key={pos} variant="outline" className="text-[9px] border-red-500/50 text-red-400" data-testid={`badge-uncovered-need-${pos}`}>
+                        <Badge key={pos} variant="outline" className="text-xs border-red-500/50 text-red-400" data-testid={`badge-uncovered-need-${pos}`}>
                           {pos}
                         </Badge>
                       ))}
@@ -1055,7 +1055,7 @@ export default function RecruitingPage() {
                     <Filter className="w-3 h-3 mr-1" />
                     Filters
                     {activeCount > 0 && (
-                      <span className="ml-1 bg-background/30 text-[10px] font-bold px-1 rounded">
+                      <span className="ml-1 bg-background/30 text-xs font-bold px-1 rounded">
                         {activeCount}
                       </span>
                     )}
@@ -1067,7 +1067,7 @@ export default function RecruitingPage() {
             {/* Desktop: full inline filter UI */}
             <div className="hidden sm:block space-y-4">
               <div>
-                <p className="font-pixel text-[9px] text-gold mb-2">FILTERS</p>
+                <p className="font-pixel text-xs text-gold mb-2">FILTERS</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <RetroSelect
                     options={positionOptions}
@@ -1109,7 +1109,7 @@ export default function RecruitingPage() {
               </div>
 
               <div>
-                <p className="font-pixel text-[9px] text-gold mb-2">SORT</p>
+                <p className="font-pixel text-xs text-gold mb-2">SORT</p>
                 <RetroSelect
                   options={sortOptions}
                   value={sortBy}
@@ -1120,7 +1120,7 @@ export default function RecruitingPage() {
               </div>
 
               <div>
-                <p className="font-pixel text-[9px] text-gold mb-2">VIEWS</p>
+                <p className="font-pixel text-xs text-gold mb-2">VIEWS</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <RetroButton 
                     variant={showWatchlistOnly ? "primary" : "outline"} 
@@ -1186,7 +1186,7 @@ export default function RecruitingPage() {
               </div>
 
               <div>
-                <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
+                <p className="font-pixel text-xs text-gold mb-2">TOOLS</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
@@ -1197,7 +1197,7 @@ export default function RecruitingPage() {
                     </PopoverTrigger>
                     <PopoverContent className="w-64 bg-card border-border p-3">
                       <div className="space-y-3">
-                        <p className="font-pixel text-[10px] text-gold">SAVED PRESETS</p>
+                        <p className="font-pixel text-xs text-gold">SAVED PRESETS</p>
                         {filterPresets.length === 0 ? (
                           <p className="text-xs text-muted-foreground">No saved presets</p>
                         ) : (
@@ -1225,7 +1225,7 @@ export default function RecruitingPage() {
                           </div>
                         )}
                         <div className="pt-2 border-t border-border">
-                          <p className="font-pixel text-[8px] text-muted-foreground mb-2">SAVE CURRENT</p>
+                          <p className="font-pixel text-xs text-muted-foreground mb-2">SAVE CURRENT</p>
                           <div className="flex gap-2">
                             <RetroInput
                               value={newPresetName}
@@ -1335,7 +1335,7 @@ export default function RecruitingPage() {
           {showPipeline && pipelineData && (
             <div className="mt-4 pt-4 border-t border-border">
               <div className="flex items-center justify-between mb-3">
-                <p className="font-pixel text-[10px] text-gold">RECRUITING PIPELINE</p>
+                <p className="font-pixel text-xs text-gold">RECRUITING PIPELINE</p>
                 {pipelineFilter && (
                   <RetroButton variant="outline" size="sm" onClick={() => setPipelineFilter(null)} data-testid="button-clear-pipeline-filter">
                     <X className="w-3 h-3 mr-1" /> Clear Filter
@@ -1361,16 +1361,16 @@ export default function RecruitingPage() {
                     data-testid={`pipeline-filter-${stage.key}`}
                   >
                     <p className="font-bold text-lg">{stage.count}</p>
-                    <p className="text-[9px]">{stage.label}</p>
+                    <p className="text-xs">{stage.label}</p>
                   </div>
                 ))}
               </div>
               {pipelineData.positionNeeds.some(p => p.need) && (
                 <div className="mt-3">
-                  <p className="text-[9px] text-muted-foreground mb-1">POSITION NEEDS (After Graduation)</p>
+                  <p className="text-xs text-muted-foreground mb-1">POSITION NEEDS (After Graduation)</p>
                   <div className="flex flex-wrap gap-1">
                     {pipelineData.positionNeeds.filter(p => p.need).map(p => (
-                      <Badge key={p.position} variant="outline" className="text-[8px] border-red-500/50 text-red-400">
+                      <Badge key={p.position} variant="outline" className="text-xs border-red-500/50 text-red-400">
                         {p.position} ({p.current - p.graduating} remaining)
                       </Badge>
                     ))}
@@ -1435,7 +1435,7 @@ export default function RecruitingPage() {
 
                 {showClassRankings && (
                   <div className="mt-4 space-y-1">
-                    <div className="grid grid-cols-[2rem_1fr_2.5rem_3rem_3.5rem_3.5rem] gap-2 text-[9px] font-pixel text-muted-foreground px-1 pb-1 border-b border-border/40">
+                    <div className="grid grid-cols-[2rem_1fr_2.5rem_3rem_3.5rem_3.5rem] gap-2 text-xs font-pixel text-muted-foreground px-1 pb-1 border-b border-border/40">
                       <span>#</span>
                       <span>Team</span>
                       <span className="text-center">Grd</span>
@@ -1452,10 +1452,10 @@ export default function RecruitingPage() {
                           className={`grid grid-cols-[2rem_1fr_2.5rem_3rem_3.5rem_3.5rem] gap-2 items-center px-1 py-1 rounded text-xs transition-colors ${isMe ? "bg-gold/10 border border-gold/30" : "hover:bg-card/60"}`}
                           data-testid={`class-rank-row-${snap.teamId}`}
                         >
-                          <span className="text-muted-foreground font-mono text-[10px]">{snap.classRank}</span>
-                          <span className={`truncate text-[10px] ${isMe ? "text-gold font-semibold" : "text-foreground"}`}>
+                          <span className="text-muted-foreground font-mono text-xs">{snap.classRank}</span>
+                          <span className={`truncate text-xs ${isMe ? "text-gold font-semibold" : "text-foreground"}`}>
                             {snap.teamName}
-                            {isMe && <span className="ml-1 text-gold text-[8px]">★</span>}
+                            {isMe && <span className="ml-1 text-gold text-xs">★</span>}
                           </span>
                           <span className={`text-center font-pixel text-sm font-bold ${getGradeColor(grade)}`}>{grade}</span>
                           <span className="text-center text-muted-foreground">{snap.totalCommits}</span>
@@ -1520,7 +1520,7 @@ export default function RecruitingPage() {
                     <History className="w-4 h-4 text-gold" />
                     <span className="font-pixel text-gold text-sm uppercase tracking-wider">Last Week's Activity</span>
                     {totalActions > 0 && (
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         (Week {displayWeek})
                       </span>
                     )}
@@ -1534,7 +1534,7 @@ export default function RecruitingPage() {
                       <p className="text-xs text-muted-foreground italic">No scouting activity last week</p>
                     ) : (
                       <>
-                        <p className="text-[10px] text-muted-foreground mb-3">
+                        <p className="text-xs text-muted-foreground mb-3">
                           {totalActions} action{totalActions !== 1 ? "s" : ""} taken across {totalRecruits} recruit{totalRecruits !== 1 ? "s" : ""}
                         </p>
                         <div className="space-y-3">
@@ -1599,14 +1599,14 @@ export default function RecruitingPage() {
               <div className="flex items-start gap-2 min-w-0">
                 <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isPositive ? "text-emerald-400" : "text-amber-400"}`} />
                 <div className="min-w-0">
-                  <p className={`font-pixel text-[9px] uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
+                  <p className={`font-pixel text-xs uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
                     {isPositive ? "Decommit Opportunity" : "Decommitment Alert"}
-                    <span className="ml-2 text-muted-foreground normal-case font-sans text-[10px]">Week {alert.week}</span>
+                    <span className="ml-2 text-muted-foreground normal-case font-sans text-xs">Week {alert.week}</span>
                   </p>
                   <p className="text-sm text-foreground leading-snug">{alert.description}</p>
                   {matchedRecruit && (
                     <button
-                      className={`mt-1.5 text-[11px] font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400 hover:text-emerald-300" : "text-amber-400 hover:text-amber-300"}`}
+                      className={`mt-1.5 text-xs font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400 hover:text-emerald-300" : "text-amber-400 hover:text-amber-300"}`}
                       onClick={() => setSelectedRecruit(matchedRecruit)}
                       data-testid={`decommit-alert-view-${alert.id}`}
                     >
@@ -1655,7 +1655,7 @@ export default function RecruitingPage() {
             <div className={`mb-4 rounded border px-5 py-3.5 ${cfg.colors}`} data-testid="class-vintage-banner">
               <div className="flex items-center gap-2 mb-1">
                 <Icon className="w-5 h-5 shrink-0" />
-                <span className="font-pixel text-[11px] uppercase tracking-wider">{cfg.label}</span>
+                <span className="font-pixel text-xs uppercase tracking-wider">{cfg.label}</span>
               </div>
               <p className="text-[12px] opacity-75 leading-relaxed pl-7">{cfg.copy}</p>
             </div>
@@ -1674,7 +1674,7 @@ export default function RecruitingPage() {
                 >
                   <Telescope className="w-4 h-4 text-gold" />
                   <span className="font-pixel text-gold text-sm uppercase tracking-wider">Rival Scout Report</span>
-                  <span className="text-[10px] text-muted-foreground">(Week {weekRecapData.week})</span>
+                  <span className="text-xs text-muted-foreground">(Week {weekRecapData.week})</span>
                   {showRecap ? <ChevronUp className="w-4 h-4 text-gold ml-1" /> : <ChevronDown className="w-4 h-4 text-gold ml-1" />}
                 </button>
                 <button
@@ -1689,13 +1689,13 @@ export default function RecruitingPage() {
 
               {showRecap && (
                 <div className="mt-4 pt-4 border-t border-border space-y-5">
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Rival activity shown as total actions by other teams — no team identities or pitch details revealed.
                   </p>
 
                   {weekRecapData.myRecruits.length > 0 && (
                     <div>
-                      <p className="font-pixel text-[9px] text-gold mb-2">YOUR TARGETS THIS WEEK</p>
+                      <p className="font-pixel text-xs text-gold mb-2">YOUR TARGETS THIS WEEK</p>
                       <div className="space-y-2">
                         {weekRecapData.myRecruits.map(r => {
                           const levelColor = r.activityLevel === "Hot" ? "text-red-400 bg-red-500/10 border-red-500/30"
@@ -1735,7 +1735,7 @@ export default function RecruitingPage() {
 
                   {weekRecapData.hotMissed.length > 0 && (
                     <div>
-                      <p className="font-pixel text-[9px] text-amber-400 mb-2">HOT RECRUITS YOU HAVEN'T CONTACTED</p>
+                      <p className="font-pixel text-xs text-amber-400 mb-2">HOT RECRUITS YOU HAVEN'T CONTACTED</p>
                       <div className="space-y-2">
                         {weekRecapData.hotMissed.map(r => (
                           <div key={r.recruitId} className="flex items-center justify-between bg-amber-500/5 border border-amber-500/20 rounded p-2.5" data-testid={`recap-missed-recruit-${r.recruitId}`}>
@@ -1779,11 +1779,11 @@ export default function RecruitingPage() {
               >
                 <History className="w-4 h-4 text-gold" />
                 <span className="font-pixel text-gold text-sm uppercase tracking-wider">CPU History</span>
-                <span className="text-[10px] text-muted-foreground ml-1">
+                <span className="text-xs text-muted-foreground ml-1">
                   ({(autoPilotLogData?.log ?? []).length} week{(autoPilotLogData?.log ?? []).length !== 1 ? "s" : ""})
                 </span>
                 {unreadAutoPilotLog.length > 0 && (
-                  <span className="ml-1 text-[9px] font-pixel px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-400">
+                  <span className="ml-1 text-xs font-pixel px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-400">
                     {unreadAutoPilotLog.length} new
                   </span>
                 )}
@@ -1792,7 +1792,7 @@ export default function RecruitingPage() {
 
               {showCpuHistory && (
                 <div className="mt-4 pt-4 border-t border-border space-y-3">
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Complete record of all weeks the CPU managed your recruiting — auto-pilot sessions and force-advanced weeks, newest first.
                   </p>
                   {[...(autoPilotLogData?.log ?? [])].reverse().map((entry, idx) => {
@@ -1805,14 +1805,14 @@ export default function RecruitingPage() {
                         data-testid={`cpu-history-entry-${idx}`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="font-pixel text-[10px] text-gold">
+                          <span className="font-pixel text-xs text-gold">
                             Season {entry.season} · Week {entry.week}
                           </span>
                           <div className="flex items-center gap-1.5">
                             {!entry.read && (
-                              <span className="text-[9px] font-pixel px-1 py-0.5 rounded border border-blue-400/40 text-blue-400">NEW</span>
+                              <span className="text-xs font-pixel px-1 py-0.5 rounded border border-blue-400/40 text-blue-400">NEW</span>
                             )}
-                            <span className={`text-[9px] font-pixel px-1.5 py-0.5 rounded border ${entry.isForced ? "border-orange-500/40 text-orange-400" : "border-blue-400/40 text-blue-400"}`}>
+                            <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${entry.isForced ? "border-orange-500/40 text-orange-400" : "border-blue-400/40 text-blue-400"}`}>
                               {entry.isForced ? "FILL-IN" : "AUTO-PILOT"}
                             </span>
                           </div>
@@ -1827,14 +1827,14 @@ export default function RecruitingPage() {
                         </div>
                         {summary.recruitsTargeted.length > 0 && (
                           <div className="space-y-1 border-t border-border pt-2">
-                            <p className="text-[10px] font-pixel text-muted-foreground mb-1">Recruits contacted ({totalActions} action{totalActions !== 1 ? "s" : ""}):</p>
+                            <p className="text-xs font-pixel text-muted-foreground mb-1">Recruits contacted ({totalActions} action{totalActions !== 1 ? "s" : ""}):</p>
                             <div className="space-y-0.5 max-h-36 overflow-y-auto">
                               {summary.recruitsTargeted.map((r, ri) => (
                                 <div key={ri} className="flex items-center justify-between text-xs">
                                   <span className="text-foreground">{r.name} <span className="text-muted-foreground">({r.position})</span></span>
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-yellow-400 text-[10px]">{"★".repeat(Math.min(r.stars, 5))}</span>
-                                    <span className="text-gold text-[10px] capitalize">{r.action}</span>
+                                    <span className="text-yellow-400 text-xs">{"★".repeat(Math.min(r.stars, 5))}</span>
+                                    <span className="text-gold text-xs capitalize">{r.action}</span>
                                   </div>
                                 </div>
                               ))}
@@ -2094,10 +2094,10 @@ export default function RecruitingPage() {
               return (
                 <div key={idx} className="rounded border border-[#1a3a1a] bg-[#0a1a0a] p-3 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-pixel text-[10px] text-[#c8aa6e]">
+                    <span className="font-pixel text-xs text-[#c8aa6e]">
                       Season {entry.season} · Week {entry.week}
                     </span>
-                    <span className={`text-[9px] font-pixel px-1.5 py-0.5 rounded border ${entry.isForced ? "border-orange-500/40 text-orange-400" : "border-blue-400/40 text-blue-400"}`}>
+                    <span className={`text-xs font-pixel px-1.5 py-0.5 rounded border ${entry.isForced ? "border-orange-500/40 text-orange-400" : "border-blue-400/40 text-blue-400"}`}>
                       {entry.isForced ? "FILL-IN" : "AUTO-PILOT"}
                     </span>
                   </div>
@@ -2110,14 +2110,14 @@ export default function RecruitingPage() {
                   </div>
                   {summary.recruitsTargeted.length > 0 && (
                     <div className="space-y-1 border-t border-[#1a3a1a] pt-2 mt-1">
-                      <p className="text-[10px] font-pixel text-gray-400 mb-1">Recruits Contacted ({totalActions} actions):</p>
+                      <p className="text-xs font-pixel text-gray-400 mb-1">Recruits Contacted ({totalActions} actions):</p>
                       <div className="space-y-0.5 max-h-32 overflow-y-auto">
                         {summary.recruitsTargeted.map((r, ri) => (
                           <div key={ri} className="flex items-center justify-between text-xs">
                             <span className="text-gray-300">{r.name} <span className="text-gray-500">({r.position})</span></span>
                             <div className="flex items-center gap-1.5">
-                              <span className="text-yellow-400 text-[10px]">{"★".repeat(Math.min(r.stars, 5))}</span>
-                              <span className="text-[#c8aa6e] text-[10px] capitalize">{r.action}</span>
+                              <span className="text-yellow-400 text-xs">{"★".repeat(Math.min(r.stars, 5))}</span>
+                              <span className="text-[#c8aa6e] text-xs capitalize">{r.action}</span>
                             </div>
                           </div>
                         ))}
@@ -2141,7 +2141,7 @@ export default function RecruitingPage() {
 
       {compareRecruits.length > 0 && (
         <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card border border-gold rounded-lg shadow-lg p-3 flex items-center gap-4 z-50" data-testid="compare-bar">
-          <span className="font-pixel text-[10px] text-gold">COMPARE:</span>
+          <span className="font-pixel text-xs text-gold">COMPARE:</span>
           <div className="flex items-center gap-2">
             {compareRecruits.map((r) => (
               <div key={r.id} className="flex items-center gap-1 bg-background/50 px-2 py-1 rounded">
@@ -2201,10 +2201,10 @@ function WeeklyPlanSection({
     <div>
       <div className="flex items-center gap-1.5 mb-1.5">
         {icon}
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">{title}</span>
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">{title}</span>
       </div>
       {items.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground/70 italic">{emptyLabel}</p>
+        <p className="text-xs text-muted-foreground/70 italic">{emptyLabel}</p>
       ) : (
         <ul className="space-y-1">
           {items.slice(0, 5).map((item) => (
@@ -2215,13 +2215,13 @@ function WeeklyPlanSection({
                 onClick={() => onItemClick(item.recruitId)}
                 data-testid={`link-weekly-plan-${item.recruitId}`}
               >
-                <span className="text-[10px] truncate">
+                <span className="text-xs truncate">
                   {item.firstName} {item.lastName}{" "}
                   <span className="text-muted-foreground">({item.position})</span>
                 </span>
                 <Badge
                   variant="outline"
-                  className={`text-[8px] shrink-0 ${RECOMMENDED_ACTION_META[item.action].color}`}
+                  className={`text-xs shrink-0 ${RECOMMENDED_ACTION_META[item.action].color}`}
                 >
                   {RECOMMENDED_ACTION_META[item.action].label}
                 </Badge>

@@ -90,9 +90,9 @@ function OptionCard({
           <span className="font-semibold text-sm text-foreground">{label}</span>
           {selected && <CheckCircle2 className="w-3.5 h-3.5 text-gold flex-shrink-0" />}
         </div>
-        <p className="text-[11px] text-gold/80 font-medium mb-1 italic">{tagline}</p>
-        <p className="text-[11px] text-muted-foreground leading-relaxed">{description}</p>
-        <p className="text-[10px] text-blue-400/80 mt-1.5">{effect}</p>
+        <p className="text-xs text-gold/80 font-medium mb-1 italic">{tagline}</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+        <p className="text-xs text-blue-400/80 mt-1.5">{effect}</p>
       </div>
     </button>
   );
@@ -133,7 +133,7 @@ function PillarSection({
           <Icon className="w-4 h-4 text-gold" />
           <div>
             <h3 className="text-sm font-pixel text-foreground">{title}</h3>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{subtitle}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
           </div>
         </div>
       </RetroCardHeader>
@@ -164,20 +164,20 @@ function IdentitySummary({ identity }: { identity: IdentityData }) {
   return (
     <RetroCard className="mb-4">
       <RetroCardContent className="py-3">
-        <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-widest font-pixel">
+        <p className="text-xs text-muted-foreground mb-2 uppercase tracking-widest font-pixel">
           Current Identity
         </p>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline" className="text-[10px] gap-1 border-gold/40">
+          <Badge variant="outline" className="text-xs gap-1 border-gold/40">
             <span>{off.icon}</span> {off.label} Offense
           </Badge>
-          <Badge variant="outline" className="text-[10px] gap-1 border-gold/40">
+          <Badge variant="outline" className="text-xs gap-1 border-gold/40">
             <span>{pit.icon}</span> {pit.label} Pitching
           </Badge>
-          <Badge variant="outline" className="text-[10px] gap-1 border-gold/40">
+          <Badge variant="outline" className="text-xs gap-1 border-gold/40">
             <span>{pitch.icon}</span> {pitch.label} Pitch
           </Badge>
-          <Badge variant="outline" className="text-[10px] gap-1 border-gold/40">
+          <Badge variant="outline" className="text-xs gap-1 border-gold/40">
             <span>{cult.icon}</span> {cult.label} Culture
           </Badge>
         </div>
@@ -195,7 +195,7 @@ function LockedBanner({ phase }: { phase: string }) {
   return (
     <div className="flex items-center gap-2 p-3 mb-4 bg-amber-950/40 border border-amber-700/50 rounded-lg text-sm text-amber-400">
       <Lock className="w-4 h-4 flex-shrink-0" />
-      <span className="text-[11px]">
+      <span className="text-xs">
         Identity is locked during <strong>{phaseLabel}</strong>. Changes can be made
         during the offseason or preseason.
       </span>
@@ -292,7 +292,7 @@ export default function IdentityPage() {
           </Link>
           <div>
             <h1 className="font-pixel text-sm text-gold">Team Identity</h1>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Define your program's style across 4 pillars
             </p>
           </div>
@@ -307,7 +307,7 @@ export default function IdentityPage() {
         {isDirty && !locked && (
           <div className="sticky top-2 z-10 mb-4">
             <div className="flex items-center justify-between gap-3 p-3 bg-card border border-gold/40 rounded-lg shadow-lg">
-              <span className="text-[11px] text-muted-foreground">Unsaved changes</span>
+              <span className="text-xs text-muted-foreground">Unsaved changes</span>
               <div className="flex gap-2">
                 <RetroButton
                   variant="outline"

@@ -267,7 +267,7 @@ function NewsArticle({ item }: { item: DynastyNews }) {
           <div className="flex items-center gap-2 flex-wrap">
             {item.isSticky && <Pin className="w-3 h-3 text-gold flex-shrink-0" />}
             <h4 className="font-medium text-gold text-sm leading-tight">{item.title}</h4>
-            <Badge className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${categoryColors[item.category] || "bg-muted"}`}>
+            <Badge className={`text-xs no-default-hover-elevate no-default-active-elevate ${categoryColors[item.category] || "bg-muted"}`}>
               {categoryLabels[item.category] || item.category}
             </Badge>
           </div>

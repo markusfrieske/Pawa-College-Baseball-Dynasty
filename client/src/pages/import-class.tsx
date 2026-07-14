@@ -186,7 +186,7 @@ export default function ImportClassPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 cursor-pointer" data-testid="link-home-logo">
             <div className="w-8 h-8 bg-gold rounded-full flex items-center justify-center shrink-0">
-              <span className="text-forest-dark font-pixel text-[8px]">CBD</span>
+              <span className="text-forest-dark font-pixel text-xs">CBD</span>
             </div>
             <span className="font-pixel text-gold text-sm hidden sm:block">College Baseball Dynasty</span>
           </Link>
@@ -223,16 +223,16 @@ export default function ImportClassPage() {
                   </p>
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className="text-[10px]" data-testid="badge-recruit-count">
+                  <Badge variant="secondary" className="text-xs" data-testid="badge-recruit-count">
                     {preview.recruitCount} Recruits
                   </Badge>
                   {themeLabel && (
-                    <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/40">
+                    <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/40">
                       {themeLabel}
                     </Badge>
                   )}
                   {preview.importCount > 0 && (
-                    <span className="text-[10px] text-muted-foreground/60">{preview.importCount} import{preview.importCount !== 1 ? "s" : ""}</span>
+                    <span className="text-xs text-muted-foreground/60">{preview.importCount} import{preview.importCount !== 1 ? "s" : ""}</span>
                   )}
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function ImportClassPage() {
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <RetroCard data-testid="card-star-dist">
             <RetroCardHeader>
-              <span className="font-pixel text-[10px] text-gold uppercase">Star Distribution</span>
+              <span className="font-pixel text-xs text-gold uppercase">Star Distribution</span>
             </RetroCardHeader>
             <RetroCardContent className="space-y-1.5">
               {starDist.length > 0 ? starDist.map(({ star, count }) => (
@@ -329,14 +329,14 @@ export default function ImportClassPage() {
 
           <RetroCard data-testid="card-position-dist">
             <RetroCardHeader>
-              <span className="font-pixel text-[10px] text-gold uppercase">Position Mix</span>
+              <span className="font-pixel text-xs text-gold uppercase">Position Mix</span>
             </RetroCardHeader>
             <RetroCardContent>
               <div className="grid grid-cols-3 gap-2">
                 {sortedPos.map(([pos, count]) => (
                   <div key={pos} className="text-center">
                     <p className="font-pixel text-sm text-foreground">{count}</p>
-                    <p className="text-[10px] text-muted-foreground">{pos}</p>
+                    <p className="text-xs text-muted-foreground">{pos}</p>
                   </div>
                 ))}
               </div>
@@ -349,12 +349,12 @@ export default function ImportClassPage() {
           <RetroCardHeader>
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gold" />
-              <span className="font-pixel text-[10px] text-gold uppercase">Recruits ({recruits.length})</span>
+              <span className="font-pixel text-xs text-gold uppercase">Recruits ({recruits.length})</span>
             </div>
           </RetroCardHeader>
           <RetroCardContent className="p-0">
             <div className="overflow-x-auto">
-              <div className="grid grid-cols-5 gap-2 text-[10px] font-semibold text-muted-foreground border-b border-border px-3 py-1.5 min-w-[360px]">
+              <div className="grid grid-cols-5 gap-2 text-xs font-semibold text-muted-foreground border-b border-border px-3 py-1.5 min-w-[360px]">
                 <span className="col-span-2">Name</span>
                 <span>Pos</span>
                 <span>Stars</span>
@@ -379,9 +379,9 @@ export default function ImportClassPage() {
                       >
                         <span className="col-span-2 truncate">
                           {name}
-                          {r.isBlueChip && <span className="ml-1 text-[8px] text-amber-400">BC</span>}
-                          {r.isGenerationalGem && <span className="ml-1 text-[8px] text-purple-400">GG</span>}
-                          {r.isGenerationalBust && <span className="ml-1 text-[8px] text-red-400">GB</span>}
+                          {r.isBlueChip && <span className="ml-1 text-xs text-amber-400">BC</span>}
+                          {r.isGenerationalGem && <span className="ml-1 text-xs text-purple-400">GG</span>}
+                          {r.isGenerationalBust && <span className="ml-1 text-xs text-red-400">GB</span>}
                         </span>
                         <span className="text-muted-foreground">{r.position}</span>
                         <span className={STAR_COLORS[r.starRating] ?? "text-muted-foreground"}>

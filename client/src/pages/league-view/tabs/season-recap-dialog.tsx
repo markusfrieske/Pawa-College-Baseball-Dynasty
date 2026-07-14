@@ -80,7 +80,7 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
             </div>
 
             <div>
-              <p className="font-pixel text-gold text-[10px] mb-2">TOP 10 TEAMS</p>
+              <p className="font-pixel text-gold text-xs mb-2">TOP 10 TEAMS</p>
               <div className="space-y-1">
                 {data.teams.map((team, i) => (
                   <div
@@ -116,7 +116,7 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
           <div className="border-t border-border/50 pt-4 mt-2">
             <div className="flex items-center gap-2 mb-3">
               <BookOpen className="w-4 h-4 text-gold" />
-              <p className="font-pixel text-gold text-[10px]">STORYLINE SEASON WRAP</p>
+              <p className="font-pixel text-gold text-xs">STORYLINE SEASON WRAP</p>
             </div>
             <div className="space-y-2 max-h-56 overflow-y-auto" data-testid="storyline-season-wrap">
               {wrapData.entries.map((entry) => {
@@ -138,24 +138,24 @@ export function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueI
                         <span className="text-sm font-medium truncate">
                           {entry.firstName[0]}. {entry.lastName}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">({entry.position})</span>
+                        <span className="text-xs text-muted-foreground">({entry.position})</span>
                         {entry.isLegendary && (
-                          <span className="flex items-center gap-0.5 text-[9px] text-yellow-300 bg-yellow-500/20 border border-yellow-500/30 rounded px-1 py-0.5">
+                          <span className="flex items-center gap-0.5 text-xs text-yellow-300 bg-yellow-500/20 border border-yellow-500/30 rounded px-1 py-0.5">
                             <Sparkles className="w-2.5 h-2.5" />
                             Legendary
                           </span>
                         )}
                         {entry.committed ? (
-                          <span className="text-[9px] text-green-400 bg-green-500/10 border border-green-500/30 rounded px-1 py-0.5">
+                          <span className="text-xs text-green-400 bg-green-500/10 border border-green-500/30 rounded px-1 py-0.5">
                             Committed
                           </span>
                         ) : (
-                          <span className="text-[9px] text-muted-foreground bg-muted/30 border border-border/40 rounded px-1 py-0.5">
+                          <span className="text-xs text-muted-foreground bg-muted/30 border border-border/40 rounded px-1 py-0.5">
                             Not Committed
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">{entry.archetypeName}</p>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">{entry.archetypeName}</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {isPositive ? (

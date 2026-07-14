@@ -179,7 +179,7 @@ function CategoryUploadTile({
 
       {/* Header row: label + upload button */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-pixel text-gold leading-none">{CATEGORY_LABELS[category]}</span>
+        <span className="text-xs font-pixel text-gold leading-none">{CATEGORY_LABELS[category]}</span>
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
@@ -204,7 +204,7 @@ function CategoryUploadTile({
       {/* Corrections warning */}
       {hasCorrections && hasDoneImages && (
         <div
-          className="flex items-start gap-1.5 text-[9px] text-yellow-400/80 bg-yellow-900/20 border border-yellow-700/30 rounded px-2 py-1.5"
+          className="flex items-start gap-1.5 text-xs text-yellow-400/80 bg-yellow-900/20 border border-yellow-700/30 rounded px-2 py-1.5"
           data-testid={`note-corrections-skipped-${category}`}
         >
           <AlertTriangle className="w-3 h-3 shrink-0 mt-px text-yellow-500" />
@@ -214,7 +214,7 @@ function CategoryUploadTile({
 
       {/* Empty state */}
       {categoryImages.length === 0 && (
-        <p className="text-[9px] text-muted-foreground">No screenshot yet</p>
+        <p className="text-xs text-muted-foreground">No screenshot yet</p>
       )}
 
       {/* Thumbnail grid */}
@@ -274,7 +274,7 @@ function CategoryUploadTile({
 
       {/* Per-image action rows: Apply / Retry / Confirm-overwrite */}
       {categoryImages.map((img) => (
-        <div key={`actions-${img.id}`} className="text-[9px]">
+        <div key={`actions-${img.id}`} className="text-xs">
           {img.ocrStatus === "done" && img.ocrResult && (
             pendingConfirmId === img.id ? (
               <span className="flex items-center gap-1.5 flex-wrap" data-testid={`confirm-apply-${img.id}`}>
@@ -312,20 +312,20 @@ function CategoryUploadTile({
           {img.ocrStatus === "failed" && (
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <Badge variant="outline" className="text-[8px] border-red-600 text-red-400 gap-1 py-0" title={img.ocrError ?? undefined}>
+                <Badge variant="outline" className="text-xs border-red-600 text-red-400 gap-1 py-0" title={img.ocrError ?? undefined}>
                   <XCircle className="w-2.5 h-2.5" /> Failed to read
                 </Badge>
                 <button
                   type="button"
                   onClick={() => retryOcrMutation.mutate(img.id)}
                   disabled={retryOcrMutation.isPending}
-                  className="text-muted-foreground hover:text-gold text-[9px]"
+                  className="text-muted-foreground hover:text-gold text-xs"
                   data-testid={`button-retry-${img.id}`}
                 >
                   Retry
                 </button>
               </div>
-              <span className="flex items-center gap-1 text-[8px] text-muted-foreground" data-testid={`text-ocr-fallback-${img.id}`}>
+              <span className="flex items-center gap-1 text-xs text-muted-foreground" data-testid={`text-ocr-fallback-${img.id}`}>
                 <AlertTriangle className="w-2.5 h-2.5 shrink-0 text-yellow-500" />
                 Enter this section manually below
               </span>
@@ -380,9 +380,9 @@ export function GameScreenshotUpload({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Camera className="w-3.5 h-3.5 text-gold" />
-        <span className="text-[10px] font-pixel text-gold">Evidence Screenshots</span>
+        <span className="text-xs font-pixel text-gold">Evidence Screenshots</span>
       </div>
-      <p className="text-[9px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Upload Power Pros screenshots — the app reads your stats and auto-fills the form. Screenshots are stored permanently as proof and shown to your opponent and the commissioner.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -427,13 +427,13 @@ export function GameScreenshotGallery({ leagueId, gameId }: { leagueId: string; 
       {lightbox && <Lightbox url={lightbox} onClose={() => setLightbox(null)} />}
       <div className="flex items-center gap-2">
         <Camera className="w-3.5 h-3.5 text-gold" />
-        <span className="text-[10px] font-pixel text-gold">Evidence Screenshots</span>
-        <Badge variant="outline" className="text-[8px] border-gold/40 text-gold/70 py-0 px-1.5">{total}</Badge>
+        <span className="text-xs font-pixel text-gold">Evidence Screenshots</span>
+        <Badge variant="outline" className="text-xs border-gold/40 text-gold/70 py-0 px-1.5">{total}</Badge>
       </div>
       <div className="space-y-2">
         {byCategory.map(({ category, items }) => (
           <div key={category}>
-            <p className="text-[9px] text-muted-foreground mb-1.5">{CATEGORY_LABELS[category]}</p>
+            <p className="text-xs text-muted-foreground mb-1.5">{CATEGORY_LABELS[category]}</p>
             <div className="flex flex-wrap gap-2">
               {items.map((img) => (
                 <button

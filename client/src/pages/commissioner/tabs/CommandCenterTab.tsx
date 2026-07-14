@@ -171,10 +171,10 @@ export function CommandCenterTab({
       {/* ── A. Advance Readiness ── */}
       <RetroCard>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <p className="font-pixel text-[10px] text-gold">ADVANCE READINESS</p>
+          <p className="font-pixel text-xs text-gold">ADVANCE READINESS</p>
           <Badge
             variant="outline"
-            className={`text-[9px] font-pixel ${readyCount >= totalCoaches ? "border-green-500/50 text-green-400" : "border-yellow-500/50 text-yellow-400"}`}
+            className={`text-xs font-pixel ${readyCount >= totalCoaches ? "border-green-500/50 text-green-400" : "border-yellow-500/50 text-yellow-400"}`}
             data-testid="badge-readiness-count"
           >
             {readyCount}/{totalCoaches} ready
@@ -207,7 +207,7 @@ export function CommandCenterTab({
                   ) : (
                     <XCircle className="w-3 h-3 shrink-0" />
                   )}
-                  <span className="font-pixel text-[8px] whitespace-nowrap">
+                  <span className="font-pixel text-xs whitespace-nowrap">
                     {coach.abbreviation ?? coach.teamName ?? "?"}
                   </span>
                 </div>
@@ -220,13 +220,13 @@ export function CommandCenterTab({
       {/* ── B. Advance Preflight ── */}
       <RetroCard>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <p className="font-pixel text-[10px] text-gold">ADVANCE PREFLIGHT</p>
+          <p className="font-pixel text-xs text-gold">ADVANCE PREFLIGHT</p>
           {preflight && (
             <div className="flex items-center gap-2">
               {isStale && (
-                <span className="font-pixel text-[8px] text-yellow-500">STALE</span>
+                <span className="font-pixel text-xs text-yellow-500">STALE</span>
               )}
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {formatAge(preflight.runAt)}
               </span>
             </div>
@@ -260,7 +260,7 @@ export function CommandCenterTab({
               ) : (
                 <XCircle className="w-4 h-4 shrink-0" />
               )}
-              <span className="font-pixel text-[9px]">
+              <span className="font-pixel text-xs">
                 {preflight.canAdvance
                   ? "League is ready to advance"
                   : `${failCount} blocker(s) found — review below`}
@@ -285,16 +285,16 @@ export function CommandCenterTab({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-medium">{check.label}</span>
                       {check.count > 0 && (
-                        <span className="font-pixel text-[8px] px-1 py-0.5 rounded bg-muted/30 text-muted-foreground">
+                        <span className="font-pixel text-xs px-1 py-0.5 rounded bg-muted/30 text-muted-foreground">
                           {check.count}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{check.detail}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{check.detail}</p>
                     {check.items.length > 0 && (
                       <ul className="mt-1 space-y-0.5">
                         {check.items.map((item, i) => (
-                          <li key={i} className="text-[10px] text-muted-foreground pl-2 border-l border-border">
+                          <li key={i} className="text-xs text-muted-foreground pl-2 border-l border-border">
                             {item}
                           </li>
                         ))}
@@ -311,7 +311,7 @@ export function CommandCenterTab({
       {/* ── C. Active Blockers Summary ── */}
       {preflight && !preflight.canAdvance && (
         <RetroCard className="border-red-500/30">
-          <p className="font-pixel text-[10px] text-red-400 mb-3">BLOCKERS — QUICK LINKS</p>
+          <p className="font-pixel text-xs text-red-400 mb-3">BLOCKERS — QUICK LINKS</p>
           <div className="space-y-1.5">
             {preflight.checks
               .filter(c => c.status === "fail")
@@ -327,7 +327,7 @@ export function CommandCenterTab({
                     <div className="flex items-center gap-2">
                       <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                       <span className="text-xs text-red-300">{c.label}</span>
-                      <span className="font-pixel text-[8px] px-1 py-0.5 rounded bg-red-500/20 text-red-400">
+                      <span className="font-pixel text-xs px-1 py-0.5 rounded bg-red-500/20 text-red-400">
                         {c.count}
                       </span>
                     </div>
@@ -342,11 +342,11 @@ export function CommandCenterTab({
       {/* ── D. Save State Quick Access ── */}
       <RetroCard>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <p className="font-pixel text-[10px] text-gold">SAVE STATES</p>
+          <p className="font-pixel text-xs text-gold">SAVE STATES</p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => onSwitchTab("save-states")}
-              className="text-[10px] text-muted-foreground hover:text-gold transition-colors flex items-center gap-1"
+              className="text-xs text-muted-foreground hover:text-gold transition-colors flex items-center gap-1"
               data-testid="link-view-all-saves"
             >
               View All <ChevronRight className="w-3 h-3" />
@@ -407,7 +407,7 @@ export function CommandCenterTab({
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-xs truncate">{ss.label}</p>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <Clock className="w-2.5 h-2.5" />
                     S{ss.season} W{ss.week} · {PHASE_LABELS[ss.phase] ?? ss.phase} · {formatDate(ss.createdAt)}
                   </p>
@@ -421,10 +421,10 @@ export function CommandCenterTab({
       {/* ── E. Recent Audit Log ── */}
       <RetroCard>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <p className="font-pixel text-[10px] text-gold">RECENT AUDIT LOG</p>
+          <p className="font-pixel text-xs text-gold">RECENT AUDIT LOG</p>
           <button
             onClick={() => onSwitchTab("audit")}
-            className="text-[10px] text-muted-foreground hover:text-gold transition-colors flex items-center gap-1"
+            className="text-xs text-muted-foreground hover:text-gold transition-colors flex items-center gap-1"
             data-testid="link-view-full-audit"
           >
             View Full Log <ChevronRight className="w-3 h-3" />
@@ -440,9 +440,9 @@ export function CommandCenterTab({
                 <div className="flex-1 min-w-0">
                   <p className="text-xs">{log.action}</p>
                   {log.details && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{log.details}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.details}</p>
                   )}
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{formatDate(new Date(log.timestamp).toISOString())}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{formatDate(new Date(log.timestamp).toISOString())}</p>
                 </div>
               </div>
             ))}

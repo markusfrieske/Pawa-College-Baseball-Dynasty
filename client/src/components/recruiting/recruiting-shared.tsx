@@ -53,7 +53,7 @@ export function CompetingSchoolsList({
             data-testid={`${testIdPrefix}school-row-${school.teamId}`}
           >
             {showRowRankBadge && (
-              <span className="w-4 text-[9px] font-pixel text-muted-foreground text-center">
+              <span className="w-4 text-xs font-pixel text-muted-foreground text-center">
                 {idx + 1}
               </span>
             )}
@@ -66,21 +66,21 @@ export function CompetingSchoolsList({
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <span className={`text-[10px] font-medium truncate ${isUserTeam ? "text-gold" : ""}`}>
+                <span className={`text-xs font-medium truncate ${isUserTeam ? "text-gold" : ""}`}>
                   {school.teamName} {isUserTeam && "(You)"}
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {isUserTeam && trend && trend.trend !== "flat" && (
-                    <span className={`text-[9px] ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`${testIdPrefix}school-trend-${school.teamId}`}>
+                    <span className={`text-xs ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`${testIdPrefix}school-trend-${school.teamId}`}>
                       {trend.trend === "up" ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                     </span>
                   )}
                   {change !== 0 && !isUserTeam && (
-                    <span className={`text-[8px] font-mono ${change > 0 ? "text-green-400" : "text-red-400"}`}>
+                    <span className={`text-xs font-mono ${change > 0 ? "text-green-400" : "text-red-400"}`}>
                       {change > 0 ? "+" : ""}{change}
                     </span>
                   )}
-                  <span className={`text-[9px] font-bold ${interestMeta.color}`}>
+                  <span className={`text-xs font-bold ${interestMeta.color}`}>
                     {interestMeta.label}
                   </span>
                 </div>
@@ -92,7 +92,7 @@ export function CompetingSchoolsList({
                     style={{ width: `${quantizeInterestWidth(school.interestLevel)}%` }}
                   />
                 </div>
-                <span className="text-[8px] font-mono text-muted-foreground w-6 text-right">
+                <span className="text-xs font-mono text-muted-foreground w-6 text-right">
                   {Math.round(school.interestLevel)}%
                 </span>
               </div>
@@ -106,7 +106,7 @@ export function CompetingSchoolsList({
 
 export function SeeUponSigningBadge() {
   return (
-    <span className="flex items-center gap-1 text-[9px] text-amber-400 font-pixel border border-amber-400/40 bg-amber-400/10 rounded px-1.5 py-0.5 whitespace-nowrap" title="Revealed on Signing Day">
+    <span className="flex items-center gap-1 text-xs text-amber-400 font-pixel border border-amber-400/40 bg-amber-400/10 rounded px-1.5 py-0.5 whitespace-nowrap" title="Revealed on Signing Day">
       <Lock className="w-3 h-3 shrink-0" />
       <span className="hidden sm:inline">See Upon Signing</span>
     </span>
@@ -147,7 +147,7 @@ export function CommonAbilityRow({
         <div className="flex items-center gap-1">
           {goldAbilityName && (
             <span
-              className="text-[8px] font-pixel px-1 py-0.5 rounded border"
+              className="text-xs font-pixel px-1 py-0.5 rounded border"
               style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
               title={goldAbilityName}
               data-testid={`common-ability-gold-badge-${label.toLowerCase().replace(/\s/g, "-")}`}

@@ -154,7 +154,7 @@ function CompareModal({
                         const abilityData = getAbilityByName(ability);
                         const tierColor = abilityData?.tier === "gold" ? "text-gold" : abilityData?.tier === "blue" ? "text-blue-400" : "text-red-400";
                         return (
-                          <Badge key={i} variant="outline" className={`text-[8px] ${tierColor}`}>
+                          <Badge key={i} variant="outline" className={`text-xs ${tierColor}`}>
                             {ability}
                           </Badge>
                         );

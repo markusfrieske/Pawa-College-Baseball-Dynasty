@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
@@ -47,10 +47,10 @@ const availableConferences = CONFERENCE_CATALOG.map(c => ({
 }));
 
 const seasonLengthOptions = [
-  { value: "full_season", label: "Full Season — 60 Games (14 weeks + 4 spring)" },
-  { value: "standard", label: "Standard Season — 23 Games (5 weeks + 3 spring)" },
-  { value: "medium",   label: "Medium Season — 46 Games (10 weeks + 6 spring)" },
-  { value: "long",     label: "Long Season — 69 Games (15 weeks + 9 spring)" },
+  { value: "full_season", label: "Full Season — 56-game regular season (14 weeks)" },
+  { value: "standard", label: "Standard Season — 20 Games (5 weeks + 3 spring)" },
+  { value: "medium",   label: "Medium Season — 40 Games (10 weeks + 6 spring)" },
+  { value: "long",     label: "Long Season — 60 Games (15 weeks + 9 spring)" },
 ];
 
 const seasonScheduleBreakdown: Record<string, string> = {
@@ -69,7 +69,11 @@ function isValidTeamCount(n: number, confCount: number): boolean {
 const ALL_CONFERENCE_IDS = availableConferences.map(c => c.id);
 
 export default function LeagueCreatePage() {
-  const [mode, setMode] = useState<"full_season" | "custom">("full_season");
+  const search = useSearch();
+  const modeParam = new URLSearchParams(search).get("mode");
+  const [mode, setMode] = useState<"full_season" | "custom">(
+    modeParam === "custom" ? "custom" : "full_season"
+  );
   const [name, setName] = useState("");
   const [maxTeams, setMaxTeams] = useState("14");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
@@ -283,10 +287,10 @@ export default function LeagueCreatePage() {
                   }`}
                 >
                   <Globe className={`w-5 h-5 ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`} />
-                  <span className={`text-[10px] font-pixel leading-tight text-center ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-pixel leading-tight text-center ${mode === "full_season" ? "text-gold" : "text-muted-foreground"}`}>
                     Full Season
                   </span>
-                  <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                  <span className="text-xs text-muted-foreground text-center leading-tight">
                     All 12 confs · 149 teams · 56 games
                   </span>
                 </button>
@@ -301,10 +305,10 @@ export default function LeagueCreatePage() {
                   }`}
                 >
                   <Settings className={`w-5 h-5 ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`} />
-                  <span className={`text-[10px] font-pixel leading-tight text-center ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`}>
+                  <span className={`text-xs font-pixel leading-tight text-center ${mode === "custom" ? "text-gold" : "text-muted-foreground"}`}>
                     Custom
                   </span>
-                  <span className="text-[9px] text-muted-foreground text-center leading-tight">
+                  <span className="text-xs text-muted-foreground text-center leading-tight">
                     Pick conferences, size &amp; length
                   </span>
                 </button>
@@ -342,7 +346,7 @@ export default function LeagueCreatePage() {
                           style={{
                             backgroundColor: conf.primaryColor,
                             borderColor: conf.secondaryColor,
-                            fontSize: conf.abbr.length > 3 ? "6px" : conf.abbr.length === 3 ? "7px" : "9px",
+                            fontSize: conf.abbr.length > 3 ? "9px" : conf.abbr.length === 3 ? "9px" : "11px",
                           }}
                         >
                           {conf.abbr}
@@ -352,7 +356,7 @@ export default function LeagueCreatePage() {
                             <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
                           </div>
                         )}
-                        <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-background border whitespace-nowrap transition-opacity pointer-events-none ${
+                        <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-xs font-bold bg-background border whitespace-nowrap transition-opacity pointer-events-none ${
                           isSelected
                             ? "border-gold text-gold opacity-100"
                             : "border-border text-muted-foreground opacity-0 group-hover:opacity-100"
@@ -401,7 +405,7 @@ export default function LeagueCreatePage() {
                   data-testid="select-season-length"
                 />
                 {seasonScheduleBreakdown[seasonLength] && (
-                  <p className="mt-1.5 text-[10px] text-muted-foreground flex items-start gap-1.5" data-testid="season-schedule-breakdown">
+                  <p className="mt-1.5 text-xs text-muted-foreground flex items-start gap-1.5" data-testid="season-schedule-breakdown">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold/60 shrink-0 mt-[3px]" />
                     {seasonScheduleBreakdown[seasonLength]}
                   </p>
@@ -423,7 +427,7 @@ export default function LeagueCreatePage() {
                 <div className="p-3 rounded border border-gold/20 bg-gold/5 space-y-2">
                   <div className="flex items-center gap-2 mb-1">
                     <Lock className="w-3 h-3 text-gold" />
-                    <span className="text-[10px] font-pixel text-gold uppercase tracking-widest">Locked Rules</span>
+                    <span className="text-xs font-pixel text-gold uppercase tracking-widest">Locked Rules</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span>Teams</span>
@@ -483,7 +487,7 @@ export default function LeagueCreatePage() {
                         Reported Games (Screenshot Import)
                       </label>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Coaches upload eBaseball Power Pros screenshots and OCR extracts box scores, instead of auto-simulation
+                        Coaches upload game screenshots; OCR extracts box scores for review instead of auto-simulation
                       </p>
                     </div>
                   </div>

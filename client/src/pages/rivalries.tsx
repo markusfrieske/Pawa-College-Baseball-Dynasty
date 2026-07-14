@@ -102,7 +102,7 @@ function HeatMeter({ score, label, colorClass }: { score: number; label: string;
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={`text-[9px] font-medium shrink-0 ${colorClass}`}>{label}</span>
+      <span className={`text-xs font-medium shrink-0 ${colorClass}`}>{label}</span>
     </div>
   );
 }
@@ -112,17 +112,17 @@ function CoachChip({ coach }: { coach: RivalCoach }) {
     <div className="flex items-center gap-1.5 min-w-0">
       {coach.teamPrimaryColor && (
         <div
-          className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[7px] font-bold text-white"
+          className="w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
           style={{ backgroundColor: coach.teamPrimaryColor }}
         >
           {coach.teamAbbreviation?.slice(0, 2) ?? "?"}
         </div>
       )}
       <div className="min-w-0">
-        <div className="text-[11px] font-medium truncate">
+        <div className="text-xs font-medium truncate">
           {coach.firstName} {coach.lastName}
         </div>
-        <div className="text-[9px] text-muted-foreground truncate">
+        <div className="text-xs text-muted-foreground truncate">
           {coach.teamName ?? "No Team"}
         </div>
       </div>
@@ -144,7 +144,7 @@ function StreakBadge({ streak, isMe }: { streak: number; isMe: boolean }) {
   if (streak < 2) return null;
   return (
     <Badge
-      className={`text-[8px] ${isMe ? "bg-emerald-900/60 text-emerald-300 border-emerald-600/40" : "bg-red-900/60 text-red-300 border-red-600/40"}`}
+      className={`text-xs ${isMe ? "bg-emerald-900/60 text-emerald-300 border-emerald-600/40" : "bg-red-900/60 text-red-300 border-red-600/40"}`}
       data-testid="streak-badge"
     >
       {isMe ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
@@ -197,22 +197,22 @@ function RivalryCard({
         <div className="flex items-center gap-2 mt-2">
           {/* Coach A */}
           <div className="flex-1 min-w-0">
-            {displayCoachA ? <CoachChip coach={displayCoachA} /> : <span className="text-[10px] text-muted-foreground">Unknown</span>}
+            {displayCoachA ? <CoachChip coach={displayCoachA} /> : <span className="text-xs text-muted-foreground">Unknown</span>}
           </div>
 
           {/* Record in middle */}
           <div className="flex flex-col items-center shrink-0 px-2">
             <div className="flex items-center gap-1.5">
               <RecordBadge wins={displayWinsA} losses={displayWinsB} />
-              <span className="text-[10px] text-muted-foreground">vs</span>
+              <span className="text-xs text-muted-foreground">vs</span>
               <RecordBadge wins={displayWinsB} losses={displayWinsA} />
             </div>
-            <span className="text-[8px] text-muted-foreground mt-0.5">{record.gamesPlayed} game{record.gamesPlayed !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-muted-foreground mt-0.5">{record.gamesPlayed} game{record.gamesPlayed !== 1 ? "s" : ""}</span>
           </div>
 
           {/* Coach B */}
           <div className="flex-1 min-w-0 flex justify-end">
-            {displayCoachB ? <CoachChip coach={displayCoachB} /> : <span className="text-[10px] text-muted-foreground">Unknown</span>}
+            {displayCoachB ? <CoachChip coach={displayCoachB} /> : <span className="text-xs text-muted-foreground">Unknown</span>}
           </div>
         </div>
 
@@ -221,7 +221,7 @@ function RivalryCard({
           {rivalry.streakIsMe && <StreakBadge streak={rivalry.streakLength} isMe={true} />}
           {rivalry.streakIsThem && <StreakBadge streak={rivalry.streakLength} isMe={false} />}
           {lastMeetingScore && (
-            <span className="text-[9px] text-muted-foreground">Last: {lastMeetingScore}</span>
+            <span className="text-xs text-muted-foreground">Last: {lastMeetingScore}</span>
           )}
         </div>
       </button>
@@ -242,7 +242,7 @@ function RivalryCard({
           {/* Runs scored */}
           <div className="grid grid-cols-2 gap-2">
             <div className="text-center bg-muted/20 rounded p-2">
-              <div className="text-[10px] text-muted-foreground">Runs Scored</div>
+              <div className="text-xs text-muted-foreground">Runs Scored</div>
               <div className="font-bold text-sm">
                 {isMyView && rivalry.isMyRivalry ? rivalry.myRuns : record.coachARunsScored}
                 <span className="text-muted-foreground text-xs"> vs </span>
@@ -250,7 +250,7 @@ function RivalryCard({
               </div>
             </div>
             <div className="text-center bg-muted/20 rounded p-2">
-              <div className="text-[10px] text-muted-foreground">Postseason W</div>
+              <div className="text-xs text-muted-foreground">Postseason W</div>
               <div className="font-bold text-sm">
                 {isMyView && rivalry.isMyRivalry ? rivalry.myPostseasonWins : record.coachAPostseasonWins}
                 <span className="text-muted-foreground text-xs"> vs </span>
@@ -262,7 +262,7 @@ function RivalryCard({
           {/* Recruiting conflicts */}
           {recruiting.conflicts > 0 && (
             <div className="bg-violet-950/30 border border-violet-600/20 rounded p-2">
-              <div className="flex items-center gap-1 text-[10px] text-violet-400 font-medium mb-1">
+              <div className="flex items-center gap-1 text-xs text-violet-400 font-medium mb-1">
                 <Target className="w-3 h-3" />
                 Recruiting Battles
               </div>
@@ -271,17 +271,17 @@ function RivalryCard({
                   <div className="font-bold text-sm text-emerald-400">
                     {isMyView && rivalry.isMyRivalry ? rivalry.myRecruitSignings : recruiting.coachASignings}
                   </div>
-                  <div className="text-[8px] text-muted-foreground">Your Wins</div>
+                  <div className="text-xs text-muted-foreground">Your Wins</div>
                 </div>
                 <div>
                   <div className="font-bold text-sm">{recruiting.conflicts}</div>
-                  <div className="text-[8px] text-muted-foreground">Conflicts</div>
+                  <div className="text-xs text-muted-foreground">Conflicts</div>
                 </div>
                 <div>
                   <div className="font-bold text-sm text-red-400">
                     {isMyView && rivalry.isMyRivalry ? rivalry.theirRecruitSignings : recruiting.coachBSignings}
                   </div>
-                  <div className="text-[8px] text-muted-foreground">Their Wins</div>
+                  <div className="text-xs text-muted-foreground">Their Wins</div>
                 </div>
               </div>
             </div>
@@ -289,7 +289,7 @@ function RivalryCard({
 
           {/* War Room note */}
           {rivalry.isMyRivalry && record.gamesPlayed > 0 && (
-            <div className="bg-gold/5 border border-gold/20 rounded p-2 text-[10px] text-gold/80 flex items-start gap-1.5">
+            <div className="bg-gold/5 border border-gold/20 rounded p-2 text-xs text-gold/80 flex items-start gap-1.5">
               <Swords className="w-3 h-3 shrink-0 mt-0.5" />
               <span>
                 You are{" "}
@@ -312,7 +312,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-muted/20 rounded p-2">
       <div className="font-bold text-sm">{value}</div>
-      <div className="text-[9px] text-muted-foreground">{label}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -344,7 +344,7 @@ export default function RivalriesPage() {
           </Link>
           <div className="flex items-center gap-2 flex-1">
             <Swords className="w-4 h-4 text-gold" />
-            <h1 className="font-pixel text-[11px] text-gold">Coaching Rivalries</h1>
+            <h1 className="font-pixel text-xs text-gold">Coaching Rivalries</h1>
           </div>
         </div>
 
@@ -355,7 +355,7 @@ export default function RivalriesPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2 text-[10px] font-pixel transition-colors ${
+                className={`flex-1 py-2 text-xs font-pixel transition-colors ${
                   activeTab === tab
                     ? "text-gold border-b-2 border-gold -mb-px"
                     : "text-muted-foreground"
@@ -395,7 +395,7 @@ export default function RivalriesPage() {
             </div>
             <div>
               <p className="font-medium text-sm">No rivalries yet</p>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Play games against other human coaches to build your rivalry history.
               </p>
             </div>
@@ -406,7 +406,7 @@ export default function RivalriesPage() {
         {!isLoading && !error && activeTab === "all" && displayRivalries.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <Users className="w-10 h-10 text-muted-foreground/30" />
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               No human-vs-human matchups recorded yet this dynasty.
             </p>
           </div>
@@ -425,7 +425,7 @@ export default function RivalriesPage() {
 
         {/* Legend */}
         {!isLoading && displayRivalries.length > 0 && (
-          <div className="flex items-center gap-4 py-2 text-[9px] text-muted-foreground justify-center flex-wrap">
+          <div className="flex items-center gap-4 py-2 text-xs text-muted-foreground justify-center flex-wrap">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />Scorching (75+)</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />Heated (50+)</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />Warming (25+)</span>

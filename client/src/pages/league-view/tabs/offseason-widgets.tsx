@@ -81,39 +81,39 @@ export function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetail
       <div className="flex items-start gap-3 pr-8">
         <Trophy className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-pixel text-gold text-[10px] mb-0.5">DECISION DAY</p>
-          <p className="text-[10px] text-muted-foreground mb-3">
+          <p className="font-pixel text-gold text-xs mb-0.5">DECISION DAY</p>
+          <p className="text-xs text-muted-foreground mb-3">
             Season {latestSeason} Recruiting Class — {mySnap.totalCommits} commits signed
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             <div className={`rounded border p-3 text-center ${gradeBg}`}>
-              <p className="font-pixel text-[8px] text-muted-foreground mb-1">CLASS GRADE</p>
+              <p className="font-pixel text-xs text-muted-foreground mb-1">CLASS GRADE</p>
               <p className={`font-pixel text-2xl font-bold ${gradeColor}`} data-testid="text-signing-day-grade">{grade}</p>
             </div>
 
             <div className="bg-muted/30 rounded border border-border p-3 text-center">
-              <p className="font-pixel text-[8px] text-muted-foreground mb-1">NATIONAL RANK</p>
+              <p className="font-pixel text-xs text-muted-foreground mb-1">NATIONAL RANK</p>
               <p className="font-bold text-xl text-foreground" data-testid="text-signing-day-rank">
                 #{mySnap.classRank}
               </p>
-              <p className="text-[9px] text-muted-foreground">of {total} teams</p>
+              <p className="text-xs text-muted-foreground">of {total} teams</p>
             </div>
 
             <div className="bg-muted/30 rounded border border-border p-3 text-center">
-              <p className="font-pixel text-[8px] text-muted-foreground mb-1">COMMITS</p>
+              <p className="font-pixel text-xs text-muted-foreground mb-1">COMMITS</p>
               <p className="font-bold text-xl text-foreground" data-testid="text-signing-day-commits">
                 {mySnap.totalCommits}
               </p>
               <div className="flex justify-center gap-1 mt-0.5 flex-wrap">
-                {mySnap.fiveStars > 0 && <span className="text-[8px] text-yellow-400">{mySnap.fiveStars}x 5★</span>}
-                {mySnap.fourStars > 0 && <span className="text-[8px] text-yellow-300">{mySnap.fourStars}x 4★</span>}
-                {mySnap.threeStars > 0 && <span className="text-[8px] text-muted-foreground">{mySnap.threeStars}x 3★</span>}
+                {mySnap.fiveStars > 0 && <span className="text-xs text-yellow-400">{mySnap.fiveStars}x 5★</span>}
+                {mySnap.fourStars > 0 && <span className="text-xs text-yellow-300">{mySnap.fourStars}x 4★</span>}
+                {mySnap.threeStars > 0 && <span className="text-xs text-muted-foreground">{mySnap.threeStars}x 3★</span>}
               </div>
             </div>
 
             <div className="bg-muted/30 rounded border border-border p-3 text-center">
-              <p className="font-pixel text-[8px] text-muted-foreground mb-1">TOP RECRUIT</p>
+              <p className="font-pixel text-xs text-muted-foreground mb-1">TOP RECRUIT</p>
               {mySnap.topRecruitName ? (
                 <>
                   <p className="text-xs font-bold text-foreground leading-tight" data-testid="text-signing-day-top-recruit">
@@ -121,10 +121,10 @@ export function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetail
                   </p>
                   <div className="flex items-center justify-center gap-1 mt-0.5">
                     {mySnap.topRecruitStars != null && (
-                      <span className="text-[9px] text-yellow-400">{"★".repeat(mySnap.topRecruitStars)}</span>
+                      <span className="text-xs text-yellow-400">{"★".repeat(mySnap.topRecruitStars)}</span>
                     )}
                     {mySnap.topRecruitOvr != null && (
-                      <span className="text-[9px] text-muted-foreground">{mySnap.topRecruitOvr} OVR</span>
+                      <span className="text-xs text-muted-foreground">{mySnap.topRecruitOvr} OVR</span>
                     )}
                   </div>
                 </>
@@ -191,15 +191,15 @@ export function ProgramChangesCard({ league, myTeam }: { league: LeagueDetails; 
       <div className="flex items-start gap-3 pr-8">
         <Zap className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-pixel text-gold text-[10px] mb-0.5">PROGRAM CHANGES</p>
-          <p className="text-[10px] text-muted-foreground mb-3">
+          <p className="font-pixel text-gold text-xs mb-0.5">PROGRAM CHANGES</p>
+          <p className="text-xs text-muted-foreground mb-3">
             Season {completedSeason} — Your program attributes evolved
           </p>
           <div className="space-y-1.5">
             {changeList.map((c) => (
               <div key={c.attr} className="flex items-center gap-2 text-xs" data-testid={`program-change-${c.attr}`}>
                 <span
-                  className={`inline-flex items-center gap-0.5 font-pixel text-[9px] px-1.5 py-0.5 rounded border ${
+                  className={`inline-flex items-center gap-0.5 font-pixel text-xs px-1.5 py-0.5 rounded border ${
                     c.delta > 0
                       ? "bg-green-500/15 text-green-400 border-green-500/30"
                       : "bg-red-500/15 text-red-400 border-red-500/30"
@@ -290,30 +290,30 @@ export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; my
       <div className="flex items-start gap-3">
         {phaseIcon}
         <div className="flex-1">
-          <p className="font-pixel text-gold text-[10px] mb-2">{phaseTitle}</p>
+          <p className="font-pixel text-gold text-xs mb-2">{phaseTitle}</p>
           
           {(league.currentPhase === "offseason_departures" || (currentSeasonDepartures.length > 0 && league.currentPhase !== "offseason_signing_day")) && (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{graduated.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Graduated</p>
+                  <p className="text-xs text-muted-foreground">Graduated</p>
                 </div>
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{drafted.length}</p>
-                  <p className="text-[9px] text-muted-foreground">MLB Draft</p>
+                  <p className="text-xs text-muted-foreground">MLB Draft</p>
                 </div>
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{transferred.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Transfer Portal</p>
+                  <p className="text-xs text-muted-foreground">Transfer Portal</p>
                 </div>
               </div>
               {currentSeasonDepartures.length > 0 && (
                 <div>
-                  <p className="text-[9px] text-muted-foreground mb-1">DEPARTING PLAYERS</p>
+                  <p className="text-xs text-muted-foreground mb-1">DEPARTING PLAYERS</p>
                   <div className="flex flex-wrap gap-1">
                     {currentSeasonDepartures.map((p, i) => (
-                      <Badge key={i} variant="outline" className="text-[8px]">
+                      <Badge key={i} variant="outline" className="text-xs">
                         {p.firstName[0]}. {p.lastName} ({p.position}, {p.overall} OVR) - {p.departureType === "graduated" ? "Grad" : p.departureType === "draft" ? "MLB" : "Portal"}
                       </Badge>
                     ))}
@@ -361,25 +361,25 @@ export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; my
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-gold/10 rounded p-2 text-center">
                   <p className="font-bold text-lg text-gold">{signingDayData.totalSigned}</p>
-                  <p className="text-[9px] text-muted-foreground">Recruits Signed</p>
+                  <p className="text-xs text-muted-foreground">Recruits Signed</p>
                 </div>
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{signingDayData.totalUnsigned}</p>
-                  <p className="text-[9px] text-muted-foreground">Unsigned</p>
+                  <p className="text-xs text-muted-foreground">Unsigned</p>
                 </div>
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{signingDayData.totalRecruits}</p>
-                  <p className="text-[9px] text-muted-foreground">Total Class</p>
+                  <p className="text-xs text-muted-foreground">Total Class</p>
                 </div>
                 {signingDayData.transferPortal && (
                   <div className="bg-blue-500/10 rounded p-2 text-center">
                     <p className="font-bold text-lg text-blue-400">{signingDayData.transferPortal.departed}</p>
-                    <p className="text-[9px] text-muted-foreground">Portal Transfers</p>
+                    <p className="text-xs text-muted-foreground">Portal Transfers</p>
                   </div>
                 )}
               </div>
               
-              <p className="text-[9px] text-muted-foreground mb-1">RECRUITING CLASS RANKINGS</p>
+              <p className="text-xs text-muted-foreground mb-1">RECRUITING CLASS RANKINGS</p>
               <div className="space-y-2 max-h-80 overflow-y-auto">
                 {signingDayData.teamSignings.map((team, rank) => (
                   <div key={team.teamId} className="flex items-center gap-2 p-2 rounded bg-muted/20" data-testid={`signing-day-team-${team.abbreviation}`}>
@@ -389,7 +389,7 @@ export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; my
                       <p className="text-xs font-medium truncate">{team.teamName}</p>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {team.recruits.map(r => (
-                          <Badge key={r.id} variant="outline" className="text-[8px]">
+                          <Badge key={r.id} variant="outline" className="text-xs">
                             {r.firstName[0]}. {r.lastName} ({r.position}) {"*".repeat(r.starRating || 3)}
                           </Badge>
                         ))}
@@ -397,7 +397,7 @@ export function OffseasonSummary({ league, myTeam }: { league: LeagueDetails; my
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-xs font-bold">{team.totalRecruits}</p>
-                      <p className="text-[8px] text-muted-foreground">Avg {team.avgRating}*</p>
+                      <p className="text-xs text-muted-foreground">Avg {team.avgRating}*</p>
                     </div>
                   </div>
                 ))}

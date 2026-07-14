@@ -42,7 +42,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="gen-gem"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-in fade-in duration-500"
         style={{ animationDelay: "300ms" }}
         data-testid="badge-generational-gem"
       >
@@ -54,7 +54,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="gen-bust"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-red-900/30 text-red-300 border border-red-700/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-900/30 text-red-300 border border-red-700/50 animate-in fade-in duration-500"
         style={{ animationDelay: "300ms" }}
         data-testid="badge-generational-bust"
       >
@@ -66,7 +66,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="gem"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-green-900/30 text-green-300 border border-green-700/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-green-900/30 text-green-300 border border-green-700/50 animate-in fade-in duration-500"
         style={{ animationDelay: "300ms" }}
         data-testid="badge-gem"
       >
@@ -78,7 +78,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="bust"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-red-900/30 text-red-400 border border-red-700/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-red-900/30 text-red-400 border border-red-700/50 animate-in fade-in duration-500"
         style={{ animationDelay: "300ms" }}
         data-testid="badge-bust"
       >
@@ -92,7 +92,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="storyline"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-violet-900/30 text-violet-300 border border-violet-700/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-violet-900/30 text-violet-300 border border-violet-700/50 animate-in fade-in duration-500"
         style={{ animationDelay: "400ms" }}
         data-testid="badge-storyline"
       >
@@ -106,7 +106,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="transfer"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-purple-600/30 text-purple-300 border border-purple-600/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-purple-600/30 text-purple-300 border border-purple-600/50 animate-in fade-in duration-500"
         style={{ animationDelay: "450ms" }}
         data-testid="badge-transfer"
       >
@@ -117,7 +117,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="juco"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-600/30 text-cyan-300 border border-cyan-600/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-cyan-600/30 text-cyan-300 border border-cyan-600/50 animate-in fade-in duration-500"
         style={{ animationDelay: "450ms" }}
         data-testid="badge-juco"
       >
@@ -130,7 +130,7 @@ function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) 
     badges.push(
       <span
         key="bluechip"
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-blue-900/30 text-blue-300 border border-blue-700/50 animate-in fade-in duration-500"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-blue-900/30 text-blue-300 border border-blue-700/50 animate-in fade-in duration-500"
         style={{ animationDelay: "500ms" }}
         data-testid="badge-blue-chip"
       >
@@ -207,7 +207,7 @@ function SigningDayRevealModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-background border-gold/40 max-w-sm">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-[10px] flex items-center gap-2">
+          <DialogTitle className="font-pixel text-gold text-xs flex items-center gap-2">
             <Award className="w-4 h-4" />
             DECISION DAY
           </DialogTitle>
@@ -234,7 +234,7 @@ function SigningDayRevealModal({
           </div>
         ) : (
           <div className="py-2 space-y-4">
-            <div className="text-center text-[10px] text-muted-foreground font-pixel">
+            <div className="text-center text-xs text-muted-foreground font-pixel">
               {currentIdx + 1} / {recruits.length} UNDECIDED
             </div>
             <div className="text-center space-y-1">
@@ -245,7 +245,7 @@ function SigningDayRevealModal({
 
             {animPhase === "deciding" && (
               <div className="bg-card border border-border rounded p-4 text-center space-y-3">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deciding between...</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Deciding between...</p>
                 <div className="flex items-center justify-center gap-3 flex-wrap">
                   {school1 && (
                     <span className="font-semibold text-sm" style={{ color: school1.primaryColor || undefined }}>
@@ -276,7 +276,7 @@ function SigningDayRevealModal({
             {animPhase === "reveal" && (
               <>
                 <div className="bg-gold/10 border border-gold/50 rounded p-4 text-center space-y-1 animate-in fade-in duration-300">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">commits to</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">commits to</p>
                   <p className="font-pixel text-gold text-base">
                     {current.committingTo?.teamName ?? school1?.teamName ?? "Undecided"}
                   </p>
@@ -429,14 +429,14 @@ export function WaitingOnWidget({
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <Users className={`w-4 h-4 shrink-0 ${allReady ? "text-green-400" : "text-gold"}`} />
-            <span className={`font-pixel text-[9px] ${allReady ? "text-green-400" : "text-gold"}`}>
+            <span className={`font-pixel text-xs ${allReady ? "text-green-400" : "text-gold"}`}>
               {allReady ? "ALL READY" : "WAITING ON"}
             </span>
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
               ({readyCount}/{humanCount} ready)
             </span>
             {/* Mobile single-line: just count */}
-            <span className="text-[10px] text-muted-foreground sm:hidden">
+            <span className="text-xs text-muted-foreground sm:hidden">
               {readyCount}/{humanCount}
             </span>
           </div>
@@ -479,7 +479,7 @@ export function WaitingOnWidget({
               </RetroButton>
             )}
             {myStatus && myEffectiveReady && (isPageActionPhase || myStatus.isAutoPilot) && !isCommissioner && (
-              <span className="flex items-center gap-1 text-[10px] text-green-400" data-testid="badge-you-are-ready">
+              <span className="flex items-center gap-1 text-xs text-green-400" data-testid="badge-you-are-ready">
                 <Check className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">You&apos;re ready</span>
               </span>
@@ -526,7 +526,7 @@ export function WaitingOnWidget({
             ))}
           </div>
         ) : humanTeams.length === 0 ? (
-          <p className="text-[10px] text-muted-foreground">No human coaches in this league.</p>
+          <p className="text-xs text-muted-foreground">No human coaches in this league.</p>
         ) : (
           <div className="flex flex-wrap gap-2 mt-1" data-testid="waiting-on-team-list">
             {humanTeams.map((entry) => {
@@ -536,7 +536,7 @@ export function WaitingOnWidget({
               return (
                 <div
                   key={entry.teamId}
-                  className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-[10px] border transition-colors ${
+                  className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs border transition-colors ${
                     ready
                       ? "bg-green-500/10 border-green-500/30 text-green-300"
                       : "bg-card border-border text-muted-foreground"
@@ -569,7 +569,7 @@ export function WaitingOnWidget({
             keeping the Ready Up button disabled. */}
         {myStatus && !myEffectiveReady && (
           <p
-            className={`mt-1 text-[10px] ${myBlockReason ? "text-amber-400" : "text-muted-foreground"}`}
+            className={`mt-1 text-xs ${myBlockReason ? "text-amber-400" : "text-muted-foreground"}`}
             data-testid="text-my-ready-reason"
           >
             {myBlockReason ?? getReadyReason(myStatus, phase) ?? "Not marked ready yet"}
@@ -588,7 +588,7 @@ export function WaitingOnWidget({
             : `${Math.ceil(diffMs / 3600000)}h left before auto-ready`;
           return (
             <div
-              className={`mt-2 flex items-center gap-1.5 text-[10px] ${passed ? "text-red-400" : "text-amber-400"}`}
+              className={`mt-2 flex items-center gap-1.5 text-xs ${passed ? "text-red-400" : "text-amber-400"}`}
               data-testid="text-phase-deadline-warning"
             >
               <Clock className="w-3 h-3 shrink-0" />
@@ -619,7 +619,7 @@ export function WaitingOnWidget({
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <CalendarClock className="w-3 h-3 text-gold/70 shrink-0" />
-                  <span className="font-pixel text-[7px] text-muted-foreground">NEXT ADVANCE</span>
+                  <span className="font-pixel text-xs text-muted-foreground">NEXT ADVANCE</span>
                 </div>
                 {isCommissioner && (
                   <button
@@ -628,7 +628,7 @@ export function WaitingOnWidget({
                       setScheduleNote(note ?? "");
                       setShowScheduleDialog(true);
                     }}
-                    className="text-[9px] text-gold/50 hover:text-gold transition-colors flex items-center gap-0.5"
+                    className="text-xs text-gold/50 hover:text-gold transition-colors flex items-center gap-0.5"
                     data-testid="button-edit-advance-schedule"
                   >
                     <Pencil className="w-2.5 h-2.5" />
@@ -642,21 +642,21 @@ export function WaitingOnWidget({
                 </p>
               )}
               {deadline && passed && (
-                <p className="text-[10px] text-amber-400 mt-0.5">Advance due — waiting on commissioner</p>
+                <p className="text-xs text-amber-400 mt-0.5">Advance due — waiting on commissioner</p>
               )}
               {deadline && (
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {deadline.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{" "}
                   {deadline.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" })}
                 </p>
               )}
               {note && (
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5 italic">{note}</p>
+                <p className="text-xs text-muted-foreground/70 mt-0.5 italic">{note}</p>
               )}
               {!deadline && !note && isCommissioner && (
                 <button
                   onClick={() => { setScheduleInput(""); setScheduleNote(""); setShowScheduleDialog(true); }}
-                  className="text-[10px] text-gold/50 hover:text-gold transition-colors mt-0.5"
+                  className="text-xs text-gold/50 hover:text-gold transition-colors mt-0.5"
                   data-testid="button-set-advance-schedule"
                 >
                   + Set schedule for coaches
@@ -668,14 +668,14 @@ export function WaitingOnWidget({
 
         {/* Privacy note for coaches when names are hidden */}
         {!isCommissioner && !readyData?.showReadyNamesToAll && humanCount > 1 && !allReady && (
-          <p className="mt-2 text-[10px] text-muted-foreground" data-testid="text-ready-names-hidden">
+          <p className="mt-2 text-xs text-muted-foreground" data-testid="text-ready-names-hidden">
             Showing your status only — commissioner can enable full team visibility in settings
           </p>
         )}
 
         {/* All-ready message for non-commissioner coaches */}
         {allReady && !isCommissioner && (
-          <p className="mt-2 text-[10px] text-green-400" data-testid="text-all-ready">
+          <p className="mt-2 text-xs text-green-400" data-testid="text-all-ready">
             All coaches are ready — waiting for the commissioner to advance.
           </p>
         )}
@@ -694,11 +694,11 @@ export function WaitingOnWidget({
         <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
           <DialogContent className="bg-card border-border max-w-sm">
             <DialogHeader>
-              <DialogTitle className="font-pixel text-gold text-[10px]">SET ADVANCE SCHEDULE</DialogTitle>
+              <DialogTitle className="font-pixel text-gold text-xs">SET ADVANCE SCHEDULE</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>
-                <label className="font-pixel text-[8px] text-muted-foreground block mb-1.5">NEXT ADVANCE DATE/TIME (EST)</label>
+                <label className="font-pixel text-xs text-muted-foreground block mb-1.5">NEXT ADVANCE DATE/TIME (EST)</label>
                 <input
                   type="datetime-local"
                   value={scheduleInput}
@@ -706,10 +706,10 @@ export function WaitingOnWidget({
                   className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold/50"
                   data-testid="input-schedule-datetime"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Visible to all coaches as a countdown timer</p>
+                <p className="text-xs text-muted-foreground mt-1">Visible to all coaches as a countdown timer</p>
               </div>
               <div>
-                <label className="font-pixel text-[8px] text-muted-foreground block mb-1.5">SCHEDULE NOTE (optional)</label>
+                <label className="font-pixel text-xs text-muted-foreground block mb-1.5">SCHEDULE NOTE (optional)</label>
                 <input
                   value={scheduleNote}
                   onChange={e => setScheduleNote(e.target.value)}
@@ -723,7 +723,7 @@ export function WaitingOnWidget({
                 {scheduleInput && (
                   <button
                     onClick={() => { setScheduleInput(""); scheduleAdvanceMut.mutate(); }}
-                    className="text-[10px] text-red-400/70 hover:text-red-400 transition-colors"
+                    className="text-xs text-red-400/70 hover:text-red-400 transition-colors"
                     data-testid="button-clear-schedule"
                   >
                     Clear schedule
@@ -756,7 +756,7 @@ export function WaitingOnWidget({
         {phase === "offseason_walkons" && !isCommissioner && (
           <div className="mt-2 pt-2 border-t border-border/30">
             <Link href={`/league/${leagueId}/signing-day-reveal`}>
-              <div className="flex items-center gap-2 text-[10px] text-gold hover:text-gold/80 transition-colors cursor-pointer" data-testid="signing-day-reveal-callout">
+              <div className="flex items-center gap-2 text-xs text-gold hover:text-gold/80 transition-colors cursor-pointer" data-testid="signing-day-reveal-callout">
                 <Trophy className="w-3 h-3 shrink-0 animate-pulse" />
                 <span>Signing day is over — watch the class reveal with card flips</span>
                 <ChevronRight className="w-3 h-3 ml-auto shrink-0" />
@@ -767,7 +767,7 @@ export function WaitingOnWidget({
         {showStorylineVotes && pendingVoteCount > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">
             <Link href={`/league/${leagueId}/storylines`}>
-              <div className="flex items-center gap-2 text-[10px] text-gold hover:text-gold/80 transition-colors cursor-pointer" data-testid="storyline-votes-callout">
+              <div className="flex items-center gap-2 text-xs text-gold hover:text-gold/80 transition-colors cursor-pointer" data-testid="storyline-votes-callout">
                 <Vote className="w-3 h-3 shrink-0 animate-pulse" />
                 <span>
                   {pendingVoteCount} storyline vote{pendingVoteCount !== 1 ? "s" : ""} pending — cast your vote

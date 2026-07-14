@@ -358,24 +358,24 @@ export default function WalkonsPage() {
             <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
               <div className="flex items-center gap-1.5">
                 <DollarSign className="w-3.5 h-3.5 text-gold" />
-                <span className="font-pixel text-[9px] text-muted-foreground">AVAILABLE NIL</span>
+                <span className="font-pixel text-xs text-muted-foreground">AVAILABLE NIL</span>
                 <span className="font-medium text-sm text-foreground" data-testid="nil-available">{fmtK(availableNil)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Gavel className="w-3.5 h-3.5 text-amber-400" />
-                <span className="font-pixel text-[9px] text-muted-foreground">COMMITTED</span>
+                <span className="font-pixel text-xs text-muted-foreground">COMMITTED</span>
                 <span className="font-medium text-sm text-amber-400" data-testid="committed-bids">
                   {fmtK(committedBids)}
                 </span>
                 {Object.keys(bids).length > 0 && (
-                  <span className="text-[9px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     ({Object.keys(bids).length} bid{Object.keys(bids).length !== 1 ? "s" : ""})
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-green-400" />
-                <span className="font-pixel text-[9px] text-muted-foreground">REMAINING</span>
+                <span className="font-pixel text-xs text-muted-foreground">REMAINING</span>
                 <span
                   className={`font-medium text-sm ${remainingNil < 0 ? "text-red-400" : "text-green-400"}`}
                   data-testid="nil-remaining"
@@ -385,7 +385,7 @@ export default function WalkonsPage() {
               </div>
             </div>
             {isReady && (
-              <p className="text-[9px] text-gold/70 mt-2">
+              <p className="text-xs text-gold/70 mt-2">
                 Bids locked. Click "Locked In" to make changes.
               </p>
             )}
@@ -398,7 +398,7 @@ export default function WalkonsPage() {
               <Badge
                 key={r.teamId}
                 variant={r.walkonReady ? "default" : "outline"}
-                className={`text-[9px] ${r.walkonReady ? "bg-green-900/40 border-green-700 text-green-300" : "opacity-50"}`}
+                className={`text-xs ${r.walkonReady ? "bg-green-900/40 border-green-700 text-green-300" : "opacity-50"}`}
                 data-testid={`readiness-${r.abbreviation}`}
               >
                 {r.walkonReady ? <CheckCircle className="w-2.5 h-2.5 mr-0.5" /> : null}
@@ -429,7 +429,7 @@ export default function WalkonsPage() {
               <RetroCardContent>
                 {persistedOutcomes.filter(r => r.won).length > 0 && (
                   <div className="mb-4">
-                    <h3 className="font-pixel text-[9px] text-green-400 mb-2">SIGNED</h3>
+                    <h3 className="font-pixel text-xs text-green-400 mb-2">SIGNED</h3>
                     <div className="space-y-1.5">
                       {persistedOutcomes.filter(r => r.won).map(r => (
                         <div
@@ -441,12 +441,12 @@ export default function WalkonsPage() {
                             <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
                             <div>
                               <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                              <p className="text-xs text-muted-foreground">{r.position} • {r.overall} OVR</p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-green-400">{fmtK(r.pricePaid)}</p>
-                            <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
+                            <p className="text-xs text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
                           </div>
                         </div>
                       ))}
@@ -455,7 +455,7 @@ export default function WalkonsPage() {
                 )}
                 {persistedOutcomes.filter(r => !r.won).length > 0 && (
                   <div>
-                    <h3 className="font-pixel text-[9px] text-red-400 mb-2">OUTBID ON</h3>
+                    <h3 className="font-pixel text-xs text-red-400 mb-2">OUTBID ON</h3>
                     <div className="space-y-1.5">
                       {persistedOutcomes.filter(r => !r.won).map(r => (
                         <div
@@ -467,13 +467,13 @@ export default function WalkonsPage() {
                             <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
                             <div>
                               <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                              <p className="text-xs text-muted-foreground">{r.position} • {r.overall} OVR</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                            <p className="text-xs text-muted-foreground">won by {r.winnerTeamName}</p>
                             <p className="text-sm font-medium text-red-400">{fmtK(r.pricePaid)}</p>
-                            <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
+                            <p className="text-xs text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
                           </div>
                         </div>
                       ))}
@@ -494,7 +494,7 @@ export default function WalkonsPage() {
                   <Users className="w-4 h-4 text-gold" />
                   <span>Current Roster ({rosterCount})</span>
                   {rosterCount > MAX_ROSTER && (
-                    <Badge variant="destructive" className="text-[9px]">
+                    <Badge variant="destructive" className="text-xs">
                       Must cut {rosterCount - MAX_ROSTER}
                     </Badge>
                   )}
@@ -509,7 +509,7 @@ export default function WalkonsPage() {
                       variant={rosterPosFilter === pos ? "primary" : "ghost"}
                       size="sm"
                       onClick={() => setRosterPosFilter(pos)}
-                      className="text-[9px] px-2 py-1"
+                      className="text-xs px-2 py-1"
                       data-testid={`filter-roster-pos-${pos}`}
                     >
                       {pos === "all" ? "All" : pos}
@@ -529,7 +529,7 @@ export default function WalkonsPage() {
                         <p className="text-xs font-medium truncate">
                           {player.firstName} {player.lastName}
                         </p>
-                        <div className="flex items-center gap-2 text-[9px] text-muted-foreground flex-wrap">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                           <span>{player.eligibility}</span>
                           <span>{player.overall} OVR</span>
                           <span className="flex">{starDisplay(player.starRating || 1)}</span>
@@ -537,7 +537,7 @@ export default function WalkonsPage() {
                             <span>Pot: {getPotentialGrade(player.potential)}</span>
                           )}
                           <span
-                            className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${
+                            className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${
                               player.batHand === "L"
                                 ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
                                 : player.batHand === "S"
@@ -549,7 +549,7 @@ export default function WalkonsPage() {
                             B:{player.batHand || "R"} T:{player.throwHand || "R"}
                           </span>
                           {!["P", "SP", "RP", "CP"].includes(player.position) && (player as any).trajectory != null && (
-                            <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-roster-${player.id}`}>
+                            <span className="font-pixel text-xs px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-roster-${player.id}`}>
                               {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                             </span>
                           )}
@@ -586,18 +586,18 @@ export default function WalkonsPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <Gavel className="w-4 h-4 text-gold" />
                   <span>Blind Bid Pool ({filteredPool.length})</span>
-                  <Badge variant="outline" className="text-[8px] border-gold/40 text-gold/70 ml-auto">SEALED BIDS</Badge>
+                  <Badge variant="outline" className="text-xs border-gold/40 text-gold/70 ml-auto">SEALED BIDS</Badge>
                 </div>
               </RetroCardHeader>
               <RetroCardContent>
-                <div className="mb-3 p-2 rounded bg-muted/10 border border-border/40 text-[9px] text-muted-foreground leading-relaxed">
+                <div className="mb-3 p-2 rounded bg-muted/10 border border-border/40 text-xs text-muted-foreground leading-relaxed">
                   Submit your max bid (in thousands) for any walk-on. Bids are blind — no team sees another's bid until the commissioner resolves the auction. Winner pays the second-highest bid + $1 (Vickrey pricing). Enter "150" to bid $150,000. Tied bids are broken by submission time — first to submit wins.
                 </div>
 
                 {openSlots === 0 && (
                   <div className="mb-3 p-2 rounded bg-red-900/20 border border-red-600/50 flex items-center gap-2" data-testid="banner-roster-full">
                     <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    <p className="text-[9px] text-red-300">
+                    <p className="text-xs text-red-300">
                       Roster is full ({roster.length}/25). Cut a player first — new bids are blocked until you have open slots.
                     </p>
                   </div>
@@ -605,7 +605,7 @@ export default function WalkonsPage() {
                 {openSlots > 0 && activeBidCount >= openSlots && (
                   <div className="mb-3 p-2 rounded bg-amber-900/20 border border-amber-600/50 flex items-center gap-2" data-testid="banner-bids-at-limit">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <p className="text-[9px] text-amber-300">
+                    <p className="text-xs text-amber-300">
                       Bid slots full ({activeBidCount}/{openSlots}). Remove a bid or cut a player to bid on more walk-ons.
                     </p>
                   </div>
@@ -619,7 +619,7 @@ export default function WalkonsPage() {
                       variant={posFilter === pos ? "primary" : "ghost"}
                       size="sm"
                       onClick={() => setPosFilter(pos)}
-                      className="text-[9px] px-2 py-1"
+                      className="text-xs px-2 py-1"
                       data-testid={`filter-pos-${pos}`}
                     >
                       {pos === "all" ? "All" : pos}
@@ -629,7 +629,7 @@ export default function WalkonsPage() {
                     variant={showSigned ? "outline" : "ghost"}
                     size="sm"
                     onClick={() => setShowSigned(!showSigned)}
-                    className="text-[9px] ml-auto"
+                    className="text-xs ml-auto"
                     data-testid="button-toggle-show-signed"
                   >
                     {showSigned ? "Hide Claimed" : "Show All"}
@@ -671,28 +671,28 @@ export default function WalkonsPage() {
                                 {walkon.firstName} {walkon.lastName}
                               </p>
                               {walkon.isGenerated && (
-                                <Badge variant="outline" className="text-[7px] opacity-60">FILLER</Badge>
+                                <Badge variant="outline" className="text-xs opacity-60">FILLER</Badge>
                               )}
                               {isWon && (
-                                <Badge className="text-[7px] bg-green-900/50 border-green-600 text-green-300">
+                                <Badge className="text-xs bg-green-900/50 border-green-600 text-green-300">
                                   <Trophy className="w-2.5 h-2.5 mr-0.5" />
                                   WON — {fmtK(walkon.awardedPrice!)}
                                 </Badge>
                               )}
                               {isLost && (
-                                <Badge className="text-[7px] bg-red-900/30 border-red-700/60 text-red-400">
+                                <Badge className="text-xs bg-red-900/30 border-red-700/60 text-red-400">
                                   <X className="w-2.5 h-2.5 mr-0.5" />
                                   LOST to {walkon.awardedTeamName}
                                 </Badge>
                               )}
                               {!isResolved && hasBid && (
-                                <Badge className="text-[7px] bg-gold/10 border-gold/50 text-gold">
+                                <Badge className="text-xs bg-gold/10 border-gold/50 text-gold">
                                   <Gavel className="w-2.5 h-2.5 mr-0.5" />
                                   BID: {fmtK(myBid)}
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-[9px] text-muted-foreground flex-wrap mt-0.5">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap mt-0.5">
                               <span>{walkon.eligibility}</span>
                               <span>{walkon.overall} OVR</span>
                               <span className="flex">{starDisplay(walkon.starRating || 1)}</span>
@@ -700,7 +700,7 @@ export default function WalkonsPage() {
                                 <span>Pot: {walkon.signedTeamId ? getPotentialGrade(walkon.potential) : "???"}</span>
                               )}
                               <span
-                                className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${
+                                className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${
                                   walkon.batHand === "L"
                                     ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
                                     : walkon.batHand === "S"
@@ -712,7 +712,7 @@ export default function WalkonsPage() {
                                 B:{walkon.batHand || "R"} T:{walkon.throwHand || "R"}
                               </span>
                               {!["P", "SP", "RP", "CP"].includes(walkon.position) && walkon.trajectory != null && (
-                                <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-walkon-${walkon.id}`}>
+                                <span className="font-pixel text-xs px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-walkon-${walkon.id}`}>
                                   {TRAJECTORY_LABELS[walkon.trajectory] ?? "LD"}
                                 </span>
                               )}
@@ -728,7 +728,7 @@ export default function WalkonsPage() {
                         {!isResolved && !isReady && (
                           <div className="mt-2 flex items-center gap-2" data-testid={`bid-row-${walkon.id}`}>
                             <div className="relative flex-1">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">$</span>
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">$</span>
                               <input
                                 type="number"
                                 placeholder={hasBid ? `${(myBid / 1000).toFixed(0)}K (current)` : "e.g. 150 = $150K"}
@@ -740,7 +740,7 @@ export default function WalkonsPage() {
                                 data-testid={`input-bid-${walkon.id}`}
                               />
                             </div>
-                            <span className="text-[8px] text-muted-foreground whitespace-nowrap shrink-0">K = thousands</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">K = thousands</span>
                             {hasBid ? (
                               <div className="flex gap-1 shrink-0">
                                 <RetroButton
@@ -748,7 +748,7 @@ export default function WalkonsPage() {
                                   size="sm"
                                   onClick={() => handlePlaceBid(walkon.id)}
                                   disabled={bidMutation.isPending || !inputVal}
-                                  className="text-[9px] px-2"
+                                  className="text-xs px-2"
                                   data-testid={`button-update-bid-${walkon.id}`}
                                 >
                                   Update
@@ -758,7 +758,7 @@ export default function WalkonsPage() {
                                   size="sm"
                                   onClick={() => removeBidMutation.mutate(walkon.id)}
                                   disabled={removeBidMutation.isPending}
-                                  className="text-[9px] px-2 text-red-400 hover:text-red-300"
+                                  className="text-xs px-2 text-red-400 hover:text-red-300"
                                   data-testid={`button-remove-bid-${walkon.id}`}
                                 >
                                   Remove
@@ -782,7 +782,7 @@ export default function WalkonsPage() {
 
                         {/* Locked state */}
                         {!isResolved && isReady && hasBid && (
-                          <p className="mt-1.5 text-[9px] text-muted-foreground">
+                          <p className="mt-1.5 text-xs text-muted-foreground">
                             Bid locked at <span className="text-gold">{fmtK(myBid)}</span>. Click "Locked In" to change.
                           </p>
                         )}
@@ -816,9 +816,9 @@ export default function WalkonsPage() {
                               : <X className="w-3.5 h-3.5 text-red-400 shrink-0" />}
                             <div>
                               <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                              <p className="text-xs text-muted-foreground">{r.position} • {r.overall} OVR</p>
                               {!r.won && r.winnerTeamName && (
-                                <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                                <p className="text-xs text-muted-foreground">won by {r.winnerTeamName}</p>
                               )}
                             </div>
                           </div>
@@ -826,7 +826,7 @@ export default function WalkonsPage() {
                             <p className={`text-sm font-medium ${r.won ? "text-green-400" : "text-red-400"}`}>
                               {fmtK(r.pricePaid)}
                             </p>
-                            <p className="text-[8px] text-muted-foreground">
+                            <p className="text-xs text-muted-foreground">
                               {r.won ? "paid" : "winner paid"} • your bid: {fmtK(r.yourBid)}
                             </p>
                           </div>
@@ -895,7 +895,7 @@ export default function WalkonsPage() {
               <>
                 {auctionResults.filter(r => r.won).length > 0 && (
                   <div>
-                    <h3 className="font-pixel text-[9px] text-green-400 mb-2">PLAYERS WON</h3>
+                    <h3 className="font-pixel text-xs text-green-400 mb-2">PLAYERS WON</h3>
                     <div className="space-y-1.5">
                       {auctionResults.filter(r => r.won).map(r => (
                         <div
@@ -907,12 +907,12 @@ export default function WalkonsPage() {
                             <Trophy className="w-3.5 h-3.5 text-green-400 shrink-0" />
                             <div>
                               <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                              <p className="text-xs text-muted-foreground">{r.position} • {r.overall} OVR</p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-medium text-green-400">{fmtK(r.pricePaid!)}</p>
-                            <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
+                            <p className="text-xs text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
                           </div>
                         </div>
                       ))}
@@ -922,7 +922,7 @@ export default function WalkonsPage() {
 
                 {auctionResults.filter(r => !r.won).length > 0 && (
                   <div>
-                    <h3 className="font-pixel text-[9px] text-red-400 mb-2">OUTBID ON</h3>
+                    <h3 className="font-pixel text-xs text-red-400 mb-2">OUTBID ON</h3>
                     <div className="space-y-1.5">
                       {auctionResults.filter(r => !r.won).map(r => (
                         <div
@@ -934,13 +934,13 @@ export default function WalkonsPage() {
                             <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
                             <div>
                               <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
-                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                              <p className="text-xs text-muted-foreground">{r.position} • {r.overall} OVR</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                            <p className="text-xs text-muted-foreground">won by {r.winnerTeamName}</p>
                             <p className="text-sm font-medium text-red-400">{fmtK(r.pricePaid)}</p>
-                            <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
+                            <p className="text-xs text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
                           </div>
                         </div>
                       ))}

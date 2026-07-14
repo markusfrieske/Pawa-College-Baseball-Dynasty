@@ -54,15 +54,15 @@ export function DevelopmentTab({
               <p className={`text-2xl font-bold ${avgDelta > 0 ? "text-green-400" : avgDelta < 0 ? "text-red-400" : "text-muted-foreground"}`} data-testid="text-dev-avg-delta">
                 {avgDelta > 0 ? "+" : ""}{avgDelta.toFixed(1)}
               </p>
-              <p className="font-pixel text-[8px] text-muted-foreground mt-1">AVG OVR CHANGE</p>
+              <p className="font-pixel text-xs text-muted-foreground mt-1">AVG OVR CHANGE</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-green-900/10 border border-green-800/30">
               <p className="text-2xl font-bold text-green-400" data-testid="text-dev-improvers">{improvers.length}</p>
-              <p className="font-pixel text-[8px] text-muted-foreground mt-1">IMPROVED</p>
+              <p className="font-pixel text-xs text-muted-foreground mt-1">IMPROVED</p>
             </div>
             <div className="text-center p-3 rounded-lg bg-red-900/10 border border-red-800/30">
               <p className="text-2xl font-bold text-red-400" data-testid="text-dev-regressors">{regressors.length}</p>
-              <p className="font-pixel text-[8px] text-muted-foreground mt-1">REGRESSED</p>
+              <p className="font-pixel text-xs text-muted-foreground mt-1">REGRESSED</p>
             </div>
           </div>
 
@@ -70,7 +70,7 @@ export function DevelopmentTab({
             <div className="border-t border-border pt-3">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-3 h-3 text-gold" />
-                <h4 className="font-pixel text-gold text-[9px]">BREAKOUT PLAYERS</h4>
+                <h4 className="font-pixel text-gold text-xs">BREAKOUT PLAYERS</h4>
               </div>
               <div className="flex flex-wrap gap-3">
                 {breakouts.map((p) => {
@@ -100,7 +100,7 @@ export function DevelopmentTab({
                       />
                       <div className="text-left">
                         <p className="text-sm font-medium text-foreground leading-tight">{p.firstName} {p.lastName}</p>
-                        <p className="font-pixel text-[8px] text-green-400">+{delta} OVR{starChanged ? ` · ${prevStar}★→${p.starRating}★` : ""}</p>
+                        <p className="font-pixel text-xs text-green-400">+{delta} OVR{starChanged ? ` · ${prevStar}★→${p.starRating}★` : ""}</p>
                       </div>
                     </button>
                   );
@@ -153,8 +153,8 @@ export function DevelopmentTab({
                     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1" data-testid={`text-dev-attrs-${p.id}`}>
                       {topAttrs.map((attr, i) => (
                         <span key={attr.label} className="flex items-center gap-0.5">
-                          {i > 0 && <span className="text-muted-foreground/40 text-[10px]">·</span>}
-                          <span className={`font-pixel text-[8px] ${attr.delta > 0 ? "text-green-400" : "text-red-400"}`}>
+                          {i > 0 && <span className="text-muted-foreground/40 text-xs">·</span>}
+                          <span className={`font-pixel text-xs ${attr.delta > 0 ? "text-green-400" : "text-red-400"}`}>
                             {attr.label} {attr.delta > 0 ? "+" : ""}{attr.delta}
                           </span>
                         </span>
@@ -177,7 +177,7 @@ export function DevelopmentTab({
                     </span>
                   </div>
                   {starChanged && (
-                    <p className="text-[9px] text-gold font-pixel">{prevStar}★ → {p.starRating}★</p>
+                    <p className="text-xs text-gold font-pixel">{prevStar}★ → {p.starRating}★</p>
                   )}
                 </div>
               </button>
@@ -186,7 +186,7 @@ export function DevelopmentTab({
         </div>
         {noDeltas.length > 0 && (
           <div className="px-4 py-3 border-t border-border bg-card/30">
-            <p className="font-pixel text-[8px] text-muted-foreground">
+            <p className="font-pixel text-xs text-muted-foreground">
               {noDeltas.length} player{noDeltas.length !== 1 ? "s" : ""} (new signings) have no prior-season data
             </p>
           </div>

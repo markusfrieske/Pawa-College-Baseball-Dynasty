@@ -98,7 +98,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
             Top MLB Prospects
           </div>
         </RetroCardHeader>
-        <p className="text-[10px] text-muted-foreground mb-4">
+        <p className="text-xs text-muted-foreground mb-4">
           Players ranked by overall rating. Click a name to view their full profile. Pitchers: SP, RP, CL. Hitters: all other positions.
         </p>
 
@@ -109,7 +109,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
               key={v}
               onClick={() => { setView(v); setPositionFilter("All"); }}
               data-testid={`button-prospects-${v}`}
-              className={`font-pixel text-[8px] px-3 py-1.5 border rounded transition-colors ${
+              className={`font-pixel text-xs px-3 py-1.5 border rounded transition-colors ${
                 view === v
                   ? "bg-gold text-forest-dark border-gold"
                   : "bg-transparent text-muted-foreground border-border hover:border-gold/50 hover:text-gold"
@@ -128,7 +128,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                 key={pos}
                 onClick={() => setPositionFilter(pos)}
                 data-testid={`button-pos-filter-${pos}`}
-                className={`font-pixel text-[7px] px-2 py-1 border rounded transition-colors ${
+                className={`font-pixel text-xs px-2 py-1 border rounded transition-colors ${
                   positionFilter === pos
                     ? "bg-gold/20 text-gold border-gold/60"
                     : "bg-transparent text-muted-foreground border-border/60 hover:border-gold/40 hover:text-gold/80"
@@ -146,7 +146,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
+                <tr className="border-b border-border text-muted-foreground font-pixel text-xs">
                   <th className="text-left py-2 px-2 w-10">#</th>
                   <th className="text-left py-2 px-2">Player</th>
                   <th className="text-center py-2 px-1 w-10">Pos</th>
@@ -164,7 +164,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                     data-testid={`row-prospect-${prospect.id}`}
                   >
                     <td className="py-2.5 px-2">
-                      <span className={`font-pixel text-[9px] ${prospect.rank <= 10 ? "text-gold" : "text-muted-foreground"}`}>
+                      <span className={`font-pixel text-xs ${prospect.rank <= 10 ? "text-gold" : "text-muted-foreground"}`}>
                         #{prospect.rank}
                       </span>
                     </td>
@@ -179,7 +179,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                         </button>
                         {prospect.category === "pitcher" ? (
                           <span
-                            className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${
+                            className={`font-pixel text-xs px-1 py-0.5 rounded border ${
                               prospect.throwHand === "L"
                                 ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
                                 : "bg-muted/40 text-muted-foreground border-border/60"
@@ -190,7 +190,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                           </span>
                         ) : (
                           <span
-                            className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${
+                            className={`font-pixel text-xs px-1 py-0.5 rounded border ${
                               prospect.batHand === "L"
                                 ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
                                 : prospect.batHand === "S"
@@ -205,7 +205,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                       </div>
                     </td>
                     <td className="py-2.5 px-1 text-center">
-                      <span className="text-[10px] text-muted-foreground">{prospect.position}</span>
+                      <span className="text-xs text-muted-foreground">{prospect.position}</span>
                     </td>
                     <td className="py-2.5 px-2 hidden sm:table-cell">
                       <div className="flex items-center gap-1.5">
@@ -216,7 +216,7 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                           name={prospect.teamName}
                           size="sm"
                         />
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
+                        <span className="text-xs text-muted-foreground truncate max-w-[100px]">
                           {prospect.teamName}
                         </span>
                       </div>
@@ -225,10 +225,10 @@ export function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; cu
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="cursor-default">
-                            <span className={`font-pixel text-[8px] block ${eligibilityColor[prospect.eligibility] ?? "text-muted-foreground"}`}>
+                            <span className={`font-pixel text-xs block ${eligibilityColor[prospect.eligibility] ?? "text-muted-foreground"}`}>
                               {prospect.eligibility}
                             </span>
-                            <span className="font-pixel text-[7px] text-muted-foreground/60 block">
+                            <span className="font-pixel text-xs text-muted-foreground/60 block">
                               S{gradSeason(prospect.eligibility)}
                             </span>
                           </span>

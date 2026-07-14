@@ -179,17 +179,17 @@ function FieldWrapper({ badge, low, children }: { badge?: FieldSource; low?: boo
     <div className={`relative rounded ${ring}`}>
       {children}
       {badge === "ocr" && !low && (
-        <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-gold/20 border border-gold/50 text-gold text-[7px] leading-none" title="From OCR — not yet edited">
+        <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-gold/20 border border-gold/50 text-gold text-xs leading-none" title="From OCR — not yet edited">
           <Sparkles className="w-2 h-2" />
         </span>
       )}
       {low && (
-        <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-yellow-900/60 border border-yellow-500 text-yellow-300 text-[7px] leading-none" title="OCR could not confidently read this field — double-check it">
+        <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-yellow-900/60 border border-yellow-500 text-yellow-300 text-xs leading-none" title="OCR could not confidently read this field — double-check it">
           <AlertTriangle className="w-2 h-2" />
         </span>
       )}
       {badge === "corrected" && (
-        <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-blue-900/60 border border-blue-500 text-blue-300 text-[7px] leading-none" title="Corrected by coach">
+        <span className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 px-1 py-[1px] rounded-full bg-blue-900/60 border border-blue-500 text-blue-300 text-xs leading-none" title="Corrected by coach">
           <Pencil className="w-2 h-2" />
         </span>
       )}
@@ -276,7 +276,7 @@ export function IssueBanner({ issues, section }: { issues: ReviewIssue[]; sectio
       {scoped.map(issue => (
         <div
           key={issue.id}
-          className={`flex items-start gap-2 p-2 rounded text-[10px] leading-snug ${
+          className={`flex items-start gap-2 p-2 rounded text-xs leading-snug ${
             issue.severity === "hard"
               ? "bg-red-900/20 border border-red-700/40 text-red-300"
               : "bg-yellow-900/20 border border-yellow-700/40 text-yellow-300"
@@ -307,13 +307,13 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
   const fieldLabels: Record<string, string> = { ab: "AB", r: "R", h: "H", doubles: "2B", triples: "3B", hr: "HR", rbi: "RBI", bb: "BB", so: "SO", sb: "SB" };
 
   if (batting.length === 0) {
-    return <p className="text-[10px] text-muted-foreground">No batting data. Go back to score entry to load a lineup.</p>;
+    return <p className="text-xs text-muted-foreground">No batting data. Go back to score entry to load a lineup.</p>;
   }
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-pixel text-gold/80">{team.abbreviation} • {batting.length} batters</span>
+        <span className="text-xs font-pixel text-gold/80">{team.abbreviation} • {batting.length} batters</span>
       </div>
       {batting.map((b, i) => (
         <div
@@ -322,7 +322,7 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
           data-testid={`row-review-batter-${side}-${i}`}
         >
           {b.needsName && (
-            <div className="flex items-center gap-1 text-[9px] text-yellow-400" data-testid={`badge-needs-name-${side}-${i}`}>
+            <div className="flex items-center gap-1 text-xs text-yellow-400" data-testid={`badge-needs-name-${side}-${i}`}>
               <AlertTriangle className="w-3 h-3" /> Needs a name — OCR couldn't read this row
             </div>
           )}
@@ -336,7 +336,7 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
           <div className="grid grid-cols-5 gap-1.5">
             {fields.map(field => (
               <div key={field} className="flex flex-col items-center gap-1">
-                <span className="text-[8px] text-muted-foreground uppercase">{fieldLabels[field]}</span>
+                <span className="text-xs text-muted-foreground uppercase">{fieldLabels[field]}</span>
                 <NumberField
                   value={b[field] as number}
                   onChange={v => update(i, field, v as BatterEntry[typeof field], `batting.${side}.${b.playerId}.${field}`, `${b.name} ${fieldLabels[field]}`)}
@@ -369,12 +369,12 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
   const fieldLabels: Record<string, string> = { h: "H", r: "R", er: "ER", bb: "BB", so: "SO", hr: "HR" };
 
   if (pitching.length === 0) {
-    return <p className="text-[10px] text-muted-foreground">No pitching data. Go back to score entry to add pitchers.</p>;
+    return <p className="text-xs text-muted-foreground">No pitching data. Go back to score entry to add pitchers.</p>;
   }
 
   return (
     <div className="space-y-3">
-      <span className="text-[10px] font-pixel text-gold/80">{team.abbreviation} • {pitching.length} pitchers</span>
+      <span className="text-xs font-pixel text-gold/80">{team.abbreviation} • {pitching.length} pitchers</span>
       {pitching.map((p, i) => (
         <div key={p.playerId} className="border border-border/40 rounded-lg p-2.5 space-y-2" data-testid={`row-review-pitcher-${side}-${i}`}>
           <div className="flex items-center gap-2">
@@ -386,7 +386,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
               width="flex-1"
             />
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[8px] text-muted-foreground uppercase">IP</span>
+              <span className="text-xs text-muted-foreground uppercase">IP</span>
               <IpField
                 value={p.ip}
                 onChange={v => update(i, "ip", v, `pitching.${side}.${p.playerId}.ip`, `${p.name} IP`)}
@@ -398,7 +398,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
           <div className="grid grid-cols-6 gap-1.5">
             {fields.map(field => (
               <div key={field} className="flex flex-col items-center gap-1">
-                <span className="text-[8px] text-muted-foreground uppercase">{fieldLabels[field]}</span>
+                <span className="text-xs text-muted-foreground uppercase">{fieldLabels[field]}</span>
                 <NumberField
                   value={p[field] as number}
                   onChange={v => update(i, field, v as PitcherEntry[typeof field], `pitching.${side}.${p.playerId}.${field}`, `${p.name} ${fieldLabels[field]}`)}
@@ -409,7 +409,7 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
               </div>
             ))}
           </div>
-          <p className="text-[9px] text-muted-foreground text-right">Live ERA: <span className="text-gold/80">{liveEra(p.er, p.ip)}</span></p>
+          <p className="text-xs text-muted-foreground text-right">Live ERA: <span className="text-gold/80">{liveEra(p.er, p.ip)}</span></p>
         </div>
       ))}
     </div>
@@ -457,7 +457,7 @@ function DecisionsSection({ homeTeam, awayTeam, homePitching, awayPitching, onCh
   ];
 
   if (rows.length === 0) {
-    return <p className="text-[10px] text-muted-foreground">No pitchers entered yet.</p>;
+    return <p className="text-xs text-muted-foreground">No pitchers entered yet.</p>;
   }
 
   return (
@@ -534,8 +534,8 @@ export function OcrReviewScreen({
   function sectionBadge(section: ReviewIssue["section"]) {
     const hard = issues.filter(i => i.section === section && i.severity === "hard").length;
     const soft = issues.filter(i => i.section === section && i.severity === "soft").length;
-    if (hard > 0) return <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-red-900/50 border border-red-600 text-red-300">{hard} error{hard > 1 ? "s" : ""}</span>;
-    if (soft > 0) return <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-yellow-900/50 border border-yellow-600 text-yellow-300">{soft} warning{soft > 1 ? "s" : ""}</span>;
+    if (hard > 0) return <span className="text-xs px-1.5 py-0.5 rounded-full bg-red-900/50 border border-red-600 text-red-300">{hard} error{hard > 1 ? "s" : ""}</span>;
+    if (soft > 0) return <span className="text-xs px-1.5 py-0.5 rounded-full bg-yellow-900/50 border border-yellow-600 text-yellow-300">{soft} warning{soft > 1 ? "s" : ""}</span>;
     return null;
   }
 
@@ -547,9 +547,9 @@ export function OcrReviewScreen({
     <div className="space-y-3" data-testid="ocr-review-screen">
       <div className="flex items-center gap-2 px-1">
         <Sparkles className="w-3.5 h-3.5 text-gold" />
-        <span className="text-[10px] font-pixel text-gold">Review Extracted Box Score</span>
+        <span className="text-xs font-pixel text-gold">Review Extracted Box Score</span>
       </div>
-      <p className="text-[9px] text-muted-foreground px-1">
+      <p className="text-xs text-muted-foreground px-1">
         Tap any field to edit it. <span className="text-gold">Gold sparkle</span> = OCR value, <span className="text-yellow-400">yellow warning</span> = low-confidence read, <span className="text-blue-300">blue pencil</span> = you corrected it.
       </p>
 
@@ -558,7 +558,7 @@ export function OcrReviewScreen({
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-col items-center gap-1 flex-1">
             <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
-            <span className="text-[10px] text-muted-foreground">{awayTeam.abbreviation}</span>
+            <span className="text-xs text-muted-foreground">{awayTeam.abbreviation}</span>
             {showInnings ? (
               <span className="font-pixel text-xl text-gold" data-testid="review-away-score">{awayScore}</span>
             ) : (
@@ -568,7 +568,7 @@ export function OcrReviewScreen({
           <span className="font-pixel text-muted-foreground text-sm">@</span>
           <div className="flex flex-col items-center gap-1 flex-1">
             <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
-            <span className="text-[10px] text-muted-foreground">{homeTeam.abbreviation}</span>
+            <span className="text-xs text-muted-foreground">{homeTeam.abbreviation}</span>
             {showInnings ? (
               <span className="font-pixel text-xl text-gold" data-testid="review-home-score">{homeScore}</span>
             ) : (
@@ -576,25 +576,25 @@ export function OcrReviewScreen({
             )}
           </div>
         </div>
-        {showInnings && <p className="text-[9px] text-muted-foreground text-center">Score is computed from the Line Score section below.</p>}
+        {showInnings && <p className="text-xs text-muted-foreground text-center">Score is computed from the Line Score section below.</p>}
         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/40">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-16">{awayTeam.abbreviation} Errors</span>
+            <span className="text-xs text-muted-foreground w-16">{awayTeam.abbreviation} Errors</span>
             <NumberField value={awayErrors} onChange={onChangeAwayErrors} testId="review-away-errors" source={fieldMeta["score.awayErrors"]} />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-16">{homeTeam.abbreviation} Errors</span>
+            <span className="text-xs text-muted-foreground w-16">{homeTeam.abbreviation} Errors</span>
             <NumberField value={homeErrors} onChange={onChangeHomeErrors} testId="review-home-errors" source={fieldMeta["score.homeErrors"]} />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-16">{awayTeam.abbreviation} Hits</span>
+            <span className="text-xs text-muted-foreground w-16">{awayTeam.abbreviation} Hits</span>
             <span className="text-sm font-medium text-foreground" data-testid="review-away-hits">{awayHits}</span>
-            <span className="text-[8px] text-muted-foreground">(from batting)</span>
+            <span className="text-xs text-muted-foreground">(from batting)</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-16">{homeTeam.abbreviation} Hits</span>
+            <span className="text-xs text-muted-foreground w-16">{homeTeam.abbreviation} Hits</span>
             <span className="text-sm font-medium text-foreground" data-testid="review-home-hits">{homeHits}</span>
-            <span className="text-[8px] text-muted-foreground">(from batting)</span>
+            <span className="text-xs text-muted-foreground">(from batting)</span>
           </div>
         </div>
       </Section>
@@ -674,7 +674,7 @@ export function OcrReviewScreen({
       {hardErrors.length > 0 && (
         <div className="p-3 bg-red-900/20 border border-red-700/40 rounded-lg space-y-1.5" data-testid="text-hard-errors-summary">
           <p className="text-xs text-red-300 font-medium flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> Fix these before submitting:</p>
-          <ul className="text-[10px] text-red-300/90 list-disc list-inside space-y-0.5">
+          <ul className="text-xs text-red-300/90 list-disc list-inside space-y-0.5">
             {hardErrors.map(e => <li key={e.id}>{e.message}</li>)}
           </ul>
         </div>
@@ -683,7 +683,7 @@ export function OcrReviewScreen({
       {hardErrors.length === 0 && (softIssues.length > 0 || lowConfSummary) && (
         <label className="flex items-start gap-2 p-3 bg-yellow-900/10 border border-yellow-700/30 rounded-lg cursor-pointer" data-testid="label-ack-warnings">
           <Checkbox checked={ackWarnings} onCheckedChange={v => onChangeAckWarnings(v === true)} data-testid="checkbox-ack-warnings" className="mt-0.5" />
-          <span className="text-[10px] text-yellow-300">
+          <span className="text-xs text-yellow-300">
             I've reviewed the {softIssues.length + (lowConfSummary ? 1 : 0)} flagged item{(softIssues.length + (lowConfSummary ? 1 : 0)) > 1 ? "s" : ""} above and want to submit anyway.
           </span>
         </label>

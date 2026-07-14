@@ -151,7 +151,7 @@ function WarRoomSkeleton() {
 function ReadyBadge({ isReady }: { isReady: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-pixel text-[8px] border ${
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-pixel text-xs border ${
         isReady
           ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400"
           : "bg-yellow-500/15 border-yellow-500/40 text-yellow-400"
@@ -189,7 +189,7 @@ function NextGameCard({
           <div className="flex items-center gap-3 py-1">
             <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div>
-              <p className="font-pixel text-[9px] text-muted-foreground mb-0.5">
+              <p className="font-pixel text-xs text-muted-foreground mb-0.5">
                 WEEK {league.currentWeek}
               </p>
               <p className="text-sm text-muted-foreground">Bye week — no game scheduled</p>
@@ -225,17 +225,17 @@ function NextGameCard({
       <div className="bg-gold/10 px-3 py-1.5 border-b border-border flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Swords className="w-3.5 h-3.5 text-gold" />
-          <span className="font-pixel text-gold text-[9px]">
+          <span className="font-pixel text-gold text-xs">
             {isComplete ? "RESULT" : "NEXT GAME"} — {phaseLabel}
           </span>
           {gameType && (
-            <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
+            <span className="font-pixel text-xs px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground">
               {GAME_TYPE_LABELS[gameType] ?? gameType.toUpperCase()}
             </span>
           )}
         </div>
         <span
-          className={`font-pixel text-[8px] px-1.5 py-0.5 rounded ${
+          className={`font-pixel text-xs px-1.5 py-0.5 rounded ${
             isConference
               ? "bg-blue-500/20 text-blue-400"
               : "bg-muted/50 text-muted-foreground"
@@ -265,7 +265,7 @@ function NextGameCard({
                   ) : (
                     <Plane className="w-2.5 h-2.5 text-muted-foreground" />
                   )}
-                  <span className="font-pixel text-[7px] text-muted-foreground">
+                  <span className="font-pixel text-xs text-muted-foreground">
                     {isHome ? "HOME" : "AWAY"}
                   </span>
                 </div>
@@ -285,7 +285,7 @@ function NextGameCard({
                     {userScore} – {opponentScore}
                   </div>
                   <div
-                    className={`font-pixel text-[8px] mt-1 ${
+                    className={`font-pixel text-xs mt-1 ${
                       userWon ? "text-emerald-400" : "text-red-400"
                     }`}
                   >
@@ -293,7 +293,7 @@ function NextGameCard({
                   </div>
                 </>
               ) : (
-                <div className="font-pixel text-muted-foreground text-[10px]">VS</div>
+                <div className="font-pixel text-muted-foreground text-xs">VS</div>
               )}
             </div>
 
@@ -303,7 +303,7 @@ function NextGameCard({
                 <p className="text-sm font-medium truncate leading-tight" data-testid="text-war-room-opponent">
                   {opponent.name}
                 </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {opponent.record.wins}–{opponent.record.losses}
                 </p>
                 {opponent.recentForm.length > 0 && (
@@ -311,7 +311,7 @@ function NextGameCard({
                     {opponent.recentForm.map((r, i) => (
                       <span
                         key={i}
-                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px] font-bold ${
+                        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center text-xs font-bold ${
                           r === "W"
                             ? "bg-emerald-500/20 text-emerald-400"
                             : "bg-red-500/20 text-red-400"
@@ -532,7 +532,7 @@ function NeedsAttentionCard({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">NEEDS ATTENTION</h3>
+          <h3 className="font-pixel text-gold text-xs sm:text-xs">NEEDS ATTENTION</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -691,7 +691,7 @@ function QuickActionsBar({
 
   return (
     <div className="mb-4" data-testid="section-quick-actions">
-      <p className="font-pixel text-[8px] text-muted-foreground mb-2 uppercase tracking-wider">Quick Actions</p>
+      <p className="font-pixel text-xs text-muted-foreground mb-2 uppercase tracking-wider">Quick Actions</p>
       <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
         {actions.map(action => {
           const btn = (
@@ -740,7 +740,7 @@ function CommissionerView({
       <RetroCardHeader>
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-gold" />
-          <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">COMMISSIONER VIEW</h3>
+          <h3 className="font-pixel text-gold text-xs sm:text-xs">COMMISSIONER VIEW</h3>
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -756,7 +756,7 @@ function CommissionerView({
                 <span className="text-sm text-foreground">
                   {blockers.notReadyCount}/{blockers.totalHumanTeams} teams not ready
                 </span>
-                <Badge variant="outline" className="font-pixel text-[8px] text-yellow-400 border-yellow-500/40">
+                <Badge variant="outline" className="font-pixel text-xs text-yellow-400 border-yellow-500/40">
                   WAITING
                 </Badge>
               </div>
@@ -766,7 +766,7 @@ function CommissionerView({
                 <span className="text-sm text-foreground">
                   {blockers.unreportedGames} game{blockers.unreportedGames !== 1 ? "s" : ""} need reporting
                 </span>
-                <Badge variant="outline" className="font-pixel text-[8px] text-red-400 border-red-500/40">
+                <Badge variant="outline" className="font-pixel text-xs text-red-400 border-red-500/40">
                   REPORTS DUE
                 </Badge>
               </div>
@@ -802,7 +802,7 @@ function SinceLastAdvanceSection({
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">SINCE LAST ADVANCE</h3>
+            <h3 className="font-pixel text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
           </div>
         </RetroCardHeader>
         <RetroCardContent>
@@ -818,10 +818,10 @@ function SinceLastAdvanceSection({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-gold" />
-            <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">SINCE LAST ADVANCE</h3>
+            <h3 className="font-pixel text-gold text-xs sm:text-xs">SINCE LAST ADVANCE</h3>
           </div>
           <Link href={`/league/${leagueId}/ticker`}>
-            <span className="flex items-center gap-1 font-pixel text-[8px] text-muted-foreground hover:text-gold transition-colors" data-testid="link-war-room-ticker">
+            <span className="flex items-center gap-1 font-pixel text-xs text-muted-foreground hover:text-gold transition-colors" data-testid="link-war-room-ticker">
               <Rss className="w-3 h-3" />
               Full Feed →
             </span>
@@ -836,7 +836,7 @@ function SinceLastAdvanceSection({
               <div className="min-w-0">
                 <p className="text-sm text-foreground/90 leading-snug">{e.description}</p>
                 {e.teamAbbr && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{e.teamName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{e.teamName}</p>
                 )}
               </div>
             </div>
@@ -937,11 +937,11 @@ export default function WarRoomPage() {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-pixel text-gold text-[10px]">WAR ROOM</span>
-                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">
+                <span className="font-pixel text-gold text-xs">WAR ROOM</span>
+                <Badge variant="outline" className="font-pixel text-xs text-gold border-gold/40 bg-gold/10">
                   S{league.currentSeason} W{league.currentWeek}
                 </Badge>
-                <Badge variant="outline" className="font-pixel text-[7px] text-muted-foreground border-border whitespace-nowrap">
+                <Badge variant="outline" className="font-pixel text-xs text-muted-foreground border-border whitespace-nowrap">
                   {phaseLabel.toUpperCase()}
                 </Badge>
               </div>
@@ -971,7 +971,7 @@ export default function WarRoomPage() {
                   style={{ width: `${humanCount > 0 ? (readyCount / humanCount) * 100 : 0}%` }}
                 />
               </div>
-              <span className="flex-shrink-0 font-pixel text-[8px]">
+              <span className="flex-shrink-0 font-pixel text-xs">
                 {readyCount}/{humanCount} ready
               </span>
             </div>

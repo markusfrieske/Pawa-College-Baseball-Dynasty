@@ -156,7 +156,7 @@ function ovrColor(ovr: number): string {
 function AbilityBadge({ name }: { name: string }) {
   if (name === "Bad Ball Hitter") {
     return (
-      <Badge variant="outline" className="text-[8px] px-0 py-0 overflow-hidden border-blue-600/30">
+      <Badge variant="outline" className="text-xs px-0 py-0 overflow-hidden border-blue-600/30">
         <span className="bg-blue-600/20 text-blue-400 px-1">Bad</span>
         <span className="bg-red-600/20 text-red-400 px-1">Ball Hitter</span>
       </Badge>
@@ -170,7 +170,7 @@ function AbilityBadge({ name }: { name: string }) {
     ? "bg-red-600/20 text-red-400 border-red-600/30"
     : "bg-blue-600/20 text-blue-400 border-blue-600/30";
   return (
-    <Badge variant="outline" className={`text-[8px] px-1 py-0 ${cls}`}>{name}</Badge>
+    <Badge variant="outline" className={`text-xs px-1 py-0 ${cls}`}>{name}</Badge>
   );
 }
 
@@ -220,7 +220,7 @@ function EditableStatCell({
           if (e.key === "Escape") { setEditing(false); setDraft(String(value)); }
         }}
         onClick={e => e.stopPropagation()}
-        className="w-10 h-6 text-[11px] text-center bg-muted/60 border border-gold/50 rounded focus:outline-none focus:border-gold text-foreground"
+        className="w-10 h-6 text-xs text-center bg-muted/60 border border-gold/50 rounded focus:outline-none focus:border-gold text-foreground"
         data-testid={`input-stat-${field}-${playerIdx}`}
       />
     );
@@ -343,7 +343,7 @@ function CompareStatRow({
       <span className={`text-xs text-right font-medium tabular-nums ${aBetter ? "text-green-400" : bBetter ? "text-muted-foreground" : "text-foreground"}`}>
         {valA ?? "—"}
       </span>
-      <span className="text-[9px] text-muted-foreground text-center w-14 uppercase tracking-wider">{label}</span>
+      <span className="text-xs text-muted-foreground text-center w-14 uppercase tracking-wider">{label}</span>
       <span className={`text-xs text-left font-medium tabular-nums ${bBetter ? "text-green-400" : aBetter ? "text-muted-foreground" : "text-foreground"}`}>
         {valB ?? "—"}
       </span>
@@ -395,7 +395,7 @@ function MobileCompareSheet({
         <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GitCompare className="w-3.5 h-3.5 text-gold" />
-            <span className="font-pixel text-gold text-[10px] uppercase tracking-wider">Compare</span>
+            <span className="font-pixel text-gold text-xs uppercase tracking-wider">Compare</span>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-gold p-1" data-testid="button-close-compare">
             <X className="w-4 h-4" />
@@ -407,16 +407,16 @@ function MobileCompareSheet({
           <div className="px-4 py-3 border-r border-border/50" data-testid={`compare-player-a-${idxA}`}>
             <p className="text-sm font-semibold text-foreground leading-tight truncate">{playerA.firstName} {playerA.lastName}</p>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              <Badge variant="outline" className="text-[8px] px-1 py-0">{playerA.position}</Badge>
-              <span className="text-[9px] text-muted-foreground">{playerA.eligibility}</span>
+              <Badge variant="outline" className="text-xs px-1 py-0">{playerA.position}</Badge>
+              <span className="text-xs text-muted-foreground">{playerA.eligibility}</span>
             </div>
             <StarRating stars={starsA} />
           </div>
           <div className="px-4 py-3" data-testid={`compare-player-b-${idxB}`}>
             <p className="text-sm font-semibold text-foreground leading-tight truncate">{playerB.firstName} {playerB.lastName}</p>
             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              <Badge variant="outline" className="text-[8px] px-1 py-0">{playerB.position}</Badge>
-              <span className="text-[9px] text-muted-foreground">{playerB.eligibility}</span>
+              <Badge variant="outline" className="text-xs px-1 py-0">{playerB.position}</Badge>
+              <span className="text-xs text-muted-foreground">{playerB.eligibility}</span>
             </div>
             <StarRating stars={starsB} />
           </div>
@@ -424,15 +424,15 @@ function MobileCompareSheet({
 
         <div className="px-4 py-3 space-y-1">
           {/* OVR */}
-          <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mb-2">Overall</p>
+          <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mb-2">Overall</p>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 pb-2 border-b border-border/30">
             <span className={`text-lg font-bold text-right tabular-nums ${ovrColor(ovrA)} ${ovrA > ovrB ? "text-green-400" : ""}`}>{ovrA}</span>
-            <span className="text-[9px] text-muted-foreground text-center w-14 uppercase tracking-wider">OVR</span>
+            <span className="text-xs text-muted-foreground text-center w-14 uppercase tracking-wider">OVR</span>
             <span className={`text-lg font-bold text-left tabular-nums ${ovrColor(ovrB)} ${ovrB > ovrA ? "text-green-400" : ""}`}>{ovrB}</span>
           </div>
 
           {/* Position-specific stats */}
-          <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mt-3 mb-1">
+          <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mt-3 mb-1">
             {isPitcher(playerA.position) || isPitcher(playerB.position) ? "Pitching" : "Batting & Defense"}
           </p>
           {positionStats.map(({ key, label }) => (
@@ -445,7 +445,7 @@ function MobileCompareSheet({
           ))}
 
           {/* Common stats */}
-          <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mt-3 mb-1">Mental</p>
+          <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mt-3 mb-1">Mental</p>
           {COMMON_COMPARE_STATS.map(({ key, label }) => (
             <CompareStatRow
               key={key}
@@ -458,7 +458,7 @@ function MobileCompareSheet({
           {/* Abilities */}
           {allAbilities.length > 0 && (
             <>
-              <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mt-3 mb-2">Special Abilities</p>
+              <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider mt-3 mb-2">Special Abilities</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {allAbilities.map(name => {
                   const hasA = abilitiesA.includes(name);
@@ -829,11 +829,11 @@ export default function RosterViewerPage() {
                 className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSelected ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
                 style={{ backgroundColor: meta?.primaryColor ?? "#333" }}
               >
-                <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: meta?.secondaryColor ?? "#fff" }}>
+                <span className="font-pixel text-xs leading-none text-center px-0.5" style={{ color: meta?.secondaryColor ?? "#fff" }}>
                   {meta?.abbr ?? group.conference}
                 </span>
               </div>
-              <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSelected ? "text-gold" : "text-muted-foreground"}`}>
+              <span className={`font-pixel text-xs text-center leading-tight truncate w-full ${isSelected ? "text-gold" : "text-muted-foreground"}`}>
                 {meta?.abbr ?? group.conference}
               </span>
             </button>
@@ -861,17 +861,17 @@ export default function RosterViewerPage() {
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSel ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
                   style={{ backgroundColor: team.primaryColor || "#333" }}
                 >
-                  <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
+                  <span className="font-pixel text-xs leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
                     {team.abbreviation}
                   </span>
                 </div>
                 {team.nationalRank > 0 && (
-                  <span className="absolute bottom-0 left-0 font-pixel text-[6px] leading-none px-0.5 py-px rounded-sm bg-black/75 text-gold pointer-events-none">
+                  <span className="absolute bottom-0 left-0 font-pixel text-xs leading-none px-0.5 py-px rounded-sm bg-black/75 text-gold pointer-events-none">
                     #{team.nationalRank}
                   </span>
                 )}
               </div>
-              <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
+              <span className={`font-pixel text-xs text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
                 {team.name.length > 10 ? team.abbreviation : team.name}
               </span>
             </button>
@@ -897,7 +897,7 @@ export default function RosterViewerPage() {
               <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor || "#333"} secondaryColor={team.secondaryColor || "#fff"} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs truncate">{team.name}</p>
-                <p className="text-[9px] text-muted-foreground">{team.conference}</p>
+                <p className="text-xs text-muted-foreground">{team.conference}</p>
               </div>
             </button>
           );
@@ -925,7 +925,7 @@ export default function RosterViewerPage() {
         {cols.map(col => (
           <div key={col.label} className="text-center min-w-[28px]">
             <EditableStatCell value={col.value as number} playerIdx={idx} field={col.field} onUpdate={updatePlayerField} />
-            <p className="text-[8px] text-muted-foreground mt-0.5">{col.label}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{col.label}</p>
           </div>
         ))}
       </div>
@@ -993,7 +993,7 @@ export default function RosterViewerPage() {
           <div className="sticky top-0 z-10 bg-gold/10 border-b border-gold/30 px-4 py-2 flex items-center justify-between gap-2" data-testid="banner-compare-mode">
             <div className="flex items-center gap-2">
               <GitCompare className="w-3 h-3 text-gold shrink-0" />
-              <span className="text-[10px] font-pixel text-gold">
+              <span className="text-xs font-pixel text-gold">
                 {comparePlayerIdx !== null && currentRoster[comparePlayerIdx]
                   ? `${currentRoster[comparePlayerIdx].firstName} ${currentRoster[comparePlayerIdx].lastName} selected — tap another player to compare`
                   : "Tap a player to compare"}
@@ -1032,7 +1032,7 @@ export default function RosterViewerPage() {
                 data-testid={`row-player-mobile-${idx}`}
               >
                 {/* Jersey # */}
-                <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0">{player.jerseyNumber}</span>
+                <span className="text-xs text-muted-foreground w-5 text-right shrink-0">{player.jerseyNumber}</span>
 
                 {/* Name + meta */}
                 <div className="flex-1 min-w-0">
@@ -1044,8 +1044,8 @@ export default function RosterViewerPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <Badge variant="outline" className="text-[8px] px-1 py-0">{player.position}</Badge>
-                    <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
+                    <Badge variant="outline" className="text-xs px-1 py-0">{player.position}</Badge>
+                    <span className="text-xs text-muted-foreground">{player.eligibility}</span>
                     <StarRating stars={stars} />
                   </div>
                 </div>
@@ -1053,7 +1053,7 @@ export default function RosterViewerPage() {
                 {/* OVR */}
                 <div className="text-center shrink-0">
                   <span className={`text-sm ${ovrColor(ovr)}`} data-testid={`text-ovr-mobile-${idx}`}>{ovr}</span>
-                  <p className="text-[9px] text-muted-foreground">OVR</p>
+                  <p className="text-xs text-muted-foreground">OVR</p>
                 </div>
 
                 {/* 3 position-aware editable stats */}
@@ -1205,12 +1205,12 @@ export default function RosterViewerPage() {
               </div>
             ) : search ? (
               <>
-                <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Results</p>
+                <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Results</p>
                 <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
               </>
             ) : (
               <>
-                <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Select a Conference</p>
+                <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Select a Conference</p>
                 <ConferenceGrid cols={4} />
               </>
             )}
@@ -1230,7 +1230,7 @@ export default function RosterViewerPage() {
                 data-testid="input-team-search-mobile-team"
               />
             </div>
-            <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">Choose a Team</p>
+            <p className="font-pixel text-xs text-gold uppercase tracking-wider">Choose a Team</p>
             {confsLoading ? (
               <div className="grid grid-cols-4 gap-2">
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
@@ -1265,8 +1265,8 @@ export default function RosterViewerPage() {
                     <>
                       <h2 className="font-pixel text-gold text-sm truncate" data-testid="text-team-header">{teamData.name}</h2>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-[10px] text-muted-foreground">{teamData.conference}</span>
-                        <span className="text-[10px] text-muted-foreground">Rank #{teamData.nationalRank}</span>
+                        <span className="text-xs text-muted-foreground">{teamData.conference}</span>
+                        <span className="text-xs text-muted-foreground">Rank #{teamData.nationalRank}</span>
                         <div className="flex gap-0.5">
                           {[1,2,3,4,5,6,7,8,9,10].map(i => (
                             <div key={i} className={`w-2 h-2 rounded-sm ${i <= teamData.prestige ? "bg-gold" : "bg-muted/30"}`} />
@@ -1278,10 +1278,10 @@ export default function RosterViewerPage() {
                     <Skeleton className="h-5 w-40" />
                   )}
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0">{currentRoster.length} players</span>
+                <span className="text-xs text-muted-foreground shrink-0">{currentRoster.length} players</span>
               </div>
               {!rosterLoading && teamData && (
-                <p className="text-[9px] text-muted-foreground mt-2">Tap for profile · long-press to compare · tap stat to edit</p>
+                <p className="text-xs text-muted-foreground mt-2">Tap for profile · long-press to compare · tap stat to edit</p>
               )}
             </div>
 
@@ -1320,7 +1320,7 @@ export default function RosterViewerPage() {
               {/* Conference grid (not searching) */}
               {!search && (
                 <div className="p-3 border-b border-border/50">
-                  <p className="font-pixel text-[9px] text-muted-foreground uppercase mb-2 tracking-wider">Conferences</p>
+                  <p className="font-pixel text-xs text-muted-foreground uppercase mb-2 tracking-wider">Conferences</p>
                   <ConferenceGrid cols={3} />
                 </div>
               )}
@@ -1333,10 +1333,10 @@ export default function RosterViewerPage() {
                       <button onClick={handleBackToConfs} className="text-muted-foreground hover:text-gold transition-colors" data-testid="button-back-to-confs">
                         <ChevronLeft className="w-3.5 h-3.5" />
                       </button>
-                      <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">{selectedConference}</p>
+                      <p className="font-pixel text-xs text-gold uppercase tracking-wider">{selectedConference}</p>
                     </div>
                   )}
-                  {search && <p className="font-pixel text-[9px] text-muted-foreground uppercase mb-2 tracking-wider">Results</p>}
+                  {search && <p className="font-pixel text-xs text-muted-foreground uppercase mb-2 tracking-wider">Results</p>}
 
                   {search ? (
                     <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
@@ -1348,7 +1348,7 @@ export default function RosterViewerPage() {
 
               {!selectedConference && !search && (
                 <div className="p-4 text-center">
-                  <p className="text-[10px] text-muted-foreground">Select a conference above</p>
+                  <p className="text-xs text-muted-foreground">Select a conference above</p>
                 </div>
               )}
             </div>
@@ -1401,7 +1401,7 @@ export default function RosterViewerPage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground hidden sm:block">Click row for full profile · click a stat to edit inline</p>
+                <p className="text-xs text-muted-foreground hidden sm:block">Click row for full profile · click a stat to edit inline</p>
               </div>
 
               {/* Scouting Panel */}
@@ -1416,22 +1416,22 @@ export default function RosterViewerPage() {
                 <table className="w-full text-sm" data-testid="table-roster">
                   <thead className="bg-muted/30 sticky top-0 z-10">
                     <tr>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">#</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">NAME</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">POS</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">ELIG</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">STARS</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">OVR</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">CON</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">PWR</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">SPD</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">ARM</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">FLD</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">VELO</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">CTRL</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">STUF</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">STAM</th>
-                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap min-w-[120px]">ABILITIES</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">#</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">NAME</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">POS</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">ELIG</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STARS</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">OVR</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">CON</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">PWR</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">SPD</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">ARM</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">FLD</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">VELO</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">CTRL</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STUF</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap">STAM</th>
+                      <th className="px-2 py-2 text-left text-xs font-pixel text-gold whitespace-nowrap min-w-[120px]">ABILITIES</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1456,7 +1456,7 @@ export default function RosterViewerPage() {
                           </td>
                           <td className="px-2 py-1.5">
                             <div className="flex items-center gap-1 flex-wrap">
-                              <Badge variant="outline" className="text-[9px] px-1">{player.position}</Badge>
+                              <Badge variant="outline" className="text-xs px-1">{player.position}</Badge>
                             </div>
                           </td>
                           <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.eligibility}</td>
@@ -1506,7 +1506,7 @@ export default function RosterViewerPage() {
                             <div className="flex flex-wrap gap-0.5 max-w-[180px]">
                               {(player.abilities || []).slice(0, 3).map(ab => <AbilityBadge key={ab} name={ab} />)}
                               {(player.abilities || []).length > 3 && (
-                                <Badge variant="outline" className="text-[8px] px-1 text-muted-foreground">
+                                <Badge variant="outline" className="text-xs px-1 text-muted-foreground">
                                   +{player.abilities.length - 3}
                                 </Badge>
                               )}
@@ -1555,7 +1555,7 @@ export default function RosterViewerPage() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="font-pixel text-[10px] text-foreground uppercase">Roster Name</label>
+              <label className="font-pixel text-xs text-foreground uppercase">Roster Name</label>
               <Input
                 value={saveRosterName}
                 onChange={e => setSaveRosterName(e.target.value)}
@@ -1564,7 +1564,7 @@ export default function RosterViewerPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="font-pixel text-[10px] text-foreground uppercase">Description (optional)</label>
+              <label className="font-pixel text-xs text-foreground uppercase">Description (optional)</label>
               <Input
                 value={saveRosterDesc}
                 onChange={e => setSaveRosterDesc(e.target.value)}

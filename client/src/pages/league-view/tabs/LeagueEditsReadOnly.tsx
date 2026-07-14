@@ -71,12 +71,12 @@ export function LeagueEditsReadOnly({ leagueId }: { leagueId: string }) {
     <div className="space-y-3">
       <div className="flex items-center gap-3">
         <div>
-          <p className="font-pixel text-[9px] text-gold">Commissioner Edits</p>
+          <p className="font-pixel text-xs text-gold">Commissioner Edits</p>
           <p className="text-xs text-muted-foreground">Transparent log of all roster and school changes made by the commissioner.</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
           <Select value={entityType} onValueChange={v => { setEntityType(v); setPage(1); }}>
-            <SelectTrigger className="w-32 h-7 text-[10px]" data-testid="select-edits-type">
+            <SelectTrigger className="w-32 h-7 text-xs" data-testid="select-edits-type">
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent>
@@ -100,7 +100,7 @@ export function LeagueEditsReadOnly({ leagueId }: { leagueId: string }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge
                       variant="outline"
-                      className={`text-[8px] ${batch.entityType === "team" ? "border-blue-500/40 text-blue-400" : "border-green-500/40 text-green-400"}`}
+                      className={`text-xs ${batch.entityType === "team" ? "border-blue-500/40 text-blue-400" : "border-green-500/40 text-green-400"}`}
                     >
                       {batch.entityType === "team" ? "School" : "Player"}
                     </Badge>
@@ -108,23 +108,23 @@ export function LeagueEditsReadOnly({ leagueId }: { leagueId: string }) {
                       {batch.entityLabel ?? "(unknown)"}
                     </span>
                     {batch.isReversed && (
-                      <Badge variant="outline" className="text-[8px] border-red-500/40 text-red-400">Reversed</Badge>
+                      <Badge variant="outline" className="text-xs border-red-500/40 text-red-400">Reversed</Badge>
                     )}
                     {batch.effectiveSeason && (
-                      <span className="text-[9px] text-muted-foreground">Season {batch.effectiveSeason}</span>
+                      <span className="text-xs text-muted-foreground">Season {batch.effectiveSeason}</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">"{batch.reason}"</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="w-2.5 h-2.5" />
                       {new Date(batch.createdAt).toLocaleString()}
                     </span>
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <User className="w-2.5 h-2.5" />
                       Commissioner
                     </span>
-                    <span className="text-[9px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {batch.changes.length} field{batch.changes.length !== 1 ? "s" : ""}
                     </span>
                   </div>
@@ -141,7 +141,7 @@ export function LeagueEditsReadOnly({ leagueId }: { leagueId: string }) {
               {expandedId === batch.id && batch.changes.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-border space-y-1">
                   {batch.changes.map(c => (
-                    <div key={c.id} className="flex items-center gap-2 text-[10px]">
+                    <div key={c.id} className="flex items-center gap-2 text-xs">
                       <span className="text-muted-foreground w-28 shrink-0">{fieldLabel(c.fieldName)}</span>
                       <span className="text-red-400/80 line-through truncate max-w-[120px]">{fmtVal(c.beforeJson)}</span>
                       <ChevronRight className="w-2.5 h-2.5 text-muted-foreground shrink-0" />

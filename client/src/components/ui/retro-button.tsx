@@ -24,8 +24,8 @@ export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
     };
 
     const sizes = {
-      sm: "px-3 py-1.5 text-[8px]",
-      md: "px-5 py-2.5 text-[10px]",
+      sm: "px-3 py-1.5 text-xs",
+      md: "px-5 py-2.5 text-xs",
       lg: "px-8 py-4 text-xs",
       icon: "p-2 flex items-center justify-center",
     };

@@ -130,7 +130,7 @@ export default function RosterPage() {
             {isLineupIncomplete && (
               <button
                 onClick={() => { setViewMode("depth"); }}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-pixel hover:bg-yellow-500/30 transition-colors"
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-xs font-pixel hover:bg-yellow-500/30 transition-colors"
                 data-testid="badge-lineup-incomplete"
               >
                 ⚠ Lineup Incomplete{battingIncomplete ? ` (Bat ${assignedBattingCount}/9)` : ""}{pitchingIncomplete ? ` (Rot ${assignedRotationCount}/4)` : ""}
@@ -240,7 +240,7 @@ export default function RosterPage() {
               <div className="px-4 py-2 bg-card/80 border-b border-border flex items-center gap-2">
                 <Shield className="w-3.5 h-3.5 text-gold" />
                 <h3 className="font-pixel text-gold text-xs uppercase tracking-wider">Team Captains</h3>
-                <span className="text-[10px] text-muted-foreground ml-1">(+15% portal retention · leadership role promise)</span>
+                <span className="text-xs text-muted-foreground ml-1">(+15% portal retention · leadership role promise)</span>
               </div>
               <div className="grid grid-cols-2 gap-px bg-border/30">
                 {[
@@ -249,7 +249,7 @@ export default function RosterPage() {
                 ].map(({ label, captain }) => (
                   <div key={label} className="p-3 bg-card/60 flex items-center gap-3">
                     <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                      <span className="font-pixel text-[8px] text-muted-foreground uppercase">{label}</span>
+                      <span className="font-pixel text-xs text-muted-foreground uppercase">{label}</span>
                       {captain ? (
                         <span className="text-sm font-medium truncate">{captain.firstName} {captain.lastName} <span className="text-muted-foreground text-xs">({captain.position})</span></span>
                       ) : (

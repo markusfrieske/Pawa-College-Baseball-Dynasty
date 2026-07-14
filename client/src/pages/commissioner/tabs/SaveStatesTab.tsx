@@ -133,7 +133,7 @@ export function SaveStatesTab({ leagueId }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-pixel text-[10px] text-gold mb-1">SAVE STATES</p>
+          <p className="font-pixel text-xs text-gold mb-1">SAVE STATES</p>
           <p className="text-xs text-muted-foreground">
             Snapshot the full league state and roll back if something goes wrong. Auto-saves before
             every advance and restore. Max 10 per league (oldest pruned automatically).
@@ -153,7 +153,7 @@ export function SaveStatesTab({ leagueId }: Props) {
 
       {showCreateForm && (
         <RetroCard className="border-gold/40">
-          <p className="font-pixel text-[9px] text-gold mb-3">CREATE SAVE STATE</p>
+          <p className="font-pixel text-xs text-gold mb-3">CREATE SAVE STATE</p>
           <div className="flex gap-2 items-center">
             <input
               className="flex-1 bg-background border border-border rounded px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold"
@@ -195,7 +195,7 @@ export function SaveStatesTab({ leagueId }: Props) {
             <div className="flex items-start gap-3 mb-4">
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="font-pixel text-[9px] text-red-400 mb-3">CONFIRM RESTORE</p>
+                <p className="font-pixel text-xs text-red-400 mb-3">CONFIRM RESTORE</p>
                 <div className="rounded border border-border bg-muted/20 p-3 mb-3 space-y-1.5">
                   <p className="text-sm font-semibold text-gold truncate">"{confirmRestore.label}"</p>
                   <p className="text-xs text-muted-foreground">
@@ -294,7 +294,7 @@ export function SaveStatesTab({ leagueId }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span
-                        className={`font-pixel text-[8px] px-1.5 py-0.5 rounded ${
+                        className={`font-pixel text-xs px-1.5 py-0.5 rounded ${
                           ss.trigger === "manual"
                             ? "bg-gold/20 text-gold"
                             : ss.trigger === "pre_restore"
@@ -305,7 +305,7 @@ export function SaveStatesTab({ leagueId }: Props) {
                         {triggerLabel}
                       </span>
                       {ss.restoredAt && (
-                        <span className="font-pixel text-[8px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
+                        <span className="font-pixel text-xs px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
                           RESTORED
                         </span>
                       )}

@@ -17,7 +17,7 @@ export function StatCard({ icon, label, value, highlight, tooltip, "data-testid"
     >
       <div className={`flex items-center justify-center gap-1 mb-0.5 ${highlight ? "text-red-400" : "text-muted-foreground"}`}>
         <span className="[&>svg]:w-3 [&>svg]:h-3">{icon}</span>
-        <span className="text-[9px] uppercase tracking-wide leading-none">{label}</span>
+        <span className="text-xs uppercase tracking-wide leading-none">{label}</span>
       </div>
       <p className={`text-sm font-bold leading-none ${highlight ? "text-red-400" : "text-foreground"}`}>{value}</p>
     </div>
@@ -26,7 +26,7 @@ export function StatCard({ icon, label, value, highlight, tooltip, "data-testid"
   return (
     <Tooltip>
       <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent className="max-w-[260px] text-center text-[11px]">{tooltip}</TooltipContent>
+      <TooltipContent className="max-w-[260px] text-center text-xs">{tooltip}</TooltipContent>
     </Tooltip>
   );
 }

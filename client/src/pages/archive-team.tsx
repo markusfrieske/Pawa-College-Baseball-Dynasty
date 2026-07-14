@@ -64,26 +64,26 @@ function PostseasonBadge({ result }: { result: string | null }) {
     "Conf Championship": "text-purple-400 border-purple-500/30",
   };
   const cls = cfg[result] ?? "text-muted-foreground border-border/40";
-  return <Badge variant="outline" className={`text-[8px] whitespace-nowrap ${cls}`}>{result}</Badge>;
+  return <Badge variant="outline" className={`text-xs whitespace-nowrap ${cls}`}>{result}</Badge>;
 }
 
 function DepartureLabel({ type, round }: { type: string; round: number | null }) {
   if (type === "drafted" || type === "declared") {
     return (
-      <Badge className="text-[7px] bg-yellow-500/20 border-yellow-500/40 text-yellow-400">
+      <Badge className="text-xs bg-yellow-500/20 border-yellow-500/40 text-yellow-400">
         {round ? `Rd ${round}` : "Draft"}
       </Badge>
     );
   }
-  if (type === "transfer_portal") return <Badge variant="outline" className="text-[7px] text-purple-400 border-purple-500/40">XFER</Badge>;
-  if (type === "graduated") return <Badge variant="outline" className="text-[7px] text-sky-400 border-sky-500/30">Grad</Badge>;
-  return <Badge variant="outline" className="text-[7px]">{type.slice(0, 4)}</Badge>;
+  if (type === "transfer_portal") return <Badge variant="outline" className="text-xs text-purple-400 border-purple-500/40">XFER</Badge>;
+  if (type === "graduated") return <Badge variant="outline" className="text-xs text-sky-400 border-sky-500/30">Grad</Badge>;
+  return <Badge variant="outline" className="text-xs">{type.slice(0, 4)}</Badge>;
 }
 
 function StarRow({ stars }: { stars: number | null }) {
   if (!stars) return null;
   const colors: Record<number, string> = { 5: "text-orange-400", 4: "text-yellow-400", 3: "text-green-400", 2: "text-blue-400", 1: "text-gray-400" };
-  return <span className={`font-pixel text-[7px] ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
+  return <span className={`font-pixel text-xs ${colors[stars] ?? "text-muted-foreground"}`}>{"★".repeat(stars)}</span>;
 }
 
 // ── Season Card ────────────────────────────────────────────────────────────────
@@ -107,14 +107,14 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
           <div className="flex items-center gap-3">
             {/* Season label */}
             <div className="flex-shrink-0 text-center w-10">
-              <p className="font-pixel text-gold text-[9px]">S{entry.season}</p>
-              <p className="font-mono text-[10px] text-muted-foreground">{winPct}%</p>
+              <p className="font-pixel text-gold text-xs">S{entry.season}</p>
+              <p className="font-mono text-xs text-muted-foreground">{winPct}%</p>
             </div>
 
             {/* Record */}
             <div className="flex-shrink-0 text-center w-14">
               <p className="font-mono font-bold text-sm">{entry.wins}–{entry.losses}</p>
-              <p className="text-[9px] text-muted-foreground">{entry.confWins}–{entry.confLosses} conf</p>
+              <p className="text-xs text-muted-foreground">{entry.confWins}–{entry.confLosses} conf</p>
             </div>
 
             {/* Postseason + class rank */}
@@ -123,9 +123,9 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
               {entry.classRank && (
                 <div className="flex items-center gap-1.5">
                   <Star className="w-3 h-3 text-gold" />
-                  <span className="text-[9px]">#{entry.classRank} class</span>
+                  <span className="text-xs">#{entry.classRank} class</span>
                   {entry.grade && (
-                    <span className={`font-pixel text-[9px] font-bold ${gradeColor(entry.grade)}`}>
+                    <span className={`font-pixel text-xs font-bold ${gradeColor(entry.grade)}`}>
                       {entry.grade}
                     </span>
                   )}
@@ -136,8 +136,8 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
             {/* Draft picks quick */}
             {entry.draftedCount > 0 && (
               <div className="flex-shrink-0 text-center">
-                <p className="text-[9px] text-yellow-400 font-medium">{entry.draftedCount}</p>
-                <p className="text-[8px] text-muted-foreground">draft</p>
+                <p className="text-xs text-yellow-400 font-medium">{entry.draftedCount}</p>
+                <p className="text-xs text-muted-foreground">draft</p>
               </div>
             )}
 
@@ -155,9 +155,9 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
             <div className="flex items-center gap-2 p-2 rounded bg-yellow-500/10 border border-yellow-500/20">
               <Trophy className="w-3.5 h-3.5 text-yellow-400 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-yellow-400 font-pixel">TOP DRAFT PICK</p>
+                <p className="text-xs text-yellow-400 font-pixel">TOP DRAFT PICK</p>
                 <p className="text-sm font-medium truncate">{entry.topDraftPick.name}</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {entry.topDraftPick.position} · {entry.topDraftPick.overall} OVR
                   {entry.topDraftPick.round && ` · Round ${entry.topDraftPick.round}`}
                 </p>
@@ -170,9 +170,9 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
             <div className="flex items-center gap-2 p-2 rounded bg-background/40 border border-border/40">
               <Star className="w-3.5 h-3.5 text-gold flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-gold font-pixel">TOP RECRUIT</p>
+                <p className="text-xs text-gold font-pixel">TOP RECRUIT</p>
                 <p className="text-sm font-medium truncate">{entry.topRecruitName}</p>
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   {entry.topRecruitOvr && <span>{entry.topRecruitOvr} OVR</span>}
                   {entry.topRecruitStars && <StarRow stars={entry.topRecruitStars} />}
                   {entry.totalCommits > 0 && <span>· {entry.totalCommits} commits</span>}
@@ -184,20 +184,20 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
           {/* Departed players */}
           {entry.departed.length > 0 && (
             <div>
-              <p className="font-pixel text-[8px] text-muted-foreground mb-2">
+              <p className="font-pixel text-xs text-muted-foreground mb-2">
                 DEPARTURES ({entry.departedCount} total)
               </p>
               <div className="space-y-1">
                 {entry.departed.map((d, i) => (
                   <div key={i} className="flex items-center gap-2 py-1">
                     <span className="text-sm font-medium flex-1 truncate">{d.name}</span>
-                    <Badge variant="outline" className="text-[7px] flex-shrink-0">{d.position}</Badge>
-                    <span className="text-[10px] text-muted-foreground flex-shrink-0">{d.overall}</span>
+                    <Badge variant="outline" className="text-xs flex-shrink-0">{d.position}</Badge>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">{d.overall}</span>
                     <DepartureLabel type={d.departureType} round={d.draftRound} />
                   </div>
                 ))}
                 {entry.departedCount > entry.departed.length && (
-                  <p className="text-[9px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     …and {entry.departedCount - entry.departed.length} more
                   </p>
                 )}
@@ -207,7 +207,7 @@ function SeasonCard({ entry, leagueId, teamId }: { entry: SeasonEntry; leagueId:
 
           {/* Archive link for this season */}
           <Link href={`/league/${leagueId}/archive?season=${entry.season}`}>
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground hover:text-gold transition-colors cursor-pointer pt-1" data-testid={`link-season-archive-${entry.season}`}>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer pt-1" data-testid={`link-season-archive-${entry.season}`}>
               <BookOpen className="w-3 h-3" />
               <span>View full Season {entry.season} archive</span>
               <ArrowRight className="w-3 h-3 ml-auto" />
@@ -263,8 +263,8 @@ export default function ArchiveTeamPage() {
                 <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: team.color }} />
               )}
               <div className="min-w-0">
-                <p className="font-pixel text-gold text-[9px]">{leagueData?.league?.name?.toUpperCase() ?? "LEAGUE"}</p>
-                <h1 className="font-pixel text-[11px] text-foreground truncate">
+                <p className="font-pixel text-gold text-xs">{leagueData?.league?.name?.toUpperCase() ?? "LEAGUE"}</p>
+                <h1 className="font-pixel text-xs text-foreground truncate">
                   {isLoading ? "Loading…" : (team?.name ?? "Team History")}
                 </h1>
               </div>
@@ -291,26 +291,26 @@ export default function ArchiveTeamPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: team.color }} />
                   <span>{team.name}</span>
-                  <Badge variant="outline" className="text-[8px] ml-auto">{history.length} season{history.length !== 1 ? "s" : ""}</Badge>
+                  <Badge variant="outline" className="text-xs ml-auto">{history.length} season{history.length !== 1 ? "s" : ""}</Badge>
                 </div>
               </RetroCardHeader>
               <RetroCardContent>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="text-center p-2 rounded bg-background/40 border border-border/40">
                     <p className="font-mono font-bold text-base">{totalWins}–{totalLosses}</p>
-                    <p className="text-[9px] text-muted-foreground">All-time</p>
+                    <p className="text-xs text-muted-foreground">All-time</p>
                   </div>
                   <div className="text-center p-2 rounded bg-background/40 border border-border/40">
                     <p className="font-bold text-base text-gold">{championships}</p>
-                    <p className="text-[9px] text-muted-foreground">CWS Titles</p>
+                    <p className="text-xs text-muted-foreground">CWS Titles</p>
                   </div>
                   <div className="text-center p-2 rounded bg-background/40 border border-border/40">
                     <p className="font-bold text-base">{confTitles}</p>
-                    <p className="text-[9px] text-muted-foreground">Conf Titles</p>
+                    <p className="text-xs text-muted-foreground">Conf Titles</p>
                   </div>
                   <div className="text-center p-2 rounded bg-background/40 border border-border/40">
                     <p className="font-bold text-base text-yellow-400">{totalDrafted}</p>
-                    <p className="text-[9px] text-muted-foreground">Draft Picks</p>
+                    <p className="text-xs text-muted-foreground">Draft Picks</p>
                   </div>
                 </div>
               </RetroCardContent>
@@ -339,7 +339,7 @@ export default function ArchiveTeamPage() {
                   <BookOpen className="w-4 h-4 text-gold flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium">All Seasons</p>
-                    <p className="text-[9px] text-muted-foreground">League archive</p>
+                    <p className="text-xs text-muted-foreground">League archive</p>
                   </div>
                 </div>
               </Link>
@@ -348,7 +348,7 @@ export default function ArchiveTeamPage() {
                   <Users className="w-4 h-4 text-gold flex-shrink-0" />
                   <div>
                     <p className="text-xs font-medium">Current Roster</p>
-                    <p className="text-[9px] text-muted-foreground">Team view</p>
+                    <p className="text-xs text-muted-foreground">Team view</p>
                   </div>
                 </div>
               </Link>

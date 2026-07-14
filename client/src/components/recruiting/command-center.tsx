@@ -74,12 +74,12 @@ function CcCard({
     >
       <div className="flex items-center gap-1.5 mb-2">
         <span className={`shrink-0 ${headerCls[accent]}`}>{icon}</span>
-        <span className={`font-pixel text-[8px] uppercase tracking-wider ${headerCls[accent]}`}>
+        <span className={`font-pixel text-xs uppercase tracking-wider ${headerCls[accent]}`}>
           {title}
         </span>
         {badge !== undefined && badge > 0 && (
           <span
-            className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black/40 ${headerCls[accent]}`}
+            className={`ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full bg-black/40 ${headerCls[accent]}`}
           >
             {badge}
           </span>
@@ -119,13 +119,13 @@ function RecruitChip({
       className={`w-full flex items-center gap-1.5 px-1.5 py-1 rounded border border-border/30 ${hoverCls[accent]} transition-colors text-left disabled:opacity-60 disabled:cursor-default`}
       data-testid={`cmd-center-${name.replace(/\s+/g, "-").toLowerCase()}`}
     >
-      <span className="text-[8px] text-gold shrink-0 leading-none">
+      <span className="text-xs text-gold shrink-0 leading-none">
         {"★".repeat(Math.min(5, Math.round(starRating)))}
       </span>
-      <span className="text-[10px] font-medium text-foreground truncate flex-1">{name}</span>
-      <span className="text-[9px] text-muted-foreground shrink-0">{position}</span>
+      <span className="text-xs font-medium text-foreground truncate flex-1">{name}</span>
+      <span className="text-xs text-muted-foreground shrink-0">{position}</span>
       {subtext && (
-        <span className="text-[9px] text-muted-foreground/70 shrink-0 ml-0.5">{subtext}</span>
+        <span className="text-xs text-muted-foreground/70 shrink-0 ml-0.5">{subtext}</span>
       )}
     </button>
   );
@@ -133,7 +133,7 @@ function RecruitChip({
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <p className="text-[10px] text-muted-foreground/60 italic py-1.5 text-center">{label}</p>
+    <p className="text-xs text-muted-foreground/60 italic py-1.5 text-center">{label}</p>
   );
 }
 
@@ -212,11 +212,11 @@ export function RecruitingCommandCenter({
       >
         <div className="flex items-center gap-2">
           <Zap className="w-3.5 h-3.5 text-gold" />
-          <span className="font-pixel text-[9px] text-gold uppercase tracking-wider">
+          <span className="font-pixel text-xs text-gold uppercase tracking-wider">
             Command Center
           </span>
           {alertCount > 0 && (
-            <span className="text-[9px] text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
+            <span className="text-xs text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
               {alertCount} alerts
             </span>
           )}
@@ -321,7 +321,7 @@ export function RecruitingCommandCenter({
             >
               <div className="flex items-baseline gap-1 mb-1.5">
                 <span className="text-[13px] font-bold text-gold">{formatNil(nilRemaining)}</span>
-                <span className="text-[9px] text-muted-foreground">remaining</span>
+                <span className="text-xs text-muted-foreground">remaining</span>
               </div>
               {nilCandidates.length === 0 ? (
                 <EmptyState label="No NIL-ready targets" />
@@ -353,7 +353,7 @@ export function RecruitingCommandCenter({
                     <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                       <div className="h-full w-0 rounded-full bg-blue-400/30" />
                     </div>
-                    <span className="text-[10px] text-muted-foreground/40 tabular-nums shrink-0">—/—</span>
+                    <span className="text-xs text-muted-foreground/40 tabular-nums shrink-0">—/—</span>
                   </div>
                   <div className="h-2.5 w-24 rounded bg-white/10 animate-pulse" />
                 </div>
@@ -374,7 +374,7 @@ export function RecruitingCommandCenter({
                     </div>
                     <span
                       data-testid="visit-planner-count"
-                      className={`text-[10px] font-bold tabular-nums shrink-0 ${
+                      className={`text-xs font-bold tabular-nums shrink-0 ${
                         visitCapReached
                           ? "text-red-400"
                           : visitPct >= 80
@@ -385,13 +385,13 @@ export function RecruitingCommandCenter({
                       {visitsUsed}/{visitsMax ?? "—"}
                     </span>
                   </div>
-                  <div className="flex gap-2 text-[9px] text-muted-foreground">
+                  <div className="flex gap-2 text-xs text-muted-foreground">
                     <span data-testid="visit-planner-campus-count">{recruitingData?.economy?.visits?.campusUsed ?? recruitingData?.seasonVisitCount?.campusVisits ?? 0} campus</span>
                     <span>·</span>
                     <span data-testid="visit-planner-hc-count">{recruitingData?.economy?.visits?.headCoachUsed ?? recruitingData?.seasonVisitCount?.hcVisits ?? 0} HC</span>
                   </div>
                   {visitCapReached && (
-                    <p className="text-[9px] text-red-400 mt-1 font-semibold">Visit cap reached</p>
+                    <p className="text-xs text-red-400 mt-1 font-semibold">Visit cap reached</p>
                   )}
                 </>
               )}
@@ -411,7 +411,7 @@ export function RecruitingCommandCenter({
                   {posNeeds.map((p) => (
                     <span
                       key={p.position}
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/10 text-red-400"
+                      className="text-xs font-bold px-1.5 py-0.5 rounded border border-red-500/40 bg-red-500/10 text-red-400"
                       data-testid={`cmd-need-${p.position}`}
                     >
                       {p.position}
@@ -420,7 +420,7 @@ export function RecruitingCommandCenter({
                 </div>
               )}
               {pipelineData && (
-                <p className="text-[9px] text-muted-foreground mt-1.5">
+                <p className="text-xs text-muted-foreground mt-1.5">
                   {pipelineData.rosterSize} on roster · {recruitingData?.commitsCount ?? 0} committed
                 </p>
               )}

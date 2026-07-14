@@ -404,7 +404,7 @@ export default function EditRostersPage() {
                                           />
                                         </div>
                                         <div className="space-y-0.5">
-                                          <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Skin Tone</p>
+                                          <p className="font-pixel text-xs text-gold uppercase tracking-wide">Skin Tone</p>
                                           <Select value={currentSkinTone} onValueChange={(v) => updatePlayer(player.id, "skinTone", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-skintone-${player.id}`}>
                                               <SelectValue />
@@ -417,7 +417,7 @@ export default function EditRostersPage() {
                                           </Select>
                                         </div>
                                         <div className="space-y-0.5">
-                                          <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Hair Color</p>
+                                          <p className="font-pixel text-xs text-gold uppercase tracking-wide">Hair Color</p>
                                           <Select value={currentHairColor} onValueChange={(v) => updatePlayer(player.id, "hairColor", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-haircolor-${player.id}`}>
                                               <SelectValue />
@@ -430,7 +430,7 @@ export default function EditRostersPage() {
                                           </Select>
                                         </div>
                                         <div className="space-y-0.5">
-                                          <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Hair Style</p>
+                                          <p className="font-pixel text-xs text-gold uppercase tracking-wide">Hair Style</p>
                                           <Select value={currentHairStyle} onValueChange={(v) => updatePlayer(player.id, "hairStyle", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-hairstyle-${player.id}`}>
                                               <SelectValue />
@@ -535,7 +535,7 @@ export default function EditRostersPage() {
                                 {/* B/T */}
                                 <td className="px-2 py-1">
                                   <div className="flex items-center gap-1">
-                                    <span className="text-[9px] text-muted-foreground font-pixel">B:</span>
+                                    <span className="text-xs text-muted-foreground font-pixel">B:</span>
                                     <Select
                                       value={getPlayerValue(player, "batHand")}
                                       onValueChange={(v) => updatePlayer(player.id, "batHand", v)}
@@ -549,7 +549,7 @@ export default function EditRostersPage() {
                                         ))}
                                       </SelectContent>
                                     </Select>
-                                    <span className="text-[9px] text-muted-foreground font-pixel">T:</span>
+                                    <span className="text-xs text-muted-foreground font-pixel">T:</span>
                                     <Select
                                       value={getPlayerValue(player, "throwHand")}
                                       onValueChange={(v) => updatePlayer(player.id, "throwHand", v)}
@@ -1237,13 +1237,13 @@ function AbilityEditor({
               {currentAbilities.slice(0, 2).map((ability) => (
                 <span 
                   key={ability.name}
-                  className={`text-[9px] px-1 rounded ${getTierColor(ability.tier)}`}
+                  className={`text-xs px-1 rounded ${getTierColor(ability.tier)}`}
                 >
                   {ability.name.split(" ")[0]}
                 </span>
               ))}
               {abilities.length > 2 && (
-                <span className="text-[9px] text-muted-foreground">+{abilities.length - 2}</span>
+                <span className="text-xs text-muted-foreground">+{abilities.length - 2}</span>
               )}
             </div>
           )}
@@ -1257,7 +1257,7 @@ function AbilityEditor({
             if (tierAbilities.length === 0) return null;
             return (
               <div key={tier} className="space-y-1">
-                <div className={`text-[10px] font-semibold uppercase ${getTierColor(tier)}`}>
+                <div className={`text-xs font-semibold uppercase ${getTierColor(tier)}`}>
                   {tier} Tier
                 </div>
                 {tierAbilities.map(ability => (
@@ -1272,7 +1272,7 @@ function AbilityEditor({
                     />
                     <div className="flex-1">
                       <div className={`text-xs ${getTierColor(ability.tier)}`}>{ability.name}</div>
-                      <div className="text-[9px] text-muted-foreground">{ability.description}</div>
+                      <div className="text-xs text-muted-foreground">{ability.description}</div>
                     </div>
                   </label>
                 ))}

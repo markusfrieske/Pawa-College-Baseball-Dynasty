@@ -72,9 +72,9 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 cursor-pointer" data-testid="link-home-logo">
             <div className="w-9 h-9 bg-gold rounded flex items-center justify-center shrink-0">
-              <span className="text-forest-dark font-pixel text-[9px]">CBD</span>
+              <span className="text-forest-dark font-pixel text-xs">CBD</span>
             </div>
-            <span className="font-pixel text-gold text-[11px] hidden sm:block leading-tight">
+            <span className="font-pixel text-gold text-xs hidden sm:block leading-tight">
               College Baseball Dynasty
             </span>
           </Link>
@@ -129,7 +129,7 @@ export default function DashboardPage() {
           </div>
         ) : activeLeagues.length > 0 ? (
           <div>
-            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3">Active Dynasties</p>
+            <p className="font-pixel text-xs text-muted-foreground uppercase tracking-widest mb-3">Active Dynasties</p>
             <div className="grid md:grid-cols-2 gap-4">
               {activeLeagues.map((league) => (
                 <LeagueCard key={league.id} league={league} userId={user?.id} />
@@ -143,7 +143,7 @@ export default function DashboardPage() {
         {/* ── Setup Files ──────────────────────────────────────────────────── */}
         {setupLeagues.length > 0 && (
           <div>
-            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3">Pending Setup</p>
+            <p className="font-pixel text-xs text-muted-foreground uppercase tracking-widest mb-3">Pending Setup</p>
             <div className="grid md:grid-cols-2 gap-4">
               {setupLeagues.map((league) => (
                 <LeagueCard key={league.id} league={league} userId={user?.id} />
@@ -155,7 +155,7 @@ export default function DashboardPage() {
         {/* ── Saved Rosters ────────────────────────────────────────────────── */}
         {(savedRosters.length > 0 || rostersLoading) && (
           <div>
-            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3" data-testid="section-rosters">Roster Files</p>
+            <p className="font-pixel text-xs text-muted-foreground uppercase tracking-widest mb-3" data-testid="section-rosters">Roster Files</p>
             {rostersLoading ? (
               <div className="grid md:grid-cols-2 gap-4">
                 {[1, 2].map((i) => (
@@ -175,7 +175,7 @@ export default function DashboardPage() {
         {/* ── Saved Recruiting Classes ─────────────────────────────────────── */}
         {(savedRecruitingClasses.length > 0 || classesLoading) && (
           <div>
-            <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-widest mb-3" data-testid="section-recruiting">Recruiting Class Files</p>
+            <p className="font-pixel text-xs text-muted-foreground uppercase tracking-widest mb-3" data-testid="section-recruiting">Recruiting Class Files</p>
             {classesLoading ? (
               <div className="grid md:grid-cols-2 gap-4">
                 {[1, 2].map((i) => (
@@ -478,30 +478,30 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
             {isPrimaryCommissioner ? (
               <div className="flex items-center gap-1 shrink-0" data-testid={`badge-commissioner-${league.id}`}>
                 <Crown className="w-3 h-3 text-gold" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMMISSIONER</Badge>
+                <Badge variant="outline" className="font-pixel text-xs text-gold border-gold/40 bg-gold/10">COMMISSIONER</Badge>
               </div>
             ) : (
               <div className="flex items-center gap-1 shrink-0" data-testid={`badge-commissioner-identity-${league.id}`}>
                 <Crown className="w-3 h-3 text-gold" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMM: {commLabel}</Badge>
+                <Badge variant="outline" className="font-pixel text-xs text-gold border-gold/40 bg-gold/10">COMM: {commLabel}</Badge>
               </div>
             )}
             {isDelegate && (
               <div className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-${league.id}`}>
                 <Crown className="w-3 h-3 text-blue-400" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
+                <Badge variant="outline" className="font-pixel text-xs text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
               </div>
             )}
             {coCommAbbrs.filter(a => a !== league.userTeam?.abbreviation).map(abbr => (
               <div key={abbr} className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-identity-${abbr}-${league.id}`}>
                 <Crown className="w-3 h-3 text-blue-400" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DEL: {abbr}</Badge>
+                <Badge variant="outline" className="font-pixel text-xs text-blue-400 border-blue-400/40 bg-blue-400/10">DEL: {abbr}</Badge>
               </div>
             ))}
           </div>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="text-[8px] text-muted-foreground whitespace-nowrap">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
             Season {league.currentSeason}
           </span>
           <AlertDialog>
@@ -543,7 +543,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
             data-testid={`banner-autopilot-${league.id}`}
           >
             <Bot className="w-3.5 h-3.5 shrink-0 text-blue-400" />
-            <span>Your team is on <span className="font-pixel text-[9px] text-blue-400">AUTO-PILOT</span> — the CPU is managing your actions. Contact your commissioner to regain control.</span>
+            <span>Your team is on <span className="font-pixel text-xs text-blue-400">AUTO-PILOT</span> — the CPU is managing your actions. Contact your commissioner to regain control.</span>
           </div>
         </div>
       )}
@@ -590,8 +590,8 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
               data-testid={`banner-class-vintage-${league.id}`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-pixel text-[8px] uppercase tracking-wider">{cfg.label}</span>
-              <span className="text-[10px] opacity-60 ml-1">· Season {league.currentSeason}</span>
+              <span className="font-pixel text-xs uppercase tracking-wider">{cfg.label}</span>
+              <span className="text-xs opacity-60 ml-1">· Season {league.currentSeason}</span>
             </div>
           </div>
         );
@@ -611,10 +611,10 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
                   size="lg"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="font-pixel text-foreground text-[10px] sm:text-xs truncate leading-tight">
+                  <p className="font-pixel text-foreground text-xs sm:text-xs truncate leading-tight">
                     {league.userTeam.name}
                   </p>
-                  <p className="text-[10px] text-muted-foreground truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {league.userTeam.city}, {league.userTeam.state}
                   </p>
                 </div>
@@ -630,28 +630,28 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-2 mb-4">
             <div className="bg-muted/30 rounded p-2 text-center border border-border/50">
-              <p className="font-pixel text-gold text-[10px] leading-none mb-1">
+              <p className="font-pixel text-gold text-xs leading-none mb-1">
                 {league.currentSeason > 0 ? `S${league.currentSeason}` : "PRE"}
               </p>
-              <p className="text-[9px] text-muted-foreground">Season</p>
+              <p className="text-xs text-muted-foreground">Season</p>
             </div>
             <div className="bg-muted/30 rounded p-2 text-center border border-border/50">
-              <p className="font-pixel text-foreground text-[10px] leading-none mb-1">
+              <p className="font-pixel text-foreground text-xs leading-none mb-1">
                 {`W${league.currentWeek}`}
               </p>
-              <p className="text-[9px] text-muted-foreground">Week</p>
+              <p className="text-xs text-muted-foreground">Week</p>
             </div>
             <div className="bg-muted/30 rounded p-2 text-center border border-border/50">
-              <p className="font-pixel text-foreground text-[10px] leading-none mb-1">
+              <p className="font-pixel text-foreground text-xs leading-none mb-1">
                 {league.teams?.length || 0}/{league.maxTeams}
               </p>
-              <p className="text-[9px] text-muted-foreground">Teams</p>
+              <p className="text-xs text-muted-foreground">Teams</p>
             </div>
           </div>
 
           {/* Phase + CTA row */}
           <div className="flex items-center justify-between gap-2">
-            <span className={`inline-flex items-center gap-1.5 font-pixel text-[8px] px-2 py-1 rounded border ${
+            <span className={`inline-flex items-center gap-1.5 font-pixel text-xs px-2 py-1 rounded border ${
               league.currentPhase === "dynasty_setup"
                 ? "border-yellow-500/40 text-yellow-400 bg-yellow-500/10"
                 : ["regular_season", "conference_championship", "super_regionals", "cws"].includes(league.currentPhase)
@@ -664,7 +664,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
                 <><Swords className="w-2.5 h-2.5" />{(phaseLabels[league.currentPhase] || league.currentPhase).toUpperCase()}</>
               )}
             </span>
-            <span className="flex items-center gap-1 text-xs text-gold font-pixel text-[9px] group-hover:gap-2 transition-all">
+            <span className="flex items-center gap-1 text-xs text-gold font-pixel text-xs group-hover:gap-2 transition-all">
               {league.currentPhase === "dynasty_setup" ? "RESUME SETUP" : "CONTINUE"}
               <ChevronRight className="w-3.5 h-3.5" />
             </span>

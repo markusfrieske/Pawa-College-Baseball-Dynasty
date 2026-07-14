@@ -44,7 +44,7 @@ function OcrCorrectionsPanel({ leagueId, gameId }: { leagueId: string; gameId: s
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1 text-[10px] text-gold/80 hover:text-gold"
+        className="flex items-center gap-1 text-xs text-gold/80 hover:text-gold"
         data-testid={`button-toggle-ocr-audit-${gameId}`}
       >
         <History className="w-3 h-3" />
@@ -55,7 +55,7 @@ function OcrCorrectionsPanel({ leagueId, gameId }: { leagueId: string; gameId: s
         <div className="mt-2 border border-border/40 rounded p-2 bg-black/20" data-testid={`panel-ocr-audit-${gameId}`}>
           {isLoading && <Skeleton className="h-12 w-full" />}
           {!isLoading && (data?.corrections?.length ?? 0) === 0 && (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               No coach corrections were made to OCR-extracted values for this game.
             </p>
           )}
@@ -64,7 +64,7 @@ function OcrCorrectionsPanel({ leagueId, gameId }: { leagueId: string; gameId: s
               {/* The corrected value is what the coach submitted as the final stat line for
                   each field, since corrections are captured at the moment of edit and no
                   further raw OCR value overwrites them afterward. */}
-              <table className="w-full text-[10px]">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="text-muted-foreground border-b border-border/30">
                     <th className="text-left py-1 pr-2">Field</th>
@@ -82,7 +82,7 @@ function OcrCorrectionsPanel({ leagueId, gameId }: { leagueId: string; gameId: s
                   ))}
                 </tbody>
               </table>
-              <p className="text-[9px] text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {data!.correctedFieldCount} field(s) corrected by coach during review.
               </p>
             </>
@@ -235,7 +235,7 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
             <div className="flex items-center gap-2 flex-wrap">
               <Badge
                 variant="outline"
-                className={`text-[9px] ${
+                className={`text-xs ${
                   isDisputed
                     ? "border-red-600 text-red-400"
                     : isPending
@@ -262,7 +262,7 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
               Reported by: <span className="text-foreground">{reporterLabel}</span>
             </p>
             {parsedInnings && parsedInnings.length > 0 && (
-              <div className="text-[9px] font-mono text-muted-foreground overflow-x-auto">
+              <div className="text-xs font-mono text-muted-foreground overflow-x-auto">
                 <div className="flex gap-1">
                   <span className="w-14 shrink-0 text-right pr-1">Away</span>
                   {parsedInnings.map(([away], i) => (
@@ -298,7 +298,7 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
                 Proposed correction: {report.disputeCorrectedAwayScore} - {report.disputeCorrectedHomeScore}
               </p>
             )}
-            <p className="text-[9px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Submitted {new Date(report.createdAt).toLocaleDateString()}
             </p>
             <GameScreenshotGallery leagueId={leagueId} gameId={report.gameId} />

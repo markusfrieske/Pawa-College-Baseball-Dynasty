@@ -86,7 +86,7 @@ function PlayerMiniCard({ player, reason }: { player: Player; reason: "graduate"
           <span className="text-[#C4A35A]">{"★".repeat(player.starRating)}</span>
         </div>
       </div>
-      <Badge className={`text-[10px] ${reasonColor[reason]} border-0`}>
+      <Badge className={`text-xs ${reasonColor[reason]} border-0`}>
         <span className="flex items-center gap-1">
           {reasonIcon[reason]}
           {reasonLabel[reason]}

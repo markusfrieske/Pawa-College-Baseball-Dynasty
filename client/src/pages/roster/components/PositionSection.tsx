@@ -64,23 +64,23 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                   <span className="font-medium text-xs truncate min-w-0">{player.firstName} {player.lastName}</span>
                   <PositionBadge position={player.position} size="sm" />
                   {player.captainRole && (
-                    <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/50 text-gold bg-gold/10" data-testid={`badge-captain-mobile-${player.id}`}>
+                    <span className="inline-flex items-center gap-0.5 font-pixel text-xs px-1 py-0.5 rounded border border-gold/50 text-gold bg-gold/10" data-testid={`badge-captain-mobile-${player.id}`}>
                       <Shield className="w-2 h-2" />C
                     </span>
                   )}
                 </div>
                 <div className="flex items-center flex-wrap gap-1 text-xs text-muted-foreground">
-                  <span className="text-[10px]">{player.eligibility}</span>
+                  <span className="text-xs">{player.eligibility}</span>
                   {isPitcher(player.position) ? (
                     <>
-                      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-mobile-${player.id}`}>{player.throwHand}HP</span>
+                      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-mobile-${player.id}`}>{player.throwHand}HP</span>
                     </>
                   ) : (
                     <>
-                      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-bat-mobile-${player.id}`}>B:{player.batHand}</span>
-                      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-throw-mobile-${player.id}`}>T:{player.throwHand}</span>
+                      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-bat-mobile-${player.id}`}>B:{player.batHand}</span>
+                      <span className={`font-pixel text-xs px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-throw-mobile-${player.id}`}>T:{player.throwHand}</span>
                       {(player as any).trajectory != null && (
-                        <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-mobile-${player.id}`}>
+                        <span className="inline-flex items-center gap-0.5 font-pixel text-xs px-1 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-mobile-${player.id}`}>
                           {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                           {TRAJECTORY_ICONS[(player as any).trajectory]}
                         </span>
@@ -88,7 +88,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                     </>
                   )}
                   {progressionEnabled && player.potential != null && (
-                    <span className={`font-bold text-[10px] ${getProgressionColor(getProgressionZone(player.potential))}`}>
+                    <span className={`font-bold text-xs ${getProgressionColor(getProgressionZone(player.potential))}`}>
                       {getPotentialGrade(player.potential)}
                     </span>
                   )}
@@ -98,13 +98,13 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                 <div className="flex items-center gap-0.5">
                   <span className="font-bold text-gold text-sm">{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
-                    <span className={`flex items-center text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
+                    <span className={`flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
                       {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
                       {Math.abs(player.progressionDeltas.overall)}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-muted-foreground">#{player.jerseyNumber}</span>
+                <span className="text-xs text-muted-foreground">#{player.jerseyNumber}</span>
               </div>
             </div>
           </button>
@@ -165,7 +165,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                       {player.firstName} {player.lastName}
                     </button>
                     {player.captainRole && (
-                      <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/50 text-gold bg-gold/10 shrink-0" data-testid={`badge-captain-desktop-${player.id}`}>
+                      <span className="inline-flex items-center gap-0.5 font-pixel text-xs px-1.5 py-0.5 rounded border border-gold/50 text-gold bg-gold/10 shrink-0" data-testid={`badge-captain-desktop-${player.id}`}>
                         <Shield className="w-2.5 h-2.5" />C
                       </span>
                     )}
@@ -194,13 +194,13 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                 <td className="text-center py-3 px-2">
                   {isPitcher(player.position) ? (
                     <div className="flex items-center gap-1 justify-center flex-wrap">
-                      <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
+                      <span className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 justify-center flex-wrap">
-                      <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}/{player.throwHand}</span>
+                      <span className={`font-pixel text-xs px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}/{player.throwHand}</span>
                       {(player as any).trajectory != null && (
-                        <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-desktop-${player.id}`}>
+                        <span className="inline-flex items-center gap-0.5 font-pixel text-xs px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-desktop-${player.id}`}>
                           {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                           {TRAJECTORY_ICONS[(player as any).trajectory]}
                         </span>
@@ -211,7 +211,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                 <td className="text-center py-3 px-2">
                   <span className="font-bold text-gold">{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
-                    <span className={`inline-flex items-center ml-1 text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
+                    <span className={`inline-flex items-center ml-1 text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
                       {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
                       {Math.abs(player.progressionDeltas.overall)}
                     </span>

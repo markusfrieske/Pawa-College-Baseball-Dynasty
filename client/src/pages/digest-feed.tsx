@@ -37,8 +37,8 @@ function CategorySection({
         data-testid={`toggle-${testId}`}
       >
         <div className="text-gold">{icon}</div>
-        <p className="font-pixel text-gold text-[9px] flex-1">{title}</p>
-        <Badge variant="outline" className="text-[9px] border-border">{count}</Badge>
+        <p className="font-pixel text-gold text-xs flex-1">{title}</p>
+        <Badge variant="outline" className="text-xs border-border">{count}</Badge>
         {expanded ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
       </button>
       {expanded && <div className="space-y-2">{children}</div>}
@@ -54,12 +54,12 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
       <RetroCardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <p className="font-pixel text-gold text-[10px]">
+            <p className="font-pixel text-gold text-xs">
               Season {digest.season} · Week {digest.week}
             </p>
-            <p className="text-[10px] text-muted-foreground capitalize">{digest.phase.replace(/_/g, " ")}</p>
+            <p className="text-xs text-muted-foreground capitalize">{digest.phase.replace(/_/g, " ")}</p>
           </div>
-          <span className="text-[10px] text-muted-foreground" data-testid={`text-time-${digest.id}`}>
+          <span className="text-xs text-muted-foreground" data-testid={`text-time-${digest.id}`}>
             {timeAgo(digest.createdAt as unknown as string)}
           </span>
         </div>
@@ -73,11 +73,11 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
                   <p className="text-xs truncate">
                     {g.awayTeamName} {g.awayScore ?? "-"} @ {g.homeTeamName} {g.homeScore ?? "-"}
                   </p>
-                  {g.description && <p className="text-[10px] text-muted-foreground truncate">{g.description}</p>}
+                  {g.description && <p className="text-xs text-muted-foreground truncate">{g.description}</p>}
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                  {g.isUpset && <Badge variant="outline" className="text-[8px] text-amber-400 border-amber-500/40">UPSET</Badge>}
-                  {g.isRivalry && <Badge variant="outline" className="text-[8px] text-red-400 border-red-500/40">RIVALRY</Badge>}
+                  {g.isUpset && <Badge variant="outline" className="text-xs text-amber-400 border-amber-500/40">UPSET</Badge>}
+                  {g.isRivalry && <Badge variant="outline" className="text-xs text-red-400 border-red-500/40">RIVALRY</Badge>}
                 </div>
               </div>
             );
@@ -97,7 +97,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
                   <span className="font-semibold">{p.playerName}</span>
                   <span className="text-muted-foreground"> ({p.teamName})</span>
                 </p>
-                <p className="text-[10px] text-muted-foreground">{p.statLine}</p>
+                <p className="text-xs text-muted-foreground">{p.statLine}</p>
               </div>
             </Link>
           ))}
@@ -108,7 +108,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
             <Link key={i} href={`/league/${leagueId}/team/${s.teamId}`}>
               <div className="bg-muted/30 rounded p-2 flex items-center justify-between hover:bg-muted/50 cursor-pointer" data-testid={`item-standing-${digest.id}-${i}`}>
                 <p className="text-xs">{s.teamName}</p>
-                <div className="flex items-center gap-1 text-[10px]">
+                <div className="flex items-center gap-1 text-xs">
                   <span className="text-muted-foreground">{s.prevRank ?? "?"} → {s.newRank}</span>
                   {s.delta != null && s.delta !== 0 && (
                     s.delta > 0
@@ -125,7 +125,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
           {c.recruitingCommits?.map((r, i) => (
             <div key={i} className="bg-muted/30 rounded p-2" data-testid={`item-commit-${digest.id}-${i}`}>
               <p className="text-xs">{r.description}</p>
-              <p className="text-[10px] text-muted-foreground">{r.teamName}</p>
+              <p className="text-xs text-muted-foreground">{r.teamName}</p>
             </div>
           ))}
         </CategorySection>
@@ -135,7 +135,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
             <Link key={i} href={`/league/${leagueId}/recruit/${h.recruitId}`}>
               <div className="bg-muted/30 rounded p-2 flex items-center justify-between hover:bg-muted/50 cursor-pointer" data-testid={`item-heating-${digest.id}-${i}`}>
                 <p className="text-xs">{h.recruitName} <span className="text-muted-foreground">({h.position}, {h.stars}★)</span></p>
-                <p className="text-[10px] text-muted-foreground">{h.teamsInvolved} teams competing</p>
+                <p className="text-xs text-muted-foreground">{h.teamsInvolved} teams competing</p>
               </div>
             </Link>
           ))}
@@ -146,7 +146,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
             <Link key={i} href={`/league/${leagueId}/report-game/${p.gameId}`}>
               <div className="bg-muted/30 rounded p-2 flex items-center justify-between hover:bg-muted/50 cursor-pointer" data-testid={`item-pending-${digest.id}-${i}`}>
                 <p className="text-xs">{p.awayTeamName} @ {p.homeTeamName}</p>
-                <Badge variant="outline" className="text-[8px] border-border">{p.status}</Badge>
+                <Badge variant="outline" className="text-xs border-border">{p.status}</Badge>
               </div>
             </Link>
           ))}
@@ -156,7 +156,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
           {c.coachReadyStatus?.filter(cr => !cr.isCpu).map((cr, i) => (
             <div key={i} className="bg-muted/30 rounded p-2 flex items-center justify-between" data-testid={`item-ready-${digest.id}-${i}`}>
               <p className="text-xs">{cr.coachName} <span className="text-muted-foreground">({cr.teamName})</span></p>
-              <Badge variant="outline" className={`text-[8px] ${cr.isReady ? "text-emerald-400 border-emerald-500/40" : "text-amber-400 border-amber-500/40"}`}>
+              <Badge variant="outline" className={`text-xs ${cr.isReady ? "text-emerald-400 border-emerald-500/40" : "text-amber-400 border-amber-500/40"}`}>
                 {cr.isReady ? "READY" : "NOT READY"}
               </Badge>
             </div>
@@ -167,7 +167,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
           {c.commissionerActions?.map((a, i) => (
             <div key={i} className="bg-muted/30 rounded p-2" data-testid={`item-commissioner-${digest.id}-${i}`}>
               <p className="text-xs">{a.action}</p>
-              {a.details && <p className="text-[10px] text-muted-foreground">{a.details}</p>}
+              {a.details && <p className="text-xs text-muted-foreground">{a.details}</p>}
             </div>
           ))}
         </CategorySection>
@@ -202,7 +202,7 @@ export default function DigestFeedPage() {
             </Link>
             <div className="flex items-center gap-2">
               <Bell className="w-5 h-5 text-gold" />
-              <h1 className="font-pixel text-gold text-[11px] sm:text-[13px]">LEAGUE NEWS</h1>
+              <h1 className="font-pixel text-gold text-xs sm:text-[13px]">LEAGUE NEWS</h1>
             </div>
           </div>
         </div>

@@ -83,7 +83,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
           <Swords className="w-4 h-4 text-gold" />
           <span className="font-pixel text-xs text-gold">Recruit Storylines</span>
           {unvotedCount > 0 && (
-            <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse" data-testid="badge-unvoted-storylines">
+            <span className="font-pixel text-xs bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse" data-testid="badge-unvoted-storylines">
               {unvotedCount} vote{unvotedCount !== 1 ? "s" : ""} pending
             </span>
           )}
@@ -99,15 +99,15 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
         {/* Summary stats row */}
         <div className="grid grid-cols-3 gap-2 mb-3">
           <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
-            <div className="font-pixel text-[7px] text-muted-foreground mb-1">ARCS</div>
+            <div className="font-pixel text-xs text-muted-foreground mb-1">ARCS</div>
             <div className="text-lg font-bold">{storylines.length}</div>
           </div>
           <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
-            <div className="font-pixel text-[7px] text-muted-foreground mb-1">VOTES DUE</div>
+            <div className="font-pixel text-xs text-muted-foreground mb-1">VOTES DUE</div>
             <div className={`text-lg font-bold ${unvotedCount > 0 ? "text-gold animate-pulse" : ""}`}>{unvotedCount}</div>
           </div>
           <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
-            <div className="font-pixel text-[7px] text-muted-foreground mb-1">TOTAL WKS</div>
+            <div className="font-pixel text-xs text-muted-foreground mb-1">TOTAL WKS</div>
             <div className="text-lg font-bold">{storylines.reduce((t, s) => t + (s.currentArcStage ?? 0), 0)}</div>
           </div>
         </div>
@@ -124,11 +124,11 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
                   <Zap className="w-3 h-3 text-gold shrink-0" />
-                  <span className="font-pixel text-[8px] text-gold">VOTE PENDING</span>
+                  <span className="font-pixel text-xs text-gold">VOTE PENDING</span>
                   {sl.isLegendary && <Star className="w-3 h-3 text-gold shrink-0" />}
                 </div>
                 <Link href={`/league/${leagueId}/storylines`}>
-                  <span className="text-[9px] text-muted-foreground hover:text-gold transition-colors cursor-pointer underline-offset-2 hover:underline" data-testid="link-war-board-from-callout">
+                  <span className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer underline-offset-2 hover:underline" data-testid="link-war-board-from-callout">
                     Full view
                   </span>
                 </Link>
@@ -140,15 +140,15 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
                   {sl.recruit?.firstName} {sl.recruit?.lastName}
                 </span>
                 {sl.recruit?.position && (
-                  <span className="font-pixel text-[8px] text-muted-foreground">{sl.recruit.position}</span>
+                  <span className="font-pixel text-xs text-muted-foreground">{sl.recruit.position}</span>
                 )}
                 {sl.recruit?.starRank && (
-                  <span className="text-[9px] text-gold">{starLabel(sl.recruit.starRank)}</span>
+                  <span className="text-xs text-gold">{starLabel(sl.recruit.starRank)}</span>
                 )}
               </div>
 
               {/* Event prompt */}
-              <p className="text-[10px] text-foreground/70 leading-relaxed mb-2.5" data-testid="widget-vote-event-text">
+              <p className="text-xs text-foreground/70 leading-relaxed mb-2.5" data-testid="widget-vote-event-text">
                 {ev.eventText}
               </p>
 
@@ -170,14 +170,14 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
                             : "border-gold/30 bg-background/40 hover:bg-gold/10 hover:border-gold/60 cursor-pointer"
                         }`}
                       >
-                        <span className={`font-pixel text-[9px] shrink-0 mt-0.5 w-4 ${isThis ? "text-gold" : "text-muted-foreground"}`}>
+                        <span className={`font-pixel text-xs shrink-0 mt-0.5 w-4 ${isThis ? "text-gold" : "text-muted-foreground"}`}>
                           {isThis ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
                             c
                           )}
                         </span>
-                        <span className="text-[10px] text-foreground/80 leading-snug line-clamp-2">{choiceText}</span>
+                        <span className="text-xs text-foreground/80 leading-snug line-clamp-2">{choiceText}</span>
                       </button>
                     );
                   })}
@@ -185,7 +185,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
               ) : (
                 /* Fallback if choice text not in widget data — navigate to War Board */
                 <Link href={`/league/${leagueId}/storylines`}>
-                  <div className="flex items-center gap-1.5 text-[10px] text-gold hover:underline cursor-pointer">
+                  <div className="flex items-center gap-1.5 text-xs text-gold hover:underline cursor-pointer">
                     <Zap className="w-3 h-3" /> Cast your vote on the War Board
                   </div>
                 </Link>
@@ -197,7 +197,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
                   {Object.entries(sl.voteCounts)
                     .filter(([, count]) => count > 0)
                     .map(([choice, count]) => (
-                      <span key={choice} className="text-[9px] px-1.5 py-0.5 rounded bg-background/50 border border-border/60 text-muted-foreground">
+                      <span key={choice} className="text-xs px-1.5 py-0.5 rounded bg-background/50 border border-border/60 text-muted-foreground">
                         {choice}: {count}
                       </span>
                     ))}
@@ -206,7 +206,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
 
               {/* Error message */}
               {voteError && (
-                <p className="mt-2 text-[9px] text-red-400" data-testid="widget-vote-error">{voteError}</p>
+                <p className="mt-2 text-xs text-red-400" data-testid="widget-vote-error">{voteError}</p>
               )}
             </div>
           );
@@ -218,7 +218,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
           return (
             <div className="mb-3 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2" data-testid="widget-vote-cast-confirm">
               <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="text-[10px] text-emerald-400">
+              <span className="text-xs text-emerald-400">
                 Voted <strong>{sl.myVote}</strong> on {sl.recruit?.firstName} {sl.recruit?.lastName}'s storyline
               </span>
             </div>
@@ -228,7 +228,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
         {/* Active arcs list */}
         {mostActive.length > 0 && (
           <div className="space-y-1.5">
-            <div className="font-pixel text-[8px] text-muted-foreground mb-1">ACTIVE ARCS</div>
+            <div className="font-pixel text-xs text-muted-foreground mb-1">ACTIVE ARCS</div>
             {mostActive.map((sl) => {
               const hasOpenVote = !!sl.activeEvent && !sl.myVote;
               const totalVotes = sl.voteCounts
@@ -243,22 +243,22 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
                       {sl.isLegendary && <Star className="w-3 h-3 text-gold flex-shrink-0" />}
                       <span className="text-xs font-medium truncate flex-1">
                         {sl.recruit?.firstName} {sl.recruit?.lastName}
-                        {sl.recruit?.position && <span className="text-muted-foreground text-[10px] ml-1">({sl.recruit.position})</span>}
+                        {sl.recruit?.position && <span className="text-muted-foreground text-xs ml-1">({sl.recruit.position})</span>}
                       </span>
                       {hasOpenVote ? (
-                        <span className="flex items-center gap-0.5 text-[9px] text-gold font-pixel shrink-0">
+                        <span className="flex items-center gap-0.5 text-xs text-gold font-pixel shrink-0">
                           <Zap className="w-2.5 h-2.5" /> VOTE
                         </span>
                       ) : delta ? (
-                        <span className={`text-[9px] font-pixel shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>{delta}</span>
+                        <span className={`text-xs font-pixel shrink-0 ${(sl.resolvedOvrDelta ?? 0) > 0 ? "text-emerald-400" : "text-red-400"}`}>{delta}</span>
                       ) : null}
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-1 bg-background/60 rounded-full overflow-hidden">
                         <div className="h-full bg-gold/40 rounded-full transition-all" style={{ width: `${arcPct}%` }} />
                       </div>
-                      <span className="text-[9px] text-muted-foreground shrink-0">Wk {sl.currentArcStage ?? 0}</span>
-                      {totalVotes > 0 && <span className="text-[9px] text-muted-foreground shrink-0">{totalVotes}v</span>}
+                      <span className="text-xs text-muted-foreground shrink-0">Wk {sl.currentArcStage ?? 0}</span>
+                      {totalVotes > 0 && <span className="text-xs text-muted-foreground shrink-0">{totalVotes}v</span>}
                     </div>
                   </div>
                 </Link>
@@ -266,7 +266,7 @@ export function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
             })}
             {storylines.length > 4 && (
               <Link href={`/league/${leagueId}/storylines`}>
-                <p className="text-[10px] text-muted-foreground text-center hover:text-gold cursor-pointer transition-colors pt-1" data-testid="widget-more-storylines">
+                <p className="text-xs text-muted-foreground text-center hover:text-gold cursor-pointer transition-colors pt-1" data-testid="widget-more-storylines">
                   +{storylines.length - 4} more arcs...
                 </p>
               </Link>
@@ -336,7 +336,7 @@ export function ActivityFeed({ leagueId }: { leagueId: string }) {
             key={f.key}
             onClick={() => setActiveFilter(f.key as FilterKey)}
             data-testid={`filter-${f.key.toLowerCase()}`}
-            className={`px-2 py-0.5 rounded text-[10px] font-pixel border transition-colors ${
+            className={`px-2 py-0.5 rounded text-xs font-pixel border transition-colors ${
               activeFilter === f.key
                 ? "bg-gold/20 text-gold border-gold/50"
                 : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
@@ -389,15 +389,15 @@ export function ActivityFeed({ leagueId }: { leagueId: string }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-foreground leading-snug">{event.description}</p>
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                    <span className={`text-[9px] font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
+                    <span className={`text-xs font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
                     {event.teamAbbreviation && (
-                      <TeamBadge abbreviation={event.teamAbbreviation} primaryColor={event.teamPrimaryColor ?? "#2d4a2d"} name={event.teamName || ""} size="sm" className="!w-5 !h-5 !text-[7px]" />
+                      <TeamBadge abbreviation={event.teamAbbreviation} primaryColor={event.teamPrimaryColor ?? "#2d4a2d"} name={event.teamName || ""} size="sm" className="!w-5 !h-5 !text-xs" />
                     )}
                     {event.teamName && (
-                      <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">{event.teamName}</span>
+                      <span className="text-xs text-muted-foreground font-medium truncate max-w-[120px]">{event.teamName}</span>
                     )}
-                    <span className="text-[10px] text-muted-foreground">S{event.season} W{event.week}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">{formatRelativeTime(event.createdAt)}</span>
+                    <span className="text-xs text-muted-foreground">S{event.season} W{event.week}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{formatRelativeTime(event.createdAt)}</span>
                   </div>
                 </div>
               </div>

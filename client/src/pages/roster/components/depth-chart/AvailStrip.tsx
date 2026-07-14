@@ -5,7 +5,7 @@ import type { PitcherAvailRow, PitcherSlot } from "../../types";
 function AvailTooltipContent({ row, day, slot }: { row: PitcherAvailRow; day: string; slot: PitcherSlot }) {
   if (slot.daysOfRest === 99 || !row.lastPitchedDay) {
     return (
-      <div className="text-[10px] space-y-0.5">
+      <div className="text-xs space-y-0.5">
         <div className="font-semibold text-green-400">{day}: Fresh</div>
         <div className="text-muted-foreground">No recent appearances</div>
         <div>Full strength — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
@@ -18,7 +18,7 @@ function AvailTooltipContent({ row, day, slot }: { row: PitcherAvailRow; day: st
   const lastDay = DAY_LABEL[row.lastPitchedDay] ?? row.lastPitchedDay;
   if (!slot.available) {
     return (
-      <div className="text-[10px] space-y-0.5">
+      <div className="text-xs space-y-0.5">
         <div className="font-semibold text-red-400">{day}: Unavailable</div>
         <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({row.lastPitchedOuts} outs)</div>
         <div>Needs <span className="font-bold">{restNeeded}d</span> rest — only <span className="text-red-400 font-bold">{restHad}d</span> available</div>
@@ -27,7 +27,7 @@ function AvailTooltipContent({ row, day, slot }: { row: PitcherAvailRow; day: st
   }
   if (slot.limited) {
     return (
-      <div className="text-[10px] space-y-0.5">
+      <div className="text-xs space-y-0.5">
         <div className="font-semibold text-yellow-400">{day}: Limited</div>
         <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({row.lastPitchedOuts} outs)</div>
         <div>{restHad}d rest received, {restNeeded}d required — capped at <span className="text-yellow-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
@@ -35,7 +35,7 @@ function AvailTooltipContent({ row, day, slot }: { row: PitcherAvailRow; day: st
     );
   }
   return (
-    <div className="text-[10px] space-y-0.5">
+    <div className="text-xs space-y-0.5">
       <div className="font-semibold text-green-400">{day}: Full strength</div>
       <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({row.lastPitchedOuts} outs)</div>
       <div>{restHad}d rest received — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
@@ -67,14 +67,14 @@ export function AvailStrip({ playerId, availMap }: { playerId: string; availMap:
                 style={{ minWidth: 34 }}
                 data-testid={`avail-strip-${playerId}-${d}`}
               >
-                <span className="text-[7px] font-pixel leading-none">{d}</span>
-                <span className="text-[8px] font-bold leading-none mt-0.5">
+                <span className="text-xs font-pixel leading-none">{d}</span>
+                <span className="text-xs font-bold leading-none mt-0.5">
                   {!avail ? "✕" : `${ip}IP`}
                 </span>
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-[220px]">
-              {s ? <AvailTooltipContent row={row} day={d} slot={s} /> : <span className="text-[10px]">No data</span>}
+              {s ? <AvailTooltipContent row={row} day={d} slot={s} /> : <span className="text-xs">No data</span>}
             </TooltipContent>
           </Tooltip>
         );

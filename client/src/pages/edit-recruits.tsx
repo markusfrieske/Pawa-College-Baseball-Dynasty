@@ -652,7 +652,7 @@ export default function EditRecruitsPage() {
                                 />
                                 {grade && (
                                   <span
-                                    className={`text-[9px] font-bold leading-none ${gradeColor(grade)}`}
+                                    className={`text-xs font-bold leading-none ${gradeColor(grade)}`}
                                     data-testid={`grade-${field}-${recruit.id}`}
                                   >
                                     {grade}
@@ -685,7 +685,7 @@ export default function EditRecruitsPage() {
                                 />
                                 {grade && (
                                   <span
-                                    className={`text-[9px] font-bold leading-none ${gradeColor(grade)}`}
+                                    className={`text-xs font-bold leading-none ${gradeColor(grade)}`}
                                     data-testid={`grade-${field}-${recruit.id}`}
                                   >
                                     {grade}
@@ -1298,13 +1298,13 @@ function AbilityEditor({
               {currentAbilities.slice(0, 2).map((ability) => (
                 <span 
                   key={ability.name}
-                  className={`text-[9px] px-1 rounded ${getTierColor(ability.tier)}`}
+                  className={`text-xs px-1 rounded ${getTierColor(ability.tier)}`}
                 >
                   {ability.name.split(" ")[0]}
                 </span>
               ))}
               {abilities.length > 2 && (
-                <span className="text-[9px] text-muted-foreground">+{abilities.length - 2}</span>
+                <span className="text-xs text-muted-foreground">+{abilities.length - 2}</span>
               )}
             </div>
           )}
@@ -1318,7 +1318,7 @@ function AbilityEditor({
             if (tierAbilities.length === 0) return null;
             return (
               <div key={tier} className="space-y-1">
-                <div className={`text-[10px] font-semibold uppercase ${getTierColor(tier)}`}>
+                <div className={`text-xs font-semibold uppercase ${getTierColor(tier)}`}>
                   {tier} Tier
                 </div>
                 {tierAbilities.map(ability => (
@@ -1333,7 +1333,7 @@ function AbilityEditor({
                     />
                     <div className="flex-1">
                       <div className={`text-xs ${getTierColor(ability.tier)}`}>{ability.name}</div>
-                      <div className="text-[9px] text-muted-foreground">{ability.description}</div>
+                      <div className="text-xs text-muted-foreground">{ability.description}</div>
                     </div>
                   </label>
                 ))}

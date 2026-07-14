@@ -10,7 +10,7 @@ export const RetroInput = forwardRef<HTMLInputElement, RetroInputProps>(
     return (
       <div className="space-y-2">
         {label && (
-          <label htmlFor={id} className="block font-pixel text-[10px] uppercase text-muted-foreground">
+          <label htmlFor={id} className="block font-pixel text-xs uppercase text-muted-foreground">
             {label}
           </label>
         )}

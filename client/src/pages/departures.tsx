@@ -366,11 +366,11 @@ export default function DeparturesPage() {
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="text-center">
-                    <p className="font-pixel text-[10px] text-muted-foreground uppercase">NIL Budget</p>
+                    <p className="font-pixel text-xs text-muted-foreground uppercase">NIL Budget</p>
                     <p className="text-sm text-gold font-bold" data-testid="text-nil-budget">${userTeam.nilRemaining.toLocaleString()}</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-pixel text-[10px] text-muted-foreground uppercase">Roster</p>
+                    <p className="font-pixel text-xs text-muted-foreground uppercase">Roster</p>
                     <p className="text-sm text-foreground font-bold" data-testid="text-roster-size">{userTeam.rosterSize}</p>
                   </div>
                 </div>
@@ -634,16 +634,16 @@ export default function DeparturesPage() {
                       </div>
                       {departing.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-pixel text-muted-foreground mb-2 uppercase">Departing</p>
+                          <p className="text-xs font-pixel text-muted-foreground mb-2 uppercase">Departing</p>
                           <div className="space-y-1">
                             {departing.map(p => {
                               const dep = departureMap.get(p.id);
                               return (
                                 <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-red-950/20 border border-red-900/30 cursor-pointer hover:bg-red-950/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-departing-${p.id}`}>
-                                  <Badge variant="outline" className="text-[7px] font-mono shrink-0 w-8 text-center">{p.position}</Badge>
+                                  <Badge variant="outline" className="text-xs font-mono shrink-0 w-8 text-center">{p.position}</Badge>
                                   <span className="text-xs flex-1">{p.firstName} {p.lastName}</span>
                                   <span className="text-xs text-muted-foreground">{p.overall} OVR</span>
-                                  {dep && <Badge className={`text-[7px] ${typeColor[dep.type]} no-default-hover-elevate no-default-active-elevate`}>{dep.label}</Badge>}
+                                  {dep && <Badge className={`text-xs ${typeColor[dep.type]} no-default-hover-elevate no-default-active-elevate`}>{dep.label}</Badge>}
                                 </div>
                               );
                             })}
@@ -652,14 +652,14 @@ export default function DeparturesPage() {
                       )}
                       {staying.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-pixel text-muted-foreground mb-2 uppercase">Returning</p>
+                          <p className="text-xs font-pixel text-muted-foreground mb-2 uppercase">Returning</p>
                           <div className="space-y-1">
                             {staying.map(p => (
                               <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-muted/20 cursor-pointer hover:bg-muted/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-staying-${p.id}`}>
-                                <Badge variant="outline" className="text-[7px] font-mono shrink-0 w-8 text-center">{p.position}</Badge>
+                                <Badge variant="outline" className="text-xs font-mono shrink-0 w-8 text-center">{p.position}</Badge>
                                 <span className="text-xs flex-1">{p.firstName} {p.lastName}</span>
                                 <span className="text-xs text-muted-foreground">{p.overall} OVR</span>
-                                <Badge className="text-[7px] bg-green-900/30 border-green-800 text-green-400 no-default-hover-elevate no-default-active-elevate">Returning</Badge>
+                                <Badge className="text-xs bg-green-900/30 border-green-800 text-green-400 no-default-hover-elevate no-default-active-elevate">Returning</Badge>
                               </div>
                             ))}
                           </div>
@@ -740,7 +740,7 @@ export default function DeparturesPage() {
                     <div className="mt-3 pt-3 border-t border-border space-y-3">
                       {team.graduates.length > 0 && (
                         <div>
-                          <p className="font-pixel text-[10px] text-blue-400 uppercase mb-2 flex items-center gap-1">
+                          <p className="font-pixel text-xs text-blue-400 uppercase mb-2 flex items-center gap-1">
                             <GraduationCap className="w-3 h-3" /> Graduates
                           </p>
                           {team.graduates.map(p => (
@@ -750,7 +750,7 @@ export default function DeparturesPage() {
                       )}
                       {team.draftDeclarations.length > 0 && (
                         <div>
-                          <p className="font-pixel text-[10px] text-amber-400 uppercase mb-2 flex items-center gap-1">
+                          <p className="font-pixel text-xs text-amber-400 uppercase mb-2 flex items-center gap-1">
                             <Trophy className="w-3 h-3" /> Draft Declarations
                           </p>
                           {team.draftDeclarations.map(p => (
@@ -760,7 +760,7 @@ export default function DeparturesPage() {
                       )}
                       {team.transfers.length > 0 && (
                         <div>
-                          <p className="font-pixel text-[10px] text-purple-400 uppercase mb-2 flex items-center gap-1">
+                          <p className="font-pixel text-xs text-purple-400 uppercase mb-2 flex items-center gap-1">
                             <ArrowRightLeft className="w-3 h-3" /> Transfer Portal
                           </p>
                           {team.transfers.map(p => (
@@ -810,19 +810,19 @@ export default function DeparturesPage() {
               </div>
 
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-[10px] text-muted-foreground uppercase">Draft Interest Range</p>
+                <p className="font-pixel text-xs text-muted-foreground uppercase">Draft Interest Range</p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-foreground">${(draftRetainPlayer.draftAskMin || 50000).toLocaleString()}</span>
                   <span className="text-xs text-muted-foreground">to</span>
                   <span className="text-sm text-gold font-bold">${(draftRetainPlayer.draftAskMax || 100000).toLocaleString()}</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Offer at least the minimum for a reasonable chance. Matching or exceeding the max gives the best odds.
                 </p>
               </div>
 
               <div>
-                <label className="font-pixel text-[10px] text-muted-foreground uppercase block mb-2">
+                <label className="font-pixel text-xs text-muted-foreground uppercase block mb-2">
                   Your NIL Offer
                 </label>
                 <div className="flex items-center gap-2">
@@ -838,11 +838,11 @@ export default function DeparturesPage() {
                   />
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     Budget remaining: ${(data?.userTeam?.nilRemaining || 0).toLocaleString()}
                   </span>
                   {nilOfferAmount > (data?.userTeam?.nilRemaining || 0) && (
-                    <span className="text-[10px] text-red-400">Over budget!</span>
+                    <span className="text-xs text-red-400">Over budget!</span>
                   )}
                 </div>
                 <div className="flex gap-2 mt-2 flex-wrap">
@@ -862,7 +862,7 @@ export default function DeparturesPage() {
 
               {/* Estimated Chance */}
               <div className="bg-background/30 p-3 border border-border">
-                <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
+                <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
                 <div className="flex items-center gap-3">
                   <Progress
                     value={nilOfferAmount >= (draftRetainPlayer.draftAskMax || 100000) ? 95 :
@@ -929,7 +929,7 @@ export default function DeparturesPage() {
 
               {/* NIL Offer Section */}
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-[10px] text-gold uppercase flex items-center gap-1">
+                <p className="font-pixel text-xs text-gold uppercase flex items-center gap-1">
                   <DollarSign className="w-3 h-3" /> NIL Sweetener (Optional)
                 </p>
                 <div className="flex items-center gap-2">
@@ -944,17 +944,17 @@ export default function DeparturesPage() {
                     data-testid="input-nil-offer-transfer"
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Budget: ${(data?.userTeam?.nilRemaining || 0).toLocaleString()} remaining
                 </p>
               </div>
 
               {/* Player Promise Section */}
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-[10px] text-gold uppercase flex items-center gap-1">
+                <p className="font-pixel text-xs text-gold uppercase flex items-center gap-1">
                   <Target className="w-3 h-3" /> Player Promise (Optional)
                 </p>
-                <p className="text-[11px] text-muted-foreground mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   Make a promise about the player's future. Bolder promises are more convincing, but harder to keep.
                 </p>
                 <div className="space-y-2">
@@ -970,18 +970,18 @@ export default function DeparturesPage() {
                       data-testid={`option-player-promise-${opt.value}`}
                     >
                       <p className="text-sm text-foreground">{opt.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{opt.description}</p>
+                      <p className="text-xs text-muted-foreground">{opt.description}</p>
                     </div>
                   ))}
                 </div>
                 {selectedPlayerPromise === "leadershipRole" && (
-                  <div className="mt-1 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded text-[10px] text-gold/90">
+                  <div className="mt-1 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded text-xs text-gold/90">
                     You commit to naming this player as team captain on your roster. The promise is kept if they hold a captain designation when the season ends. Designate captains from the Roster page.
                   </div>
                 )}
                 {selectedPlayerPromise && selectedPlayerPromise !== "leadershipRole" && (
                   <div className="mt-2">
-                    <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-1">Ambition Level</p>
+                    <p className="font-pixel text-xs text-muted-foreground uppercase mb-1">Ambition Level</p>
                     <div className="flex gap-2">
                       {DIFFICULTY_OPTIONS.map(d => (
                         <RetroButton
@@ -1001,10 +1001,10 @@ export default function DeparturesPage() {
 
               {/* Team Promise Section */}
               <div className="bg-background/30 p-3 border border-border space-y-2">
-                <p className="font-pixel text-[10px] text-gold uppercase flex items-center gap-1">
+                <p className="font-pixel text-xs text-gold uppercase flex items-center gap-1">
                   <Shield className="w-3 h-3" /> Team Promise (Optional)
                 </p>
-                <p className="text-[11px] text-muted-foreground mb-2">
+                <p className="text-xs text-muted-foreground mb-2">
                   Promise the team will achieve something. Bigger goals are more convincing but much harder to achieve.
                 </p>
                 <div className="space-y-2">
@@ -1020,13 +1020,13 @@ export default function DeparturesPage() {
                       data-testid={`option-team-promise-${opt.value}`}
                     >
                       <p className="text-sm text-foreground">{opt.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{opt.description}</p>
+                      <p className="text-xs text-muted-foreground">{opt.description}</p>
                     </div>
                   ))}
                 </div>
                 {selectedTeamPromise && (
                   <div className="mt-2">
-                    <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-1">Ambition Level</p>
+                    <p className="font-pixel text-xs text-muted-foreground uppercase mb-1">Ambition Level</p>
                     <div className="flex gap-2">
                       {DIFFICULTY_OPTIONS.map(d => (
                         <RetroButton
@@ -1046,14 +1046,14 @@ export default function DeparturesPage() {
 
               {/* Retention Chance Preview */}
               <div className="bg-background/30 p-3 border border-border">
-                <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
+                <p className="font-pixel text-xs text-muted-foreground uppercase mb-2">Estimated Retention Chance</p>
                 <div className="flex items-center gap-3">
                   <Progress value={calculateRetentionChance()} className="flex-1 h-3" />
                   <span className="text-sm font-bold text-gold min-w-[40px] text-right">
                     {calculateRetentionChance()}%
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-muted-foreground">
+                <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
                   <span>Base: 30%</span>
                   {nilOfferAmount > 0 && <span className="text-green-400">+NIL</span>}
                   {selectedPlayerPromise && <span className="text-blue-400">+Player Promise</span>}
@@ -1065,7 +1065,7 @@ export default function DeparturesPage() {
               {(selectedPlayerPromise || selectedTeamPromise) && (
                 <div className="flex items-start gap-2 p-2 bg-amber-900/20 border border-amber-600/30">
                   <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                  <p className="text-[11px] text-amber-400">
+                  <p className="text-xs text-amber-400">
                     Broken promises will cause the player to enter the transfer portal next offseason. Make sure you can deliver.
                   </p>
                 </div>
@@ -1167,9 +1167,9 @@ function PlayerDepartureRow({
   ) : null;
 
   const statusBadge = player.retentionStatus === "retained" ? (
-    <Badge className="bg-green-600/30 text-green-400 border-green-600/50 text-[10px] no-default-hover-elevate no-default-active-elevate">Staying</Badge>
+    <Badge className="bg-green-600/30 text-green-400 border-green-600/50 text-xs no-default-hover-elevate no-default-active-elevate">Staying</Badge>
   ) : player.retentionStatus === "rejected" ? (
-    <Badge className="bg-red-600/30 text-red-400 border-red-600/50 text-[10px] no-default-hover-elevate no-default-active-elevate">Leaving</Badge>
+    <Badge className="bg-red-600/30 text-red-400 border-red-600/50 text-xs no-default-hover-elevate no-default-active-elevate">Leaving</Badge>
   ) : null;
 
   return (
@@ -1195,24 +1195,24 @@ function PlayerDepartureRow({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">OVR {player.overall}</span>
             {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
-              <span className={`inline-flex items-center text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-departure-ovr-delta-${player.id}`}>
+              <span className={`inline-flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-departure-ovr-delta-${player.id}`}>
                 {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
                 {Math.abs(player.progressionDeltas.overall)}
               </span>
             )}
             <StarRating rating={player.starRating} size="sm" />
             {type === "draft" && player.draftRound && (
-              <Badge className="bg-amber-600/30 text-amber-400 border-amber-600/50 text-[10px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-draft-round-${player.id}`}>
+              <Badge className="bg-amber-600/30 text-amber-400 border-amber-600/50 text-xs no-default-hover-elevate no-default-active-elevate" data-testid={`badge-draft-round-${player.id}`}>
                 Rd {player.draftRound}
               </Badge>
             )}
             {type === "draft" && player.draftAskMin && !compact && (
-              <span className="text-[10px] text-amber-400">
+              <span className="text-xs text-amber-400">
                 Asking ${player.draftAskMin.toLocaleString()} - ${(player.draftAskMax || 0).toLocaleString()}
               </span>
             )}
             {type === "transfer" && player.transferReason && !compact && (
-              <span className="text-[10px] text-purple-400">{player.transferReason}</span>
+              <span className="text-xs text-purple-400">{player.transferReason}</span>
             )}
           </div>
         </div>
@@ -1220,7 +1220,7 @@ function PlayerDepartureRow({
       <div className="flex items-center gap-2 shrink-0">
         {statusBadge}
         {player.nilOffered != null && player.nilOffered > 0 && (
-          <span className="text-[10px] text-gold">${player.nilOffered.toLocaleString()}</span>
+          <span className="text-xs text-gold">${player.nilOffered.toLocaleString()}</span>
         )}
         {onRetain && player.retentionStatus === "pending" && (
           <RetroButton

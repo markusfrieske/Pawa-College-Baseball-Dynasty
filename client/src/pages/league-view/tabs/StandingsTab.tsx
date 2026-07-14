@@ -68,7 +68,7 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                           <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
                         {leagueRankMap.has(team.id) && (
-                          <span className="font-pixel text-[8px] text-gold/70 flex-shrink-0" data-testid={`badge-league-rank-${team.id}`}>
+                          <span className="font-pixel text-xs text-gold/70 flex-shrink-0" data-testid={`badge-league-rank-${team.id}`}>
                             #{leagueRankMap.get(team.id)}
                           </span>
                         )}
@@ -102,7 +102,7 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                                 <span className="text-xs text-orange-400 ml-1">(CPU)</span>
                               )}
                               {(team.coach as any).archetype && (
-                                <div className="text-[10px] text-muted-foreground/60 mt-0.5">{(team.coach as any).archetype}</div>
+                                <div className="text-xs text-muted-foreground/60 mt-0.5">{(team.coach as any).archetype}</div>
                               )}
                             </div>
                           </div>
@@ -151,11 +151,11 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                 const topTwo = conf.teams.slice(0, 2);
                 return (
                   <div key={conf.id}>
-                    <p className="font-pixel text-[9px] text-muted-foreground mb-1">{conf.name}</p>
+                    <p className="font-pixel text-xs text-muted-foreground mb-1">{conf.name}</p>
                     <div className="flex gap-2">
                       {topTwo.map((team, i) => (
                         <div key={team.id} className="flex items-center gap-2 text-xs">
-                          <Badge variant={i === 0 ? "default" : "outline"} className={`text-[8px] ${i === 0 ? "bg-gold text-forest-dark" : ""}`}>
+                          <Badge variant={i === 0 ? "default" : "outline"} className={`text-xs ${i === 0 ? "bg-gold text-forest-dark" : ""}`}>
                             {i === 0 ? "1 Seed" : "2 Seed"}
                           </Badge>
                           <span>{team.name}</span>
@@ -167,7 +167,7 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                 );
               })}
             </div>
-            <p className="text-[9px] text-muted-foreground mt-3">Top 2 teams per conference qualify for Conference Championships. Winners advance to Super Regionals.</p>
+            <p className="text-xs text-muted-foreground mt-3">Top 2 teams per conference qualify for Conference Championships. Winners advance to Super Regionals.</p>
           </RetroCardContent>
         </RetroCard>
       )}

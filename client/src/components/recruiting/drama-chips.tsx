@@ -60,7 +60,7 @@ export function DramaChips({
   const ordered = [...sorted, ...extra];
   const visible = ordered.slice(0, maxVisible);
 
-  const textCls = size === "xs" ? "text-[8px]" : "text-[9px]";
+  const textCls = size === "xs" ? "text-xs" : "text-xs";
   const paddingCls = size === "xs" ? "px-1 py-0.5" : "px-1.5 py-0.5";
   const gapCls = size === "xs" ? "gap-0.5" : "gap-1";
 
@@ -93,7 +93,7 @@ export function RivalryAlertBadge({ humanRivalCount = 0, className = "" }: Rival
   if (humanRivalCount < 1) return null;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded border bg-orange-950/60 text-orange-400 border-orange-600/40 text-[8px] font-medium leading-none ${className}`}
+      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded border bg-orange-950/60 text-orange-400 border-orange-600/40 text-xs font-medium leading-none ${className}`}
       data-testid="rivalry-alert-badge"
     >
       <Flame className="w-2.5 h-2.5" />
@@ -113,7 +113,7 @@ export function MovementIndicator({ delta, className = "" }: MovementIndicatorPr
   const isUp = delta > 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-[9px] font-mono ${isUp ? "text-emerald-400" : "text-red-400"} ${className}`}
+      className={`inline-flex items-center gap-0.5 text-xs font-mono ${isUp ? "text-emerald-400" : "text-red-400"} ${className}`}
       data-testid="movement-indicator"
     >
       {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}

@@ -176,7 +176,7 @@ function PlayerSilhouette({
 
 function StarDisplay({ stars }: { stars: number }) {
   return (
-    <span className={`font-pixel text-[7px] ${STAR_COLORS[stars] ?? "text-muted-foreground"}`}>
+    <span className={`font-pixel text-xs ${STAR_COLORS[stars] ?? "text-muted-foreground"}`}>
       {"★".repeat(stars)}
     </span>
   );
@@ -195,7 +195,7 @@ function PostseasonBadge({ finish }: { finish: string }) {
   const cfg = FINISH_CONFIG[finish];
   if (!cfg || !cfg.label) return null;
   return (
-    <Badge variant="outline" className={`font-pixel text-[6px] px-1 py-0 h-auto ${cfg.className}`}>
+    <Badge variant="outline" className={`font-pixel text-xs px-1 py-0 h-auto ${cfg.className}`}>
       {cfg.label}
     </Badge>
   );
@@ -297,7 +297,7 @@ export default function ChampionshipScreenPage() {
         {/* Main hero content */}
         <div className="relative z-10 container mx-auto px-4 py-10 text-center">
           {/* League + Season label */}
-          <p className="font-pixel text-[8px] text-muted-foreground tracking-widest uppercase mb-3">
+          <p className="font-pixel text-xs text-muted-foreground tracking-widest uppercase mb-3">
             {data.leagueName} &bull; Season {data.season}
           </p>
 
@@ -314,7 +314,7 @@ export default function ChampionshipScreenPage() {
 
           {/* "The Deuce 2.0 — Season N Champion" pixel headline */}
           <h1
-            className="font-pixel text-[10px] sm:text-[12px] tracking-wide mb-5 leading-loose"
+            className="font-pixel text-xs sm:text-[12px] tracking-wide mb-5 leading-loose"
             style={{ color: champion?.primaryColor ?? "#D4AF37" }}
           >
             The Deuce 2.0 &mdash; Season {data.season} Champion
@@ -340,7 +340,7 @@ export default function ChampionshipScreenPage() {
                     <span className="ml-2 text-muted-foreground/60">&bull; {champion.conferenceName}</span>
                   )}
                 </p>
-                <p className="font-pixel text-[10px] text-muted-foreground mt-1">
+                <p className="font-pixel text-xs text-muted-foreground mt-1">
                   Season Record: <span className="text-foreground">{champion.wins}–{champion.losses}</span>
                 </p>
               </div>
@@ -354,7 +354,7 @@ export default function ChampionshipScreenPage() {
               style={{ borderColor: `rgba(${primaryRgb}, 0.3)`, backgroundColor: `rgba(${primaryRgb}, 0.08)` }}
             >
               <div className="text-center">
-                <p className="font-pixel text-[7px] text-muted-foreground mb-1">CHAMPIONS</p>
+                <p className="font-pixel text-xs text-muted-foreground mb-1">CHAMPIONS</p>
                 <TeamBadge
                   abbreviation={champion.abbreviation}
                   primaryColor={champion.primaryColor}
@@ -365,10 +365,10 @@ export default function ChampionshipScreenPage() {
               </div>
               <div className="text-center">
                 <Crown className="w-5 h-5 mx-auto mb-1" style={{ color: champion.primaryColor }} />
-                <p className="font-pixel text-[7px] text-muted-foreground">CWS FINAL</p>
+                <p className="font-pixel text-xs text-muted-foreground">CWS FINAL</p>
               </div>
               <div className="text-center">
-                <p className="font-pixel text-[7px] text-muted-foreground mb-1">RUNNER-UP</p>
+                <p className="font-pixel text-xs text-muted-foreground mb-1">RUNNER-UP</p>
                 <TeamBadge
                   abbreviation={runnerUp.abbreviation}
                   primaryColor={runnerUp.primaryColor}
@@ -390,7 +390,7 @@ export default function ChampionshipScreenPage() {
             <RetroCardHeader>
               <div className="flex items-center gap-2">
                 <Trophy className="w-4 h-4 text-gold" />
-                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">CWS CHAMPIONSHIP BRACKET</h3>
+                <h3 className="font-pixel text-gold text-xs sm:text-xs">CWS CHAMPIONSHIP BRACKET</h3>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
@@ -409,13 +409,13 @@ export default function ChampionshipScreenPage() {
                     name={champion.name}
                     className="mx-auto mb-2"
                   />
-                  <p className="text-[11px] font-medium text-foreground">{champion.name}</p>
+                  <p className="text-xs font-medium text-foreground">{champion.name}</p>
                   <p className="font-pixel text-3xl mt-1" style={{ color: champion.primaryColor }}>
                     {cwsSeries.championWins}
                   </p>
                   <Badge
                     variant="outline"
-                    className="font-pixel text-[6px] mt-1 bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
+                    className="font-pixel text-xs mt-1 bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
                   >
                     CHAMPION
                   </Badge>
@@ -424,7 +424,7 @@ export default function ChampionshipScreenPage() {
                 {/* Center divider */}
                 <div className="flex flex-col items-center justify-center px-3 bg-muted/20 border-y border-border/30">
                   <Crown className="w-5 h-5 mb-1" style={{ color: champion.primaryColor }} />
-                  <p className="font-pixel text-[7px] text-muted-foreground">VS</p>
+                  <p className="font-pixel text-xs text-muted-foreground">VS</p>
                 </div>
 
                 {/* Runner-up column */}
@@ -436,13 +436,13 @@ export default function ChampionshipScreenPage() {
                     name={runnerUp.name}
                     className="mx-auto mb-2"
                   />
-                  <p className="text-[11px] font-medium text-muted-foreground">{runnerUp.name}</p>
+                  <p className="text-xs font-medium text-muted-foreground">{runnerUp.name}</p>
                   <p className="font-pixel text-3xl mt-1 text-muted-foreground">
                     {cwsSeries.runnerUpWins}
                   </p>
                   <Badge
                     variant="outline"
-                    className="font-pixel text-[6px] mt-1 bg-gray-400/20 text-gray-300 border-gray-400/40"
+                    className="font-pixel text-xs mt-1 bg-gray-400/20 text-gray-300 border-gray-400/40"
                   >
                     RUNNER-UP
                   </Badge>
@@ -450,7 +450,7 @@ export default function ChampionshipScreenPage() {
               </div>
 
               {/* Game-by-game scores */}
-              <p className="font-pixel text-[7px] text-muted-foreground uppercase tracking-wide mb-2">Game-by-Game Results</p>
+              <p className="font-pixel text-xs text-muted-foreground uppercase tracking-wide mb-2">Game-by-Game Results</p>
               <div className="space-y-2">
                 {cwsGames.map(game => {
                   const homeWon = game.homeScore > game.awayScore;
@@ -461,23 +461,23 @@ export default function ChampionshipScreenPage() {
                       className="flex items-center gap-3 px-3 py-2.5 rounded bg-muted/20 border border-border/30"
                       data-testid={`row-cws-game-${game.gameNumber}`}
                     >
-                      <span className="font-pixel text-[7px] text-muted-foreground w-10 flex-shrink-0">
+                      <span className="font-pixel text-xs text-muted-foreground w-10 flex-shrink-0">
                         GAME {game.gameNumber}
                       </span>
                       <div className={`flex items-center gap-2 flex-1 ${awayWon ? "" : "opacity-60"}`}>
-                        <span className={`text-[10px] font-medium truncate ${awayWon ? "text-foreground" : "text-muted-foreground"}`}>
+                        <span className={`text-xs font-medium truncate ${awayWon ? "text-foreground" : "text-muted-foreground"}`}>
                           {game.awayTeamName}
                         </span>
                         <span className={`font-pixel text-sm flex-shrink-0 ml-auto ${awayWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
                           {game.awayScore}
                         </span>
                       </div>
-                      <span className="font-pixel text-[8px] text-muted-foreground/40 flex-shrink-0 px-1">@</span>
+                      <span className="font-pixel text-xs text-muted-foreground/40 flex-shrink-0 px-1">@</span>
                       <div className={`flex items-center gap-2 flex-1 ${homeWon ? "" : "opacity-60"}`}>
                         <span className={`font-pixel text-sm flex-shrink-0 ${homeWon ? "text-gold font-bold" : "text-muted-foreground"}`}>
                           {game.homeScore}
                         </span>
-                        <span className={`text-[10px] font-medium truncate ${homeWon ? "text-foreground" : "text-muted-foreground"}`}>
+                        <span className={`text-xs font-medium truncate ${homeWon ? "text-foreground" : "text-muted-foreground"}`}>
                           {game.homeTeamName}
                         </span>
                       </div>
@@ -500,7 +500,7 @@ export default function ChampionshipScreenPage() {
             <RetroCardHeader>
               <div className="flex items-center gap-2">
                 <Medal className="w-4 h-4 text-gold" />
-                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">FINAL RANKINGS</h3>
+                <h3 className="font-pixel text-gold text-xs sm:text-xs">FINAL RANKINGS</h3>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
@@ -517,7 +517,7 @@ export default function ChampionshipScreenPage() {
                       }`}
                     data-testid={`row-ranking-${i + 1}`}
                   >
-                    <span className="font-pixel text-[8px] text-muted-foreground w-4 flex-shrink-0 text-right">
+                    <span className="font-pixel text-xs text-muted-foreground w-4 flex-shrink-0 text-right">
                       {i + 1}
                     </span>
                     <TeamBadge
@@ -528,15 +528,15 @@ export default function ChampionshipScreenPage() {
                       className="flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[10px] font-medium truncate ${team.postseasonFinish === "champion" ? "text-yellow-300" : ""}`}>
+                      <p className={`text-xs font-medium truncate ${team.postseasonFinish === "champion" ? "text-yellow-300" : ""}`}>
                         {team.name}
                       </p>
                       {team.conferenceName && (
-                        <p className="text-[8px] text-muted-foreground/60 truncate">{team.conferenceName}</p>
+                        <p className="text-xs text-muted-foreground/60 truncate">{team.conferenceName}</p>
                       )}
                     </div>
                     <PostseasonBadge finish={team.postseasonFinish} />
-                    <span className="font-pixel text-[8px] text-muted-foreground flex-shrink-0 ml-1">
+                    <span className="font-pixel text-xs text-muted-foreground flex-shrink-0 ml-1">
                       {team.wins}–{team.losses}
                     </span>
                   </div>
@@ -550,7 +550,7 @@ export default function ChampionshipScreenPage() {
             <RetroCardHeader>
               <div className="flex items-center gap-2">
                 <Award className="w-4 h-4 text-gold" />
-                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">SEASON AWARDS</h3>
+                <h3 className="font-pixel text-gold text-xs sm:text-xs">SEASON AWARDS</h3>
               </div>
             </RetroCardHeader>
             <RetroCardContent>
@@ -566,11 +566,11 @@ export default function ChampionshipScreenPage() {
                       className="px-3 py-3 rounded bg-muted/20 border border-border/30"
                       data-testid={`card-award-${label.replace(/\s+/g, "-").toLowerCase()}`}
                     >
-                      <p className="font-pixel text-[6px] text-gold/70 tracking-widest mb-1.5">{label}</p>
+                      <p className="font-pixel text-xs text-gold/70 tracking-widest mb-1.5">{label}</p>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{award.playerName}</p>
-                          <p className="text-[9px] text-muted-foreground">
+                          <p className="text-xs text-muted-foreground">
                             {award.position} &bull; {award.teamName}
                           </p>
                           <div className="mt-0.5">
@@ -579,7 +579,7 @@ export default function ChampionshipScreenPage() {
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="font-pixel text-lg text-gold">{award.overall}</p>
-                          <p className="font-pixel text-[6px] text-muted-foreground">OVR</p>
+                          <p className="font-pixel text-xs text-muted-foreground">OVR</p>
                         </div>
                       </div>
                     </div>
@@ -596,7 +596,7 @@ export default function ChampionshipScreenPage() {
             <RetroCardHeader>
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-gold" />
-                <h3 className="font-pixel text-gold text-[9px] sm:text-[10px]">
+                <h3 className="font-pixel text-gold text-xs sm:text-xs">
                   {champion.abbreviation} — STARTING NINE + KEY STARTERS
                 </h3>
               </div>
@@ -604,7 +604,7 @@ export default function ChampionshipScreenPage() {
             <RetroCardContent>
               {positionPlayers.length > 0 && (
                 <div className="mb-4">
-                  <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Position Players</p>
+                  <p className="font-pixel text-xs text-muted-foreground mb-2 uppercase tracking-wide">Position Players</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {positionPlayers.map(player => (
                       <div
@@ -619,12 +619,12 @@ export default function ChampionshipScreenPage() {
                           <PlayerSilhouette primaryColor={champion.primaryColor} isPitcher={false} size={32} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-medium truncate">
+                          <p className="text-xs font-medium truncate">
                             {player.firstName[0]}. {player.lastName}
                           </p>
                           <div className="flex items-center gap-1 flex-wrap">
-                            <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
-                            <span className="text-[7px] text-muted-foreground/60">
+                            <span className="font-pixel text-xs text-gold">{player.overall}</span>
+                            <span className="text-xs text-muted-foreground/60">
                               {ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}
                             </span>
                           </div>
@@ -638,7 +638,7 @@ export default function ChampionshipScreenPage() {
 
               {pitcherPlayers.length > 0 && (
                 <div>
-                  <p className="font-pixel text-[7px] text-muted-foreground mb-2 uppercase tracking-wide">Key Pitchers</p>
+                  <p className="font-pixel text-xs text-muted-foreground mb-2 uppercase tracking-wide">Key Pitchers</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {pitcherPlayers.map((player, idx) => {
                       const pitcherLabel = idx === 0 ? "ACE" : "KEY STARTER";
@@ -655,7 +655,7 @@ export default function ChampionshipScreenPage() {
                             <div className="flex items-center gap-1 mb-0.5">
                               <Badge
                                 variant="outline"
-                                className={`font-pixel text-[5px] px-1 py-0 h-auto ${
+                                className={`font-pixel text-xs px-1 py-0 h-auto ${
                                   idx === 0
                                     ? "bg-yellow-500/20 text-yellow-300 border-yellow-500/40"
                                     : "bg-purple-500/20 text-purple-300 border-purple-500/30"
@@ -664,12 +664,12 @@ export default function ChampionshipScreenPage() {
                                 {pitcherLabel}
                               </Badge>
                             </div>
-                            <p className="text-[10px] font-medium truncate">
+                            <p className="text-xs font-medium truncate">
                               {player.firstName[0]}. {player.lastName}
                             </p>
                             <div className="flex items-center gap-1 flex-wrap">
-                              <span className="font-pixel text-[7px] text-gold">{player.overall}</span>
-                              <span className="text-[7px] text-muted-foreground/60">
+                              <span className="font-pixel text-xs text-gold">{player.overall}</span>
+                              <span className="text-xs text-muted-foreground/60">
                                 {ELIGIBILITY_LABELS[player.eligibility] ?? player.eligibility}
                               </span>
                             </div>

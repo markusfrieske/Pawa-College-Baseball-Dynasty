@@ -474,7 +474,7 @@ export default function SchedulePage() {
                 <button
                   onClick={() => setSelectedWeekKey("spring_training")}
                   data-testid="button-week-nav-spr"
-                  className={`shrink-0 font-pixel text-[8px] px-2 py-1 rounded transition-colors ${
+                  className={`shrink-0 font-pixel text-xs px-2 py-1 rounded transition-colors ${
                     activeKey === "spring_training"
                       ? "bg-gold text-black"
                       : "bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30"
@@ -491,7 +491,7 @@ export default function SchedulePage() {
                     key={key}
                     onClick={() => setSelectedWeekKey(key)}
                     data-testid={`button-week-nav-${w.weekNum}`}
-                    className={`shrink-0 font-pixel text-[8px] px-2 py-1 rounded transition-colors ${
+                    className={`shrink-0 font-pixel text-xs px-2 py-1 rounded transition-colors ${
                       isActive
                         ? "bg-gold text-black"
                         : w.isCurrentWeek
@@ -511,7 +511,7 @@ export default function SchedulePage() {
                     key={key}
                     onClick={() => setSelectedWeekKey(key)}
                     data-testid={`button-week-nav-postseason-${w.label}`}
-                    className={`shrink-0 font-pixel text-[7px] px-2 py-1 rounded transition-colors ${
+                    className={`shrink-0 font-pixel text-xs px-2 py-1 rounded transition-colors ${
                       isActive ? "bg-gold text-black" : "bg-muted/30 text-muted-foreground hover:bg-muted/60"
                     }`}
                   >
@@ -537,12 +537,12 @@ export default function SchedulePage() {
           <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-card/50">
               <div className="flex items-center gap-2">
-                <span className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Spring</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-pixel border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                <span className="font-pixel text-xs text-muted-foreground uppercase tracking-wider">Spring</span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-pixel border border-amber-500/40 text-amber-400 bg-amber-500/10">
                   EXHIBITION
                 </span>
               </div>
-              <span className="font-pixel text-[8px] text-muted-foreground">
+              <span className="font-pixel text-xs text-muted-foreground">
                 {exhibitionGames.filter(g => g.isComplete).length}/{exhibitionGames.length} Complete
               </span>
             </div>
@@ -560,23 +560,23 @@ export default function SchedulePage() {
                         name={game.awayTeam.name}
                         size="xs"
                       />
-                      <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.awayTeam.name}</span>
+                      <span className="font-pixel text-xs text-muted-foreground truncate hidden sm:block">{game.awayTeam.name}</span>
                     </div>
                     <div className="w-12 text-center shrink-0">
                       {game.isComplete ? (
                         <button
                           onClick={() => setBoxScoreGame(game)}
-                          className="font-pixel text-[10px] text-foreground hover:text-gold transition-colors"
+                          className="font-pixel text-xs text-foreground hover:text-gold transition-colors"
                           data-testid={`button-box-score-exhb-${game.id}`}
                         >
                           {game.awayScore}–{game.homeScore}
                         </button>
                       ) : (
-                        <span className="font-pixel text-[8px] text-muted-foreground">vs</span>
+                        <span className="font-pixel text-xs text-muted-foreground">vs</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-                      <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.homeTeam.name}</span>
+                      <span className="font-pixel text-xs text-muted-foreground truncate hidden sm:block">{game.homeTeam.name}</span>
                       <TeamBadge
                         abbreviation={game.homeTeam.abbreviation}
                         primaryColor={game.homeTeam.primaryColor}
@@ -938,7 +938,7 @@ function PendingReportModal({
                         <div className="flex items-center gap-2">
                           {awayTeam && <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />}
                           <span className={`truncate text-xs ${awayWon ? "text-gold font-bold" : ""}`}>{awayTeam?.abbreviation}</span>
-                          {awayWon && <span className="text-[8px] font-pixel text-gold">W</span>}
+                          {awayWon && <span className="text-xs font-pixel text-gold">W</span>}
                         </div>
                       </td>
                       {innings.map((inning, i) => (
@@ -953,7 +953,7 @@ function PendingReportModal({
                         <div className="flex items-center gap-2">
                           {homeTeam && <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />}
                           <span className={`truncate text-xs ${homeWon ? "text-gold font-bold" : ""}`}>{homeTeam?.abbreviation}</span>
-                          {homeWon && <span className="text-[8px] font-pixel text-gold">W</span>}
+                          {homeWon && <span className="text-xs font-pixel text-gold">W</span>}
                         </div>
                       </td>
                       {innings.map((inning, i) => (
@@ -970,7 +970,7 @@ function PendingReportModal({
               <div className="flex items-center justify-center gap-6 py-3">
                 <div className="flex flex-col items-center gap-1">
                   {awayTeam && <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />}
-                  <span className="text-[9px] text-muted-foreground">{awayTeam?.abbreviation}</span>
+                  <span className="text-xs text-muted-foreground">{awayTeam?.abbreviation}</span>
                 </div>
                 <div className="font-pixel text-2xl flex items-center gap-2">
                   <span className={awayWon ? "text-gold" : "text-muted-foreground"}>{awayScore}</span>
@@ -979,7 +979,7 @@ function PendingReportModal({
                 </div>
                 <div className="flex flex-col items-center gap-1">
                   {homeTeam && <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />}
-                  <span className="text-[9px] text-muted-foreground">{homeTeam?.abbreviation}</span>
+                  <span className="text-xs text-muted-foreground">{homeTeam?.abbreviation}</span>
                 </div>
               </div>
             )}
@@ -987,10 +987,10 @@ function PendingReportModal({
             {hasBoxData && homeBoxScoreTeam && awayBoxScoreTeam && (
               <Tabs defaultValue="away" className="w-full">
                 <TabsList className="bg-[#0f1f0f] border border-gold/30 w-full grid grid-cols-2">
-                  <TabsTrigger value="away" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-pending-away">
+                  <TabsTrigger value="away" className="font-pixel text-xs data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-pending-away">
                     {awayTeam?.abbreviation}{awayWon && <span className="ml-1 text-gold">W</span>}
                   </TabsTrigger>
-                  <TabsTrigger value="home" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-pending-home">
+                  <TabsTrigger value="home" className="font-pixel text-xs data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-pending-home">
                     {homeTeam?.abbreviation}{homeWon && <span className="ml-1 text-gold">W</span>}
                   </TabsTrigger>
                 </TabsList>
@@ -1010,7 +1010,7 @@ function PendingReportModal({
             {reportValidationWarnings.length > 0 && (
               <div className="space-y-1.5">
                 {reportValidationWarnings.map((msg, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded text-[10px] leading-snug bg-yellow-900/20 border border-yellow-700/40 text-yellow-300" data-testid={`report-validation-warning-${i}`}>
+                  <div key={i} className="flex items-start gap-2 p-2 rounded text-xs leading-snug bg-yellow-900/20 border border-yellow-700/40 text-yellow-300" data-testid={`report-validation-warning-${i}`}>
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>{msg}</span>
                   </div>
@@ -1109,12 +1109,12 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
           </span>
           <span>{weekData.label}</span>
           {weekData.isCurrentWeek && (
-            <span className="text-[8px] text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
+            <span className="text-xs text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
           )}
         </div>
         <div className="flex items-center gap-2">
           {totalCount > 0 && (
-            <span className="font-pixel text-[8px] text-muted-foreground">
+            <span className="font-pixel text-xs text-muted-foreground">
               {completedCount}/{totalCount}
             </span>
           )}
@@ -1141,7 +1141,7 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
           {weekData.midweekGames.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-2">
-                <span className="font-pixel text-[8px] text-muted-foreground">MIDWEEK</span>
+                <span className="font-pixel text-xs text-muted-foreground">MIDWEEK</span>
                 <div className="flex-1 border-t border-border/30" />
               </div>
               {weekData.midweekGames.map(game => (
@@ -1160,7 +1160,7 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
             <div className={`space-y-3 ${weekData.midweekGames.length > 0 ? "mt-4 pt-3 border-t border-border/40" : ""}`}>
               {weekData.midweekGames.length > 0 && (
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-pixel text-[8px] text-muted-foreground">CONF SERIES</span>
+                  <span className="font-pixel text-xs text-muted-foreground">CONF SERIES</span>
                   <div className="flex-1 border-t border-border/30" />
                 </div>
               )}
@@ -1236,7 +1236,7 @@ function SeriesRow({ series, callbacks }: { series: SeriesGroup; callbacks: Game
                 {(() => {
                   const rec = callbacks.teamRecords.get(series.awayTeam.id);
                   return rec ? (
-                    <span className="font-pixel text-[7px] text-muted-foreground shrink-0" data-testid={`record-away-series-${series.key}`}>
+                    <span className="font-pixel text-xs text-muted-foreground shrink-0" data-testid={`record-away-series-${series.key}`}>
                       {rec.wins}-{rec.losses}
                     </span>
                   ) : null;
@@ -1257,7 +1257,7 @@ function SeriesRow({ series, callbacks }: { series: SeriesGroup; callbacks: Game
                 {(() => {
                   const rec = callbacks.teamRecords.get(series.homeTeam.id);
                   return rec ? (
-                    <span className="font-pixel text-[7px] text-muted-foreground shrink-0" data-testid={`record-home-series-${series.key}`}>
+                    <span className="font-pixel text-xs text-muted-foreground shrink-0" data-testid={`record-home-series-${series.key}`}>
                       {rec.wins}-{rec.losses}
                     </span>
                   ) : null;
@@ -1275,19 +1275,19 @@ function SeriesRow({ series, callbacks }: { series: SeriesGroup; callbacks: Game
           />
 
           <div className="flex items-center gap-2 shrink-0">
-            <Badge variant="outline" className="text-[8px] border-blue-600/50 text-blue-400 font-pixel hidden sm:inline-flex">
+            <Badge variant="outline" className="text-xs border-blue-600/50 text-blue-400 font-pixel hidden sm:inline-flex">
               CONF
             </Badge>
 
             {completedGames.length > 0 && !allComplete && (
-              <span className="font-pixel text-[8px] text-muted-foreground">
+              <span className="font-pixel text-xs text-muted-foreground">
                 {outcome.awayWins}-{outcome.homeWins}
               </span>
             )}
 
             {allComplete && outcome.text && (
               <span
-                className={`font-pixel text-[8px] ${
+                className={`font-pixel text-xs ${
                   isUserSeries
                     ? outcome.userWon ? "text-green-400" : "text-red-400"
                     : "text-gold"
@@ -1361,7 +1361,7 @@ function CompactGameRow({
           ? userWon ? "bg-green-900/10" : "bg-red-900/10"
           : "hover:bg-white/3"
       }`}>
-        <span className="font-pixel text-[7px] text-muted-foreground w-9 shrink-0">{dayLabel}</span>
+        <span className="font-pixel text-xs text-muted-foreground w-9 shrink-0">{dayLabel}</span>
 
         {game.isComplete ? (
           <button
@@ -1379,7 +1379,7 @@ function CompactGameRow({
             {isUserGame && (
               <Badge
                 variant="outline"
-                className={`text-[8px] ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}
+                className={`text-xs ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}
                 data-testid={`badge-result-${game.id}`}
               >
                 {userWon ? "W" : "L"}
@@ -1556,7 +1556,7 @@ function StandaloneGameRow({
               {(() => {
                 const rec = callbacks.teamRecords.get(game.awayTeamId);
                 return rec ? (
-                  <span className="font-pixel text-[7px] text-muted-foreground shrink-0">
+                  <span className="font-pixel text-xs text-muted-foreground shrink-0">
                     {rec.wins}-{rec.losses}
                   </span>
                 ) : null;
@@ -1573,11 +1573,11 @@ function StandaloneGameRow({
               const opponentId = userTeamId === game.awayTeamId ? game.homeTeamId : game.awayTeamId;
               const coachName = callbacks.humanCoachNames[opponentId];
               return coachName ? (
-                <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5 truncate">
+                <span className="font-pixel text-xs text-amber-400 flex items-center gap-1 mt-0.5 truncate">
                   <Swords className="w-2.5 h-2.5 shrink-0" /> vs {coachName}
                 </span>
               ) : (
-                <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5">
+                <span className="font-pixel text-xs text-amber-400 flex items-center gap-1 mt-0.5">
                   <Swords className="w-2.5 h-2.5" /> RIVALRY
                 </span>
               );
@@ -1599,7 +1599,7 @@ function StandaloneGameRow({
               {game.homeScore}
             </span>
             {isUserGame && (
-              <Badge variant="outline" className={`text-[9px] ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`} data-testid={`badge-result-${game.id}`}>
+              <Badge variant="outline" className={`text-xs ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`} data-testid={`badge-result-${game.id}`}>
                 {userWon ? "W" : "L"}
               </Badge>
             )}
@@ -1609,7 +1609,7 @@ function StandaloneGameRow({
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-muted-foreground text-sm">@</span>
             {badge && (
-              <Badge variant="outline" className="text-[8px] border-purple-600/50 text-purple-400 font-pixel">{badge}</Badge>
+              <Badge variant="outline" className="text-xs border-purple-600/50 text-purple-400 font-pixel">{badge}</Badge>
             )}
             <ReportStatusBadge status={deriveReportStatus(game, report, isHumanVsHuman)} />
           </div>
@@ -1628,7 +1628,7 @@ function StandaloneGameRow({
               {(() => {
                 const rec = callbacks.teamRecords.get(game.homeTeamId);
                 return rec ? (
-                  <span className="font-pixel text-[7px] text-muted-foreground shrink-0">
+                  <span className="font-pixel text-xs text-muted-foreground shrink-0">
                     {rec.wins}-{rec.losses}
                   </span>
                 ) : null;
@@ -1809,22 +1809,22 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
         </div>
       </div>
       <div className={`flex items-center gap-2 mb-2 ${isHome ? "justify-end" : ""}`}>
-        <span className="font-pixel text-[8px] text-gold/80">#{team.powerRank}</span>
-        <span className="text-[10px] text-muted-foreground">PWR {team.composite}</span>
+        <span className="font-pixel text-xs text-gold/80">#{team.powerRank}</span>
+        <span className="text-xs text-muted-foreground">PWR {team.composite}</span>
       </div>
       <div className={`flex items-center gap-1 text-xs text-muted-foreground mb-2 ${isHome ? "justify-end" : ""}`}>
         {team.isCpu ? null : <User className="w-3 h-3 text-gold" />}
         <span>{team.coachName}</span>
-        {team.coachArchetype && <span className="text-[10px] text-muted-foreground/60">({team.coachArchetype})</span>}
+        {team.coachArchetype && <span className="text-xs text-muted-foreground/60">({team.coachArchetype})</span>}
       </div>
       <div className="space-y-1">
-        <p className="font-pixel text-[8px] text-muted-foreground mb-1">TOP PLAYERS</p>
+        <p className="font-pixel text-xs text-muted-foreground mb-1">TOP PLAYERS</p>
         {team.top3.map((p, i) => (
           <div key={i} className={`flex items-center gap-2 text-xs ${isHome ? "flex-row-reverse" : ""}`}>
-            <span className={`font-pixel text-[8px] ${starColor(p.starRating)}`}>{Array.from({ length: Math.min(p.starRating, 5) }, () => "★").join("")}</span>
+            <span className={`font-pixel text-xs ${starColor(p.starRating)}`}>{Array.from({ length: Math.min(p.starRating, 5) }, () => "★").join("")}</span>
             <span className="text-foreground">{p.name}</span>
-            <span className="text-muted-foreground text-[10px]">{p.position}</span>
-            <span className="font-mono text-[10px] text-gold/70">{p.overall}</span>
+            <span className="text-muted-foreground text-xs">{p.position}</span>
+            <span className="font-mono text-xs text-gold/70">{p.overall}</span>
           </div>
         ))}
       </div>
@@ -1842,14 +1842,14 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
 
         {isLoading ? (
           <div className="py-10 flex items-center justify-center">
-            <div className="font-pixel text-[9px] text-muted-foreground">Loading matchup data...</div>
+            <div className="font-pixel text-xs text-muted-foreground">Loading matchup data...</div>
           </div>
         ) : !data ? (
           <div className="py-10 text-center text-muted-foreground text-sm">Matchup data unavailable.</div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
-              <span className={`px-2 py-0.5 rounded font-pixel text-[8px] ${data.game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50"}`}>
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <span className={`px-2 py-0.5 rounded font-pixel text-xs ${data.game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50"}`}>
                 {data.game.isConference ? "CONF" : "OOC"}
               </span>
               <span>Week {data.game.week}</span>
@@ -1861,18 +1861,18 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
             <div className="flex items-start gap-4">
               <TeamPanel team={data.awayTeam} isHome={false} />
               <div className="flex-shrink-0 text-center px-2 pt-2">
-                <div className="font-pixel text-muted-foreground text-[10px] mb-1">@</div>
+                <div className="font-pixel text-muted-foreground text-xs mb-1">@</div>
                 {data.h2h.totalGames > 0 ? (
                   <div className="mt-4 space-y-1 max-w-[90px]">
-                    <p className="font-pixel text-[6px] text-muted-foreground leading-tight">ALL-TIME vs {data.awayTeam.abbreviation}</p>
-                    <p className="font-pixel text-[9px] text-gold">{data.h2h.homeWins}–{data.h2h.awayWins}</p>
-                    <p className="font-pixel text-[6px] text-muted-foreground leading-tight">ALL-TIME vs {data.homeTeam.abbreviation}</p>
-                    <p className="font-pixel text-[9px] text-gold">{data.h2h.awayWins}–{data.h2h.homeWins}</p>
+                    <p className="font-pixel text-xs text-muted-foreground leading-tight">ALL-TIME vs {data.awayTeam.abbreviation}</p>
+                    <p className="font-pixel text-xs text-gold">{data.h2h.homeWins}–{data.h2h.awayWins}</p>
+                    <p className="font-pixel text-xs text-muted-foreground leading-tight">ALL-TIME vs {data.homeTeam.abbreviation}</p>
+                    <p className="font-pixel text-xs text-gold">{data.h2h.awayWins}–{data.h2h.homeWins}</p>
                   </div>
                 ) : (
                   <div className="mt-4">
-                    <p className="font-pixel text-[7px] text-muted-foreground">FIRST</p>
-                    <p className="font-pixel text-[7px] text-muted-foreground">MEETING</p>
+                    <p className="font-pixel text-xs text-muted-foreground">FIRST</p>
+                    <p className="font-pixel text-xs text-muted-foreground">MEETING</p>
                   </div>
                 )}
               </div>
@@ -1943,7 +1943,7 @@ function BoxScoreModal({ game, leagueId, onClose }: { game: GameWithTeams | null
                     <td className="p-2 font-medium text-foreground flex items-center gap-2">
                       <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} name={game.awayTeam.name} size="sm" />
                       <span className={`truncate ${awayWon ? "text-gold font-bold" : ""}`}>{game.awayTeam.abbreviation}</span>
-                      {awayWon && <span className="text-[8px] font-pixel text-gold ml-1">W</span>}
+                      {awayWon && <span className="text-xs font-pixel text-gold ml-1">W</span>}
                     </td>
                     {boxScore.innings.map((inning, i) => (
                       <td key={i} className="text-center p-2 text-foreground">{inning[0]}</td>
@@ -1956,7 +1956,7 @@ function BoxScoreModal({ game, leagueId, onClose }: { game: GameWithTeams | null
                     <td className="p-2 font-medium text-foreground flex items-center gap-2">
                       <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} name={game.homeTeam.name} size="sm" />
                       <span className={`truncate ${homeWon ? "text-gold font-bold" : ""}`}>{game.homeTeam.abbreviation}</span>
-                      {homeWon && <span className="text-[8px] font-pixel text-gold ml-1">W</span>}
+                      {homeWon && <span className="text-xs font-pixel text-gold ml-1">W</span>}
                     </td>
                     {boxScore.innings.map((inning, i) => (
                       <td key={i} className="text-center p-2 text-foreground">{inning[1]}</td>
@@ -1972,11 +1972,11 @@ function BoxScoreModal({ game, leagueId, onClose }: { game: GameWithTeams | null
             {/* Home / Away tabs */}
             <Tabs defaultValue="away" className="w-full">
               <TabsList className="bg-[#0f1f0f] border border-gold/30 w-full grid grid-cols-2">
-                <TabsTrigger value="away" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-away-box">
+                <TabsTrigger value="away" className="font-pixel text-xs data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-away-box">
                   {game.awayTeam.abbreviation}
                   {awayWon && <span className="ml-1 text-gold">W</span>}
                 </TabsTrigger>
-                <TabsTrigger value="home" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-home-box">
+                <TabsTrigger value="home" className="font-pixel text-xs data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-home-box">
                   {game.homeTeam.abbreviation}
                   {homeWon && <span className="ml-1 text-gold">W</span>}
                 </TabsTrigger>
@@ -2025,7 +2025,7 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
         <tbody>
           {team.batting.map((batter, i) => (
             <tr key={i} className="border-b border-gold/10">
-              <td className="text-center p-1.5 text-muted-foreground font-pixel text-[8px]">{i + 1}</td>
+              <td className="text-center p-1.5 text-muted-foreground font-pixel text-xs">{i + 1}</td>
               <td className="p-1.5 text-foreground">{batter.name}</td>
               <td className="text-center p-1.5 text-muted-foreground text-xs">{batter.position}</td>
               <td className="text-center p-1.5 text-foreground">{batter.ab}</td>

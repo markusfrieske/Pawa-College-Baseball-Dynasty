@@ -329,7 +329,7 @@ function RecruitRow({
             </div>
             {recruit.isBlueChip && (
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
-                <span className="text-[8px] text-white font-bold">B</span>
+                <span className="text-xs text-white font-bold">B</span>
               </div>
             )}
           </div>
@@ -340,11 +340,11 @@ function RecruitRow({
                 <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis block">{recruit.firstName} {recruit.lastName}</span>
               </Link>
               {recruit.isBlueChip && (
-                <Badge className="bg-blue-500 text-white text-[8px] shrink-0">Blue Chip</Badge>
+                <Badge className="bg-blue-500 text-white text-xs shrink-0">Blue Chip</Badge>
               )}
               {isSigned && recruit.signedTeamAbbreviation ? (
                 <Badge 
-                  className="text-white text-[8px] shrink-0"
+                  className="text-white text-xs shrink-0"
                   style={{ backgroundColor: recruit.signedTeamPrimaryColor || "#666" }}
                 >
                   Signed: {recruit.signedTeamAbbreviation}
@@ -352,14 +352,14 @@ function RecruitRow({
               ) : recruit.stage === "verbal" ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge className={`${stageDisplay.color} text-white text-[8px] shrink-0 animate-pulse`}>
+                    <Badge className={`${stageDisplay.color} text-white text-xs shrink-0 animate-pulse`}>
                       {stageDisplay.label}
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>This recruit will commit on Decision Day — keep recruiting!</TooltipContent>
                 </Tooltip>
               ) : (
-                <Badge className={`${stageDisplay.color} text-white text-[8px] shrink-0`}>{stageDisplay.label}</Badge>
+                <Badge className={`${stageDisplay.color} text-white text-xs shrink-0`}>{stageDisplay.label}</Badge>
               )}
             </div>
             {/* Row 2: location, hand, stars + all secondary badges */}
@@ -368,7 +368,7 @@ function RecruitRow({
                 <MapPin className="w-3 h-3" />
                 {recruit.hometown}, {recruit.homeState}
               </span>
-              <span className="text-[10px] shrink-0">
+              <span className="text-xs shrink-0">
                 {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
               </span>
               <StarRating rating={recruit.starRank} size="sm" />
@@ -389,7 +389,7 @@ function RecruitRow({
                     <TooltipTrigger asChild>
                       <Badge
                         variant="outline"
-                        className={`text-[8px] shrink-0 no-default-hover-elevate no-default-active-elevate font-bold ${rankColor}`}
+                        className={`text-xs shrink-0 no-default-hover-elevate no-default-active-elevate font-bold ${rankColor}`}
                         data-testid={`badge-my-rank-${recruit.id}`}
                       >
                         #{rankNum}
@@ -407,7 +407,7 @@ function RecruitRow({
                     <Tooltip key={school.teamId}>
                       <TooltipTrigger asChild>
                         <span
-                          className="text-[8px] font-bold px-1 py-0.5 rounded border border-current/30 cursor-default"
+                          className="text-xs font-bold px-1 py-0.5 rounded border border-current/30 cursor-default"
                           style={{ color: school.primaryColor || "#aaa" }}
                         >
                           {school.abbreviation}
@@ -419,25 +419,25 @@ function RecruitRow({
                 </div>
               )}
               {recruit.recruitType === "TRANSFER" ? (
-                <Badge className="bg-purple-600/30 text-purple-400 border-purple-600/50 text-[8px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-transfer-${recruit.id}`}>
+                <Badge className="bg-purple-600/30 text-purple-400 border-purple-600/50 text-xs no-default-hover-elevate no-default-active-elevate" data-testid={`badge-transfer-${recruit.id}`}>
                   TRANSFER {recruit.recruitYear || ""} {recruit.fromTeamName ? `(${recruit.fromTeamName})` : ""}
                 </Badge>
               ) : recruit.recruitType === "JUCO" ? (
-                <Badge className="bg-cyan-600/30 text-cyan-400 border-cyan-600/50 text-[8px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-juco-${recruit.id}`}>
+                <Badge className="bg-cyan-600/30 text-cyan-400 border-cyan-600/50 text-xs no-default-hover-elevate no-default-active-elevate" data-testid={`badge-juco-${recruit.id}`}>
                   JUCO {recruit.recruitYear || "FR"} {recruit.fromTeamName ? `(${recruit.fromTeamName})` : ""}
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-[8px]" data-testid={`badge-type-${recruit.id}`}>
+                <Badge variant="outline" className="text-xs" data-testid={`badge-type-${recruit.id}`}>
                   {recruit.recruitType || "HS"}
                 </Badge>
               )}
               {totalAbilities > 0 && (
-                <Badge variant="outline" className="text-[8px] border-gold/50 text-gold">
+                <Badge variant="outline" className="text-xs border-gold/50 text-gold">
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
                 </Badge>
               )}
               {positionNeed && (
-                <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400">
+                <Badge variant="outline" className="text-xs border-red-500/50 text-red-400">
                   NEED
                 </Badge>
               )}
@@ -446,7 +446,7 @@ function RecruitRow({
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
-                      className={`text-[8px] no-default-hover-elevate no-default-active-elevate font-bold ${RECOMMENDED_ACTION_META[recommendation.action].color}`}
+                      className={`text-xs no-default-hover-elevate no-default-active-elevate font-bold ${RECOMMENDED_ACTION_META[recommendation.action].color}`}
                       data-testid={`badge-recommended-action-${recruit.id}`}
                     >
                       <Target className="w-2.5 h-2.5 mr-0.5" />
@@ -459,7 +459,7 @@ function RecruitRow({
               {isStorylineRecruit && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-[8px] border-purple-500/50 text-purple-400 bg-purple-500/10 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-storyline-${recruit.id}`}>
+                    <Badge variant="outline" className="text-xs border-purple-500/50 text-purple-400 bg-purple-500/10 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-storyline-${recruit.id}`}>
                       <BookOpen className="w-2.5 h-2.5 mr-0.5" />STORY
                     </Badge>
                   </TooltipTrigger>
@@ -471,7 +471,7 @@ function RecruitRow({
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
-                      className="text-[8px] no-default-hover-elevate no-default-active-elevate border-blue-400/60 text-blue-300 bg-blue-500/10"
+                      className="text-xs no-default-hover-elevate no-default-active-elevate border-blue-400/60 text-blue-300 bg-blue-500/10"
                       data-testid={`badge-stadium-affinity-${recruit.id}`}
                     >
                       <Star className="w-2.5 h-2.5 mr-0.5" />
@@ -486,7 +486,7 @@ function RecruitRow({
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
-                      className={`text-[8px] no-default-hover-elevate no-default-active-elevate ${
+                      className={`text-xs no-default-hover-elevate no-default-active-elevate ${
                         recruit.teamsIn >= 5
                           ? "border-red-500/60 text-red-400 bg-red-500/10"
                           : recruit.teamsIn >= 3
@@ -507,7 +507,7 @@ function RecruitRow({
               {isFullyRevealed && recruit.isGenerationalGem && (
                 <Tooltip>
                   <TooltipTrigger>
-                    <Badge className="text-[8px] bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
+                    <Badge className="text-xs bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
                       <Star className="w-3 h-3 mr-0.5 fill-current" />
                       GENERATIONAL GEM
                     </Badge>
@@ -518,7 +518,7 @@ function RecruitRow({
               {isFullyRevealed && recruit.isGenerationalBust && (
                 <Tooltip>
                   <TooltipTrigger>
-                    <Badge className="text-[8px] bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
+                    <Badge className="text-xs bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
                       <Skull className="w-3 h-3 mr-0.5" />
                       GENERATIONAL BUST
                     </Badge>
@@ -549,7 +549,7 @@ function RecruitRow({
               {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.playerArchetype === "late_bloomer" && (
                 <Tooltip>
                   <TooltipTrigger>
-                    <Badge className="text-[8px] bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-upside-${recruit.id}`}>
+                    <Badge className="text-xs bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-upside-${recruit.id}`}>
                       <TrendingUp className="w-2.5 h-2.5 mr-0.5" />UPSIDE
                     </Badge>
                   </TooltipTrigger>
@@ -559,7 +559,7 @@ function RecruitRow({
               {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && recruit.playerArchetype === "overdraft" && (
                 <Tooltip>
                   <TooltipTrigger>
-                    <Badge className="text-[8px] bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-ceiling-${recruit.id}`}>
+                    <Badge className="text-xs bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-ceiling-${recruit.id}`}>
                       <TrendingDown className="w-2.5 h-2.5 mr-0.5" />CEILING
                     </Badge>
                   </TooltipTrigger>
@@ -569,7 +569,7 @@ function RecruitRow({
               {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.playerArchetype === "raw" && (
                 <Tooltip>
                   <TooltipTrigger>
-                    <Badge className="text-[8px] bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-raw-${recruit.id}`}>
+                    <Badge className="text-xs bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-raw-${recruit.id}`}>
                       <Zap className="w-2.5 h-2.5 mr-0.5" />RAW
                     </Badge>
                   </TooltipTrigger>
@@ -592,7 +592,7 @@ function RecruitRow({
             <p className={`font-bold ${isFullyRevealed ? "text-lg" : "text-sm"} text-gold`}>
               {getOverallDisplay()}
             </p>
-            <p className="text-[10px] text-muted-foreground">OVR</p>
+            <p className="text-xs text-muted-foreground">OVR</p>
           </div>
           {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && (
             <Tooltip>
@@ -603,7 +603,7 @@ function RecruitRow({
                   ) : (
                     <p className="font-bold text-xs text-muted-foreground/50 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" />NIL</p>
                   )}
-                  <p className="text-[10px] text-muted-foreground">NIL</p>
+                  <p className="text-xs text-muted-foreground">NIL</p>
                 </div>
               </TooltipTrigger>
               <TooltipContent>{scoutPct >= NIL_SCOUT_THRESHOLD ? "Estimated NIL range to sign this recruit (±25%)" : "Scout to 50% to reveal NIL estimate"}</TooltipContent>
@@ -613,13 +613,13 @@ function RecruitRow({
             <p className="font-bold text-sm">
               #{recruit.classRank || "—"}
             </p>
-            <p className="text-[10px] text-muted-foreground">CLASS</p>
+            <p className="text-xs text-muted-foreground">CLASS</p>
           </div>
           <div className="text-center min-w-[40px]">
             <p className="font-bold text-sm">
               #{recruit.positionRank || "—"}
             </p>
-            <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
+            <p className="text-xs text-muted-foreground">{recruit.position}</p>
           </div>
           <div className="text-center min-w-[40px]">
             {showRankEditor ? (
@@ -658,7 +658,7 @@ function RecruitRow({
                 <button
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { onSetBoardRank(null); setRankInputValue(""); setShowRankEditor(false); }}
-                  className="text-muted-foreground hover:text-red-400 text-[9px] leading-none"
+                  className="text-muted-foreground hover:text-red-400 text-xs leading-none"
                   title="Clear rank"
                 >✕</button>
               </div>
@@ -679,14 +679,14 @@ function RecruitRow({
                 </TooltipContent>
               </Tooltip>
             )}
-            <p className="text-[10px] text-muted-foreground">BOARD</p>
+            <p className="text-xs text-muted-foreground">BOARD</p>
           </div>
           {recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
             <div className="text-center min-w-[50px]">
               <p className="font-bold text-sm text-amber-400">
                 {getPotentialRangeLabel(recruit.potentialFloor, recruit.potentialCeiling)}
               </p>
-              <p className="text-[10px] text-muted-foreground">POT</p>
+              <p className="text-xs text-muted-foreground">POT</p>
             </div>
           )}
         </div>
@@ -722,19 +722,19 @@ function RecruitRow({
             <div className="flex items-center gap-2 lg:hidden">
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span className="text-[9px]">Scout</span>
+                  <span className="text-xs">Scout</span>
                   <div className="flex items-center gap-1.5">
                     {trend && trend.trend !== "flat" && (
-                      <span className={`text-[9px] ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-mobile-${recruit.id}`}>
+                      <span className={`text-xs ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-mobile-${recruit.id}`}>
                         {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
                       </span>
                     )}
-                    <span className="text-[9px]">{scoutPct}%</span>
+                    <span className="text-xs">{scoutPct}%</span>
                   </div>
                 </div>
                 <Progress value={scoutPct} className="h-1.5" />
                 <div className="flex justify-between items-center">
-                  <span className="text-[9px] text-muted-foreground">Interest</span>
+                  <span className="text-xs text-muted-foreground">Interest</span>
                   {interestMeta ? (
                     <div className="flex items-center gap-1" data-testid={`interest-bar-mobile-${recruit.id}`}>
                       <div className="w-16 h-1.5 bg-muted/40 rounded-full overflow-hidden">
@@ -743,10 +743,10 @@ function RecruitRow({
                           style={{ width: `${quantizeInterestWidth(recruit.interest!.interestLevel)}%` }}
                         />
                       </div>
-                      <span className={`text-[9px] font-bold ${interestMeta.color}`}>{interestMeta.label}</span>
+                      <span className={`text-xs font-bold ${interestMeta.color}`}>{interestMeta.label}</span>
                     </div>
                   ) : (
-                    <span className="text-[9px] text-muted-foreground/50">?</span>
+                    <span className="text-xs text-muted-foreground/50">?</span>
                   )}
                 </div>
               </div>
@@ -758,7 +758,7 @@ function RecruitRow({
                 data-testid={`button-scout-mobile-${recruit.id}`}
               >
                 <Search className="w-3 h-3 mr-1" />
-                <span className="text-[9px]">Scout</span>
+                <span className="text-xs">Scout</span>
               </RetroButton>
               <Popover open={showMobileMore} onOpenChange={setShowMobileMore}>
                 <PopoverTrigger asChild>
@@ -858,12 +858,12 @@ function RecruitRow({
               <div className="w-36 space-y-1.5">
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
-                    <span className="text-[9px]">Scout</span>
+                    <span className="text-xs">Scout</span>
                     <div className="flex items-center gap-1">
                       {trend && trend.trend !== "flat" && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className={`text-[9px] cursor-default ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-${recruit.id}`}>
+                            <span className={`text-xs cursor-default ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-${recruit.id}`}>
                               {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
                             </span>
                           </TooltipTrigger>
@@ -872,20 +872,20 @@ function RecruitRow({
                           </TooltipContent>
                         </Tooltip>
                       )}
-                      <span className="text-[9px]">{scoutPct}%</span>
+                      <span className="text-xs">{scoutPct}%</span>
                     </div>
                   </div>
                   <Progress value={scoutPct} className="h-1.5" />
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-0.5">
-                    <span className="text-[9px] text-muted-foreground">Interest</span>
+                    <span className="text-xs text-muted-foreground">Interest</span>
                     {interestMeta ? (
-                      <span className={`text-[9px] font-bold ${interestMeta.color}`} data-testid={`interest-label-${recruit.id}`}>
+                      <span className={`text-xs font-bold ${interestMeta.color}`} data-testid={`interest-label-${recruit.id}`}>
                         {interestMeta.label}
                       </span>
                     ) : (
-                      <span className="text-[9px] text-muted-foreground/50">?</span>
+                      <span className="text-xs text-muted-foreground/50">?</span>
                     )}
                   </div>
                   {interestMeta ? (
@@ -912,7 +912,7 @@ function RecruitRow({
                       data-testid={`button-scout-${recruit.id}`}
                     >
                       <Search className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">Scout</span>
+                      <span className="text-xs">Scout</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{scoutExhausted ? `Scout pts exhausted (${economy?.scoutPoints?.spent}/${economy?.scoutPoints?.cap})` : "Scout (1 scouting point)"}</TooltipContent>
@@ -927,7 +927,7 @@ function RecruitRow({
                       data-testid={`button-target-${recruit.id}`}
                     >
                       <Target className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{recruit.interest?.isTargeted ? "Targeted" : "Target"}</span>
+                      <span className="text-xs">{recruit.interest?.isTargeted ? "Targeted" : "Target"}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{recruit.interest?.isTargeted ? "Untarget" : "Target"}</TooltipContent>
@@ -942,7 +942,7 @@ function RecruitRow({
                       data-testid={`button-phone-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{phonedThisWeek ? "Called" : "Call (2)"}</span>
+                      <span className="text-xs">{phonedThisWeek ? "Called" : "Call (2)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{phonedThisWeek ? "Already called this recruit this week (1 per week max)" : contactExhausted ? `Contact pts exhausted (${economy?.contactPoints?.spent}/${economy?.contactPoints?.cap})` : "Phone Call - 2 recruiting points (3 pitches)"}</TooltipContent>
@@ -957,7 +957,7 @@ function RecruitRow({
                       data-testid={`button-email-${recruit.id}`}
                     >
                       <Mail className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{emailedThisWeek ? "Emailed" : "Email (1)"}</span>
+                      <span className="text-xs">{emailedThisWeek ? "Emailed" : "Email (1)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{emailedThisWeek ? "Already emailed this recruit this week (1 per week max)" : contactExhausted ? `Contact pts exhausted (${economy?.contactPoints?.spent}/${economy?.contactPoints?.cap})` : "Send Email - 1 recruiting point (1 pitch)"}</TooltipContent>
@@ -972,7 +972,7 @@ function RecruitRow({
                       data-testid={`button-visit-${recruit.id}`}
                     >
                       <Building2 className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{hasVisited ? "Visited" : visitCapReachedCombined ? "Cap" : `Visit (${visitCost})`}</span>
+                      <span className="text-xs">{hasVisited ? "Visited" : visitCapReachedCombined ? "Cap" : `Visit (${visitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : campusCapReached ? `Campus cap reached (${campusUsed}/${campusCap}). Resets next season.` : visitCapReachedCombined ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
@@ -987,7 +987,7 @@ function RecruitRow({
                       data-testid={`button-head-coach-visit-${recruit.id}`}
                     >
                       <Crown className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : hcvCapReachedCombined ? "Cap" : `HC Visit (${headCoachVisitCost})`}</span>
+                      <span className="text-xs">{hasHeadCoachVisited ? "HC Visited" : hcvCapReachedCombined ? "Cap" : `HC Visit (${headCoachVisitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : hcvCapReached ? `HCV cap reached (${hcvUsed}/${hcvCap}). Resets next season.` : hcvCapReachedCombined ? `Season visit cap reached${visitCap != null ? ` (${visitCap} total)` : ""}. Resets next season.` : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
@@ -1003,7 +1003,7 @@ function RecruitRow({
                       data-testid={`button-offer-${recruit.id}`}
                     >
                       {isOverNilBudget ? <Lock className="w-3 h-3 mr-1" /> : <Gift className="w-3 h-3 mr-1" />}
-                      <span className="text-[9px]">{recruit.interest?.hasOffer ? "Offered" : isOverNilBudget ? "Budget" : "Offer"}</span>
+                      <span className="text-xs">{recruit.interest?.hasOffer ? "Offered" : isOverNilBudget ? "Budget" : "Offer"}</span>
                     </RetroButton>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -1059,26 +1059,26 @@ function RecruitRow({
                   <>
                     {s.era != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">ERA</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">ERA</span>
+                        <span className="text-xs text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
                       </div>
                     )}
                     {s.ip != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">IP</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">IP</span>
+                        <span className="text-xs text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
                       </div>
                     )}
                     {s.k != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">K</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">{s.k}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">K</span>
+                        <span className="text-xs text-purple-300/90 font-mono">{s.k}</span>
                       </div>
                     )}
                     {s.whip != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">WHIP</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">WHIP</span>
+                        <span className="text-xs text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
                       </div>
                     )}
                   </>
@@ -1086,26 +1086,26 @@ function RecruitRow({
                   <>
                     {s.avg != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">AVG</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">AVG</span>
+                        <span className="text-xs text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
                       </div>
                     )}
                     {s.obp != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">OBP</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">OBP</span>
+                        <span className="text-xs text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
                       </div>
                     )}
                     {s.hr != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">HR</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">{s.hr}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">HR</span>
+                        <span className="text-xs text-purple-300/90 font-mono">{s.hr}</span>
                       </div>
                     )}
                     {s.rbi != null && (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-[8px] text-muted-foreground/60 font-mono">RBI</span>
-                        <span className="text-[9px] text-purple-300/90 font-mono">{s.rbi}</span>
+                        <span className="text-xs text-muted-foreground/60 font-mono">RBI</span>
+                        <span className="text-xs text-purple-300/90 font-mono">{s.rbi}</span>
                       </div>
                     )}
                   </>
@@ -1117,11 +1117,11 @@ function RecruitRow({
           {/* Trajectory row — hitters only; always shown, revealed after 50% scouted (blue chips always revealed) */}
           {!isPitcherRecruit && (
             <div className="flex items-center gap-1" data-testid={`traj-row-${recruit.id}`}>
-              <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
+              <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
               {(scoutPct >= TRAJECTORY_REVEAL_THRESHOLD || recruit.isBlueChip) && recruit.trajectory != null ? (
                 <>
-                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
-                  <span className={`text-[9px] font-mono ${
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-xs" />
+                  <span className={`text-xs font-mono ${
                     recruit.trajectory === 1 ? "text-emerald-400" :
                     recruit.trajectory === 3 ? "text-amber-400" :
                     recruit.trajectory === 4 ? "text-red-400" :
@@ -1129,14 +1129,14 @@ function RecruitRow({
                   }`}>{TRAJECTORY_FULL_LABELS[recruit.trajectory] ?? ""}</span>
                 </>
               ) : (
-                <span className="font-pixel text-[9px] font-bold" style={{ color: "#374151" }}>?</span>
+                <span className="font-pixel text-xs font-bold" style={{ color: "#374151" }}>?</span>
               )}
             </div>
           )}
 
           {/* Row 1 — ATTRIBUTES */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-20 shrink-0">ATTRIBUTES</span>
+            <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-20 shrink-0">ATTRIBUTES</span>
             {primaryAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
@@ -1144,15 +1144,15 @@ function RecruitRow({
               const isVelRevealed = key === "velocity" && revealed && val != null;
               return (
                 <div key={key} className="flex items-center gap-0.5">
-                  <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
+                  <span className="text-xs text-muted-foreground/60 font-mono">{label}</span>
                   {isSigningDayLocked ? (
                     <Lock className="w-2.5 h-2.5 text-gold/50" />
                   ) : isVelRevealed ? (
-                    <span className="font-pixel text-[9px] font-bold text-sky-300/90">
+                    <span className="font-pixel text-xs font-bold text-sky-300/90">
                       {velocityToKMH(val)} KMH
                     </span>
                   ) : (
-                    <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                    <span className="font-pixel text-xs font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
                       {grade ? grade.letter : "?"}
                     </span>
                   )}
@@ -1178,14 +1178,14 @@ function RecruitRow({
             if (!active.length) return null;
             return (
               <div className="flex items-center gap-1 flex-wrap">
-                <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
                 {scoutPct < 50 && !isFullyRevealed ? (
                   active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
+                    <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
                   ))
                 ) : (
                   active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                    <span key={label} className="text-xs font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
                       {label}·{(recruit as any)[k]}
                     </span>
                   ))
@@ -1196,18 +1196,18 @@ function RecruitRow({
 
           {/* Row 2 — COMMON abilities */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">COMMON</span>
+            <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">COMMON</span>
             {commonAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
               const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
               return (
                 <div key={key} className="flex items-center gap-0.5">
-                  <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
+                  <span className="text-xs text-muted-foreground/60 font-mono">{label}</span>
                   {isSigningDayLocked ? (
                     <Lock className="w-2.5 h-2.5 text-gold/50" />
                   ) : (
-                    <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (COMMON_TIER_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                    <span className="font-pixel text-xs font-bold" style={{ color: grade ? (COMMON_TIER_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
                       {grade ? grade.letter : "?"}
                     </span>
                   )}
@@ -1218,7 +1218,7 @@ function RecruitRow({
 
           {/* Row 3 — SPECIAL abilities */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">SPECIAL</span>
+            <span className="font-pixel text-xs text-muted-foreground/50 uppercase w-14 shrink-0">SPECIAL</span>
             {(() => {
               const abilitiesList = (recruit.abilities as string[] | null | undefined) || [];
               // Filter to only gold/blue/red special abilities first, then apply fog-of-war slice
@@ -1230,7 +1230,7 @@ function RecruitRow({
                 ? specialAbilities
                 : specialAbilities.slice(0, revealedAbilitiesCount);
               if (revealed.length === 0) {
-                return <span className="text-[9px] text-muted-foreground/40 font-mono">—</span>;
+                return <span className="text-xs text-muted-foreground/40 font-mono">—</span>;
               }
               return revealed.map((name, idx) => {
                 const ability = getAbilityByName(name);
@@ -1248,7 +1248,7 @@ function RecruitRow({
                   <Tooltip key={idx}>
                     <TooltipTrigger asChild>
                       <span
-                        className="text-[8px] font-mono px-1 py-0.5 rounded leading-tight border cursor-default"
+                        className="text-xs font-mono px-1 py-0.5 rounded leading-tight border cursor-default"
                         style={{ color: tierColor, background: tierBg, borderColor: `${tierColor}40` }}
                       >
                         {name}
@@ -1269,7 +1269,7 @@ function RecruitRow({
 
       {showPhonePicker && (
         <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-phone-${recruit.id}`}>
-          <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+          <p className="text-xs font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pitchOptions.map(opt => (
               <button
@@ -1309,7 +1309,7 @@ function RecruitRow({
 
       {showEmailPicker && (
         <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-email-${recruit.id}`}>
-          <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+          <p className="text-xs font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
           <div className="flex flex-wrap gap-1.5 mb-2">
             {pitchOptions.map(opt => (
               <button
@@ -1349,7 +1349,7 @@ function RecruitRow({
 
       {recruit.interest?.notes && (
         <div className="mt-2 px-4 py-2 bg-gold/10 border border-gold/20 rounded text-sm text-muted-foreground">
-          <span className="text-gold font-pixel text-[8px]">NOTE: </span>
+          <span className="text-gold font-pixel text-xs">NOTE: </span>
           {recruit.interest.notes}
         </div>
       )}
@@ -1426,13 +1426,13 @@ function RecruitRow({
                   const hasOffer = recruit.interest?.hasOffer;
                   return (
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] font-pixel text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
+                      <span className="text-xs font-pixel text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
                         #{userIdx + 1} of {visibleSchools.length}
                       </span>
                       {!hasOffer && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="flex items-center gap-0.5 text-[9px] text-amber-400/80 cursor-default" data-testid={`text-offer-required-${recruit.id}`}>
+                            <span className="flex items-center gap-0.5 text-xs text-amber-400/80 cursor-default" data-testid={`text-offer-required-${recruit.id}`}>
                               <Lock className="w-2.5 h-2.5" />
                               Offer needed
                             </span>
@@ -1444,14 +1444,14 @@ function RecruitRow({
                   );
                 }
                 return (
-                  <span className="text-[9px] text-muted-foreground/60" data-testid={`text-user-school-absent-${recruit.id}`}>
+                  <span className="text-xs text-muted-foreground/60" data-testid={`text-user-school-absent-${recruit.id}`}>
                     Not Listed
                   </span>
                 );
               })()}
             </div>
             <div className="flex items-center gap-1.5">
-              <Badge variant="outline" className="text-[8px]">
+              <Badge variant="outline" className="text-xs">
                 {recruit.stage === "open" ? "8 Schools" : recruit.stage === "top8" ? "Top 8" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top3" ? "Top 3" : recruit.stage}
               </Badge>
               {showTopSchools ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}

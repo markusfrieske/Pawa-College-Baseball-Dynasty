@@ -106,7 +106,7 @@ export function MobileNav() {
                 data-testid={testId}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[9px] leading-none font-medium">{label}</span>
+                <span className="text-xs leading-none font-medium">{label}</span>
               </Link>
             );
           })}
@@ -124,7 +124,7 @@ export function MobileNav() {
               <Menu className="w-5 h-5" />
               {unreadInbox > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-gold text-[8px] font-bold text-black leading-none"
+                  className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-gold text-xs font-bold text-black leading-none"
                   data-testid="badge-more-unread"
                   aria-label={`${unreadInbox} unread messages`}
                 >
@@ -132,7 +132,7 @@ export function MobileNav() {
                 </span>
               )}
             </span>
-            <span className="text-[9px] leading-none font-medium">More</span>
+            <span className="text-xs leading-none font-medium">More</span>
           </button>
         </div>
       </nav>
@@ -158,7 +158,7 @@ export function MobileNav() {
                 <Icon className="w-4 h-4 text-gold flex-shrink-0" />
                 <span className="flex-1 text-sm font-medium">{label}</span>
                 {badge && (
-                  <span className="flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-gold text-[9px] font-bold text-black">
+                  <span className="flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-gold text-xs font-bold text-black">
                     {badge}
                   </span>
                 )}
