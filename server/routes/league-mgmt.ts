@@ -14,7 +14,7 @@ import { getRealRosters } from "../realRostersLoader";
 import { normalizeCommonAbilities } from "../normalizeCommonAbilities";
 import { generateRecruitClass } from "../recruit-generator";
 import { calculateOVR, getStarRatingFromOVR } from "../../shared/abilities";
-import { getPotentialRange, rollWeightedPotential } from "../../shared/potential";
+import { getPotentialRange, rollV3Potential } from "../../shared/potential";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
 import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
@@ -1746,7 +1746,7 @@ app.get("/api/leagues/:id/recruits/:recruitId", requireAuth, async (req, res) =>
 
     let actualPotential = recruit.potential;
     if (actualPotential == null) {
-      actualPotential = rollWeightedPotential();
+      actualPotential = rollV3Potential(recruit.starRating ?? undefined, recruit.playerArchetype ?? "normal");
       storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
     }
     let dynamicPotentialFloor = recruit.potentialFloor;

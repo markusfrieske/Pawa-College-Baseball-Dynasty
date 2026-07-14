@@ -12,7 +12,7 @@ import { calculateOVR, getStarRatingFromOVR, getRandomAbilities, getAbilitiesFor
 import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS, pickHandedness } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr } from "./pitchMixHelpers";
-import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "../shared/potential";
+import { getPotentialRange, getProgressionZone, rollWeightedPotential, rollV3Potential, getPotentialGrade } from "../shared/potential";
 import { initializeStorylineRecruits } from "./storyline-routes";
 
 import { assignTrajectory } from "../shared/trajectory";
@@ -1093,7 +1093,7 @@ export async function generateRecruits(
         const range = getPotentialRange(r.potential);
         return { potentialFloor: range.floor, potentialCeiling: range.ceiling };
       }
-      let pot = rollWeightedPotential();
+      let pot = rollV3Potential(r.starRating ?? undefined, r.playerArchetype ?? "normal");
       if (r.isBlueChip) pot = Math.max(78, pot);
       if (r.isGenerationalGem) pot = Math.max(74, pot);
       if (r.isGem && !r.isGenerationalGem) pot = Math.max(74, pot);
@@ -1685,7 +1685,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
           mouthStyle: appearance.mouthStyle,
           eyeBlack: appearance.eyeBlack,
           headwear: appearance.headwear,
-          potential: rollWeightedPotential(),
+          potential: rollV3Potential(),
           ...(pos === "P"
             ? generateArchetypePitchMix(
                 assignPitcherArchetype(pos, fillerThrowHand, playerData.velocity, playerData.control, playerData.stamina, playerData.stuff),
@@ -1846,7 +1846,7 @@ export async function generatePlayersForTeam(teamId: string, progressionEnabled:
       mouthStyle: appearance.mouthStyle,
       eyeBlack: appearance.eyeBlack,
       headwear: appearance.headwear,
-      potential: rollWeightedPotential(),
+      potential: rollV3Potential(),
       ...(isPitcherPos
         ? generateArchetypePitchMix(
             assignPitcherArchetype(position, cpuThrowHand, velocity, control, stamina, stuff),

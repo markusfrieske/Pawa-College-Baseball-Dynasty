@@ -52,7 +52,7 @@ import {
 } from "@shared/recruitingBalance";
 import { computeRecruitingEconomyWithLedger } from "../services/recruitingEconomyService";
 import { executeRecruitingAction } from "../services/recruitingActionService";
-import { getPotentialRange, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
+import { getPotentialRange, rollV3Potential, getPotentialGrade } from "@shared/potential";
 import {
   getAttributesToRevealCount,
   getAttributesToReveal,
@@ -2491,7 +2491,7 @@ export function registerRecruitingRoutes(app: Express): void {
         
         let actualPotential = recruit.potential;
         if (actualPotential == null) {
-          actualPotential = rollWeightedPotential();
+          actualPotential = rollV3Potential(recruit.starRating ?? undefined, recruit.playerArchetype ?? "normal");
           storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
         }
         let dynamicPotentialFloor = recruit.potentialFloor;

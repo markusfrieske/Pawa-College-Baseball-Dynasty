@@ -21,4 +21,4 @@
 - [Full Season remediation status](full-season-remediation-status.md) — all phases complete; createScheduleForSeason.ts is authoritative; V2 pool formula max(30, ceil(teams×7.25)).
 - [Recruiting V2 completion](recruiting-v2-completion.md) — all caps in shared/recruitingBalance.ts; CPU calls getTurnContactCap directly; old V1 module-level helpers removed from simulation.ts.
 - [TypeScript insert-type field discipline](ts-insert-field-discipline.md) — fields that don't exist in the Drizzle insert schema (workEthicScore, isWalkOn, leagueId on createPlayer, signingOvr) must be removed not cast; potential is numeric not a letter grade string; eventType enum must be a valid member.
-- [V3 development engine wiring](v3-engine-wiring.md) — developmentModelVersion=3 set on all new signed/walkon players; V3 engine runs after V1 loop in applyPlayerProgression.
+- [V3 migration pattern](v3-migration-pattern.md) — migrateLeagueToV3 in playerDevelopment/ is additive-only; called automatically in applyPlayerProgression before V3 engine so migrated players develop in the same offseason; rollV3Potential replaces rollWeightedPotential everywhere.

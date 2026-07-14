@@ -9,7 +9,7 @@
 
 import { storage } from "./storage";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
-import { rollWeightedPotential } from "@shared/potential";
+import { rollV3Potential } from "@shared/potential";
 import { assignTrajectory } from "@shared/trajectory";
 import { computeLegacyScore } from "./game-engine";
 import { generateDraftDeclarationNewsArticle, generateTransferPortalNewsArticle } from "./news-engine";
@@ -320,7 +320,7 @@ export async function finalizeDeparturesInternal(leagueId: string, league: any) 
           pitchSCB: (player as any).pitchSCB ?? 0,
           pitchPCB: (player as any).pitchPCB ?? 0,
           abilities: playerAbilities,
-          potential: player.potential ?? rollWeightedPotential(),
+          potential: player.potential ?? rollV3Potential(),
           nilCost: (function() {
             const ovr = calculateOVR(player);
             const sr = getStarRatingFromOVR(ovr);

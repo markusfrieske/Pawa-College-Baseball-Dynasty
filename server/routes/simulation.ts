@@ -82,6 +82,7 @@ import {
 import { updateRecruitStages } from "./league-mgmt";
 import { selectAndSeedNationalField, generateFSSuperRegionals, advanceFSSRBracket, initializeFSCWSBrackets, advanceFSCWSBracket } from "../services/postseason";
 import { runV3SeasonDevelopment } from "../services/playerDevelopment/runSeasonDevelopment";
+import { migrateLeagueToV3 } from "../services/playerDevelopment/migrateToV3";
 import { assignArchetype } from "../services/playerDevelopment/assignArchetype";
 import { buildDevelopmentCaps } from "../services/playerDevelopment/buildCaps";
 import { buildDevelopmentSeed } from "@shared/seededRng";
@@ -1741,6 +1742,24 @@ async function applyPlayerProgression(leagueId: string) {
     await Promise.all(ovrStatWrites.slice(i, i + PROG_CHUNK).map(u =>
       storage.setPlayerSeasonStatsOvr(u.playerId, leagueId, league!.currentSeason, u.ovr)
     ));
+  }
+
+  // ── V3 migration ────────────────────────────────────────────────────────
+  // Promote any remaining V1 players to V3 before running the V3 engine.
+  // This is additive-only: it assigns archetype + caps + seed without touching
+  // ratings. After migration those players are immediately picked up by the V3
+  // engine below, so they receive archetype-aware development starting this
+  // offseason rather than waiting until next season.
+  const v1Count = allPlayersLeague.filter(p => (p.developmentModelVersion ?? 1) !== 3).length;
+  if (v1Count > 0) {
+    console.log(`[v3-migrate] Promoting ${v1Count} V1 players to V3 in league ${leagueId}…`);
+    const migResult = await migrateLeagueToV3(storage as any, leagueId, allPlayersLeague);
+    console.log(`[v3-migrate] Done — migrated=${migResult.migrated} skipped=${migResult.skipped} errors=${migResult.errors}`);
+    // Re-fetch updated players so the V3 engine sees the new archetypes/caps
+    const refreshed = await storage.getPlayersByLeague(leagueId);
+    // Replace the in-memory list for the V3 engine pass below
+    allPlayersLeague.length = 0;
+    for (const p of refreshed) allPlayersLeague.push(p);
   }
 
   // ── V3 engine ──────────────────────────────────────────────────────────
@@ -7095,6 +7114,39 @@ export function registerSimulationRoutes(app: Express): void {
       return res.json({ active: false, stage: "idle", pct: 0 });
     }
     return res.json({ active: true, stage: entry.stage, pct: entry.pct });
+  });
+
+  // ============ V3 MIGRATION (commissioner tool) ============
+  // Allows a commissioner to manually trigger the V3 player migration during the
+  // offseason — useful when the automatic in-progression migration hasn't run yet
+  // or when the commissioner wants to preview archetype assignments before the
+  // first offseason advance.
+  app.post("/api/leagues/:id/admin/migrate-to-v3", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can trigger the V3 migration" });
+      }
+
+      const players = await storage.getPlayersByLeague(league.id);
+      const v1Count = players.filter(p => (p as any).developmentModelVersion !== 3).length;
+
+      if (v1Count === 0) {
+        return res.json({ message: "All players are already on V3", migrated: 0, skipped: 0, errors: 0 });
+      }
+
+      const result = await migrateLeagueToV3(storage as any, league.id, players as any);
+
+      console.log(`[v3-migrate-manual] League ${league.id} — migrated=${result.migrated} skipped=${result.skipped} errors=${result.errors}`);
+      return res.json({
+        message: `Migration complete. ${result.migrated} players promoted to V3.`,
+        ...result,
+      });
+    } catch (err) {
+      console.error("V3 migration error:", err);
+      return res.status(500).json({ message: "Migration failed" });
+    }
   });
 
   // ============ FORCE ADVANCE ============
