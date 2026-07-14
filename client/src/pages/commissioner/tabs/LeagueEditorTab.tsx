@@ -276,6 +276,24 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
 
   const hasChanges = Object.keys(edits).length > 0;
 
+  // Color contrast warning helper (relative luminance per WCAG 2.1)
+  function hexToLuminance(hex: string): number {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  }
+  function contrastRatio(a: string, b: string): number {
+    const L1 = hexToLuminance(a), L2 = hexToLuminance(b);
+    const [light, dark] = L1 > L2 ? [L1, L2] : [L2, L1];
+    return (light + 0.05) / (dark + 0.05);
+  }
+  const colorContrast = selected && /^#[0-9A-Fa-f]{6}$/.test(primaryColor) && /^#[0-9A-Fa-f]{6}$/.test(secondaryColor)
+    ? contrastRatio(primaryColor, secondaryColor)
+    : null;
+  const lowContrast = colorContrast !== null && colorContrast < 3.0;
+
   if (isLoading) return <div className="h-64 flex items-center justify-center"><Skeleton className="w-48 h-8" /></div>;
 
   return (
@@ -340,6 +358,11 @@ function SchoolsTab({ leagueId }: { leagueId: string }) {
                   <p className="font-pixel text-[10px] text-gold">{getVal("name", selected.name)}</p>
                   <p className="text-xs text-muted-foreground">{getVal("city", selected.city)}, {getVal("state", selected.state)}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">v{selected.editorVersion}</p>
+                  {lowContrast && (
+                    <p className="text-[9px] text-yellow-400 mt-1">
+                      Low color contrast ({colorContrast!.toFixed(1)}:1) — text may be hard to read
+                    </p>
+                  )}
                 </div>
                 <div className="ml-auto flex gap-2">
                   {hasChanges && (
@@ -597,6 +620,21 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
 
   const teams = schoolsData?.teams ?? [];
 
+  // Roster-health: position group coverage from current page + all loaded players
+  const rosterHealth = (() => {
+    const ps = playersData?.players ?? [];
+    if (!teamId || teamId === "all" || ps.length === 0) return null;
+    const groups: Record<string, number> = { C: 0, "1B": 0, "2B": 0, "SS": 0, "3B": 0, OF: 0, P: 0 };
+    const posToGroup = (pos: string) => {
+      if (["LF","CF","RF","OF"].includes(pos)) return "OF";
+      if (["P","SP","RP","CP"].includes(pos)) return "P";
+      return pos;
+    };
+    ps.forEach(p => { const g = posToGroup(p.position); if (g in groups) groups[g]++; });
+    const issues = Object.entries(groups).filter(([, cnt]) => cnt === 0).map(([g]) => g);
+    return { groups, issues };
+  })();
+
   return (
     <div className="flex gap-4 h-[70vh]">
       {/* Left: Filters + Player List */}
@@ -642,6 +680,17 @@ function PlayersTab({ leagueId }: { leagueId: string }) {
             data-testid="input-player-search"
           />
         </div>
+
+        {/* Roster-health indicator */}
+        {rosterHealth && (
+          <div className="shrink-0">
+            {rosterHealth.issues.length === 0 ? (
+              <p className="text-[9px] text-green-400">All position groups covered</p>
+            ) : (
+              <p className="text-[9px] text-yellow-400">Missing: {rosterHealth.issues.join(", ")}</p>
+            )}
+          </div>
+        )}
 
         {/* List */}
         <div className="overflow-y-auto flex-1 space-y-0.5 pr-1">

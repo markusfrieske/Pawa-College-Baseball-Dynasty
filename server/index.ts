@@ -469,6 +469,13 @@ app.use((req, res, next) => {
         console.log("[startup-migration] league-editor-v1: editor_version cols, audit tables, and setting added");
       });
 
+      // ── league-editor-v1b ─────────────────────────────────────────────────
+      // Add stadium_name identity field to teams for the League Editor.
+      await once('league-editor-v1b', async () => {
+        await pool.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_name text`);
+        console.log("[startup-migration] league-editor-v1b: stadium_name column added to teams");
+      });
+
     } catch (e) {
       console.error("[startup-migrations] sequential runner failed:", e);
     }
