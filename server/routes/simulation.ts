@@ -71,7 +71,8 @@ import { finalizeGame, flushCoachXp, batchFinalizeGames, type CoachXpDelta } fro
 import {
   requireAuth,
   hasCommissionerAccess,
-  advancingLeagues,
+  acquireAdvanceLock,
+  releaseAdvanceLock,
   potentialGradeToNumber,
   autoAssignLineup,
   ensureCoachTraits,
@@ -7155,10 +7156,10 @@ export function registerSimulationRoutes(app: Express): void {
       const nextWeek = currentWeek + 1;
 
       // Concurrent-advance guard — reject duplicate requests while one is in flight
-      if (advancingLeagues.has(leagueId)) {
+      const locked = await acquireAdvanceLock(leagueId);
+      if (!locked) {
         return res.status(409).json({ message: "League advance already in progress. Please wait." });
       }
-      advancingLeagues.add(leagueId);
       // Invalidate server cache immediately so data doesn't serve stale content after advance
       invalidateLeague(leagueId);
 
@@ -7178,7 +7179,7 @@ export function registerSimulationRoutes(app: Express): void {
       // Auto-clear progress and lock once the response is fully sent
       res.on("finish", () => {
         clearAdvanceProgress(leagueId);
-        advancingLeagues.delete(leagueId);
+        releaseAdvanceLock(leagueId);
       });
 
       // ── Delegate all business logic to the unified advance engine ──────────
@@ -7188,11 +7189,12 @@ export function registerSimulationRoutes(app: Express): void {
       res.json(data);
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
+        releaseAdvanceLock(req.params.id as string);
         if (!res.headersSent) return res.status(e.statusCode).json(e.body);
         return;
       }
       console.error("Failed to advance week:", e);
-      advancingLeagues.delete(req.params.id as string);
+      releaseAdvanceLock(req.params.id as string);
       if (!res.headersSent) res.status(500).json({ message: "Failed to advance week", detail: e?.message || String(e) });
     }
   });

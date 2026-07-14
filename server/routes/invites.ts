@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess, ensureCoachTraits } from "../route-helpers";
 import { invalidateLeague } from "../cache";
+import { pool } from "../db";
 
 export function registerInviteRoutes(app: Express): void {
   // ── Create an invite link (commissioner only) ─────────────────────────────
@@ -94,34 +95,71 @@ export function registerInviteRoutes(app: Express): void {
   });
 
   // ── Accept an invite link (authenticated) ───────────────────────────────
+  // The entire claim flow runs inside a serialized DB transaction to prevent
+  // two concurrent requests from claiming the same invite code or the same
+  // team slot simultaneously.
   app.post("/api/invites/:code/accept", requireAuth, async (req, res) => {
+    const client = await pool.connect();
     try {
-      const invite = await storage.getLeagueInviteByCode(req.params.code as string);
-      if (!invite) return res.status(404).json({ message: "Invite not found" });
-      if (invite.status !== "pending") {
+      await client.query("BEGIN");
+
+      // Lock the invite row for the duration of this transaction so concurrent
+      // accept requests queue instead of racing.
+      const inviteRows = await client.query(
+        `SELECT * FROM league_invites WHERE invite_code = $1 FOR UPDATE`,
+        [req.params.code as string],
+      );
+      const inviteRow = inviteRows.rows[0];
+      if (!inviteRow) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Invite not found" });
+      }
+      if (inviteRow.status !== "pending") {
+        await client.query("ROLLBACK");
         return res.status(400).json({ message: "This invite link has already been used or revoked" });
       }
-      if (invite.expiresAt && new Date(invite.expiresAt) <= new Date()) {
+      if (inviteRow.expires_at && new Date(inviteRow.expires_at) <= new Date()) {
+        await client.query("ROLLBACK");
         return res.status(400).json({ message: "This invite link has expired" });
       }
 
+      const invite = await storage.getLeagueInviteByCode(req.params.code as string);
+      if (!invite) { await client.query("ROLLBACK"); return res.status(404).json({ message: "Invite not found" }); }
+
       const userId = req.session.userId!;
       const user = await storage.getUser(userId);
-      if (!user) return res.status(401).json({ message: "Authentication required" });
+      if (!user) { await client.query("ROLLBACK"); return res.status(401).json({ message: "Authentication required" }); }
 
-      const existingTeams = await storage.getTeamsByLeague(invite.leagueId);
-      const teamsWithCoaches = existingTeams.filter(t => t.coachId);
-      const coaches = await Promise.all(teamsWithCoaches.map(t => storage.getCoach(t.coachId!)));
-      if (coaches.some(c => c && c.userId === userId)) {
+      // Reject if user already has a coach record in this league (unique constraint guard).
+      const dupCheck = await client.query(
+        `SELECT id FROM coaches WHERE league_id = $1 AND user_id = $2 LIMIT 1`,
+        [invite.leagueId, userId],
+      );
+      if (dupCheck.rowCount && dupCheck.rowCount > 0) {
+        await client.query("ROLLBACK");
         return res.status(400).json({ message: "You are already a coach in this league" });
       }
 
       const { teamId, coachData } = req.body;
-      if (!teamId) return res.status(400).json({ message: "Team selection is required" });
+      if (!teamId) { await client.query("ROLLBACK"); return res.status(400).json({ message: "Team selection is required" }); }
+
+      // Lock the team row so two simultaneous accepts can't both grab the same team.
+      const teamRows = await client.query(
+        `SELECT * FROM teams WHERE id = $1 FOR UPDATE`,
+        [teamId],
+      );
+      const teamRow = teamRows.rows[0];
+      if (!teamRow || !teamRow.is_cpu) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: "This team is not available" });
+      }
+      if (teamRow.league_id !== invite.leagueId) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ message: "Invalid team selection" });
+      }
 
       const team = await storage.getTeam(teamId);
-      if (!team || !team.isCpu) return res.status(400).json({ message: "This team is not available" });
-      if (team.leagueId !== invite.leagueId) return res.status(400).json({ message: "Invalid team selection" });
+      if (!team) { await client.query("ROLLBACK"); return res.status(404).json({ message: "Team not found" }); }
 
       const baseCoachData = {
         firstName: coachData?.firstName || "New",
@@ -129,7 +167,7 @@ export function registerInviteRoutes(app: Express): void {
         leagueId: invite.leagueId,
         teamId,
         archetype: coachData?.archetype || "Balanced",
-        userId: req.session.userId!,
+        userId,
         scoutingSkill: 1,
         evaluationSkill: 1,
         pitchingRecruitingSkill: 1,
@@ -141,44 +179,46 @@ export function registerInviteRoutes(app: Express): void {
         } : {}),
       };
 
-      // Phase 2 fix: retire the existing CPU coach that bootstrap assigned to
-      // this team before creating the human coach. Leaving the old coach with
-      // teamId still set causes getCoachesByLeague() to return two coaches for
-      // the same team, making isHumanControlled non-deterministic and breaking
-      // readiness checks.
+      // Retire the existing CPU coach before creating the human coach so
+      // getCoachesByLeague() never returns two coaches for the same team.
       if (team.coachId) {
         const existingCoach = await storage.getCoach(team.coachId);
         if (existingCoach && !existingCoach.userId) {
-          // CPU coach — detach from team so it no longer appears in league coach lists
           await storage.updateCoach(existingCoach.id, { teamId: null } as any);
           console.log(`[inviteJoin] Retired CPU coach ${existingCoach.id} from team ${teamId}`);
         }
       }
 
       const coach = await storage.createCoach(baseCoachData);
-      try { await ensureCoachTraits(coach, 1); } catch (err) {
-        console.error("[inviteJoin] ensureCoachTraits failed:", err);
-      }
 
       await storage.updateLeagueInvite(invite.id, {
         status: "accepted",
         teamId,
-        acceptedById: req.session.userId,
+        acceptedById: userId,
       });
 
       await storage.updateTeam(teamId, { isCpu: false, coachId: coach.id });
 
+      await client.query("COMMIT");
+
+      try { await ensureCoachTraits(coach, 1); } catch (err) {
+        console.error("[inviteJoin] ensureCoachTraits failed:", err);
+      }
+
       await storage.createAuditLog({
         leagueId: invite.leagueId,
-        userId: req.session.userId,
+        userId,
         action: "Invite Accepted",
         details: `${user.email || "A player"} joined the league and selected ${team.name}`,
       });
 
       res.json({ success: true, leagueId: invite.leagueId, teamId });
     } catch (error) {
+      await client.query("ROLLBACK").catch(() => {});
       console.error("Failed to accept invite:", error);
       res.status(500).json({ message: "Failed to accept invite" });
+    } finally {
+      client.release();
     }
   });
 

@@ -160,10 +160,47 @@ export function getOnlineCount(): number {
   return presenceMap.size;
 }
 
-// ── PER-LEAGUE ADVANCE LOCK ───────────────────────────────────────────────────
-// Prevents the advance endpoint from being executed concurrently for the same
-// league (double-click / network-retry protection).
+// ── PER-LEAGUE ADVANCE LOCK (DB-backed) ──────────────────────────────────────
+// Prevents concurrent advance calls for the same league (double-click /
+// network-retry protection).  Uses a `league_advance_locks` table so the
+// guard survives horizontal scale-out and is visible to monitoring.
+// The table is created in the startup migration (server/index.ts).
+//
+// Callers MUST release the lock via releaseAdvanceLock() in a finally block.
+//
+// Returns true  → lock acquired, proceed.
+// Returns false → lock already held by another in-flight request, reject 409.
 
+import { pool } from "./db";
+
+export async function acquireAdvanceLock(leagueId: string): Promise<boolean> {
+  try {
+    const result = await pool.query(
+      `INSERT INTO league_advance_locks (league_id, locked_at)
+       VALUES ($1, now())
+       ON CONFLICT (league_id) DO NOTHING
+       RETURNING league_id`,
+      [leagueId],
+    );
+    return result.rowCount === 1;
+  } catch (err) {
+    console.error("[advanceLock] acquireAdvanceLock error:", err);
+    return false;
+  }
+}
+
+export async function releaseAdvanceLock(leagueId: string): Promise<void> {
+  try {
+    await pool.query(
+      `DELETE FROM league_advance_locks WHERE league_id = $1`,
+      [leagueId],
+    );
+  } catch (err) {
+    console.error("[advanceLock] releaseAdvanceLock error:", err);
+  }
+}
+
+// Legacy in-memory set kept for backwards-compat imports; no longer used.
 export const advancingLeagues = new Set<string>();
 
 // ── POTENTIAL GRADE → NUMBER ──────────────────────────────────────────────────

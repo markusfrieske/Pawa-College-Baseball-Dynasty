@@ -12,9 +12,60 @@
  */
 
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess } from "../route-helpers";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
+
+// Strict allowlist for the commissioner player-PATCH endpoint.
+// Only fields listed here can be updated; all other body keys are silently dropped.
+const playerPatchSchema = z.object({
+  position: z.string().max(10).optional(),
+  eligibility: z.enum(["FR", "SO", "JR", "SR"]).optional(),
+  abilities: z.array(z.string()).optional(),
+  potential: z.number().int().min(0).max(100).optional(),
+  hitForAvg: z.number().int().min(0).max(100).optional(),
+  power: z.number().int().min(0).max(100).optional(),
+  speed: z.number().int().min(0).max(100).optional(),
+  arm: z.number().int().min(0).max(100).optional(),
+  fielding: z.number().int().min(0).max(100).optional(),
+  errorResistance: z.number().int().min(0).max(100).optional(),
+  clutch: z.number().int().min(0).max(100).optional(),
+  vsLHP: z.number().int().min(0).max(100).optional(),
+  grit: z.number().int().min(0).max(100).optional(),
+  stealing: z.number().int().min(0).max(100).optional(),
+  running: z.number().int().min(0).max(100).optional(),
+  throwing: z.number().int().min(0).max(100).optional(),
+  recovery: z.number().int().min(0).max(100).optional(),
+  catcherAbility: z.number().int().min(0).max(100).optional(),
+  velocity: z.number().int().min(0).max(100).optional(),
+  control: z.number().int().min(0).max(100).optional(),
+  stamina: z.number().int().min(0).max(100).optional(),
+  stuff: z.number().int().min(0).max(100).optional(),
+  wRISP: z.number().int().min(0).max(100).optional(),
+  vsLefty: z.number().int().min(0).max(100).optional(),
+  poise: z.number().int().min(0).max(100).optional(),
+  heater: z.number().int().min(0).max(100).optional(),
+  agile: z.number().int().min(0).max(100).optional(),
+  pitchFB: z.number().int().min(0).max(7).optional(),
+  pitch2S: z.number().int().min(0).max(7).optional(),
+  pitchSL: z.number().int().min(0).max(7).optional(),
+  pitchCB: z.number().int().min(0).max(7).optional(),
+  pitchCH: z.number().int().min(0).max(7).optional(),
+  pitchCT: z.number().int().min(0).max(7).optional(),
+  pitchSNK: z.number().int().min(0).max(7).optional(),
+  pitchSPL: z.number().int().min(0).max(7).optional(),
+  pitchSHU: z.number().int().min(0).max(7).optional(),
+  pitchCCH: z.number().int().min(0).max(7).optional(),
+  pitchHSL: z.number().int().min(0).max(7).optional(),
+  pitchSWP: z.number().int().min(0).max(7).optional(),
+  pitchKN: z.number().int().min(0).max(7).optional(),
+  pitchVSL: z.number().int().min(0).max(7).optional(),
+  pitchSFF: z.number().int().min(0).max(7).optional(),
+  pitchFK: z.number().int().min(0).max(7).optional(),
+  pitchSCB: z.number().int().min(0).max(7).optional(),
+  pitchPCB: z.number().int().min(0).max(7).optional(),
+});
 import { ALL_GAME_DAYS, computeWeeklyAvailability } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
 import type { Player } from "@shared/schema";
@@ -173,9 +224,10 @@ export function registerRosterRoutes(app: Express): void {
       };
       const changeSummary: string[] = [];
       for (const [field, label] of Object.entries(EDITABLE_FIELD_LABELS)) {
-        if (!(field in req.body)) continue;
+        const body = req.body as Record<string, unknown>;
+        if (!(field in body)) continue;
         const oldVal = (player as Record<string, unknown>)[field];
-        const newVal = req.body[field];
+        const newVal = body[field];
         const oldStr = Array.isArray(oldVal) ? (oldVal as string[]).join(", ") || "none" : String(oldVal ?? "");
         const newStr = Array.isArray(newVal) ? (newVal as string[]).join(", ") || "none" : String(newVal ?? "");
         if (oldStr !== newStr) {
@@ -183,15 +235,22 @@ export function registerRosterRoutes(app: Express): void {
         }
       }
 
-      const mergedPlayer = { ...player, ...req.body };
+      // Parse and strip to the strict allowlist — drops any unknown keys from req.body.
+      const patchParsed = playerPatchSchema.safeParse(req.body);
+      if (!patchParsed.success) {
+        return res.status(400).json({ message: "Invalid player update fields", errors: patchParsed.error.flatten() });
+      }
+      const patchData = patchParsed.data;
+
+      const mergedPlayer = { ...player, ...patchData };
       // Recalculate OVR using the new (merged) position — converted players get the
       // correct positional attribute weights applied immediately.
       const recalcedOverall = calculateOVR(mergedPlayer);
       const recalcedStar = getStarRatingFromOVR(recalcedOverall);
-      const positionChanged = req.body.position != null && req.body.position !== player.position;
+      const positionChanged = patchData.position != null && patchData.position !== player.position;
       const shouldSetOriginal = positionChanged && !player.originalPosition;
       const updated = await storage.updatePlayer(req.params.playerId as string, {
-        ...req.body,
+        ...patchData,
         overall: recalcedOverall,
         starRating: recalcedStar,
         ...(shouldSetOriginal ? { originalPosition: player.position } : {}),

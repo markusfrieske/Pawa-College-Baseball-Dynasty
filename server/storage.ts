@@ -2597,6 +2597,29 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(league_jobs.createdAt));
   }
 
+  /**
+   * Atomically claim the oldest pending job, marking it "running" in one
+   * statement so concurrent runners can never pick the same job.
+   * Uses FOR UPDATE SKIP LOCKED — rows already locked by another connection
+   * are transparently skipped, so this is safe under parallel workers.
+   */
+  async claimNextPendingJob(): Promise<LeagueJob | undefined> {
+    const { pool: pgPool } = await import("./db");
+    const result = await pgPool.query<LeagueJob>(`
+      UPDATE league_jobs
+      SET status = 'running', updated_at = now()
+      WHERE id = (
+        SELECT id FROM league_jobs
+        WHERE status = 'pending'
+        ORDER BY created_at ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING *
+    `);
+    return result.rows[0] ?? undefined;
+  }
+
   async getOrphanedLeagueJobs(): Promise<LeagueJob[]> {
     return db.select().from(league_jobs)
       .where(eq(league_jobs.status, "running"))

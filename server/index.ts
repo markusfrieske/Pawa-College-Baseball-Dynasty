@@ -1467,6 +1467,28 @@ app.use((req, res, next) => {
         });
       })
       .catch(e => console.warn("[startup-migration] full-season-schema-v4 failed:", e));
+
+  // ── Security hardening migration (checkpoint-2) ───────────────────────────
+  // Creates league_advance_locks (DB-backed advance concurrency guard) and
+  // adds a partial unique index on coaches so one user can't claim multiple
+  // teams in the same league.  Idempotent — safe to run on every startup.
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS league_advance_locks (
+      league_id varchar PRIMARY KEY,
+      locked_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- Clear any locks left by a prior crash so a restart is always clean.
+    TRUNCATE league_advance_locks;
+
+    -- One human coach per league per user (partial index: cpu coaches have null user_id).
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_user
+      ON coaches (league_id, user_id)
+      WHERE user_id IS NOT NULL;
+  `).then(() => {
+    console.log("[startup-migration] security-hardening-v1: advance locks table + coaches unique index ensured");
+  }).catch(e => console.warn("[startup-migration] security-hardening-v1 failed (non-fatal):", e));
+
   })();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

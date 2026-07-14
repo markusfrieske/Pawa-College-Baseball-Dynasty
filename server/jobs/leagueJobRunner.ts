@@ -18,11 +18,12 @@ async function processNextJob(): Promise<void> {
 
   let jobId: string | null = null;
   try {
-    const [pending] = await storage.getPendingLeagueJobs();
+    // Atomic claim: UPDATE ... WHERE id = (SELECT ... FOR UPDATE SKIP LOCKED)
+    // so concurrent runners can never double-claim the same job.
+    const pending = await storage.claimNextPendingJob();
     if (!pending) return;
 
     jobId = pending.id;
-    await storage.updateLeagueJob(jobId, { status: "running" });
     console.log(`[job-runner] Starting job ${jobId} (type=${pending.jobType}, league=${pending.leagueId})`);
 
     if (pending.jobType === "bootstrap") {

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
-import { hasCommissionerAccess, requireAuth, advancingLeagues } from "../route-helpers";
+import { hasCommissionerAccess, requireAuth, acquireAdvanceLock, releaseAdvanceLock } from "../route-helpers";
 import {
   captureLeagueSaveState,
   listLeagueSaveStates,
@@ -35,14 +35,14 @@ export function registerSaveStateRoutes(app: Express) {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Commissioner access required" });
       }
-      if (advancingLeagues.has(league.id)) {
-        return res.status(409).json({ message: "League is currently advancing — try again after it finishes." });
-      }
       const body = createSaveStateSchema.safeParse(req.body);
       if (!body.success) {
         return res.status(400).json({ message: "Label is required (1–100 chars)" });
       }
-      advancingLeagues.add(league.id);
+      const locked = await acquireAdvanceLock(league.id);
+      if (!locked) {
+        return res.status(409).json({ message: "League is currently advancing — try again after it finishes." });
+      }
       try {
         const id = await captureLeagueSaveState(
           league.id,
@@ -58,7 +58,7 @@ export function registerSaveStateRoutes(app: Express) {
         });
         return res.json({ id, message: "Save state created" });
       } finally {
-        advancingLeagues.delete(league.id);
+        await releaseAdvanceLock(league.id);
       }
     } catch (err) {
       console.error("[save-states] create error:", err);
@@ -76,12 +76,12 @@ export function registerSaveStateRoutes(app: Express) {
         if (!hasCommissionerAccess(league, req.session.userId)) {
           return res.status(403).json({ message: "Commissioner access required" });
         }
-        if (advancingLeagues.has(league.id)) {
+        const locked = await acquireAdvanceLock(league.id);
+        if (!locked) {
           return res
             .status(409)
             .json({ message: "League is currently advancing — try again after it finishes." });
         }
-        advancingLeagues.add(league.id);
         try {
           await restoreLeagueSaveState(
             req.params.saveStateId as string,
@@ -96,7 +96,7 @@ export function registerSaveStateRoutes(app: Express) {
           });
           return res.json({ message: "League restored successfully" });
         } finally {
-          advancingLeagues.delete(league.id);
+          await releaseAdvanceLock(league.id);
         }
       } catch (err: any) {
         console.error("[save-states] restore error:", err);
