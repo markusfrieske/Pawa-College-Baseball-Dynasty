@@ -383,7 +383,7 @@ export function GameScreenshotUpload({
         <span className="text-xs font-pixel text-gold">Evidence Screenshots</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Upload Power Pros screenshots — the app reads your stats and auto-fills the form. Screenshots are stored permanently as proof and shown to your opponent and the commissioner.
+        Upload game screenshots — the app reads your stats and auto-fills the form. Screenshots are stored permanently as proof and shown to your opponent and the commissioner.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {SCREENSHOT_CATEGORIES.map((category) => (

@@ -76,10 +76,18 @@ export function RankingsTab({ league }: { league: LeagueDetails }) {
             <tr className="border-b border-border text-muted-foreground font-pixel text-xs">
               <th className="text-left py-2 px-2">#</th>
               <th className="text-left py-2 px-2">Team</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("avgOvr")}>Avg OVR{sortArrow("avgOvr")}</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("hitter")}>Hitters{sortArrow("hitter")}</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitcher")}>Pitchers{sortArrow("pitcher")}</th>
-              <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("recruiting")}>Recruiting{sortArrow("recruiting")}</th>
+              <th className="text-center py-2 px-1">
+                <button className="cursor-pointer hover:text-gold select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold rounded" onClick={() => handleSort("avgOvr")} aria-label={`Sort by Avg OVR${sortBy === "avgOvr" ? `, currently ${sortDir}ending` : ""}`} aria-sort={sortBy === "avgOvr" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>Avg OVR{sortArrow("avgOvr")}</button>
+              </th>
+              <th className="text-center py-2 px-1">
+                <button className="cursor-pointer hover:text-gold select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold rounded" onClick={() => handleSort("hitter")} aria-label={`Sort by Hitters${sortBy === "hitter" ? `, currently ${sortDir}ending` : ""}`} aria-sort={sortBy === "hitter" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>Hitters{sortArrow("hitter")}</button>
+              </th>
+              <th className="text-center py-2 px-1">
+                <button className="cursor-pointer hover:text-gold select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold rounded" onClick={() => handleSort("pitcher")} aria-label={`Sort by Pitchers${sortBy === "pitcher" ? `, currently ${sortDir}ending` : ""}`} aria-sort={sortBy === "pitcher" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>Pitchers{sortArrow("pitcher")}</button>
+              </th>
+              <th className="text-center py-2 px-1 hidden sm:table-cell">
+                <button className="cursor-pointer hover:text-gold select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold rounded" onClick={() => handleSort("recruiting")} aria-label={`Sort by Recruiting${sortBy === "recruiting" ? `, currently ${sortDir}ending` : ""}`} aria-sort={sortBy === "recruiting" ? (sortDir === "asc" ? "ascending" : "descending") : "none"}>Recruiting{sortArrow("recruiting")}</button>
+              </th>
               <th className="py-2 px-1 w-6" />
             </tr>
           </thead>

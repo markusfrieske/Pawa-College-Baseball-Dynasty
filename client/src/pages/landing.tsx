@@ -170,9 +170,8 @@ export default function LandingPage() {
                   textShadow: "0 2px 16px rgba(0,0,0,0.95), 0 4px 32px rgba(0,0,0,0.8), 0 0 40px rgba(196,163,90,0.35)",
                 }}
               >
-                Power Pros<br />
-                <span className="ml-4 sm:ml-6">College Baseball</span><br />
-                <span className="ml-8 sm:ml-12">Dynasty</span>
+                College Baseball<br />
+                <span className="ml-4 sm:ml-6">Dynasty</span>
               </h1>
 
               <div

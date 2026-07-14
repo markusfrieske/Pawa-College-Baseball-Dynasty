@@ -229,7 +229,7 @@ function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryC
       >
         <div>
           <StarRating rating={recruit.starRating} size="sm" />
-          <div className="font-pixel text-[7.5px] text-gray-900 leading-snug truncate mt-0.5">
+          <div className="font-pixel text-xs text-gray-900 leading-snug truncate mt-0.5">
             {recruit.firstName} {recruit.lastName}
           </div>
         </div>
@@ -366,7 +366,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
       {/* Header: name / pos·ovr | stars + potential */}
       <div className="px-2 py-1 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
         <div className="min-w-0">
-          <div className="font-pixel text-[6.5px] text-[#C4A35A] truncate leading-tight">
+          <div className="font-pixel text-xs text-[#C4A35A] truncate leading-tight">
             {recruit.firstName} {recruit.lastName}
           </div>
           <div className="text-xs text-gray-500 leading-tight">
@@ -384,13 +384,13 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
       {/* Type badge + blue chip */}
       <div className="px-2 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
         <span
-          className={`font-pixel text-[5.5px] px-1 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
+          className={`font-pixel text-xs px-1 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
           style={{ background: badgeBg, color: badgeColor }}
         >
           {badgeLabel}
         </span>
         {recruit.isBlueChip && !isGen && !isGenBust && (
-          <span className="font-pixel text-[5.5px] text-blue-400 flex items-center gap-0.5 leading-none">
+          <span className="font-pixel text-xs text-blue-400 flex items-center gap-0.5 leading-none">
             <Crown className="w-2 h-2" />BLUE CHIP
           </span>
         )}
@@ -402,7 +402,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
         {/* Hitter TRAJ text label — shown before numeric attrs */}
         {!pitcher && recruit.trajectory != null && (
           <div className="flex items-center gap-0.5 mb-0.5">
-            <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">TRAJ</span>
+            <span className="text-xs text-gray-500 w-4 leading-none font-mono shrink-0">TRAJ</span>
             <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2 h-2" textSize="text-xs" />
           </div>
         )}
@@ -411,7 +411,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             const { letter, tier } = getLetterGrade(val);
             return (
               <div key={label} className="flex items-center gap-0.5">
-                <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">{label}</span>
+                <span className="text-xs text-gray-500 w-4 leading-none font-mono shrink-0">{label}</span>
                 <span className="font-pixel text-xs font-bold w-[10px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
                 <span className="text-xs text-gray-400 leading-none font-mono">{label === "VEL" ? `${velocityToKMH(val)} KMH` : val}</span>
               </div>
@@ -457,7 +457,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             const abilName = attrToAbility[key];
             return (
               <div key={label} className="flex items-center gap-0.5">
-                <span className="text-[5.5px] text-gray-500 w-[17px] leading-none font-mono shrink-0">{label}</span>
+                <span className="text-xs text-gray-500 w-4 leading-none font-mono shrink-0">{label}</span>
                 <span className="font-pixel text-xs text-amber-400/80 flex-1 truncate leading-none min-w-0">
                   {abilName ? (abilName.length > 14 ? abilName.slice(0, 14) + "…" : abilName) : ""}
                 </span>
@@ -474,7 +474,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
           <Zap className="w-2 h-2" />Special
         </div>
         {specialAbilities.length === 0 ? (
-          <div className="text-[5.5px] text-gray-600 italic">None</div>
+          <div className="text-xs text-gray-600 italic">None</div>
         ) : (
           <div className="flex flex-wrap gap-0.5">
             {specialAbilities.slice(0, 6).map(name => {
@@ -500,7 +500,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
               );
             })}
             {specialAbilities.length > 6 && (
-              <span className="text-[5.5px] text-gray-500 leading-none">+{specialAbilities.length - 6} more</span>
+              <span className="text-xs text-gray-500 leading-none">+{specialAbilities.length - 6} more</span>
             )}
           </div>
         )}

@@ -2661,6 +2661,18 @@ export function registerRecruitingRoutes(app: Express): void {
         lastSeasonStats: (r as any).sourcePlayerId ? (transferStatsMap.get((r as any).sourcePlayerId) ?? null) : null,
       }));
 
+      // Pagination support: ?page=1&limit=50 (omit params to get all recruits for backward compat)
+      const rawPage = parseInt((req.query.page as string) || "0", 10);
+      const rawLimit = parseInt((req.query.limit as string) || "0", 10);
+      const paginated = rawPage > 0 && rawLimit > 0;
+      const page = paginated ? rawPage : 1;
+      const limit = paginated ? Math.min(rawLimit, 200) : recruitsWithStats.length;
+      const totalRecruits = recruitsWithStats.length;
+      const totalPages = paginated ? Math.ceil(totalRecruits / limit) : 1;
+      const pagedRecruits = paginated
+        ? recruitsWithStats.slice((page - 1) * limit, page * limit)
+        : recruitsWithStats;
+
       // Current roster position counts
       const positionCounts: Record<string, number> = {};
       roster.forEach((player) => {
@@ -2728,7 +2740,10 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       res.json({
-        recruits: recruitsWithStats,
+        recruits: pagedRecruits,
+        total: totalRecruits,
+        page,
+        totalPages,
         team: userTeam,
         remainingPoints: remainingRecruitingActions,
         maxPoints: maxRecruitingActions,

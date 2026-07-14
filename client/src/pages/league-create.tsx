@@ -50,7 +50,7 @@ const seasonLengthOptions = [
   { value: "full_season", label: "Full Season — 56-game regular season (14 weeks)" },
   { value: "standard", label: "Standard Season — 20 Games (5 weeks + 3 spring)" },
   { value: "medium",   label: "Medium Season — 40 Games (10 weeks + 6 spring)" },
-  { value: "long",     label: "Long Season — 60 Games (15 weeks + 9 spring)" },
+  { value: "long",     label: "Long Season — 15 weeks (60 regular season games)" },
 ];
 
 const seasonScheduleBreakdown: Record<string, string> = {

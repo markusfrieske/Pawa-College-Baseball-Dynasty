@@ -131,6 +131,9 @@ export interface RecruitingEconomy {
 
 export interface RecruitingData {
   recruits: RecruitWithInterest[];
+  total?: number;
+  page?: number;
+  totalPages?: number;
   team: Team;
   remainingPoints: number;
   maxPoints: number;
