@@ -115,7 +115,7 @@ export function computeSummary(
 export function buildClassEnvelope(
   recruits: Record<string, unknown>[],
   source: "wizard" | "import" | "manual",
-  opts: { config?: Record<string, unknown>; theme?: string | null } = {}
+  opts: { config?: Record<string, unknown>; theme?: string | null; generation?: ClassGeneration } = {}
 ): ClassEnvelope {
   const envelope: ClassEnvelope = {
     version: 1,
@@ -124,6 +124,7 @@ export function buildClassEnvelope(
     recruits,
   };
   if (opts.config) envelope.config = opts.config;
+  if (opts.generation) envelope.generation = opts.generation;
   return envelope;
 }
 

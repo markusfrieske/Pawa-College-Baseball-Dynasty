@@ -425,17 +425,21 @@ export function registerAiClassJobRoutes(app: Express): void {
         responseJson = { error: "Dispatch failed", fallback: true };
       }
 
-      // Determine if this is a procedural fallback
+      // Determine if this is a procedural fallback (AI unavailable or call failed)
       const isFallback = finalStatus === "failed" || responseJson.aiAssisted === false;
       let fallbackJson: Record<string, unknown> | undefined;
+
+      // Per spec: jobs that used fallback stay as "failed" (AI call did not succeed),
+      // but we store the procedural fallback payload so the UI can display it.
+      // Only pure AI success → "complete".
       if (isFallback) {
         fallbackJson = responseJson;
-        finalStatus = "complete";
+        finalStatus = "failed"; // keep as failed — AI call was not successful
       }
 
       const updated = await storage.updateAiClassJob(job.id, {
         status: finalStatus,
-        responseJson: isFallback ? fallbackJson : responseJson,
+        responseJson: isFallback ? undefined : responseJson, // only store AI response when real
         fallbackJson: isFallback ? fallbackJson : undefined,
       });
 

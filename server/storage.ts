@@ -2281,13 +2281,10 @@ export class DatabaseStorage implements IStorage {
 
   async countAiClassJobsInHour(userId: string): Promise<number> {
     const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+    // Count ALL jobs (including rejected) — users cannot bypass quota by rejecting
     const [row] = await db.select({ count: sql<number>`count(*)::int` })
       .from(aiClassJobs)
-      .where(and(
-        eq(aiClassJobs.userId, userId),
-        gt(aiClassJobs.createdAt, cutoff),
-        isNull(aiClassJobs.rejectedAt),
-      ));
+      .where(and(eq(aiClassJobs.userId, userId), gt(aiClassJobs.createdAt, cutoff)));
     return row?.count ?? 0;
   }
 

@@ -235,6 +235,7 @@ function AiAssistPanel({
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
@@ -244,6 +245,7 @@ function AiAssistPanel({
     setLoading(true);
     setError(null);
     setResult(null);
+    setCurrentJobId(null);
     try {
       const res = await apiRequest("POST", `/api/class-projects/${projectId}/ai-jobs`, {
         jobType,
@@ -260,7 +262,10 @@ function AiAssistPanel({
         return;
       }
       const data = await res.json();
-      setResult(data.job?.responseJson ?? data.job?.fallbackJson ?? null);
+      const job = data.job;
+      setCurrentJobId(job?.id ?? null);
+      // Show AI result if available, otherwise fall back to procedural suggestion
+      setResult(job?.responseJson ?? job?.fallbackJson ?? null);
       if (data.quotaLimit != null) {
         setQuota({ used: data.quotaUsed ?? 0, limit: data.quotaLimit });
       }
@@ -271,17 +276,35 @@ function AiAssistPanel({
     }
   };
 
-  const accept = () => {
+  const accept = async () => {
     if (!result) return;
+    // Persist accept outcome server-side for audit trail
+    if (projectId && currentJobId) {
+      try {
+        await apiRequest("POST", `/api/class-projects/${projectId}/ai-jobs/${currentJobId}/accept`, {});
+      } catch {
+        // Non-blocking — local state still applied
+      }
+    }
     onAccept(result);
     setOpen(false);
     setPrompt("");
     setResult(null);
+    setCurrentJobId(null);
     setError(null);
   };
 
-  const discard = () => {
+  const discard = async () => {
+    // Persist reject outcome server-side for audit trail
+    if (projectId && currentJobId) {
+      try {
+        await apiRequest("DELETE", `/api/class-projects/${projectId}/ai-jobs/${currentJobId}`, undefined);
+      } catch {
+        // Non-blocking
+      }
+    }
     setResult(null);
+    setCurrentJobId(null);
     setError(null);
   };
 
@@ -2479,6 +2502,9 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
   const [rerollingId, setRerollingId] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [savedToLeague, setSavedToLeague] = useState(false);
+  /** Seed returned by the last successful generate call — passed to rerolls for sub-seeding */
+  const [masterSeed, setMasterSeed] = useState<string | undefined>(undefined);
+  const [generatorVersion, setGeneratorVersion] = useState<number | undefined>(undefined);
   // Story Cast & Arc Studio state
   const [cast, setCast] = useState<string[]>([]);
   const [storyPlan, setStoryPlan] = useState<WizardStoryPlan>(makeEmptyStoryPlan());
@@ -2536,9 +2562,12 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
         ? `/api/leagues/${leagueId}/recruiting/generate-wizard`
         : "/api/recruiting/generate-preview";
       const res = await apiRequest("POST", url, { config: cfg });
-      return res.json() as Promise<{ recruits: any[] }>;
+      return res.json() as Promise<{ recruits: any[]; masterSeed?: string; generatorVersion?: number }>;
     },
     onSuccess: (data) => {
+      // Store seed for deterministic per-recruit reroll sub-seeding
+      setMasterSeed(data.masterSeed);
+      setGeneratorVersion(data.generatorVersion);
       const withIds: WizardRecruit[] = data.recruits.map((r: any) => ({
         ...r,
         _tempId: tempId(),
@@ -2566,6 +2595,9 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
       const res = await apiRequest("POST", url, {
         theme: cfg.theme,
         forcedType,
+        // Pass seed + recruit identity so server derives deterministic sub-seed
+        masterSeed,
+        templateRecruitId: r.templateRecruitId,
       });
       return (res.json() as Promise<{ recruit: any }>).then(d => ({ newRecruit: d.recruit, oldId: r._tempId }));
     },
@@ -2591,6 +2623,8 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/save-wizard-class`, {
         recruits: payload,
         storyPlan: finalStoryPlan,
+        // Pass generation metadata for seed persistence in the class envelope
+        generation: masterSeed ? { seed: masterSeed, version: generatorVersion ?? 1 } : undefined,
       });
       return res.json() as Promise<{ success: boolean; count: number }>;
     },
@@ -2609,7 +2643,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
     mutationFn: async ({ name, description }: { name: string; description: string }) => {
       const recruitRows = recruits.map(({ _tempId, ...rest }) => rest);
       const finalStoryPlan: WizardStoryPlan = { ...storyPlan, cast: storyPlan.cast.filter(m => cast.includes(m.templateRecruitId)) };
-      const classData = { theme: config.theme, recruits: recruitRows, storyPlan: finalStoryPlan };
+      const classData = { theme: config.theme, recruits: recruitRows, storyPlan: finalStoryPlan, generation: masterSeed ? { seed: masterSeed, version: generatorVersion ?? 1 } : undefined };
       if (user) {
         const res = await apiRequest("POST", "/api/saved-recruiting-classes", {
           name,

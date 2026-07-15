@@ -12,7 +12,7 @@ import { requireAuth, hasCommissionerAccess, calculateSignInterestThreshold } fr
 import { invalidateLeague } from "../cache";
 import { getRealRosters } from "../realRostersLoader";
 import { normalizeCommonAbilities } from "../normalizeCommonAbilities";
-import { generateRecruitClass } from "../recruit-generator";
+import { generateRecruitClass, getLastClassSeed, RECRUIT_GENERATOR_VERSION } from "../recruit-generator";
 import { calculateOVR, getStarRatingFromOVR } from "../../shared/abilities";
 import { getPotentialRange, rollV3Potential } from "../../shared/potential";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
@@ -998,9 +998,10 @@ app.post("/api/recruiting/generate-preview", async (req, res) => {
         wizardOvrDistribution: wOvrDist as "bell" | "top_heavy" | "bottom_heavy" | "flat",
       } : {}),
     });
+    const masterSeed = getLastClassSeed();
     const initialScoutingLevel = Math.round((1 - fogDensity / 100) * 100);
     const recruitsWithFog = recruits.map(r => ({ ...r, scoutingLevel: initialScoutingLevel }));
-    res.json({ recruits: recruitsWithFog });
+    res.json({ recruits: recruitsWithFog, masterSeed, generatorVersion: RECRUIT_GENERATOR_VERSION });
   } catch (error) {
     console.error("Failed to generate wizard preview:", error);
     res.status(500).json({ message: "Failed to generate class" });
@@ -1010,10 +1011,17 @@ app.post("/api/recruiting/generate-preview", async (req, res) => {
 // League-agnostic reroll endpoint — works without a league (no auth required)
 app.post("/api/recruiting/reroll-single", async (req, res) => {
   try {
-    const { theme = "balanced", forcedType } = req.body as { theme?: string; forcedType?: any };
+    const { theme = "balanced", forcedType, masterSeed: incomingMasterSeed, templateRecruitId } = req.body as { theme?: string; forcedType?: any; masterSeed?: string; templateRecruitId?: string };
+    // Derive a deterministic sub-seed from the class master seed + recruit identity when provided
+    let derivedSeedStr: string | undefined;
+    if (incomingMasterSeed && templateRecruitId) {
+      const { derivedSeed: ds } = await import("../../shared/seededRng");
+      derivedSeedStr = ds(incomingMasterSeed, templateRecruitId + "_reroll").toString();
+    }
     const recruits = generateRecruitClass(1, {
       theme: (theme as RecruitingTheme) || "balanced",
       wizardForcedType: forcedType,
+      ...(derivedSeedStr ? { seed: derivedSeedStr } : {}),
     });
     res.json({ recruit: recruits[0] });
   } catch (error) {
@@ -1075,12 +1083,13 @@ app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req,
         wizardOvrDistribution: wOvrDist2 as "bell" | "top_heavy" | "bottom_heavy" | "flat",
       } : {}),
     });
+    const masterSeed2 = getLastClassSeed();
 
     // Apply fog density: 100% = fully hidden (scoutingLevel=0), 0% = fully revealed (scoutingLevel=100)
     const initialScoutingLevel = Math.round((1 - fogDensity / 100) * 100);
     const recruitsWithFog = recruits.map(r => ({ ...r, scoutingLevel: initialScoutingLevel }));
 
-    res.json({ recruits: recruitsWithFog });
+    res.json({ recruits: recruitsWithFog, masterSeed: masterSeed2, generatorVersion: RECRUIT_GENERATOR_VERSION });
   } catch (error) {
     console.error("Failed to generate wizard class:", error);
     res.status(500).json({ message: "Failed to generate class" });
@@ -1095,11 +1104,18 @@ app.post("/api/leagues/:id/recruiting/reroll-recruit", requireAuth, async (req, 
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { theme = "balanced", forcedType } = req.body as { theme?: string; forcedType?: any };
+    const { theme = "balanced", forcedType, masterSeed: incomingMasterSeed, templateRecruitId } = req.body as { theme?: string; forcedType?: any; masterSeed?: string; templateRecruitId?: string };
 
+    // Derive a deterministic sub-seed from the class master seed + recruit identity when provided
+    let derivedSeedStr2: string | undefined;
+    if (incomingMasterSeed && templateRecruitId) {
+      const { derivedSeed: ds } = await import("../../shared/seededRng");
+      derivedSeedStr2 = ds(incomingMasterSeed, templateRecruitId + "_reroll").toString();
+    }
     const recruits = generateRecruitClass(1, {
       theme: (theme as RecruitingTheme) || "balanced",
       wizardForcedType: forcedType,
+      ...(derivedSeedStr2 ? { seed: derivedSeedStr2 } : {}),
     });
 
     res.json({ recruit: recruits[0] });
@@ -1117,10 +1133,14 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { recruits: rawRecruits, storyPlan: rawStoryPlan } = req.body as { recruits: any[]; storyPlan?: any };
+    const { recruits: rawRecruits, storyPlan: rawStoryPlan, generation: rawGeneration } = req.body as { recruits: any[]; storyPlan?: any; generation?: { seed: string; version: number } };
     if (!Array.isArray(rawRecruits) || rawRecruits.length === 0) {
       return res.status(400).json({ message: "recruits array required" });
     }
+    // Validate generation seed if provided
+    const generation = (rawGeneration && typeof rawGeneration.seed === "string" && rawGeneration.seed.length > 0)
+      ? { seed: rawGeneration.seed, version: rawGeneration.version ?? 1 }
+      : undefined;
     let validatedWizard;
     try {
       validatedWizard = validateAndNormalizeRecruitingClass(rawRecruits);
@@ -1162,7 +1182,7 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
       audit: {
         userId: req.session.userId ?? "system",
         action: "Recruiting Class Created (Wizard)",
-        details: `Commissioner created a recruiting class of ${validatedWizard.recruits.length} recruits via the class wizard`,
+        details: `Commissioner created a recruiting class of ${validatedWizard.recruits.length} recruits via the class wizard${generation ? ` [seed: ${generation.seed}, v${generation.version}]` : ""}`,
       },
     });
 
