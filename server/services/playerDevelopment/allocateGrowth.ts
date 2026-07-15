@@ -62,7 +62,6 @@ function buildWorkAttrs(
 
   const result: WorkAttr[] = [];
   for (const { attr, relationship } of archetype.attrs) {
-    if (attr === "pitchMix") continue;
     const cap = caps[attr] ?? 0;
     if (cap === 0) continue; // irrelevant
     const currentVal = currentRatings[attr] ?? 50;
@@ -137,6 +136,11 @@ export function allocateGrowthPoints(
  * Spend regression points on attribute reductions.
  * Regression targets weaknesses first, then position core, then secondary.
  * Primary attrs are never regressed.
+ *
+ * NOTE: Regression eligibility does NOT depend on development caps (caps govern
+ * the upper ceiling for growth, not the floor for regression). We build the
+ * eligible set directly from the archetype definition so that an empty or missing
+ * cap object cannot silently produce an empty work set.
  */
 export function allocateRegressionPoints(
   archetypeId: string,
@@ -150,7 +154,21 @@ export function allocateRegressionPoints(
   const archetype = ARCHETYPES_BY_ID[archetypeId];
   if (!archetype) return deltas;
 
-  const work = buildWorkAttrs(archetypeId, currentRatings, {});
+  // Build regression work set directly from the archetype — no caps needed.
+  // Any attribute whose regression weight > 0 (i.e. not primary) and whose
+  // current value is above the minimum floor of 1 is eligible to regress.
+  type RegrWork = { key: string; currentVal: number; regrW: number };
+  const work: RegrWork[] = archetype.attrs
+    .filter(({ attr, relationship }) => {
+      if (attr === "pitchMix") return false; // pitch quality is handled separately
+      return regressionWeight(relationship) > 0;
+    })
+    .map(({ attr, relationship }) => ({
+      key: attr,
+      currentVal: currentRatings[attr] ?? 50,
+      regrW: regressionWeight(relationship),
+    }));
+
   let remainingPts = regressionPoints;
 
   while (remainingPts > 0) {

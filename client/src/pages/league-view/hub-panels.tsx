@@ -342,7 +342,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
             {bubbleTeams.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-amber-400/70 uppercase tracking-wider mb-2">
-                  <Target className="w-2.5 h-2.5 inline mr-1" />Bubble
+                  <Target className="w-2.5 h-2.5 inline mr-1" />Next 10
                 </p>
                 <div className="space-y-1">
                   {bubbleTeams.map(r => {
@@ -361,7 +361,7 @@ export function NationalPulsePanel({ leagueId }: { leagueId: string }) {
                     );
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground/60 mt-1">At-large contenders</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Teams ranked 6–12</p>
               </div>
             )}
           </div>

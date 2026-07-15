@@ -1575,6 +1575,33 @@ async function applyPlayerProgression(leagueId: string) {
   console.log(`[progression-guard] League ${leagueId} — progressionEnabled=${league?.progressionEnabled ?? false}, ${totalPlayerCount} players across ${teams.length} teams`);
   if (!league?.progressionEnabled) return { progressed: 0 };
 
+  // ── V3 migration (must run BEFORE the legacy loop) ──────────────────────────
+  // Promote any V1 players to V3 FIRST so the legacy loop below sees them as V3
+  // and skips them. Without this, a V1 player would go through the legacy loop,
+  // then get migrated, then get processed again by the V3 engine — double
+  // progression in a single offseason.
+  const v1PreCount = allPlayersLeague.filter(p => (p.developmentModelVersion ?? 1) !== 3).length;
+  if (v1PreCount > 0) {
+    console.log(`[v3-migrate] Promoting ${v1PreCount} V1 players to V3 in league ${leagueId}…`);
+    const migResult = await migrateLeagueToV3(storage as any, leagueId, allPlayersLeague);
+    console.log(`[v3-migrate] Done — migrated=${migResult.migrated} skipped=${migResult.skipped} errors=${migResult.errors}`);
+    // Re-fetch updated players so the legacy loop + V3 engine both see the
+    // updated developmentModelVersion = 3 flag.
+    const refreshed = await storage.getPlayersByLeague(leagueId);
+    allPlayersLeague.length = 0;
+    for (const p of refreshed) allPlayersLeague.push(p);
+    // Rebuild team roster index with fresh data
+    for (const [, arr] of _playersByTeamId) arr.length = 0;
+    for (const p of allPlayersLeague) {
+      const arr = _playersByTeamId.get(p.teamId) ?? [];
+      arr.push(p);
+      _playersByTeamId.set(p.teamId, arr);
+    }
+    for (let i = 0; i < teams.length; i++) {
+      allRosters[i] = _playersByTeamId.get(teams[i].id) ?? [];
+    }
+  }
+
   let progressed = 0;
 
   // trajectory is intentionally excluded — it is a hit-type profile, not a developable skill,
@@ -1744,25 +1771,9 @@ async function applyPlayerProgression(leagueId: string) {
     ));
   }
 
-  // ── V3 migration ────────────────────────────────────────────────────────
-  // Promote any remaining V1 players to V3 before running the V3 engine.
-  // This is additive-only: it assigns archetype + caps + seed without touching
-  // ratings. After migration those players are immediately picked up by the V3
-  // engine below, so they receive archetype-aware development starting this
-  // offseason rather than waiting until next season.
-  const v1Count = allPlayersLeague.filter(p => (p.developmentModelVersion ?? 1) !== 3).length;
-  if (v1Count > 0) {
-    console.log(`[v3-migrate] Promoting ${v1Count} V1 players to V3 in league ${leagueId}…`);
-    const migResult = await migrateLeagueToV3(storage as any, leagueId, allPlayersLeague);
-    console.log(`[v3-migrate] Done — migrated=${migResult.migrated} skipped=${migResult.skipped} errors=${migResult.errors}`);
-    // Re-fetch updated players so the V3 engine sees the new archetypes/caps
-    const refreshed = await storage.getPlayersByLeague(leagueId);
-    // Replace the in-memory list for the V3 engine pass below
-    allPlayersLeague.length = 0;
-    for (const p of refreshed) allPlayersLeague.push(p);
-  }
-
   // ── V3 engine ──────────────────────────────────────────────────────────
+  // Migration already ran at the top of this function (before the legacy loop)
+  // so allPlayersLeague is already fully V3 at this point.
   // Run V3 archetype-aware development for any players with developmentModelVersion=3.
   const v3Result = await runV3SeasonDevelopment(
     storage as any,

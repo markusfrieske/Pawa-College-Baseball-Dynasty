@@ -280,7 +280,7 @@ function AvailBadge({ available, limited }: { available: boolean; limited: boole
 
 function PrepSkeleton() {
   return (
-    <div className="container mx-auto px-4 pt-4 pb-24 max-w-2xl space-y-4">
+    <div className="container mx-auto px-4 pt-4 pb-24 max-w-6xl space-y-4">
       <Skeleton className="h-24 rounded-xl" />
       <Skeleton className="h-40 rounded-xl" />
       <Skeleton className="h-36 rounded-xl" />
@@ -841,7 +841,7 @@ export default function GamePrepPage() {
     <div className="min-h-screen bg-background" data-testid="page-game-prep">
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
       <header className="border-b border-border sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-3 max-w-2xl flex items-center gap-3">
+        <div className="container mx-auto px-4 py-3 max-w-6xl flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate(`/league/${id}/schedule`)}
@@ -874,7 +874,8 @@ export default function GamePrepPage() {
       </header>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <div className="container mx-auto px-4 pt-4 pb-24 max-w-2xl">
+      <div className="container mx-auto px-4 pt-4 pb-24 max-w-6xl">
+        {/* Full-width matchup header */}
         <HeaderSection
           data={data}
           leagueId={id}
@@ -885,55 +886,66 @@ export default function GamePrepPage() {
           isHome={isMyHome}
         />
 
-        <MatchupMeterSection
-          myAnalysis={myAnalysis}
-          oppAnalysis={oppAnalysis}
-          myColor={myTeam.primaryColor || "#c0a040"}
-        />
+        {/* Desktop two-column layout: main(8) + rail(4) */}
+        <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
 
-        <PitchingSection
-          myAnalysis={myAnalysis}
-          oppAnalysis={oppAnalysis}
-          oppTeam={oppTeam}
-        />
+          {/* ── Main column ─────────────────────────────────────────── */}
+          <div className="lg:col-span-8 space-y-4">
+            <MatchupMeterSection
+              myAnalysis={myAnalysis}
+              oppAnalysis={oppAnalysis}
+              myColor={myTeam.primaryColor || "#c0a040"}
+            />
 
-        <LineupSection
-          oppAnalysis={oppAnalysis}
-          oppTeam={oppTeam}
-        />
+            <PitchingSection
+              myAnalysis={myAnalysis}
+              oppAnalysis={oppAnalysis}
+              oppTeam={oppTeam}
+            />
 
-        <KeysToWinSection keys={keysToWin} />
+            <LineupSection
+              oppAnalysis={oppAnalysis}
+              oppTeam={oppTeam}
+            />
 
-        <H2HSection
-          h2h={h2h}
-          homeTeam={homeTeam}
-          awayTeam={awayTeam}
-          myTeamId={myTeamId}
-        />
+            <KeysToWinSection keys={keysToWin} />
+          </div>
 
-        {/* Also show my lineup if not user game */}
-        {!userSide && (
-          <RetroCard className="mb-4" data-testid="card-home-lineup-neutral">
-            <RetroCardHeader>
-              <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-gold" />
-                <h3 className="text-gold text-xs">{homeTeam.abbreviation} — LINEUP</h3>
-              </div>
-            </RetroCardHeader>
-            <RetroCardContent>
-              <div className="space-y-1.5">
-                {home.top3Bats.map((batter, idx) => (
-                  <div key={batter.id} className="flex items-center gap-2 py-1" data-testid={`row-home-batter-${batter.id}`}>
-                    <span className="text-xs font-semibold text-muted-foreground w-4">{idx + 1}</span>
-                    <span className="font-medium text-sm flex-1 truncate">{batter.name}</span>
-                    <span className="text-xs font-semibold text-muted-foreground">{batter.position}</span>
-                    <span className={`text-xs font-bold ${ratingColor(batter.overall)}`}>{batter.overall}</span>
+          {/* ── Side rail ───────────────────────────────────────────── */}
+          <div className="lg:col-span-4 space-y-4 mt-4 lg:mt-0">
+            <H2HSection
+              h2h={h2h}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+              myTeamId={myTeamId}
+            />
+
+            {/* Neutral view: show home lineup in rail */}
+            {!userSide && (
+              <RetroCard data-testid="card-home-lineup-neutral">
+                <RetroCardHeader>
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-gold" />
+                    <h3 className="text-gold text-xs">{homeTeam.abbreviation} — LINEUP</h3>
                   </div>
-                ))}
-              </div>
-            </RetroCardContent>
-          </RetroCard>
-        )}
+                </RetroCardHeader>
+                <RetroCardContent>
+                  <div className="space-y-1.5">
+                    {home.top3Bats.map((batter, idx) => (
+                      <div key={batter.id} className="flex items-center gap-2 py-1" data-testid={`row-home-batter-${batter.id}`}>
+                        <span className="text-xs font-semibold text-muted-foreground w-4">{idx + 1}</span>
+                        <span className="font-medium text-sm flex-1 truncate">{batter.name}</span>
+                        <span className="text-xs font-semibold text-muted-foreground">{batter.position}</span>
+                        <span className={`text-xs font-bold ${ratingColor(batter.overall)}`}>{batter.overall}</span>
+                      </div>
+                    ))}
+                  </div>
+                </RetroCardContent>
+              </RetroCard>
+            )}
+          </div>
+
+        </div>{/* end desktop grid */}
       </div>
     </div>
   );

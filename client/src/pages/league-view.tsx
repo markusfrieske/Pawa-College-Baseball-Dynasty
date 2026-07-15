@@ -44,7 +44,7 @@ import {
 import {
   LeagueTickerBanner, StatsLeadersPanel, PowerRankingsWidget,
   TopProspectsWidget, MergedRosterPanel, NewsroomPanel,
-  NationalPulsePanel, ThisWeekPanel,
+  ThisWeekPanel,
 } from "./league-view/hub-panels";
 import { StorylinesDashboardWidget } from "./league-view/tabs/activity-widgets";
 import { SigningDaySummaryCard, ProgramChangesCard, OffseasonSummary } from "./league-view/tabs/offseason-widgets";
@@ -677,19 +677,7 @@ export default function LeagueViewPage() {
           />
         </div>
 
-        {/* ─── STATS / RANKINGS / PROSPECTS ROW ───────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <StatsLeadersPanel leagueId={id!} />
-          <PowerRankingsWidget leagueId={id!} />
-          <TopProspectsWidget leagueId={id!} />
-        </div>
-
-        {/* ─── NATIONAL PULSE (full-width Top 25 + bubble) ─────────── */}
-        <div className="mt-4">
-          <NationalPulsePanel leagueId={id!} />
-        </div>
-
-        {/* ─── NAVIGATION DOCK ─────────────────────────────────────── */}
+        {/* ─── NAVIGATION DOCK — immediately below newsroom ────────── */}
         <NavDock
           leagueId={id!}
           userTeam={myTeam ?? undefined}
@@ -697,6 +685,13 @@ export default function LeagueViewPage() {
           storylinePendingVotes={storylinePendingVotes}
           showLineupBanner={showLineupBanner}
         />
+
+        {/* ─── STATS / RANKINGS / PROSPECTS ROW ───────────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <StatsLeadersPanel leagueId={id!} />
+          <PowerRankingsWidget leagueId={id!} />
+          <TopProspectsWidget leagueId={id!} />
+        </div>
 
         {/* ─── DETAIL TABS (deep-dive views) ───────────────────────── */}
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">

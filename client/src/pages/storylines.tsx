@@ -1023,7 +1023,7 @@ export default function StorylinesPage() {
     <div className="min-h-screen bg-background">
       {/* ── Sticky header ───────────────────────────────────────────────── */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border/40">
-        <div className="max-w-lg mx-auto px-4 pt-3 pb-0">
+        <div className="max-w-6xl mx-auto px-4 pt-3 pb-0">
           {/* Back + title row */}
           <div className="flex items-center gap-3 mb-3">
             <Link href={`/league/${leagueId}`}>
@@ -1091,7 +1091,11 @@ export default function StorylinesPage() {
       </div>
 
       {/* ── Tab content ─────────────────────────────────────────────────── */}
-      <div className="max-w-lg mx-auto px-4 py-4">
+      <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
+
+        {/* ── Main story feed (full width on mobile, 8-col on desktop) ── */}
+        <div className="lg:col-span-8">
 
         {/* VOTE tab */}
         {currentTab === "vote" && (
@@ -1237,6 +1241,54 @@ export default function StorylinesPage() {
             <p className="text-xs text-muted-foreground">Commissioner or co-commissioner access required.</p>
           </div>
         )}
+
+        </div>{/* end lg:col-span-8 main feed */}
+
+        {/* ── Desktop sidebar rail (4-col, hidden on mobile) ─────────── */}
+        <aside className="hidden lg:block lg:col-span-4 space-y-4 sticky top-[120px]">
+          {/* Status summary */}
+          <div className="rounded-xl border border-border/40 bg-card/60 p-4 space-y-3">
+            <p className="text-xs font-semibold text-gold uppercase tracking-wider">Status</p>
+            <div className="space-y-2">
+              {[
+                { label: "Open Votes", value: totalVotes, color: totalVotes > 0 ? "text-gold" : "text-muted-foreground" },
+                { label: "Active Arcs", value: withoutVotes.length, color: "text-foreground" },
+                { label: "Committed", value: committedCount, color: committedCount > 0 ? "text-green-400" : "text-muted-foreground" },
+                { label: "Completed", value: completedCount, color: "text-muted-foreground" },
+              ].map(s => (
+                <div key={s.label} className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{s.label}</span>
+                  <span className={`text-xs font-semibold tabular-nums ${s.color}`}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab shortcuts */}
+          <div className="rounded-xl border border-border/40 bg-card/60 p-4 space-y-2">
+            <p className="text-xs font-semibold text-gold uppercase tracking-wider">Views</p>
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                  activeTab === tab.id
+                    ? "bg-gold/15 text-gold border border-gold/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.badge !== undefined && (
+                  <span className={`rounded px-1.5 py-px text-xs border ${
+                    Number(tab.badge) > 0 ? "bg-gold/20 text-gold border-gold/40" : "bg-muted/30 text-muted-foreground border-border/30"
+                  }`}>{tab.badge}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        </div>{/* end lg:grid */}
       </div>
     </div>
   );

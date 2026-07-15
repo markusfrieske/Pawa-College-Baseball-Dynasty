@@ -114,8 +114,12 @@ export async function runV3SeasonDevelopment(
       const seed = buildDevelopmentSeed(leagueId, player.id, season, 3);
       const rng = createRng(seed);
 
+      // For pitchers, add pitchMixPoints to the growth budget so pitch quality
+      // participates in the weighted allocation alongside the other attributes.
+      const effectiveGrowthPoints = budget.totalPoints + (isPitcher ? budget.pitchMixPoints : 0);
+
       // Allocate growth and regression
-      const growthDeltas = allocateGrowthPoints(archetypeId, currentRatings, caps, budget.totalPoints, rng);
+      const growthDeltas = allocateGrowthPoints(archetypeId, currentRatings, caps, effectiveGrowthPoints, rng);
       const regrDeltas = allocateRegressionPoints(archetypeId, currentRatings, budget.regressionPoints, rng);
       const allDeltas = mergeDeltas(growthDeltas, regrDeltas);
 
@@ -172,7 +176,7 @@ function buildRatingsMap(player: Player): Record<string, number> {
     "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance",
     "clutch", "vsLHP", "grit", "stealing", "running", "throwing",
     "recovery", "wRISP", "vsLefty", "poise", "heater", "agile", "catcherAbility",
-    "velocity", "control", "stamina", "stuff",
+    "velocity", "control", "stamina", "stuff", "pitchMix",
   ] as const;
   const map: Record<string, number> = {};
   for (const k of keys) {

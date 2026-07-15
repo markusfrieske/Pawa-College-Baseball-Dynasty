@@ -263,7 +263,10 @@ export async function updatePitcherRestFromBox(
   game: { gameType?: string | null; week?: number | null },
   leagueCurrentWeek?: number,
 ) {
-  const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? "midweek") : "midweek";
+  // Normalize game type to a canonical GameDay slot. Unknown types fall back to
+  // "WED" (Wednesday) which is the safest canonical slot — never store the raw
+  // gameType string "midweek" because GameDay only accepts WED|FRI|SAT|SUN.
+  const gameDay = GAME_TYPE_TO_DAY[game.gameType ?? ""] ?? "WED";
   const gameWeek = game.week ?? leagueCurrentWeek ?? 1;
   if (!gameDay) return;
 
