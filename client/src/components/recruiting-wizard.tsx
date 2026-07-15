@@ -377,9 +377,59 @@ function AiAssistPanel({
                 <CheckCircle2 className="w-3 h-3" />
                 {(result as any).aiAssisted === false ? "Procedural Suggestion" : "AI Suggestion"}
               </div>
-              <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto">
-                {JSON.stringify(result, null, 2)}
-              </pre>
+
+              {/* ── arc_draft: show chapters with clickable choices ── */}
+              {jobType === "arc_draft" && Array.isArray((result as any).chapters) ? (
+                <div className="space-y-2">
+                  {((result as any).chapters as Array<{ title: string; eventText: string; choices: Array<{ label: string; outcomeText: string; effectPreset: string }> }>).map((ch, ci) => (
+                    <div key={ci} className="rounded border border-border/50 bg-background/60 p-2">
+                      <div className="text-xs font-semibold text-gold mb-0.5">Ch {ci + 1}: {ch.title}</div>
+                      <div className="text-xs text-muted-foreground mb-1.5 leading-relaxed">{ch.eventText}</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {ch.choices.map((choice, ki) => (
+                          <div key={ki} className="rounded border border-gold/20 bg-gold/5 p-1.5">
+                            <div className="text-xs font-medium text-gold/90 mb-0.5">{choice.label}</div>
+                            <div className="text-xs text-muted-foreground leading-tight">{choice.outcomeText}</div>
+                            {choice.effectPreset && choice.effectPreset !== "none" && (
+                              <div className="text-xs text-muted-foreground/50 mt-0.5 italic">{choice.effectPreset.replace(/_/g, " ")}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : jobType === "text_rewrite" && (result as any).rewrittenText ? (
+                /* ── text_rewrite: before/after diff view ── */
+                <div className="space-y-1.5">
+                  {(metadata as any)?.originalText && (
+                    <div className="rounded border border-red-500/20 bg-red-900/10 p-2">
+                      <div className="text-xs font-semibold text-red-400 mb-1">Before</div>
+                      <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{(metadata as any).originalText}</p>
+                    </div>
+                  )}
+                  <div className="rounded border border-green-500/20 bg-green-900/10 p-2">
+                    <div className="text-xs font-semibold text-green-400 mb-1">After</div>
+                    <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{(result as any).rewrittenText}</p>
+                  </div>
+                </div>
+              ) : (
+                /* ── fallback: compact key/value display for theme_draft / cast_proposal ── */
+                <div className="space-y-1">
+                  {Object.entries(result)
+                    .filter(([k]) => k !== "aiAssisted")
+                    .map(([k, v]) => (
+                      <div key={k} className="text-xs">
+                        <span className="text-muted-foreground/70 mr-1">{k}:</span>
+                        <span className="text-muted-foreground">
+                          {Array.isArray(v) ? v.join(", ") : typeof v === "object" ? JSON.stringify(v) : String(v)}
+                        </span>
+                      </div>
+                    ))
+                  }
+                </div>
+              )}
+
               <div className="flex gap-2 pt-1">
                 <RetroButton
                   variant="default"
@@ -2505,6 +2555,8 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
   /** Seed returned by the last successful generate call — passed to rerolls for sub-seeding */
   const [masterSeed, setMasterSeed] = useState<string | undefined>(undefined);
   const [generatorVersion, setGeneratorVersion] = useState<number | undefined>(undefined);
+  /** Per-recruit reroll nonce — incremented on each reroll so repeated rerolls yield different outputs */
+  const [rerollNonces, setRerollNonces] = useState<Record<string, number>>({});
   // Story Cast & Arc Studio state
   const [cast, setCast] = useState<string[]>([]);
   const [storyPlan, setStoryPlan] = useState<WizardStoryPlan>(makeEmptyStoryPlan());
@@ -2581,7 +2633,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
   });
 
   const rerollMutation = useMutation({
-    mutationFn: async ({ r, cfg }: { r: WizardRecruit; cfg: WizardConfig }) => {
+    mutationFn: async ({ r, cfg, nonce }: { r: WizardRecruit; cfg: WizardConfig; nonce: number }) => {
       const forcedType: Record<string, any> = {};
       if (r.isGenerationalGem)  forcedType.isGenGem  = true;
       if (r.isGenerationalBust) forcedType.isGenBust = true;
@@ -2595,11 +2647,12 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
       const res = await apiRequest("POST", url, {
         theme: cfg.theme,
         forcedType,
-        // Pass seed + recruit identity so server derives deterministic sub-seed
+        // Pass seed + recruit identity + nonce so each reroll attempt yields a different result
         masterSeed,
         templateRecruitId: r.templateRecruitId,
+        rerollNonce: nonce,
       });
-      return (res.json() as Promise<{ recruit: any }>).then(d => ({ newRecruit: d.recruit, oldId: r._tempId }));
+      return (res.json() as Promise<{ recruit: any }>).then(d => ({ newRecruit: d.recruit, oldId: r._tempId, templateId: r.templateRecruitId }));
     },
     onSuccess: ({ newRecruit, oldId }) => {
       setRecruits(prev => prev.map(r => {
@@ -2686,7 +2739,11 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
 
   const handleReroll = (r: WizardRecruit) => {
     setRerollingId(r._tempId);
-    rerollMutation.mutate({ r, cfg: config });
+    // Increment nonce for this recruit so repeated rerolls produce different results
+    const key = r.templateRecruitId ?? r._tempId;
+    const nonce = (rerollNonces[key] ?? 0) + 1;
+    setRerollNonces(prev => ({ ...prev, [key]: nonce }));
+    rerollMutation.mutate({ r, cfg: config, nonce });
   };
 
   const handleSaveToLeague = () => {

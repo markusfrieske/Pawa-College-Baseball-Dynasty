@@ -35,7 +35,7 @@ import { eq, inArray } from "drizzle-orm";
 import { storage } from "../storage";
 import type { InsertRecruit, InsertStorylineRecruit } from "@shared/schema";
 import { captureLeagueSaveState, type SaveStateTrigger } from "./leagueSaveState";
-import { pickStorylineRecruits } from "../storylineEngine";
+import { pickStorylineRecruits, _setStorylineRng, _resetStorylineRng } from "../storylineEngine";
 import { initializeStorylineRecruits, generateInitialStorylineEvents } from "../storyline-routes";
 import { invalidateLeague } from "../cache";
 import type { WizardStoryPlan } from "@shared/schema";
@@ -108,6 +108,12 @@ export interface ReplaceClassOptions {
     action: string;
     details: string;
   };
+
+  /**
+   * Optional master seed for storyline RNG. When provided, _setStorylineRng
+   * is called before pickStorylineRecruits so storyline selection is deterministic.
+   */
+  masterSeed?: string;
 }
 
 export interface ReplaceClassResult {
@@ -260,7 +266,18 @@ export async function replaceLeagueRecruitingClass(
         console.warn("[replaceRecruitClass] recentLegendaryCount fetch failed (non-fatal):", e);
       }
 
-      const picks = pickStorylineRecruits(recruitsForPicker, { recentLegendaryCount });
+      // Wire seeded RNG for storyline selection when a master seed is provided
+      // so the same class with the same seed always picks the same storyline recruits.
+      if (opts.masterSeed) {
+        const { rngFromString } = await import("../../shared/seededRng");
+        _setStorylineRng(rngFromString(opts.masterSeed + "_storyline"));
+      }
+      let picks: ReturnType<typeof pickStorylineRecruits>;
+      try {
+        picks = pickStorylineRecruits(recruitsForPicker, { recentLegendaryCount });
+      } finally {
+        if (opts.masterSeed) _resetStorylineRng();
+      }
 
       // Tracks authored-arc recruit DB IDs so we can stamp hiddenVars.authoredArc=true
       // at insert time, which suppresses random archetype transitions during resolution.

@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
-import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource } from "../lib/buildClassEnvelope";
+import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource, extractGeneration } from "../lib/buildClassEnvelope";
 import { migrateClassToVersion } from "../lib/migrateClassToVersion";
 
 export function registerSavedRoutes(app: Express): void {
@@ -107,8 +107,9 @@ export function registerSavedRoutes(app: Express): void {
       const { name, description, classData } = req.body;
       if (!name || !classData) return res.status(400).json({ message: "Name and class data required" });
 
-      // Detect source / theme from the inbound shape before validation strips context
+      // Detect source / theme / generation from the inbound shape before validation strips context
       const { source, theme, config } = detectSource(classData);
+      const existingGeneration = extractGeneration(classData);
 
       let validated;
       try {
@@ -121,7 +122,8 @@ export function registerSavedRoutes(app: Express): void {
         console.warn(`[save-class] ${validated.warnings.length} warning(s):`, validated.warnings);
       }
 
-      const envelope = buildClassEnvelope(validated.recruits, source, { theme, config });
+      // Pass generation metadata through so seed/version are preserved in the stored envelope
+      const envelope = buildClassEnvelope(validated.recruits, source, { theme, config, generation: existingGeneration ?? undefined });
 
       const rc = await storage.createSavedRecruitingClass({
         userId, name, description,
@@ -163,9 +165,10 @@ export function registerSavedRoutes(app: Express): void {
       }
       if ("classData" in req.body) {
         const { source, theme, config } = detectSource(req.body.classData);
+        const patchGeneration = extractGeneration(req.body.classData);
         try {
           const validated = validateAndNormalizeRecruitingClass(req.body.classData);
-          patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config });
+          patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config, generation: patchGeneration ?? undefined });
           patchBody.recruitCount = validated.recruitCount;
         } catch (e) {
           if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });

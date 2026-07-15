@@ -485,10 +485,12 @@ export function registerAiClassJobRoutes(app: Express): void {
       const updated = await storage.updateAiClassJob(jobId, { acceptedAt: new Date() });
 
       // Merge validated AI content into project classData draft
+      // Use responseJson for real AI output; fall back to fallbackJson for procedural suggestions
       const project = await storage.getRecruitingClassProject(projectId);
-      if (project && job.responseJson) {
+      const mergedContent = (job.responseJson ?? job.fallbackJson) as Record<string, unknown> | null;
+      if (project && mergedContent) {
         const existingData = (project.classData as Record<string, unknown>) ?? {};
-        const aiContent = job.responseJson as Record<string, unknown>;
+        const aiContent = mergedContent;
         const patch: Record<string, unknown> = { ai_assisted: true };
 
         // Apply content by job type — only merge safe known fields

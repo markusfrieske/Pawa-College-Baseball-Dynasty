@@ -969,7 +969,7 @@ app.get("/api/recruit-class-target", async (req, res) => {
 // League-agnostic generate endpoint — works without a league (no auth required)
 app.post("/api/recruiting/generate-preview", async (req, res) => {
   try {
-    const { config } = req.body as { config: any };
+    const { config, seed: callerSeed } = req.body as { config: any; seed?: string };
     if (!config) return res.status(400).json({ message: "config required" });
     const configErrors = validateWizardConfig(config);
     if (configErrors) {
@@ -997,6 +997,8 @@ app.post("/api/recruiting/generate-preview", async (req, res) => {
         wizardOvrAverage: wOvrAvg,
         wizardOvrDistribution: wOvrDist as "bell" | "top_heavy" | "bottom_heavy" | "flat",
       } : {}),
+      // Accept caller-provided seed for deterministic reproduction (same seed => same class)
+      ...(callerSeed ? { seed: callerSeed } : {}),
     });
     const masterSeed = getLastClassSeed();
     const initialScoutingLevel = Math.round((1 - fogDensity / 100) * 100);
@@ -1011,12 +1013,14 @@ app.post("/api/recruiting/generate-preview", async (req, res) => {
 // League-agnostic reroll endpoint — works without a league (no auth required)
 app.post("/api/recruiting/reroll-single", async (req, res) => {
   try {
-    const { theme = "balanced", forcedType, masterSeed: incomingMasterSeed, templateRecruitId } = req.body as { theme?: string; forcedType?: any; masterSeed?: string; templateRecruitId?: string };
-    // Derive a deterministic sub-seed from the class master seed + recruit identity when provided
+    const { theme = "balanced", forcedType, masterSeed: incomingMasterSeed, templateRecruitId, rerollNonce } = req.body as { theme?: string; forcedType?: any; masterSeed?: string; templateRecruitId?: string; rerollNonce?: number };
+    // Derive a deterministic sub-seed from master seed + recruit identity + nonce
+    // Nonce ensures repeated rerolls of the same recruit produce different results
     let derivedSeedStr: string | undefined;
     if (incomingMasterSeed && templateRecruitId) {
       const { derivedSeed: ds } = await import("../../shared/seededRng");
-      derivedSeedStr = ds(incomingMasterSeed, templateRecruitId + "_reroll").toString();
+      const nonceStr = rerollNonce != null ? `_reroll_${rerollNonce}` : "_reroll";
+      derivedSeedStr = ds(incomingMasterSeed, templateRecruitId + nonceStr).toString();
     }
     const recruits = generateRecruitClass(1, {
       theme: (theme as RecruitingTheme) || "balanced",
@@ -1038,7 +1042,7 @@ app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req,
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { config } = req.body as { config: any };
+    const { config, seed: callerSeed2 } = req.body as { config: any; seed?: string };
     if (!config) return res.status(400).json({ message: "config required" });
     const configErrors2 = validateWizardConfig(config);
     if (configErrors2) {
@@ -1082,6 +1086,8 @@ app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req,
         wizardOvrAverage: wOvrAvg2,
         wizardOvrDistribution: wOvrDist2 as "bell" | "top_heavy" | "bottom_heavy" | "flat",
       } : {}),
+      // Accept caller-provided seed for deterministic reproduction (same seed => same class)
+      ...(callerSeed2 ? { seed: callerSeed2 } : {}),
     });
     const masterSeed2 = getLastClassSeed();
 
@@ -1104,13 +1110,15 @@ app.post("/api/leagues/:id/recruiting/reroll-recruit", requireAuth, async (req, 
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { theme = "balanced", forcedType, masterSeed: incomingMasterSeed, templateRecruitId } = req.body as { theme?: string; forcedType?: any; masterSeed?: string; templateRecruitId?: string };
+    const { theme = "balanced", forcedType, masterSeed: incomingMasterSeed, templateRecruitId, rerollNonce } = req.body as { theme?: string; forcedType?: any; masterSeed?: string; templateRecruitId?: string; rerollNonce?: number };
 
-    // Derive a deterministic sub-seed from the class master seed + recruit identity when provided
+    // Derive a deterministic sub-seed from master seed + recruit identity + nonce
+    // Nonce ensures repeated rerolls of the same recruit produce different results
     let derivedSeedStr2: string | undefined;
     if (incomingMasterSeed && templateRecruitId) {
       const { derivedSeed: ds } = await import("../../shared/seededRng");
-      derivedSeedStr2 = ds(incomingMasterSeed, templateRecruitId + "_reroll").toString();
+      const nonceStr2 = rerollNonce != null ? `_reroll_${rerollNonce}` : "_reroll";
+      derivedSeedStr2 = ds(incomingMasterSeed, templateRecruitId + nonceStr2).toString();
     }
     const recruits = generateRecruitClass(1, {
       theme: (theme as RecruitingTheme) || "balanced",
@@ -1174,6 +1182,8 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
       recruits: (validatedWizard.recruits.map(r => ({ ...r, leagueId })) as any),
       initStorylines: true,
       storyPlan,
+      // Pass master seed so storyline recruit selection is deterministic
+      masterSeed: generation?.seed,
       saveState: {
         trigger: "pre_restore",
         label: `Pre-wizard-class replacement (season ${league.currentSeason})`,

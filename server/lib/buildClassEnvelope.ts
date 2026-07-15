@@ -158,6 +158,23 @@ export function extractSummary(classData: unknown): ClassSummary | null {
 }
 
 /**
+ * Extract generation metadata from a stored ClassEnvelope (versioned format only).
+ * Returns null for legacy formats.
+ */
+export function extractGeneration(classData: unknown): ClassGeneration | null {
+  if (classData !== null && typeof classData === "object" && !Array.isArray(classData)) {
+    const obj = classData as Record<string, unknown>;
+    if (obj.version === 1 && obj.generation && typeof obj.generation === "object") {
+      const gen = obj.generation as Record<string, unknown>;
+      if (typeof gen.seed === "string" && typeof gen.version === "number") {
+        return { seed: gen.seed, version: gen.version };
+      }
+    }
+  }
+  return null;
+}
+
+/**
  * Extract theme from stored classData (any format).
  */
 export function extractTheme(classData: unknown): string | null {
