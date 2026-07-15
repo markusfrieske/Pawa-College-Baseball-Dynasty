@@ -1173,16 +1173,23 @@ export async function registerRoutes(
 
       const conferences = await storage.getConferencesByLeague(league.id);
       
-      const conferenceTeamPools = conferences.map(conf => {
-        return {
-          conference: conf,
-          teams: getTeamsForConference(conf.name),
-        };
+      // Sort conferences by their catalog rank so SEC (index 0) always gets
+      // the largest target slot in uneven splits (e.g. 6-4-4 for 14 teams).
+      const catalogOrder = FULL_SEASON_CONF_NAMES;
+      const sortedConferences = [...conferences].sort((a, b) => {
+        const ai = catalogOrder.indexOf(a.name);
+        const bi = catalogOrder.indexOf(b.name);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
       });
-      
-      res.json({ 
+
+      const conferenceTeamPools = sortedConferences.map(conf => ({
+        conference: conf,
+        teams: getTeamsForConference(conf.name),
+      }));
+
+      res.json({
         league,
-        conferences,
+        conferences: sortedConferences,
         conferenceTeamPools,
         teamsAlreadySelected: false,
       });
