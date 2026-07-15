@@ -314,8 +314,11 @@ export function registerClassProjectRoutes(app: Express): void {
       const expiresAt = req.body?.expiresAt ? new Date(req.body.expiresAt as string) : undefined;
       const maxImports = req.body?.maxImports ? parseInt(String(req.body.maxImports), 10) || undefined : undefined;
 
+      // V2 hardened shares are pinned exclusively to an immutable version — classId
+      // must be null so that deleting the source saved_recruiting_classes row does
+      // NOT cascade-delete this share.
       const share = await storage.createHardenedClassShare({
-        classId: project.sourceClassId ?? undefined,
+        classId: undefined,
         userId: req.session.userId!,
         tokenHash: hash,
         versionId,
@@ -471,14 +474,22 @@ export function registerClassProjectRoutes(app: Express): void {
       const summary = storedSummary ?? computeSummary(recruits);
 
       // Spoiler-free: return aggregate metadata only — no per-recruit rows.
-      // Per-recruit data (names, positions, stars) would reveal class composition
-      // before the coach has earned the right to see it.
+      // Includes storyline-character counts (genGems, genBusts, gems, busts,
+      // blueChips) so the importer knows what surprise archetypes are present
+      // without learning which specific recruits fill those roles.
       const publicSummary = {
         recruitCount: summary.recruitCount,
         starDist: summary.starDist,
         posDist: summary.posDist,
         regionDist: summary.regionDist ?? {},
         theme: summary.theme,
+        // Storyline character counts (non-spoiler: counts only, not identities)
+        blueChips: summary.blueChips,
+        gems: summary.gems,
+        busts: summary.busts,
+        genGems: summary.genGems,
+        genBusts: summary.genBusts,
+        avgOvr: summary.avgOvr,
       };
 
       res.json({

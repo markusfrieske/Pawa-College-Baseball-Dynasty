@@ -220,6 +220,11 @@ app.use((req, res, next) => {
         `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS is_sealed boolean NOT NULL DEFAULT false`,
         `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS source_version_id varchar`,
         `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS source_content_hash text`,
+        // FK from recruiting_class_shares.version_id → recruiting_class_versions.id
+        // Ensures version_id references a real version; SET NULL on version deletion
+        // preserves the share row (it just loses its snapshot reference).
+        `ALTER TABLE recruiting_class_shares ADD CONSTRAINT IF NOT EXISTS fk_rcs_version_id
+           FOREIGN KEY (version_id) REFERENCES recruiting_class_versions(id) ON DELETE SET NULL`,
       ];
       for (const sql of _columnMigrations) {
         try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }
