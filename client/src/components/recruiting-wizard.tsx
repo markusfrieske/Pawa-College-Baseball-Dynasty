@@ -2349,9 +2349,13 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       return (res.json() as Promise<{ recruit: any }>).then(d => ({ newRecruit: d.recruit, oldId: r._tempId }));
     },
     onSuccess: ({ newRecruit, oldId }) => {
-      setRecruits(prev => prev.map(r =>
-        r._tempId === oldId ? { ...newRecruit, _tempId: oldId } : r
-      ));
+      setRecruits(prev => prev.map(r => {
+        if (r._tempId !== oldId) return r;
+        // Preserve templateRecruitId so cast membership survives a reroll.
+        // The server generates a fresh recruit object without a templateRecruitId;
+        // we carry the old one forward so the cast/arc system still recognises it.
+        return { ...newRecruit, _tempId: oldId, templateRecruitId: r.templateRecruitId };
+      }));
       setRerollingId(null);
     },
     onError: () => setRerollingId(null),

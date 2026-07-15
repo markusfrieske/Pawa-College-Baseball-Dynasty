@@ -21,6 +21,7 @@ import { assignTrajectory } from "../../shared/trajectory";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
+import { archetypeDefs } from "../storylineEngine";
 import { createScheduleForSeason } from "../services/schedule/createScheduleForSeason";
 import {
   generateSchedule,
@@ -1128,9 +1129,21 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
       throw e;
     }
 
-    // Basic validation: storyPlan must be a valid WizardStoryPlan if present
+    // Validate storyPlan shape and allowlist arcTemplateKey values against
+    // the canonical ARCHETYPE_DEFS registry.  Invalid keys would poison the
+    // storyline recruit's archetype and break weekly event generation paths.
     let storyPlan: import("@shared/schema").WizardStoryPlan | undefined;
     if (rawStoryPlan && rawStoryPlan.mode === "authored" && Array.isArray(rawStoryPlan.cast)) {
+      const validArchetypeKeys = new Set(Object.keys(archetypeDefs));
+      for (const member of rawStoryPlan.cast as any[]) {
+        if (member.arcMode === "template" && member.arcTemplateKey) {
+          if (!validArchetypeKeys.has(member.arcTemplateKey)) {
+            return res.status(400).json({
+              message: `Invalid arcTemplateKey "${member.arcTemplateKey}". Must be one of: ${[...validArchetypeKeys].join(", ")}`,
+            });
+          }
+        }
+      }
       storyPlan = rawStoryPlan as import("@shared/schema").WizardStoryPlan;
     }
 
