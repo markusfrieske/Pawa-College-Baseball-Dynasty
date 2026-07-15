@@ -2,15 +2,21 @@
  * replaceLeagueRecruitingClass
  *
  * Single authoritative helper for replacing a league's entire recruit pool.
- * The core delete + insert is wrapped in a single DB transaction so that any
- * crash between the two steps rolls back rather than leaving zero recruits.
+ * All mutations (delete old recruits + child rows, insert new recruits, create
+ * storyline recruits, update vintage) are wrapped in a single DB transaction.
+ * Any failure rolls back everything to the prior state — no partial outcomes.
  *
  * Responsibilities (in order):
- *  1. Capture a safety save state (optional).
- *  2. BEGIN TRANSACTION: delete existing recruits and all child data, then
- *     batch-insert the validated recruits. COMMIT or ROLLBACK atomically.
- *  3. Initialize storyline recruits for the new class (optional; sync or async).
- *  4. Update currentClassVintage on the league row (optional).
+ *  1. Capture a safety save state (optional, outside transaction).
+ *  2. BEGIN TRANSACTION:
+ *     a. Advisory lock on league row (serialises concurrent calls).
+ *     b. Delete existing recruits and all child data (cascade order).
+ *     c. Batch-insert the validated new recruits.
+ *     d. If initStorylines=true (sync path): pick + insert storyline recruits.
+ *     e. Update currentClassVintage.
+ *     COMMIT (or ROLLBACK on any error — including storyline init failures).
+ *  3. If initStorylines=true (sync path): generate initial arc events (best-effort, post-tx).
+ *  4. If initStorylines=true (async path): fire-and-forget full init.
  *  5. Invalidate the league cache entry (always).
  *  6. Write an audit-log entry (optional).
  */
@@ -27,9 +33,10 @@ import {
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import { storage } from "../storage";
-import type { InsertRecruit } from "@shared/schema";
+import type { InsertRecruit, InsertStorylineRecruit } from "@shared/schema";
 import { captureLeagueSaveState, type SaveStateTrigger } from "./leagueSaveState";
-import { initializeStorylineRecruits } from "../storyline-routes";
+import { pickStorylineRecruits } from "../storylineEngine";
+import { initializeStorylineRecruits, generateInitialStorylineEvents } from "../storyline-routes";
 import { invalidateLeague } from "../cache";
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -55,16 +62,24 @@ export interface ReplaceClassOptions {
   vintage?: string | null;
 
   /**
-   * When true, call initializeStorylineRecruits after inserting recruits.
+   * When true, storyline recruits are created inside the same transaction as
+   * the recruit pool.  Any failure rolls back the entire operation atomically.
    * Default: false (preserves prior behaviour for callers that never did it).
    */
   initStorylines?: boolean;
 
   /**
-   * When true, the storyline-init call fires as a background promise (no await).
-   * Only meaningful when initStorylines is also true.  Default: false.
+   * When true, the storyline-init call fires as a background promise after the
+   * transaction commits (no await in the caller).  Only meaningful when
+   * initStorylines is also true.  Default: false.
    */
   asyncStorylines?: boolean;
+
+  /**
+   * Starting week for initial arc event generation (post-tx best-effort).
+   * Default: 1.
+   */
+  storyStartWeek?: number;
 
   /**
    * When provided, a snapshot is captured BEFORE any data is mutated.
@@ -104,6 +119,7 @@ export async function replaceLeagueRecruitingClass(
     vintage,
     initStorylines = false,
     asyncStorylines = false,
+    storyStartWeek = 1,
     saveState,
     audit,
   } = opts;
@@ -125,16 +141,15 @@ export async function replaceLeagueRecruitingClass(
     }
   }
 
-  // 2. Atomic delete + insert + vintage update inside a single DB transaction ─
-  // The transaction also acquires an advisory lock on the league row via
-  // SELECT ... FOR UPDATE so concurrent replacements are serialised rather than
-  // racing past each other and leaving a half-replaced pool.
+  // 2. Single atomic transaction: delete + insert + storyline recruits + vintage
+  // All steps share the same Drizzle transaction so ANY failure rolls back the
+  // entire operation.  The league row is locked at the start so concurrent calls
+  // cannot interleave their deletes/inserts.
   const CHUNK = 100;
   let insertedCount = 0;
 
   await db.transaction(async (tx) => {
     // 2a. Advisory lock — lock the league row for the duration of this tx
-    //     so two concurrent replace calls cannot interleave their deletes/inserts.
     await tx.execute(
       `SELECT id FROM leagues WHERE id = '${leagueId.replace(/'/g, "''")}' FOR UPDATE`
     );
@@ -184,8 +199,75 @@ export async function replaceLeagueRecruitingClass(
       insertedCount += inserted.length;
     }
 
-    // 2d. Update currentClassVintage inside the same transaction so that a
-    //     storyline-init failure after the commit does not leave a stale vintage.
+    // 2d. Storyline recruit creation (sync path only) — inside the transaction
+    //     so any failure here rolls back the entire recruit pool replacement.
+    //     Uses pickStorylineRecruits (pure computation) and tx.insert (Drizzle).
+    //     Arc events are generated post-transaction as best-effort.
+    if (initStorylines && !asyncStorylines) {
+      const recruitsForPicker = recruits.map(r => ({
+        id: r.id as string,
+        overall: (r.overall as number | null) ?? 250,
+        starRank: (r.starRank as number | null) ?? 3,
+        isBlueChip: r.isBlueChip ?? false,
+        isGenerationalGem: r.isGenerationalGem ?? false,
+        firstName: (r.firstName as string | null) ?? "Recruit",
+        lastName: (r.lastName as string | null) ?? "",
+        position: r.position as string,
+      }));
+
+      // Query recentLegendaryCount from previous seasons (best-effort; doesn't need tx)
+      let recentLegendaryCount = 0;
+      try {
+        for (let s = Math.max(1, season - 4); s < season; s++) {
+          const prev = await storage.getStorylineRecruitsByLeague(leagueId, s);
+          recentLegendaryCount += prev.filter(sl => sl.isLegendary).length;
+        }
+      } catch (e) {
+        console.warn("[replaceRecruitClass] recentLegendaryCount fetch failed (non-fatal):", e);
+      }
+
+      const picks = pickStorylineRecruits(recruitsForPicker, { recentLegendaryCount });
+
+      // Insert storyline recruits using tx so failure rolls back the entire class
+      const insertedSR = await tx
+        .insert(storylineRecruits)
+        .values(
+          picks.map((pick, i): InsertStorylineRecruit => ({
+            leagueId,
+            recruitId: pick.recruitId,
+            season,
+            archetype: pick.archetype,
+            tier: pick.tier,
+            storySlot: i % 10,
+            hiddenVars: { ...pick.hiddenVars, startWeek: storyStartWeek },
+            isLegendary: pick.isLegendary,
+            currentArcStage: 0,
+            resolvedOvrDelta: 0,
+          }))
+        )
+        .returning({ id: storylineRecruits.id });
+
+      // Update overlapping recruit pairs (link ~15% of adjacent pairs)
+      const shuffled = [...insertedSR].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < shuffled.length - 1; i += 2) {
+        if (Math.random() < 0.15) {
+          await tx
+            .update(storylineRecruits)
+            .set({ overlappingRecruitId: shuffled[i + 1].id })
+            .where(eq(storylineRecruits.id, shuffled[i].id));
+          await tx
+            .update(storylineRecruits)
+            .set({ overlappingRecruitId: shuffled[i].id })
+            .where(eq(storylineRecruits.id, shuffled[i + 1].id));
+        }
+      }
+
+      console.log(
+        `[replaceRecruitClass] inserted ${picks.length} storyline recruits in-transaction for league ${leagueId} season ${season}`
+      );
+    }
+
+    // 2e. Update currentClassVintage inside the same transaction
     if (vintage !== undefined) {
       await tx.execute(
         `UPDATE leagues SET "currentClassVintage" = ${vintage === null ? "NULL" : `'${String(vintage).replace(/'/g, "''")}'`} WHERE id = '${leagueId.replace(/'/g, "''")}'`
@@ -193,76 +275,30 @@ export async function replaceLeagueRecruitingClass(
     }
   });
 
-  // 3. Storyline initialization ───────────────────────────────────────────────
-  // Sync path (asyncStorylines=false, the default):
-  //   If storyline init throws, we apply a compensating rollback — deleting the
-  //   newly committed recruit pool so the league is not left in partial state.
-  //   The vintage update is rolled back as well (raw SQL UPDATE inside the same
-  //   compensating delete transaction).  After compensation the original error
-  //   is re-thrown so callers receive an explicit failure signal.
-  //
-  // Async path (asyncStorylines=true): fire-and-forget with prominent logging.
-  //   Partial state is acceptable here because the caller explicitly opts in.
-  if (initStorylines) {
-    if (asyncStorylines) {
-      initializeStorylineRecruits(leagueId, season)
-        .then(n =>
-          console.log(
-            `[replaceRecruitClass] (async) initialized ${n} storyline recruits for league ${leagueId} season ${season}`
-          )
-        )
-        .catch(err =>
-          console.error(
-            `[replaceRecruitClass] (async) storyline init failed for league ${leagueId}:`,
-            err
-          )
-        );
-    } else {
-      try {
-        const n = await initializeStorylineRecruits(leagueId, season);
-        console.log(
-          `[replaceRecruitClass] initialized ${n} storyline recruits for league ${leagueId} season ${season}`
-        );
-      } catch (initErr) {
-        // Compensating rollback: undo the committed recruit pool so the league
-        // is not left with a new class but no storyline recruits.
-        console.error(
-          `[replaceRecruitClass] storyline init failed for league ${leagueId}; rolling back recruit pool:`,
-          initErr
-        );
-        try {
-          await db.transaction(async (tx) => {
-            const newRecruitsRows = await tx
-              .select({ id: recruitsTable.id })
-              .from(recruitsTable)
-              .where(eq(recruitsTable.leagueId, leagueId));
-            const newIds = newRecruitsRows.map(r => r.id);
-            if (newIds.length > 0) {
-              await tx.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, newIds));
-              await tx.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, newIds));
-              await tx.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, newIds));
-              await tx.delete(recruitsTable).where(eq(recruitsTable.leagueId, leagueId));
-            }
-            // Also revert the vintage update if we set one
-            if (vintage !== undefined) {
-              await tx.execute(
-                `UPDATE leagues SET "currentClassVintage" = NULL WHERE id = '${leagueId.replace(/'/g, "''")}'`
-              );
-            }
-          });
-          console.log(`[replaceRecruitClass] compensating rollback succeeded for league ${leagueId}`);
-        } catch (rollbackErr) {
-          console.error(
-            `[replaceRecruitClass] compensating rollback ALSO failed for league ${leagueId}:`,
-            rollbackErr
-          );
-        }
-        throw initErr; // re-throw original error to the caller
-      }
-    }
+  // 3. Post-transaction: generate initial arc events (best-effort, sync path) ─
+  //    The storyline_recruits rows are now committed.  Arc event generation uses
+  //    those rows to pre-populate storyline_events.  Any failure here is logged
+  //    but does not corrupt the committed recruit pool.
+  if (initStorylines && !asyncStorylines) {
+    await generateInitialStorylineEvents(leagueId, season, storyStartWeek);
   }
 
-  // 4. currentClassVintage is now handled inside the transaction (step 2d) ───
+  // 4. Async path: fire-and-forget full init ────────────────────────────────
+  //    Caller opts in; partial state is acceptable in this mode.
+  if (initStorylines && asyncStorylines) {
+    initializeStorylineRecruits(leagueId, season)
+      .then(n =>
+        console.log(
+          `[replaceRecruitClass] (async) initialized ${n} storyline recruits for league ${leagueId} season ${season}`
+        )
+      )
+      .catch(err =>
+        console.error(
+          `[replaceRecruitClass] (async) storyline init failed for league ${leagueId}:`,
+          err
+        )
+      );
+  }
 
   // 5. Invalidate league cache ───────────────────────────────────────────────
   invalidateLeague(leagueId);

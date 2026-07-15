@@ -1162,6 +1162,23 @@ export async function generateAndResolveStorylineEvents(
 // Example schedule (10 recruits, 3 chapters, 10 advances):
 //   Advance 0: slots 0,1,2 ch0 | Advance 1: slots 3,4,5 ch0 | Advance 2: slots 6,7,8 ch0
 //   Advance 3: slot 9 ch0, slots 0,1 ch1 | ... | Advance 9: slots 7,8,9 ch2
+/**
+ * Generates the initial arc events (advance index 0) for an already-initialized
+ * storyline recruit set.  Called as a best-effort step AFTER the recruiting
+ * class has been committed, so any failure here does not corrupt the pool.
+ */
+export async function generateInitialStorylineEvents(
+  leagueId: string,
+  season: number,
+  startWeek = 1
+): Promise<void> {
+  try {
+    await generateWeeklyStorylineEvents(leagueId, season, startWeek, 0);
+  } catch (err) {
+    console.error("[storylines] generateInitialStorylineEvents failed:", err);
+  }
+}
+
 async function generateWeeklyStorylineEvents(
   leagueId: string,
   season: number,
