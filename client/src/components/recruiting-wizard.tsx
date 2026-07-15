@@ -2648,6 +2648,13 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
   const [cast, setCast] = useState<string[]>([]);
   const [storyPlan, setStoryPlan] = useState<WizardStoryPlan>(makeEmptyStoryPlan());
 
+  /**
+   * If no projectId is supplied by the caller, auto-bootstrap one when the wizard opens.
+   * This ensures AI Assist buttons are always enabled regardless of launch context.
+   */
+  const [bootstrappedProjectId, setBootstrappedProjectId] = useState<string | undefined>(undefined);
+  const effectiveProjectId = projectId ?? bootstrappedProjectId;
+
   // Fetch the league-specific recommended class size (so the slider max + hint stay correct)
   const { data: classTargetData } = useQuery<{ targetSize: number }>({
     queryKey: ["/api/recruit-class-target", leagueId],
@@ -2680,6 +2687,17 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
       setStoryPlan(makeEmptyStoryPlan());
     }
   }, [open]);
+
+  // Auto-bootstrap a project when the wizard opens without one, so AI Assist is always enabled.
+  useEffect(() => {
+    if (!open || projectId || !user?.id) return;
+    let cancelled = false;
+    fetch("/api/class-projects/bootstrap", { method: "POST", credentials: "include" })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then((data: { projectId: string }) => { if (!cancelled) setBootstrappedProjectId(data.projectId); })
+      .catch(err => console.warn("[wizard] project bootstrap failed:", err));
+    return () => { cancelled = true; };
+  }, [open, projectId, user?.id]);
 
   // Sync count to the league target when it arrives.
   // Only run when the wizard is open and the user hasn't manually changed count
@@ -2976,7 +2994,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
               recruits={recruits}
               cast={cast}
               setCast={setCast}
-              projectId={projectId}
+              projectId={effectiveProjectId}
               onAiAccepted={() => setAiAssisted(true)}
             />
           ) : step === 8 ? (
@@ -2987,7 +3005,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
               setStoryPlan={(sp) => {
                 setStoryPlan({ ...sp, cast: sp.cast });
               }}
-              projectId={projectId}
+              projectId={effectiveProjectId}
               onAiAccepted={() => setAiAssisted(true)}
             />
           ) : step === 9 ? (
@@ -2997,7 +3015,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
               storyPlan={storyPlan}
             />
           ) : step === 1 ? (
-            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} projectId={projectId} onAiAccepted={() => setAiAssisted(true)} />
+            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} projectId={effectiveProjectId} onAiAccepted={() => setAiAssisted(true)} />
           ) : step === 2 ? (
             <Step2 config={config} setConfig={setConfig} />
           ) : step === 3 ? (

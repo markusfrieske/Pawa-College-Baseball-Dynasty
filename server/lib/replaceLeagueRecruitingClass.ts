@@ -268,9 +268,11 @@ export async function replaceLeagueRecruitingClass(
 
       // Wire seeded RNG for storyline selection when a master seed is provided
       // so the same class with the same seed always picks the same storyline recruits.
+      let overlapRng: (() => number) | undefined;
       if (opts.masterSeed) {
         const { rngFromString } = await import("../../shared/seededRng");
         _setStorylineRng(rngFromString(opts.masterSeed + "_storyline"));
+        overlapRng = rngFromString(opts.masterSeed + "_overlap");
       }
       let picks: ReturnType<typeof pickStorylineRecruits>;
       try {
@@ -386,9 +388,10 @@ export async function replaceLeagueRecruitingClass(
         .returning({ id: storylineRecruits.id });
 
       // Update overlapping recruit pairs (link ~15% of adjacent pairs)
-      const shuffled = [...insertedSR].sort(() => Math.random() - 0.5);
+      const rand = overlapRng ?? Math.random.bind(Math);
+      const shuffled = [...insertedSR].sort(() => rand() - 0.5);
       for (let i = 0; i < shuffled.length - 1; i += 2) {
-        if (Math.random() < 0.15) {
+        if (rand() < 0.15) {
           await tx
             .update(storylineRecruits)
             .set({ overlappingRecruitId: shuffled[i + 1].id })

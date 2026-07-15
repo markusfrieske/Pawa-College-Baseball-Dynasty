@@ -381,6 +381,24 @@ async function dispatchJob(
 
 export function registerAiClassJobRoutes(app: Express): void {
 
+  // POST /api/class-projects/bootstrap — create an ephemeral draft project and return its id.
+  // Used by the wizard to acquire a projectId when none was provided at launch.
+  app.post("/api/class-projects/bootstrap", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session.userId as string;
+      const project = await storage.createRecruitingClassProject({
+        ownerUserId: userId,
+        name: "Wizard Draft",
+        status: "draft",
+        currentDraftRevision: 0,
+      });
+      return res.json({ projectId: project.id });
+    } catch (err) {
+      console.error("[bootstrap]", err);
+      return res.status(500).json({ error: "Failed to bootstrap project" });
+    }
+  });
+
   // POST /api/class-projects/:projectId/ai-jobs — create + process job synchronously
   app.post("/api/class-projects/:projectId/ai-jobs", requireAuth, async (req: Request, res: Response) => {
     try {
