@@ -172,21 +172,41 @@ function StepIndicator({ step }: { step: number }) {
 
 // ─── Step 1: Class Settings ──────────────────────────────────────────────────
 
-function Step1({ config, setConfig }: { config: WizardConfig; setConfig: (c: WizardConfig) => void }) {
+function Step1({ config, setConfig, targetSize }: { config: WizardConfig; setConfig: (c: WizardConfig) => void; targetSize?: number }) {
+  const sliderMax = Math.max(targetSize ?? 80, 80);
+  const isAtTarget = targetSize != null && config.count === targetSize;
+  const isOverTarget = targetSize != null && config.count > targetSize;
   return (
     <div className="space-y-6">
       <div>
         <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Class Size: {config.count}</Label>
         <input
-          type="range" min={20} max={80} step={1}
+          type="range" min={20} max={sliderMax} step={1}
           value={config.count}
           onChange={e => setConfig({ ...config, count: Number(e.target.value) })}
           className="w-full accent-yellow-400"
           data-testid="wizard-count-slider"
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>20</span><span>80</span>
+          <span>20</span><span>{sliderMax}</span>
         </div>
+        {targetSize != null && (
+          <div className={`text-xs mt-1.5 ${isAtTarget ? "text-green-400" : isOverTarget ? "text-yellow-400" : "text-muted-foreground"}`}>
+            {isAtTarget
+              ? `Matches league recommendation (${targetSize})`
+              : isOverTarget
+                ? `Above league recommendation of ${targetSize} — performance may be slower`
+                : `League recommendation: ${targetSize} recruits`}
+            {!isAtTarget && (
+              <button
+                className="ml-2 underline text-gold hover:text-gold/80"
+                onClick={() => setConfig({ ...config, count: targetSize })}
+              >
+                Set to {targetSize}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div>
@@ -1746,6 +1766,21 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [savedToLeague, setSavedToLeague] = useState(false);
 
+  // Fetch the league-specific recommended class size (so the slider max + hint stay correct)
+  const { data: classTargetData } = useQuery<{ targetSize: number }>({
+    queryKey: ["/api/recruit-class-target", leagueId],
+    queryFn: async () => {
+      const url = leagueId
+        ? `/api/recruit-class-target?leagueId=${leagueId}`
+        : `/api/recruit-class-target`;
+      const res = await fetch(url);
+      if (!res.ok) return { targetSize: 80 };
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const targetSize = classTargetData?.targetSize;
+
   // Reset state when wizard opens
   useEffect(() => {
     if (open) {
@@ -2007,7 +2042,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
               config={config}
             />
           ) : step === 1 ? (
-            <Step1 config={config} setConfig={setConfig} />
+            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} />
           ) : step === 2 ? (
             <Step2 config={config} setConfig={setConfig} />
           ) : step === 3 ? (

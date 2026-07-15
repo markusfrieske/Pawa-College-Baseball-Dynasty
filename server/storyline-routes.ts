@@ -37,9 +37,29 @@ export async function applyStoryOutcomeToRecruit(
 
   const volScale = 0.6 + (Math.max(1, Math.min(10, volatility)) - 1) * (0.8 / 9);
 
+  // Allowlists of the only recruit attribute fields that story outcomes may
+  // modify. Any field name NOT in the appropriate set is silently skipped so
+  // that imported custom content cannot write arbitrary columns.
+  const HITTER_STORY_ATTRS = new Set([
+    'hitForAvg', 'power', 'speed', 'arm', 'fielding',
+    'errorResistance', 'clutch', 'vsLHP', 'grit',
+    'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
+  ]);
+  const PITCHER_STORY_ATTRS = new Set([
+    'velocity', 'control', 'stamina', 'stuff', 'wRISP',
+    'vsLefty', 'poise', 'heater', 'agile',
+  ]);
+  const isPitcherRecruit = Boolean(recruit.position && isPitcher(recruit.position));
+  const allowedAttrs = isPitcherRecruit ? PITCHER_STORY_ATTRS : HITTER_STORY_ATTRS;
+
   // 1. Build attribute update map from attrChanges (clamped 1–99)
+  //    Only apply changes for known, position-appropriate attribute fields.
   const attrUpdates: Record<string, number> = {};
   for (const { field, delta } of outcome.attrChanges) {
+    if (!allowedAttrs.has(field)) {
+      console.warn(`[storylines] attrChanges field "${field}" not in allowlist for ${isPitcherRecruit ? 'pitcher' : 'hitter'} — skipping`);
+      continue;
+    }
     const current = (recruit as Record<string, unknown>)[field];
     const currentNum = typeof current === 'number' ? current : 50;
     const scaledDelta = Math.round(delta * volScale);
@@ -109,25 +129,17 @@ export async function applyStoryOutcomeToRecruit(
     storyLockedAbilities: storyLocked,
   };
 
-  // Handle new outcome types
+  // Handle positional change (safe — position column exists on recruits)
   if (outcome.positionChange && outcome.positionChange !== recruit.position) {
     finalUpdates.position = outcome.positionChange;
   }
-  if (outcome.injuryWeeks && outcome.injuryWeeks > 0) {
-    // Mark recruit as injured for N weeks by storing an injury end timestamp
-    const injuryUntilWeek = (recruit as Record<string, unknown>).injuryUntilWeek;
-    const currentWeek = typeof injuryUntilWeek === 'number' ? injuryUntilWeek : 0;
-    finalUpdates.injuryUntilWeek = Math.max(currentWeek, outcome.injuryWeeks);
-  }
-  if (outcome.commitmentUncertainty && outcome.commitmentUncertainty > 0) {
-    const current = typeof (recruit as Record<string, unknown>).commitmentUncertainty === 'number'
-      ? (recruit as Record<string, unknown>).commitmentUncertainty as number
-      : 0;
-    finalUpdates.commitmentUncertainty = Math.min(100, current + outcome.commitmentUncertainty);
-  }
-  if (outcome.ratingReveal) {
-    finalUpdates.ratingRevealed = true;
-  }
+  // NOTE: injuryWeeks, commitmentUncertainty, and ratingReveal outcome types
+  // reference columns that do not exist on the recruits table and are not yet
+  // implemented. Guard blocks are left here as explicit stubs so future
+  // implementers know these are unfinished rather than accidentally shipped.
+  // if (outcome.injuryWeeks) { /* TODO: recruits.injuryUntilWeek not in schema */ }
+  // if (outcome.commitmentUncertainty) { /* TODO: recruits.commitmentUncertainty not in schema */ }
+  // if (outcome.ratingReveal) { /* TODO: recruits.ratingRevealed not in schema */ }
 
   await storage.updateRecruit(recruit.id, finalUpdates as Parameters<typeof storage.updateRecruit>[1]);
 

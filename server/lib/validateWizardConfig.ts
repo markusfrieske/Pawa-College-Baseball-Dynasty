@@ -55,14 +55,18 @@ export function validateWizardConfig(config: unknown): WizardConfigValidationRes
   const c = config as Record<string, unknown>;
   const errors: string[] = [];
 
-  // ── 1. count: integer 20–80 ───────────────────────────────────────────────
+  // ── 1. count: integer 20–5000 ────────────────────────────────────────────
+  // Upper bound raised from 80 to 5000 to support large full-season league
+  // pools (e.g. 149 teams → 1,081 recruits). The wizard UI fetches the
+  // league-specific target from /api/recruit-class-target and updates its
+  // slider range accordingly; the server simply refuses unreasonable values.
   const rawCount = c.count;
   let effectiveCount = 75; // default used for special-count ceiling checks
   if (rawCount !== undefined && rawCount !== null) {
     const count = Number(rawCount);
-    if (!Number.isInteger(count) || count < 20 || count > 80) {
+    if (!Number.isInteger(count) || count < 20 || count > 5000) {
       errors.push(
-        `count must be an integer between 20 and 80 (got ${rawCount})`
+        `count must be an integer between 20 and 5000 (got ${rawCount})`
       );
     } else {
       effectiveCount = count;

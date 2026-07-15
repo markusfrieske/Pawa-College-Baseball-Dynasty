@@ -2,22 +2,30 @@
  * replaceLeagueRecruitingClass
  *
  * Single authoritative helper for replacing a league's entire recruit pool.
- * All paths that swap out recruiting classes (wizard save, load saved class,
- * load-recruiting-class, dynasty start, season-advance saved-class) call this
- * function instead of duplicating the delete/insert/audit/cache-invalidation
- * sequence themselves.
+ * The core delete + insert is wrapped in a single DB transaction so that any
+ * crash between the two steps rolls back rather than leaving zero recruits.
  *
  * Responsibilities (in order):
  *  1. Capture a safety save state (optional).
- *  2. Delete existing recruits and all child data (actions log, interests,
- *     top-schools, storyline recruits/events/votes) via storage.deleteRecruitsByLeague.
- *  3. Batch-insert the validated recruits.
- *  4. Initialize storyline recruits for the new class (optional; sync or async).
- *  5. Update currentClassVintage on the league row (optional).
- *  6. Invalidate the league cache entry (always).
- *  7. Write an audit-log entry (optional).
+ *  2. BEGIN TRANSACTION: delete existing recruits and all child data, then
+ *     batch-insert the validated recruits. COMMIT or ROLLBACK atomically.
+ *  3. Initialize storyline recruits for the new class (optional; sync or async).
+ *  4. Update currentClassVintage on the league row (optional).
+ *  5. Invalidate the league cache entry (always).
+ *  6. Write an audit-log entry (optional).
  */
 
+import { db } from "../db";
+import {
+  recruits as recruitsTable,
+  recruitTopSchools,
+  recruitingActionsLog,
+  recruitingInterests,
+  storylineRecruits,
+  storylineEvents,
+  storylineVotes,
+} from "@shared/schema";
+import { eq, inArray } from "drizzle-orm";
 import { storage } from "../storage";
 import type { InsertRecruit } from "@shared/schema";
 import { captureLeagueSaveState, type SaveStateTrigger } from "./leagueSaveState";
@@ -100,7 +108,7 @@ export async function replaceLeagueRecruitingClass(
     audit,
   } = opts;
 
-  // 1. Safety save state ─────────────────────────────────────────────────────
+  // 1. Safety save state (outside transaction — non-fatal if it fails) ────────
   if (saveState) {
     try {
       await captureLeagueSaveState(
@@ -110,8 +118,6 @@ export async function replaceLeagueRecruitingClass(
         saveState.userId ?? undefined
       );
     } catch (err) {
-      // Non-fatal: log and continue.  A failed save state should not block
-      // a commissioner from loading a class.
       console.error(
         `[replaceRecruitClass] save-state capture failed for league ${leagueId}:`,
         err
@@ -119,13 +125,59 @@ export async function replaceLeagueRecruitingClass(
     }
   }
 
-  // 2. Delete existing recruits and all child data ───────────────────────────
-  await storage.deleteRecruitsByLeague(leagueId);
+  // 2. Atomic delete + insert inside a single DB transaction ─────────────────
+  // If either step throws, the transaction rolls back and no data is mutated.
+  const CHUNK = 100;
+  let insertedCount = 0;
 
-  // 3. Insert the new class ──────────────────────────────────────────────────
-  const created = await storage.batchCreateRecruits(recruits);
+  await db.transaction(async (tx) => {
+    // 2a. Find existing recruit IDs so we can cascade-delete child rows
+    const existing = await tx
+      .select({ id: recruitsTable.id })
+      .from(recruitsTable)
+      .where(eq(recruitsTable.leagueId, leagueId));
+    const existingIds = existing.map(r => r.id);
 
-  // 4. Storyline initialization ──────────────────────────────────────────────
+    if (existingIds.length > 0) {
+      // Delete child rows in dependency order
+      await tx.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, existingIds));
+      await tx.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, existingIds));
+      await tx.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, existingIds));
+
+      const srRows = await tx
+        .select({ id: storylineRecruits.id })
+        .from(storylineRecruits)
+        .where(inArray(storylineRecruits.recruitId, existingIds));
+      const srIds = srRows.map(r => r.id);
+
+      if (srIds.length > 0) {
+        const evRows = await tx
+          .select({ id: storylineEvents.id })
+          .from(storylineEvents)
+          .where(inArray(storylineEvents.storylineRecruitId, srIds));
+        const evIds = evRows.map(e => e.id);
+
+        if (evIds.length > 0) {
+          await tx.delete(storylineVotes).where(inArray(storylineVotes.eventId, evIds));
+          await tx.delete(storylineEvents).where(inArray(storylineEvents.id, evIds));
+        }
+        await tx.delete(storylineRecruits).where(inArray(storylineRecruits.id, srIds));
+      }
+
+      await tx.delete(recruitsTable).where(eq(recruitsTable.leagueId, leagueId));
+    }
+
+    // 2b. Insert the new class in chunks
+    for (let i = 0; i < recruits.length; i += CHUNK) {
+      const inserted = await tx
+        .insert(recruitsTable)
+        .values(recruits.slice(i, i + CHUNK))
+        .returning({ id: recruitsTable.id });
+      insertedCount += inserted.length;
+    }
+  });
+
+  // 3. Storyline initialization (outside transaction — async-safe) ───────────
   if (initStorylines) {
     const initPromise = initializeStorylineRecruits(leagueId, season)
       .then(n =>
@@ -144,15 +196,15 @@ export async function replaceLeagueRecruitingClass(
     }
   }
 
-  // 5. Update currentClassVintage ────────────────────────────────────────────
+  // 4. Update currentClassVintage ────────────────────────────────────────────
   if (vintage !== undefined) {
     await storage.updateLeague(leagueId, { currentClassVintage: vintage });
   }
 
-  // 6. Invalidate league cache ───────────────────────────────────────────────
+  // 5. Invalidate league cache ───────────────────────────────────────────────
   invalidateLeague(leagueId);
 
-  // 7. Audit log ─────────────────────────────────────────────────────────────
+  // 6. Audit log ─────────────────────────────────────────────────────────────
   if (audit) {
     try {
       await storage.createAuditLog({
@@ -169,5 +221,5 @@ export async function replaceLeagueRecruitingClass(
     }
   }
 
-  return { count: created.length };
+  return { count: insertedCount };
 }

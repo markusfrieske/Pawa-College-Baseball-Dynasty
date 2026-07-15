@@ -252,17 +252,15 @@ export function registerSavedRoutes(app: Express): void {
       const summary = storedSummary ?? computeSummary(recruits);
       const theme = summary.theme;
 
+      // Spoiler-free preview: only expose star rating, position, and state.
+      // OVR, gem/bust flags, and generational indicators are intentionally
+      // excluded so sharing does not defeat the fog-of-war and scouting systems.
       const previewRecruits = recruits.map(r => ({
         firstName: r.firstName,
         lastName: r.lastName,
         position: r.position,
+        homeState: (r as Record<string, unknown>).homeState ?? null,
         starRating: r.starRating,
-        overall: r.overall,
-        isBlueChip: r.isBlueChip ?? false,
-        isGenerationalGem: r.isGenerationalGem ?? false,
-        isGenerationalBust: r.isGenerationalBust ?? false,
-        isGem: r.isGem ?? false,
-        isBust: r.isBust ?? false,
         recruitType: r.recruitType,
       }));
 

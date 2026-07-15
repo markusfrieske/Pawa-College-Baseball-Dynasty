@@ -946,6 +946,25 @@ app.post("/api/leagues/:id/recruiting/import", requireAuth, async (req, res) => 
 
 // ─── Recruiting Wizard Endpoints ───────────────────────────────────────────
 
+// Return the recommended recruit pool size for a given league (or 80 for standalone).
+// No auth required — the number itself is non-sensitive.
+app.get("/api/recruit-class-target", async (req, res) => {
+  try {
+    const leagueId = req.query.leagueId as string | undefined;
+    if (!leagueId) {
+      return res.json({ targetSize: 80 });
+    }
+    const league = await storage.getLeague(leagueId);
+    if (!league) return res.status(404).json({ message: "League not found" });
+    const teams = await storage.getTeamsByLeague(leagueId);
+    const targetSize = getRecruitPoolSize(teams.length, league.dynastyPreset);
+    res.json({ targetSize, teamCount: teams.length, preset: league.dynastyPreset });
+  } catch (error) {
+    console.error("Failed to get recruit class target:", error);
+    res.status(500).json({ message: "Failed to get target size" });
+  }
+});
+
 // League-agnostic generate endpoint — works without a league (no auth required)
 app.post("/api/recruiting/generate-preview", async (req, res) => {
   try {
@@ -956,7 +975,7 @@ app.post("/api/recruiting/generate-preview", async (req, res) => {
       return res.status(400).json({ message: configErrors.errors.join("; "), errors: configErrors.errors });
     }
     const theme = (config.theme as RecruitingTheme) || "balanced";
-    const count = Math.min(Math.max(Number(config.count) || 75, 20), 80);
+    const count = Math.min(Math.max(Number(config.count) || 75, 20), 5000);
     const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
     // Forward OVR controls as a unit: if any field differs from defaults, send all four
     // so the generator receives the correct average even when only distribution or range changes.
@@ -1018,7 +1037,7 @@ app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req,
     }
 
     const theme = (config.theme as RecruitingTheme) || "balanced";
-    const count = Math.min(Math.max(Number(config.count) || 75, 20), 80);
+    const count = Math.min(Math.max(Number(config.count) || 75, 20), 5000);
     const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
 
     // Forward OVR controls as a unit: if any field differs from defaults, send all four
@@ -1134,6 +1153,22 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
+
+    // ── Phase guard: only allow replacing the pool in safe windows ─────────
+    // Active game/recruiting phases are locked — any coach may have already
+    // taken scouting/call/visit/commit actions that would be silently wiped.
+    const ACTIVE_PHASES = new Set([
+      "preseason", "spring_training", "regular_season",
+      "conference_championship", "super_regionals", "cws",
+      "offseason_signing_day", "offseason_walkons",
+    ]);
+    if (ACTIVE_PHASES.has(league.currentPhase)) {
+      return res.status(409).json({
+        message: `Cannot replace the recruiting class during the "${league.currentPhase}" phase. ` +
+          `Load a saved class only during dynasty setup or early offseason (before signing day).`,
+      });
+    }
+
     const { savedClassId } = req.body as { savedClassId: string };
     if (!savedClassId) return res.status(400).json({ message: "savedClassId required" });
 

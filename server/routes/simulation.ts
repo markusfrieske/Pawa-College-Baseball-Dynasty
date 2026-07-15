@@ -3516,7 +3516,7 @@ async function computeSeasonNilBudget(leagueId: string, completedSeason: number)
   }
 }
 
-async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
+async function finalizeWalkonsPhase(leagueId: string, completedSeason: number, skipRecruitGeneration = false) {
   const teams = await storage.getTeamsByLeague(leagueId);
   const teamMap = new Map(teams.map(t => [t.id, t]));
   let totalWalkonsAdded = 0;
@@ -3784,14 +3784,23 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
     console.warn("[finalizeWalkonsPhase] Pool planner failed (non-fatal) — using default split:", plannerErr);
   }
 
-  // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
-  // not the season that just ended (the DB counter is bumped after this function returns).
-  const newClassOpts: { pitcherRatio?: number; positionGroupWeights?: { C?: number; IF?: number; OF?: number } } = {};
-  if (nextClassPitcherRatio != null) newClassOpts.pitcherRatio = nextClassPitcherRatio;
-  if (nextClassPosGroupWeights) newClassOpts.positionGroupWeights = nextClassPosGroupWeights;
-  const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1, Object.keys(newClassOpts).length > 0 ? newClassOpts : undefined);
-  if (newClassVintage) {
-    await storage.updateLeague(leagueId, { currentClassVintage: newClassVintage });
+  // ── Generate the next recruit class (skip when a staged class will replace it) ──
+  // When skipRecruitGeneration is true the caller has a commissioner-selected saved
+  // class queued for the upcoming season. Generating here and then immediately
+  // replacing the pool in replaceLeagueRecruitingClass is wasteful and initializes
+  // storylines twice — skip it and let the caller call replaceLeagueRecruitingClass.
+  if (!skipRecruitGeneration) {
+    // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
+    // not the season that just ended (the DB counter is bumped after this function returns).
+    const newClassOpts: { pitcherRatio?: number; positionGroupWeights?: { C?: number; IF?: number; OF?: number } } = {};
+    if (nextClassPitcherRatio != null) newClassOpts.pitcherRatio = nextClassPitcherRatio;
+    if (nextClassPosGroupWeights) newClassOpts.positionGroupWeights = nextClassPosGroupWeights;
+    const newClassVintage = await generateRecruits(leagueId, recruitCount, false, completedSeason + 1, Object.keys(newClassOpts).length > 0 ? newClassOpts : undefined);
+    if (newClassVintage) {
+      await storage.updateLeague(leagueId, { currentClassVintage: newClassVintage });
+    }
+  } else {
+    console.log(`[finalizeWalkonsPhase] Skipping generateRecruits — staged class will be applied by caller (pool=${recruitCount})`);
   }
 
   let jucoRecruitsCreated = 0;
@@ -5444,10 +5453,14 @@ export async function advanceLeagueStep(
       savedClassName = savedClass.name;
     }
     if (fast) await Promise.all(allTeamsWO.filter(t => !t.walkonReady).map(t => storage.updateTeam(t.id, { walkonReady: true })));
-    const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
-    if (validatedAdvanceClass !== null && savedClassName !== null) {
-      await replaceLeagueRecruitingClass({ leagueId, season: league.currentSeason + 1, recruits: validatedAdvanceClass.recruits.map((r: any) => ({ ...r, leagueId })), vintage: null, initStorylines: true, saveState: { trigger: "pre_restore", label: `Pre-advance-class "${savedClassName}" (season ${league.currentSeason + 1})`, userId: actorUserId }, audit: { userId: actorUserId ?? "system", action: "Recruiting Class Loaded (Season Advance)", details: `Commissioner applied saved class "${savedClassName}" (${validatedAdvanceClass.recruitCount} recruits) for season ${league.currentSeason + 1}` } });
-      walkonResult.newRecruits = validatedAdvanceClass.recruitCount;
+    // Skip generateRecruits inside finalizeWalkonsPhase when a staged class is
+    // queued — avoid generating a class that will be immediately replaced and
+    // running storyline init twice.
+    const hasStagedClass = validatedAdvanceClass !== null && savedClassName !== null;
+    const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason, hasStagedClass);
+    if (hasStagedClass) {
+      await replaceLeagueRecruitingClass({ leagueId, season: league.currentSeason + 1, recruits: validatedAdvanceClass!.recruits.map((r: any) => ({ ...r, leagueId })), vintage: null, initStorylines: true, saveState: { trigger: "pre_restore", label: `Pre-advance-class "${savedClassName}" (season ${league.currentSeason + 1})`, userId: actorUserId }, audit: { userId: actorUserId ?? "system", action: "Recruiting Class Loaded (Season Advance)", details: `Commissioner applied saved class "${savedClassName}" (${validatedAdvanceClass!.recruitCount} recruits) for season ${league.currentSeason + 1}` } });
+      walkonResult.newRecruits = validatedAdvanceClass!.recruitCount;
     }
     const woLeague = await storage.updateLeague(league.id, { currentWeek: 1, currentSeason: league.currentSeason + 1, currentPhase: Phase.Preseason });
     // Visit count sanity check (fire-and-forget)
