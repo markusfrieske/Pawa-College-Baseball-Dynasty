@@ -262,10 +262,19 @@ export async function replaceLeagueRecruitingClass(
 
       const picks = pickStorylineRecruits(recruitsForPicker, { recentLegendaryCount });
 
-      // ── Apply authored storyPlan overrides (Story Cast / Arc Studio) ──────
+      // Tracks authored-arc recruit DB IDs so we can stamp hiddenVars.authoredArc=true
+      // at insert time, which suppresses random archetype transitions during resolution.
+      const authoredRecruitIds = new Set<string>();
+
+      // ── Apply authored storyPlan overrides + guarantee cast inclusion ────
       // Match cast members to DB recruits by positional correlation:
       //   opts.recruits[i].templateRecruitId → insertedRows[i].id
       // (Order preserved because batch inserts use RETURNING in insertion order.)
+      //
+      // Two passes:
+      //   Pass 1 — override archetype for cast members already in picks.
+      //   Pass 2 — force-include any cast member NOT selected by the picker;
+      //            authors expect all 10 cast slots to appear as storyline recruits.
       if (storyPlan?.mode === "authored" && storyPlan.cast.length > 0) {
         const templateIdToDbId = new Map<string, string>();
         for (let i = 0; i < opts.recruits.length; i++) {
@@ -274,7 +283,7 @@ export async function replaceLeagueRecruitingClass(
           if (tId && dbId) templateIdToDbId.set(tId, dbId);
         }
 
-        // Build dbId → forced archetype from cast members with arcMode="template"
+        // Build dbId → forced archetype for template-mode cast members
         const forcedArchetype = new Map<string, string>();
         for (const member of storyPlan.cast) {
           if (member.arcMode === "template" && member.arcTemplateKey) {
@@ -283,15 +292,39 @@ export async function replaceLeagueRecruitingClass(
           }
         }
 
-        // Apply overrides to the picks array
+        // Pass 1 — apply archetype overrides for picks already selected
+        const pickedIds = new Set(picks.map(p => p.recruitId));
         for (const pick of picks) {
           const override = forcedArchetype.get(pick.recruitId);
           if (override) {
             pick.archetype = override as typeof pick.archetype;
-            console.log(
-              `[replaceRecruitClass] storyPlan override: recruit ${pick.recruitId} → archetype ${override}`
-            );
+            authoredRecruitIds.add(pick.recruitId);
+            console.log(`[replaceRecruitClass] storyPlan override: ${pick.recruitId} → ${override}`);
           }
+        }
+
+        // Pass 2 — force-include cast members missing from picks
+        //          so all authored cast slots always produce a storyline recruit row.
+        for (const member of storyPlan.cast) {
+          if (member.arcMode !== "template" || !member.arcTemplateKey) continue;
+          const dbId = templateIdToDbId.get(member.templateRecruitId);
+          if (!dbId || pickedIds.has(dbId)) continue; // already included
+
+          const row = insertedRows.find(r => r.id === dbId);
+          if (!row) continue;
+
+          // Synthesise a pick entry so the cast member gets a storyline recruit row
+          picks.push({
+            recruitId: dbId,
+            archetype: member.arcTemplateKey as import("../storylineEngine").Archetype,
+            tier: row.isGenerationalGem ? "legendary" : row.isBlueChip ? "blue_chip" : "standard",
+            hiddenVars: { polarity: 0.5 },
+            isLegendary: Boolean(row.isGenerationalGem),
+            imagePrompt: "",
+          } as unknown as (typeof picks)[0]);
+          pickedIds.add(dbId);
+          authoredRecruitIds.add(dbId);
+          console.log(`[replaceRecruitClass] storyPlan force-include: ${dbId} → ${member.arcTemplateKey}`);
         }
       }
 
@@ -306,7 +339,12 @@ export async function replaceLeagueRecruitingClass(
             archetype: pick.archetype,
             tier: pick.tier,
             storySlot: i % 10,
-            hiddenVars: { ...pick.hiddenVars, startWeek: storyStartWeek },
+            hiddenVars: {
+              ...pick.hiddenVars,
+              startWeek: storyStartWeek,
+              // Authored-arc flag suppresses random archetype transitions during resolution
+              ...(authoredRecruitIds.has(pick.recruitId) ? { authoredArc: true } : {}),
+            },
             isLegendary: pick.isLegendary,
             currentArcStage: 0,
             resolvedOvrDelta: 0,

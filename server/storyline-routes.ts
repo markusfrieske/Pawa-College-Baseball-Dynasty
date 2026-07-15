@@ -42,57 +42,9 @@ export async function applyStoryOutcomeToRecruit(
 ): Promise<{ ovrDelta: number; abilityGain?: string; abilityRemove?: string; abilityTier?: string }> {
   if (!recruit) return { ovrDelta: 0 };
 
-  // ── Idempotency guard (insert-first, race-safe) ───────────────────────────
-  // Race-safe strategy: attempt INSERT with sentinel values first.
-  //   • rowCount = 1 → we hold the serialisation lock; apply changes, then UPDATE row.
-  //   • rowCount = 0 → conflict means another caller already committed; read cached delta.
-  // Concurrent callers block on the INSERT until the winning transaction commits.
-  if (eventId) {
-    try {
-      const client = await pool.connect();
-      try {
-        await client.query("BEGIN");
-        const sentinel = await client.query(
-          `INSERT INTO storyline_resolutions (event_id, winning_choice)
-           VALUES ($1, $2)
-           ON CONFLICT (event_id) DO NOTHING
-           RETURNING id`,
-          [eventId, winningChoice ?? "A"],
-        );
-        if ((sentinel.rowCount ?? 0) === 0) {
-          // Already resolved — read cached delta from the committed row
-          await client.query("COMMIT");
-          const cached = await client.query<{ ovrDelta: number }>(
-            `SELECT COALESCE(
-               (after_ratings->>'overall')::int - (before_ratings->>'overall')::int,
-               0
-             ) AS "ovrDelta"
-             FROM storyline_resolutions WHERE event_id = $1 LIMIT 1`,
-            [eventId],
-          );
-          const cachedDelta = cached.rows[0]?.ovrDelta ?? 0;
-          console.log(`[storylines] idempotency hit for event ${eventId} — cached ovrDelta=${cachedDelta}`);
-          return { ovrDelta: cachedDelta };
-        }
-        // We won the INSERT lock — proceed with application inside this transaction.
-        // The transaction block below will UPDATE the sentinel row and commit.
-        await client.query("COMMIT");
-      } catch (sentinelErr) {
-        await client.query("ROLLBACK").catch(() => {});
-        throw sentinelErr;
-      } finally {
-        client.release();
-      }
-    } catch (idempErr) {
-      console.warn("[storylines] idempotency sentinel failed (falling through to legacy path):", idempErr);
-    }
-  }
-
+  // ── 1. Compute all updates (pure, no I/O) ─────────────────────────────────
   const volScale = 0.6 + (Math.max(1, Math.min(10, volatility)) - 1) * (0.8 / 9);
 
-  // Allowlists of the only recruit attribute fields that story outcomes may
-  // modify. Any field name NOT in the appropriate set is silently skipped so
-  // that imported custom content cannot write arbitrary columns.
   const HITTER_STORY_ATTRS = new Set([
     'hitForAvg', 'power', 'speed', 'arm', 'fielding',
     'errorResistance', 'clutch', 'vsLHP', 'grit',
@@ -105,8 +57,6 @@ export async function applyStoryOutcomeToRecruit(
   const isPitcherRecruit = Boolean(recruit.position && isPitcher(recruit.position));
   const allowedAttrs = isPitcherRecruit ? PITCHER_STORY_ATTRS : HITTER_STORY_ATTRS;
 
-  // 1. Build attribute update map from attrChanges (clamped 1–99)
-  //    Only apply changes for known, position-appropriate attribute fields.
   const attrUpdates: Record<string, number> = {};
   for (const { field, delta } of outcome.attrChanges) {
     if (!allowedAttrs.has(field)) {
@@ -115,19 +65,16 @@ export async function applyStoryOutcomeToRecruit(
     }
     const current = (recruit as Record<string, unknown>)[field];
     const currentNum = typeof current === 'number' ? current : 50;
-    const scaledDelta = Math.round(delta * volScale);
-    attrUpdates[field] = Math.max(1, Math.min(99, currentNum + scaledDelta));
+    attrUpdates[field] = Math.max(1, Math.min(99, currentNum + Math.round(delta * volScale)));
   }
 
   const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "OF");
   let currentAbilities: string[] = (recruit.abilities as string[] | null) ?? [];
   let storyLocked: string[] = (recruit.storyLockedAbilities as string[] | null) ?? [];
-
   let abilityGain: string | undefined;
   let abilityRemoveResult: string | undefined;
   let abilityTier: string | undefined;
 
-  // 2. Handle abilityRemove before abilityGrant to open capacity
   if (outcome.abilityRemove) {
     let toRemoveName: string | undefined;
     if (outcome.abilityRemove === 'random_story') {
@@ -148,67 +95,76 @@ export async function applyStoryOutcomeToRecruit(
     }
   }
 
-  // 3. Handle abilityGrant (positive or red)
   if (outcome.abilityGrant) {
     let tier = outcome.abilityGrant.tier as 'gold' | 'blue' | 'red';
-    // Legendary recruits have a 30% chance to upgrade blue → gold
     if (isLegendary && tier === 'blue' && Math.random() < 0.30) tier = 'gold';
-
-    const pool = allPositionAbilities
+    const abilityPool = allPositionAbilities
       .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
       .sort(() => Math.random() - 0.5);
-
-    if (pool.length > 0 && currentAbilities.length < 7) {
-      abilityGain = pool[0].name;
+    if (abilityPool.length > 0 && currentAbilities.length < 7) {
+      abilityGain = abilityPool[0].name;
       abilityTier = tier;
       currentAbilities = [...currentAbilities, abilityGain];
-      if (!storyLocked.includes(abilityGain)) {
-        storyLocked = [...storyLocked, abilityGain];
-      }
+      if (!storyLocked.includes(abilityGain)) storyLocked = [...storyLocked, abilityGain];
     }
   }
 
-  // 4. Compute new OVR from updated attrs + abilities
   const merged = { ...recruit, ...attrUpdates, abilities: currentAbilities };
   const newOvr = Math.max(100, Math.min(720, calculateOVR(merged as Parameters<typeof calculateOVR>[0])));
-  const oldOvr = recruit.overall ?? 250;
-  const ovrDelta = newOvr - oldOvr;
+  const ovrDelta = newOvr - (recruit.overall ?? 250);
 
-  // 5. Write back all changes
   const finalUpdates: Record<string, unknown> = {
     ...attrUpdates,
     overall: newOvr,
     abilities: currentAbilities,
     storyLockedAbilities: storyLocked,
   };
-
-  // Handle positional change (safe — position column exists on recruits)
   if (outcome.positionChange && outcome.positionChange !== recruit.position) {
     finalUpdates.position = outcome.positionChange;
   }
-  // NOTE: injuryWeeks, commitmentUncertainty, and ratingReveal outcome types
-  // reference columns that do not exist on the recruits table and are not yet
-  // implemented. Guard blocks are left here as explicit stubs so future
-  // implementers know these are unfinished rather than accidentally shipped.
-  // if (outcome.injuryWeeks) { /* TODO: recruits.injuryUntilWeek not in schema */ }
-  // if (outcome.commitmentUncertainty) { /* TODO: recruits.commitmentUncertainty not in schema */ }
-  // if (outcome.ratingReveal) { /* TODO: recruits.ratingRevealed not in schema */ }
 
-  // ── Transactional write + idempotency ledger ──────────────────────────────
-  // All attribute/ability/ovr writes happen inside a single transaction.
-  // On commit we insert into storyline_resolutions (ON CONFLICT DO NOTHING)
-  // so duplicate calls are harmless.
   const beforeSnapshot = JSON.stringify({ overall: recruit.overall });
   const afterSnapshot  = JSON.stringify({ overall: newOvr });
   const effectSnapshot = JSON.stringify({ attrUpdates, abilityGain, abilityRemoveResult });
 
+  // ── 2. Persist changes ────────────────────────────────────────────────────
   if (eventId) {
-    // Sentinel row was inserted above; now apply changes and UPDATE it with snapshots.
+    // Single atomic transaction: sentinel INSERT + recruit UPDATE + snapshot UPDATE.
+    // If any step fails → ROLLBACK removes the sentinel row so the next retry
+    // can attempt resolution again.  Only a full COMMIT makes the resolution
+    // visible, guaranteeing exactly-once application even under concurrent calls.
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
-      // Build a parameterized SET clause for all changed recruit columns
+      // Try to claim the resolution slot (first writer wins, concurrent block)
+      const sentinel = await client.query(
+        `INSERT INTO storyline_resolutions (event_id, winning_choice)
+         VALUES ($1, $2)
+         ON CONFLICT (event_id) DO NOTHING
+         RETURNING id`,
+        [eventId, winningChoice ?? "A"],
+      );
+
+      if ((sentinel.rowCount ?? 0) === 0) {
+        // A prior committed transaction already resolved this event.
+        // Read its cached snapshot delta and return without mutation.
+        await client.query("COMMIT");
+        const cached = await client.query<{ ovrDelta: number }>(
+          `SELECT COALESCE(
+             (after_ratings->>'overall')::int - (before_ratings->>'overall')::int,
+             0
+           ) AS "ovrDelta"
+           FROM storyline_resolutions WHERE event_id = $1 LIMIT 1`,
+          [eventId],
+        );
+        client.release();
+        const cachedDelta = cached.rows[0]?.ovrDelta ?? 0;
+        console.log(`[storylines] idempotency hit event=${eventId} cachedDelta=${cachedDelta}`);
+        return { ovrDelta: cachedDelta };
+      }
+
+      // We own the sentinel — apply recruit changes inside this transaction.
       const setClauses: string[] = [];
       const params: unknown[] = [];
       let idx = 1;
@@ -223,13 +179,11 @@ export async function applyStoryOutcomeToRecruit(
           params,
         );
       }
-
-      // leavePool inside the same transaction
       if (outcome.leavePool) {
         await client.query(`UPDATE recruits SET stage = 'left_pool' WHERE id = $1`, [recruit.id]);
       }
 
-      // UPDATE the sentinel row with full snapshot data (sentinel was inserted above)
+      // Stamp the sentinel with full snapshot data (completes the ledger row)
       await client.query(
         `UPDATE storyline_resolutions
            SET effect_snapshot = $1, before_ratings = $2, after_ratings = $3
@@ -245,7 +199,7 @@ export async function applyStoryOutcomeToRecruit(
       client.release();
     }
   } else {
-    // No eventId — legacy path; write without transaction or ledger.
+    // No eventId — legacy path without ledger.
     await storage.updateRecruit(recruit.id, finalUpdates as Parameters<typeof storage.updateRecruit>[1]);
     if (outcome.leavePool) {
       try {
@@ -1103,13 +1057,18 @@ async function resolveOneStorylineEvent(
     if (recruit) {
       const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
       const newArcStage = sl.currentArcStage + 1;
-      const transitionedArchetype = maybeTransitionArchetype(
-        sl.archetype as Archetype,
-        newCumulativeDelta,
-        newArcStage,
-        sl.isLegendary,
-        recruit.position,
-      );
+      // Skip random archetype transitions for authored arcs — the commissioner
+      // explicitly chose this archetype in the Arc Studio and it must be stable.
+      const isAuthoredArc = Boolean((sl.hiddenVars as unknown as Record<string, unknown> | null)?.authoredArc);
+      const transitionedArchetype = isAuthoredArc
+        ? (sl.archetype as Archetype)
+        : maybeTransitionArchetype(
+            sl.archetype as Archetype,
+            newCumulativeDelta,
+            newArcStage,
+            sl.isLegendary,
+            recruit.position,
+          );
 
       await storage.updateStorylineRecruit(sl.id, {
         resolvedOvrDelta: newCumulativeDelta,

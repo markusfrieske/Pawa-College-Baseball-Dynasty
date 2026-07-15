@@ -1219,12 +1219,29 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
       return res.status(403).json({ message: "You do not own this saved class" });
     }
 
+    // classData may be either a plain recruits array (legacy) or an object
+    // { recruits: [...], storyPlan: {...} } (wizard-saved with story plan).
+    const rawClassData = savedClass.classData as any;
+    const recruitSource = Array.isArray(rawClassData)
+      ? rawClassData
+      : Array.isArray(rawClassData?.recruits) ? rawClassData.recruits : rawClassData;
+
     let validatedLoad;
     try {
-      validatedLoad = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
+      validatedLoad = validateAndNormalizeRecruitingClass(recruitSource);
     } catch (e) {
       if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
       throw e;
+    }
+
+    // Extract authored storyPlan if present in the saved class data
+    let loadedStoryPlan: import("@shared/schema").WizardStoryPlan | undefined;
+    if (
+      !Array.isArray(rawClassData) &&
+      rawClassData?.storyPlan?.mode === "authored" &&
+      Array.isArray(rawClassData.storyPlan.cast)
+    ) {
+      loadedStoryPlan = rawClassData.storyPlan as import("@shared/schema").WizardStoryPlan;
     }
 
     const leagueId = req.params.id as string;
@@ -1233,6 +1250,7 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
       season: league.currentSeason,
       recruits: (validatedLoad.recruits.map(r => ({ ...r, leagueId })) as any),
       initStorylines: true,
+      storyPlan: loadedStoryPlan,
       saveState: {
         trigger: "pre_restore",
         label: `Pre-load-saved-class "${savedClass.name}" (season ${league.currentSeason})`,
