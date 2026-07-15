@@ -158,16 +158,20 @@ export function extractSummary(classData: unknown): ClassSummary | null {
 }
 
 /**
- * Extract generation metadata from a stored ClassEnvelope (versioned format only).
- * Returns null for legacy formats.
+ * Extract generation metadata from classData in any format:
+ * - Versioned envelope: { version: 1, generation: { seed, version } }
+ * - Raw wizard payload: { theme, recruits, storyPlan, generation: { seed, version } }
+ * Returns null when generation metadata is absent.
  */
 export function extractGeneration(classData: unknown): ClassGeneration | null {
   if (classData !== null && typeof classData === "object" && !Array.isArray(classData)) {
     const obj = classData as Record<string, unknown>;
-    if (obj.version === 1 && obj.generation && typeof obj.generation === "object") {
-      const gen = obj.generation as Record<string, unknown>;
-      if (typeof gen.seed === "string" && typeof gen.version === "number") {
-        return { seed: gen.seed, version: gen.version };
+    // Check nested generation object regardless of envelope version
+    const gen = obj.generation;
+    if (gen !== null && typeof gen === "object" && !Array.isArray(gen)) {
+      const g = gen as Record<string, unknown>;
+      if (typeof g.seed === "string" && typeof g.version === "number") {
+        return { seed: g.seed, version: g.version };
       }
     }
   }

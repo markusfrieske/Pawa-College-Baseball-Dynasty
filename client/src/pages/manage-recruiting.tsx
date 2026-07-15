@@ -754,6 +754,9 @@ export default function ManageRecruitingPage() {
                           {source === "import" && (
                             <Badge variant="outline" className="text-xs text-blue-400 border-blue-400/40" data-testid={`class-source-${cls.id}`}>Imported</Badge>
                           )}
+                          {clsObj.ai_assisted === true && (
+                            <Badge variant="outline" className="text-xs text-purple-400 border-purple-400/40" data-testid={`class-ai-assisted-${cls.id}`}>AI-Assisted</Badge>
+                          )}
                           {editingId === cls.id && (
                             <Badge variant="outline" className="text-xs text-gold border-gold">Active</Badge>
                           )}
@@ -854,6 +857,9 @@ export default function ManageRecruitingPage() {
                         <span className="text-xs font-semibold text-foreground">{cls.name}</span>
                         <Badge variant="secondary" className="text-xs">{cls.recruitCount} recruits</Badge>
                         <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/30">Local</Badge>
+                        {(() => { const d = cls.classData as Record<string, unknown>; return !Array.isArray(cls.classData) && d.ai_assisted === true; })() && (
+                          <Badge variant="outline" className="text-xs text-purple-400 border-purple-400/40">AI-Assisted</Badge>
+                        )}
                       </div>
                       {cls.description && (
                         <p className="text-muted-foreground text-xs mt-1 truncate">{cls.description}</p>

@@ -458,7 +458,7 @@ function AiAssistPanel({
 
 // ─── Step 1: Class Settings ──────────────────────────────────────────────────
 
-function Step1({ config, setConfig, targetSize, projectId }: { config: WizardConfig; setConfig: (c: WizardConfig) => void; targetSize?: number; projectId?: string }) {
+function Step1({ config, setConfig, targetSize, projectId, onAiAccepted }: { config: WizardConfig; setConfig: (c: WizardConfig) => void; targetSize?: number; projectId?: string; onAiAccepted?: () => void }) {
   const sliderMin = targetSize ?? 20;
   const sliderMax = Math.max(targetSize ?? 80, 80);
   const isAtTarget = targetSize != null && config.count === targetSize;
@@ -525,6 +525,7 @@ function Step1({ config, setConfig, targetSize, projectId }: { config: WizardCon
         onAccept={(data) => {
           const d = data as any;
           if (d.themeName) setConfig({ ...config, label: d.themeName });
+          onAiAccepted?.();
         }}
       />
 
@@ -2065,11 +2066,13 @@ function StepStoryCast({
   cast,
   setCast,
   projectId,
+  onAiAccepted,
 }: {
   recruits: WizardRecruit[];
   cast: string[];
   setCast: (c: string[]) => void;
   projectId?: string;
+  onAiAccepted?: () => void;
 }) {
   const inCast = new Set(cast);
 
@@ -2132,6 +2135,7 @@ function StepStoryCast({
             const ids = d.roles.map((r: any) => r.templateRecruitId).filter(Boolean);
             setCast(ids.slice(0, MAX_CAST));
           }
+          onAiAccepted?.();
         }}
       />
 
@@ -2228,12 +2232,14 @@ function StepArcStudio({
   storyPlan,
   setStoryPlan,
   projectId,
+  onAiAccepted,
 }: {
   recruits: WizardRecruit[];
   cast: string[];
   storyPlan: WizardStoryPlan;
   setStoryPlan: (sp: WizardStoryPlan) => void;
   projectId?: string;
+  onAiAccepted?: () => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(cast[0] ?? null);
 
@@ -2327,6 +2333,7 @@ function StepArcStudio({
                       arcDraftJson: d.chapters ? d : undefined,
                     });
                   }
+                  onAiAccepted?.();
                 }}
               />
             </div>
@@ -2395,6 +2402,47 @@ function StepArcStudio({
                     </div>
                   );
                 })()}
+              </div>
+            )}
+
+            {/* ── Chapter Text Editor (shown when arc_draft was accepted) ── */}
+            {selectedMember.arcDraftJson?.chapters && selectedMember.arcDraftJson.chapters.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Chapter Text Editor</div>
+                {selectedMember.arcDraftJson.chapters.map((ch, ci) => (
+                  <div key={ci} className="mb-3 p-2 border border-border rounded bg-muted/10">
+                    <div className="text-xs font-semibold text-gold mb-1.5">{ch.title ?? `Chapter ${ci + 1}`}</div>
+                    <div className="text-xs text-muted-foreground mb-1">Event Text</div>
+                    <textarea
+                      className="w-full bg-background border border-border rounded px-2 py-1 text-xs resize-none focus:border-gold focus:outline-none mb-1.5"
+                      rows={3}
+                      value={ch.eventText ?? ""}
+                      onChange={(e) => {
+                        if (!selectedMember.arcDraftJson) return;
+                        const newChapters = [...selectedMember.arcDraftJson.chapters];
+                        newChapters[ci] = { ...ch, eventText: e.target.value };
+                        updateMember({ ...selectedMember, arcDraftJson: { ...selectedMember.arcDraftJson, chapters: newChapters } });
+                      }}
+                      data-testid={`chapter-eventtext-${ci}`}
+                    />
+                    <AiAssistPanel
+                      projectId={projectId}
+                      jobType="text_rewrite"
+                      metadata={{ originalText: ch.eventText, fieldLabel: `Chapter ${ci + 1} event` }}
+                      placeholder="Describe the tone or style you want…"
+                      buttonLabel="Rewrite Tone"
+                      onAccept={(data) => {
+                        const d = data as any;
+                        if (d.rewrittenText && selectedMember.arcDraftJson) {
+                          const newChapters = [...selectedMember.arcDraftJson.chapters];
+                          newChapters[ci] = { ...ch, eventText: d.rewrittenText };
+                          updateMember({ ...selectedMember, arcDraftJson: { ...selectedMember.arcDraftJson, chapters: newChapters } });
+                        }
+                        onAiAccepted?.();
+                      }}
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -2557,6 +2605,8 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
   const [generatorVersion, setGeneratorVersion] = useState<number | undefined>(undefined);
   /** Per-recruit reroll nonce — incremented on each reroll so repeated rerolls yield different outputs */
   const [rerollNonces, setRerollNonces] = useState<Record<string, number>>({});
+  /** True once any AI job is accepted — propagated into saved classData for badge rendering */
+  const [aiAssisted, setAiAssisted] = useState(false);
   // Story Cast & Arc Studio state
   const [cast, setCast] = useState<string[]>([]);
   const [storyPlan, setStoryPlan] = useState<WizardStoryPlan>(makeEmptyStoryPlan());
@@ -2678,6 +2728,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
         storyPlan: finalStoryPlan,
         // Pass generation metadata for seed persistence in the class envelope
         generation: masterSeed ? { seed: masterSeed, version: generatorVersion ?? 1 } : undefined,
+        ...(aiAssisted && { ai_assisted: true }),
       });
       return res.json() as Promise<{ success: boolean; count: number }>;
     },
@@ -2696,7 +2747,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
     mutationFn: async ({ name, description }: { name: string; description: string }) => {
       const recruitRows = recruits.map(({ _tempId, ...rest }) => rest);
       const finalStoryPlan: WizardStoryPlan = { ...storyPlan, cast: storyPlan.cast.filter(m => cast.includes(m.templateRecruitId)) };
-      const classData = { theme: config.theme, recruits: recruitRows, storyPlan: finalStoryPlan, generation: masterSeed ? { seed: masterSeed, version: generatorVersion ?? 1 } : undefined };
+      const classData = { theme: config.theme, recruits: recruitRows, storyPlan: finalStoryPlan, generation: masterSeed ? { seed: masterSeed, version: generatorVersion ?? 1 } : undefined, ...(aiAssisted && { ai_assisted: true }) };
       if (user) {
         const res = await apiRequest("POST", "/api/saved-recruiting-classes", {
           name,
@@ -2886,6 +2937,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
               cast={cast}
               setCast={setCast}
               projectId={projectId}
+              onAiAccepted={() => setAiAssisted(true)}
             />
           ) : step === 8 ? (
             <StepArcStudio
@@ -2896,6 +2948,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
                 setStoryPlan({ ...sp, cast: sp.cast });
               }}
               projectId={projectId}
+              onAiAccepted={() => setAiAssisted(true)}
             />
           ) : step === 9 ? (
             <StepPlaytest
@@ -2904,7 +2957,7 @@ export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, 
               storyPlan={storyPlan}
             />
           ) : step === 1 ? (
-            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} projectId={projectId} />
+            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} projectId={projectId} onAiAccepted={() => setAiAssisted(true)} />
           ) : step === 2 ? (
             <Step2 config={config} setConfig={setConfig} />
           ) : step === 3 ? (
