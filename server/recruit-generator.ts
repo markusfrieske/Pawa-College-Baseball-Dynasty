@@ -1139,7 +1139,7 @@ export function generateRecruitClass(
       // Use preferGold so the retry has enough upward headroom to reach 500/540.
       // Gem 3★ without preferGold can get red abilities that make convergence impossible.
       const preferGold = (isGem && isPitcher && starRank >= 3) || isBlueChip || starRank >= 4;
-      abilities = getRandomAbilities(position, abilityCount, preferGold, pitcherStaminaForAbilities);
+      abilities = getRandomAbilities(position, abilityCount, preferGold, pitcherStaminaForAbilities, _rng);
     }
 
     const appearance = getRandomAppearance();
@@ -2034,7 +2034,7 @@ export function generateRecruitClass(
 
     // Enforce gold OVR gate: generational gems/busts are exempt (extreme archetypes).
     if (!isGenerationalGem && !isGenerationalBust) {
-      const gated = enforceGoldOvrGate(abilities, position, overall, pitcherStaminaForAbilities);
+      const gated = enforceGoldOvrGate(abilities, position, overall, pitcherStaminaForAbilities, _rng);
       if (gated !== abilities) {
         abilities = gated;
         // Precise recalculate for both pitchers and hitters so stored OVR = formula OVR.

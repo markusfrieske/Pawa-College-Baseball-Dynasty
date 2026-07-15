@@ -225,7 +225,7 @@ export const MAX_SPECIAL_ABILITIES = 7;
  * position-valid pool is used.  Slots with no available replacement are
  * dropped entirely.
  */
-export function sanitizeAbilities(position: string, abilities: string[], pitcherStamina?: number): string[] {
+export function sanitizeAbilities(position: string, abilities: string[], pitcherStamina?: number, rng: () => number = Math.random): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
   const validNames = new Set(availableAbilities.map(a => a.name));
   const staminaOk = (a: Ability) =>
@@ -236,7 +236,7 @@ export function sanitizeAbilities(position: string, abilities: string[], pitcher
   function drawBlue(claimed: Set<string>): string {
     const pool = bluePool.filter(n => !claimed.has(n));
     if (pool.length === 0) return "";
-    const idx = Math.floor(Math.random() * pool.length);
+    const idx = Math.floor(rng() * pool.length);
     return pool[idx];
   }
 
@@ -298,7 +298,7 @@ export function sanitizeAbilities(position: string, abilities: string[], pitcher
  * randomly-chosen position-appropriate blue ability not already present.
  * Returns the original array reference unchanged when no replacement is needed.
  */
-export function enforceGoldOvrGate(abilities: string[], position: string, ovr: number, pitcherStamina?: number): string[] {
+export function enforceGoldOvrGate(abilities: string[], position: string, ovr: number, pitcherStamina?: number, rng: () => number = Math.random): string[] {
   if (ovr >= 500) return abilities;
   const hasGold = abilities.some(name => getAbilityByName(name)?.tier === "gold");
   if (!hasGold) return abilities;
@@ -317,7 +317,7 @@ export function enforceGoldOvrGate(abilities: string[], position: string, ovr: n
       inResult.delete(result[i]);
       const available = bluePool.filter(n => !inResult.has(n));
       if (available.length > 0) {
-        const replacement = available[Math.floor(Math.random() * available.length)];
+        const replacement = available[Math.floor(rng() * available.length)];
         result[i] = replacement;
         inResult.add(replacement);
       } else {
@@ -328,7 +328,7 @@ export function enforceGoldOvrGate(abilities: string[], position: string, ovr: n
   return result.filter(n => n !== "");
 }
 
-export function getRandomAbilities(position: string, count: number, preferGold: boolean = false, pitcherStamina?: number): string[] {
+export function getRandomAbilities(position: string, count: number, preferGold: boolean = false, pitcherStamina?: number, rng: () => number = Math.random): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
 
   // Clamp requested count to the global cap of 7
@@ -347,7 +347,7 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
     : blueAbilities;
 
   const selected: string[] = [];
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const shuffled = [...pool].sort(() => rng() - 0.5);
 
   for (const ability of shuffled) {
     if (selected.length >= cappedCount) break;
@@ -358,15 +358,15 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
 
   // 15% chance to swap one slot for a red ability — never exceeds cappedCount
   const redAbilities = availableAbilities.filter(a => a.tier === "red");
-  if (redAbilities.length > 0 && Math.random() < 0.15 && selected.length > 0) {
-    const randomRed = redAbilities[Math.floor(Math.random() * redAbilities.length)];
+  if (redAbilities.length > 0 && rng() < 0.15 && selected.length > 0) {
+    const randomRed = redAbilities[Math.floor(rng() * redAbilities.length)];
     if (!selected.includes(randomRed.name)) {
       selected[selected.length - 1] = randomRed.name;
     }
   }
 
   // Final guarantee: no duplicates and at most 1 gold, respecting stamina gate.
-  return sanitizeAbilities(position, selected, pitcherStamina);
+  return sanitizeAbilities(position, selected, pitcherStamina, rng);
 }
 
 export function getAbilityByName(name: string): Ability | undefined {

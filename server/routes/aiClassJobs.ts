@@ -522,6 +522,29 @@ export function registerAiClassJobRoutes(app: Express): void {
         const aiContent = mergedContent;
         const patch: Record<string, unknown> = { ai_assisted: true };
 
+        // Allowlist of validated effectPreset values the AI is permitted to emit.
+        // Any unknown value is clamped to "none" — never trust AI deltas blindly.
+        const VALID_EFFECT_PRESETS = new Set([
+          "confidence_minor_gain", "confidence_major_gain",
+          "skill_minor_gain", "skill_major_gain",
+          "performance_minor_gain", "performance_major_gain",
+          "none",
+        ]);
+
+        function sanitizeChapter(ch: unknown): Record<string, unknown> | null {
+          if (!ch || typeof ch !== "object") return null;
+          const c = ch as Record<string, unknown>;
+          const preset =
+            typeof c.effectPreset === "string" && VALID_EFFECT_PRESETS.has(c.effectPreset)
+              ? c.effectPreset
+              : "none";
+          return {
+            label: typeof c.label === "string" ? c.label.slice(0, 200) : "",
+            outcomeText: typeof c.outcomeText === "string" ? c.outcomeText.slice(0, 1000) : "",
+            effectPreset: preset,
+          };
+        }
+
         // Apply content by job type — only merge safe known fields
         if (job.jobType === "theme_draft") {
           if (aiContent.themeName) patch.themeName = aiContent.themeName;
@@ -529,7 +552,11 @@ export function registerAiClassJobRoutes(app: Express): void {
           if (Array.isArray(aiContent.suggestedTags)) patch.tags = aiContent.suggestedTags;
           if (aiContent.suggestedPositionBias) patch.positionBias = aiContent.suggestedPositionBias;
         } else if (job.jobType === "arc_draft") {
-          if (Array.isArray(aiContent.chapters)) patch.aiArcChapters = aiContent.chapters;
+          if (Array.isArray(aiContent.chapters)) {
+            patch.aiArcChapters = aiContent.chapters
+              .map(sanitizeChapter)
+              .filter((ch): ch is Record<string, unknown> => ch !== null);
+          }
         } else if (job.jobType === "text_rewrite") {
           if (aiContent.rewrittenText) patch.description = aiContent.rewrittenText;
         } else if (job.jobType === "cast_proposal") {
