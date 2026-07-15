@@ -30,6 +30,8 @@ export interface ClassEnvelope {
   config?: Record<string, unknown>;
   summary: ClassSummary;
   recruits: Record<string, unknown>[];
+  /** Optional Story Plan — authored arc assignments for cast members. */
+  storyPlan?: import("@shared/schema").WizardStoryPlan;
 }
 
 // ── Region mapping ────────────────────────────────────────────────────────────

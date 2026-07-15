@@ -1692,6 +1692,23 @@ export const insertStorylineVoteSchema = createInsertSchema(storylineVotes).omit
 export type InsertStorylineVote = z.infer<typeof insertStorylineVoteSchema>;
 export type StorylineVote = typeof storylineVotes.$inferSelect;
 
+// Idempotency ledger — one row per resolved storyline event.
+// Written transactionally alongside the stat updates in applyStoryOutcomeToRecruit
+// so a double-fire or retry never re-applies the same outcome.
+export const storyline_resolutions = pgTable("storyline_resolutions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().unique().references(() => storylineEvents.id),
+  winningChoice: text("winning_choice").notNull(),
+  voteSnapshotHash: text("vote_snapshot_hash"),
+  effectSnapshot: jsonb("effect_snapshot"),
+  beforeRatings: jsonb("before_ratings"),
+  afterRatings: jsonb("after_ratings"),
+  resolvedAt: timestamp("resolved_at").notNull().defaultNow(),
+});
+
+export type StorylineResolution = typeof storyline_resolutions.$inferSelect;
+export type InsertStorylineResolution = typeof storyline_resolutions.$inferInsert;
+
 // League Events table - activity feed for league news
 // Game Reports table (manual reporting for multiplayer leagues)
 export const gameReports = pgTable("game_reports", {
@@ -1890,6 +1907,23 @@ export type InsertNilSeasonEarning = z.infer<typeof insertNilSeasonEarningSchema
 export type NilSeasonEarning = typeof nilSeasonEarnings.$inferSelect;
 
 // Wizard config type for the recruiting class creation wizard (no DB table)
+// ── Story Cast / Arc Studio types (wizard → class envelope → runtime) ─────────
+
+export interface WizardCastMember {
+  /** Stable ID baked into the class at generation time. Survives save/load cycles. */
+  templateRecruitId: string;
+  /** Arc assignment mode. "template" = built-in storyline archetype. "off" = no arc. */
+  arcMode: "template" | "off";
+  /** When arcMode === "template": the archetype key (e.g. "late_bloomer"). */
+  arcTemplateKey?: string;
+}
+
+export interface WizardStoryPlan {
+  mode: "authored";
+  cast: WizardCastMember[];
+  createdAt: string;
+}
+
 export interface WizardConfig {
   count: number;
   theme: string;

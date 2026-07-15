@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { pool } from "./db";
 import { storage } from "./storage";
 import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, generateStoryOutcomes, PUBLIC_STORY_LABELS, getPublicArcFlavor, derivePublicArcStatus } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
@@ -27,13 +28,39 @@ export function advanceIndexForPhaseWeek(phase: string, week: number, maxRegWeek
 // Applies a StoryOutcome to a recruit's attributes and abilities, computes the
 // new OVR via calculateOVR(), and writes the results back to the DB.
 // Returns { ovrDelta, abilityGain, abilityRemove, abilityTier } for news + audit.
+//
+// When eventId is provided the function is fully idempotent:
+//   • If storyline_resolutions already has a row for this event, returns cached ovrDelta immediately.
+//   • Otherwise wraps all DB writes in a transaction and inserts a resolution record at commit.
 export async function applyStoryOutcomeToRecruit(
   recruit: Awaited<ReturnType<typeof storage.getRecruit>>,
   outcome: StoryOutcome,
   volatility: number,
   isLegendary: boolean,
+  eventId?: string,
+  winningChoice?: string,
 ): Promise<{ ovrDelta: number; abilityGain?: string; abilityRemove?: string; abilityTier?: string }> {
   if (!recruit) return { ovrDelta: 0 };
+
+  // ── Idempotency guard ──────────────────────────────────────────────────────
+  // If we already resolved this event, skip re-application and return the
+  // cached delta from the ledger row to keep downstream calculations correct.
+  if (eventId) {
+    try {
+      const existing = await pool.query<{ ovrDelta: number }>(
+        `SELECT (after_ratings->>'overall')::int - (before_ratings->>'overall')::int AS "ovrDelta"
+           FROM storyline_resolutions WHERE event_id = $1 LIMIT 1`,
+        [eventId],
+      );
+      if ((existing.rowCount ?? 0) > 0) {
+        const cachedDelta = existing.rows[0].ovrDelta ?? 0;
+        console.log(`[storylines] idempotency hit for event ${eventId} — cached ovrDelta=${cachedDelta}`);
+        return { ovrDelta: cachedDelta };
+      }
+    } catch (idempErr) {
+      console.warn("[storylines] idempotency check failed (non-fatal):", idempErr);
+    }
+  }
 
   const volScale = 0.6 + (Math.max(1, Math.min(10, volatility)) - 1) * (0.8 / 9);
 
@@ -141,14 +168,65 @@ export async function applyStoryOutcomeToRecruit(
   // if (outcome.commitmentUncertainty) { /* TODO: recruits.commitmentUncertainty not in schema */ }
   // if (outcome.ratingReveal) { /* TODO: recruits.ratingRevealed not in schema */ }
 
-  await storage.updateRecruit(recruit.id, finalUpdates as Parameters<typeof storage.updateRecruit>[1]);
+  // ── Transactional write + idempotency ledger ──────────────────────────────
+  // All attribute/ability/ovr writes happen inside a single transaction.
+  // On commit we insert into storyline_resolutions (ON CONFLICT DO NOTHING)
+  // so duplicate calls are harmless.
+  const beforeSnapshot = JSON.stringify({ overall: recruit.overall });
+  const afterSnapshot  = JSON.stringify({ overall: newOvr });
+  const effectSnapshot = JSON.stringify({ attrUpdates, abilityGain, abilityRemoveResult });
 
-  // Handle leavePool — deactivate the recruit from the pool after writing other changes
-  if (outcome.leavePool) {
+  if (eventId) {
+    const client = await pool.connect();
     try {
-      await storage.updateRecruit(recruit.id, { stage: 'left_pool' } as Parameters<typeof storage.updateRecruit>[1]);
-    } catch (e) {
-      console.warn('[storylines] leavePool update failed:', e);
+      await client.query("BEGIN");
+
+      // Build a parameterized SET clause for all changed columns
+      const setClauses: string[] = [];
+      const params: unknown[] = [];
+      let idx = 1;
+      for (const [col, val] of Object.entries(finalUpdates)) {
+        setClauses.push(`"${col}" = $${idx++}`);
+        params.push(typeof val === "object" ? JSON.stringify(val) : val);
+      }
+      params.push(recruit.id);
+      if (setClauses.length > 0) {
+        await client.query(
+          `UPDATE recruits SET ${setClauses.join(", ")} WHERE id = $${idx}`,
+          params,
+        );
+      }
+
+      // leavePool inside the same transaction
+      if (outcome.leavePool) {
+        await client.query(`UPDATE recruits SET stage = 'left_pool' WHERE id = $1`, [recruit.id]);
+      }
+
+      // Insert idempotency ledger row — ON CONFLICT DO NOTHING prevents double-apply
+      await client.query(
+        `INSERT INTO storyline_resolutions
+           (event_id, winning_choice, effect_snapshot, before_ratings, after_ratings)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (event_id) DO NOTHING`,
+        [eventId, winningChoice ?? "A", effectSnapshot, beforeSnapshot, afterSnapshot],
+      );
+
+      await client.query("COMMIT");
+    } catch (txErr) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw txErr;
+    } finally {
+      client.release();
+    }
+  } else {
+    // No eventId — legacy path; write without transaction or ledger.
+    await storage.updateRecruit(recruit.id, finalUpdates as Parameters<typeof storage.updateRecruit>[1]);
+    if (outcome.leavePool) {
+      try {
+        await storage.updateRecruit(recruit.id, { stage: 'left_pool' } as Parameters<typeof storage.updateRecruit>[1]);
+      } catch (e) {
+        console.warn('[storylines] leavePool update failed:', e);
+      }
     }
   }
 
@@ -976,7 +1054,7 @@ async function resolveOneStorylineEvent(
           recruit.position,
           sl.isLegendary,
         );
-        const result = await applyStoryOutcomeToRecruit(recruit, outcome, volatility, sl.isLegendary);
+        const result = await applyStoryOutcomeToRecruit(recruit, outcome, volatility, sl.isLegendary, event.id, winningChoice);
         ovrDelta = result.ovrDelta;
         abilityGain = result.abilityGain;
         abilityRemove = result.abilityRemove;

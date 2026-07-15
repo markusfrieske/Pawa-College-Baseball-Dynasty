@@ -20,7 +20,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Player } from "@/components/player-profile-card";
 import { PlayerAvatar } from "@/components/player-avatar";
-import type { WizardConfig } from "@shared/schema";
+import type { WizardConfig, WizardCastMember, WizardStoryPlan } from "@shared/schema";
 import { getPotentialGrade, POTENTIAL_GRADES } from "@shared/potential";
 import { getAbilitiesForPosition, MAX_SPECIAL_ABILITIES } from "@shared/abilities";
 import { PITCH_DEFS } from "@shared/pitchDefs";
@@ -29,6 +29,8 @@ import { PITCH_DEFS } from "@shared/pitchDefs";
 
 type WizardRecruit = {
   _tempId: string;
+  /** Stable UUID baked in at generation time; survives save/load cycles. Used by Story Cast. */
+  templateRecruitId: string;
   firstName: string;
   lastName: string;
   position: string;
@@ -109,7 +111,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   ovrDistribution: "bell",
 };
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 11;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -143,8 +145,46 @@ function typeBadges(r: WizardRecruit) {
 
 // ─── Step Indicator ─────────────────────────────────────────────────────────
 
+// Story archetype metadata (mirrors ARCHETYPES in storylineEngine.ts — client-side copy)
+const STORY_ARCHETYPES: {
+  id: string;
+  name: string;
+  desc: string;
+  polarity: "positive" | "volatile" | "negative";
+  pitcherOnly?: boolean;
+  hitterOnly?: boolean;
+}[] = [
+  { id: "late_bloomer",          name: "Late Bloomer",          desc: "Starts slow, peaks late. Likely positive long-term arc.",    polarity: "positive" },
+  { id: "velocity_freak",        name: "Velocity Freak",        desc: "Arm talent with control volatility. High variance.",          polarity: "volatile",  pitcherOnly: true },
+  { id: "swing_rebuild",         name: "Swing Rebuild",         desc: "Mechanics overhaul underway. Uncertain near-term.",           polarity: "volatile",  hitterOnly: true },
+  { id: "position_change",       name: "Position Change",       desc: "Adapting to a new role. High upside, real risk.",             polarity: "volatile" },
+  { id: "summer_breakout",       name: "Summer Breakout",       desc: "Showcase heroics boost profile. Mostly positive.",            polarity: "positive" },
+  { id: "social_media_star",     name: "Social Media Star",     desc: "Viral attention drives competing offers.",                    polarity: "volatile" },
+  { id: "confidence_crisis",     name: "Confidence Crisis",     desc: "Self-doubt mid-process. Likely negative arc.",               polarity: "negative" },
+  { id: "burnout_candidate",     name: "Burnout Risk",          desc: "Overuse looms. Physical conditioning concern.",              polarity: "negative" },
+  { id: "injury_risk",           name: "Medical Watch",         desc: "Arm health under scrutiny. High downside risk.",             polarity: "negative",  pitcherOnly: true },
+  { id: "academic_concern",      name: "Academic Concern",      desc: "Eligibility status uncertain. Negative pressure.",           polarity: "negative" },
+  { id: "transfer_rumors",       name: "Transfer Rumors",       desc: "Program loyalty in question. Volatile arc.",                 polarity: "volatile" },
+  { id: "two_sport_athlete",     name: "Two-Sport Decision",    desc: "Football or baseball? Decision pending.",                    polarity: "volatile" },
+  { id: "knuckleball_specialist",name: "Knuckleball Spec.",     desc: "Unconventional arm — hard to evaluate.",                    polarity: "volatile",  pitcherOnly: true },
+  { id: "rivalry_recruit",       name: "Rivalry Recruit",       desc: "Programs in a bidding war. Drama ensues.",                  polarity: "volatile" },
+  { id: "generational_prodigy",  name: "Generational Prodigy",  desc: "Legendary upside. Elite potential ceiling.",                 polarity: "positive" },
+  { id: "financial_pressure",    name: "Financial Pressure",    desc: "NIL concerns create decision complexity.",                   polarity: "negative" },
+  { id: "coaching_change",       name: "Coaching Change",       desc: "Staff uncertainty clouds commitment.",                       polarity: "volatile" },
+  { id: "first_gen_student",     name: "First-Gen Student",     desc: "Family sacrifice drives elite work ethic.",                 polarity: "positive" },
+  { id: "draft_agent_pressure",  name: "Draft Agent Pressure",  desc: "Pro day looms. Every showcase week matters.",               polarity: "volatile" },
+  { id: "small_town_hero",       name: "Small Town Hero",       desc: "Raw tools, unpolished. High ceiling upside.",               polarity: "positive" },
+];
+
+/** OVR delta ranges by polarity for Playtest simulation. */
+const POLARITY_RANGES = {
+  positive: { min: +8,  max: +40, median: +20 },
+  volatile: { min: -20, max: +30, median:  +5 },
+  negative: { min: -30, max:  +5, median: -15 },
+};
+
 function StepIndicator({ step }: { step: number }) {
-  const labels = ["Settings", "Stars", "Specials", "Advanced", "OVR", "Generate", "Review", "Save"];
+  const labels = ["Settings", "Stars", "Specials", "Advanced", "OVR", "Generate", "Cast", "Arcs", "Playtest", "Review", "Save"];
   return (
     <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide pb-1">
       {labels.map((lbl, idx) => {
@@ -1756,7 +1796,459 @@ function SavedScreen({ count, savedToLeague, onClose }: { count: number; savedTo
   );
 }
 
+// ─── Step 7: Story Cast ───────────────────────────────────────────────────────
+
+const MAX_CAST = 10;
+const PITCHER_POS_SET = new Set(["P"]);
+
+function isPitcherR(position: string) { return PITCHER_POS_SET.has(position); }
+
+function StepStoryCast({
+  recruits,
+  cast,
+  setCast,
+}: {
+  recruits: WizardRecruit[];
+  cast: string[];
+  setCast: (c: string[]) => void;
+}) {
+  const inCast = new Set(cast);
+
+  const toggleCast = (r: WizardRecruit) => {
+    if (inCast.has(r.templateRecruitId)) {
+      setCast(cast.filter(id => id !== r.templateRecruitId));
+    } else {
+      if (cast.length >= MAX_CAST) return;
+      setCast([...cast, r.templateRecruitId]);
+    }
+  };
+
+  const autoPick = () => {
+    const sorted = [...recruits].sort((a, b) => b.overall - a.overall);
+    const picked: string[] = [];
+    const addIf = (cond: (r: WizardRecruit) => boolean, max: number) => {
+      for (const r of sorted) {
+        if (picked.length >= MAX_CAST) break;
+        if (cond(r) && !picked.includes(r.templateRecruitId)) picked.push(r.templateRecruitId);
+        if (picked.filter(id => recruits.find(r2 => r2.templateRecruitId === id && cond(r2))).length >= max) break;
+      }
+    };
+    // ≥2 pitchers, ≥2 hitters, ≥1 elite (OVR ≥ 450), then fill by OVR
+    addIf(r => isPitcherR(r.position), 2);
+    addIf(r => !isPitcherR(r.position), 2);
+    addIf(r => r.overall >= 450, 1);
+    for (const r of sorted) {
+      if (picked.length >= MAX_CAST) break;
+      if (!picked.includes(r.templateRecruitId)) picked.push(r.templateRecruitId);
+    }
+    setCast(picked.slice(0, MAX_CAST));
+  };
+
+  const castRecruits = cast.map(id => recruits.find(r => r.templateRecruitId === id)).filter(Boolean) as WizardRecruit[];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-gold text-sm font-semibold">Story Cast</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Select up to 10 recruits to feature in authored storyline arcs. All others follow the standard random-archetype system.
+          </p>
+        </div>
+        <RetroButton variant="outline" size="sm" onClick={autoPick} data-testid="story-cast-autopick">
+          Auto-Pick
+        </RetroButton>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left: recruit list */}
+        <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+          <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Recruit Pool ({recruits.length})</div>
+          {recruits.map(r => {
+            const isIn = inCast.has(r.templateRecruitId);
+            const isFull = !isIn && cast.length >= MAX_CAST;
+            return (
+              <div key={r.templateRecruitId} className={`flex items-center gap-2 p-2 rounded border text-xs transition-all ${
+                isIn ? "border-gold bg-gold/10" : "border-border bg-card"
+              }`}>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{r.firstName} {r.lastName}</div>
+                  <div className="text-muted-foreground">{r.position} · {"★".repeat(r.starRating)} · OVR {r.overall}</div>
+                </div>
+                <div className="flex gap-1 items-center shrink-0">
+                  {r.isGenerationalGem && <span className="bg-purple-600 text-white text-xs rounded px-1">GEM</span>}
+                  {r.isBlueChip && <span className="bg-amber-500 text-black text-xs rounded px-1">BC</span>}
+                  <button
+                    onClick={() => toggleCast(r)}
+                    disabled={isFull}
+                    className={`text-xs rounded px-2 py-0.5 transition-colors ${
+                      isIn
+                        ? "bg-gold/20 text-gold border border-gold/50 hover:bg-red-900/30 hover:text-red-400 hover:border-red-400/50"
+                        : isFull
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : "bg-card border border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
+                    }`}
+                    data-testid={`cast-toggle-${r.templateRecruitId}`}
+                  >
+                    {isIn ? "Remove" : "Add"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right: cast board */}
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Cast Board ({cast.length} / {MAX_CAST})</div>
+          <div className="space-y-1">
+            {Array.from({ length: MAX_CAST }, (_, i) => {
+              const member = castRecruits[i];
+              return (
+                <div key={i} className={`flex items-center gap-2 p-2 rounded border text-xs ${
+                  member ? "border-gold/40 bg-gold/5" : "border-border/40 bg-card/50 border-dashed"
+                }`}>
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    member ? "bg-gold text-forest-dark" : "bg-border text-muted-foreground"
+                  }`}>
+                    {i + 1}
+                  </div>
+                  {member ? (
+                    <div className="flex-1 min-w-0">
+                      <span className="font-semibold">{member.firstName} {member.lastName}</span>
+                      <span className="text-muted-foreground ml-1">{member.position} · OVR {member.overall}</span>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground/50 italic">Empty slot</span>
+                  )}
+                  {member && (
+                    <button
+                      onClick={() => toggleCast(member)}
+                      className="text-muted-foreground/50 hover:text-red-400 transition-colors"
+                      data-testid={`cast-remove-slot-${i}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {cast.length === 0 && (
+            <p className="text-xs text-muted-foreground/60 mt-2 italic">
+              Story Cast is optional — proceed with 0 to use the standard random-archetype system for all recruits.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 8: Arc Studio ───────────────────────────────────────────────────────
+
+function StepArcStudio({
+  recruits,
+  cast,
+  storyPlan,
+  setStoryPlan,
+}: {
+  recruits: WizardRecruit[];
+  cast: string[];
+  storyPlan: WizardStoryPlan;
+  setStoryPlan: (sp: WizardStoryPlan) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(cast[0] ?? null);
+
+  const castRecruits = cast.map(id => recruits.find(r => r.templateRecruitId === id)).filter(Boolean) as WizardRecruit[];
+
+  const getMember = (id: string): WizardCastMember =>
+    storyPlan.cast.find(m => m.templateRecruitId === id) ?? { templateRecruitId: id, arcMode: "off" };
+
+  const updateMember = (updated: WizardCastMember) => {
+    const rest = storyPlan.cast.filter(m => m.templateRecruitId !== updated.templateRecruitId);
+    setStoryPlan({ ...storyPlan, cast: [...rest, updated] });
+  };
+
+  const selectedRecruit = castRecruits.find(r => r.templateRecruitId === selectedId);
+  const selectedMember = selectedId ? getMember(selectedId) : null;
+
+  if (cast.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-12 gap-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-border flex items-center justify-center">
+          <Wand2 className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground">No Cast Members</h3>
+          <p className="text-xs text-muted-foreground/70 mt-1 max-w-sm">
+            You did not add any recruits to the Story Cast. All recruits will receive randomly-assigned story archetypes at season start.
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground/50">Go back to add cast members, or proceed to Playtest.</p>
+      </div>
+    );
+  }
+
+  const polarityColor = (p: string) =>
+    p === "positive" ? "text-green-400" : p === "negative" ? "text-red-400" : "text-amber-400";
+
+  const polarityLabel = (p: string) =>
+    p === "positive" ? "Upside" : p === "negative" ? "Downside" : "Volatile";
+
+  return (
+    <div className="flex gap-4 h-[440px]">
+      {/* Left: cast list */}
+      <div className="w-48 shrink-0 space-y-1 overflow-y-auto">
+        <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Cast ({castRecruits.length})</div>
+        {castRecruits.map(r => {
+          const member = getMember(r.templateRecruitId);
+          const hasArc = member.arcMode === "template" && member.arcTemplateKey;
+          const arch = hasArc ? STORY_ARCHETYPES.find(a => a.id === member.arcTemplateKey) : null;
+          return (
+            <button
+              key={r.templateRecruitId}
+              onClick={() => setSelectedId(r.templateRecruitId)}
+              className={`w-full text-left p-2 rounded border text-xs transition-all ${
+                selectedId === r.templateRecruitId
+                  ? "border-gold bg-gold/10 text-gold"
+                  : "border-border bg-card hover:border-gold/40"
+              }`}
+              data-testid={`arc-member-${r.templateRecruitId}`}
+            >
+              <div className="font-semibold truncate">{r.firstName} {r.lastName}</div>
+              <div className="text-muted-foreground truncate">{r.position} · OVR {r.overall}</div>
+              {arch ? (
+                <div className={`text-xs mt-0.5 truncate ${polarityColor(arch.polarity)}`}>{arch.name}</div>
+              ) : (
+                <div className="text-muted-foreground/50 text-xs mt-0.5 italic">No arc</div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Right: arc assignment panel */}
+      <div className="flex-1 overflow-y-auto min-w-0">
+        {selectedRecruit && selectedMember ? (
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm font-semibold text-gold">{selectedRecruit.firstName} {selectedRecruit.lastName}</div>
+              <div className="text-xs text-muted-foreground">{selectedRecruit.position} · OVR {selectedRecruit.overall} · {"★".repeat(selectedRecruit.starRating)}</div>
+            </div>
+
+            {/* Arc mode selector */}
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Arc Assignment</div>
+              <div className="flex gap-2 mb-3">
+                {(["off", "template"] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => updateMember({ ...selectedMember, arcMode: mode, arcTemplateKey: mode === "off" ? undefined : selectedMember.arcTemplateKey })}
+                    className={`px-3 py-1.5 rounded border text-xs font-semibold transition-all ${
+                      selectedMember.arcMode === mode
+                        ? "border-gold bg-gold/10 text-gold"
+                        : "border-border text-muted-foreground hover:border-gold/40"
+                    }`}
+                    data-testid={`arc-mode-${mode}`}
+                  >
+                    {mode === "off" ? "No Arc" : "Template Arc"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Template picker */}
+            {selectedMember.arcMode === "template" && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">Choose Archetype</div>
+                <div className="grid grid-cols-2 gap-1.5 max-h-[280px] overflow-y-auto pr-1">
+                  {STORY_ARCHETYPES.filter(a => {
+                    const isPitcher = isPitcherR(selectedRecruit.position);
+                    if (a.pitcherOnly && !isPitcher) return false;
+                    if (a.hitterOnly && isPitcher) return false;
+                    return true;
+                  }).map(arch => {
+                    const isSelected = selectedMember.arcTemplateKey === arch.id;
+                    return (
+                      <button
+                        key={arch.id}
+                        onClick={() => updateMember({ ...selectedMember, arcMode: "template", arcTemplateKey: arch.id })}
+                        className={`text-left p-2 rounded border text-xs transition-all ${
+                          isSelected
+                            ? "border-gold bg-gold/10"
+                            : "border-border bg-card hover:border-gold/30"
+                        }`}
+                        data-testid={`arc-template-${arch.id}`}
+                      >
+                        <div className="font-semibold">{arch.name}</div>
+                        <div className={`text-xs mt-0.5 ${polarityColor(arch.polarity)}`}>{polarityLabel(arch.polarity)}</div>
+                        <div className="text-muted-foreground/70 text-xs mt-0.5 leading-tight">{arch.desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedMember.arcTemplateKey && (() => {
+                  const arch = STORY_ARCHETYPES.find(a => a.id === selectedMember.arcTemplateKey);
+                  if (!arch) return null;
+                  const range = POLARITY_RANGES[arch.polarity];
+                  return (
+                    <div className="mt-2 p-2 rounded border border-border bg-muted/20 text-xs">
+                      <span className="text-muted-foreground">Expected OVR delta: </span>
+                      <span className={polarityColor(arch.polarity)}>
+                        {range.min > 0 ? "+" : ""}{range.min} to +{range.max} (median {range.median > 0 ? "+" : ""}{range.median})
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground/50 text-xs">
+            Select a cast member to assign an arc
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 9: Playtest ─────────────────────────────────────────────────────────
+
+function StepPlaytest({
+  recruits,
+  cast,
+  storyPlan,
+}: {
+  recruits: WizardRecruit[];
+  cast: string[];
+  storyPlan: WizardStoryPlan;
+}) {
+  if (cast.length === 0) {
+    return (
+      <div className="flex flex-col items-center py-12 gap-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-border flex items-center justify-center">
+          <CheckCircle2 className="w-6 h-6 text-muted-foreground" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground">No Cast — Standard Mode</h3>
+          <p className="text-xs text-muted-foreground/70 mt-1 max-w-sm">
+            No story cast selected. The storyline engine will randomly assign archetypes to ~10 recruits when the season begins.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const castRecruits = cast.map(id => recruits.find(r => r.templateRecruitId === id)).filter(Boolean) as WizardRecruit[];
+
+  const polarityColor = (p: string) =>
+    p === "positive" ? "text-green-400" : p === "negative" ? "text-red-400" : "text-amber-400";
+
+  let totalBest = 0, totalWorst = 0, totalMedian = 0;
+  const rows = castRecruits.map((r, i) => {
+    const member = storyPlan.cast.find(m => m.templateRecruitId === r.templateRecruitId);
+    const arch = member?.arcMode === "template" && member.arcTemplateKey
+      ? STORY_ARCHETYPES.find(a => a.id === member.arcTemplateKey)
+      : null;
+    const range = arch ? POLARITY_RANGES[arch.polarity] : null;
+    if (range) {
+      totalBest += range.max;
+      totalWorst += range.min;
+      totalMedian += range.median;
+    }
+    return { r, arch, range, slot: i + 1 };
+  });
+
+  const assignedCount = rows.filter(row => row.arch).length;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-gold text-sm font-semibold">Playtest Summary</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Simulated OVR outcome ranges for each cast member based on their assigned arc.
+          Actual outcomes depend on weekly vote results and volatility during play.
+        </p>
+      </div>
+
+      {/* Summary banner */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Best Case", value: totalBest, cls: "text-green-400" },
+          { label: "Median",    value: totalMedian, cls: "text-gold" },
+          { label: "Worst Case",value: totalWorst,  cls: "text-red-400" },
+        ].map(col => (
+          <div key={col.label} className="p-2 rounded border border-border bg-card text-center">
+            <div className="text-xs text-muted-foreground">{col.label}</div>
+            <div className={`text-sm font-bold ${col.cls}`}>
+              {col.value >= 0 ? "+" : ""}{col.value} OVR
+            </div>
+            <div className="text-xs text-muted-foreground/60">across all cast</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Per-recruit table */}
+      <div className="rounded border border-border overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="text-left px-3 py-1.5 text-muted-foreground font-semibold">Slot</th>
+              <th className="text-left px-3 py-1.5 text-muted-foreground font-semibold">Recruit</th>
+              <th className="text-left px-3 py-1.5 text-muted-foreground font-semibold">Arc</th>
+              <th className="text-right px-3 py-1.5 text-muted-foreground font-semibold">Best</th>
+              <th className="text-right px-3 py-1.5 text-muted-foreground font-semibold">Median</th>
+              <th className="text-right px-3 py-1.5 text-muted-foreground font-semibold">Worst</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ r, arch, range, slot }) => (
+              <tr key={r.templateRecruitId} className="border-b border-border/50 hover:bg-muted/10">
+                <td className="px-3 py-1.5">
+                  <div className="w-5 h-5 rounded-full bg-gold/20 text-gold flex items-center justify-center font-bold">{slot}</div>
+                </td>
+                <td className="px-3 py-1.5">
+                  <div className="font-semibold">{r.firstName} {r.lastName}</div>
+                  <div className="text-muted-foreground">{r.position} · OVR {r.overall}</div>
+                </td>
+                <td className="px-3 py-1.5">
+                  {arch ? (
+                    <span className={polarityColor(arch.polarity)}>{arch.name}</span>
+                  ) : (
+                    <span className="text-muted-foreground/50 italic">Random</span>
+                  )}
+                </td>
+                {range ? (
+                  <>
+                    <td className="px-3 py-1.5 text-right text-green-400">+{range.max}</td>
+                    <td className="px-3 py-1.5 text-right text-gold">{range.median >= 0 ? "+" : ""}{range.median}</td>
+                    <td className="px-3 py-1.5 text-right text-red-400">{range.min >= 0 ? "+" : ""}{range.min}</td>
+                  </>
+                ) : (
+                  <td className="px-3 py-1.5 text-right text-muted-foreground/50" colSpan={3}>—</td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {assignedCount < cast.length && (
+        <p className="text-xs text-amber-400">
+          {cast.length - assignedCount} cast member(s) have no arc assigned — they will receive a random archetype at season start.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Wizard ─────────────────────────────────────────────────────────────
+
+function makeEmptyStoryPlan(): WizardStoryPlan {
+  return { mode: "authored", cast: [], createdAt: new Date().toISOString() };
+}
 
 export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLibrary, user }: Props) {
   const [step, setStep] = useState(1);
@@ -1766,6 +2258,9 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   const [rerollingId, setRerollingId] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [savedToLeague, setSavedToLeague] = useState(false);
+  // Story Cast & Arc Studio state
+  const [cast, setCast] = useState<string[]>([]);
+  const [storyPlan, setStoryPlan] = useState<WizardStoryPlan>(makeEmptyStoryPlan());
 
   // Fetch the league-specific recommended class size (so the slider max + hint stay correct)
   const { data: classTargetData } = useQuery<{ targetSize: number }>({
@@ -1795,6 +2290,8 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       setRerollingId(null);
       setShowCancelConfirm(false);
       setSavedToLeague(false);
+      setCast([]);
+      setStoryPlan(makeEmptyStoryPlan());
     }
   }, [open]);
 
@@ -1824,9 +2321,12 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       const withIds: WizardRecruit[] = data.recruits.map((r: any) => ({
         ...r,
         _tempId: tempId(),
+        templateRecruitId: r.templateRecruitId ?? ("tpl_" + tempId()),
       }));
       setRecruits(withIds);
-      setStep(7);
+      setCast([]);
+      setStoryPlan(makeEmptyStoryPlan());
+      setStep(7); // → Step 7: Review (unchanged)
     },
   });
 
@@ -1862,7 +2362,11 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
     mutationFn: async (toSave: WizardRecruit[]) => {
       if (!leagueId) throw new Error("No league selected");
       const payload = toSave.map(({ _tempId, ...rest }) => rest);
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/save-wizard-class`, { recruits: payload });
+      const finalStoryPlan: WizardStoryPlan = { ...storyPlan, cast: storyPlan.cast.filter(m => cast.includes(m.templateRecruitId)) };
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/save-wizard-class`, {
+        recruits: payload,
+        storyPlan: finalStoryPlan,
+      });
       return res.json() as Promise<{ success: boolean; count: number }>;
     },
     onSuccess: (data) => {
@@ -1871,7 +2375,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/recruits`] });
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/commissioner`] });
       onSaved?.();
-      setStep(9);
+      setStep(12); // → SavedScreen
     },
   });
 
@@ -1879,7 +2383,8 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   const saveToLibraryMutation = useMutation({
     mutationFn: async ({ name, description }: { name: string; description: string }) => {
       const recruitRows = recruits.map(({ _tempId, ...rest }) => rest);
-      const classData = { theme: config.theme, recruits: recruitRows };
+      const finalStoryPlan: WizardStoryPlan = { ...storyPlan, cast: storyPlan.cast.filter(m => cast.includes(m.templateRecruitId)) };
+      const classData = { theme: config.theme, recruits: recruitRows, storyPlan: finalStoryPlan };
       if (user) {
         const res = await apiRequest("POST", "/api/saved-recruiting-classes", {
           name,
@@ -1912,7 +2417,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
         queryClient.invalidateQueries({ queryKey: ["/api/saved-recruiting-classes"] });
       }
       onSavedToLibrary?.();
-      setStep(9);
+      setStep(12); // → SavedScreen
     },
   });
 
@@ -1954,12 +2459,11 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
 
   const goNext = () => {
     if (step === 6) { handleGenerate(); return; }
+    // Steps 7-9 (Cast / ArcStudio / Playtest) advance normally; step 9 → step 10 (Review)
     if (step < TOTAL_STEPS) setStep(s => s + 1);
   };
 
   const goPrev = () => {
-    if (step === 7) { setStep(6); return; }
-    if (step === 8) { setStep(7); return; }
     if (step > 1) setStep(s => s - 1);
   };
 
@@ -1967,9 +2471,9 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      const isReviewStep = step === 7;
-      const isSaveStep   = step === 8;
-      const isSavedStep  = step === 9;
+      const isReviewStep = step === 10;
+      const isSaveStep   = step === 11;
+      const isSavedStep  = step === 12;
       if (e.key === "Enter" && !isReviewStep && !isSaveStep && !isSavedStep && !generateMutation.isPending) {
         const tag = (document.activeElement as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -1982,9 +2486,10 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   }, [open, step, config, generateMutation.isPending]);
 
   const isLastConfigStep = step === 6;
-  const isReviewStep = step === 7;
-  const isSaveStep   = step === 8;
-  const isSavedStep  = step === 9;
+  // Steps 10=Review, 11=Save, 12=Saved hide the standard footer nav (they have their own controls)
+  const isReviewStep = step === 10;
+  const isSaveStep   = step === 11;
+  const isSavedStep  = step === 12;
   const showNav      = !isSavedStep && !isReviewStep && !isSaveStep;
 
   const error = generateMutation.error?.message || saveToLeagueMutation.error?.message || saveToLibraryMutation.error?.message;
@@ -2013,14 +2518,14 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
 
     <Dialog open={open} onOpenChange={v => {
       if (!v) {
-        if (step > 1 && step < 9) { setShowCancelConfirm(true); }
+        if (step > 1 && step < 12) { setShowCancelConfirm(true); }
         else { onClose(); }
       }
     }}>
       <DialogContent
         className="max-w-5xl w-[95vw] max-h-[92vh] bg-card border-border flex flex-col p-0 gap-0 overflow-hidden"
         onEscapeKeyDown={e => {
-          if (step > 1 && step < 9) {
+          if (step > 1 && step < 12) {
             e.preventDefault();
             setShowCancelConfirm(true);
           }
@@ -2053,11 +2558,32 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
             <Step6
               recruits={recruits}
               setRecruits={setRecruits}
-              onNext={() => setStep(8)}
+              onNext={() => setStep(11)}
               onReroll={handleReroll}
               isRerolling={rerollMutation.isPending}
               rerollingId={rerollingId}
               config={config}
+            />
+          ) : step === 7 ? (
+            <StepStoryCast
+              recruits={recruits}
+              cast={cast}
+              setCast={setCast}
+            />
+          ) : step === 8 ? (
+            <StepArcStudio
+              recruits={recruits}
+              cast={cast}
+              storyPlan={storyPlan}
+              setStoryPlan={(sp) => {
+                setStoryPlan({ ...sp, cast: sp.cast });
+              }}
+            />
+          ) : step === 9 ? (
+            <StepPlaytest
+              recruits={recruits}
+              cast={cast}
+              storyPlan={storyPlan}
             />
           ) : step === 1 ? (
             <Step1 config={config} setConfig={setConfig} targetSize={targetSize} />
