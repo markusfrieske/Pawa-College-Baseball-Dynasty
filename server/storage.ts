@@ -314,6 +314,7 @@ export interface IStorage {
   createHardenedClassShare(data: { classId?: string; userId: string; tokenHash: string; versionId: string; label?: string | null; expiresAt?: Date; maxImports?: number }): Promise<RecruitingClassShare>;
   revokeClassShare(shareId: string, userId: string): Promise<void>;
   incrementClassShareImportCount(shareId: string): Promise<void>;
+  updateClassShareVersionId(shareId: string, versionId: string): Promise<void>;
 
   // Versioned class library
   getRecruitingClassProjectsByUser(userId: string): Promise<RecruitingClassProject[]>;
@@ -2148,6 +2149,12 @@ export class DatabaseStorage implements IStorage {
   async incrementClassShareImportCount(shareId: string): Promise<void> {
     await db.update(recruitingClassShares)
       .set({ importCount: sql`${recruitingClassShares.importCount} + 1` })
+      .where(eq(recruitingClassShares.id, shareId));
+  }
+
+  async updateClassShareVersionId(shareId: string, versionId: string): Promise<void> {
+    await db.update(recruitingClassShares)
+      .set({ versionId })
       .where(eq(recruitingClassShares.id, shareId));
   }
 

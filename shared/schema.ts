@@ -1479,6 +1479,11 @@ export const savedRecruitingClasses = pgTable("saved_recruiting_classes", {
   description: text("description"),
   recruitCount: integer("recruit_count").notNull().default(80),
   classData: json("class_data").notNull(),
+  // Sealed imports: full data stored server-side; fog-of-war applied at runtime
+  isSealed: boolean("is_sealed").notNull().default(false),
+  // Lineage: tracks the immutable version this was imported from
+  sourceVersionId: varchar("source_version_id"),
+  sourceContentHash: text("source_content_hash"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

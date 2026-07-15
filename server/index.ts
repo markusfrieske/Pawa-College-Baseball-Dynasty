@@ -216,6 +216,10 @@ app.use((req, res, next) => {
         `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS max_imports integer`,
         `CREATE INDEX IF NOT EXISTS idx_recruiting_class_projects_owner ON recruiting_class_projects (owner_user_id)`,
         `CREATE INDEX IF NOT EXISTS idx_recruiting_class_versions_project ON recruiting_class_versions (project_id)`,
+        // Saved class lineage + sealed flag (added with versioned sharing)
+        `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS is_sealed boolean NOT NULL DEFAULT false`,
+        `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS source_version_id varchar`,
+        `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS source_content_hash text`,
       ];
       for (const sql of _columnMigrations) {
         try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }

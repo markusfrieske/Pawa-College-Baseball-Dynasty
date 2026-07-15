@@ -64,43 +64,6 @@ function checkRateLimit(ip: string, maxPerMin = 20): boolean {
   return true;
 }
 
-// ── Sealed-mode field stripping ────────────────────────────────────────────────
-
-const SEALED_STRIP = new Set([
-  "overall",
-  "isBlueChip",
-  "isGem",
-  "isBust",
-  "isGenerationalGem",
-  "isGenerationalBust",
-  "potential",
-  "potentialFloor",
-  "potentialCeiling",
-  "hitForAvg",
-  "power",
-  "speed",
-  "arm",
-  "fielding",
-  "errorResistance",
-  "clutch",
-  "vsLHP",
-  "grit",
-  "stealing",
-  "running",
-  "throwing",
-  "recovery",
-  "catcherAbility",
-  "velocity",
-  "control",
-  "stamina",
-  "stuff",
-  "wRISP",
-  "vsLefty",
-  "poise",
-  "heater",
-  "agile",
-]);
-
 // ── Route registration ─────────────────────────────────────────────────────────
 
 export function registerClassProjectRoutes(app: Express): void {
@@ -538,19 +501,10 @@ export function registerClassProjectRoutes(app: Express): void {
         throw e;
       }
 
-      let recruitsToStore = validated.recruits;
-
-      // Sealed mode: strip hidden fields before writing to recipient's library.
-      // They receive the same fog-of-war view a player sees during recruiting.
-      if (version.isSealed) {
-        recruitsToStore = recruitsToStore.map(r => {
-          const stripped: Record<string, unknown> = { ...r as Record<string, unknown> };
-          for (const k of SEALED_STRIP) delete stripped[k];
-          return stripped as typeof r;
-        });
-      }
-
-      const envelope = buildClassEnvelope(recruitsToStore, "import", {
+      // Preserve full class data server-side (no destructive stripping).
+      // isSealed is stored as a flag on the saved class so the recruiting
+      // system can apply fog-of-war at runtime when the class is loaded.
+      const envelope = buildClassEnvelope(validated.recruits, "import", {
         theme: sourceTheme,
         config: sourceConfig,
       });
@@ -561,6 +515,10 @@ export function registerClassProjectRoutes(app: Express): void {
         description: project?.description ?? undefined,
         recruitCount: validated.recruitCount,
         classData: envelope as any,
+        // Lineage: pin to the immutable source version
+        isSealed: version.isSealed,
+        sourceVersionId: version.id,
+        sourceContentHash: version.contentHash ?? undefined,
       });
 
       await storage.incrementClassShareImportCount(share.id);

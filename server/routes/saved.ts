@@ -9,6 +9,7 @@ import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource } from "../lib/buildClassEnvelope";
+import { migrateClassToVersion } from "../lib/migrateClassToVersion";
 
 export function registerSavedRoutes(app: Express): void {
   // ── Saved Rosters ──────────────────────────────────────────────────────────
@@ -250,10 +251,12 @@ export function registerSavedRoutes(app: Express): void {
       } catch {}
 
       // When versionId is set, use the immutable version snapshot (preferred).
-      // Fall back to live classData only for truly unmigrated V1 rows.
+      // When versionId is null, auto-trigger V1→V2 lazy migration (idempotent),
+      // repoint the share, then serve from the newly created immutable version.
       let classData: unknown;
-      if (share.versionId) {
-        const version = await storage.getRecruitingClassVersion(share.versionId);
+      let resolvedVersionId = share.versionId ?? null;
+      if (resolvedVersionId) {
+        const version = await storage.getRecruitingClassVersion(resolvedVersionId);
         if (!version) return res.status(404).json({ message: "Recruiting class not found" });
         classData = version.packageJson;
       } else {
@@ -264,6 +267,18 @@ export function registerSavedRoutes(app: Express): void {
         const rc = await storage.getSavedRecruitingClass(share.classId);
         if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
         classData = rc.classData as unknown;
+
+        // Lazy V1 → V2 migration: pin this share to an immutable version snapshot
+        try {
+          const { version: migratedVersion } = await migrateClassToVersion(rc.id);
+          if (migratedVersion) {
+            resolvedVersionId = migratedVersion.id;
+            await storage.updateClassShareVersionId(share.id, migratedVersion.id);
+            classData = migratedVersion.packageJson;
+          }
+        } catch (e) {
+          console.warn(`[import-class-preview] V1 migration failed for share ${share.id}, serving live data:`, e);
+        }
       }
 
       // Extract recruits from any stored format (legacy array, legacy object, versioned envelope)
@@ -348,15 +363,21 @@ export function registerSavedRoutes(app: Express): void {
       }
 
       // Resolve the immutable source data — use version snapshot when available.
+      // When versionId is null, auto-trigger V1→V2 lazy migration so this import
+      // is pinned to an immutable snapshot going forward.
       let sourceData: unknown;
       let importName: string = "Recruiting Class";
       let importDescription: string | null = null;
+      let resolvedVersionId = share.versionId ?? null;
+      let importedIsSealed = false;
+      let importedSourceContentHash: string | undefined;
 
-      if (share.versionId) {
-        const version = await storage.getRecruitingClassVersion(share.versionId);
+      if (resolvedVersionId) {
+        const version = await storage.getRecruitingClassVersion(resolvedVersionId);
         if (!version) return res.status(404).json({ message: "Recruiting class not found" });
         sourceData = version.packageJson;
-        // Try to get a human-readable name from the project
+        importedIsSealed = version.isSealed;
+        importedSourceContentHash = version.contentHash ?? undefined;
         try {
           const proj = await storage.getRecruitingClassProject(version.projectId);
           if (proj?.name) importName = proj.name;
@@ -372,6 +393,20 @@ export function registerSavedRoutes(app: Express): void {
         sourceData = rc.classData as unknown;
         importName = rc.name;
         importDescription = rc.description ?? null;
+
+        // Lazy V1 → V2 migration: pin this share to an immutable version snapshot
+        try {
+          const { version: migratedVersion } = await migrateClassToVersion(rc.id);
+          if (migratedVersion) {
+            resolvedVersionId = migratedVersion.id;
+            await storage.updateClassShareVersionId(share.id, migratedVersion.id);
+            sourceData = migratedVersion.packageJson;
+            importedIsSealed = migratedVersion.isSealed;
+            importedSourceContentHash = migratedVersion.contentHash ?? undefined;
+          }
+        } catch (e) {
+          console.warn(`[import-class] V1 migration failed for share ${share.id}, importing from live data:`, e);
+        }
       }
 
       // Detect theme from source data before validation
@@ -389,6 +424,7 @@ export function registerSavedRoutes(app: Express): void {
         throw e;
       }
 
+      // Store full data (no stripping); isSealed flag drives runtime fog-of-war.
       const envelope = buildClassEnvelope(validated.recruits, "import", { theme: sourceTheme, config: sourceConfig });
 
       const imported = await storage.createSavedRecruitingClass({
@@ -397,6 +433,9 @@ export function registerSavedRoutes(app: Express): void {
         description: importDescription ?? undefined,
         recruitCount: validated.recruitCount,
         classData: envelope as any,
+        isSealed: importedIsSealed,
+        sourceVersionId: resolvedVersionId ?? undefined,
+        sourceContentHash: importedSourceContentHash,
       });
       await storage.incrementClassShareImportCount(share.id);
       res.json({ success: true, class: imported });
