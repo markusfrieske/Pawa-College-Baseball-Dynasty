@@ -43,6 +43,7 @@ import { registerGameRoutes } from "./routes/games";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { registerInviteRoutes } from "./routes/invites";
 import { registerSavedRoutes } from "./routes/saved";
+import { registerClassProjectRoutes } from "./routes/class-projects";
 import { registerStatsRoutes } from "./routes/stats";
 import { registerRecruitingRoutes } from "./routes/recruiting";
 import { registerDeparturesRoutes } from "./routes/departures";
@@ -462,6 +463,7 @@ export async function registerRoutes(
   registerGameRoutes(app);
   registerInviteRoutes(app);
   registerSavedRoutes(app);
+  registerClassProjectRoutes(app);
   registerStatsRoutes(app);
   registerRecruitingRoutes(app);
   registerDeparturesRoutes(app);

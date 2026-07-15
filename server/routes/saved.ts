@@ -139,11 +139,31 @@ export function registerSavedRoutes(app: Express): void {
       const rc = await storage.getSavedRecruitingClass(req.params.id as string);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
       if (rc.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
-      const patchBody = { ...req.body };
-      if (patchBody.classData !== undefined) {
-        const { source, theme, config } = detectSource(patchBody.classData);
+
+      // Strict allowlist — reject attempts to mutate identity/provenance fields
+      const ALLOWED = new Set(["name", "description", "classData"]);
+      const rejected = Object.keys(req.body ?? {}).filter(k => !ALLOWED.has(k));
+      if (rejected.length > 0) {
+        return res.status(400).json({
+          message: `Fields not permitted in class update: ${rejected.join(", ")}`,
+        });
+      }
+
+      const patchBody: Record<string, unknown> = {};
+
+      if ("name" in req.body) {
+        if (typeof req.body.name !== "string" || !req.body.name.trim()) {
+          return res.status(400).json({ message: "name must be a non-empty string" });
+        }
+        patchBody.name = req.body.name.trim();
+      }
+      if ("description" in req.body) {
+        patchBody.description = req.body.description ?? null;
+      }
+      if ("classData" in req.body) {
+        const { source, theme, config } = detectSource(req.body.classData);
         try {
-          const validated = validateAndNormalizeRecruitingClass(patchBody.classData);
+          const validated = validateAndNormalizeRecruitingClass(req.body.classData);
           patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config });
           patchBody.recruitCount = validated.recruitCount;
         } catch (e) {
@@ -151,6 +171,7 @@ export function registerSavedRoutes(app: Express): void {
           throw e;
         }
       }
+
       const updated = await storage.updateSavedRecruitingClass(req.params.id as string, patchBody);
       res.json(updated);
     } catch (error) {
@@ -230,6 +251,7 @@ export function registerSavedRoutes(app: Express): void {
       if (!share || share.status !== "active") {
         return res.status(404).json({ message: "Share link not found or has been revoked" });
       }
+      if (!share.classId) return res.status(404).json({ message: "Recruiting class not found" });
       const rc = await storage.getSavedRecruitingClass(share.classId);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
 
@@ -305,6 +327,7 @@ export function registerSavedRoutes(app: Express): void {
       if (share.userId === userId) {
         return res.status(400).json({ message: "This class is already in your library" });
       }
+      if (!share.classId) return res.status(404).json({ message: "Recruiting class not found" });
       const rc = await storage.getSavedRecruitingClass(share.classId);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
 

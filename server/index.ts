@@ -181,6 +181,41 @@ app.use((req, res, next) => {
           created_at timestamp NOT NULL DEFAULT now()
         )`,
         `CREATE INDEX IF NOT EXISTS idx_league_save_states_league_id ON league_save_states (league_id)`,
+        // ── Versioned class library (Task 1364) ──────────────────────────────
+        `CREATE TABLE IF NOT EXISTS recruiting_class_projects (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+          owner_user_id varchar NOT NULL REFERENCES users(id),
+          name text NOT NULL,
+          description text,
+          status text NOT NULL DEFAULT 'draft',
+          current_draft_revision integer NOT NULL DEFAULT 0,
+          class_data json,
+          source_class_id varchar,
+          created_at timestamp NOT NULL DEFAULT now(),
+          updated_at timestamp NOT NULL DEFAULT now()
+        )`,
+        `CREATE TABLE IF NOT EXISTS recruiting_class_versions (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+          project_id varchar NOT NULL REFERENCES recruiting_class_projects(id) ON DELETE CASCADE,
+          version_number integer NOT NULL,
+          schema_version integer NOT NULL DEFAULT 1,
+          package_json json NOT NULL,
+          content_hash text NOT NULL,
+          source_type text NOT NULL DEFAULT 'manual',
+          is_sealed boolean NOT NULL DEFAULT false,
+          published_at timestamp NOT NULL DEFAULT now()
+        )`,
+        // Make class_id nullable so V2 shares can omit it
+        `ALTER TABLE recruiting_class_shares ALTER COLUMN class_id DROP NOT NULL`,
+        // Make token nullable so V2 shares use token_hash instead
+        `ALTER TABLE recruiting_class_shares ALTER COLUMN token DROP NOT NULL`,
+        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS token_hash text`,
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_rcs_token_hash ON recruiting_class_shares (token_hash) WHERE token_hash IS NOT NULL`,
+        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS version_id varchar`,
+        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS expires_at timestamp`,
+        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS max_imports integer`,
+        `CREATE INDEX IF NOT EXISTS idx_recruiting_class_projects_owner ON recruiting_class_projects (owner_user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_recruiting_class_versions_project ON recruiting_class_versions (project_id)`,
       ];
       for (const sql of _columnMigrations) {
         try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }

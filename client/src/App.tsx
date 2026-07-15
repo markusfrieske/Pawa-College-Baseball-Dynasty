@@ -49,6 +49,7 @@ const RosterViewerPage = lazy(() => import("@/pages/roster-viewer"));
 const StorylinesPage = lazy(() => import("@/pages/storylines"));
 const ManageRecruitingPage = lazy(() => import("@/pages/manage-recruiting"));
 const ImportClassPage = lazy(() => import("@/pages/import-class"));
+const ClassSharePage = lazy(() => import("@/pages/class-share"));
 const PlayByPlayPage = lazy(() => import("@/pages/play-by-play"));
 const ReportGamePage = lazy(() => import("@/pages/report-game"));
 const PostseasonHubPage = lazy(() => import("@/pages/postseason-hub"));
@@ -169,6 +170,7 @@ function Router() {
           <Route path="/roster-viewer" component={RosterViewerPage} />
           <Route path="/manage-recruiting" component={ManageRecruitingPage} />
           <Route path="/import-class/:token" component={ImportClassPage} />
+          <Route path="/class-share/:token" component={ClassSharePage} />
           <Route path="/invite/:code" component={InvitePage} />
           <Route component={NotFound} />
         </Switch>

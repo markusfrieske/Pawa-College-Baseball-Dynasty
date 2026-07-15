@@ -1490,18 +1490,73 @@ export type SavedRecruitingClass = typeof savedRecruitingClasses.$inferSelect;
 // Recruiting Class Share Links — explicit opt-in sharing with revokable tokens
 export const recruitingClassShares = pgTable("recruiting_class_shares", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  classId: varchar("class_id").notNull().references(() => savedRecruitingClasses.id, { onDelete: "cascade" }),
+  // V1 shares: classId is set (FK to saved_recruiting_classes).
+  // V2 shares: classId may be null; versionId points to an immutable version.
+  classId: varchar("class_id").references(() => savedRecruitingClasses.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id),
-  token: text("token").notNull().unique(),
+  // V1: plaintext 12-char token stored here.  V2: null (tokenHash used instead).
+  token: text("token").unique(),
+  // V2 hardened token: SHA-256(plaintext) — plaintext is never stored.
+  tokenHash: text("token_hash").unique(),
+  // V2: FK to immutable published version.
+  versionId: varchar("version_id"),
   label: text("label"),
   status: text("status").notNull().default("active"),
   importCount: integer("import_count").notNull().default(0),
+  expiresAt: timestamp("expires_at"),
+  maxImports: integer("max_imports"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertRecruitingClassShareSchema = createInsertSchema(recruitingClassShares).omit({ id: true, createdAt: true });
 export type InsertRecruitingClassShare = z.infer<typeof insertRecruitingClassShareSchema>;
 export type RecruitingClassShare = typeof recruitingClassShares.$inferSelect;
+
+// ─── Versioned Class Library ───────────────────────────────────────────────────
+
+/**
+ * Recruiting Class Projects — version-controlled authoring units.
+ * Each project has a mutable draft and zero or more immutable published versions.
+ */
+export const recruitingClassProjects = pgTable("recruiting_class_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ownerUserId: varchar("owner_user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  // "draft" = has never been published; "has_published" = at least one version exists
+  status: text("status").notNull().default("draft"),
+  currentDraftRevision: integer("current_draft_revision").notNull().default(0),
+  classData: json("class_data"), // mutable draft — null until first class data is set
+  // Optional backlink to the V1 saved_recruiting_classes row this project was migrated from.
+  sourceClassId: varchar("source_class_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertRecruitingClassProjectSchema = createInsertSchema(recruitingClassProjects).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertRecruitingClassProject = z.infer<typeof insertRecruitingClassProjectSchema>;
+export type RecruitingClassProject = typeof recruitingClassProjects.$inferSelect;
+
+/**
+ * Recruiting Class Versions — immutable snapshots of a published class.
+ * Once created, a version row is never mutated; new publishes create new rows.
+ */
+export const recruitingClassVersions = pgTable("recruiting_class_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => recruitingClassProjects.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  schemaVersion: integer("schema_version").notNull().default(1),
+  packageJson: json("package_json").notNull(), // immutable class data snapshot
+  contentHash: text("content_hash").notNull(),  // deterministic SHA-256 of canonical JSON
+  // "manual" | "procedural" (wizard-generated) | "legacy" (V1 migration)
+  sourceType: text("source_type").notNull().default("manual"),
+  isSealed: boolean("is_sealed").notNull().default(false),
+  publishedAt: timestamp("published_at").notNull().defaultNow(),
+});
+
+export const insertRecruitingClassVersionSchema = createInsertSchema(recruitingClassVersions).omit({ id: true, publishedAt: true });
+export type InsertRecruitingClassVersion = z.infer<typeof insertRecruitingClassVersionSchema>;
+export type RecruitingClassVersion = typeof recruitingClassVersions.$inferSelect;
 
 // ─── Storyline Recruit System ─────────────────────────────────────────────────
 

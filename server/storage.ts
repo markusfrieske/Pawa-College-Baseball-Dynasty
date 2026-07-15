@@ -48,9 +48,12 @@ import {
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
   type Walkon, type InsertWalkon,
   savedRosters, savedRecruitingClasses, recruitingClassShares,
+  recruitingClassProjects, recruitingClassVersions,
   type SavedRoster, type InsertSavedRoster,
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
   type RecruitingClassShare, type InsertRecruitingClassShare,
+  type RecruitingClassProject, type InsertRecruitingClassProject,
+  type RecruitingClassVersion, type InsertRecruitingClassVersion,
   type LeagueEvent, type InsertLeagueEvent,
   type AdvanceDigest, type InsertAdvanceDigest,
   type GameReport, type InsertGameReport,
@@ -305,9 +308,23 @@ export interface IStorage {
 
   createClassShare(data: { classId: string; userId: string; token: string; label?: string }): Promise<RecruitingClassShare>;
   getClassShareByToken(token: string): Promise<RecruitingClassShare | undefined>;
+  getClassShareByTokenHash(tokenHash: string): Promise<RecruitingClassShare | undefined>;
   getClassSharesByClassId(classId: string, userId: string): Promise<RecruitingClassShare[]>;
+  getClassSharesByVersionProject(projectId: string): Promise<RecruitingClassShare[]>;
+  createHardenedClassShare(data: { classId?: string; userId: string; tokenHash: string; versionId: string; label?: string | null; expiresAt?: Date; maxImports?: number }): Promise<RecruitingClassShare>;
   revokeClassShare(shareId: string, userId: string): Promise<void>;
   incrementClassShareImportCount(shareId: string): Promise<void>;
+
+  // Versioned class library
+  getRecruitingClassProjectsByUser(userId: string): Promise<RecruitingClassProject[]>;
+  getRecruitingClassProject(id: string): Promise<RecruitingClassProject | undefined>;
+  getRecruitingClassProjectBySourceClass(sourceClassId: string): Promise<RecruitingClassProject | undefined>;
+  createRecruitingClassProject(data: InsertRecruitingClassProject): Promise<RecruitingClassProject>;
+  updateRecruitingClassProject(id: string, data: Partial<RecruitingClassProject>): Promise<RecruitingClassProject | undefined>;
+  getRecruitingClassVersionsByProject(projectId: string): Promise<RecruitingClassVersion[]>;
+  getRecruitingClassVersion(id: string): Promise<RecruitingClassVersion | undefined>;
+  createRecruitingClassVersion(data: InsertRecruitingClassVersion): Promise<RecruitingClassVersion>;
+  migrateClassSharesToVersion(classId: string, versionId: string): Promise<void>;
 
   // Game recaps
   createGameRecap(data: InsertGameRecap): Promise<GameRecap>;
@@ -2132,6 +2149,108 @@ export class DatabaseStorage implements IStorage {
     await db.update(recruitingClassShares)
       .set({ importCount: sql`${recruitingClassShares.importCount} + 1` })
       .where(eq(recruitingClassShares.id, shareId));
+  }
+
+  async getClassShareByTokenHash(tokenHash: string): Promise<RecruitingClassShare | undefined> {
+    const [share] = await db.select().from(recruitingClassShares)
+      .where(eq(recruitingClassShares.tokenHash, tokenHash));
+    return share || undefined;
+  }
+
+  async getClassSharesByVersionProject(projectId: string): Promise<RecruitingClassShare[]> {
+    // Fetch all shares whose versionId belongs to a version in this project
+    const versions = await db.select({ id: recruitingClassVersions.id })
+      .from(recruitingClassVersions)
+      .where(eq(recruitingClassVersions.projectId, projectId));
+    if (versions.length === 0) return [];
+    const versionIds = versions.map(v => v.id);
+    return db.select().from(recruitingClassShares)
+      .where(inArray(recruitingClassShares.versionId as any, versionIds))
+      .orderBy(desc(recruitingClassShares.createdAt));
+  }
+
+  async createHardenedClassShare(data: {
+    classId?: string;
+    userId: string;
+    tokenHash: string;
+    versionId: string;
+    label?: string | null;
+    expiresAt?: Date;
+    maxImports?: number;
+  }): Promise<RecruitingClassShare> {
+    const [share] = await db.insert(recruitingClassShares).values({
+      classId: data.classId ?? null,
+      userId: data.userId,
+      token: null,
+      tokenHash: data.tokenHash,
+      versionId: data.versionId,
+      label: data.label ?? null,
+      status: "active",
+      importCount: 0,
+      expiresAt: data.expiresAt ?? null,
+      maxImports: data.maxImports ?? null,
+    } as any).returning();
+    return share;
+  }
+
+  // ─── Versioned class library ──────────────────────────────────────────────────
+
+  async getRecruitingClassProjectsByUser(userId: string): Promise<RecruitingClassProject[]> {
+    return db.select().from(recruitingClassProjects)
+      .where(eq(recruitingClassProjects.ownerUserId, userId))
+      .orderBy(desc(recruitingClassProjects.updatedAt));
+  }
+
+  async getRecruitingClassProject(id: string): Promise<RecruitingClassProject | undefined> {
+    const [project] = await db.select().from(recruitingClassProjects)
+      .where(eq(recruitingClassProjects.id, id));
+    return project || undefined;
+  }
+
+  async getRecruitingClassProjectBySourceClass(sourceClassId: string): Promise<RecruitingClassProject | undefined> {
+    const [project] = await db.select().from(recruitingClassProjects)
+      .where(eq(recruitingClassProjects.sourceClassId, sourceClassId));
+    return project || undefined;
+  }
+
+  async createRecruitingClassProject(data: InsertRecruitingClassProject): Promise<RecruitingClassProject> {
+    const [project] = await db.insert(recruitingClassProjects).values(data).returning();
+    return project;
+  }
+
+  async updateRecruitingClassProject(id: string, data: Partial<RecruitingClassProject>): Promise<RecruitingClassProject | undefined> {
+    const [project] = await db.update(recruitingClassProjects)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(recruitingClassProjects.id, id))
+      .returning();
+    return project || undefined;
+  }
+
+  async getRecruitingClassVersionsByProject(projectId: string): Promise<RecruitingClassVersion[]> {
+    return db.select().from(recruitingClassVersions)
+      .where(eq(recruitingClassVersions.projectId, projectId))
+      .orderBy(asc(recruitingClassVersions.versionNumber));
+  }
+
+  async getRecruitingClassVersion(id: string): Promise<RecruitingClassVersion | undefined> {
+    const [version] = await db.select().from(recruitingClassVersions)
+      .where(eq(recruitingClassVersions.id, id));
+    return version || undefined;
+  }
+
+  async createRecruitingClassVersion(data: InsertRecruitingClassVersion): Promise<RecruitingClassVersion> {
+    const [version] = await db.insert(recruitingClassVersions).values(data).returning();
+    return version;
+  }
+
+  async migrateClassSharesToVersion(classId: string, versionId: string): Promise<void> {
+    // Point all existing V1 shares for this class at the new version
+    await db.update(recruitingClassShares)
+      .set({ versionId })
+      .where(and(
+        eq(recruitingClassShares.classId, classId),
+        isNull(recruitingClassShares.versionId as any)
+      ));
   }
 
   // ─── Recruiting Class Snapshots ──────────────────────────────────────────────
