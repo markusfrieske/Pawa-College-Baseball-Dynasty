@@ -2397,6 +2397,8 @@ export const aiClassJobs = pgTable("ai_class_jobs", {
   status: text("status").notNull().default("pending"),
   // Set when creator clicks Accept
   acceptedAt: timestamp("accepted_at"),
+  // Set when creator clicks Reject/Discard (soft-delete for audit)
+  rejectedAt: timestamp("rejected_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => [
   index("idx_ai_class_jobs_project").on(t.projectId),

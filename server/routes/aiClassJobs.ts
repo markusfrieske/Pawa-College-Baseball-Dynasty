@@ -4,7 +4,7 @@
  * POST /api/class-projects/:projectId/ai-jobs       — create + process job
  * GET  /api/class-projects/:projectId/ai-jobs/:jobId — poll status
  * POST /api/class-projects/:projectId/ai-jobs/:jobId/accept — accept into draft
- * DELETE /api/class-projects/:projectId/ai-jobs/:jobId       — discard
+ * DELETE /api/class-projects/:projectId/ai-jobs/:jobId       — soft-discard (audit preserved)
  * GET  /api/class-projects/:projectId/ai-quota               — quota remaining
  */
 
@@ -140,12 +140,35 @@ async function runThemeDraft(prompt: string): Promise<Record<string, unknown>> {
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "theme_draft",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              themeName: { type: "string", description: "Class theme name, max 40 chars" },
+              description: { type: "string", description: "Class theme description, max 200 chars" },
+              suggestedTags: {
+                type: "array",
+                items: { type: "string" },
+                description: "2-4 tags from: power, speed, pitching, defense, depth, development, culture, upside, grit"
+              },
+              suggestedPositionBias: {
+                type: "string",
+                enum: ["balanced", "pitching_heavy", "hitting_heavy", "speed_heavy", "power_heavy"]
+              },
+            },
+            required: ["themeName", "description", "suggestedTags", "suggestedPositionBias"],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "system",
-          content: `You are a creative director for a college baseball dynasty simulator. Draft a class theme from the coach's prompt.
-Return JSON: { "themeName": string (≤40 chars), "description": string (≤200 chars), "suggestedTags": string[] (2-4 items from: power, speed, pitching, defense, depth, development, culture, upside, grit), "suggestedPositionBias": string (one of: balanced, pitching_heavy, hitting_heavy, speed_heavy, power_heavy) }`,
+          content: `You are a creative director for a college baseball dynasty simulator. Draft a class theme from the coach's prompt. Be creative and evocative with the theme name.`,
         },
         { role: "user", content: prompt },
       ],
@@ -164,13 +187,42 @@ async function runCastProposal(prompt: string, cast: string[]): Promise<Record<s
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "cast_proposal",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              roles: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    templateRecruitId: { type: "string" },
+                    storySlot: { type: "string" },
+                    roleLabel: { type: "string", description: "Max 30 chars" },
+                    rationale: { type: "string", description: "Max 100 chars" },
+                    suggestedArcFamily: {
+                      type: "string",
+                      enum: ["redemption", "emergence", "rivalry", "injury", "breakthrough", "mentor", "underdog", "comeback"]
+                    },
+                  },
+                  required: ["templateRecruitId", "storySlot", "roleLabel", "rationale", "suggestedArcFamily"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["roles"],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "system",
-          content: `You are a sports storytelling director for a college baseball dynasty simulator. Given a list of recruit IDs and a coach's creative direction, propose story role concepts.
-Return JSON: { "roles": [ { "templateRecruitId": string, "storySlot": string, "roleLabel": string (≤30 chars), "rationale": string (≤100 chars), "suggestedArcFamily": string (one of: redemption, emergence, rivalry, injury, breakthrough, mentor, underdog, comeback) } ] }
-Include one entry per recruit ID provided. Be creative and varied.`,
+          content: `You are a sports storytelling director for a college baseball dynasty simulator. Given a list of recruit IDs and a coach's creative direction, propose story role concepts. Include one entry per recruit ID provided. Be creative and varied.`,
         },
         {
           role: "user",
@@ -192,13 +244,54 @@ async function runArcDraft(prompt: string, recruitName: string): Promise<Record<
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "arc_draft",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              chapters: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string", description: "Chapter title, max 40 chars" },
+                    eventText: { type: "string", description: "Narrative event text, max 200 chars" },
+                    choices: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          label: { type: "string", description: "Choice label, max 30 chars" },
+                          outcomeText: { type: "string", description: "Outcome description, max 150 chars" },
+                          effectPreset: {
+                            type: "string",
+                            enum: ["confidence_minor_gain", "confidence_major_gain", "skill_minor_gain", "skill_major_gain", "performance_minor_gain", "performance_major_gain", "none"]
+                          },
+                        },
+                        required: ["label", "outcomeText", "effectPreset"],
+                        additionalProperties: false,
+                      },
+                      minItems: 2,
+                      maxItems: 2,
+                    },
+                  },
+                  required: ["title", "eventText", "choices"],
+                  additionalProperties: false,
+                },
+              },
+            },
+            required: ["chapters"],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "system",
-          content: `You are a narrative designer for a college baseball dynasty simulator. Draft a 3-chapter story arc for a recruit.
-Return JSON: { "chapters": [ { "title": string (≤40 chars), "eventText": string (≤200 chars), "choices": [ { "label": string (≤30 chars), "outcomeText": string (≤150 chars), "effectPreset": string (one of: confidence_minor_gain, confidence_major_gain, skill_minor_gain, skill_major_gain, performance_minor_gain, performance_major_gain, none) } ] } ] }
-Each chapter has exactly 2 choices. Chapters must escalate in narrative stakes. Keep language punchy and evocative.`,
+          content: `You are a narrative designer for a college baseball dynasty simulator. Draft a 3-chapter story arc for a recruit. Each chapter has exactly 2 choices. Chapters must escalate in narrative stakes. Keep language punchy and evocative.`,
         },
         {
           role: "user",
@@ -220,13 +313,25 @@ async function runTextRewrite(prompt: string, originalText: string): Promise<Rec
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "text_rewrite",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              rewrittenText: { type: "string", description: "The rewritten text, same meaning, tone adjusted" },
+            },
+            required: ["rewrittenText"],
+            additionalProperties: false,
+          },
+        },
+      },
       messages: [
         {
           role: "system",
-          content: `You are an editor for a college baseball dynasty simulator. Rewrite the provided text according to the coach's tone direction.
-Return JSON: { "rewrittenText": string }
-Keep the same meaning and roughly the same length. Preserve key facts. Apply the tone requested.`,
+          content: `You are an editor for a college baseball dynasty simulator. Rewrite the provided text according to the coach's tone direction. Keep the same meaning and roughly the same length. Preserve key facts.`,
         },
         {
           role: "user",
@@ -268,7 +373,7 @@ export function registerAiClassJobRoutes(app: Express): void {
   // POST /api/class-projects/:projectId/ai-jobs — create + process job synchronously
   app.post("/api/class-projects/:projectId/ai-jobs", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = req.session.userId as string;
       const { projectId } = req.params;
       const { jobType, prompt, metadata = {} } = req.body as {
         jobType: string;
@@ -288,7 +393,7 @@ export function registerAiClassJobRoutes(app: Express): void {
       if (!project) return res.status(404).json({ error: "Project not found" });
       if (project.ownerUserId !== userId) return res.status(403).json({ error: "Forbidden" });
 
-      // Rate limit check
+      // Rate limit check (only count non-rejected jobs)
       const usedCount = await storage.countAiClassJobsInHour(userId);
       if (usedCount >= RATE_LIMIT) {
         return res.status(429).json({
@@ -320,7 +425,7 @@ export function registerAiClassJobRoutes(app: Express): void {
         responseJson = { error: "Dispatch failed", fallback: true };
       }
 
-      // Compute fallback if needed
+      // Determine if this is a procedural fallback
       const isFallback = finalStatus === "failed" || responseJson.aiAssisted === false;
       let fallbackJson: Record<string, unknown> | undefined;
       if (isFallback) {
@@ -349,7 +454,7 @@ export function registerAiClassJobRoutes(app: Express): void {
   // GET /api/class-projects/:projectId/ai-jobs/:jobId — poll status
   app.get("/api/class-projects/:projectId/ai-jobs/:jobId", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = req.session.userId as string;
       const { jobId } = req.params;
       const job = await storage.getAiClassJob(jobId);
       if (!job) return res.status(404).json({ error: "Job not found" });
@@ -361,30 +466,65 @@ export function registerAiClassJobRoutes(app: Express): void {
   });
 
   // POST /api/class-projects/:projectId/ai-jobs/:jobId/accept
+  // Marks the job as accepted and merges validated AI content into the project draft.
   app.post("/api/class-projects/:projectId/ai-jobs/:jobId/accept", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id as string;
-      const { jobId } = req.params;
+      const userId = req.session.userId as string;
+      const { projectId, jobId } = req.params;
       const job = await storage.getAiClassJob(jobId);
       if (!job) return res.status(404).json({ error: "Job not found" });
       if (job.userId !== userId) return res.status(403).json({ error: "Forbidden" });
+      if (job.projectId !== projectId) return res.status(403).json({ error: "Forbidden" });
+      if (job.acceptedAt) return res.status(409).json({ error: "Already accepted" });
+
+      // Mark job as accepted (audit trail)
       const updated = await storage.updateAiClassJob(jobId, { acceptedAt: new Date() });
+
+      // Merge validated AI content into project classData draft
+      const project = await storage.getRecruitingClassProject(projectId);
+      if (project && job.responseJson) {
+        const existingData = (project.classData as Record<string, unknown>) ?? {};
+        const aiContent = job.responseJson as Record<string, unknown>;
+        const patch: Record<string, unknown> = { ai_assisted: true };
+
+        // Apply content by job type — only merge safe known fields
+        if (job.jobType === "theme_draft") {
+          if (aiContent.themeName) patch.themeName = aiContent.themeName;
+          if (aiContent.description) patch.description = aiContent.description;
+          if (Array.isArray(aiContent.suggestedTags)) patch.tags = aiContent.suggestedTags;
+          if (aiContent.suggestedPositionBias) patch.positionBias = aiContent.suggestedPositionBias;
+        } else if (job.jobType === "arc_draft") {
+          if (Array.isArray(aiContent.chapters)) patch.aiArcChapters = aiContent.chapters;
+        } else if (job.jobType === "text_rewrite") {
+          if (aiContent.rewrittenText) patch.description = aiContent.rewrittenText;
+        } else if (job.jobType === "cast_proposal") {
+          if (Array.isArray(aiContent.roles)) patch.aiCastRoles = aiContent.roles;
+        }
+
+        await storage.updateRecruitingClassProject(projectId, {
+          classData: { ...existingData, ...patch, lastAiJobId: jobId },
+        });
+      }
+
       res.json({ job: updated });
     } catch (err) {
+      console.error("[ai-class-jobs] accept error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // DELETE /api/class-projects/:projectId/ai-jobs/:jobId
+  // Soft-discard: sets rejectedAt for audit trail. Row is never hard-deleted.
   app.delete("/api/class-projects/:projectId/ai-jobs/:jobId", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = req.session.userId as string;
       const { jobId } = req.params;
       const job = await storage.getAiClassJob(jobId);
       if (!job) return res.status(404).json({ error: "Job not found" });
       if (job.userId !== userId) return res.status(403).json({ error: "Forbidden" });
-      await storage.deleteAiClassJob(jobId);
-      res.json({ ok: true });
+      if (job.rejectedAt) return res.json({ ok: true, alreadyRejected: true });
+      const updated = await storage.updateAiClassJob(jobId, { rejectedAt: new Date() });
+      res.json({ ok: true, job: updated });
     } catch (err) {
       res.status(500).json({ error: "Internal server error" });
     }
@@ -393,7 +533,7 @@ export function registerAiClassJobRoutes(app: Express): void {
   // GET /api/class-projects/:projectId/ai-quota
   app.get("/api/class-projects/:projectId/ai-quota", requireAuth, async (req: Request, res: Response) => {
     try {
-      const userId = (req as any).user?.id as string;
+      const userId = req.session.userId as string;
       const usedCount = await storage.countAiClassJobsInHour(userId);
       res.json({
         used: usedCount,

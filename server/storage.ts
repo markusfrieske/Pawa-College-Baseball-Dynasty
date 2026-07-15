@@ -2283,7 +2283,11 @@ export class DatabaseStorage implements IStorage {
     const cutoff = new Date(Date.now() - 60 * 60 * 1000);
     const [row] = await db.select({ count: sql<number>`count(*)::int` })
       .from(aiClassJobs)
-      .where(and(eq(aiClassJobs.userId, userId), gt(aiClassJobs.createdAt, cutoff)));
+      .where(and(
+        eq(aiClassJobs.userId, userId),
+        gt(aiClassJobs.createdAt, cutoff),
+        isNull(aiClassJobs.rejectedAt),
+      ));
     return row?.count ?? 0;
   }
 

@@ -238,8 +238,10 @@ app.use((req, res, next) => {
           fallback_json jsonb,
           status text NOT NULL DEFAULT 'pending',
           accepted_at timestamp,
+          rejected_at timestamp,
           created_at timestamp NOT NULL DEFAULT now()
         )`,
+        `ALTER TABLE ai_class_jobs ADD COLUMN IF NOT EXISTS rejected_at timestamp`,
         `CREATE INDEX IF NOT EXISTS idx_ai_class_jobs_project ON ai_class_jobs (project_id)`,
         `CREATE INDEX IF NOT EXISTS idx_ai_class_jobs_user_created ON ai_class_jobs (user_id, created_at)`,
       ];

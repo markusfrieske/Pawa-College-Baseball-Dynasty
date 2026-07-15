@@ -311,6 +311,7 @@ export function generateRecruitClass(
   _setPitchMixRng(mulberry32(fnv1a32(masterSeed + "\x00pitch")));
   // ─────────────────────────────────────────────────────────────────────────
 
+  try {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "OF", "OF", "OF"];
@@ -2330,8 +2331,10 @@ export function generateRecruitClass(
     recruit.classVintage = classVintage;
   }
 
-  _resetRecruitRng();
-  _resetPitchMixRng();
   _lastMasterSeed = masterSeed;
   return out;
+  } finally {
+    _resetRecruitRng();
+    _resetPitchMixRng();
+  }
 }
