@@ -303,8 +303,10 @@ export async function replaceLeagueRecruitingClass(
           }
         }
 
-        // Pass 2 — force-include cast members missing from picks
-        //          so all authored cast slots always produce a storyline recruit row.
+        // Pass 2 — force-include cast members missing from picks, maintaining
+        //          a strict 10-slot cap.  Before adding a missing cast member,
+        //          evict the last non-cast pick so the total never exceeds 10.
+        const MAX_STORY_SLOTS = 10;
         for (const member of storyPlan.cast) {
           if (member.arcMode !== "template" || !member.arcTemplateKey) continue;
           const dbId = templateIdToDbId.get(member.templateRecruitId);
@@ -313,7 +315,21 @@ export async function replaceLeagueRecruitingClass(
           const row = insertedRows.find(r => r.id === dbId);
           if (!row) continue;
 
-          // Synthesise a pick entry so the cast member gets a storyline recruit row
+          // If at the slot cap, evict the last non-cast pick to make room.
+          if (picks.length >= MAX_STORY_SLOTS) {
+            const evictIdx = picks.reduce<number>((found, p, i) =>
+              !authoredRecruitIds.has(p.recruitId) ? i : found, -1);
+            if (evictIdx === -1) {
+              // All picks are authored cast members — no room to add another cast slot.
+              console.warn(`[replaceRecruitClass] storyPlan force-include skipped (cap full): ${dbId}`);
+              continue;
+            }
+            const evicted = picks.splice(evictIdx, 1)[0];
+            pickedIds.delete(evicted.recruitId);
+            console.log(`[replaceRecruitClass] storyPlan evicted non-cast pick ${evicted.recruitId} to make room`);
+          }
+
+          // Synthesise a pick entry so the cast member gets a storyline recruit row.
           picks.push({
             recruitId: dbId,
             archetype: member.arcTemplateKey as import("../storylineEngine").Archetype,

@@ -173,11 +173,14 @@ export async function applyStoryOutcomeToRecruit(
       }
 
       // We own the sentinel — apply all changes inside this single transaction.
+      // PostgreSQL requires snake_case column names in raw SQL; Drizzle's
+      // camelCase→snake_case mapping is not applied to raw query() calls.
+      const toSnake = (s: string) => s.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
       const setClauses: string[] = [];
       const params: unknown[] = [];
       let idx = 1;
       for (const [col, val] of Object.entries(finalUpdates)) {
-        setClauses.push(`"${col}" = $${idx++}`);
+        setClauses.push(`"${toSnake(col)}" = $${idx++}`);
         params.push(typeof val === "object" ? JSON.stringify(val) : val);
       }
       params.push(recruit.id);
