@@ -274,7 +274,7 @@ export default function TeamSelectionPage() {
   const isFullSeason = (data.league as any).dynastyPreset === "full_season";
   const focusedInfo = focusedTeam && scoutingMap ? scoutingMap[focusedTeam] : null;
 
-  // ── Full Season Mode: simplified "choose your program" view ───────────────
+  // ── Full Season Mode: conference grid view with RPI ranks ─────────────────
   if (isFullSeason) {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -286,43 +286,98 @@ export default function TeamSelectionPage() {
             </Link>
           </div>
 
-          <div className="text-center mb-8">
-            <div className="flex justify-center gap-1 mb-4">
+          <div className="text-center mb-6">
+            <div className="flex justify-center gap-1 mb-3">
               <Globe className="w-5 h-5 text-gold" />
             </div>
-            <h1 className="text-gold text-xl mb-2" data-testid="text-select-teams-title">Full Season Mode</h1>
+            <h1 className="text-gold text-xl mb-1" data-testid="text-select-teams-title">Full Season Mode</h1>
             <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-              All {liveTotalTeams} programs from 12 conferences are included automatically.
-              Click below to initialize the dynasty and continue to coach setup.
+              All {liveTotalTeams} programs across {data.conferences.length} conferences — ranks based on RPI.
             </p>
           </div>
 
-          <RetroCard className="mb-6">
-            <RetroCardContent className="pt-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-6">
-                {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => (
-                  <div key={conference.id} className="flex items-center justify-between px-3 py-2 rounded border border-border/50 bg-background/40">
-                    <span className="text-xs text-muted-foreground truncate">{conference.name}</span>
-                    <span className="text-xs text-gold ml-2">{poolTeams.length}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-muted-foreground mb-4">
-                  <span className="text-gold font-bold">{liveTotalTeams}</span> teams across{" "}
-                  <span className="text-gold font-bold">{data.conferences.length}</span> conferences
-                </div>
-                <RetroButton
-                  onClick={handleFullSeasonBegin}
-                  loading={saveMutation.isPending}
-                  data-testid="button-continue-setup"
+          <div className="flex justify-center mb-6">
+            <RetroButton
+              onClick={handleFullSeasonBegin}
+              loading={saveMutation.isPending}
+              data-testid="button-continue-setup"
+              size="lg"
+            >
+              Initialize Dynasty
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </RetroButton>
+          </div>
+
+          <div className="space-y-4">
+            {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => {
+              const rankedTeams = [...poolTeams].sort((a, b) => {
+                const aRank = scoutingMap?.[a.name]?.nationalRank ?? 9999;
+                const bRank = scoutingMap?.[b.name]?.nationalRank ?? 9999;
+                return aRank - bRank;
+              });
+              return (
+                <div
+                  key={conference.id}
+                  className="border-2 border-border/60 bg-card/60 p-3"
                 >
-                  Initialize Dynasty
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </RetroButton>
-              </div>
-            </RetroCardContent>
-          </RetroCard>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-semibold text-foreground">{conference.name}</span>
+                    <span className="text-xs text-muted-foreground">{poolTeams.length} teams</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {rankedTeams.map((team) => {
+                      const rank = scoutingMap?.[team.name]?.nationalRank;
+                      return (
+                        <div
+                          key={team.name}
+                          className="flex flex-col items-center gap-1 w-[3.5rem]"
+                          title={team.name}
+                          data-testid={`tile-team-${team.abbreviation}`}
+                        >
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-border/50 shrink-0"
+                            style={{ backgroundColor: team.primaryColor }}
+                          >
+                            <span
+                              className={`leading-none text-center font-bold ${
+                                (team.abbreviation?.length ?? 0) > 4
+                                  ? "text-[0.5rem]"
+                                  : (team.abbreviation?.length ?? 0) >= 4
+                                  ? "text-[0.55rem]"
+                                  : (team.abbreviation?.length ?? 0) === 3
+                                  ? "text-xs"
+                                  : "text-sm"
+                              }`}
+                              style={{ color: team.secondaryColor || "#ffffff" }}
+                            >
+                              {team.abbreviation}
+                            </span>
+                          </div>
+                          {rank !== undefined && (
+                            <span className="text-[0.7rem] leading-none text-muted-foreground font-data" data-testid={`text-rank-${team.abbreviation}`}>
+                              #{rank}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-center mt-6 pb-8">
+            <RetroButton
+              onClick={handleFullSeasonBegin}
+              loading={saveMutation.isPending}
+              data-testid="button-continue-setup-bottom"
+              size="lg"
+            >
+              Initialize Dynasty
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </RetroButton>
+          </div>
         </div>
       </div>
     );
