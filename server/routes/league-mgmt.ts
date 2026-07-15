@@ -1116,7 +1116,7 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { recruits: rawRecruits } = req.body as { recruits: any[] };
+    const { recruits: rawRecruits, storyPlan: rawStoryPlan } = req.body as { recruits: any[]; storyPlan?: any };
     if (!Array.isArray(rawRecruits) || rawRecruits.length === 0) {
       return res.status(400).json({ message: "recruits array required" });
     }
@@ -1128,12 +1128,19 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
       throw e;
     }
 
+    // Basic validation: storyPlan must be a valid WizardStoryPlan if present
+    let storyPlan: import("@shared/schema").WizardStoryPlan | undefined;
+    if (rawStoryPlan && rawStoryPlan.mode === "authored" && Array.isArray(rawStoryPlan.cast)) {
+      storyPlan = rawStoryPlan as import("@shared/schema").WizardStoryPlan;
+    }
+
     const leagueId = req.params.id as string;
     const { count: savedCount } = await replaceLeagueRecruitingClass({
       leagueId,
       season: league.currentSeason,
       recruits: (validatedWizard.recruits.map(r => ({ ...r, leagueId })) as any),
       initStorylines: true,
+      storyPlan,
       saveState: {
         trigger: "pre_restore",
         label: `Pre-wizard-class replacement (season ${league.currentSeason})`,

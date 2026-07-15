@@ -38,6 +38,7 @@ import { captureLeagueSaveState, type SaveStateTrigger } from "./leagueSaveState
 import { pickStorylineRecruits } from "../storylineEngine";
 import { initializeStorylineRecruits, generateInitialStorylineEvents } from "../storyline-routes";
 import { invalidateLeague } from "../cache";
+import type { WizardStoryPlan } from "@shared/schema";
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -60,6 +61,13 @@ export interface ReplaceClassOptions {
    * Omit (leave `undefined`) to leave the existing vintage untouched.
    */
   vintage?: string | null;
+
+  /**
+   * Optional authored Story Plan from the Class Studio wizard.
+   * Cast members with arcMode="template" have their archetype pinned.
+   * Non-cast recruits receive randomly-assigned archetypes as usual.
+   */
+  storyPlan?: WizardStoryPlan;
 
   /**
    * When true, storyline recruits are created inside the same transaction as
@@ -117,6 +125,7 @@ export async function replaceLeagueRecruitingClass(
     season,
     recruits,
     vintage,
+    storyPlan,
     initStorylines = false,
     asyncStorylines = false,
     storyStartWeek = 1,
@@ -252,6 +261,39 @@ export async function replaceLeagueRecruitingClass(
       }
 
       const picks = pickStorylineRecruits(recruitsForPicker, { recentLegendaryCount });
+
+      // ── Apply authored storyPlan overrides (Story Cast / Arc Studio) ──────
+      // Match cast members to DB recruits by positional correlation:
+      //   opts.recruits[i].templateRecruitId → insertedRows[i].id
+      // (Order preserved because batch inserts use RETURNING in insertion order.)
+      if (storyPlan?.mode === "authored" && storyPlan.cast.length > 0) {
+        const templateIdToDbId = new Map<string, string>();
+        for (let i = 0; i < opts.recruits.length; i++) {
+          const tId = (opts.recruits[i] as any).templateRecruitId as string | undefined;
+          const dbId = insertedRows[i]?.id;
+          if (tId && dbId) templateIdToDbId.set(tId, dbId);
+        }
+
+        // Build dbId → forced archetype from cast members with arcMode="template"
+        const forcedArchetype = new Map<string, string>();
+        for (const member of storyPlan.cast) {
+          if (member.arcMode === "template" && member.arcTemplateKey) {
+            const dbId = templateIdToDbId.get(member.templateRecruitId);
+            if (dbId) forcedArchetype.set(dbId, member.arcTemplateKey);
+          }
+        }
+
+        // Apply overrides to the picks array
+        for (const pick of picks) {
+          const override = forcedArchetype.get(pick.recruitId);
+          if (override) {
+            pick.archetype = override as typeof pick.archetype;
+            console.log(
+              `[replaceRecruitClass] storyPlan override: recruit ${pick.recruitId} → archetype ${override}`
+            );
+          }
+        }
+      }
 
       // Insert storyline recruits using tx so failure rolls back the entire class
       const insertedSR = await tx

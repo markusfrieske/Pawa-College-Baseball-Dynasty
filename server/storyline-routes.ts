@@ -42,23 +42,49 @@ export async function applyStoryOutcomeToRecruit(
 ): Promise<{ ovrDelta: number; abilityGain?: string; abilityRemove?: string; abilityTier?: string }> {
   if (!recruit) return { ovrDelta: 0 };
 
-  // ── Idempotency guard ──────────────────────────────────────────────────────
-  // If we already resolved this event, skip re-application and return the
-  // cached delta from the ledger row to keep downstream calculations correct.
+  // ── Idempotency guard (insert-first, race-safe) ───────────────────────────
+  // Race-safe strategy: attempt INSERT with sentinel values first.
+  //   • rowCount = 1 → we hold the serialisation lock; apply changes, then UPDATE row.
+  //   • rowCount = 0 → conflict means another caller already committed; read cached delta.
+  // Concurrent callers block on the INSERT until the winning transaction commits.
   if (eventId) {
     try {
-      const existing = await pool.query<{ ovrDelta: number }>(
-        `SELECT (after_ratings->>'overall')::int - (before_ratings->>'overall')::int AS "ovrDelta"
-           FROM storyline_resolutions WHERE event_id = $1 LIMIT 1`,
-        [eventId],
-      );
-      if ((existing.rowCount ?? 0) > 0) {
-        const cachedDelta = existing.rows[0].ovrDelta ?? 0;
-        console.log(`[storylines] idempotency hit for event ${eventId} — cached ovrDelta=${cachedDelta}`);
-        return { ovrDelta: cachedDelta };
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const sentinel = await client.query(
+          `INSERT INTO storyline_resolutions (event_id, winning_choice)
+           VALUES ($1, $2)
+           ON CONFLICT (event_id) DO NOTHING
+           RETURNING id`,
+          [eventId, winningChoice ?? "A"],
+        );
+        if ((sentinel.rowCount ?? 0) === 0) {
+          // Already resolved — read cached delta from the committed row
+          await client.query("COMMIT");
+          const cached = await client.query<{ ovrDelta: number }>(
+            `SELECT COALESCE(
+               (after_ratings->>'overall')::int - (before_ratings->>'overall')::int,
+               0
+             ) AS "ovrDelta"
+             FROM storyline_resolutions WHERE event_id = $1 LIMIT 1`,
+            [eventId],
+          );
+          const cachedDelta = cached.rows[0]?.ovrDelta ?? 0;
+          console.log(`[storylines] idempotency hit for event ${eventId} — cached ovrDelta=${cachedDelta}`);
+          return { ovrDelta: cachedDelta };
+        }
+        // We won the INSERT lock — proceed with application inside this transaction.
+        // The transaction block below will UPDATE the sentinel row and commit.
+        await client.query("COMMIT");
+      } catch (sentinelErr) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw sentinelErr;
+      } finally {
+        client.release();
       }
     } catch (idempErr) {
-      console.warn("[storylines] idempotency check failed (non-fatal):", idempErr);
+      console.warn("[storylines] idempotency sentinel failed (falling through to legacy path):", idempErr);
     }
   }
 
@@ -177,11 +203,12 @@ export async function applyStoryOutcomeToRecruit(
   const effectSnapshot = JSON.stringify({ attrUpdates, abilityGain, abilityRemoveResult });
 
   if (eventId) {
+    // Sentinel row was inserted above; now apply changes and UPDATE it with snapshots.
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
 
-      // Build a parameterized SET clause for all changed columns
+      // Build a parameterized SET clause for all changed recruit columns
       const setClauses: string[] = [];
       const params: unknown[] = [];
       let idx = 1;
@@ -202,13 +229,12 @@ export async function applyStoryOutcomeToRecruit(
         await client.query(`UPDATE recruits SET stage = 'left_pool' WHERE id = $1`, [recruit.id]);
       }
 
-      // Insert idempotency ledger row — ON CONFLICT DO NOTHING prevents double-apply
+      // UPDATE the sentinel row with full snapshot data (sentinel was inserted above)
       await client.query(
-        `INSERT INTO storyline_resolutions
-           (event_id, winning_choice, effect_snapshot, before_ratings, after_ratings)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (event_id) DO NOTHING`,
-        [eventId, winningChoice ?? "A", effectSnapshot, beforeSnapshot, afterSnapshot],
+        `UPDATE storyline_resolutions
+           SET effect_snapshot = $1, before_ratings = $2, after_ratings = $3
+         WHERE event_id = $4`,
+        [effectSnapshot, beforeSnapshot, afterSnapshot, eventId],
       );
 
       await client.query("COMMIT");
