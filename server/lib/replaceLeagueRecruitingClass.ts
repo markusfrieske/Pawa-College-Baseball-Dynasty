@@ -190,29 +190,54 @@ export async function replaceLeagueRecruitingClass(
       await tx.delete(recruitsTable).where(eq(recruitsTable.leagueId, leagueId));
     }
 
-    // 2c. Insert the new class in chunks
+    // 2c. Insert the new class in chunks, capturing DB-assigned IDs and
+    //     all fields needed for storyline pick computation.
+    const insertedRows: Array<{
+      id: string;
+      overall: number | null;
+      starRank: number | null;
+      isBlueChip: boolean | null;
+      isGenerationalGem: boolean | null;
+      firstName: string | null;
+      lastName: string | null;
+      position: string;
+    }> = [];
+
     for (let i = 0; i < recruits.length; i += CHUNK) {
-      const inserted = await tx
+      const batch = await tx
         .insert(recruitsTable)
         .values(recruits.slice(i, i + CHUNK))
-        .returning({ id: recruitsTable.id });
-      insertedCount += inserted.length;
+        .returning({
+          id: recruitsTable.id,
+          overall: recruitsTable.overall,
+          starRank: recruitsTable.starRank,
+          isBlueChip: recruitsTable.isBlueChip,
+          isGenerationalGem: recruitsTable.isGenerationalGem,
+          firstName: recruitsTable.firstName,
+          lastName: recruitsTable.lastName,
+          position: recruitsTable.position,
+        });
+      insertedCount += batch.length;
+      insertedRows.push(...batch);
     }
 
     // 2d. Storyline recruit creation (sync path only) — inside the transaction
     //     so any failure here rolls back the entire recruit pool replacement.
     //     Uses pickStorylineRecruits (pure computation) and tx.insert (Drizzle).
     //     Arc events are generated post-transaction as best-effort.
+    //
+    //     IMPORTANT: use `insertedRows` (DB-assigned UUIDs from RETURNING) not
+    //     `opts.recruits` — validation strips input IDs so r.id would be undefined.
     if (initStorylines && !asyncStorylines) {
-      const recruitsForPicker = recruits.map(r => ({
-        id: r.id as string,
-        overall: (r.overall as number | null) ?? 250,
-        starRank: (r.starRank as number | null) ?? 3,
+      const recruitsForPicker = insertedRows.map(r => ({
+        id: r.id,
+        overall: r.overall ?? 250,
+        starRank: r.starRank ?? 3,
         isBlueChip: r.isBlueChip ?? false,
         isGenerationalGem: r.isGenerationalGem ?? false,
-        firstName: (r.firstName as string | null) ?? "Recruit",
-        lastName: (r.lastName as string | null) ?? "",
-        position: r.position as string,
+        firstName: r.firstName ?? "Recruit",
+        lastName: r.lastName ?? "",
+        position: r.position,
       }));
 
       // Query recentLegendaryCount from previous seasons (best-effort; doesn't need tx)
