@@ -182,7 +182,7 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
     mutationFn: async () => {
       if (!project?.id) throw new Error("No project");
 
-      const body: Record<string, unknown> = { isSealed, label: labelInput.trim() || null };
+      const body: Record<string, unknown> = { label: labelInput.trim() || null };
       if (expiresAfterDays.trim()) {
         const d = parseInt(expiresAfterDays.trim(), 10);
         if (!isNaN(d) && d > 0) {
@@ -303,35 +303,59 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
           <div className="space-y-5 mt-2">
 
             {/* ── Version status ─────────────────────────────────────────── */}
-            <div className="flex items-center justify-between p-2.5 rounded border border-border bg-muted/10">
+            <div className="p-2.5 rounded border border-border bg-muted/10 space-y-2.5">
               {hasPublishedVersion ? (
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-gold" />
                   <span className="text-xs text-muted-foreground">
                     Published as{" "}
                     <span className="text-gold font-semibold">v{latestVersion!.versionNumber}</span>
-                    {latestVersion!.isSealed && (
+                    {latestVersion!.isSealed ? (
                       <Badge variant="secondary" className="ml-2 text-xs px-1 py-0">
                         <Lock className="w-2.5 h-2.5 mr-1" />Sealed
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="ml-2 text-xs px-1 py-0">
+                        <Unlock className="w-2.5 h-2.5 mr-1" />Open
                       </Badge>
                     )}
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Draft — publish to enable sharing</span>
-                </div>
-              )}
-              {!hasPublishedVersion && (
-                <RetroButton
-                  size="sm"
-                  onClick={() => publishMutation.mutate()}
-                  disabled={publishMutation.isPending}
-                  data-testid="button-publish-version"
-                >
-                  {publishMutation.isPending ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : null}
-                  Publish
-                </RetroButton>
+                <>
+                  <p className="text-xs text-muted-foreground">Draft — publish to enable sharing</p>
+                  {/* Sealed mode is set at publish time and locked into the version */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {isSealed ? (
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                      ) : (
+                        <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
+                      )}
+                      <Label className="text-xs cursor-pointer" htmlFor="sealed-toggle">
+                        {isSealed
+                          ? "Sealed — recipients see fog-of-war only"
+                          : "Open — recipients see full class data"}
+                      </Label>
+                    </div>
+                    <Switch
+                      id="sealed-toggle"
+                      checked={isSealed}
+                      onCheckedChange={setIsSealed}
+                      data-testid="switch-sealed-mode"
+                    />
+                  </div>
+                  <RetroButton
+                    size="sm"
+                    onClick={() => publishMutation.mutate()}
+                    disabled={publishMutation.isPending}
+                    data-testid="button-publish-version"
+                    className="w-full"
+                  >
+                    {publishMutation.isPending ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : null}
+                    Publish {isSealed ? "(Sealed)" : "(Open)"}
+                  </RetroButton>
+                </>
               )}
             </div>
 
@@ -369,26 +393,9 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
             {hasPublishedVersion && (
               <div className="space-y-3 p-3 rounded border border-border bg-muted/10">
                 <p className="text-xs font-semibold text-muted-foreground uppercase">New Share Link</p>
-
-                {/* Sealed toggle */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {isSealed ? (
-                      <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    ) : (
-                      <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                    <Label className="text-xs cursor-pointer" htmlFor="sealed-toggle">
-                      {isSealed ? "Sealed (recipient sees fog-of-war)" : "Open (recipient sees full data)"}
-                    </Label>
-                  </div>
-                  <Switch
-                    id="sealed-toggle"
-                    checked={isSealed}
-                    onCheckedChange={setIsSealed}
-                    data-testid="switch-sealed-mode"
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground/70">
+                  Sealed/open mode is locked in at publish time (shown above).
+                </p>
 
                 {/* Optional label */}
                 <div className="space-y-1">

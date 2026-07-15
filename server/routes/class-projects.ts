@@ -45,7 +45,7 @@ function hashToken(plaintext: string): string {
 
 function contentHash(packageJson: unknown): string {
   const canonical = JSON.stringify(packageJson);
-  return createHash("sha256").update(canonical).digest("hex").substring(0, 32);
+  return createHash("sha256").update(canonical).digest("hex");
 }
 
 // ── IP rate limiter (max 20 req/min per IP for public endpoints) ───────────────

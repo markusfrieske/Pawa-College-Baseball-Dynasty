@@ -195,24 +195,12 @@ export function registerSavedRoutes(app: Express): void {
 
   // ── Share Links ────────────────────────────────────────────────────────────
 
+  // V1 share creation is deprecated — new shares must use the hardened V2 path:
+  // POST /api/class-projects/:projectId/shares (128-bit token, SHA-256 stored).
   app.post("/api/saved-recruiting-classes/:id/shares", requireAuth, async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
-      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
-      if (rc.userId !== userId) return res.status(403).json({ message: "Not authorized" });
-      const token = randomUUID().replace(/-/g, "").substring(0, 12).toUpperCase();
-      const share = await storage.createClassShare({
-        classId: rc.id,
-        userId,
-        token,
-        label: req.body.label ?? null,
-      });
-      res.json(share);
-    } catch (error) {
-      console.error("Failed to create class share link:", error);
-      res.status(500).json({ message: "Failed to create share link" });
-    }
+    return res.status(410).json({
+      message: "Legacy share creation is disabled. Use the share dialog to generate a secure link.",
+    });
   });
 
   app.get("/api/saved-recruiting-classes/:id/shares", requireAuth, async (req, res) => {
@@ -251,9 +239,6 @@ export function registerSavedRoutes(app: Express): void {
       if (!share || share.status !== "active") {
         return res.status(404).json({ message: "Share link not found or has been revoked" });
       }
-      if (!share.classId) return res.status(404).json({ message: "Recruiting class not found" });
-      const rc = await storage.getSavedRecruitingClass(share.classId);
-      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
 
       let creatorDisplay: string | null = null;
       try {
@@ -264,7 +249,22 @@ export function registerSavedRoutes(app: Express): void {
         }
       } catch {}
 
-      const classData = rc.classData as unknown;
+      // When versionId is set, use the immutable version snapshot (preferred).
+      // Fall back to live classData only for truly unmigrated V1 rows.
+      let classData: unknown;
+      if (share.versionId) {
+        const version = await storage.getRecruitingClassVersion(share.versionId);
+        if (!version) return res.status(404).json({ message: "Recruiting class not found" });
+        classData = version.packageJson;
+      } else {
+        if (!share.classId) {
+          console.warn(`[import-class-preview] share ${share.id} has neither versionId nor classId`);
+          return res.status(404).json({ message: "Recruiting class not found" });
+        }
+        const rc = await storage.getSavedRecruitingClass(share.classId);
+        if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+        classData = rc.classData as unknown;
+      }
 
       // Extract recruits from any stored format (legacy array, legacy object, versioned envelope)
       const recruits = extractRecruits(classData);
@@ -273,6 +273,25 @@ export function registerSavedRoutes(app: Express): void {
       const storedSummary = extractSummary(classData);
       const summary = storedSummary ?? computeSummary(recruits);
       const theme = summary.theme;
+
+      // For name/description: try the project (when versionId is set) or fall back to the
+      // class record metadata embedded in the envelope.
+      let className: string | null = null;
+      let description: string | null = null;
+      if (share.versionId) {
+        try {
+          const version = await storage.getRecruitingClassVersion(share.versionId);
+          if (version) {
+            const proj = await storage.getRecruitingClassProject(version.projectId);
+            className = proj?.name ?? null;
+            description = proj?.description ?? null;
+          }
+        } catch { /* non-critical */ }
+      } else if (share.classId) {
+        const rcMeta = await storage.getSavedRecruitingClass(share.classId);
+        className = rcMeta?.name ?? null;
+        description = rcMeta?.description ?? null;
+      }
 
       // Spoiler-free preview: only expose star rating, position, and state.
       // OVR, gem/bust flags, and generational indicators are intentionally
@@ -304,9 +323,9 @@ export function registerSavedRoutes(app: Express): void {
         importCount: share.importCount,
         createdAt: share.createdAt,
         creatorDisplay,
-        className: rc.name,
-        description: rc.description,
-        recruitCount: rc.recruitCount,
+        className,
+        description,
+        recruitCount: summary.recruitCount,
         theme,
         summary: publicSummary,
         recruits: previewRecruits,
@@ -327,18 +346,42 @@ export function registerSavedRoutes(app: Express): void {
       if (share.userId === userId) {
         return res.status(400).json({ message: "This class is already in your library" });
       }
-      if (!share.classId) return res.status(404).json({ message: "Recruiting class not found" });
-      const rc = await storage.getSavedRecruitingClass(share.classId);
-      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
 
-      // Detect theme from source class before validation
-      const storedSummary = extractSummary(rc.classData as unknown);
+      // Resolve the immutable source data — use version snapshot when available.
+      let sourceData: unknown;
+      let importName: string = "Recruiting Class";
+      let importDescription: string | null = null;
+
+      if (share.versionId) {
+        const version = await storage.getRecruitingClassVersion(share.versionId);
+        if (!version) return res.status(404).json({ message: "Recruiting class not found" });
+        sourceData = version.packageJson;
+        // Try to get a human-readable name from the project
+        try {
+          const proj = await storage.getRecruitingClassProject(version.projectId);
+          if (proj?.name) importName = proj.name;
+          importDescription = proj?.description ?? null;
+        } catch { /* non-critical */ }
+      } else {
+        if (!share.classId) {
+          console.warn(`[import-class] share ${share.id} has neither versionId nor classId`);
+          return res.status(404).json({ message: "Recruiting class not found" });
+        }
+        const rc = await storage.getSavedRecruitingClass(share.classId);
+        if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+        sourceData = rc.classData as unknown;
+        importName = rc.name;
+        importDescription = rc.description ?? null;
+      }
+
+      // Detect theme from source data before validation
+      const storedSummary = extractSummary(sourceData);
       const sourceTheme = storedSummary?.theme ?? null;
-      const sourceConfig = (rc.classData as any)?.config ?? undefined;
+      const sourceConfig = (sourceData as any)?.config ?? undefined;
 
       let validated;
       try {
-        validated = validateAndNormalizeRecruitingClass(rc.classData as unknown);
+        validated = validateAndNormalizeRecruitingClass(sourceData);
       } catch (e) {
         if (e instanceof ClassValidationError) {
           return res.status(400).json({ message: `Source class is malformed: ${e.message}` });
@@ -350,8 +393,8 @@ export function registerSavedRoutes(app: Express): void {
 
       const imported = await storage.createSavedRecruitingClass({
         userId,
-        name: rc.name,
-        description: rc.description ?? undefined,
+        name: importName,
+        description: importDescription ?? undefined,
         recruitCount: validated.recruitCount,
         classData: envelope as any,
       });
