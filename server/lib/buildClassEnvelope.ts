@@ -41,6 +41,8 @@ export interface ClassEnvelope {
   storyPlan?: import("@shared/schema").WizardStoryPlan;
   /** Seeded generation metadata — present for wizard-generated classes. */
   generation?: ClassGeneration;
+  /** True when at least one AI job was accepted into this class. */
+  ai_assisted?: boolean;
 }
 
 // ── Region mapping ────────────────────────────────────────────────────────────
@@ -115,7 +117,7 @@ export function computeSummary(
 export function buildClassEnvelope(
   recruits: Record<string, unknown>[],
   source: "wizard" | "import" | "manual",
-  opts: { config?: Record<string, unknown>; theme?: string | null; generation?: ClassGeneration } = {}
+  opts: { config?: Record<string, unknown>; theme?: string | null; generation?: ClassGeneration; aiAssisted?: boolean } = {}
 ): ClassEnvelope {
   const envelope: ClassEnvelope = {
     version: 1,
@@ -125,6 +127,7 @@ export function buildClassEnvelope(
   };
   if (opts.config) envelope.config = opts.config;
   if (opts.generation) envelope.generation = opts.generation;
+  if (opts.aiAssisted) envelope.ai_assisted = true;
   return envelope;
 }
 

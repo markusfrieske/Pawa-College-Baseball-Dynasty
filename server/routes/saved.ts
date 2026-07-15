@@ -122,8 +122,12 @@ export function registerSavedRoutes(app: Express): void {
         console.warn(`[save-class] ${validated.warnings.length} warning(s):`, validated.warnings);
       }
 
+      // Extract ai_assisted flag from raw classData before envelope normalisation
+      const inboundAiAssisted = !Array.isArray(classData) && typeof classData === "object" && classData !== null
+        ? (classData as Record<string, unknown>).ai_assisted === true
+        : false;
       // Pass generation metadata through so seed/version are preserved in the stored envelope
-      const envelope = buildClassEnvelope(validated.recruits, source, { theme, config, generation: existingGeneration ?? undefined });
+      const envelope = buildClassEnvelope(validated.recruits, source, { theme, config, generation: existingGeneration ?? undefined, aiAssisted: inboundAiAssisted });
 
       const rc = await storage.createSavedRecruitingClass({
         userId, name, description,
@@ -166,9 +170,12 @@ export function registerSavedRoutes(app: Express): void {
       if ("classData" in req.body) {
         const { source, theme, config } = detectSource(req.body.classData);
         const patchGeneration = extractGeneration(req.body.classData);
+        const patchAiAssisted = !Array.isArray(req.body.classData) && typeof req.body.classData === "object" && req.body.classData !== null
+          ? (req.body.classData as Record<string, unknown>).ai_assisted === true
+          : false;
         try {
           const validated = validateAndNormalizeRecruitingClass(req.body.classData);
-          patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config, generation: patchGeneration ?? undefined });
+          patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config, generation: patchGeneration ?? undefined, aiAssisted: patchAiAssisted });
           patchBody.recruitCount = validated.recruitCount;
         } catch (e) {
           if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });

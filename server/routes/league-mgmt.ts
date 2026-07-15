@@ -1141,7 +1141,7 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
     if (!hasCommissionerAccess(league, req.session.userId)) {
       return res.status(403).json({ message: "Commissioner only" });
     }
-    const { recruits: rawRecruits, storyPlan: rawStoryPlan, generation: rawGeneration } = req.body as { recruits: any[]; storyPlan?: any; generation?: { seed: string; version: number } };
+    const { recruits: rawRecruits, storyPlan: rawStoryPlan, generation: rawGeneration, ai_assisted: rawAiAssisted } = req.body as { recruits: any[]; storyPlan?: any; generation?: { seed: string; version: number }; ai_assisted?: boolean };
     if (!Array.isArray(rawRecruits) || rawRecruits.length === 0) {
       return res.status(400).json({ message: "recruits array required" });
     }
@@ -1192,7 +1192,7 @@ app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (re
       audit: {
         userId: req.session.userId ?? "system",
         action: "Recruiting Class Created (Wizard)",
-        details: `Commissioner created a recruiting class of ${validatedWizard.recruits.length} recruits via the class wizard${generation ? ` [seed: ${generation.seed}, v${generation.version}]` : ""}`,
+        details: `Commissioner created a recruiting class of ${validatedWizard.recruits.length} recruits via the class wizard${generation ? ` [seed: ${generation.seed}, v${generation.version}]` : ""}${rawAiAssisted ? " [AI-Assisted]" : ""}`,
       },
     });
 

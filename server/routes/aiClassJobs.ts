@@ -181,9 +181,17 @@ async function runThemeDraft(prompt: string): Promise<Record<string, unknown>> {
   }
 }
 
-async function runCastProposal(prompt: string, cast: string[]): Promise<Record<string, unknown>> {
+interface CastCandidate {
+  templateRecruitId: string;
+  name: string;
+  position: string;
+  starRating: number;
+  overall: number;
+}
+
+async function runCastProposal(prompt: string, cast: string[], candidates: CastCandidate[]): Promise<Record<string, unknown>> {
   const client = getOpenAI();
-  if (!client) return proceduralCastProposal(cast);
+  if (!client) return proceduralCastProposal(cast.length > 0 ? cast : candidates.map(c => c.templateRecruitId));
   try {
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -222,11 +230,11 @@ async function runCastProposal(prompt: string, cast: string[]): Promise<Record<s
       messages: [
         {
           role: "system",
-          content: `You are a sports storytelling director for a college baseball dynasty simulator. Given a list of recruit IDs and a coach's creative direction, propose story role concepts. Include one entry per recruit ID provided. Be creative and varied.`,
+          content: `You are a sports storytelling director for a college baseball dynasty simulator. Given a roster of recruits with their details and a coach's creative direction, propose up to 10 story role concepts drawn from the candidate pool. Each role must reference a real templateRecruitId from the list. Be creative and varied — draw on position, star rating, and name to craft distinctive roles.`,
         },
         {
           role: "user",
-          content: `Cast IDs: ${JSON.stringify(cast)}\n\nDirector's note: ${prompt}`,
+          content: `Recruit candidates:\n${JSON.stringify(candidates.slice(0, 20), null, 2)}\n\nDirector's note: ${prompt}`,
         },
       ],
       max_tokens: 512,
@@ -355,8 +363,11 @@ async function dispatchJob(
   switch (jobType) {
     case "theme_draft":
       return runThemeDraft(prompt);
-    case "cast_proposal":
-      return runCastProposal(prompt, (metadata.cast as string[]) ?? []);
+    case "cast_proposal": {
+      const castIds = (metadata.cast as string[]) ?? [];
+      const candidates = Array.isArray(metadata.candidates) ? (metadata.candidates as CastCandidate[]) : castIds.map(id => ({ templateRecruitId: id, name: id, position: "?", starRating: 3, overall: 300 }));
+      return runCastProposal(prompt, castIds, candidates);
+    }
     case "arc_draft":
       return runArcDraft(prompt, (metadata.recruitName as string) ?? "The Recruit");
     case "text_rewrite":
