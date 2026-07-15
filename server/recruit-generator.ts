@@ -2,7 +2,27 @@ import { getRandomAbilities, getAbilitiesForPosition, getAbilityByName, getPitch
 import type { InsertRecruit } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
-import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, qualityTierFromOvr, noPitches, type QualityTier } from "./pitchMixHelpers";
+import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, qualityTierFromOvr, noPitches, type QualityTier, _setPitchMixRng, _resetPitchMixRng } from "./pitchMixHelpers";
+import { mulberry32, fnv1a32 } from "@shared/seededRng";
+import { randomUUID } from "crypto";
+
+// ─── Module-level seeded RNG ──────────────────────────────────────────────────
+/**
+ * Replace Math.random during seeded generation runs.
+ * Node.js is single-threaded so this module-level singleton is safe.
+ * Always reset to _rng() in a finally block after generation.
+ */
+let _rng: () => number = Math.random.bind(Math);
+export function _setRecruitRng(fn: () => number): void { _rng = fn; }
+export function _resetRecruitRng(): void { _rng = Math.random.bind(Math); }
+
+/** Stores the master seed used by the most recent generateRecruitClass() call. */
+let _lastMasterSeed: string | undefined;
+export function getLastClassSeed(): string | undefined { return _lastMasterSeed; }
+
+// Current generator version — bump when the generation algorithm changes
+// materially so old seeds don't claim false reproducibility.
+export const RECRUIT_GENERATOR_VERSION = 2;
 
 // Tier ordering used to cap OVR-derived pitch tiers to the star-band ceiling.
 const _TIER_ORDER: QualityTier[] = ["average", "solid", "great", "elite"];
@@ -52,8 +72,8 @@ const HANDEDNESS_BY_POS: Record<string, { throwL: number; batL: number; batS: nu
 
 export function pickHandedness(position: string): { throwHand: "L" | "R"; batHand: "L" | "R" | "S" } {
   const rates = HANDEDNESS_BY_POS[position] ?? { throwL: 0.10, batL: 0.27, batS: 0.06 };
-  const throwHand: "L" | "R" = Math.random() < rates.throwL ? "L" : "R";
-  const r = Math.random();
+  const throwHand: "L" | "R" = _rng() < rates.throwL ? "L" : "R";
+  const r = _rng();
   const batHand: "L" | "R" | "S" = r < rates.batL ? "L" : r < rates.batL + rates.batS ? "S" : "R";
   return { throwHand, batHand };
 }
@@ -64,30 +84,30 @@ export function selectTools(starRank: number, isPitcher: boolean): string[] {
 
   let count: number;
   switch (starRank) {
-    case 5:  count = 3 + Math.floor(Math.random() * 3); break;
-    case 4:  count = 2 + Math.floor(Math.random() * 3); break;
-    case 3:  count = 1 + Math.floor(Math.random() * 3); break;
-    case 2:  count = 1 + Math.floor(Math.random() * 2); break;
-    default: count = Math.random() < 0.5 ? 1 : 0;     break;
+    case 5:  count = 3 + Math.floor(_rng() * 3); break;
+    case 4:  count = 2 + Math.floor(_rng() * 3); break;
+    case 3:  count = 1 + Math.floor(_rng() * 3); break;
+    case 2:  count = 1 + Math.floor(_rng() * 2); break;
+    default: count = _rng() < 0.5 ? 1 : 0;     break;
   }
   count = Math.min(count, allToolNames.length);
   if (count === 0) return [];
-  const shuffled = [...allToolNames].sort(() => Math.random() - 0.5);
+  const shuffled = [...allToolNames].sort(() => _rng() - 0.5);
   return shuffled.slice(0, count);
 }
 
 export function selectRawTools(isPitcher: boolean): string[] {
   const groups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
   const allToolNames = Object.keys(groups);
-  const count = 2 + Math.floor(Math.random() * 2);
-  const shuffled = [...allToolNames].sort(() => Math.random() - 0.5);
+  const count = 2 + Math.floor(_rng() * 2);
+  const shuffled = [...allToolNames].sort(() => _rng() - 0.5);
   return shuffled.slice(0, Math.min(count, allToolNames.length));
 }
 
 export function sampleNormalSpeed(mean = 55, sd = 13, lo = 10, hi = 95): number {
   // Box-Muller transform for a normally-distributed speed value
-  const u1 = Math.random() || 1e-10;
-  const u2 = Math.random();
+  const u1 = _rng() || 1e-10;
+  const u2 = _rng();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   return Math.max(lo, Math.min(hi, Math.round(mean + z * sd)));
 }
@@ -95,28 +115,28 @@ export function sampleNormalSpeed(mean = 55, sd = 13, lo = 10, hi = 95): number 
 export function sampleNormalVelocity(mean = 55, sd = 11, lo = 30, hi = 95): number {
   // Box-Muller transform for a normally-distributed pitcher velocity value
   // mean=55 ≈ D1 average ~89 mph fastball; SD=11; clamp [30, 95]
-  const u1 = Math.random() || 1e-10;
-  const u2 = Math.random();
+  const u1 = _rng() || 1e-10;
+  const u2 = _rng();
   const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
   return Math.max(lo, Math.min(hi, Math.round(mean + z * sd)));
 }
 
 export function genToolAttr(base: number, isTool: boolean): number {
   if (isTool) {
-    const boost = 18 + Math.floor(Math.random() * 25);
+    const boost = 18 + Math.floor(_rng() * 25);
     return Math.max(10, Math.min(99, base + boost));
   } else {
-    const penalty = 5 + Math.floor(Math.random() * 6);
+    const penalty = 5 + Math.floor(_rng() * 6);
     return Math.max(10, Math.min(99, base - penalty));
   }
 }
 
 function genRawToolAttr(base: number, isTool: boolean): number {
   if (isTool) {
-    const boost = 18 + Math.floor(Math.random() * 25);
+    const boost = 18 + Math.floor(_rng() * 25);
     return Math.max(10, Math.min(99, base + boost));
   } else {
-    const penalty = 15 + Math.floor(Math.random() * 16);
+    const penalty = 15 + Math.floor(_rng() * 16);
     return Math.max(10, Math.min(99, base - penalty));
   }
 }
@@ -141,12 +161,12 @@ export function getRandomRecruitingTheme(): RecruitingTheme {
     "bust_heavy", "elite_pitching", "raw_talent",
     "position_players", "defense_first", "power_class", "speed_class",
   ];
-  return themes[Math.floor(Math.random() * themes.length)];
+  return themes[Math.floor(_rng() * themes.length)];
 }
 
 function rollWeighted<T>(entries: { value: T; weight: number }[]): T {
   const total = entries.reduce((s, e) => s + e.weight, 0);
-  let roll = Math.random() * total;
+  let roll = _rng() * total;
   for (const e of entries) {
     roll -= e.weight;
     if (roll <= 0) return e.value;
@@ -163,16 +183,16 @@ function getRandomAppearance() {
   const eyeStyles = ["standard", "standard", "narrow", "wide", "heavy"];
   const eyebrowStyles = ["flat", "flat", "arched", "thick", "furrowed"];
   const mouthStyles = ["neutral", "neutral", "smile", "smirk"];
-  const eyeBlack = Math.random() < 0.15;
+  const eyeBlack = _rng() < 0.15;
   return {
-    skinTone:     skinTones[Math.floor(Math.random() * skinTones.length)],
-    hairColor:    hairColors[Math.floor(Math.random() * hairColors.length)],
-    hairStyle:    hairStyles[Math.floor(Math.random() * hairStyles.length)],
-    headwear:     headwears[Math.floor(Math.random() * headwears.length)],
-    facialHair:   facialHairs[Math.floor(Math.random() * facialHairs.length)],
-    eyeStyle:     eyeStyles[Math.floor(Math.random() * eyeStyles.length)],
-    eyebrowStyle: eyebrowStyles[Math.floor(Math.random() * eyebrowStyles.length)],
-    mouthStyle:   mouthStyles[Math.floor(Math.random() * mouthStyles.length)],
+    skinTone:     skinTones[Math.floor(_rng() * skinTones.length)],
+    hairColor:    hairColors[Math.floor(_rng() * hairColors.length)],
+    hairStyle:    hairStyles[Math.floor(_rng() * hairStyles.length)],
+    headwear:     headwears[Math.floor(_rng() * headwears.length)],
+    facialHair:   facialHairs[Math.floor(_rng() * facialHairs.length)],
+    eyeStyle:     eyeStyles[Math.floor(_rng() * eyeStyles.length)],
+    eyebrowStyle: eyebrowStyles[Math.floor(_rng() * eyebrowStyles.length)],
+    mouthStyle:   mouthStyles[Math.floor(_rng() * mouthStyles.length)],
     eyeBlack,
   };
 }
@@ -207,6 +227,13 @@ export interface GenerateRecruitClassOptions {
   // non-pitcher recruits. Wizard position overrides (wizardPositionDistribution /
   // wizardFieldWeights) and theme-specific picks still take priority.
   positionGroupWeights?: { C?: number; IF?: number; OF?: number };
+  /**
+   * Optional seed string for deterministic generation.
+   * If omitted, a random UUID is generated and returned in each recruit's
+   * _generationSeed field. Per-recruit sub-seeds are derived as
+   * hash(masterSeed + templateRecruitId) so individual rerolls don't shift others.
+   */
+  seed?: string;
 }
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
@@ -227,9 +254,9 @@ const NIL_GEO_TIER_B = new Set(["AZ", "LA", "SC", "TN", "VA", "AL", "MS", "OK"])
 const NIL_GEO_TIER_D = new Set(["AK", "ND", "SD", "MT", "WY", "VT", "ME", "NH", "RI", "WV", "ID"]);
 
 function getGeoMultiplier(homeState: string): number {
-  if (NIL_GEO_TIER_A.has(homeState)) return 1.20 + Math.random() * 0.05;
-  if (NIL_GEO_TIER_B.has(homeState)) return 1.08 + Math.random() * 0.04;
-  if (NIL_GEO_TIER_D.has(homeState)) return 0.88 + Math.random() * 0.05;
+  if (NIL_GEO_TIER_A.has(homeState)) return 1.20 + _rng() * 0.05;
+  if (NIL_GEO_TIER_B.has(homeState)) return 1.08 + _rng() * 0.04;
+  if (NIL_GEO_TIER_D.has(homeState)) return 0.88 + _rng() * 0.05;
   return 1.0;
 }
 
@@ -250,7 +277,7 @@ function generateNilCost(
   ];
   const idx = Math.min(4, Math.max(0, displayedStar - 1));
   const [min, max] = ranges[idx];
-  const baseCost = Math.floor(min + Math.random() * (max - min));
+  const baseCost = Math.floor(min + _rng() * (max - min));
 
   // Three-tier position multiplier:
   //   Premium (SP, C, SS, OF): 1.10–1.25×
@@ -258,9 +285,9 @@ function generateNilCost(
   //   Utility/bench (RP, CP, 1B): 0.85–0.95×
   let posMultiplier: number;
   if (NIL_PREMIUM_POSITIONS.has(position)) {
-    posMultiplier = 1.10 + Math.random() * 0.15;
+    posMultiplier = 1.10 + _rng() * 0.15;
   } else if (NIL_UTILITY_POSITIONS.has(position)) {
-    posMultiplier = 0.85 + Math.random() * 0.10;
+    posMultiplier = 0.85 + _rng() * 0.10;
   } else {
     posMultiplier = 1.0;
   }
@@ -275,6 +302,15 @@ export function generateRecruitClass(
   count: number,
   opts: GenerateRecruitClassOptions = {},
 ): GeneratedRecruit[] {
+  // ── Seeded RNG setup ─────────────────────────────────────────────────────
+  // If no seed is provided, generate a fresh UUID. The seed is passed back in
+  // the returned recruits via _masterSeed so callers can store it in the
+  // class envelope. Per-recruit sub-seeds derive from hash(masterSeed + templateRecruitId).
+  const masterSeed: string = opts.seed ?? randomUUID();
+  _setRecruitRng(mulberry32(fnv1a32(masterSeed)));
+  _setPitchMixRng(mulberry32(fnv1a32(masterSeed + "\x00pitch")));
+  // ─────────────────────────────────────────────────────────────────────────
+
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "OF", "OF", "OF"];
@@ -350,7 +386,7 @@ export function generateRecruitClass(
 
   const totalPct = skewedStateData.reduce((sum, s) => sum + s.pct, 0);
   const pickWeightedState = (): number => {
-    const roll = Math.random() * totalPct;
+    const roll = _rng() * totalPct;
     let cumulative = 0;
     for (let i = 0; i < skewedStateData.length; i++) {
       cumulative += skewedStateData[i].pct;
@@ -418,7 +454,7 @@ export function generateRecruitClass(
     return 1;                  //  5% one-star    (spec:  ~5%)
   };
 
-  let numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
+  let numBlueChips = Math.max(2, Math.floor(count * 0.03) + (_rng() < 0.5 ? 1 : 0));
   if (opts.wizardSpecialCounts?.blueChips != null) numBlueChips = Math.min(opts.wizardSpecialCounts.blueChips, count);
   // Documented design (replit.md): exactly 1 Generational Gem and 1 Generational
   // Bust per class, to keep them genuinely rare/special. Wizard overrides are
@@ -439,19 +475,19 @@ export function generateRecruitClass(
   const gemBustScale = Math.min(poolScale, 3.0);
   const numRegGems = opts.wizardSpecialCounts?.gems != null
     ? Math.min(opts.wizardSpecialCounts.gems, Math.floor(count * 0.15))
-    : Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * gemBustScale)));
+    : Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(_rng() * Math.max(6, Math.round(6 * gemBustScale)));
   const numRegBusts = opts.wizardSpecialCounts?.busts != null
     ? Math.min(opts.wizardSpecialCounts.busts, Math.floor(count * 0.15))
-    : Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * gemBustScale)));
+    : Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(_rng() * Math.max(6, Math.round(6 * gemBustScale)));
   const rawTalentBase = theme === "raw_talent"
-    ? (Math.max(10, Math.round(10 * gemBustScale)) + Math.floor(Math.random() * Math.max(7, Math.round(7 * gemBustScale))))
-    : (Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(Math.random() * Math.max(6, Math.round(6 * gemBustScale))));
+    ? (Math.max(10, Math.round(10 * gemBustScale)) + Math.floor(_rng() * Math.max(7, Math.round(7 * gemBustScale))))
+    : (Math.max(5, Math.round(5 * gemBustScale)) + Math.floor(_rng() * Math.max(6, Math.round(6 * gemBustScale))));
   const numRawPlayers = opts.wizardSpecialCounts?.rawPlayers != null
     ? Math.min(opts.wizardSpecialCounts.rawPlayers, Math.floor(count * 0.20))
     : rawTalentBase;
 
   const getGemBustModifier = (t: RecruitingTheme, starRank: number): { isGem: boolean; isBust: boolean } => {
-    const roll = Math.random();
+    const roll = _rng();
     let gemChance: number;
     let bustChance: number;
     if (t === "hidden_gems") { gemChance = 0.24; bustChance = 0.06; }
@@ -463,63 +499,63 @@ export function generateRecruitClass(
   };
 
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
-    if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 82 + Math.floor(Math.random() * 6);
+    if (isBlueChip) return isPitcher ? 80 + Math.floor(_rng() * 5) : 82 + Math.floor(_rng() * 6);
     if (isGem) {
       if (isPitcher) {
         // Pitcher gem targetAttrAvg — calibrated for the original clamp+OVR system.
         // Gem/bust/blueChip pitcher OVRs are still clamped to their archetype bands;
         // the retry loop is scoped to normal pitchers only where it reliably converges.
         switch (starRank) {
-          case 4: return 80 + Math.floor(Math.random() * 8);
-          case 3: return 65 + Math.floor(Math.random() * 8);
-          case 2: return 54 + Math.floor(Math.random() * 8);
-          case 1: return 43 + Math.floor(Math.random() * 8);
-          default: return 65 + Math.floor(Math.random() * 8);
+          case 4: return 80 + Math.floor(_rng() * 8);
+          case 3: return 65 + Math.floor(_rng() * 8);
+          case 2: return 54 + Math.floor(_rng() * 8);
+          case 1: return 43 + Math.floor(_rng() * 8);
+          default: return 65 + Math.floor(_rng() * 8);
         }
       }
       // Hitter gem: starting targetAttrAvg calibrated so the OVR retry converges to the gem's target band
       switch (starRank) {
-        case 4: return 82 + Math.floor(Math.random() * 6);   // 4★ gem → BC OVR (540-599)
-        case 3: return 75 + Math.floor(Math.random() * 8);   // 3★ gem → 5★ OVR (500-539)
-        case 2: return 68 + Math.floor(Math.random() * 10);  // 2★ gem → 4★ OVR (400-499)
-        case 1: return 58 + Math.floor(Math.random() * 10);  // 1★ gem → 3★ OVR (300-399)
-        default: return 75 + Math.floor(Math.random() * 8);
+        case 4: return 82 + Math.floor(_rng() * 6);   // 4★ gem → BC OVR (540-599)
+        case 3: return 75 + Math.floor(_rng() * 8);   // 3★ gem → 5★ OVR (500-539)
+        case 2: return 68 + Math.floor(_rng() * 10);  // 2★ gem → 4★ OVR (400-499)
+        case 1: return 58 + Math.floor(_rng() * 10);  // 1★ gem → 3★ OVR (300-399)
+        default: return 75 + Math.floor(_rng() * 8);
       }
     }
     if (isBust) {
       if (isPitcher) {
         // Pitcher bust targetAttrAvg — calibrated for the original clamp+OVR system.
         switch (starRank) {
-          case 5: return 43 + Math.floor(Math.random() * 8);
-          case 4: return 31 + Math.floor(Math.random() * 8);
-          case 3: return 19 + Math.floor(Math.random() * 6);
-          default: return 19 + Math.floor(Math.random() * 6);
+          case 5: return 43 + Math.floor(_rng() * 8);
+          case 4: return 31 + Math.floor(_rng() * 8);
+          case 3: return 19 + Math.floor(_rng() * 6);
+          default: return 19 + Math.floor(_rng() * 6);
         }
       }
       // Hitter bust: starting targetAttrAvg calibrated so the OVR retry converges to the bust's target band
       switch (starRank) {
-        case 5: return 58 + Math.floor(Math.random() * 10);  // 5★ bust → 3★ OVR (300-399)
-        case 4: return 52 + Math.floor(Math.random() * 10);  // 4★ bust → 2★ OVR (200-299)
-        case 3: return 47 + Math.floor(Math.random() * 6);   // 3★ bust → 1★ OVR (150-199)
-        default: return 47 + Math.floor(Math.random() * 6);
+        case 5: return 58 + Math.floor(_rng() * 10);  // 5★ bust → 3★ OVR (300-399)
+        case 4: return 52 + Math.floor(_rng() * 10);  // 4★ bust → 2★ OVR (200-299)
+        case 3: return 47 + Math.floor(_rng() * 6);   // 3★ bust → 1★ OVR (150-199)
+        default: return 47 + Math.floor(_rng() * 6);
       }
     }
     if (isPitcher) {
       switch (starRank) {
-        case 5: return 65 + Math.floor(Math.random() * 7);
-        case 4: return 54 + Math.floor(Math.random() * 7);
-        case 3: return 43 + Math.floor(Math.random() * 7);
-        case 2: return 31 + Math.floor(Math.random() * 7);
-        default: return 19 + Math.floor(Math.random() * 6);
+        case 5: return 65 + Math.floor(_rng() * 7);
+        case 4: return 54 + Math.floor(_rng() * 7);
+        case 3: return 43 + Math.floor(_rng() * 7);
+        case 2: return 31 + Math.floor(_rng() * 7);
+        default: return 19 + Math.floor(_rng() * 6);
       }
     }
     // Hitter normal: starting targetAttrAvg calibrated to target band midpoints; retry loop converges
     switch (starRank) {
-      case 5: return 75 + Math.floor(Math.random() * 8);   // targets 400-539 (mid ~470)
-      case 4: return 65 + Math.floor(Math.random() * 10);  // targets 300-515 (mid ~408)
-      case 3: return 58 + Math.floor(Math.random() * 10);  // targets 200-499 (mid ~350)
-      case 2: return 52 + Math.floor(Math.random() * 10);  // targets 150-399 (mid ~275)
-      default: return 48 + Math.floor(Math.random() * 6);  // targets 150-250 (mid ~200)
+      case 5: return 75 + Math.floor(_rng() * 8);   // targets 400-539 (mid ~470)
+      case 4: return 65 + Math.floor(_rng() * 10);  // targets 300-515 (mid ~408)
+      case 3: return 58 + Math.floor(_rng() * 10);  // targets 200-499 (mid ~350)
+      case 2: return 52 + Math.floor(_rng() * 10);  // targets 150-399 (mid ~275)
+      default: return 48 + Math.floor(_rng() * 6);  // targets 150-250 (mid ~200)
     }
   };
 
@@ -550,11 +586,11 @@ export function generateRecruitClass(
   const getAbilityCount = (starRank: number, isBlueChip: boolean = false): number => {
     if (isBlueChip) return 4;
     switch (starRank) {
-      case 5: return 3 + Math.floor(Math.random() * 2);  // 3–4
-      case 4: return 2 + Math.floor(Math.random() * 3);  // 2–4
-      case 3: return 1 + Math.floor(Math.random() * 3);  // 1–3
-      case 2: return Math.floor(Math.random() * 3);       // 0–2
-      default: return Math.random() < 0.5 ? 1 : 0;
+      case 5: return 3 + Math.floor(_rng() * 2);  // 3–4
+      case 4: return 2 + Math.floor(_rng() * 3);  // 2–4
+      case 3: return 1 + Math.floor(_rng() * 3);  // 1–3
+      case 2: return Math.floor(_rng() * 3);       // 0–2
+      default: return _rng() < 0.5 ? 1 : 0;
     }
   };
 
@@ -578,7 +614,7 @@ export function generateRecruitClass(
       allFields = [...fielderAttributes, ...fielderAbilities, ...catcherAbility];
     }
     for (let i = allFields.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(_rng() * (i + 1));
       [allFields[i], allFields[j]] = [allFields[j], allFields[i]];
     }
     return allFields;
@@ -586,7 +622,7 @@ export function generateRecruitClass(
 
   const generateCommonAbilityValue = (targetAvg: number, wide = false): number => {
     const halfRange = wide ? 24 : 18;
-    const variance = Math.floor(Math.random() * (halfRange * 2 + 1)) - halfRange;
+    const variance = Math.floor(_rng() * (halfRange * 2 + 1)) - halfRange;
     return Math.max(1, Math.min(100, targetAvg + variance));
   };
 
@@ -682,14 +718,14 @@ export function generateRecruitClass(
   const bustCandidates = starRanks.map((sr, idx) => ({ sr, idx }))
     .filter(x => x.sr >= 3 && x.sr <= 5 && x.idx >= numBlueChips);
 
-  const shuffledGemCandidates = [...gemCandidates].sort(() => Math.random() - 0.5);
+  const shuffledGemCandidates = [...gemCandidates].sort(() => _rng() - 0.5);
   const generationalGemIdxSet = new Set<number>();
   for (let g = 0; g < Math.min(numGenGems, shuffledGemCandidates.length); g++) {
     generationalGemIdxSet.add(shuffledGemCandidates[g].idx);
   }
 
   const bustCandidatesFiltered = bustCandidates.filter(x => !generationalGemIdxSet.has(x.idx));
-  const shuffledBustCandidates = [...bustCandidatesFiltered].sort(() => Math.random() - 0.5);
+  const shuffledBustCandidates = [...bustCandidatesFiltered].sort(() => _rng() - 0.5);
   const generationalBustIdxSet = new Set<number>();
   for (let b = 0; b < Math.min(numGenBusts, shuffledBustCandidates.length); b++) {
     generationalBustIdxSet.add(shuffledBustCandidates[b].idx);
@@ -699,7 +735,7 @@ export function generateRecruitClass(
   const forcedGemIdxSet = new Set<number>();
   const eligibleForRegGem = gemCandidates
     .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx))
-    .sort(() => Math.random() - 0.5);
+    .sort(() => _rng() - 0.5);
   for (let g = 0; g < Math.min(numRegGems, eligibleForRegGem.length); g++) {
     forcedGemIdxSet.add(eligibleForRegGem[g].idx);
   }
@@ -708,7 +744,7 @@ export function generateRecruitClass(
   const forcedBustIdxSet = new Set<number>();
   const eligibleForRegBust = bustCandidates
     .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx) && !forcedGemIdxSet.has(x.idx))
-    .sort(() => Math.random() - 0.5);
+    .sort(() => _rng() - 0.5);
   for (let b = 0; b < Math.min(numRegBusts, eligibleForRegBust.length); b++) {
     forcedBustIdxSet.add(eligibleForRegBust[b].idx);
   }
@@ -725,7 +761,7 @@ export function generateRecruitClass(
       .filter(i => i >= numBlueChips
                && !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i)
                && !forcedGemIdxSet.has(i) && !forcedBustIdxSet.has(i));
-    const shuffledForRaw = [...eligibleForRaw].sort(() => Math.random() - 0.5);
+    const shuffledForRaw = [...eligibleForRaw].sort(() => _rng() - 0.5);
     for (let r = 0; r < Math.min(numRawPlayers, shuffledForRaw.length); r++) {
       forcedRawIdxSet.add(shuffledForRaw[r]);
       playerArchetypes[shuffledForRaw[r]] = "raw";
@@ -741,7 +777,7 @@ export function generateRecruitClass(
                && !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i)
                && !forcedRawIdxSet.has(i) && !forcedGemIdxSet.has(i) && !forcedBustIdxSet.has(i)
                && starRanks[i] >= 2 && starRanks[i] <= 4);
-    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+    const shuffled = [...eligible].sort(() => _rng() - 0.5);
     const target = Math.min(opts.wizardSpecialCounts.lateBloomers, shuffled.length);
     for (let j = 0; j < target; j++) {
       forcedLBIdxSet.add(shuffled[j]);
@@ -755,7 +791,7 @@ export function generateRecruitClass(
                && !forcedRawIdxSet.has(i) && !forcedGemIdxSet.has(i) && !forcedBustIdxSet.has(i)
                && !forcedLBIdxSet.has(i)
                && starRanks[i] >= 3 && starRanks[i] <= 5);
-    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+    const shuffled = [...eligible].sort(() => _rng() - 0.5);
     const target = Math.min(opts.wizardSpecialCounts.overdrafts, shuffled.length);
     for (let j = 0; j < target; j++) {
       forcedODIdxSet.add(shuffled[j]);
@@ -770,7 +806,7 @@ export function generateRecruitClass(
     if (generationalGemIdxSet.has(i) || generationalBustIdxSet.has(i)) continue;
     if (forcedRawIdxSet.has(i) || forcedGemIdxSet.has(i) || forcedBustIdxSet.has(i)) continue;
     if (forcedLBIdxSet.has(i) || forcedODIdxSet.has(i)) continue;
-    const roll = Math.random();
+    const roll = _rng();
     if (roll < lbRate && sr >= 2 && sr <= 4) {
       playerArchetypes[i] = "late_bloomer";
     } else if (roll < lbRate + odRate && sr >= 3 && sr <= 5) {
@@ -783,7 +819,7 @@ export function generateRecruitClass(
   if (opts.wizardSpecialCounts?.jucos != null) {
     const eligibleForJuco = Array.from({ length: count }, (_, i) => i)
       .filter(i => !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i) && i >= numBlueChips);
-    const shuffledEligible = [...eligibleForJuco].sort(() => Math.random() - 0.5);
+    const shuffledEligible = [...eligibleForJuco].sort(() => _rng() - 0.5);
     for (let j = 0; j < Math.min(opts.wizardSpecialCounts.jucos, shuffledEligible.length); j++) {
       jucoOverrideSet.add(shuffledEligible[j]);
     }
@@ -804,18 +840,18 @@ export function generateRecruitClass(
     for (let k = 0; k < count; k++) {
       let t: number;
       if (ovrDist === "flat") {
-        t = ovrMin + Math.floor(Math.random() * (range + 1));
+        t = ovrMin + Math.floor(_rng() * (range + 1));
       } else if (ovrDist === "top_heavy") {
         // power < 1 → values skewed toward 1 (ovrMax)
-        t = Math.round(ovrMin + Math.pow(Math.random(), 0.4) * range);
+        t = Math.round(ovrMin + Math.pow(_rng(), 0.4) * range);
       } else if (ovrDist === "bottom_heavy") {
         // power > 1 → values skewed toward 0 (ovrMin)
-        t = Math.round(ovrMin + Math.pow(Math.random(), 2.5) * range);
+        t = Math.round(ovrMin + Math.pow(_rng(), 2.5) * range);
       } else {
         // bell curve centered at ovrAvg
         const sd = range / 4;
-        const u1 = Math.random() || 1e-10;
-        const u2 = Math.random();
+        const u1 = _rng() || 1e-10;
+        const u2 = _rng();
         const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
         t = Math.round(ovrAvg + z * sd);
       }
@@ -881,7 +917,7 @@ export function generateRecruitClass(
     if (theme === "defense_first") return rollWeighted(defenseFirstPositions);
     if (theme === "speed_class")   return rollWeighted(speedClassPositions);
     if (theme === "power_class")   return rollWeighted(powerClassPositions);
-    return fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
+    return fieldPositions[Math.floor(_rng() * fieldPositions.length)];
   };
 
   const pickPitcherPosition = (): string => {
@@ -951,7 +987,7 @@ export function generateRecruitClass(
     if (arr.length > count) arr.length = count;
     // Fisher-Yates shuffle to randomise order while preserving counts
     for (let j = arr.length - 1; j > 0; j--) {
-      const k = Math.floor(Math.random() * (j + 1));
+      const k = Math.floor(_rng() * (j + 1));
       [arr[j], arr[k]] = [arr[k], arr[j]];
     }
     preassignedPositions = arr;
@@ -965,13 +1001,13 @@ export function generateRecruitClass(
       isPitcher = prePos === "P";
       position  = isPitcher ? pickPitcherPosition() : prePos;
     } else {
-      isPitcher = Math.random() < pitcherRatio;
+      isPitcher = _rng() < pitcherRatio;
       position  = isPitcher ? pickPitcherPosition() : pickFieldPosition();
     }
 
     const stateIdx = stateAssignments[i] || 0;
     const recruitState = stateData[stateIdx];
-    const recruitCity = recruitState.cities[Math.floor(Math.random() * recruitState.cities.length)];
+    const recruitCity = recruitState.cities[Math.floor(_rng() * recruitState.cities.length)];
     // Apply wizard forced type overrides (used for single-recruit reroll)
     const isBlueChip  = forced?.isBlueChip  != null ? forced.isBlueChip  : i < numBlueChips;
     const isGenerationalGem  = forced?.isGenGem  != null ? forced.isGenGem  : generationalGemIdxSet.has(i);
@@ -990,7 +1026,7 @@ export function generateRecruitClass(
     if (isGenerationalGem) {
       isGem = true;
       targetAttrAvg = -1;
-      abilityCount = 5 + Math.floor(Math.random() * 3); // 5-7 per spec
+      abilityCount = 5 + Math.floor(_rng() * 3); // 5-7 per spec
     } else if (isGenerationalBust) {
       isBust = true;
       targetAttrAvg = -1;
@@ -1044,7 +1080,7 @@ export function generateRecruitClass(
         else if (starRank === 4) pitcherStaminaBand = [1, 34];      // bust 4★: closer/setup
         else pitcherStaminaBand = [20, 54];                          // bust 5★: setup/middle relief
       } else if (!isGenerationalBust) {
-        const roleRoll = Math.random();
+        const roleRoll = _rng();
         if (roleRoll < 0.25) pitcherStaminaBand = [80, 99];        // weekend starter
         else if (roleRoll < 0.40) pitcherStaminaBand = [55, 79];   // midweek starter
         else if (roleRoll < 0.80) pitcherStaminaBand = [35, 54];   // middle reliever
@@ -1063,8 +1099,8 @@ export function generateRecruitClass(
         a => a.tier === "blue" &&
         (pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax)
       );
-      const shuffledGold = [...goldAbilities].sort(() => Math.random() - 0.5);
-      const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
+      const shuffledGold = [...goldAbilities].sort(() => _rng() - 0.5);
+      const shuffledBlue = [...blueAbilities].sort(() => _rng() - 0.5);
       const goldTarget = 1;
       const selected: string[] = [];
       for (const a of shuffledGold) { if (selected.length < goldTarget && !selected.includes(a.name)) selected.push(a.name); }
@@ -1073,7 +1109,7 @@ export function generateRecruitClass(
     } else if (isGenerationalBust) {
       const availableAbilities = getAbilitiesForPosition(position);
       const redAbilities = availableAbilities.filter(a => a.tier === "red");
-      const shuffledRed = [...redAbilities].sort(() => Math.random() - 0.5);
+      const shuffledRed = [...redAbilities].sort(() => _rng() - 0.5);
       abilities = shuffledRed.slice(0, 2).map(a => a.name);
     } else if (isBust && isPitcher) {
       // Pitcher busts need negative or zero ability OVR contribution so the retry can converge
@@ -1084,7 +1120,7 @@ export function generateRecruitClass(
       const staminaOk = (a: { staminaMax?: number }) =>
         pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
       const redAbilities = availableAbilities.filter(a => a.tier === "red" && staminaOk(a));
-      const shuffledRed = [...redAbilities].sort(() => Math.random() - 0.5);
+      const shuffledRed = [...redAbilities].sort(() => _rng() - 0.5);
       abilities = shuffledRed.slice(0, Math.min(2, abilityCount)).map(a => a.name);
     } else if (isGem && isPitcher && starRank <= 2) {
       // Gem pitchers with sub-500 target bands (1★ → [300,399] / 2★ → [400,499]):
@@ -1095,7 +1131,7 @@ export function generateRecruitClass(
       const staminaOk = (a: { staminaMax?: number }) =>
         pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
       const blueAbilities = availableAbilities.filter(a => a.tier === "blue" && staminaOk(a));
-      const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
+      const shuffledBlue = [...blueAbilities].sort(() => _rng() - 0.5);
       abilities = shuffledBlue.slice(0, abilityCount).map(a => a.name);
     } else {
       // Pitcher gems 3★+ and blueChips target OVR ≥ 500 so the gold gate won't fire.
@@ -1107,17 +1143,17 @@ export function generateRecruitClass(
 
     const appearance = getRandomAppearance();
 
-    const recruitType = jucoOverrideSet.has(i) ? "JUCO" : (Math.random() < 0.8 ? "HS" : "JUCO");
+    const recruitType = jucoOverrideSet.has(i) ? "JUCO" : (_rng() < 0.8 ? "HS" : "JUCO");
     let recruitYear = "FR";
     if (recruitType === "JUCO") {
-      const rand = Math.random();
+      const rand = _rng();
       if (rand < 0.4) recruitYear = "FR";
       else if (rand < 0.8) recruitYear = "SO";
       else recruitYear = "JR";
     }
 
     const themeBoost = getThemeBoost(theme, isPitcher);
-    const genAttr = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(Math.random() * 37) - 18));
+    const genAttr = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(_rng() * 37) - 18));
 
     let velocity: number;
     let power: number;
@@ -1136,31 +1172,31 @@ export function generateRecruitClass(
       // Hitter attrs: starting point for OVR retry (targets [540,599] for 3★, lower for 1-2★).
       // Retry fine-tunes attrs to hit the correct band. Pitcher genGem OVR is naturally
       // in [600,650] because S-grade common + gold abilities + max attrs place it there.
-      hitForAvg = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
-      power     = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
+      hitForAvg = isPitcher ? 85 + Math.floor(_rng() * 15) : 73 + Math.floor(_rng() * 8);
+      power     = isPitcher ? 85 + Math.floor(_rng() * 15) : 73 + Math.floor(_rng() * 8);
       speed = sampleNormalSpeed(82, 6, 75, 95);
-      arm       = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
-      fielding  = isPitcher ? 85 + Math.floor(Math.random() * 15) : 73 + Math.floor(Math.random() * 8);
-      errorResistance = isPitcher ? 80 + Math.floor(Math.random() * 20) : 73 + Math.floor(Math.random() * 8);
+      arm       = isPitcher ? 85 + Math.floor(_rng() * 15) : 73 + Math.floor(_rng() * 8);
+      fielding  = isPitcher ? 85 + Math.floor(_rng() * 15) : 73 + Math.floor(_rng() * 8);
+      errorResistance = isPitcher ? 80 + Math.floor(_rng() * 20) : 73 + Math.floor(_rng() * 8);
       velocity = sampleNormalVelocity(82, 5, 70, 95);
-      control = 85 + Math.floor(Math.random() * 15);
-      stamina = 80 + Math.floor(Math.random() * 20);
-      stuff = 85 + Math.floor(Math.random() * 15);
+      control = 85 + Math.floor(_rng() * 15);
+      stamina = 80 + Math.floor(_rng() * 20);
+      stuff = 85 + Math.floor(_rng() * 15);
     } else if (isGenerationalBust) {
       // Hitter attrs calibrated so calculateOVR (with all-G/F common + 2 red specials) lands ~150-199.
       // Low speed (10-28) is the key OVR depressant alongside poor common/special abilities.
       // Pitcher genBust OVR converges to [150,199] via the same vel/ctrl/common retry used for
       // non-generational busts (G-grade common + low attrs + red abilities hold OVR in range).
-      hitForAvg = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
-      power     = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
+      hitForAvg = isPitcher ? 15 + Math.floor(_rng() * 25) : 55 + Math.floor(_rng() * 5);
+      power     = isPitcher ? 15 + Math.floor(_rng() * 25) : 55 + Math.floor(_rng() * 5);
       speed = sampleNormalSpeed(18, 5, 10, 28);
-      arm       = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
-      fielding  = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
-      errorResistance = isPitcher ? 15 + Math.floor(Math.random() * 25) : 55 + Math.floor(Math.random() * 5);
+      arm       = isPitcher ? 15 + Math.floor(_rng() * 25) : 55 + Math.floor(_rng() * 5);
+      fielding  = isPitcher ? 15 + Math.floor(_rng() * 25) : 55 + Math.floor(_rng() * 5);
+      errorResistance = isPitcher ? 15 + Math.floor(_rng() * 25) : 55 + Math.floor(_rng() * 5);
       velocity = sampleNormalVelocity(35, 4, 25, 45);
-      control = 15 + Math.floor(Math.random() * 25);
-      stamina = 15 + Math.floor(Math.random() * 25);
-      stuff = 15 + Math.floor(Math.random() * 25);
+      control = 15 + Math.floor(_rng() * 25);
+      stamina = 15 + Math.floor(_rng() * 25);
+      stuff = 15 + Math.floor(_rng() * 25);
     } else if (isRawArchetype) {
       selectedTools = selectRawTools(isPitcher);
       const toolGroups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
@@ -1237,7 +1273,7 @@ export function generateRecruitClass(
       // Fixing common here makes each retry iteration purely a function of attrs.
       let trialCommon: ReturnType<typeof generateCommonAbilities>;
       if (isGenerationalGem) {
-        const genElite = () => 90 + Math.floor(Math.random() * 10);
+        const genElite = () => 90 + Math.floor(_rng() * 10);
         trialCommon = {
           clutch: genElite(), vsLHP: genElite(), grit: genElite(), stealing: genElite(),
           running: genElite(), throwing: genElite(), recovery: genElite(),
@@ -1245,7 +1281,7 @@ export function generateRecruitClass(
           wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
         };
       } else if (isGenerationalBust) {
-        const genPoor = () => 10 + Math.floor(Math.random() * 20);
+        const genPoor = () => 10 + Math.floor(_rng() * 20);
         trialCommon = {
           clutch: genPoor(), vsLHP: genPoor(), grit: genPoor(), stealing: genPoor(),
           running: genPoor(), throwing: genPoor(), recovery: genPoor(),
@@ -1364,7 +1400,7 @@ export function generateRecruitClass(
     // Gems and busts retain their own fixed ranges; all other pitchers use the pre-rolled band.
     if (isPitcher && pitcherStaminaBand && !isGenerationalGem && !isGenerationalBust) {
       const [bandMin, bandMax] = pitcherStaminaBand;
-      stamina = bandMin + Math.floor(Math.random() * (bandMax - bandMin + 1));
+      stamina = bandMin + Math.floor(_rng() * (bandMax - bandMin + 1));
     }
 
     const { throwHand: recruitThrowHand, batHand: recruitBatHand } = pickHandedness(position);
@@ -1382,7 +1418,7 @@ export function generateRecruitClass(
       commonAbilities = lastHitterCommon;
     } else if (isGenerationalGem) {
       // Only pitcher genGems reach here (hitter genGems have lastHitterCommon set above).
-      const genElite = () => 90 + Math.floor(Math.random() * 10);
+      const genElite = () => 90 + Math.floor(_rng() * 10);
       commonAbilities = {
         wRISP: genElite(), vsLefty: genElite(), poise: genElite(), grit: genElite(),
         heater: genElite(), agile: genElite(), recovery: genElite(),
@@ -1390,7 +1426,7 @@ export function generateRecruitClass(
       };
     } else if (isGenerationalBust) {
       // Only pitcher genBusts reach here.
-      const genPoor = () => 10 + Math.floor(Math.random() * 20);
+      const genPoor = () => 10 + Math.floor(_rng() * 20);
       commonAbilities = {
         wRISP: genPoor(), vsLefty: genPoor(), poise: genPoor(), grit: genPoor(),
         heater: genPoor(), agile: genPoor(), recovery: genPoor(),
@@ -1570,7 +1606,7 @@ export function generateRecruitClass(
             pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
           const bluePool = getAbilitiesForPosition(position)
             .filter(a => a.tier === "blue" && staminaOkAb(a) && !abilities.includes(a.name));
-          const shuffledBlue = [...bluePool].sort(() => Math.random() - 0.5);
+          const shuffledBlue = [...bluePool].sort(() => _rng() - 0.5);
           for (const ab of shuffledBlue) {
             if (currentOvr >= retryLo || abilities.length >= (isGenerationalGem ? 7 : 4)) break;
             abilities = [...abilities, ab.name];
@@ -1591,7 +1627,7 @@ export function generateRecruitClass(
             pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
           const goldPool = getAbilitiesForPosition(position)
             .filter(a => a.tier === "gold" && staminaOkAb(a) && !abilities.includes(a.name))
-            .sort(() => Math.random() - 0.5);
+            .sort(() => _rng() - 0.5);
           outer: for (let ai = 0; ai < abilities.length; ai++) {
             const existing = getAbilityByName(abilities[ai]);
             if (existing?.tier !== "blue") continue;
@@ -1696,7 +1732,7 @@ export function generateRecruitClass(
       // grade contribute the same pts in PITCHER_COMMON_RAW.
       const finalGrade = pitcherCommonGrade(commonLevel);
       const [gLo, gHi] = GRADE_RANGES[finalGrade];
-      const randInGrade = () => gLo + Math.floor(Math.random() * (gHi - gLo + 1));
+      const randInGrade = () => gLo + Math.floor(_rng() * (gHi - gLo + 1));
       commonAbilities.heater   = randInGrade();
       commonAbilities.wRISP    = randInGrade();
       commonAbilities.vsLefty  = randInGrade();
@@ -1725,7 +1761,7 @@ export function generateRecruitClass(
       let recruitGold = abilities.filter(n => getAbilityByName(n)?.tier === "gold");
       const excess = (classGoldCount + recruitGold.length) - classGoldCap;
       if (excess > 0) {
-        let toReplace = [...recruitGold].sort(() => Math.random() - 0.5).slice(0, excess);
+        let toReplace = [...recruitGold].sort(() => _rng() - 0.5).slice(0, excess);
         if (isPitcher && (isGem || isBlueChip) && toReplace.length > 0 && classProtectedGoldBudget > 0) {
           const [gemFloor] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
           const origLen = toReplace.length;
@@ -1761,7 +1797,7 @@ export function generateRecruitClass(
                 getPitcherAbilityOvrPts(a.name) > getPitcherAbilityOvrPts(best.name) ? a : best
               );
             } else {
-              replacement = bluePool[Math.floor(Math.random() * bluePool.length)];
+              replacement = bluePool[Math.floor(_rng() * bluePool.length)];
             }
             abilities = abilities.map(n => n === goldName ? replacement.name : n);
           } else {
@@ -1874,7 +1910,7 @@ export function generateRecruitClass(
                 pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax;
               const bluePoolRr = getAbilitiesForPosition(position)
                 .filter(a => a.tier === "blue" && staminaOkRr(a) && !abilities.includes(a.name));
-              for (const ab of [...bluePoolRr].sort(() => Math.random() - 0.5)) {
+              for (const ab of [...bluePoolRr].sort(() => _rng() - 0.5)) {
                 if (overall >= rrLo || abilities.length >= (isGenerationalGem ? 7 : 4)) break;
                 abilities = [...abilities, ab.name];
                 overall = calculateOVR({
@@ -1981,7 +2017,7 @@ export function generateRecruitClass(
       // Gems and busts are exempt — their OVR band is already set by the gem/bust mechanic.
       const starCaps: Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
       const baseCap = starCaps[starRank] ?? 499;
-      const depression = 45 + Math.floor(Math.random() * 40);
+      const depression = 45 + Math.floor(_rng() * 40);
       overall = Math.max(150, Math.min(baseCap, overall) - depression);
     } else if (playerArchetype === "overdraft" && !isGem && !isBust) {
       // Overdraft: OVR inflated above their star tier — intentional archetype distortion.
@@ -1991,7 +2027,7 @@ export function generateRecruitClass(
       const nextTierCap:  Record<number, number> = { 5: 599, 4: 539, 3: 499, 2: 399, 1: 299 };
       const floor = nextTierFloor[starRank] ?? 410;
       const cap   = nextTierCap[starRank] ?? 499;
-      const inflation = 40 + Math.floor(Math.random() * 40);
+      const inflation = 40 + Math.floor(_rng() * 40);
       overall = Math.max(floor, Math.min(cap, overall + inflation));
     }
 
@@ -2071,11 +2107,11 @@ export function generateRecruitClass(
     let potentialCeiling: number | undefined;
 
     if (playerArchetype === "late_bloomer") {
-      potential = 90 + Math.floor(Math.random() * 10);
+      potential = 90 + Math.floor(_rng() * 10);
       potentialFloor = potential - 4;
       potentialCeiling = Math.min(99, potential + 4);
     } else if (playerArchetype === "overdraft") {
-      potential = 50 + Math.floor(Math.random() * 8);
+      potential = 50 + Math.floor(_rng() * 8);
       potentialFloor = potential;
       potentialCeiling = Math.min(57, potential + 4);
     }
@@ -2088,26 +2124,26 @@ export function generateRecruitClass(
         ? [{ min: 50, max: 59, w: 35 }, { min: 60, max: 69, w: 40 }, { min: 70, max: 78, w: 20 }, { min: 79, max: 85, w: 5 }, { min: 86, max: 90, w: 0 }]
         : [{ min: 50, max: 64, w: 20 }, { min: 65, max: 74, w: 30 }, { min: 75, max: 84, w: 35 }, { min: 85, max: 92, w: 12 }, { min: 93, max: 99, w: 3 }];
       const total = buckets.reduce((s, b) => s + b.w, 0);
-      let roll = Math.random() * total;
+      let roll = _rng() * total;
       for (const b of buckets) {
         roll -= b.w;
-        if (roll <= 0) return b.min + Math.floor(Math.random() * (b.max - b.min + 1));
+        if (roll <= 0) return b.min + Math.floor(_rng() * (b.max - b.min + 1));
       }
       return buckets[buckets.length - 1].min;
     };
 
     const workEthicScore = isGenerationalBust
-      ? 50 + Math.floor(Math.random() * 10)
+      ? 50 + Math.floor(_rng() * 10)
       : isGenerationalGem
-        ? 88 + Math.floor(Math.random() * 12)
+        ? 88 + Math.floor(_rng() * 12)
         : playerArchetype === "late_bloomer"
           ? rollTraitScore(true, false)
           : rollTraitScore();
 
     const coachability = isGenerationalBust
-      ? 50 + Math.floor(Math.random() * 10)
+      ? 50 + Math.floor(_rng() * 10)
       : isGenerationalGem
-        ? 85 + Math.floor(Math.random() * 15)
+        ? 85 + Math.floor(_rng() * 15)
         : playerArchetype === "late_bloomer"
           ? rollTraitScore(true, false)
           : playerArchetype === "overdraft"
@@ -2115,8 +2151,8 @@ export function generateRecruitClass(
             : rollTraitScore();
 
     out.push({
-      firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
-      lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
+      firstName: firstNames[Math.floor(_rng() * firstNames.length)],
+      lastName: lastNames[Math.floor(_rng() * lastNames.length)],
       position,
       homeState: recruitState.state,
       hometown: recruitCity,
@@ -2134,14 +2170,14 @@ export function generateRecruitClass(
       abilities,
       trajectory,
       scoutingOrder,
-      proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
-      reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],
-      playingTimePriority: priorities[Math.floor(Math.random() * priorities.length)],
-      academicsPriority: priorities[Math.floor(Math.random() * priorities.length)],
-      prestigePriority: priorities[Math.floor(Math.random() * priorities.length)],
-      facilitiesPriority: priorities[Math.floor(Math.random() * priorities.length)],
-      collegeLifePriority: priorities[Math.floor(Math.random() * priorities.length)],
-      commitmentThreshold: 300 + Math.floor(Math.random() * 400),
+      proximityPriority: priorities[Math.floor(_rng() * priorities.length)],
+      reputationPriority: priorities[Math.floor(_rng() * priorities.length)],
+      playingTimePriority: priorities[Math.floor(_rng() * priorities.length)],
+      academicsPriority: priorities[Math.floor(_rng() * priorities.length)],
+      prestigePriority: priorities[Math.floor(_rng() * priorities.length)],
+      facilitiesPriority: priorities[Math.floor(_rng() * priorities.length)],
+      collegeLifePriority: priorities[Math.floor(_rng() * priorities.length)],
+      commitmentThreshold: 300 + Math.floor(_rng() * 400),
       tools: selectedTools,
       isBlueChip,
       isGem,
@@ -2233,10 +2269,10 @@ export function generateRecruitClass(
       group.forEach((r, idx) => {
         const rank = idx + 1;
         let mult: number;
-        if (rank <= 2)       mult = 1.35 + Math.random() * 0.10; // #1–#2: 1.35–1.45×
-        else if (rank <= 5)  mult = 1.10 + Math.random() * 0.10; // #3–#5: 1.10–1.20×
+        if (rank <= 2)       mult = 1.35 + _rng() * 0.10; // #1–#2: 1.35–1.45×
+        else if (rank <= 5)  mult = 1.10 + _rng() * 0.10; // #3–#5: 1.10–1.20×
         else if (rank <= 10) mult = 1.0;                          // #6–#10: unchanged
-        else                 mult = 0.85 + Math.random() * 0.10; // #11+:  0.85–0.95×
+        else                 mult = 0.85 + _rng() * 0.10; // #11+:  0.85–0.95×
         r.nilCost = Math.floor((r.nilCost ?? 0) * mult);
       });
     }
@@ -2255,7 +2291,7 @@ export function generateRecruitClass(
   const avgTop20 = top20.reduce((s, r) => s + (r.overall ?? 300), 0) / Math.max(1, top20.length);
 
   const lateBloomerCount = out.filter(r => r.playerArchetype === "late_bloomer").length;
-  const isLegacyClass = opts.isLegacyClass ?? (Math.random() < 0.05);
+  const isLegacyClass = opts.isLegacyClass ?? (_rng() < 0.05);
 
   let classVintage: string;
   if (gemCount >= 2) {
@@ -2294,5 +2330,8 @@ export function generateRecruitClass(
     recruit.classVintage = classVintage;
   }
 
+  _resetRecruitRng();
+  _resetPitchMixRng();
+  _lastMasterSeed = masterSeed;
   return out;
 }

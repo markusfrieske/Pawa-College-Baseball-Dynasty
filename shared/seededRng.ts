@@ -8,7 +8,7 @@
  * enabling idempotent progression retries and reproducible debugging.
  */
 
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let s = seed;
   return () => {
     s |= 0;
@@ -29,11 +29,46 @@ function hashString(str: string): number {
 }
 
 /**
+ * FNV-1a 32-bit hash — fast, well-distributed, no deps.
+ * Returns a non-negative 32-bit integer.
+ */
+export function fnv1a32(str: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+/**
  * Create a deterministic PRNG from a string seed.
  * Returns a function that produces numbers in [0, 1) — same interface as Math.random().
  */
 export function createRng(seed: string): () => number {
   return mulberry32(hashString(seed));
+}
+
+/**
+ * Derive a deterministic numeric seed from an arbitrary string (UUID, label, etc.).
+ */
+export function seedFromString(s: string): number {
+  return fnv1a32(s);
+}
+
+/**
+ * Derive a per-row sub-seed from a master seed string and a row identifier
+ * (e.g. templateRecruitId). Rerolling one row does not affect others.
+ */
+export function derivedSeed(masterSeed: string, rowId: string): number {
+  return fnv1a32(`${masterSeed}\x00${rowId}`);
+}
+
+/**
+ * Create a mulberry32 PRNG from a string seed (convenience wrapper).
+ */
+export function rngFromString(seed: string): () => number {
+  return mulberry32(fnv1a32(seed));
 }
 
 /**

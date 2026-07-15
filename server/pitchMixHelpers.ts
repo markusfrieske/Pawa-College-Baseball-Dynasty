@@ -29,6 +29,12 @@
  * real roster files but is always 0 for newly generated recruits.
  */
 
+// ─── Module-level seeded RNG ──────────────────────────────────────────────────
+/** Swapped in during seeded recruit generation. Resets to Math.random after. */
+let _rng: () => number = Math.random.bind(Math);
+export function _setPitchMixRng(fn: () => number): void { _rng = fn; }
+export function _resetPitchMixRng(): void { _rng = Math.random.bind(Math); }
+
 export interface PitchMix {
   pitchFB: number;
   pitch2S: number;
@@ -189,7 +195,7 @@ export function assignPitcherArchetype(
   const isSPorP = position === "SP" || position === "P";
 
   // 1. 2% knuckleballer roll (starters only)
-  if (isSPorP && Math.random() < 0.02) return "knuckleballer";
+  if (isSPorP && _rng() < 0.02) return "knuckleballer";
 
   // 2. Reliever
   if (position === "RP" || position === "CP") return "reliever";
@@ -203,7 +209,7 @@ export function assignPitcherArchetype(
 
   // 4. Stuff dominant
   if (stuff >= velocity && stuff >= control) {
-    const r = Math.random();
+    const r = _rng();
     if (r < 0.35) return "power_starter";
     if (r < 0.65) return "sweeper_specialist";
     if (r < 0.85) return "sinkerballer";
@@ -212,7 +218,7 @@ export function assignPitcherArchetype(
 
   // 5. Velocity dominant
   if (velocity >= stuff && velocity >= control) {
-    const r = Math.random();
+    const r = _rng();
     if (r < 0.50) return "power_starter";
     if (r < 0.75) return "cutter_pitcher";
     return "sweeper_specialist";
@@ -220,7 +226,7 @@ export function assignPitcherArchetype(
 
   // 6. Control dominant
   if (control >= stuff && control >= velocity) {
-    const r = Math.random();
+    const r = _rng();
     if (r < 0.40) return "sinkerballer";
     if (r < 0.75) return "cutter_pitcher";
     return "junkball";
@@ -250,8 +256,8 @@ export function pitchCountForTier(tier: QualityTier): number {
   switch (tier) {
     case "elite":   return 5; // exactly 5
     case "great":   return 4; // exactly 4
-    case "solid":   return 3 + Math.floor(Math.random() * 2); // 3–4
-    case "average": return 2 + Math.floor(Math.random() * 2); // 2–3
+    case "solid":   return 3 + Math.floor(_rng() * 2); // 3–4
+    case "average": return 2 + Math.floor(_rng() * 2); // 2–3
   }
 }
 
@@ -439,7 +445,7 @@ export function generateArchetypePitchMix(
     let secondaryCount = 0;
     while (secondaryCount < maxSecondaries && pool.length > 0) {
       const totalWeight = pool.reduce((s, [, w]) => s + w, 0);
-      let roll = Math.random() * totalWeight;
+      let roll = _rng() * totalWeight;
       let chosen = pool.length - 1;
       for (let i = 0; i < pool.length; i++) {
         roll -= pool[i][1];
@@ -451,7 +457,7 @@ export function generateArchetypePitchMix(
       if (BINARY_PITCH_KEYS.has(key)) {
         (result as unknown as Record<string, number>)[key as string] = 1;
       } else {
-        const level = tier === "elite" ? 5 + Math.floor(Math.random() * 3) : 2 + Math.floor(Math.random() * 3);
+        const level = tier === "elite" ? 5 + Math.floor(_rng() * 3) : 2 + Math.floor(_rng() * 3);
         (result as unknown as Record<string, number>)[key as string] = level;
       }
       secondaryCount++;
@@ -493,7 +499,7 @@ export function generateArchetypePitchMix(
 
   while (selected.length < targetCount && pool.length > 0) {
     const totalWeight = pool.reduce((s, [, w]) => s + w, 0);
-    let roll = Math.random() * totalWeight;
+    let roll = _rng() * totalWeight;
     let chosen = pool.length - 1;
     for (let i = 0; i < pool.length; i++) {
       roll -= pool[i][1];
@@ -512,10 +518,10 @@ export function generateArchetypePitchMix(
     } else if (BINARY_PITCH_KEYS.has(key)) {
       (result as unknown as Record<string, number>)[key as string] = 1;
     } else if (isElite && !eliteSignatureDone) {
-      (result as unknown as Record<string, number>)[key as string] = 5 + Math.floor(Math.random() * 3); // 5–7
+      (result as unknown as Record<string, number>)[key as string] = 5 + Math.floor(_rng() * 3); // 5–7
       eliteSignatureDone = true;
     } else {
-      (result as unknown as Record<string, number>)[key as string] = 2 + Math.floor(Math.random() * 3); // 2–4
+      (result as unknown as Record<string, number>)[key as string] = 2 + Math.floor(_rng() * 3); // 2–4
     }
   }
 

@@ -24,6 +24,13 @@ export interface ClassSummary {
   theme: string | null;
 }
 
+export interface ClassGeneration {
+  /** Seed string used for procedural generation (UUID or user-supplied). */
+  seed: string;
+  /** Generator version for future reproducibility checks. */
+  version: number;
+}
+
 export interface ClassEnvelope {
   version: 1;
   source: "wizard" | "import" | "manual";
@@ -32,6 +39,8 @@ export interface ClassEnvelope {
   recruits: Record<string, unknown>[];
   /** Optional Story Plan — authored arc assignments for cast members. */
   storyPlan?: import("@shared/schema").WizardStoryPlan;
+  /** Seeded generation metadata — present for wizard-generated classes. */
+  generation?: ClassGeneration;
 }
 
 // ── Region mapping ────────────────────────────────────────────────────────────

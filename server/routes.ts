@@ -44,6 +44,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { registerInviteRoutes } from "./routes/invites";
 import { registerSavedRoutes } from "./routes/saved";
 import { registerClassProjectRoutes } from "./routes/class-projects";
+import { registerAiClassJobRoutes } from "./routes/aiClassJobs";
 import { registerStatsRoutes } from "./routes/stats";
 import { registerRecruitingRoutes } from "./routes/recruiting";
 import { registerDeparturesRoutes } from "./routes/departures";
@@ -464,6 +465,7 @@ export async function registerRoutes(
   registerInviteRoutes(app);
   registerSavedRoutes(app);
   registerClassProjectRoutes(app);
+  registerAiClassJobRoutes(app);
   registerStatsRoutes(app);
   registerRecruitingRoutes(app);
   registerDeparturesRoutes(app);

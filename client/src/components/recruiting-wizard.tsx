@@ -64,6 +64,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   leagueId?: string;
+  projectId?: string;
   onSaved?: () => void;
   onSavedToLibrary?: () => void;
   user?: { id: string; email: string } | null;
@@ -210,9 +211,181 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
+// ─── AI Assist Panel ─────────────────────────────────────────────────────────
+
+type AiJobType = "theme_draft" | "cast_proposal" | "arc_draft" | "text_rewrite";
+
+interface AiAssistPanelProps {
+  projectId?: string;
+  jobType: AiJobType;
+  metadata?: Record<string, unknown>;
+  placeholder?: string;
+  onAccept: (data: Record<string, unknown>) => void;
+  buttonLabel?: string;
+}
+
+function AiAssistPanel({
+  projectId,
+  jobType,
+  metadata,
+  placeholder = "Describe what you want…",
+  onAccept,
+  buttonLabel = "AI Assist",
+}: AiAssistPanelProps) {
+  const [open, setOpen] = useState(false);
+  const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);
+
+  const submit = async () => {
+    if (!projectId || !prompt.trim()) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await apiRequest("POST", `/api/class-projects/${projectId}/ai-jobs`, {
+        jobType,
+        prompt: prompt.trim(),
+        metadata: metadata ?? {},
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 429) {
+          setError(`Rate limit: ${err.error ?? "Too many AI jobs. Try again later."}`);
+        } else {
+          setError(err.error ?? "Request failed.");
+        }
+        return;
+      }
+      const data = await res.json();
+      setResult(data.job?.responseJson ?? data.job?.fallbackJson ?? null);
+      if (data.quotaLimit != null) {
+        setQuota({ used: data.quotaUsed ?? 0, limit: data.quotaLimit });
+      }
+    } catch {
+      setError("Could not reach the AI service. A procedural suggestion may be available.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const accept = () => {
+    if (!result) return;
+    onAccept(result);
+    setOpen(false);
+    setPrompt("");
+    setResult(null);
+    setError(null);
+  };
+
+  const discard = () => {
+    setResult(null);
+    setError(null);
+  };
+
+  const disabled = !projectId;
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => { if (!disabled) setOpen(o => !o); }}
+        disabled={disabled}
+        title={disabled ? "Save class to Library first to enable AI Assist" : undefined}
+        className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border transition-all ${
+          disabled
+            ? "border-border text-muted-foreground/40 cursor-not-allowed"
+            : open
+              ? "border-gold bg-gold/10 text-gold"
+              : "border-border text-muted-foreground hover:border-gold/50 hover:text-gold"
+        }`}
+        data-testid="ai-assist-toggle"
+      >
+        <Wand2 className="w-3 h-3" />
+        {buttonLabel}
+        {!disabled && quota && (
+          <span className="text-muted-foreground/60 ml-1">({quota.limit - quota.used} left)</span>
+        )}
+      </button>
+
+      {open && !disabled && (
+        <div className="mt-2 rounded border border-gold/30 bg-card p-3 space-y-2.5">
+          <p className="text-xs text-muted-foreground">
+            Describe what you want — the AI will draft a suggestion. You must accept it to apply.
+          </p>
+          <textarea
+            className="w-full bg-background border border-border rounded text-xs p-2 resize-none h-16 focus:outline-none focus:border-gold/50"
+            placeholder={placeholder}
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            maxLength={1000}
+            data-testid="ai-assist-prompt"
+          />
+          <div className="flex items-center gap-2">
+            <RetroButton
+              variant="outline"
+              className="text-xs py-1 px-2.5 h-auto"
+              onClick={submit}
+              disabled={loading || !prompt.trim()}
+              data-testid="ai-assist-submit"
+            >
+              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Generate"}
+            </RetroButton>
+            <button type="button" className="text-xs text-muted-foreground hover:text-white" onClick={() => setOpen(false)}>
+              Close
+            </button>
+            {quota && (
+              <span className="ml-auto text-xs text-muted-foreground/50">{quota.limit - quota.used}/{quota.limit} remaining</span>
+            )}
+          </div>
+
+          {error && (
+            <div className="flex items-start gap-2 p-2 rounded border border-red-500/30 bg-red-900/10 text-red-300 text-xs">
+              <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          {result && (
+            <div className="rounded border border-green-500/30 bg-green-900/10 p-2.5 space-y-2">
+              <div className="text-xs font-semibold text-green-400 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3 h-3" />
+                {(result as any).aiAssisted === false ? "Procedural Suggestion" : "AI Suggestion"}
+              </div>
+              <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words leading-relaxed max-h-48 overflow-y-auto">
+                {JSON.stringify(result, null, 2)}
+              </pre>
+              <div className="flex gap-2 pt-1">
+                <RetroButton
+                  variant="default"
+                  className="text-xs py-1 px-2.5 h-auto"
+                  onClick={accept}
+                  data-testid="ai-assist-accept"
+                >
+                  Accept
+                </RetroButton>
+                <RetroButton
+                  variant="outline"
+                  className="text-xs py-1 px-2.5 h-auto"
+                  onClick={discard}
+                  data-testid="ai-assist-discard"
+                >
+                  Discard
+                </RetroButton>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Step 1: Class Settings ──────────────────────────────────────────────────
 
-function Step1({ config, setConfig, targetSize }: { config: WizardConfig; setConfig: (c: WizardConfig) => void; targetSize?: number }) {
+function Step1({ config, setConfig, targetSize, projectId }: { config: WizardConfig; setConfig: (c: WizardConfig) => void; targetSize?: number; projectId?: string }) {
   const sliderMin = targetSize ?? 20;
   const sliderMax = Math.max(targetSize ?? 80, 80);
   const isAtTarget = targetSize != null && config.count === targetSize;
@@ -270,6 +443,17 @@ function Step1({ config, setConfig, targetSize }: { config: WizardConfig; setCon
           ))}
         </div>
       </div>
+
+      <AiAssistPanel
+        projectId={projectId}
+        jobType="theme_draft"
+        placeholder="e.g. A gritty, pitching-heavy class from the Southeast with high upside…"
+        buttonLabel="AI Assist — Theme Draft"
+        onAccept={(data) => {
+          const d = data as any;
+          if (d.themeName) setConfig({ ...config, label: d.themeName });
+        }}
+      />
 
       <div>
         <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Class Label (Optional)</Label>
@@ -1807,10 +1991,12 @@ function StepStoryCast({
   recruits,
   cast,
   setCast,
+  projectId,
 }: {
   recruits: WizardRecruit[];
   cast: string[];
   setCast: (c: string[]) => void;
+  projectId?: string;
 }) {
   const inCast = new Set(cast);
 
@@ -1855,10 +2041,26 @@ function StepStoryCast({
             Select up to 10 recruits to feature in authored storyline arcs. All others follow the standard random-archetype system.
           </p>
         </div>
-        <RetroButton variant="outline" size="sm" onClick={autoPick} data-testid="story-cast-autopick">
-          Auto-Pick
-        </RetroButton>
+        <div className="flex items-center gap-2">
+          <RetroButton variant="outline" size="sm" onClick={autoPick} data-testid="story-cast-autopick">
+            Auto-Pick
+          </RetroButton>
+        </div>
       </div>
+      <AiAssistPanel
+        projectId={projectId}
+        jobType="cast_proposal"
+        metadata={{ cast }}
+        placeholder="e.g. I want a redemption arc for my top pitcher and a breakout story for a hidden gem…"
+        buttonLabel="AI Assist — Cast Roles"
+        onAccept={(data) => {
+          const d = data as any;
+          if (Array.isArray(d.roles)) {
+            const ids = d.roles.map((r: any) => r.templateRecruitId).filter(Boolean);
+            setCast(ids.slice(0, MAX_CAST));
+          }
+        }}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left: recruit list */}
@@ -1952,11 +2154,13 @@ function StepArcStudio({
   cast,
   storyPlan,
   setStoryPlan,
+  projectId,
 }: {
   recruits: WizardRecruit[];
   cast: string[];
   storyPlan: WizardStoryPlan;
   setStoryPlan: (sp: WizardStoryPlan) => void;
+  projectId?: string;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(cast[0] ?? null);
 
@@ -2035,6 +2239,23 @@ function StepArcStudio({
             <div>
               <div className="text-sm font-semibold text-gold">{selectedRecruit.firstName} {selectedRecruit.lastName}</div>
               <div className="text-xs text-muted-foreground">{selectedRecruit.position} · OVR {selectedRecruit.overall} · {"★".repeat(selectedRecruit.starRating)}</div>
+              <AiAssistPanel
+                projectId={projectId}
+                jobType="arc_draft"
+                metadata={{ recruitName: `${selectedRecruit.firstName} ${selectedRecruit.lastName}` }}
+                placeholder="e.g. A redemption arc — he was overlooked, then found his rhythm under pressure…"
+                buttonLabel="AI Draft Arc"
+                onAccept={(data) => {
+                  const d = data as any;
+                  if (selectedId) {
+                    updateMember({
+                      ...getMember(selectedId),
+                      arcMode: "template",
+                      arcDraftJson: d.chapters ? d : undefined,
+                    });
+                  }
+                }}
+              />
             </div>
 
             {/* Arc mode selector */}
@@ -2250,7 +2471,7 @@ function makeEmptyStoryPlan(): WizardStoryPlan {
   return { mode: "authored", cast: [], createdAt: new Date().toISOString() };
 }
 
-export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLibrary, user }: Props) {
+export function RecruitingWizard({ open, onClose, leagueId, projectId, onSaved, onSavedToLibrary, user }: Props) {
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState<WizardConfig>(DEFAULT_CONFIG);
   const [recruits, setRecruits] = useState<WizardRecruit[]>([]);
@@ -2573,6 +2794,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
               recruits={recruits}
               cast={cast}
               setCast={setCast}
+              projectId={projectId}
             />
           ) : step === 8 ? (
             <StepArcStudio
@@ -2582,6 +2804,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
               setStoryPlan={(sp) => {
                 setStoryPlan({ ...sp, cast: sp.cast });
               }}
+              projectId={projectId}
             />
           ) : step === 9 ? (
             <StepPlaytest
@@ -2590,7 +2813,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
               storyPlan={storyPlan}
             />
           ) : step === 1 ? (
-            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} />
+            <Step1 config={config} setConfig={setConfig} targetSize={targetSize} projectId={projectId} />
           ) : step === 2 ? (
             <Step2 config={config} setConfig={setConfig} />
           ) : step === 3 ? (

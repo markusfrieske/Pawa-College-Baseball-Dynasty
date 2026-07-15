@@ -49,6 +49,8 @@ import {
   type Walkon, type InsertWalkon,
   savedRosters, savedRecruitingClasses, recruitingClassShares,
   recruitingClassProjects, recruitingClassVersions,
+  aiClassJobs,
+  type AiClassJob, type InsertAiClassJob,
   type SavedRoster, type InsertSavedRoster,
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
   type RecruitingClassShare, type InsertRecruitingClassShare,
@@ -326,6 +328,13 @@ export interface IStorage {
   getRecruitingClassVersion(id: string): Promise<RecruitingClassVersion | undefined>;
   createRecruitingClassVersion(data: InsertRecruitingClassVersion): Promise<RecruitingClassVersion>;
   migrateClassSharesToVersion(classId: string, versionId: string): Promise<void>;
+
+  // AI class jobs
+  createAiClassJob(data: InsertAiClassJob): Promise<AiClassJob>;
+  getAiClassJob(id: string): Promise<AiClassJob | undefined>;
+  updateAiClassJob(id: string, data: Partial<AiClassJob>): Promise<AiClassJob | undefined>;
+  deleteAiClassJob(id: string): Promise<void>;
+  countAiClassJobsInHour(userId: string): Promise<number>;
 
   // Game recaps
   createGameRecap(data: InsertGameRecap): Promise<GameRecap>;
@@ -2248,6 +2257,34 @@ export class DatabaseStorage implements IStorage {
   async createRecruitingClassVersion(data: InsertRecruitingClassVersion): Promise<RecruitingClassVersion> {
     const [version] = await db.insert(recruitingClassVersions).values(data).returning();
     return version;
+  }
+
+  // ─── AI Class Jobs ────────────────────────────────────────────────────────
+  async createAiClassJob(data: InsertAiClassJob): Promise<AiClassJob> {
+    const [job] = await db.insert(aiClassJobs).values(data).returning();
+    return job;
+  }
+
+  async getAiClassJob(id: string): Promise<AiClassJob | undefined> {
+    const [job] = await db.select().from(aiClassJobs).where(eq(aiClassJobs.id, id));
+    return job || undefined;
+  }
+
+  async updateAiClassJob(id: string, data: Partial<AiClassJob>): Promise<AiClassJob | undefined> {
+    const [job] = await db.update(aiClassJobs).set(data).where(eq(aiClassJobs.id, id)).returning();
+    return job || undefined;
+  }
+
+  async deleteAiClassJob(id: string): Promise<void> {
+    await db.delete(aiClassJobs).where(eq(aiClassJobs.id, id));
+  }
+
+  async countAiClassJobsInHour(userId: string): Promise<number> {
+    const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+    const [row] = await db.select({ count: sql<number>`count(*)::int` })
+      .from(aiClassJobs)
+      .where(and(eq(aiClassJobs.userId, userId), gt(aiClassJobs.createdAt, cutoff)));
+    return row?.count ?? 0;
   }
 
   async migrateClassSharesToVersion(classId: string, versionId: string): Promise<void> {

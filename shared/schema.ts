@@ -2372,3 +2372,37 @@ export const league_jobs = pgTable("league_jobs", {
 
 export type LeagueJob = typeof league_jobs.$inferSelect;
 export type InsertLeagueJob = typeof league_jobs.$inferInsert;
+
+// ─── AI Class Jobs ────────────────────────────────────────────────────────────
+
+/**
+ * AI-assisted class creation jobs.
+ * Stores prompts, responses, and audit trail for all AI requests in the Class Studio.
+ * AI output is never auto-applied; creators must explicitly accept it.
+ */
+export const aiClassJobs = pgTable("ai_class_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: varchar("project_id").notNull().references(() => recruitingClassProjects.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  // theme_draft | cast_proposal | arc_draft | text_rewrite
+  jobType: text("job_type").notNull(),
+  prompt: text("prompt").notNull(),
+  modelIdentifier: text("model_identifier").notNull().default("gpt-4o-mini"),
+  schemaVersion: integer("schema_version").notNull().default(1),
+  // Structured AI response (null until done)
+  responseJson: json("response_json"),
+  // Procedural fallback generated when AI call fails
+  fallbackJson: json("fallback_json"),
+  // pending | running | done | failed
+  status: text("status").notNull().default("pending"),
+  // Set when creator clicks Accept
+  acceptedAt: timestamp("accepted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_ai_class_jobs_project").on(t.projectId),
+  index("idx_ai_class_jobs_user_created").on(t.userId, t.createdAt),
+]);
+
+export const insertAiClassJobSchema = createInsertSchema(aiClassJobs).omit({ id: true, createdAt: true });
+export type InsertAiClassJob = z.infer<typeof insertAiClassJobSchema>;
+export type AiClassJob = typeof aiClassJobs.$inferSelect;

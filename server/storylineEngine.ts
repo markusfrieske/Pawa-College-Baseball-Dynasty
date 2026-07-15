@@ -1,6 +1,11 @@
 import type { ChoiceWeights, StorylineHiddenVars, StoryOutcome } from "@shared/schema";
 import { isPitcher } from "@shared/positions";
 
+// ─── Module-level seeded RNG ──────────────────────────────────────────────────
+let _rng: () => number = Math.random.bind(Math);
+export function _setStorylineRng(fn: () => number): void { _rng = fn; }
+export function _resetStorylineRng(): void { _rng = Math.random.bind(Math); }
+
 // Maps a raw position string to the canonical key used in scenePromptByPosition.
 // Returns null for pitchers (handled via scenePromptPitcher) and unrecognised positions.
 export function positionToSceneGroupKey(position: string): string | null {
@@ -28,12 +33,12 @@ const DELTAS = {
 type DeltaKey = keyof typeof DELTAS;
 
 function roll(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return Math.floor(_rng() * (max - min + 1)) + min;
 }
 
 export function resolveWeights(weights: ChoiceWeights): number {
   const total = Object.values(weights).reduce((s, v) => s + v, 0);
-  let rng = Math.random() * total;
+  let rng = _rng() * total;
   for (const [key, prob] of Object.entries(weights) as [DeltaKey, number][]) {
     rng -= prob;
     if (rng <= 0) {
@@ -166,8 +171,8 @@ export function rollHiddenVars(starRank: number, isBlueChip: boolean, isLegendar
     volatility: isLegendary ? roll(6, 10) : roll(1, 10),
     stability: Math.round(base * 6 + roll(0, 3)),
     pressure: isBlueChip ? roll(5, 10) : roll(1, 7),
-    breakoutSeed: Math.random() < (isLegendary ? 0.85 : isBlueChip ? 0.45 : 0.25),
-    collapseSeed: Math.random() < (isLegendary ? 0.3 : 0.15),
+    breakoutSeed: _rng() < (isLegendary ? 0.85 : isBlueChip ? 0.45 : 0.25),
+    collapseSeed: _rng() < (isLegendary ? 0.3 : 0.15),
     ceilingModifier: isLegendary ? roll(5, 18) : roll(-8, 12),
     loyaltySeed: roll(2, 10),
   };
@@ -339,7 +344,7 @@ export function maybeTransitionArchetype(
 ): Archetype {
   if (arcStage < 2) return currentArchetype;
   const transitionChance = isLegendary ? 0.75 : 0.50;
-  if (Math.random() > transitionChance) return currentArchetype;
+  if (_rng() > transitionChance) return currentArchetype;
 
   // Resolve a transition target to a position-appropriate archetype.
   // If the target is incompatible, use the defined fallback rather than blocking the transition.
@@ -1314,7 +1319,7 @@ const TIER_DISTRIBUTION: Record<string, number> = {
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(_rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
@@ -1385,7 +1390,7 @@ export function pickStorylineRecruits(
     legendaryCount = config.legendaryCount;
   } else {
     const prob = recentLegendaryCount >= 2 ? 0.15 : recentLegendaryCount === 0 ? 1.0 : 0.40;
-    legendaryCount = Math.random() < prob ? 1 : 0;
+    legendaryCount = _rng() < prob ? 1 : 0;
   }
 
   // Legendary slot: best available from finalPicked (gem > bluechip > 4-star+)
@@ -1415,7 +1420,7 @@ function pickArchetypeForRecruit(
   isLegendary: boolean,
 ): Archetype {
   if (isLegendary) {
-    return LEGENDARY_ARCHETYPES[Math.floor(Math.random() * LEGENDARY_ARCHETYPES.length)];
+    return LEGENDARY_ARCHETYPES[Math.floor(_rng() * LEGENDARY_ARCHETYPES.length)];
   }
   const isPitcherPos = isPitcher(r.position);
   if (r.isBlueChip) {
@@ -1424,20 +1429,20 @@ function pickArchetypeForRecruit(
     const elite = isPitcherPos
       ? eliteAll.filter(a => !HITTER_ONLY_ARCHETYPES.has(a))
       : eliteAll.filter(a => !PITCHER_ONLY_ARCHETYPES.has(a));
-    return elite[Math.floor(Math.random() * elite.length)];
+    return elite[Math.floor(_rng() * elite.length)];
   }
   if (isPitcherPos) {
     const pitcherArch: Archetype[] = ["velocity_freak", "knuckleball_specialist", "burnout_candidate", "injury_risk", "late_bloomer", "coaching_change", "financial_pressure"];
-    return pitcherArch[Math.floor(Math.random() * pitcherArch.length)];
+    return pitcherArch[Math.floor(_rng() * pitcherArch.length)];
   }
   if (r.starRank <= 2) {
     // Low-star position players: none of these contain pitcher-only archetypes
     const lowArch: Archetype[] = ["late_bloomer", "academic_concern", "position_change", "confidence_crisis", "financial_pressure", "first_gen_student", "small_town_hero"];
-    return lowArch[Math.floor(Math.random() * lowArch.length)];
+    return lowArch[Math.floor(_rng() * lowArch.length)];
   }
   // General fallback for position players: exclude pitcher-only archetypes
   const generalPool = ARCHETYPES.filter(a => !PITCHER_ONLY_ARCHETYPES.has(a));
-  return generalPool[Math.floor(Math.random() * generalPool.length)];
+  return generalPool[Math.floor(_rng() * generalPool.length)];
 }
 
 function getTierFromOVR(ovr: number): string {
@@ -1501,7 +1506,7 @@ export function generateStorylineEvent(
     );
   }
   const availablePool = unusedPool.length > 0 ? unusedPool : pool;
-  const template = availablePool[Math.floor(Math.random() * availablePool.length)];
+  const template = availablePool[Math.floor(_rng() * availablePool.length)];
 
   const interpolate = (text: string) => {
     // Always use "the program" — teamName is intentionally not used here so
@@ -1567,7 +1572,7 @@ export function generateStorylineEvent(
 
 // ─── Deterministic No-Vote Fallback ───────────────────────────────────────────
 // Used when an all-human league advances with zero votes cast on a storyline event.
-// Instead of pure Math.random(), this derives a stable choice from the recruit's
+// Instead of pure _rng(), this derives a stable choice from the recruit's
 // hidden personality variables so the outcome feels character-driven.
 //
 // Algorithm:
@@ -1576,7 +1581,7 @@ export function generateStorylineEvent(
 //   3. Bias the weighted selection with the personality roll: high roll → higher-positivity choices.
 //
 // Guarantees:
-//   - Same hiddenVars + same event → same choice (no Math.random() involved).
+//   - Same hiddenVars + same event → same choice (no _rng() involved).
 //   - Choice is correlated with the recruit's personality profile.
 //   - Falls back to first available choice if weights degenerate.
 export function deterministicFallbackChoice(
@@ -1600,7 +1605,7 @@ export function deterministicFallbackChoice(
     personalityRoll = raw / 10000;
   } else {
     // No hidden vars (shouldn't normally happen): pure random fallback
-    personalityRoll = Math.random();
+    personalityRoll = _rng();
   }
 
   // Clamp scores so all weights are positive, then bias high-positivity choices
@@ -1652,13 +1657,13 @@ export function resolveVotes(
       );
       return { winningChoice, usedFallback: true };
     }
-    const winningChoice = choices[Math.floor(Math.random() * choices.length)];
+    const winningChoice = choices[Math.floor(_rng() * choices.length)];
     return { winningChoice };
   }
 
   const maxCount = Math.max(...choices.map(c => counts[c]));
   const tiedChoices = choices.filter(c => counts[c] === maxCount);
-  const winningChoice = tiedChoices[Math.floor(Math.random() * tiedChoices.length)];
+  const winningChoice = tiedChoices[Math.floor(_rng() * tiedChoices.length)];
   return { winningChoice };
 }
 
