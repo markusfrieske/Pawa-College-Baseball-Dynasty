@@ -32,6 +32,10 @@ export function advanceIndexForPhaseWeek(phase: string, week: number, maxRegWeek
 // When eventId is provided the function is fully idempotent:
 //   • If storyline_resolutions already has a row for this event, returns cached ovrDelta immediately.
 //   • Otherwise wraps all DB writes in a transaction and inserts a resolution record at commit.
+//
+// resolveEventData — when provided, the storyline_events row is also updated inside
+// the same transaction as the recruit mutation, achieving full atomicity across all
+// three writes (recruit, event resolution, ledger sentinel).
 export async function applyStoryOutcomeToRecruit(
   recruit: Awaited<ReturnType<typeof storage.getRecruit>>,
   outcome: StoryOutcome,
@@ -39,6 +43,9 @@ export async function applyStoryOutcomeToRecruit(
   isLegendary: boolean,
   eventId?: string,
   winningChoice?: string,
+  resolveEventData?: {
+    resolvedOutcomeText: string;
+  },
 ): Promise<{ ovrDelta: number; abilityGain?: string; abilityRemove?: string; abilityTier?: string }> {
   if (!recruit) return { ovrDelta: 0 };
 
@@ -149,6 +156,7 @@ export async function applyStoryOutcomeToRecruit(
       if ((sentinel.rowCount ?? 0) === 0) {
         // A prior committed transaction already resolved this event.
         // Read its cached snapshot delta and return without mutation.
+        // Do NOT call client.release() here — finally handles it.
         await client.query("COMMIT");
         const cached = await client.query<{ ovrDelta: number }>(
           `SELECT COALESCE(
@@ -158,13 +166,13 @@ export async function applyStoryOutcomeToRecruit(
            FROM storyline_resolutions WHERE event_id = $1 LIMIT 1`,
           [eventId],
         );
-        client.release();
         const cachedDelta = cached.rows[0]?.ovrDelta ?? 0;
         console.log(`[storylines] idempotency hit event=${eventId} cachedDelta=${cachedDelta}`);
+        // client.release() deferred to finally — no double-release
         return { ovrDelta: cachedDelta };
       }
 
-      // We own the sentinel — apply recruit changes inside this transaction.
+      // We own the sentinel — apply all changes inside this single transaction.
       const setClauses: string[] = [];
       const params: unknown[] = [];
       let idx = 1;
@@ -183,6 +191,31 @@ export async function applyStoryOutcomeToRecruit(
         await client.query(`UPDATE recruits SET stage = 'left_pool' WHERE id = $1`, [recruit.id]);
       }
 
+      // Update the storyline_event resolution fields inside the same transaction
+      // so recruit mutation + event resolution commit or roll back together.
+      if (resolveEventData) {
+        await client.query(
+          `UPDATE storyline_events SET
+             resolved_choice      = $1,
+             resolved_outcome_text = $2,
+             ovr_delta            = $3,
+             resolved_ability_gain   = $4,
+             resolved_ability_remove = $5,
+             resolved_ability_tier   = $6,
+             resolved_at          = NOW()
+           WHERE id = $7`,
+          [
+            winningChoice ?? "A",
+            resolveEventData.resolvedOutcomeText,
+            ovrDelta,
+            abilityGain ?? null,
+            abilityRemoveResult ?? null,
+            abilityTier ?? null,
+            eventId,
+          ],
+        );
+      }
+
       // Stamp the sentinel with full snapshot data (completes the ledger row)
       await client.query(
         `UPDATE storyline_resolutions
@@ -196,7 +229,7 @@ export async function applyStoryOutcomeToRecruit(
       await client.query("ROLLBACK").catch(() => {});
       throw txErr;
     } finally {
-      client.release();
+      client.release(); // single authoritative release for all paths
     }
   } else {
     // No eventId — legacy path without ledger.
@@ -1026,6 +1059,11 @@ async function resolveOneStorylineEvent(
     let abilityRemove: string | undefined;
     let abilityTier: string | undefined;
 
+    // Track whether the storyline_events row was updated inside the atomic
+    // transaction (via resolveEventData in applyStoryOutcomeToRecruit).
+    // If so we skip the separate updateStorylineEvent call below.
+    let eventUpdatedTransactionally = false;
+
     if (recruit) {
       try {
         const outcome = getOutcomeForChoice(
@@ -1034,25 +1072,36 @@ async function resolveOneStorylineEvent(
           recruit.position,
           sl.isLegendary,
         );
-        const result = await applyStoryOutcomeToRecruit(recruit, outcome, volatility, sl.isLegendary, event.id, winningChoice);
+        // Pass resolveEventData so the storyline_events UPDATE is included in
+        // the same transaction as the recruit mutation and ledger sentinel.
+        // This achieves full atomicity: recruit + event + ledger commit together.
+        const result = await applyStoryOutcomeToRecruit(
+          recruit, outcome, volatility, sl.isLegendary, event.id, winningChoice,
+          { resolvedOutcomeText: outcomeText ?? "" },
+        );
         ovrDelta = result.ovrDelta;
         abilityGain = result.abilityGain;
         abilityRemove = result.abilityRemove;
         abilityTier = result.abilityTier;
+        eventUpdatedTransactionally = true;
       } catch (applyErr) {
         console.warn("[storylines] applyStoryOutcome error:", applyErr);
       }
     }
 
-    await storage.updateStorylineEvent(event.id, {
-      resolvedChoice: winningChoice,
-      resolvedOutcomeText: outcomeText,
-      ovrDelta,
-      resolvedAbilityGain: abilityGain,
-      resolvedAbilityRemove: abilityRemove,
-      resolvedAbilityTier: abilityTier,
-      resolvedAt: new Date(),
-    });
+    // Fallback: update storyline_event directly when no recruit was found or
+    // when applyStoryOutcomeToRecruit threw (transactional path was not reached).
+    if (!eventUpdatedTransactionally) {
+      await storage.updateStorylineEvent(event.id, {
+        resolvedChoice: winningChoice,
+        resolvedOutcomeText: outcomeText,
+        ovrDelta,
+        resolvedAbilityGain: abilityGain,
+        resolvedAbilityRemove: abilityRemove,
+        resolvedAbilityTier: abilityTier,
+        resolvedAt: new Date(),
+      });
+    }
 
     if (recruit) {
       const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
