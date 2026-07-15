@@ -14,6 +14,7 @@ export interface ClassSummary {
   recruitCount: number;
   starDist: Record<number, number>;
   posDist: Record<string, number>;
+  regionDist: Record<string, number>;
   blueChips: number;
   gems: number;
   busts: number;
@@ -31,6 +32,39 @@ export interface ClassEnvelope {
   recruits: Record<string, unknown>[];
 }
 
+// ── Region mapping ────────────────────────────────────────────────────────────
+
+const STATE_TO_REGION: Record<string, string> = {
+  // Southeast
+  FL: "Southeast", GA: "Southeast", SC: "Southeast", NC: "Southeast",
+  AL: "Southeast", MS: "Southeast", TN: "Southeast", VA: "Southeast",
+  AR: "Southeast", LA: "Southeast", WV: "Southeast",
+  // Texas / South Central
+  TX: "Texas", OK: "Texas",
+  // California
+  CA: "California",
+  // Midwest
+  OH: "Midwest", MI: "Midwest", IN: "Midwest", IL: "Midwest",
+  WI: "Midwest", MN: "Midwest", MO: "Midwest", IA: "Midwest",
+  KS: "Midwest", NE: "Midwest", ND: "Midwest", SD: "Midwest",
+  // Northeast
+  NY: "Northeast", PA: "Northeast", NJ: "Northeast", MA: "Northeast",
+  CT: "Northeast", RI: "Northeast", VT: "Northeast", NH: "Northeast",
+  ME: "Northeast", MD: "Northeast", DE: "Northeast", DC: "Northeast",
+  // West / Mountain
+  WA: "West", OR: "West", ID: "West", MT: "West", WY: "West",
+  CO: "West", UT: "West", NV: "West", AZ: "West", NM: "West",
+  HI: "West", AK: "West",
+  // International / Other
+  PR: "Other", GU: "Other",
+};
+
+function stateToRegion(state: string | null | undefined): string {
+  if (!state) return "Other";
+  const abbr = String(state).trim().toUpperCase();
+  return STATE_TO_REGION[abbr] ?? "Other";
+}
+
 // ── Summary computation ───────────────────────────────────────────────────────
 
 export function computeSummary(
@@ -39,6 +73,7 @@ export function computeSummary(
 ): ClassSummary {
   const starDist: Record<number, number> = {};
   const posDist: Record<string, number> = {};
+  const regionDist: Record<string, number> = {};
   let blueChips = 0, gems = 0, busts = 0, genGems = 0, genBusts = 0, ovrSum = 0;
 
   for (const r of recruits) {
@@ -47,6 +82,9 @@ export function computeSummary(
 
     const pos = typeof r.position === "string" ? r.position : "?";
     posDist[pos] = (posDist[pos] || 0) + 1;
+
+    const region = stateToRegion(r.homeState as string | null | undefined);
+    regionDist[region] = (regionDist[region] || 0) + 1;
 
     if (r.isBlueChip)        blueChips++;
     if (r.isGem)             gems++;
@@ -58,7 +96,7 @@ export function computeSummary(
 
   const avgOvr = recruits.length > 0 ? Math.round(ovrSum / recruits.length) : 0;
 
-  return { recruitCount: recruits.length, starDist, posDist, blueChips, gems, busts, genGems, genBusts, avgOvr, theme };
+  return { recruitCount: recruits.length, starDist, posDist, regionDist, blueChips, gems, busts, genGems, genBusts, avgOvr, theme };
 }
 
 // ── Envelope builder ─────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ interface ClassSummary {
   recruitCount: number;
   starDist: Record<number, number>;
   posDist: Record<string, number>;
+  regionDist: Record<string, number>;
   theme: string | null;
 }
 
@@ -162,6 +163,11 @@ export default function ImportClassPage() {
         return Object.entries(pd).sort((a, b) => b[1] - a[1]);
       })();
 
+  // Region distribution — from server summary (homeState-based, grouped to 6 regions)
+  const sortedRegions: [string, number][] = storedSummary?.regionDist
+    ? Object.entries(storedSummary.regionDist).sort((a, b) => b[1] - a[1])
+    : [];
+
   const totalCount = storedSummary?.recruitCount ?? recruits.length;
 
   return (
@@ -254,7 +260,7 @@ export default function ImportClassPage() {
           </RetroCardHeader>
         </RetroCard>
 
-        {/* Star Distribution + Position Mix */}
+        {/* Star Distribution + Position Mix + Region Mix */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <RetroCard data-testid="card-star-dist">
             <RetroCardHeader>
@@ -299,6 +305,29 @@ export default function ImportClassPage() {
             </RetroCardContent>
           </RetroCard>
         </div>
+
+        {/* Region Mix */}
+        {sortedRegions.length > 0 && (
+          <RetroCard className="mb-6" data-testid="card-region-dist">
+            <RetroCardHeader>
+              <span className="text-xs font-semibold text-gold uppercase">Region Mix</span>
+            </RetroCardHeader>
+            <RetroCardContent className="space-y-1.5">
+              {sortedRegions.map(([region, count]) => (
+                <div key={region} className="flex items-center gap-2">
+                  <span className="text-xs w-24 shrink-0 text-muted-foreground">{region}</span>
+                  <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gold/60"
+                      style={{ width: `${Math.round((count / totalCount) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{count}</span>
+                </div>
+              ))}
+            </RetroCardContent>
+          </RetroCard>
+        )}
 
         {/* Recruit List — spoiler-safe: name/position/stars only */}
         <RetroCard data-testid="card-recruit-list">

@@ -194,11 +194,15 @@ export async function replaceLeagueRecruitingClass(
   });
 
   // 3. Storyline initialization ───────────────────────────────────────────────
-  // Sync path (asyncStorylines=false, the default): errors propagate so the
-  // caller gets a clear failure instead of a silent partial success.  The pool
-  // and vintage are already committed, but callers should treat a thrown error
-  // as a signal that the new class is not fully ready for recruiting activity.
-  // Async path (asyncStorylines=true): fire-and-forget with logging only.
+  // Sync path (asyncStorylines=false, the default):
+  //   If storyline init throws, we apply a compensating rollback — deleting the
+  //   newly committed recruit pool so the league is not left in partial state.
+  //   The vintage update is rolled back as well (raw SQL UPDATE inside the same
+  //   compensating delete transaction).  After compensation the original error
+  //   is re-thrown so callers receive an explicit failure signal.
+  //
+  // Async path (asyncStorylines=true): fire-and-forget with prominent logging.
+  //   Partial state is acceptable here because the caller explicitly opts in.
   if (initStorylines) {
     if (asyncStorylines) {
       initializeStorylineRecruits(leagueId, season)
@@ -214,10 +218,47 @@ export async function replaceLeagueRecruitingClass(
           )
         );
     } else {
-      const n = await initializeStorylineRecruits(leagueId, season);
-      console.log(
-        `[replaceRecruitClass] initialized ${n} storyline recruits for league ${leagueId} season ${season}`
-      );
+      try {
+        const n = await initializeStorylineRecruits(leagueId, season);
+        console.log(
+          `[replaceRecruitClass] initialized ${n} storyline recruits for league ${leagueId} season ${season}`
+        );
+      } catch (initErr) {
+        // Compensating rollback: undo the committed recruit pool so the league
+        // is not left with a new class but no storyline recruits.
+        console.error(
+          `[replaceRecruitClass] storyline init failed for league ${leagueId}; rolling back recruit pool:`,
+          initErr
+        );
+        try {
+          await db.transaction(async (tx) => {
+            const newRecruitsRows = await tx
+              .select({ id: recruitsTable.id })
+              .from(recruitsTable)
+              .where(eq(recruitsTable.leagueId, leagueId));
+            const newIds = newRecruitsRows.map(r => r.id);
+            if (newIds.length > 0) {
+              await tx.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, newIds));
+              await tx.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, newIds));
+              await tx.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, newIds));
+              await tx.delete(recruitsTable).where(eq(recruitsTable.leagueId, leagueId));
+            }
+            // Also revert the vintage update if we set one
+            if (vintage !== undefined) {
+              await tx.execute(
+                `UPDATE leagues SET "currentClassVintage" = NULL WHERE id = '${leagueId.replace(/'/g, "''")}'`
+              );
+            }
+          });
+          console.log(`[replaceRecruitClass] compensating rollback succeeded for league ${leagueId}`);
+        } catch (rollbackErr) {
+          console.error(
+            `[replaceRecruitClass] compensating rollback ALSO failed for league ${leagueId}:`,
+            rollbackErr
+          );
+        }
+        throw initErr; // re-throw original error to the caller
+      }
     }
   }
 

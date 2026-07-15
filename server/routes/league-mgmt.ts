@@ -1168,18 +1168,21 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
       return res.status(403).json({ message: "Commissioner only" });
     }
 
-    // ── Phase guard: only allow replacing the pool in safe windows ─────────
-    // Active game/recruiting phases are locked — any coach may have already
-    // taken scouting/call/visit/commit actions that would be silently wiped.
-    const ACTIVE_PHASES = new Set([
-      "preseason", "spring_training", "regular_season",
-      "conference_championship", "super_regionals", "cws",
-      "offseason_signing_day", "offseason_walkons",
+    // ── Phase guard: allowlist — only safe in early offseason / initial setup ──
+    // The window is deliberately narrow: dynasty_setup (initial commissioner
+    // configuration before any game has been played) and the early offseason
+    // phases that occur before recruiting activities begin for the next class.
+    // Any other phase — including preseason, season, postseason, signing day,
+    // walk-on phase — is rejected so coaches cannot lose accumulated work.
+    const ALLOWED_PHASES = new Set([
+      "dynasty_setup",   // initial setup before first season
+      "offseason",       // post-CWS before any recruiting actions begin
+      "offseason_departures", // graduation/transfer window, still pre-recruiting
     ]);
-    if (ACTIVE_PHASES.has(league.currentPhase)) {
+    if (!ALLOWED_PHASES.has(league.currentPhase)) {
       return res.status(409).json({
         message: `Cannot replace the recruiting class during the "${league.currentPhase}" phase. ` +
-          `Load a saved class only during dynasty setup or early offseason (before signing day).`,
+          `Load a saved class only during initial dynasty setup or early offseason (before recruiting activity begins).`,
       });
     }
 
