@@ -25,9 +25,18 @@ import type {
   RecruitingClassVersion,
 } from "../../shared/schema";
 
+// Stable canonical serialization with sorted keys so the hash is reproducible
+// regardless of JS object key insertion order.
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${(value as unknown[]).map(stableStringify).join(",")}]`;
+  const sorted = Object.keys(value as object).sort();
+  const pairs = sorted.map(k => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`);
+  return `{${pairs.join(",")}}`;
+}
+
 function contentHash(packageJson: unknown): string {
-  const canonical = JSON.stringify(packageJson);
-  return createHash("sha256").update(canonical).digest("hex");
+  return createHash("sha256").update(stableStringify(packageJson)).digest("hex");
 }
 
 export async function migrateClassToVersion(classId: string): Promise<{

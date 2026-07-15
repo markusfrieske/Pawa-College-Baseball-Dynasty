@@ -43,9 +43,67 @@ function hashToken(plaintext: string): string {
   return createHash("sha256").update(plaintext).digest("hex");
 }
 
+// Stable canonical serialization — keys are sorted recursively so the hash is
+// independent of insertion order.  Must be identical to any future client-side
+// content verification tool.
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  const sorted = Object.keys(value as object).sort();
+  const pairs = sorted.map(k => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`);
+  return `{${pairs.join(",")}}`;
+}
+
 function contentHash(packageJson: unknown): string {
-  const canonical = JSON.stringify(packageJson);
-  return createHash("sha256").update(canonical).digest("hex");
+  return createHash("sha256").update(stableStringify(packageJson)).digest("hex");
+}
+
+// ── Sealed-mode sanitization ────────────────────────────────────────────────
+// When a sealed class is imported, hidden fields are stripped before writing to
+// the recipient's saved_recruiting_classes row.  The full truth never leaves the
+// server, so recipients cannot recover hidden attributes from stored JSON.
+
+const SEALED_STRIP = new Set([
+  "overall",
+  "isBlueChip",
+  "isGem",
+  "isBust",
+  "isGenerationalGem",
+  "isGenerationalBust",
+  "potential",
+  "potentialFloor",
+  "potentialCeiling",
+  "hitForAvg",
+  "power",
+  "speed",
+  "arm",
+  "fielding",
+  "errorResistance",
+  "clutch",
+  "vsLHP",
+  "grit",
+  "stealing",
+  "running",
+  "throwing",
+  "recovery",
+  "catcherAbility",
+  "velocity",
+  "control",
+  "stamina",
+  "stuff",
+  "wRISP",
+  "vsLefty",
+  "poise",
+  "heater",
+  "agile",
+]);
+
+function sealedSanitize<T>(recruits: T[]): T[] {
+  return recruits.map(r => {
+    const stripped: Record<string, unknown> = { ...(r as Record<string, unknown>) };
+    for (const k of SEALED_STRIP) delete stripped[k];
+    return stripped as T;
+  });
 }
 
 // ── IP rate limiter (max 20 req/min per IP for public endpoints) ───────────────
@@ -412,16 +470,9 @@ export function registerClassProjectRoutes(app: Express): void {
       const storedSummary = extractSummary(packageJson);
       const summary = storedSummary ?? computeSummary(recruits);
 
-      // Spoiler-free recruit rows: name, position, stars, state only
-      const previewRecruits = recruits.map(r => ({
-        firstName: r.firstName,
-        lastName: r.lastName,
-        position: r.position,
-        homeState: (r as Record<string, unknown>).homeState ?? null,
-        starRating: r.starRating,
-        recruitType: r.recruitType,
-      }));
-
+      // Spoiler-free: return aggregate metadata only — no per-recruit rows.
+      // Per-recruit data (names, positions, stars) would reveal class composition
+      // before the coach has earned the right to see it.
       const publicSummary = {
         recruitCount: summary.recruitCount,
         starDist: summary.starDist,
@@ -448,7 +499,6 @@ export function registerClassProjectRoutes(app: Express): void {
         recruitCount: summary.recruitCount,
         theme: summary.theme,
         summary: publicSummary,
-        recruits: previewRecruits,
       });
     } catch (e) {
       console.error("Failed to fetch class share preview:", e);
@@ -501,10 +551,14 @@ export function registerClassProjectRoutes(app: Express): void {
         throw e;
       }
 
-      // Preserve full class data server-side (no destructive stripping).
-      // isSealed is stored as a flag on the saved class so the recruiting
-      // system can apply fog-of-war at runtime when the class is loaded.
-      const envelope = buildClassEnvelope(validated.recruits, "import", {
+      // For sealed classes, strip all hidden fields before persisting so the
+      // recipient can never recover truth values from their stored JSON.
+      // For open classes, store the full package as-is.
+      const recruitsToStore = version.isSealed
+        ? sealedSanitize(validated.recruits)
+        : validated.recruits;
+
+      const envelope = buildClassEnvelope(recruitsToStore, "import", {
         theme: sourceTheme,
         config: sourceConfig,
       });

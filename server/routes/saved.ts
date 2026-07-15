@@ -424,8 +424,23 @@ export function registerSavedRoutes(app: Express): void {
         throw e;
       }
 
-      // Store full data (no stripping); isSealed flag drives runtime fog-of-war.
-      const envelope = buildClassEnvelope(validated.recruits, "import", { theme: sourceTheme, config: sourceConfig });
+      // For sealed classes, strip all hidden fields before persisting so recipients
+      // cannot recover truth values from stored JSON.  Open classes keep full data.
+      const SEALED_STRIP_FIELDS = new Set([
+        "overall","isBlueChip","isGem","isBust","isGenerationalGem","isGenerationalBust",
+        "potential","potentialFloor","potentialCeiling",
+        "hitForAvg","power","speed","arm","fielding","errorResistance","clutch","vsLHP",
+        "grit","stealing","running","throwing","recovery","catcherAbility",
+        "velocity","control","stamina","stuff","wRISP","vsLefty","poise","heater","agile",
+      ]);
+      const recruitsToStore = importedIsSealed
+        ? validated.recruits.map(r => {
+            const s: Record<string, unknown> = { ...(r as Record<string, unknown>) };
+            for (const k of SEALED_STRIP_FIELDS) delete s[k];
+            return s as typeof r;
+          })
+        : validated.recruits;
+      const envelope = buildClassEnvelope(recruitsToStore, "import", { theme: sourceTheme, config: sourceConfig });
 
       const imported = await storage.createSavedRecruitingClass({
         userId,
