@@ -302,13 +302,13 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
         ) : (
           <div className="space-y-5 mt-2">
 
-            {/* ── Version status ─────────────────────────────────────────── */}
+            {/* ── Version status + publish ───────────────────────────────── */}
             <div className="p-2.5 rounded border border-border bg-muted/10 space-y-2.5">
-              {hasPublishedVersion ? (
+              {hasPublishedVersion && (
                 <div className="flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-gold" />
                   <span className="text-xs text-muted-foreground">
-                    Published as{" "}
+                    Current published:{" "}
                     <span className="text-gold font-semibold">v{latestVersion!.versionNumber}</span>
                     {latestVersion!.isSealed ? (
                       <Badge variant="secondary" className="ml-2 text-xs px-1 py-0">
@@ -321,42 +321,44 @@ export function ShareClassDialog({ classId, open, onClose }: ShareClassDialogPro
                     )}
                   </span>
                 </div>
-              ) : (
-                <>
-                  <p className="text-xs text-muted-foreground">Draft — publish to enable sharing</p>
-                  {/* Sealed mode is set at publish time and locked into the version */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {isSealed ? (
-                        <Lock className="w-3.5 h-3.5 text-amber-400" />
-                      ) : (
-                        <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
-                      )}
-                      <Label className="text-xs cursor-pointer" htmlFor="sealed-toggle">
-                        {isSealed
-                          ? "Sealed — recipients see fog-of-war only"
-                          : "Open — recipients see full class data"}
-                      </Label>
-                    </div>
-                    <Switch
-                      id="sealed-toggle"
-                      checked={isSealed}
-                      onCheckedChange={setIsSealed}
-                      data-testid="switch-sealed-mode"
-                    />
-                  </div>
-                  <RetroButton
-                    size="sm"
-                    onClick={() => publishMutation.mutate()}
-                    disabled={publishMutation.isPending}
-                    data-testid="button-publish-version"
-                    className="w-full"
-                  >
-                    {publishMutation.isPending ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : null}
-                    Publish {isSealed ? "(Sealed)" : "(Open)"}
-                  </RetroButton>
-                </>
               )}
+
+              {/* Publish / republish — always visible so new versions can be created */}
+              {!hasPublishedVersion && (
+                <p className="text-xs text-muted-foreground">Draft — publish to enable sharing</p>
+              )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isSealed ? (
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  ) : (
+                    <Unlock className="w-3.5 h-3.5 text-muted-foreground" />
+                  )}
+                  <Label className="text-xs cursor-pointer" htmlFor="sealed-toggle">
+                    {isSealed
+                      ? "Sealed — recipients see fog-of-war only"
+                      : "Open — recipients see full class data"}
+                  </Label>
+                </div>
+                <Switch
+                  id="sealed-toggle"
+                  checked={isSealed}
+                  onCheckedChange={setIsSealed}
+                  data-testid="switch-sealed-mode"
+                />
+              </div>
+              <RetroButton
+                size="sm"
+                onClick={() => publishMutation.mutate()}
+                disabled={publishMutation.isPending}
+                data-testid="button-publish-version"
+                className="w-full"
+              >
+                {publishMutation.isPending ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : null}
+                {hasPublishedVersion
+                  ? `Publish New Version (v${(latestVersion?.versionNumber ?? 0) + 1}) ${isSealed ? "(Sealed)" : "(Open)"}`
+                  : `Publish ${isSealed ? "(Sealed)" : "(Open)"}`}
+              </RetroButton>
             </div>
 
             {/* ── New share token shown once after creation ──────────────── */}

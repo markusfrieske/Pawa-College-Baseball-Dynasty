@@ -6,10 +6,12 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertTriangle, Download, LogIn, CheckCircle2, BookOpen, Users, Lock,
+  AlertTriangle, Download, LogIn, CheckCircle2, BookOpen, Lock, Sparkles,
 } from "lucide-react";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface ClassSummary {
   recruitCount: number;
@@ -17,15 +19,7 @@ interface ClassSummary {
   posDist: Record<string, number>;
   regionDist: Record<string, number>;
   theme: string | null;
-}
-
-interface PreviewRecruit {
-  firstName?: string;
-  lastName?: string;
-  position: string;
-  homeState?: string | null;
-  starRating: number;
-  recruitType?: string;
+  storylineCharacterCount?: number;
 }
 
 interface ClassSharePreview {
@@ -46,8 +40,9 @@ interface ClassSharePreview {
   recruitCount: number;
   theme: string | null;
   summary?: ClassSummary;
-  recruits: PreviewRecruit[];
 }
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const THEME_LABELS: Record<string, string> = {
   balanced: "Balanced",
@@ -76,7 +71,11 @@ const SOURCE_TYPE_LABELS: Record<string, string> = {
   manual: "Manual",
   procedural: "Wizard-generated",
   legacy: "Classic",
+  wizard: "Wizard-generated",
+  import: "Imported",
 };
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ClassSharePage() {
   const { token } = useParams<{ token: string }>();
@@ -126,6 +125,8 @@ export default function ClassSharePage() {
     },
   });
 
+  // ── Loading / error states ────────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -156,31 +157,29 @@ export default function ClassSharePage() {
     );
   }
 
-  const recruits = preview.recruits ?? [];
+  // ── Derived display data ──────────────────────────────────────────────────
+
   const themeLabel = preview.theme ? (THEME_LABELS[preview.theme] ?? preview.theme) : null;
-  const storedSummary = preview.summary;
+  const summary = preview.summary;
+  const totalCount = summary?.recruitCount ?? preview.recruitCount;
 
-  const starDist = storedSummary
+  const starDist = summary
     ? [5, 4, 3, 2, 1]
-        .filter(s => (storedSummary.starDist[s] ?? 0) > 0)
-        .map(s => ({ star: s, count: storedSummary.starDist[s] }))
-    : [5, 4, 3, 2, 1]
-        .map(s => ({ star: s, count: recruits.filter(r => r.starRating === s).length }))
-        .filter(x => x.count > 0);
-
-  const sortedPos: [string, number][] = storedSummary
-    ? Object.entries(storedSummary.posDist).sort((a, b) => b[1] - a[1])
-    : (() => {
-        const pd: Record<string, number> = {};
-        recruits.forEach(r => { pd[r.position] = (pd[r.position] || 0) + 1; });
-        return Object.entries(pd).sort((a, b) => b[1] - a[1]);
-      })();
-
-  const sortedRegions: [string, number][] = storedSummary?.regionDist
-    ? Object.entries(storedSummary.regionDist).sort((a, b) => b[1] - a[1])
+        .filter(s => (summary.starDist[s] ?? 0) > 0)
+        .map(s => ({ star: s, count: summary.starDist[s] }))
     : [];
 
-  const totalCount = storedSummary?.recruitCount ?? recruits.length;
+  const sortedPos: [string, number][] = summary?.posDist
+    ? Object.entries(summary.posDist).sort((a, b) => b[1] - a[1])
+    : [];
+
+  const sortedRegions: [string, number][] = summary?.regionDist
+    ? Object.entries(summary.regionDist).sort((a, b) => b[1] - a[1])
+    : [];
+
+  const storylineCount = summary?.storylineCharacterCount ?? 0;
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="min-h-screen bg-background">
@@ -210,7 +209,8 @@ export default function ClassSharePage() {
       </header>
 
       <main className="container mx-auto px-4 py-8 max-w-3xl">
-        {/* Class Header */}
+
+        {/* ── Class Header ──────────────────────────────────────────────── */}
         <RetroCard className="mb-6" data-testid="card-class-share-header">
           <RetroCardHeader>
             <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -231,7 +231,7 @@ export default function ClassSharePage() {
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="text-xs" data-testid="badge-recruit-count">
-                    {preview.recruitCount} Recruits
+                    {totalCount} Recruits
                   </Badge>
                   {preview.versionNumber != null && (
                     <Badge variant="outline" className="text-xs text-muted-foreground border-muted-foreground/40">
@@ -245,7 +245,7 @@ export default function ClassSharePage() {
                     </Badge>
                   )}
                   {preview.sourceType && (
-                    <span className="text-xs text-muted-foreground/60">
+                    <span className="text-xs text-muted-foreground/60" data-testid="badge-source-type">
                       {SOURCE_TYPE_LABELS[preview.sourceType] ?? preview.sourceType}
                     </span>
                   )}
@@ -296,6 +296,7 @@ export default function ClassSharePage() {
           </RetroCardHeader>
         </RetroCard>
 
+        {/* ── Sealed notice ─────────────────────────────────────────────── */}
         {preview.isSealed && (
           <div className="mb-4 p-3 rounded border border-amber-400/20 bg-amber-400/5 flex items-start gap-2">
             <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
@@ -305,7 +306,17 @@ export default function ClassSharePage() {
           </div>
         )}
 
-        {/* Star + Position distribution */}
+        {/* ── Storyline character teaser ────────────────────────────────── */}
+        {storylineCount > 0 && (
+          <div className="mb-4 p-3 rounded border border-gold/20 bg-gold/5 flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-gold shrink-0" />
+            <p className="text-xs text-gold/80" data-testid="text-storyline-count">
+              This class contains <span className="font-semibold">{storylineCount}</span> storyline player{storylineCount !== 1 ? "s" : ""} — special recruits with hidden potential waiting to be discovered.
+            </p>
+          </div>
+        )}
+
+        {/* ── Star + Position distribution ──────────────────────────────── */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <RetroCard data-testid="card-star-dist">
             <RetroCardHeader>
@@ -330,7 +341,7 @@ export default function ClassSharePage() {
                   </div>
                   <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{count}</span>
                 </div>
-              )) : <p className="text-xs text-muted-foreground">No data</p>}
+              )) : <p className="text-xs text-muted-foreground">No star data available</p>}
             </RetroCardContent>
           </RetroCard>
 
@@ -339,18 +350,23 @@ export default function ClassSharePage() {
               <span className="text-xs font-semibold text-gold uppercase">Position Mix</span>
             </RetroCardHeader>
             <RetroCardContent>
-              <div className="grid grid-cols-3 gap-2">
-                {sortedPos.map(([pos, count]) => (
-                  <div key={pos} className="text-center">
-                    <p className="font-display text-sm font-bold text-foreground">{count}</p>
-                    <p className="text-xs text-muted-foreground">{pos}</p>
-                  </div>
-                ))}
-              </div>
+              {sortedPos.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2">
+                  {sortedPos.map(([pos, count]) => (
+                    <div key={pos} className="text-center">
+                      <p className="font-display text-sm font-bold text-foreground">{count}</p>
+                      <p className="text-xs text-muted-foreground">{pos}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No position data available</p>
+              )}
             </RetroCardContent>
           </RetroCard>
         </div>
 
+        {/* ── Region distribution ───────────────────────────────────────── */}
         {sortedRegions.length > 0 && (
           <RetroCard className="mb-6" data-testid="card-region-dist">
             <RetroCardHeader>
@@ -373,63 +389,8 @@ export default function ClassSharePage() {
           </RetroCard>
         )}
 
-        {/* Recruit list — spoiler-safe */}
-        <RetroCard data-testid="card-recruit-list">
-          <RetroCardHeader>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-gold" />
-              <span className="text-xs font-semibold text-gold uppercase">
-                Recruits ({recruits.length})
-              </span>
-              {preview.isSealed && (
-                <span className="text-xs text-amber-400/70">(sealed)</span>
-              )}
-            </div>
-          </RetroCardHeader>
-          <RetroCardContent className="p-0">
-            <div className="overflow-x-auto">
-              <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b border-border px-3 py-1.5 min-w-[300px]">
-                <span className="col-span-2">Name</span>
-                <span>Pos</span>
-                <span>Stars</span>
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {recruits
-                  .sort((a, b) => (b.starRating ?? 0) - (a.starRating ?? 0))
-                  .map((r, i) => {
-                    const name = r.firstName && r.lastName
-                      ? `${r.firstName} ${r.lastName}`
-                      : `Recruit ${i + 1}`;
-                    const isTransfer = r.recruitType === "TRANSFER";
-                    const isJuco = r.recruitType === "JUCO";
-                    return (
-                      <div
-                        key={i}
-                        className="grid grid-cols-4 gap-2 text-xs px-3 py-1.5 border-b border-border/30 min-w-[300px]"
-                        data-testid={`recruit-row-${i}`}
-                      >
-                        <span className="col-span-2 truncate">
-                          {name}
-                          {isTransfer && <span className="ml-1 text-xs text-purple-400">TR</span>}
-                          {isJuco && <span className="ml-1 text-xs text-cyan-400">JC</span>}
-                        </span>
-                        <span className="text-muted-foreground">{r.position}</span>
-                        <span className={STAR_COLORS[r.starRating] ?? "text-muted-foreground"}>
-                          {"★".repeat(Math.max(0, Math.min(5, r.starRating || 0)))}
-                        </span>
-                      </div>
-                    );
-                  })}
-                {recruits.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-6">No recruit data available.</p>
-                )}
-              </div>
-            </div>
-          </RetroCardContent>
-        </RetroCard>
-
-        {/* Bottom CTA */}
-        {!imported && recruits.length > 0 && (
+        {/* ── Bottom CTA ────────────────────────────────────────────────── */}
+        {!imported ? (
           <div className="mt-6 text-center">
             {user ? (
               <RetroButton
@@ -458,9 +419,7 @@ export default function ClassSharePage() {
               </div>
             )}
           </div>
-        )}
-
-        {imported && (
+        ) : (
           <div className="mt-6 text-center space-y-3">
             <div
               className="flex items-center justify-center gap-2 text-green-400 font-display text-sm font-bold"

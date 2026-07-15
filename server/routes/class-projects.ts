@@ -474,14 +474,23 @@ export function registerClassProjectRoutes(app: Express): void {
       const summary = storedSummary ?? computeSummary(recruits);
 
       // Spoiler-free: return aggregate metadata only — no per-recruit rows,
-      // no OVR truth, no gem/bust/generational counts, no blue-chip truth.
-      // Only star and position distributions, region breakdown, and theme.
+      // no OVR truth, no type-specific gem/bust/generational/blue-chip breakdown.
+      // A single storylineCharacterCount (total hidden-identity players) is
+      // non-spoiler: it tells importers "there are N interesting players" without
+      // revealing which recruits fill which role.
+      const storylineCharacterCount =
+        (summary.genGems ?? 0) +
+        (summary.genBusts ?? 0) +
+        (summary.gems ?? 0) +
+        (summary.busts ?? 0);
+
       const publicSummary = {
         recruitCount: summary.recruitCount,
         starDist: summary.starDist,
         posDist: summary.posDist,
         regionDist: summary.regionDist ?? {},
         theme: summary.theme,
+        storylineCharacterCount,
       };
 
       res.json({
