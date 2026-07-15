@@ -193,24 +193,31 @@ export async function replaceLeagueRecruitingClass(
     }
   });
 
-  // 3. Storyline initialization (outside transaction — async-safe) ───────────
-  // Storyline init is best-effort: a failure here does not corrupt the recruit
-  // pool (the new class is already committed) but is logged prominently.
+  // 3. Storyline initialization ───────────────────────────────────────────────
+  // Sync path (asyncStorylines=false, the default): errors propagate so the
+  // caller gets a clear failure instead of a silent partial success.  The pool
+  // and vintage are already committed, but callers should treat a thrown error
+  // as a signal that the new class is not fully ready for recruiting activity.
+  // Async path (asyncStorylines=true): fire-and-forget with logging only.
   if (initStorylines) {
-    const initPromise = initializeStorylineRecruits(leagueId, season)
-      .then(n =>
-        console.log(
-          `[replaceRecruitClass] initialized ${n} storyline recruits for league ${leagueId} season ${season}`
+    if (asyncStorylines) {
+      initializeStorylineRecruits(leagueId, season)
+        .then(n =>
+          console.log(
+            `[replaceRecruitClass] (async) initialized ${n} storyline recruits for league ${leagueId} season ${season}`
+          )
         )
-      )
-      .catch(err =>
-        console.error(
-          `[replaceRecruitClass] storyline init failed for league ${leagueId}:`,
-          err
-        )
+        .catch(err =>
+          console.error(
+            `[replaceRecruitClass] (async) storyline init failed for league ${leagueId}:`,
+            err
+          )
+        );
+    } else {
+      const n = await initializeStorylineRecruits(leagueId, season);
+      console.log(
+        `[replaceRecruitClass] initialized ${n} storyline recruits for league ${leagueId} season ${season}`
       );
-    if (!asyncStorylines) {
-      await initPromise;
     }
   }
 

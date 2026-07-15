@@ -1184,13 +1184,18 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
     }
 
     // ── Activity guard: reject if any coach has already taken recruiting actions ─
-    // Check for existing recruiting interests or action-log rows tied to the
-    // current pool. Any non-zero count means coaches have spent time/actions on
-    // specific recruits and replacing the pool would silently wipe that work.
-    const existingInterests = await storage.getRecruitingInterestsByLeague(req.params.id as string);
-    if (existingInterests.length > 0) {
+    // Check recruiting interests AND actions-log rows.  Any non-zero count from
+    // either table means coaches have spent time/actions on specific recruits and
+    // replacing the pool would silently wipe scouting, visit, call, and commit data.
+    const [existingInterests, existingActions] = await Promise.all([
+      storage.getRecruitingInterestsByLeague(req.params.id as string),
+      storage.getRecruitingActionsLogBySeason(req.params.id as string, league.currentSeason),
+    ]);
+    const activityCount = existingInterests.length + existingActions.length;
+    if (activityCount > 0) {
       return res.status(409).json({
-        message: `Cannot replace the recruiting class — ${existingInterests.length} recruiting interest record(s) already exist for this season. ` +
+        message: `Cannot replace the recruiting class — ${activityCount} recruiting activity record(s) already exist for this season ` +
+          `(${existingInterests.length} interest(s), ${existingActions.length} action(s)). ` +
           `Load a saved class only before any coach has started recruiting activity.`,
       });
     }

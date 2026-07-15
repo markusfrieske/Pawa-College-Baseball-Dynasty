@@ -9,16 +9,11 @@ import { AlertTriangle, Download, LogIn, CheckCircle2, BookOpen, Users } from "l
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
+// Public summary exposes only non-spoiler aggregates
 interface ClassSummary {
   recruitCount: number;
   starDist: Record<number, number>;
   posDist: Record<string, number>;
-  blueChips: number;
-  gems: number;
-  busts: number;
-  genGems: number;
-  genBusts: number;
-  avgOvr: number;
   theme: string | null;
 }
 
@@ -37,17 +32,13 @@ interface ClassPreview {
   recruits: PreviewRecruit[];
 }
 
+// Only spoiler-free fields are returned by the server
 interface PreviewRecruit {
   firstName?: string;
   lastName?: string;
   position: string;
+  homeState?: string | null;
   starRating: number;
-  overall: number;
-  isBlueChip?: boolean;
-  isGenerationalGem?: boolean;
-  isGenerationalBust?: boolean;
-  isGem?: boolean;
-  isBust?: boolean;
   recruitType?: string;
 }
 
@@ -151,10 +142,9 @@ export default function ImportClassPage() {
 
   const recruits = preview.recruits ?? [];
   const themeLabel = preview.theme ? (THEME_LABELS[preview.theme] ?? preview.theme) : null;
-
-  // Use stored summary when available (versioned format), otherwise compute from preview recruits
   const storedSummary = preview.summary;
 
+  // Star distribution — from server summary (authoritative) or computed from per-recruit starRating
   const starDist = storedSummary
     ? [5, 4, 3, 2, 1]
         .filter(s => (storedSummary.starDist[s] ?? 0) > 0)
@@ -163,15 +153,7 @@ export default function ImportClassPage() {
         .map(s => ({ star: s, count: recruits.filter(r => r.starRating === s).length }))
         .filter(x => x.count > 0);
 
-  const blueChipCount = storedSummary ? storedSummary.blueChips : recruits.filter(r => r.isBlueChip).length;
-  const genGemCount   = storedSummary ? storedSummary.genGems   : recruits.filter(r => r.isGenerationalGem).length;
-  const genBustCount  = storedSummary ? storedSummary.genBusts  : recruits.filter(r => r.isGenerationalBust).length;
-  const avgOvr = storedSummary
-    ? storedSummary.avgOvr
-    : recruits.length > 0
-      ? Math.round(recruits.reduce((s, r) => s + (r.overall || 0), 0) / recruits.length)
-      : 0;
-
+  // Position distribution — from server summary or computed from per-recruit position
   const sortedPos: [string, number][] = storedSummary
     ? Object.entries(storedSummary.posDist).sort((a, b) => b[1] - a[1])
     : (() => {
@@ -179,6 +161,8 @@ export default function ImportClassPage() {
         recruits.forEach(r => { pd[r.position] = (pd[r.position] || 0) + 1; });
         return Object.entries(pd).sort((a, b) => b[1] - a[1]);
       })();
+
+  const totalCount = storedSummary?.recruitCount ?? recruits.length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -270,34 +254,6 @@ export default function ImportClassPage() {
           </RetroCardHeader>
         </RetroCard>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <RetroCard data-testid="stat-avg-ovr">
-            <RetroCardContent className="py-3 text-center">
-              <p className="text-gold text-lg">{avgOvr || "—"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Avg OVR</p>
-            </RetroCardContent>
-          </RetroCard>
-          <RetroCard data-testid="stat-blue-chips">
-            <RetroCardContent className="py-3 text-center">
-              <p className="text-amber-400 text-lg">{blueChipCount}</p>
-              <p className="text-xs text-muted-foreground mt-1">Blue Chips</p>
-            </RetroCardContent>
-          </RetroCard>
-          <RetroCard data-testid="stat-gen-gems">
-            <RetroCardContent className="py-3 text-center">
-              <p className="text-purple-400 text-lg">{genGemCount}</p>
-              <p className="text-xs text-muted-foreground mt-1">Gen Gems</p>
-            </RetroCardContent>
-          </RetroCard>
-          <RetroCard data-testid="stat-gen-busts">
-            <RetroCardContent className="py-3 text-center">
-              <p className="text-red-400 text-lg">{genBustCount}</p>
-              <p className="text-xs text-muted-foreground mt-1">Gen Busts</p>
-            </RetroCardContent>
-          </RetroCard>
-        </div>
-
         {/* Star Distribution + Position Mix */}
         <div className="grid sm:grid-cols-2 gap-4 mb-6">
           <RetroCard data-testid="card-star-dist">
@@ -318,7 +274,7 @@ export default function ImportClassPage() {
                         star === 3 ? "bg-blue-400" :
                         star === 2 ? "bg-gray-400" : "bg-zinc-600"
                       }`}
-                      style={{ width: `${Math.round((count / recruits.length) * 100)}%` }}
+                      style={{ width: `${Math.round((count / totalCount) * 100)}%` }}
                     />
                   </div>
                   <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{count}</span>
@@ -344,7 +300,7 @@ export default function ImportClassPage() {
           </RetroCard>
         </div>
 
-        {/* Recruit List */}
+        {/* Recruit List — spoiler-safe: name/position/stars only */}
         <RetroCard data-testid="card-recruit-list">
           <RetroCardHeader>
             <div className="flex items-center gap-2">
@@ -354,40 +310,35 @@ export default function ImportClassPage() {
           </RetroCardHeader>
           <RetroCardContent className="p-0">
             <div className="overflow-x-auto">
-              <div className="grid grid-cols-5 gap-2 text-xs font-semibold text-muted-foreground border-b border-border px-3 py-1.5 min-w-[360px]">
+              <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b border-border px-3 py-1.5 min-w-[300px]">
                 <span className="col-span-2">Name</span>
                 <span>Pos</span>
                 <span>Stars</span>
-                <span className="text-right">OVR</span>
               </div>
               <div className="max-h-96 overflow-y-auto">
                 {recruits
-                  .sort((a, b) => (b.starRating ?? 0) - (a.starRating ?? 0) || (b.overall ?? 0) - (a.overall ?? 0))
+                  .sort((a, b) => (b.starRating ?? 0) - (a.starRating ?? 0))
                   .map((r, i) => {
                     const name = r.firstName && r.lastName
                       ? `${r.firstName} ${r.lastName}`
                       : `Recruit ${i + 1}`;
+                    const isTransfer = r.recruitType === "TRANSFER";
+                    const isJuco = r.recruitType === "JUCO";
                     return (
                       <div
                         key={i}
-                        className={`grid grid-cols-5 gap-2 text-xs px-3 py-1.5 border-b border-border/30 min-w-[360px] ${
-                          r.isGenerationalGem ? "bg-purple-950/30" :
-                          r.isGenerationalBust ? "bg-red-950/30" :
-                          r.isBlueChip ? "bg-amber-950/20" : ""
-                        }`}
+                        className="grid grid-cols-4 gap-2 text-xs px-3 py-1.5 border-b border-border/30 min-w-[300px]"
                         data-testid={`recruit-row-${i}`}
                       >
                         <span className="col-span-2 truncate">
                           {name}
-                          {r.isBlueChip && <span className="ml-1 text-xs text-amber-400">BC</span>}
-                          {r.isGenerationalGem && <span className="ml-1 text-xs text-purple-400">GG</span>}
-                          {r.isGenerationalBust && <span className="ml-1 text-xs text-red-400">GB</span>}
+                          {isTransfer && <span className="ml-1 text-xs text-purple-400">TR</span>}
+                          {isJuco && <span className="ml-1 text-xs text-cyan-400">JC</span>}
                         </span>
                         <span className="text-muted-foreground">{r.position}</span>
                         <span className={STAR_COLORS[r.starRating] ?? "text-muted-foreground"}>
                           {"★".repeat(Math.max(0, Math.min(5, r.starRating || 0)))}
                         </span>
-                        <span className="text-right font-mono text-gold">{r.overall || "—"}</span>
                       </div>
                     );
                   })}

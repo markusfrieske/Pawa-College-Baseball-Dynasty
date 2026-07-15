@@ -1779,6 +1779,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
+    enabled: open,
   });
   const targetSize = classTargetData?.targetSize;
 
@@ -1786,6 +1787,8 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   useEffect(() => {
     if (open) {
       setStep(1);
+      // Initialize count to DEFAULT_CONFIG; targetSize sync below will update it
+      // once the server response arrives (or immediately if already cached).
       setConfig(DEFAULT_CONFIG);
       setRecruits([]);
       setSavedCount(0);
@@ -1794,6 +1797,20 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       setSavedToLeague(false);
     }
   }, [open]);
+
+  // Sync count to the league target when it arrives.
+  // Only run when the wizard is open and the user hasn't manually changed count
+  // away from the default (80), so we don't clobber deliberate commissioner choices.
+  useEffect(() => {
+    if (open && targetSize != null && targetSize !== 80) {
+      setConfig(prev => {
+        if (prev.count === DEFAULT_CONFIG.count) {
+          return { ...prev, count: targetSize };
+        }
+        return prev;
+      });
+    }
+  }, [open, targetSize]);
 
   const generateMutation = useMutation({
     mutationFn: async (cfg: WizardConfig) => {
