@@ -473,23 +473,15 @@ export function registerClassProjectRoutes(app: Express): void {
       const storedSummary = extractSummary(packageJson);
       const summary = storedSummary ?? computeSummary(recruits);
 
-      // Spoiler-free: return aggregate metadata only — no per-recruit rows.
-      // Includes storyline-character counts (genGems, genBusts, gems, busts,
-      // blueChips) so the importer knows what surprise archetypes are present
-      // without learning which specific recruits fill those roles.
+      // Spoiler-free: return aggregate metadata only — no per-recruit rows,
+      // no OVR truth, no gem/bust/generational counts, no blue-chip truth.
+      // Only star and position distributions, region breakdown, and theme.
       const publicSummary = {
         recruitCount: summary.recruitCount,
         starDist: summary.starDist,
         posDist: summary.posDist,
         regionDist: summary.regionDist ?? {},
         theme: summary.theme,
-        // Storyline character counts (non-spoiler: counts only, not identities)
-        blueChips: summary.blueChips,
-        gems: summary.gems,
-        busts: summary.busts,
-        genGems: summary.genGems,
-        genBusts: summary.genBusts,
-        avgOvr: summary.avgOvr,
       };
 
       res.json({
