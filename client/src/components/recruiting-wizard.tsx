@@ -173,6 +173,7 @@ function StepIndicator({ step }: { step: number }) {
 // ─── Step 1: Class Settings ──────────────────────────────────────────────────
 
 function Step1({ config, setConfig, targetSize }: { config: WizardConfig; setConfig: (c: WizardConfig) => void; targetSize?: number }) {
+  const sliderMin = targetSize ?? 20;
   const sliderMax = Math.max(targetSize ?? 80, 80);
   const isAtTarget = targetSize != null && config.count === targetSize;
   const isOverTarget = targetSize != null && config.count > targetSize;
@@ -181,22 +182,22 @@ function Step1({ config, setConfig, targetSize }: { config: WizardConfig; setCon
       <div>
         <Label className="text-xs font-semibold text-gold uppercase mb-2 block">Class Size: {config.count}</Label>
         <input
-          type="range" min={20} max={sliderMax} step={1}
+          type="range" min={sliderMin} max={sliderMax} step={1}
           value={config.count}
           onChange={e => setConfig({ ...config, count: Number(e.target.value) })}
           className="w-full accent-yellow-400"
           data-testid="wizard-count-slider"
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>20</span><span>{sliderMax}</span>
+          <span>{sliderMin}</span><span>{sliderMax}</span>
         </div>
         {targetSize != null && (
           <div className={`text-xs mt-1.5 ${isAtTarget ? "text-green-400" : isOverTarget ? "text-yellow-400" : "text-muted-foreground"}`}>
             {isAtTarget
-              ? `Matches league recommendation (${targetSize})`
+              ? `League target met (${targetSize})`
               : isOverTarget
-                ? `Above league recommendation of ${targetSize} — performance may be slower`
-                : `League recommendation: ${targetSize} recruits`}
+                ? `Above league target of ${targetSize} — commissioner override`
+                : `League target: ${targetSize} recruits (minimum)`}
             {!isAtTarget && (
               <button
                 className="ml-2 underline text-gold hover:text-gold/80"

@@ -125,13 +125,21 @@ export async function replaceLeagueRecruitingClass(
     }
   }
 
-  // 2. Atomic delete + insert inside a single DB transaction ─────────────────
-  // If either step throws, the transaction rolls back and no data is mutated.
+  // 2. Atomic delete + insert + vintage update inside a single DB transaction ─
+  // The transaction also acquires an advisory lock on the league row via
+  // SELECT ... FOR UPDATE so concurrent replacements are serialised rather than
+  // racing past each other and leaving a half-replaced pool.
   const CHUNK = 100;
   let insertedCount = 0;
 
   await db.transaction(async (tx) => {
-    // 2a. Find existing recruit IDs so we can cascade-delete child rows
+    // 2a. Advisory lock — lock the league row for the duration of this tx
+    //     so two concurrent replace calls cannot interleave their deletes/inserts.
+    await tx.execute(
+      `SELECT id FROM leagues WHERE id = '${leagueId.replace(/'/g, "''")}' FOR UPDATE`
+    );
+
+    // 2b. Find existing recruit IDs so we can cascade-delete child rows
     const existing = await tx
       .select({ id: recruitsTable.id })
       .from(recruitsTable)
@@ -167,7 +175,7 @@ export async function replaceLeagueRecruitingClass(
       await tx.delete(recruitsTable).where(eq(recruitsTable.leagueId, leagueId));
     }
 
-    // 2b. Insert the new class in chunks
+    // 2c. Insert the new class in chunks
     for (let i = 0; i < recruits.length; i += CHUNK) {
       const inserted = await tx
         .insert(recruitsTable)
@@ -175,9 +183,19 @@ export async function replaceLeagueRecruitingClass(
         .returning({ id: recruitsTable.id });
       insertedCount += inserted.length;
     }
+
+    // 2d. Update currentClassVintage inside the same transaction so that a
+    //     storyline-init failure after the commit does not leave a stale vintage.
+    if (vintage !== undefined) {
+      await tx.execute(
+        `UPDATE leagues SET "currentClassVintage" = ${vintage === null ? "NULL" : `'${String(vintage).replace(/'/g, "''")}'`} WHERE id = '${leagueId.replace(/'/g, "''")}'`
+      );
+    }
   });
 
   // 3. Storyline initialization (outside transaction — async-safe) ───────────
+  // Storyline init is best-effort: a failure here does not corrupt the recruit
+  // pool (the new class is already committed) but is logged prominently.
   if (initStorylines) {
     const initPromise = initializeStorylineRecruits(leagueId, season)
       .then(n =>
@@ -196,10 +214,7 @@ export async function replaceLeagueRecruitingClass(
     }
   }
 
-  // 4. Update currentClassVintage ────────────────────────────────────────────
-  if (vintage !== undefined) {
-    await storage.updateLeague(leagueId, { currentClassVintage: vintage });
-  }
+  // 4. currentClassVintage is now handled inside the transaction (step 2d) ───
 
   // 5. Invalidate league cache ───────────────────────────────────────────────
   invalidateLeague(leagueId);

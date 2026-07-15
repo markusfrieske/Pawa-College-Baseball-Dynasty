@@ -264,6 +264,16 @@ export function registerSavedRoutes(app: Express): void {
         recruitType: r.recruitType,
       }));
 
+      // Strip spoiler metrics from the summary: only expose structural
+      // aggregates (count, star dist, position dist, theme) so the preview
+      // cannot reveal hidden OVR or gem/bust/generational composition.
+      const publicSummary = {
+        recruitCount: summary.recruitCount,
+        starDist: summary.starDist,
+        posDist: summary.posDist,
+        theme: summary.theme,
+      };
+
       res.json({
         shareId: share.id,
         token: share.token,
@@ -275,7 +285,7 @@ export function registerSavedRoutes(app: Express): void {
         description: rc.description,
         recruitCount: rc.recruitCount,
         theme,
-        summary,
+        summary: publicSummary,
         recruits: previewRecruits,
       });
     } catch (error) {

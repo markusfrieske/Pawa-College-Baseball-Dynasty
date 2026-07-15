@@ -1037,7 +1037,21 @@ app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req,
     }
 
     const theme = (config.theme as RecruitingTheme) || "balanced";
-    const count = Math.min(Math.max(Number(config.count) || 75, 20), 5000);
+    const rawCount = Number(config.count) || 75;
+
+    // Enforce the league-derived minimum class size.
+    // Commissioners may generate MORE than the target (override), but not less,
+    // to ensure all teams have adequate recruits to recruit from.
+    const teams = await storage.getTeamsByLeague(req.params.id as string);
+    const leagueTargetMin = getRecruitPoolSize(teams.length, league.dynastyPreset);
+    if (rawCount < leagueTargetMin) {
+      return res.status(400).json({
+        message: `Class size ${rawCount} is below the league minimum of ${leagueTargetMin} for a ${teams.length}-team league. Increase the class size or the server will reject it.`,
+        minimumCount: leagueTargetMin,
+      });
+    }
+
+    const count = Math.min(Math.max(rawCount, leagueTargetMin), 5000);
     const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
 
     // Forward OVR controls as a unit: if any field differs from defaults, send all four
@@ -1166,6 +1180,18 @@ app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req
       return res.status(409).json({
         message: `Cannot replace the recruiting class during the "${league.currentPhase}" phase. ` +
           `Load a saved class only during dynasty setup or early offseason (before signing day).`,
+      });
+    }
+
+    // ── Activity guard: reject if any coach has already taken recruiting actions ─
+    // Check for existing recruiting interests or action-log rows tied to the
+    // current pool. Any non-zero count means coaches have spent time/actions on
+    // specific recruits and replacing the pool would silently wipe that work.
+    const existingInterests = await storage.getRecruitingInterestsByLeague(req.params.id as string);
+    if (existingInterests.length > 0) {
+      return res.status(409).json({
+        message: `Cannot replace the recruiting class — ${existingInterests.length} recruiting interest record(s) already exist for this season. ` +
+          `Load a saved class only before any coach has started recruiting activity.`,
       });
     }
 
