@@ -5214,8 +5214,25 @@ export async function advanceLeagueStep(
     } catch (e) { console.error("Game feed event error:", e); }
   }
 
+  // ── Phase-transition skip gate ────────────────────────────────────────────
+  // If phase_transition completed in a prior crashed run (checkpoint pct=100 was
+  // written AFTER updateLeague committed the flip), the DB state is already correct.
+  // Reload league and return without re-applying any side effects.
+  if (stageAlreadyDone("phase_transition", completedStages)) {
+    const resumeLeague = await storage.getLeague(leagueId);
+    return { data: { ...resumeLeague, userTeamGame } };
+  }
+
   // ── POSTSEASON ──────────────────────────────────────────────────────────
   if (isPostseasonPhase) {
+    // Re-fetch the live league phase once for the entire postseason block.
+    // If the phase has already changed from the one that was current when this
+    // advance started (league.currentPhase), the updateLeague flip was committed
+    // in a prior crashed run — skip all XP/coach-stat increments to prevent
+    // double-apply.  Game simulation rows are idempotent (filtered by isComplete).
+    const livePostseasonPhase = (await storage.getLeague(leagueId))?.currentPhase;
+    const postseasonPhaseAlreadyFlipped = livePostseasonPhase !== league.currentPhase;
+
     if (league.currentPhase === "conference_championship") {
       const confGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && !g.isComplete);
       console.time("[advance-perf] conf-champ-games");
@@ -5248,22 +5265,24 @@ export async function advanceLeagueStep(
           if (champT) await storage.createLeagueEvent({ leagueId, teamId: champT.id, teamName: champT.name, teamAbbreviation: champT.abbreviation, teamPrimaryColor: champT.primaryColor ?? null, eventType: "AWARD", description: `${champT.name} wins the Conference Championship! Season ${league.currentSeason}.`, season: league.currentSeason, week: currentWeek });
         }
       } catch (e) { console.error("Postseason news error:", e); }
-      try {
-        const finalConfGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && g.isComplete);
-        for (const cg of finalConfGames) {
-          const homeWonCg = (cg.homeScore ?? 0) > (cg.awayScore ?? 0);
-          const champTeamId = homeWonCg ? cg.homeTeamId : cg.awayTeamId;
-          const champTeamForCoach = leagueTeamsForSim.find(t => t.id === champTeamId);
-          if (champTeamForCoach?.coachId) {
-            const champCoach = await storage.getCoach(champTeamForCoach.coachId);
-            if (champCoach) {
-              const newCC = champCoach.confChampionships + 1;
-              await storage.updateCoach(champCoach.id, { confChampionships: newCC, legacyScore: computeLegacyScore({ ...champCoach, confChampionships: newCC }) });
-              await awardPostseasonXp(champCoach.id, "conf_champ");
+      if (!postseasonPhaseAlreadyFlipped) {
+        try {
+          const finalConfGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && g.isComplete);
+          for (const cg of finalConfGames) {
+            const homeWonCg = (cg.homeScore ?? 0) > (cg.awayScore ?? 0);
+            const champTeamId = homeWonCg ? cg.homeTeamId : cg.awayTeamId;
+            const champTeamForCoach = leagueTeamsForSim.find(t => t.id === champTeamId);
+            if (champTeamForCoach?.coachId) {
+              const champCoach = await storage.getCoach(champTeamForCoach.coachId);
+              if (champCoach) {
+                const newCC = champCoach.confChampionships + 1;
+                await storage.updateCoach(champCoach.id, { confChampionships: newCC, legacyScore: computeLegacyScore({ ...champCoach, confChampionships: newCC }) });
+                await awardPostseasonXp(champCoach.id, "conf_champ");
+              }
             }
           }
-        }
-      } catch (e) { console.error("Conf champ coach stats error:", e); }
+        } catch (e) { console.error("Conf champ coach stats error:", e); }
+      }
       if (league.dynastyPreset === "full_season") {
         // Hard precondition: every conference must have a completed CC game
         // before we seed the national field.  Without this check a partial
@@ -5290,9 +5309,10 @@ export async function advanceLeagueStep(
       } else {
         await generateSuperRegionalBracket(leagueId, league.currentSeason);
       }
-      // Phase flip is the final atomic step — persisted only after all CC side-effects complete.
-      setAdvanceProgress(leagueId, "phase_transition", 100);
+      // Phase flip first, checkpoint AFTER — ensures stageAlreadyDone only skips when
+      // the DB flip was actually committed (prevents stuck-league on crash between the two).
       const ccUpdatedLeague = await storage.updateLeague(league.id, { currentPhase: Phase.SuperRegionals, currentWeek: nextWeek });
+      setAdvanceProgress(leagueId, "phase_transition", 100);
       await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
       sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] conf-champ hook:", e));
       return { data: { ...ccUpdatedLeague, userTeamGame } };
@@ -5327,9 +5347,8 @@ export async function advanceLeagueStep(
       if (srResult.done && !srResult.champion1) {
         try { const diagGames = await storage.getGamesByLeague(leagueId); const diagSR = diagGames.filter((g: any) => g.phase === "super_regionals" && g.season === league.currentSeason); console.warn(`[postseason-skip] SR done but no champion — league=${leagueId} season=${league.currentSeason} srGameCount=${diagSR.length} srResult=${JSON.stringify(srResult)}`); } catch { /* diagnostic */ }
         try { const swept = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek ?? 1); if (swept > 0) console.log(`[storylines] sr→offseason catch-up resolved ${swept} arc events`); } catch (e) { console.warn("[storylines] sr→offseason catch-up failed:", e); }
-        // Phase flip is the final atomic step — persisted only after all SR-skip side-effects complete.
-        setAdvanceProgress(leagueId, "phase_transition", 100);
         const srSkipLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonDepartures, currentWeek: nextWeek, currentClassVintage: null });
+        setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
         try { await evaluatePlayerPromises(leagueId, league.currentSeason); const depResult = await processOffseasonDepartures(leagueId, league.currentSeason); await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Offseason: Departures Phase", details: `${depResult.graduated} graduating, ${depResult.draftDeclared} draft eligible, ${depResult.transferPortal} considering transfer.` }); generateDeparturesSummaryNews(leagueId, league.currentSeason, depResult.graduated, depResult.draftDeclared, depResult.transferPortal).catch(e => console.error("Departures news error (sr-skip):", e)); } catch (e) { console.error("SR-skip departure processing error:", e); }
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-skipped hook:", e));
@@ -5342,20 +5361,18 @@ export async function advanceLeagueStep(
         const preInitCWSGamesFS = (await storage.getGamesByLeague(leagueId)).filter((g: any) => g.phase === "cws" && g.season === league.currentSeason);
         const cwsAlreadyInitFS = preInitCWSGamesFS.length > 0;
         await initializeFSCWSBrackets(leagueId, league.currentSeason, cwsOrderedFS);
-        if (!cwsAlreadyInitFS) { try { for (const cwsTeamId of allWinnersFS) { const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId); if (cwsTeamEntry?.coachId) { const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId); if (cwsCoach) { const newCwsApp = cwsCoach.cwsAppearances + 1; await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) }); await awardPostseasonXp(cwsCoach.id, "cws_appearance"); } } } } catch (e) { console.error("CWS appearances coach stats error:", e); } }
-        // Phase flip is the final atomic step — persisted only after all FS-SR side-effects complete.
-        setAdvanceProgress(leagueId, "phase_transition", 100);
+        if (!cwsAlreadyInitFS && !postseasonPhaseAlreadyFlipped) { try { for (const cwsTeamId of allWinnersFS) { const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId); if (cwsTeamEntry?.coachId) { const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId); if (cwsCoach) { const newCwsApp = cwsCoach.cwsAppearances + 1; await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) }); await awardPostseasonXp(cwsCoach.id, "cws_appearance"); } } } } catch (e) { console.error("CWS appearances coach stats error:", e); } }
         const srFSLeague = await storage.updateLeague(league.id, { currentPhase: Phase.CWS, currentWeek: nextWeek });
+        setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Super Regionals Complete", details: `${allWinnersFS.length} teams advance to the College World Series!` });
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-complete hook:", e));
         return { data: { ...srFSLeague, userTeamGame } };
       }
       if (srResult.done && !srResult.isFSResult && srResult.champion1 && srResult.champion2) {
         await storage.createGame({ leagueId, season: league.currentSeason, week: 0, homeTeamId: srResult.champion1, awayTeamId: srResult.champion2, phase: "cws" });
-        try { for (const cwsTeamId of [srResult.champion1, srResult.champion2]) { const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId); if (cwsTeamEntry?.coachId) { const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId); if (cwsCoach) { const newCwsApp = cwsCoach.cwsAppearances + 1; await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) }); await awardPostseasonXp(cwsCoach.id, "cws_appearance"); } } } } catch (e) { console.error("CWS appearances coach stats error:", e); }
-        // Phase flip is the final atomic step — persisted only after all std-SR side-effects complete.
-        setAdvanceProgress(leagueId, "phase_transition", 100);
+        if (!postseasonPhaseAlreadyFlipped) { try { for (const cwsTeamId of [srResult.champion1, srResult.champion2]) { const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId); if (cwsTeamEntry?.coachId) { const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId); if (cwsCoach) { const newCwsApp = cwsCoach.cwsAppearances + 1; await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) }); await awardPostseasonXp(cwsCoach.id, "cws_appearance"); } } } } catch (e) { console.error("CWS appearances coach stats error:", e); } }
         const srStdLeague = await storage.updateLeague(league.id, { currentPhase: Phase.CWS, currentWeek: nextWeek });
+        setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-complete hook:", e));
         return { data: { ...srStdLeague, userTeamGame } };
@@ -5388,12 +5405,13 @@ export async function advanceLeagueStep(
         const cwsLeagueTeams = await storage.getTeamsByLeague(leagueId);
         const champTeam = cwsLeagueTeams.find(t => t.id === cwsResult.champion);
         const runnerUpTeam = cwsLeagueTeams.find(t => t.id === cwsResult.runnerUp);
-        try { if (champTeam?.coachId) { const champCoach = await storage.getCoach(champTeam.coachId); if (champCoach) { const newNatl = champCoach.nationalChampionships + 1; await storage.updateCoach(champCoach.id, { nationalChampionships: newNatl, legacyScore: computeLegacyScore({ ...champCoach, nationalChampionships: newNatl }) }); await awardPostseasonXp(champCoach.id, "cws_win"); } } } catch (e) { console.error("National championship coach stats error:", e); }
-        try { const aaSelections = await countAllAmericanSelectionsForLeague(leagueId); await Promise.all([...aaSelections.entries()].map(async ([tId, aaCount]) => { const aaTeamEntry = cwsLeagueTeams.find(t => t.id === tId); if (!aaTeamEntry?.coachId) return; const aaCoach = await storage.getCoach(aaTeamEntry.coachId); if (!aaCoach) return; const newAAs = aaCoach.allAmericans + aaCount; await storage.updateCoach(aaCoach.id, { allAmericans: newAAs, legacyScore: computeLegacyScore({ ...aaCoach, allAmericans: newAAs }) }); })); } catch (e) { console.error("All-Americans coach stats error:", e); }
+        if (!postseasonPhaseAlreadyFlipped) {
+          try { if (champTeam?.coachId) { const champCoach = await storage.getCoach(champTeam.coachId); if (champCoach) { const newNatl = champCoach.nationalChampionships + 1; await storage.updateCoach(champCoach.id, { nationalChampionships: newNatl, legacyScore: computeLegacyScore({ ...champCoach, nationalChampionships: newNatl }) }); await awardPostseasonXp(champCoach.id, "cws_win"); } } } catch (e) { console.error("National championship coach stats error:", e); }
+          try { const aaSelections = await countAllAmericanSelectionsForLeague(leagueId); await Promise.all([...aaSelections.entries()].map(async ([tId, aaCount]) => { const aaTeamEntry = cwsLeagueTeams.find(t => t.id === tId); if (!aaTeamEntry?.coachId) return; const aaCoach = await storage.getCoach(aaTeamEntry.coachId); if (!aaCoach) return; const newAAs = aaCoach.allAmericans + aaCount; await storage.updateCoach(aaCoach.id, { allAmericans: newAAs, legacyScore: computeLegacyScore({ ...aaCoach, allAmericans: newAAs }) }); })); } catch (e) { console.error("All-Americans coach stats error:", e); }
+        }
         try { const swept = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek ?? 1); if (swept > 0) console.log(`[storylines] cws→offseason catch-up resolved ${swept} arc events`); } catch (e) { console.warn("[storylines] cws→offseason catch-up failed:", e); }
-        // Phase flip is the final atomic step — persisted only after all CWS side-effects complete.
-        setAdvanceProgress(leagueId, "phase_transition", 100);
         const cwsChampLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonDepartures, currentWeek: nextWeek, currentClassVintage: null });
+        setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
         if (champTeam && runnerUpTeam) {
           try { await generateCWSChampionNewsArticle(leagueId, champTeam, runnerUpTeam, league.currentSeason); await storage.createLeagueEvent({ leagueId, teamId: champTeam.id, teamName: champTeam.name, teamAbbreviation: champTeam.abbreviation, eventType: "AWARD", description: `${champTeam.name} wins the College World Series! Season ${league.currentSeason} National Champions.`, season: league.currentSeason, week: nextWeek }); } catch (e) { console.error("CWS news generation error:", e); }
@@ -5473,9 +5491,8 @@ export async function advanceLeagueStep(
     await updateRecruitStages(leagueId, league.currentWeek);
     const phaseIndex = offseasonPhaseList.indexOf(league.currentPhase);
     const nextPhase = offseasonPhaseList[phaseIndex + 1];
-    // Phase flip is the final atomic step — persisted only after all offseason-recruiting side-effects complete.
-    setAdvanceProgress(leagueId, "phase_transition", 100);
     const offRecLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase, currentWeek: nextWeek });
+    setAdvanceProgress(leagueId, "phase_transition", 100);
     await storage.createAuditLog({ leagueId, userId: actorUserId, action: `Offseason Recruiting Week ${phaseIndex}`, details: `Offseason recruiting week ${phaseIndex} complete. CPU teams continue recruiting.` });
     sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] offseason-recruiting hook:", e));
     return { data: offRecLeague as Record<string, unknown> };
@@ -5487,9 +5504,8 @@ export async function advanceLeagueStep(
     await processCpuWalkons(leagueId);
     const allTeamsSD = await storage.getTeamsByLeague(leagueId);
     await Promise.all(allTeamsSD.map(team => storage.updateTeam(team.id, { walkonReady: !!(team.isCpu || team.isAutoPilot) })));
-    // Phase flip is the final atomic step — persisted only after signing day side-effects complete.
-    setAdvanceProgress(leagueId, "phase_transition", 100);
     const sdLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonWalkons, lastWalkonAuction: null });
+    setAdvanceProgress(leagueId, "phase_transition", 100);
     await storage.createAuditLog({ leagueId: league.id, userId: actorUserId, action: "Walk-On Phase Started", details: `Signing day complete. ${signingResult.recruitsAdded} recruits joined rosters. Teams can now make cuts and sign walk-ons.` });
     try { await storage.createLeagueEvent({ leagueId: league.id, eventType: "PHASE_CHANGE", description: `Signing Day complete — ${signingResult.recruitsAdded} recruits joined rosters league-wide`, season: league.currentSeason, week: league.currentWeek }); } catch (e) { console.error("League event error:", e); }
     return { data: sdLeague as Record<string, unknown> };
@@ -5530,9 +5546,8 @@ export async function advanceLeagueStep(
       await replaceLeagueRecruitingClass({ leagueId, season: league.currentSeason + 1, recruits: validatedAdvanceClass!.recruits.map((r: any) => ({ ...r, leagueId })), vintage: null, initStorylines: true, saveState: { trigger: "pre_restore", label: `Pre-advance-class "${savedClassName}" (season ${league.currentSeason + 1})`, userId: actorUserId }, audit: { userId: actorUserId ?? "system", action: "Recruiting Class Loaded (Season Advance)", details: `Commissioner applied saved class "${savedClassName}" (${validatedAdvanceClass!.recruitCount} recruits) for season ${league.currentSeason + 1}` } });
       walkonResult.newRecruits = validatedAdvanceClass!.recruitCount;
     }
-    // Phase flip is the final atomic step — persisted only after walk-on phase side-effects complete.
-    setAdvanceProgress(leagueId, "phase_transition", 100);
     const woLeague = await storage.updateLeague(league.id, { currentWeek: 1, currentSeason: league.currentSeason + 1, currentPhase: Phase.Preseason });
+    setAdvanceProgress(leagueId, "phase_transition", 100);
     // Visit count sanity check (fire-and-forget)
     (async () => { try { const newSeason = league.currentSeason + 1; const teamsForCheck = await storage.getTeamsByLeague(leagueId); const violations: string[] = []; for (const t of teamsForCheck) { const vc = await storage.getSeasonVisitCount(t.id, leagueId, newSeason); if (vc.total > 0) violations.push(`${t.name}(${vc.campusVisits}cv+${vc.hcVisits}hcv)`); } if (violations.length > 0) console.warn(`[visit-count-sanity] WARN league=${leagueId} season=${newSeason} — ${violations.length} team(s) already have visit rows: ${violations.join(", ")}`); } catch (sanityErr) { console.warn("[visit-count-sanity] check failed:", sanityErr); } })();
     try {
@@ -5548,8 +5563,8 @@ export async function advanceLeagueStep(
 
   // Legacy "offseason" phase — backward compat
   if (league.currentPhase === "offseason") {
-    setAdvanceProgress(leagueId, "phase_transition", 100);
     const offLegacyLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonDepartures, currentClassVintage: null });
+    setAdvanceProgress(leagueId, "phase_transition", 100);
     return { data: offLegacyLeague as Record<string, unknown> };
   }
 
@@ -5558,9 +5573,8 @@ export async function advanceLeagueStep(
     try { const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek + 9999); if (swept > 0) console.log(`[storylines] pre-postseason sweep: resolved ${swept} residual arc event(s) for league ${leagueId}`); } catch (e) { console.error("[storylines] pre-postseason sweep error:", e); }
     await generateConferenceChampionships(leagueId, league.currentSeason);
     try { await storage.resetPitcherRestForLeague(leagueId); console.log(`[pitcher-rest] Reset pitcher rest for all players in league ${leagueId} (advancing to week ${nextWeek}, conference_championship)`); } catch (restErr) { console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr); }
-    // Phase flip is the final atomic step — persisted only after all EOS side-effects complete.
-    setAdvanceProgress(leagueId, "phase_transition", 100);
     const eosLeague = await storage.updateLeague(league.id, { currentPhase: Phase.ConferenceChampionship, currentWeek: nextWeek });
+    setAdvanceProgress(leagueId, "phase_transition", 100);
     await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });
     try { await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season complete — Conference Championships begin (Season ${league.currentSeason})`, season: league.currentSeason, week: nextWeek }); } catch (e) { console.error("League event error:", e); }
     sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] end-of-regular-season hook:", e));
@@ -5578,9 +5592,8 @@ export async function advanceLeagueStep(
   }
   try { await storage.resetPitcherRestForLeague(leagueId); console.log(`[pitcher-rest] Reset pitcher rest for all players in league ${leagueId} (advancing to week ${nextWeek})`); } catch (restErr) { console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr); }
   const newPhaseWeek = (newPhase === Phase.RegularSeason && (league.currentPhase === Phase.Preseason || league.currentPhase === Phase.SpringTraining)) ? 1 : nextWeek;
-  // Phase flip is the final atomic step — persisted only after all weekly-advance side-effects complete.
-  setAdvanceProgress(leagueId, "phase_transition", 100);
   const updatedLeague = await storage.updateLeague(league.id, { currentWeek: newPhaseWeek, currentPhase: newPhase, phaseDeadline: null });
+  setAdvanceProgress(leagueId, "phase_transition", 100);
   await storage.createAuditLog({ leagueId: league.id, userId: actorUserId, action: "Week Advanced", details: `Advanced to Week ${nextWeek}` });
   sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] advance hook:", e));
   finalizeAdvanceDigestSafe({ leagueId, windowStart: digestWindowStart, season: league.currentSeason, weeks: [currentWeek], phase: league.currentPhase, prevPowerRankings: digestPrevPowerRankings });
