@@ -20,6 +20,7 @@ import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
 import { validateAndNormalizeRecruitingClass, ClassValidationError, ClassValidationResult } from "../lib/validateRecruitingClass";
 import { getAdvancePreflight, type AdvancePreflightResult } from "../lib/advancePreflight";
+import { loadLeagueScopedTeam, loadLeagueScopedRecruit } from "../route-helpers";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import { archetypeDefs } from "../storylineEngine";
@@ -1447,7 +1448,9 @@ app.delete("/api/leagues/:id", requireAuth, async (req, res) => {
 // Team routes
 app.get("/api/leagues/:id/teams/:teamId", requireAuth, async (req, res) => {
   try {
-    const team = await storage.getTeam(req.params.teamId as string);
+    // League-scoped loader prevents cross-league IDOR: a teamId from a different
+    // league will return 404 even if it exists.
+    const team = await loadLeagueScopedTeam(req.params.id as string, req.params.teamId as string);
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }

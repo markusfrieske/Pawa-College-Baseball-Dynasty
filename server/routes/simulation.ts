@@ -7411,6 +7411,26 @@ export function registerSimulationRoutes(app: Express): void {
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
 
+      // ── Idempotency gate ──────────────────────────────────────────────────────
+      // If a completed advance op already exists for this exact (from_phase, from_week,
+      // from_season) triple, return success immediately without re-running — so a
+      // duplicate POST from a slow client gets the same result as the original call.
+      const existingComplete = await pool.query<{ id: string }>(
+        `SELECT id FROM league_advances
+          WHERE league_id = $1
+            AND status    = 'complete'
+            AND from_phase = $2
+            AND from_week  = $3
+            AND from_season = $4
+          LIMIT 1`,
+        [leagueId, league.currentPhase, currentWeek, league.currentSeason],
+      );
+      if ((existingComplete.rowCount ?? 0) > 0) {
+        // Advance already happened — return the current state of the league as the result.
+        const freshLeague = await storage.getLeague(leagueId);
+        return res.json({ idempotent: true, data: freshLeague });
+      }
+
       // Concurrent-advance guard — reject duplicate requests while one is in flight
       const locked = await acquireAdvanceLock(leagueId);
       if (!locked) {

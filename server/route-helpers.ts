@@ -341,6 +341,34 @@ export async function loadLeagueScopedPlayer(
   return player;
 }
 
+/**
+ * Load a team by ID and verify it belongs to the given league.
+ * Returns the team if found and in-scope, null otherwise (caller should 404).
+ */
+export async function loadLeagueScopedTeam(
+  leagueId: string,
+  teamId: string,
+): Promise<import("@shared/schema").Team | null> {
+  const team = await storage.getTeam(teamId);
+  if (!team) return null;
+  if (team.leagueId !== leagueId) return null;
+  return team;
+}
+
+/**
+ * Load a recruit by ID and verify it belongs to the given league.
+ * Returns the recruit if found and in-scope, null otherwise (caller should 404).
+ */
+export async function loadLeagueScopedRecruit(
+  leagueId: string,
+  recruitId: string,
+): Promise<import("@shared/schema").Recruit | null> {
+  const recruit = await storage.getRecruit(recruitId);
+  if (!recruit) return null;
+  if (recruit.leagueId !== leagueId) return null;
+  return recruit;
+}
+
 // ── POTENTIAL GRADE → NUMBER ──────────────────────────────────────────────────
 
 export function potentialGradeToNumber(grade: string): number {
