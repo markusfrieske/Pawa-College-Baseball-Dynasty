@@ -113,7 +113,7 @@ app.use((req, res, next) => {
     if (path.startsWith("/api") && !path.startsWith("/api/presence")) {
       const rawLen = res.getHeader("content-length");
       const byteCount = rawLen ? parseInt(rawLen as string, 10) : 0;
-      const uid = (req as any).session?.userId as string | undefined;
+      const uid = (req.session as { userId?: string } | undefined)?.userId;
       const userTag = uid ? ` u:${hashUserId(uid)}` : "";
       log(`[${reqId}] ${req.method} ${normalizePath(path)} ${res.statusCode} ${duration}ms ${byteCount}b${userTag}`);
     }
@@ -165,13 +165,8 @@ app.use((req, res, next) => {
   // body runs, and getRealRosters() is called at most once at a time.
   void (async () => {
     try {
-      // Create the guard table once, before any migration body executes.
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS _startup_migrations (
-          key text PRIMARY KEY,
-          ran_at timestamp DEFAULT now()
-        )
-      `);
+      // _startup_migrations table is created by numbered migration 0039 which
+      // is applied (and awaited) by runMigrations() above, before this IIFE runs.
 
       // once(): insert-first guard — marks the migration done BEFORE running it.
       // Use for idempotent operations where a partial run leaves no harmful state.
@@ -210,11 +205,9 @@ app.use((req, res, next) => {
       }
 
       // ── drop-pitch-ch-binary-v1 ────────────────────────────────────────────
-      // Drop binary CHECK constraints on pitch_ch so it can hold values 1-7.
+      // DDL moved to numbered migrations 0037 + 0039 (idempotent DROP CONSTRAINT).
       await once('drop-pitch-ch-binary-v1', async () => {
-        await pool.query("ALTER TABLE players  DROP CONSTRAINT IF EXISTS players_pitch_ch_binary");
-        await pool.query("ALTER TABLE recruits DROP CONSTRAINT IF EXISTS recruits_pitch_ch_binary");
-        console.log("[startup-migration] drop-pitch-ch-binary-v1: pitch_ch binary constraints dropped");
+        console.log("[startup-migration] drop-pitch-ch-binary-v1: DDL applied via 0037/0039");
       });
 
       // ── pitch-spl-to-vsl-v1 ───────────────────────────────────────────────
@@ -324,8 +317,7 @@ app.use((req, res, next) => {
 
       // ── recruiting-interests-unique-v1 ──────────────────────────────────
       // Dedupe recruiting_interests (keep row with highest interest per
-      // recruit/team pair) then add a UNIQUE INDEX so ON CONFLICT DO UPDATE
-      // upserts are safe in concurrent multiplayer leagues.
+      // recruit/team pair). UNIQUE INDEX now ensured by numbered migration 0039.
       await onceAfter('recruiting-interests-unique-v1', async () => {
         await pool.query(`
           DELETE FROM recruiting_interests
@@ -335,49 +327,29 @@ app.use((req, res, next) => {
             ORDER BY recruit_id, team_id, interest_level DESC, id
           )
         `);
-        await pool.query(`
-          CREATE UNIQUE INDEX IF NOT EXISTS uq_recruiting_interests_recruit_team
-          ON recruiting_interests (recruit_id, team_id)
-        `);
-        console.log("[startup-migration] recruiting-interests-unique-v1: deduped + UNIQUE INDEX added");
+        console.log("[startup-migration] recruiting-interests-unique-v1: deduped (UNIQUE INDEX via 0039)");
       });
 
       // ── action-log-weekly-unique-v1 ─────────────────────────────────────
-      // One email + one phone call per (recruit, team, season, week).
-      // Partial index covers only the weekly-limited action types.
+      // UNIQUE INDEX now ensured by numbered migration 0039.
       await onceAfter('action-log-weekly-unique-v1', async () => {
-        await pool.query(`
-          CREATE UNIQUE INDEX IF NOT EXISTS uq_action_log_weekly
-          ON recruiting_actions_log (recruit_id, team_id, season, week, action_type)
-          WHERE action_type IN ('email', 'phone')
-        `);
-        console.log("[startup-migration] action-log-weekly-unique-v1: weekly email/phone unique index added");
+        console.log("[startup-migration] action-log-weekly-unique-v1: UNIQUE INDEX applied via 0039");
       });
 
       // ── action-log-seasonal-unique-v1 ────────────────────────────────────
-      // One campus visit, one head-coach visit, one offer per (recruit, team, season).
+      // UNIQUE INDEX now ensured by numbered migration 0039.
       await onceAfter('action-log-seasonal-unique-v1', async () => {
-        await pool.query(`
-          CREATE UNIQUE INDEX IF NOT EXISTS uq_action_log_seasonal
-          ON recruiting_actions_log (recruit_id, team_id, season, action_type)
-          WHERE action_type IN ('visit', 'head_coach_visit', 'offer')
-        `);
-        console.log("[startup-migration] action-log-seasonal-unique-v1: seasonal visit/HCV/offer unique index added");
+        console.log("[startup-migration] action-log-seasonal-unique-v1: UNIQUE INDEX applied via 0039");
       });
 
       // ── v3-development-columns-v1 ─────────────────────────────────────────
-      // Add V3 archetype-aware development fields to the players table.
+      // ALTER TABLE ADD COLUMN DDL now ensured by numbered migration 0039.
       await once('v3-development-columns-v1', async () => {
-        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS play_archetype_id text`);
-        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS development_caps jsonb NOT NULL DEFAULT '{}'::jsonb`);
-        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS development_seed text NOT NULL DEFAULT ''`);
-        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS development_model_version integer NOT NULL DEFAULT 1`);
-        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS last_development_season integer`);
-        console.log("[startup-migration] v3-development-columns-v1: V3 development columns added to players table");
+        console.log("[startup-migration] v3-development-columns-v1: columns applied via 0039");
       });
 
       // ── recruit-top-schools-unique-v1 ──────────────────────────────────
-      // Same treatment for recruit_top_schools.
+      // Dedupe recruit_top_schools. UNIQUE INDEX now ensured by numbered migration 0039.
       await onceAfter('recruit-top-schools-unique-v1', async () => {
         await pool.query(`
           DELETE FROM recruit_top_schools
@@ -387,55 +359,19 @@ app.use((req, res, next) => {
             ORDER BY recruit_id, team_id, interest_level DESC, id
           )
         `);
-        await pool.query(`
-          CREATE UNIQUE INDEX IF NOT EXISTS uq_recruit_top_schools_recruit_team
-          ON recruit_top_schools (recruit_id, team_id)
-        `);
-        console.log("[startup-migration] recruit-top-schools-unique-v1: deduped + UNIQUE INDEX added");
+        console.log("[startup-migration] recruit-top-schools-unique-v1: deduped (UNIQUE INDEX via 0039)");
       });
 
       // ── league-editor-v1 ──────────────────────────────────────────────────
-      // Versioned commissioner league editor: editor_version cols, audit tables,
-      // and the commissionerCompetitiveEditsEnabled league setting.
+      // DDL (editor_version cols, audit tables, league setting) now in 0039.
       await once('league-editor-v1', async () => {
-        await pool.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS editor_version integer NOT NULL DEFAULT 1`);
-        await pool.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS editor_version integer NOT NULL DEFAULT 1`);
-        await pool.query(`ALTER TABLE leagues ADD COLUMN IF NOT EXISTS commissioner_competitive_edits_enabled boolean NOT NULL DEFAULT true`);
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS league_edit_batches (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            league_id varchar NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
-            actor_id varchar NOT NULL,
-            entity_type text NOT NULL,
-            entity_id varchar NOT NULL,
-            reason text NOT NULL,
-            effective_season integer,
-            idempotency_key text NOT NULL,
-            is_reversed boolean NOT NULL DEFAULT false,
-            reversed_by_batch_id varchar,
-            created_at timestamp NOT NULL DEFAULT now()
-          )
-        `);
-        await pool.query(`
-          CREATE TABLE IF NOT EXISTS league_edit_changes (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            batch_id varchar NOT NULL REFERENCES league_edit_batches(id) ON DELETE CASCADE,
-            field_name text NOT NULL,
-            before_json jsonb,
-            after_json jsonb
-          )
-        `);
-        await pool.query(`CREATE INDEX IF NOT EXISTS idx_edit_batches_league_id ON league_edit_batches(league_id)`);
-        await pool.query(`CREATE INDEX IF NOT EXISTS idx_edit_batches_idem ON league_edit_batches(league_id, idempotency_key)`);
-        await pool.query(`CREATE INDEX IF NOT EXISTS idx_edit_changes_batch_id ON league_edit_changes(batch_id)`);
-        console.log("[startup-migration] league-editor-v1: editor_version cols, audit tables, and setting added");
+        console.log("[startup-migration] league-editor-v1: DDL applied via 0039");
       });
 
       // ── league-editor-v1b ─────────────────────────────────────────────────
-      // Add stadium_name identity field to teams for the League Editor.
+      // DDL (stadium_name column) now in 0039.
       await once('league-editor-v1b', async () => {
-        await pool.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_name text`);
-        console.log("[startup-migration] league-editor-v1b: stadium_name column added to teams");
+        console.log("[startup-migration] league-editor-v1b: DDL applied via 0039");
       });
 
     } catch (e) {
@@ -451,13 +387,7 @@ app.use((req, res, next) => {
   // updates pitch_vsl wherever the stored value diverges from the source.
   void (async () => {
     try {
-      // Ensure the table exists regardless of race with the main sequential runner.
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS _startup_migrations (
-          key text PRIMARY KEY,
-          ran_at timestamp DEFAULT now()
-        )
-      `);
+      // _startup_migrations is created by numbered migration 0039 (awaited before this fires).
       const { rows: check } = await pool.query<{ key: string }>(`
         SELECT key FROM _startup_migrations WHERE key = 'real-roster-pitch-sync-v6'
       `);
@@ -1328,168 +1258,22 @@ app.use((req, res, next) => {
   })();
 
   // ── full-season-schema-v4 ──────────────────────────────────────────────────
-  // Additive-only replacement for the old v1/v2/v3 startup blocks (which
-  // contained a destructive DROP TABLE sequence). This migration:
-  //   • Creates all four FS tables with CREATE TABLE IF NOT EXISTS so it is a
-  //     no-op on installations where v2 already ran.
-  //   • Patches any table that v2 created with a truncated schema by adding the
-  //     FS-specific columns via ALTER TABLE ADD COLUMN IF NOT EXISTS.
-  //   • Drops the erroneous NOT NULL constraint on tournament_id so that FS
-  //     entries/series (which use league_id instead) can be inserted.
-  //   • Ensures all leagues.* columns exist (idempotent).
-  //   • NO DROP TABLE operations — ever.
-  (() => {
-    pool.query(`SELECT key FROM _startup_migrations WHERE key = 'full-season-schema-v4'`)
-      .then(({ rowCount }) => {
-        if ((rowCount ?? 0) > 0) {
-          console.log("[startup-migration] full-season-schema-v4: already applied, skipping");
-          return;
-        }
-        // Step 1: tables + league columns (all additive / idempotent)
-        return pool.query(`
-          -- ── leagues ──────────────────────────────────────────────────────────
-          ALTER TABLE leagues
-            ADD COLUMN IF NOT EXISTS rules_version integer,
-            ADD COLUMN IF NOT EXISTS current_phase_step text,
-            ADD COLUMN IF NOT EXISTS dynasty_preset text DEFAULT 'custom',
-            ADD COLUMN IF NOT EXISTS rules_snapshot jsonb,
-            ADD COLUMN IF NOT EXISTS catalog_version text,
-            ADD COLUMN IF NOT EXISTS schedule_seed text;
+  // All DDL is now covered by numbered migration 0034 (applied at startup via
+  // runMigrations()). This block only ensures the legacy _startup_migrations key
+  // is recorded so the sequential runner does not try to re-apply it.
+  void pool.query(`
+    INSERT INTO _startup_migrations (key)
+    VALUES ('full-season-schema-v4')
+    ON CONFLICT (key) DO NOTHING
+  `).then(() => {
+    console.log("[startup-migration] full-season-schema-v4: DDL in 0034; key recorded");
+  }).catch(() => { /* _startup_migrations may not exist yet on a truly fresh DB — safe to ignore */ });
 
-          UPDATE leagues
-            SET dynasty_preset = 'custom'
-            WHERE dynasty_preset IS NULL OR dynasty_preset = '';
-
-          -- ── postseason_tournaments ────────────────────────────────────────────
-          CREATE TABLE IF NOT EXISTS postseason_tournaments (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            league_id varchar NOT NULL REFERENCES leagues(id),
-            season integer NOT NULL,
-            stage text NOT NULL,
-            status text NOT NULL DEFAULT 'scheduled',
-            winner_id varchar,
-            metadata jsonb,
-            created_at timestamp NOT NULL DEFAULT now(),
-            completed_at timestamp
-          );
-          CREATE INDEX IF NOT EXISTS idx_ps_tournaments_league_season
-            ON postseason_tournaments (league_id, season);
-          CREATE INDEX IF NOT EXISTS idx_ps_tournaments_league_stage
-            ON postseason_tournaments (league_id, season, stage);
-
-          -- ── postseason_entries (create + patch) ──────────────────────────────
-          CREATE TABLE IF NOT EXISTS postseason_entries (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            tournament_id varchar REFERENCES postseason_tournaments(id),
-            team_id varchar NOT NULL,
-            seed integer,
-            bracket text,
-            status text NOT NULL DEFAULT 'active',
-            league_id varchar,
-            season integer,
-            qualification_type text,
-            national_seed integer,
-            selection_score real,
-            selection_reason text,
-            bracket_lane text
-          );
-          -- v2 created tournament_id NOT NULL; FS entries populate league_id instead
-          ALTER TABLE postseason_entries
-            ALTER COLUMN tournament_id DROP NOT NULL;
-          -- add FS-specific columns to any existing table from v2
-          ALTER TABLE postseason_entries
-            ADD COLUMN IF NOT EXISTS league_id varchar,
-            ADD COLUMN IF NOT EXISTS season integer,
-            ADD COLUMN IF NOT EXISTS qualification_type text,
-            ADD COLUMN IF NOT EXISTS national_seed integer,
-            ADD COLUMN IF NOT EXISTS selection_score real,
-            ADD COLUMN IF NOT EXISTS selection_reason text,
-            ADD COLUMN IF NOT EXISTS bracket_lane text;
-          CREATE INDEX IF NOT EXISTS idx_ps_entries_tournament
-            ON postseason_entries (tournament_id);
-          CREATE INDEX IF NOT EXISTS idx_ps_entries_team
-            ON postseason_entries (team_id);
-          CREATE INDEX IF NOT EXISTS idx_ps_entries_league_season
-            ON postseason_entries (league_id, season);
-          CREATE UNIQUE INDEX IF NOT EXISTS idx_ps_entries_league_season_team
-            ON postseason_entries (league_id, season, team_id);
-
-          -- ── postseason_series (create + patch) ───────────────────────────────
-          CREATE TABLE IF NOT EXISTS postseason_series (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            tournament_id varchar REFERENCES postseason_tournaments(id),
-            home_team_id varchar,
-            away_team_id varchar,
-            round integer NOT NULL DEFAULT 1,
-            bracket_slot text,
-            home_score integer,
-            away_score integer,
-            winner_id varchar,
-            is_complete boolean NOT NULL DEFAULT false,
-            game_number integer NOT NULL DEFAULT 1,
-            played_at timestamp,
-            league_id varchar,
-            season integer,
-            stage text,
-            best_of integer DEFAULT 3,
-            home_wins integer NOT NULL DEFAULT 0,
-            away_wins integer NOT NULL DEFAULT 0,
-            series_status text NOT NULL DEFAULT 'pending'
-          );
-          -- v2 created tournament_id NOT NULL; FS series populate league_id instead
-          ALTER TABLE postseason_series
-            ALTER COLUMN tournament_id DROP NOT NULL;
-          -- add FS-specific columns to any existing table from v2
-          ALTER TABLE postseason_series
-            ADD COLUMN IF NOT EXISTS league_id varchar,
-            ADD COLUMN IF NOT EXISTS season integer,
-            ADD COLUMN IF NOT EXISTS stage text,
-            ADD COLUMN IF NOT EXISTS best_of integer DEFAULT 3,
-            ADD COLUMN IF NOT EXISTS home_wins integer NOT NULL DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS away_wins integer NOT NULL DEFAULT 0,
-            ADD COLUMN IF NOT EXISTS series_status text NOT NULL DEFAULT 'pending';
-          CREATE INDEX IF NOT EXISTS idx_ps_series_tournament
-            ON postseason_series (tournament_id);
-          CREATE INDEX IF NOT EXISTS idx_ps_series_bracket_slot
-            ON postseason_series (tournament_id, bracket_slot);
-          CREATE INDEX IF NOT EXISTS idx_ps_series_league_season
-            ON postseason_series (league_id, season);
-          CREATE UNIQUE INDEX IF NOT EXISTS idx_ps_series_league_season_slot
-            ON postseason_series (league_id, season, stage, bracket_slot);
-
-          -- ── league_jobs ───────────────────────────────────────────────────────
-          CREATE TABLE IF NOT EXISTS league_jobs (
-            id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-            league_id varchar NOT NULL REFERENCES leagues(id),
-            job_type text NOT NULL,
-            status text NOT NULL DEFAULT 'pending',
-            progress integer NOT NULL DEFAULT 0,
-            error_message text,
-            metadata jsonb,
-            created_at timestamp NOT NULL DEFAULT now(),
-            updated_at timestamp NOT NULL DEFAULT now()
-          );
-          CREATE INDEX IF NOT EXISTS idx_league_jobs_league_status
-            ON league_jobs (league_id, status);
-          CREATE INDEX IF NOT EXISTS idx_league_jobs_created
-            ON league_jobs (created_at);
-        `).then(() => {
-          return pool.query(`
-            INSERT INTO _startup_migrations (key)
-            VALUES ('full-season-schema-v4')
-            ON CONFLICT (key) DO NOTHING
-          `);
-        }).then(() => {
-          console.log("[startup-migration] full-season-schema-v4: FS tables ensured, missing columns patched, indexes created");
-        });
-      })
-      .catch(e => console.warn("[startup-migration] full-season-schema-v4 failed:", e));
 
   // DDL for full-season-schema-v5, security-hardening-v1, and storyline-resolutions-v1
   // has been moved to numbered migration files 0035, 0036, and 0038 respectively.
   // Those files are applied by runMigrations() above on every cold start.
 
-  })();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

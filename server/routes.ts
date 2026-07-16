@@ -458,17 +458,9 @@ export async function registerRoutes(
     process.exit(1);
   }
 
-  // Ensure the connect-pg-simple session table exists before any request
-  // arrives. createTableIfMissing fires lazily on first store access, which
-  // can race with the very first login attempt.
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS session (
-      sid varchar NOT NULL COLLATE "default" PRIMARY KEY,
-      sess json NOT NULL,
-      expire timestamp(6) NOT NULL
-    );
-    CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON session (expire);
-  `);
+  // session table + IDX_session_expire index are created by numbered migration
+  // 0040_session_table.sql (applied at startup via runMigrations()) so there is
+  // no race between lazy createTableIfMissing and the very first login attempt.
 
   const PgStore = connectPgSimple(session);
   app.use(

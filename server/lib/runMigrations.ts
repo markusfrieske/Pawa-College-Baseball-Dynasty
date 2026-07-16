@@ -24,7 +24,7 @@ const MIGRATIONS_DIR = join(__dirname, "../migrations");
  * The last migration file key that must be present before /health/ready returns 200.
  * Update this whenever a new migration file is added.
  */
-export const EXPECTED_MIGRATION = "0037_sequential_ddl";
+export const EXPECTED_MIGRATION = "0040_session_table";
 
 /**
  * Errors that are safe to swallow — the statement was idempotent.

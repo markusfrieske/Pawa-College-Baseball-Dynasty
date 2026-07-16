@@ -3,7 +3,7 @@
  * Includes share-link creation/listing/revocation and the public import-by-token endpoints.
  */
 
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
@@ -12,6 +12,21 @@ import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, de
 import { migrateClassToVersion } from "../lib/migrateClassToVersion";
 
 const largeBodyParser = express.json({ limit: "5mb" });
+
+/**
+ * Middleware that rejects requests whose Content-Length header exceeds 5 MB
+ * before the body is read. This prevents expensive JSON parsing on oversized
+ * payloads without having to buffer them first.
+ */
+function rejectOversizedBody(_req: Request, res: Response, next: NextFunction): void {
+  const MAX = 5 * 1024 * 1024; // 5 MB
+  const declared = _req.headers["content-length"];
+  if (declared && parseInt(declared, 10) > MAX) {
+    res.status(413).json({ message: "Payload too large (max 5 MB)" });
+    return;
+  }
+  next();
+}
 
 export function registerSavedRoutes(app: Express): void {
   // ── Saved Rosters ──────────────────────────────────────────────────────────
@@ -103,7 +118,7 @@ export function registerSavedRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/saved-recruiting-classes", requireAuth, largeBodyParser, async (req, res) => {
+  app.post("/api/saved-recruiting-classes", requireAuth, rejectOversizedBody, largeBodyParser, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const { name, description, classData } = req.body;
@@ -143,7 +158,7 @@ export function registerSavedRoutes(app: Express): void {
     }
   });
 
-  app.patch("/api/saved-recruiting-classes/:id", requireAuth, largeBodyParser, async (req, res) => {
+  app.patch("/api/saved-recruiting-classes/:id", requireAuth, rejectOversizedBody, largeBodyParser, async (req, res) => {
     try {
       const rc = await storage.getSavedRecruitingClass(req.params.id as string);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
