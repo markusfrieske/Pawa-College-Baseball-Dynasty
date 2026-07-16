@@ -18,7 +18,7 @@ import { getPotentialRange, rollV3Potential } from "../../shared/potential";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
 import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
-import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
+import { validateAndNormalizeRecruitingClass, ClassValidationError, ClassValidationResult } from "../lib/validateRecruitingClass";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import { archetypeDefs } from "../storylineEngine";
@@ -2202,13 +2202,38 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
       return res.status(403).json({ message: "Only the commissioner can start dynasty" });
     }
 
-    // Idempotency guard: if the league has already been started (moved past dynasty_setup)
-    // return success immediately.  This prevents double-work when two tabs or two concurrent
-    // requests race to call start at the same time.
-    if (league.currentPhase !== "dynasty_setup") {
+    // ── Early validation gate: recruiting class ───────────────────────────────
+    // Validate any saved recruiting class BEFORE touching any roster data so
+    // an invalid class returns 422 without leaving the league in a partial state.
+    let prevalidatedClass: ClassValidationResult | undefined;
+    if (recruitingClassId) {
+      const earlyClass = await storage.getSavedRecruitingClass(recruitingClassId);
+      if (earlyClass && earlyClass.userId === userId) {
+        try {
+          prevalidatedClass = validateAndNormalizeRecruitingClass(earlyClass.classData as unknown);
+        } catch (e) {
+          if (e instanceof ClassValidationError) {
+            return res.status(422).json({ message: `Recruiting class is invalid: ${e.message}` });
+          }
+          throw e;
+        }
+      }
+    }
+
+    // ── Atomic start claim ────────────────────────────────────────────────────
+    // Use an UPDATE with a WHERE guard instead of a read-then-check to prevent
+    // two concurrent /start requests from both seeing 'dynasty_setup' and both
+    // running setup.  The winning request sets phase to 'starting'; all others
+    // get rowCount=0 and return success immediately.
+    const claimResult = await pool.query(
+      `UPDATE leagues SET current_phase = 'starting' WHERE id = $1 AND current_phase = 'dynasty_setup' RETURNING id`,
+      [leagueId],
+    );
+    if ((claimResult.rowCount ?? 0) === 0) {
+      // Another concurrent request won or the dynasty is already past setup.
       return res.json({ success: true, alreadyStarted: true });
     }
-    
+
     // Apply saved roster if specified (legacy single-roster format)
     if (rosterId) {
       const savedRoster = await storage.getSavedRoster(rosterId);
@@ -2277,34 +2302,22 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     // Apply saved recruiting class if specified, otherwise auto-generate
     const existingRecruits = await storage.getRecruitsByLeague(leagueId);
     if (existingRecruits.length === 0) {
-      if (recruitingClassId) {
-        const savedClass = await storage.getSavedRecruitingClass(recruitingClassId);
-        if (savedClass && savedClass.userId === userId) {
-          let validatedDynasty;
-          try {
-            validatedDynasty = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
-          } catch (e) {
-            if (e instanceof ClassValidationError) {
-              return res.status(422).json({ message: `Recruiting class is invalid: ${e.message}` });
-            }
-            throw e;
-          }
-          // Saved-class path bypasses generateRecruits(); helper handles insert,
-          // storyline init (fire-and-forget), and cache invalidation.
-          await replaceLeagueRecruitingClass({
-            leagueId,
-            season: league.currentSeason,
-            recruits: validatedDynasty.recruits.map(r => ({ ...r, leagueId })) as any,
-            initStorylines: true,
-            asyncStorylines: true,
-            audit: {
-              userId: userId ?? "system",
-              action: "Recruiting Class Loaded (Dynasty Start)",
-              details: `Saved class applied at dynasty start (${validatedDynasty.recruits.length} recruits)`,
-            },
-          });
-        }
-      } else {
+      if (recruitingClassId && prevalidatedClass) {
+        // Saved-class path — prevalidatedClass was already validated at the top of this
+        // handler before any mutations; use it directly without re-validating.
+        await replaceLeagueRecruitingClass({
+          leagueId,
+          season: league.currentSeason,
+          recruits: prevalidatedClass.recruits.map(r => ({ ...r, leagueId })) as any,
+          initStorylines: true,
+          asyncStorylines: true,
+          audit: {
+            userId: userId ?? "system",
+            action: "Recruiting Class Loaded (Dynasty Start)",
+            details: `Saved class applied at dynasty start (${prevalidatedClass.recruits.length} recruits)`,
+          },
+        });
+      } else if (!recruitingClassId) {
         const teams = await storage.getTeamsByLeague(leagueId);
         const recruitCount = getRecruitPoolSize(teams.length, league?.dynastyPreset ?? undefined);
         const joinGeneratedVintage = await generateRecruits(leagueId, recruitCount);
@@ -2338,6 +2351,17 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Failed to start dynasty:", error);
+    // Revert the transitional 'starting' phase back to 'dynasty_setup' so the
+    // commissioner can retry.  Only reverts if we actually won the atomic claim
+    // (i.e. a concurrent request that never touched the DB would already have
+    // returned early above).
+    const leagueId = req.params.id as string;
+    await pool.query(
+      `UPDATE leagues SET current_phase = 'dynasty_setup' WHERE id = $1 AND current_phase = 'starting'`,
+      [leagueId],
+    ).catch((revertErr) => {
+      console.error("[start-dynasty] Failed to revert transitional phase:", revertErr);
+    });
     res.status(500).json({ message: "Failed to start dynasty" });
   }
 });

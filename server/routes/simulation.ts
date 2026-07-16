@@ -7289,9 +7289,26 @@ export function registerSimulationRoutes(app: Express): void {
       }
       const leagueId = league.id;
 
-      // Delete orphaned advance lock (allows next acquireAdvanceLock to succeed)
+      // Safety check: reject if there is a RECENT (non-expired) lock — the advance
+      // may still be actively running.  Only locks older than 15 minutes (the lease
+      // window) are considered orphaned by a crashed process.
+      const activeLock = await pool.query<{ locked_at: string }>(
+        `SELECT locked_at FROM league_advance_locks
+          WHERE league_id = $1 AND locked_at >= now() - interval '15 minutes'`,
+        [leagueId],
+      );
+      if ((activeLock.rowCount ?? 0) > 0) {
+        return res.status(409).json({
+          message: "An advance may be actively running (lock is recent — acquired within the last 15 minutes). Wait until the advance completes, or until 15 minutes have elapsed since the lock was acquired, before clearing.",
+          activeLockSince: activeLock.rows[0]?.locked_at,
+        });
+      }
+
+      // Delete orphaned advance lock (lock older than 15 min → safe to remove)
       const lockDel = await pool.query(
-        `DELETE FROM league_advance_locks WHERE league_id = $1 RETURNING league_id`,
+        `DELETE FROM league_advance_locks
+          WHERE league_id = $1 AND locked_at < now() - interval '15 minutes'
+          RETURNING league_id`,
         [leagueId],
       );
 
@@ -7356,6 +7373,9 @@ export function registerSimulationRoutes(app: Express): void {
 
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     let advOpId: string | null = null;
+    // Tracks whether the catch block has already set the op to 'failed' so the
+    // res.on("finish") handler never races it back to 'complete'.
+    let advOpFailed = false;
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -7427,11 +7447,13 @@ export function registerSimulationRoutes(app: Express): void {
       }
 
       setAdvanceProgress(leagueId, "initializing", 5);
-      // Auto-clear progress and lock once the response is fully sent
+      // Auto-clear progress and lock once the response is fully sent.
+      // Only mark 'complete' if the catch block did NOT already mark it 'failed'
+      // (advOpFailed is set synchronously before any async DB update in catch).
       res.on("finish", () => {
         clearAdvanceProgress(leagueId);
         releaseAdvanceLock(leagueId);
-        if (advOpId) {
+        if (advOpId && !advOpFailed) {
           pool.query(
             `UPDATE league_advances SET status = 'complete', updated_at = now() WHERE id = $1 AND status = 'running'`,
             [advOpId],
@@ -7447,6 +7469,9 @@ export function registerSimulationRoutes(app: Express): void {
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
         releaseAdvanceLock(req.params.id as string);
+        // Set flag synchronously BEFORE the async DB update so the finish handler
+        // (which fires when res.status().json() is sent) never overwrites 'failed' with 'complete'.
+        advOpFailed = true;
         if (advOpId) {
           pool.query(
             `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1 AND status = 'running'`,
@@ -7458,6 +7483,7 @@ export function registerSimulationRoutes(app: Express): void {
       }
       console.error("Failed to advance week:", e);
       releaseAdvanceLock(req.params.id as string);
+      advOpFailed = true;
       if (advOpId) {
         pool.query(
           `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1 AND status = 'running'`,

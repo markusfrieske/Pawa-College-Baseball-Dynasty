@@ -9,7 +9,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth } from "../route-helpers";
+import { requireAuth, requireLeagueMember } from "../route-helpers";
 
 export function registerStatsRoutes(app: Express): void {
   // ─── Record Book ────────────────────────────────────────────────────────────
@@ -545,7 +545,7 @@ export function registerStatsRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/leagues/:leagueId/players/:playerId/career-stats", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:leagueId/players/:playerId/career-stats", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const rawStats = await storage.getPlayerSeasonStats(req.params.playerId as string, req.params.leagueId as string);
       const stats = [...rawStats].sort((a, b) => (a.season ?? 0) - (b.season ?? 0));
