@@ -213,6 +213,11 @@ export function registerRosterRoutes(app: Express): void {
     try {
       const player = await storage.getPlayer(req.params.playerId as string);
       if (!player) return res.status(404).json({ message: "Player not found" });
+      // League-scope guard: verify the player's team belongs to this league
+      const playerTeam = await storage.getTeam(player.teamId);
+      if (!playerTeam || playerTeam.leagueId !== (req.params.id as string)) {
+        return res.status(404).json({ message: "Player not found in this league" });
+      }
       res.json(player);
     } catch (error) {
       console.error("Failed to fetch player:", error);

@@ -19,7 +19,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { validateBoxScore } from "../lib/validateBoxScore";
-import { requireAuth, hasCommissionerAccess, gameScoreSchema } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, gameScoreSchema, requireLeagueMember } from "../route-helpers";
 import * as coachMsg from "../lib/coachMessages";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGameAtomic, finalizeReportedGame } from "../game-finalizer";
@@ -194,7 +194,7 @@ export function registerGameRoutes(app: Express): void {
   });
 
   // ── Single game ───────────────────────────────────────────────────────────
-  app.get("/api/leagues/:id/games/:gameId", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:id/games/:gameId", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
@@ -213,7 +213,7 @@ export function registerGameRoutes(app: Express): void {
   });
 
   // ── Matchup preview ───────────────────────────────────────────────────────
-  app.get("/api/leagues/:id/games/:gameId/matchup-preview", requireAuth, async (req, res) => {
+  app.get("/api/leagues/:id/games/:gameId/matchup-preview", requireAuth, requireLeagueMember, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });

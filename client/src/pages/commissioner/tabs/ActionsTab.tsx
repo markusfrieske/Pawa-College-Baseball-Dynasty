@@ -321,9 +321,10 @@ export function ActionsTab({
             <RetroButton
               variant="shimmer"
               onClick={() => onAdvanceWeek()}
-              disabled={anySim}
+              disabled={anySim || (!!preflight && !preflight.canAdvance)}
               className="w-full"
               data-testid="button-advance-week"
+              title={preflight && !preflight.canAdvance ? `${preflightFail} preflight blocker(s) must be resolved before advancing` : undefined}
             >
               {advanceIcon}
               {advanceLabel}

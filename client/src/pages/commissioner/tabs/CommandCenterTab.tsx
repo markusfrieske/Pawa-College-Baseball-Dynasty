@@ -12,6 +12,7 @@ import {
   History,
   ChevronRight,
   Clock,
+  ShieldAlert,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetroCard } from "@/components/ui/retro-card";
@@ -164,6 +165,38 @@ export function CommandCenterTab({
   const isStale = ageMs !== null && ageMs > 2 * 60 * 1000;
   const recentSaves = (saveStates ?? []).slice(0, 3);
   const recentAudit = auditLogs.slice(0, 5);
+
+  // ── Stuck Advance Recovery ────────────────────────────────────────────────
+  const { data: advanceStatus, refetch: refetchAdvanceStatus } = useQuery<{
+    recentOps: Array<{ id: string; status: string; from_phase: string; from_week: number; from_season: number; lease_expires_at: string; created_at: string }>;
+    hasActiveLock: boolean;
+    activeLockSince: string | null;
+  }>({
+    queryKey: ["/api/leagues", leagueId, "advance", "status"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/advance/status`);
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    staleTime: 15_000,
+    refetchInterval: advanceStatus?.hasActiveLock ? 10_000 : false,
+  });
+
+  const clearStuckMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance/clear-stuck`);
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchAdvanceStatus();
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+    },
+  });
+
+  const stuckRunningOps = (advanceStatus?.recentOps ?? []).filter(
+    op => op.status === "running" && new Date(op.lease_expires_at) < new Date()
+  );
+  const hasStuckOp = stuckRunningOps.length > 0 || advanceStatus?.hasActiveLock;
 
   return (
     <div className="space-y-4">
@@ -339,7 +372,46 @@ export function CommandCenterTab({
         </RetroCard>
       )}
 
-      {/* ── D. Save State Quick Access ── */}
+      {/* ── D. Stuck Advance Recovery ── */}
+      {hasStuckOp && (
+        <RetroCard className="border-orange-500/40">
+          <div className="flex items-start gap-3 mb-3">
+            <ShieldAlert className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-orange-400">STUCK ADVANCE DETECTED</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {advanceStatus?.hasActiveLock
+                  ? "An advance lock is active — the server may have crashed mid-advance."
+                  : `${stuckRunningOps.length} advance operation(s) have expired leases.`}
+              </p>
+              {stuckRunningOps.map(op => (
+                <p key={op.id} className="text-xs text-orange-300 mt-1">
+                  S{op.from_season} W{op.from_week} ({op.from_phase}) — lease expired {formatAge(op.lease_expires_at)}
+                </p>
+              ))}
+            </div>
+          </div>
+          <RetroButton
+            size="sm"
+            variant="destructive"
+            onClick={() => clearStuckMutation.mutate()}
+            disabled={clearStuckMutation.isPending}
+            className="w-full min-h-[44px]"
+            data-testid="button-clear-stuck-advance"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 mr-2 ${clearStuckMutation.isPending ? "animate-spin" : ""}`} />
+            {clearStuckMutation.isPending ? "Clearing..." : "Clear Stuck Advance Lock"}
+          </RetroButton>
+          {clearStuckMutation.isSuccess && (
+            <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
+              <CheckCircle className="w-3.5 h-3.5" />
+              Lock cleared — advance is unblocked.
+            </p>
+          )}
+        </RetroCard>
+      )}
+
+      {/* ── E. Save State Quick Access ── */}
       <RetroCard>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <p className="text-xs font-semibold text-gold">SAVE STATES</p>

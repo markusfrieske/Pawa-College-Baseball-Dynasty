@@ -2438,3 +2438,30 @@ export const gameFinalizations = pgTable("game_finalizations", {
 });
 
 export type GameFinalization = typeof gameFinalizations.$inferSelect;
+
+// ─── League Advances — durable advance-operation tracking ─────────────────────
+//
+// One row per advance attempt (running → complete | failed).
+// Enables crash recovery: the commissioner can query for rows with status='running'
+// and a lease_expires_at in the past, then clear them to unblock the next advance.
+// The locked_by field matches the UUID token held by acquireAdvanceLock() so the
+// same process that owns the lock owns the operation record.
+export const league_advances = pgTable("league_advances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("running"), // "running" | "complete" | "failed"
+  fromPhase: text("from_phase").notNull(),
+  fromWeek: integer("from_week").notNull(),
+  fromSeason: integer("from_season").notNull(),
+  checkpoints: jsonb("checkpoints").notNull().default(sql`'{}'::jsonb`),
+  lockedBy: text("locked_by").notNull(),
+  leaseExpiresAt: timestamp("lease_expires_at").notNull(),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (t) => [
+  index("idx_league_advances_league_status").on(t.leagueId, t.status),
+]);
+
+export type LeagueAdvance = typeof league_advances.$inferSelect;
+export type InsertLeagueAdvance = typeof league_advances.$inferInsert;

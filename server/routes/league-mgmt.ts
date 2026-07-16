@@ -2201,6 +2201,13 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     if (!hasCommissionerAccess(league, userId)) {
       return res.status(403).json({ message: "Only the commissioner can start dynasty" });
     }
+
+    // Idempotency guard: if the league has already been started (moved past dynasty_setup)
+    // return success immediately.  This prevents double-work when two tabs or two concurrent
+    // requests race to call start at the same time.
+    if (league.currentPhase !== "dynasty_setup") {
+      return res.json({ success: true, alreadyStarted: true });
+    }
     
     // Apply saved roster if specified (legacy single-roster format)
     if (rosterId) {
@@ -2278,7 +2285,7 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
             validatedDynasty = validateAndNormalizeRecruitingClass(savedClass.classData as unknown);
           } catch (e) {
             if (e instanceof ClassValidationError) {
-              return res.status(400).json({ message: `Recruiting class is invalid: ${e.message}` });
+              return res.status(422).json({ message: `Recruiting class is invalid: ${e.message}` });
             }
             throw e;
           }
@@ -2788,7 +2795,7 @@ app.get("/api/leagues/:id/commissioner/preflight", requireAuth, async (req, res)
     const unreportedGamesCheck = {
       id: "unreported_games",
       label: "Unreported human games",
-      status: !isReportedMode ? "pass" : unreportedGames.length === 0 ? "pass" : "warn",
+      status: !isReportedMode ? "pass" : unreportedGames.length === 0 ? "pass" : "fail",
       detail: !isReportedMode
         ? "Not applicable (simulated mode)"
         : unreportedGames.length === 0

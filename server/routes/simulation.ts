@@ -23,6 +23,7 @@ import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../li
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import { finalizeAdvanceDigestSafe } from "../digest-engine";
 import { captureLeagueSaveState } from "../lib/leagueSaveState";
+import { getAdvancePreflight } from "../lib/advancePreflight";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { evaluatePlayerPromises, processOffseasonDepartures, finalizeDeparturesInternal } from "../offseason-helpers";
 import { awardPostseasonXp } from "../game-finalizer";
@@ -43,6 +44,7 @@ import { normalizeCommonAbilities } from "../normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "../rosterValidation";
 import { sendWeeklyDigests } from "../digestEmail";
 import { pool, db } from "../db";
+import { randomUUID } from "crypto";
 import { sql as drizzleSql } from "drizzle-orm";
 import { coaches as coachesTable } from "@shared/schema";
 import { calibrateRpiOvr } from "../calibrateRpiOvr";
@@ -7256,7 +7258,104 @@ export function registerSimulationRoutes(app: Express): void {
     }
   });
 
+  // ── Advance preflight check (commissioner, reported-mode leagues) ────────────
+  // Returns the same blocker list that /advance uses internally, so the UI can
+  // display per-game links before the commissioner clicks Advance.
+  app.get("/api/leagues/:id/advance/preflight", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const result = await getAdvancePreflight(league.id);
+      return res.json(result);
+    } catch (e: any) {
+      console.error("[advance-preflight] error:", e);
+      return res.status(500).json({ message: "Preflight check failed", detail: e?.message || String(e) });
+    }
+  });
+
+  // ── Clear stuck advance (commissioner recovery) ───────────────────────────────
+  // Clears an orphaned advance lock (left by a crashed process) so a new advance
+  // can start.  Also marks any league_advances rows with an expired lease as failed.
+  // The commissioner can call this after the server recovers from a crash.
+  app.post("/api/leagues/:id/advance/clear-stuck", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const leagueId = league.id;
+
+      // Delete orphaned advance lock (allows next acquireAdvanceLock to succeed)
+      const lockDel = await pool.query(
+        `DELETE FROM league_advance_locks WHERE league_id = $1 RETURNING league_id`,
+        [leagueId],
+      );
+
+      // Mark any expired running ops as failed
+      const opUpd = await pool.query(
+        `UPDATE league_advances
+            SET status = 'failed', error_message = 'Cleared by commissioner (stuck recovery)', updated_at = now()
+          WHERE league_id = $1 AND status = 'running' AND lease_expires_at < now()
+          RETURNING id`,
+        [leagueId],
+      );
+
+      await storage.createAuditLog({
+        leagueId,
+        userId: req.session.userId!,
+        action: "Clear Stuck Advance",
+        details: `Lock cleared: ${lockDel.rowCount ?? 0}. Stale ops marked failed: ${opUpd.rowCount ?? 0}.`,
+      });
+
+      return res.json({
+        locksCleared: lockDel.rowCount ?? 0,
+        staleOpsMarkedFailed: opUpd.rowCount ?? 0,
+      });
+    } catch (e: any) {
+      console.error("[clear-stuck] error:", e);
+      return res.status(500).json({ message: "Failed to clear stuck advance", detail: e?.message || String(e) });
+    }
+  });
+
+  // ── Check for active or recently stuck advance operations ────────────────────
+  app.get("/api/leagues/:id/advance/status", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const { rows } = await pool.query<{
+        id: string; status: string; from_phase: string; from_week: number;
+        from_season: number; lease_expires_at: string; created_at: string;
+      }>(
+        `SELECT id, status, from_phase, from_week, from_season, lease_expires_at, created_at
+           FROM league_advances
+          WHERE league_id = $1
+          ORDER BY created_at DESC
+          LIMIT 5`,
+        [req.params.id],
+      );
+      const { rows: lockRows } = await pool.query<{ locked_at: string }>(
+        `SELECT locked_at FROM league_advance_locks WHERE league_id = $1`,
+        [req.params.id],
+      );
+      return res.json({
+        recentOps: rows,
+        hasActiveLock: lockRows.length > 0,
+        activeLockSince: lockRows[0]?.locked_at ?? null,
+      });
+    } catch (e: any) {
+      return res.status(500).json({ message: "Failed to fetch advance status" });
+    }
+  });
+
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
+    let advOpId: string | null = null;
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -7275,6 +7374,43 @@ export function registerSimulationRoutes(app: Express): void {
       if (!locked) {
         return res.status(409).json({ message: "League advance already in progress. Please wait." });
       }
+
+      // ── Reported-mode game gate ────────────────────────────────────────────────
+      // In reported-game leagues every human-vs-human game for the current week
+      // must have an accepted report before the week can advance.
+      if (league.gameMode === "reported") {
+        let preflight;
+        try {
+          preflight = await getAdvancePreflight(leagueId);
+        } catch (pfErr) {
+          releaseAdvanceLock(leagueId);
+          return res.status(500).json({ message: "Preflight check failed", detail: String(pfErr) });
+        }
+        if (!preflight.canAdvance) {
+          releaseAdvanceLock(leagueId);
+          return res.status(409).json({
+            message: `Cannot advance: ${preflight.blockers.length} game(s) require final reports before advancing.`,
+            blockers: preflight.blockers,
+          });
+        }
+      }
+
+      // ── Durable operation tracking ─────────────────────────────────────────────
+      // Insert a league_advances row so a crashed-server scenario is visible to the
+      // commissioner via GET /advance/status.  Status stays 'running' until the
+      // process marks it complete/failed or the lease expires.
+      advOpId = randomUUID();
+      try {
+        await pool.query(
+          `INSERT INTO league_advances
+             (id, league_id, status, from_phase, from_week, from_season, locked_by, lease_expires_at)
+           VALUES ($1, $2, 'running', $3, $4, $5, $6, now() + interval '15 minutes')`,
+          [advOpId, leagueId, league.currentPhase, currentWeek, league.currentSeason, advOpId],
+        );
+      } catch (opInsertErr) {
+        console.error("[league-advances] Failed to insert op record (non-fatal):", opInsertErr);
+      }
+
       // Invalidate server cache immediately so data doesn't serve stale content after advance
       invalidateLeague(leagueId);
 
@@ -7295,6 +7431,12 @@ export function registerSimulationRoutes(app: Express): void {
       res.on("finish", () => {
         clearAdvanceProgress(leagueId);
         releaseAdvanceLock(leagueId);
+        if (advOpId) {
+          pool.query(
+            `UPDATE league_advances SET status = 'complete', updated_at = now() WHERE id = $1 AND status = 'running'`,
+            [advOpId],
+          ).catch(e => console.error("[league-advances] Failed to mark complete:", e));
+        }
       });
 
       // ── Delegate all business logic to the unified advance engine ──────────
@@ -7305,11 +7447,23 @@ export function registerSimulationRoutes(app: Express): void {
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
         releaseAdvanceLock(req.params.id as string);
+        if (advOpId) {
+          pool.query(
+            `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1 AND status = 'running'`,
+            [advOpId, e?.message || "AdvancePreconditionError"],
+          ).catch(() => {});
+        }
         if (!res.headersSent) return res.status(e.statusCode).json(e.body);
         return;
       }
       console.error("Failed to advance week:", e);
       releaseAdvanceLock(req.params.id as string);
+      if (advOpId) {
+        pool.query(
+          `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1 AND status = 'running'`,
+          [advOpId, e?.message || String(e)],
+        ).catch(() => {});
+      }
       if (!res.headersSent) res.status(500).json({ message: "Failed to advance week", detail: e?.message || String(e) });
     }
   });

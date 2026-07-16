@@ -306,6 +306,41 @@ export async function releaseAdvanceLock(leagueId: string): Promise<void> {
 // Legacy in-memory set kept for backwards-compat imports; no longer used.
 export const advancingLeagues = new Set<string>();
 
+// ── LEAGUE-SCOPED RESOURCE LOADERS ───────────────────────────────────────────
+// These helpers load a resource by its own ID but only return it when it
+// belongs to the requested league.  Any route that accepts both a :leagueId and
+// a resource ID (game, player, recruit) should use these instead of a bare
+// storage.getX() to prevent cross-league IDOR access.
+
+/**
+ * Load a game by ID and verify it belongs to the given league.
+ * Returns the game if found and in-scope, null otherwise (caller should 404).
+ */
+export async function loadLeagueScopedGame(
+  leagueId: string,
+  gameId: string,
+): Promise<import("@shared/schema").Game | null> {
+  const game = await storage.getGame(gameId);
+  if (!game) return null;
+  if (game.leagueId !== leagueId) return null;
+  return game;
+}
+
+/**
+ * Load a player by ID and verify their team belongs to the given league.
+ * Returns the player if found and in-scope, null otherwise (caller should 404).
+ */
+export async function loadLeagueScopedPlayer(
+  leagueId: string,
+  playerId: string,
+): Promise<import("@shared/schema").Player | null> {
+  const player = await storage.getPlayer(playerId);
+  if (!player) return null;
+  const team = await storage.getTeam(player.teamId);
+  if (!team || team.leagueId !== leagueId) return null;
+  return player;
+}
+
 // ── POTENTIAL GRADE → NUMBER ──────────────────────────────────────────────────
 
 export function potentialGradeToNumber(grade: string): number {

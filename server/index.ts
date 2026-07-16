@@ -393,6 +393,33 @@ app.use((req, res, next) => {
         console.log("[startup-migration] league-editor-v1b: DDL applied via 0039");
       });
 
+      // ── league-advances-schema-v1 ─────────────────────────────────────────
+      // Durable advance-operation tracking table (Task #1383 Phase 3).
+      // Enables crash recovery and "exactly-one advance" auditing.
+      await once('league-advances-schema-v1', async () => {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS league_advances (
+            id              varchar   PRIMARY KEY DEFAULT gen_random_uuid(),
+            league_id       varchar   NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+            status          text      NOT NULL DEFAULT 'running',
+            from_phase      text      NOT NULL,
+            from_week       integer   NOT NULL,
+            from_season     integer   NOT NULL,
+            checkpoints     jsonb     NOT NULL DEFAULT '{}',
+            locked_by       text      NOT NULL,
+            lease_expires_at timestamp NOT NULL,
+            error_message   text,
+            created_at      timestamp NOT NULL DEFAULT now(),
+            updated_at      timestamp NOT NULL DEFAULT now()
+          )
+        `);
+        await pool.query(`
+          CREATE INDEX IF NOT EXISTS idx_league_advances_league_status
+            ON league_advances (league_id, status)
+        `);
+        console.log("[startup-migration] league-advances-schema-v1: table created");
+      });
+
     } catch (e) {
       console.error("[startup-migrations] sequential runner failed:", e);
     }
