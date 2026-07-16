@@ -7531,14 +7531,18 @@ export function registerSimulationRoutes(app: Express): void {
       // rather than immediately returning 409.  This gives concurrent callers the
       // same final result class as the original caller (idempotent semantics).
       //
-      // After the in-flight op resolves, we re-check the idempotency gate:
-      //   - If the first advance SUCCEEDED → a 'complete' row exists → return 200.
-      //   - If the first advance FAILED (e.g. reported-mode 409 preflight) → no
-      //     complete row → fall through and re-run full advance logic, which will
-      //     hit the same preflight/readiness gate and return the same 409.
+      // We poll league_advance_locks (NOT league_advances) because the lock row
+      // is inserted atomically at the very start of the advance, before the
+      // league_advances row is created.  Polling league_advances for a 'running'
+      // row would introduce a race window where: lock is held but the advances
+      // row does not yet exist → second caller falsely thinks advance resolved.
       //
-      // We never blindly return 200 after waiting; the outcome is always determined
-      // by re-running the decision logic rather than by absence of a running row.
+      // After the lock is gone, we re-check the idempotency gate:
+      //   - 'complete' row exists → first advance succeeded → return 200.
+      //   - No complete row      → first advance failed/blocked → acquire lock
+      //     and re-run full advance logic (same outcome as original caller).
+      //
+      // We never blindly return 200 after waiting; outcome is always re-checked.
       const CONCURRENT_POLL_INTERVAL_MS = 3_000;
       const CONCURRENT_TIMEOUT_MS = 90_000;
       let locked = await acquireAdvanceLock(leagueId);
@@ -7546,14 +7550,15 @@ export function registerSimulationRoutes(app: Express): void {
         const waitStart = Date.now();
         while (Date.now() - waitStart < CONCURRENT_TIMEOUT_MS) {
           await new Promise(r => setTimeout(r, CONCURRENT_POLL_INTERVAL_MS));
-          const stillRunning = await pool.query<{ status: string }>(
-            `SELECT status FROM league_advances
-              WHERE league_id = $1 AND status = 'running'
-              LIMIT 1`,
+          // Poll the LOCK TABLE — present from the moment the first caller acquired
+          // the lock, released only in the finally block after the advance completes
+          // or fails.  No race window between lock-acquire and advances-row-insert.
+          const lockRow = await pool.query<{ league_id: string }>(
+            `SELECT league_id FROM league_advance_locks WHERE league_id = $1 LIMIT 1`,
             [leagueId],
           );
-          if ((stillRunning.rowCount ?? 0) === 0) {
-            // In-flight advance has resolved.
+          if ((lockRow.rowCount ?? 0) === 0) {
+            // Lock released — the in-flight advance has resolved.
             // Re-run the idempotency gate: if a 'complete' row now exists for this
             // exact league state, the first advance succeeded — return same result.
             const recheck = await pool.query<{ id: string }>(

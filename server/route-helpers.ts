@@ -38,7 +38,8 @@ export const requireAuth = (req: Request, res: Response, next: NextFunction) => 
  * the user has no membership.
  */
 export function requireLeagueMember(req: Request, res: Response, next: NextFunction): void {
-  const leagueId = req.params.id as string;
+  // Support routes that use either :id or :leagueId as the league-id param.
+  const leagueId = (req.params.id ?? req.params.leagueId) as string;
   const userId   = req.session?.userId;
 
   if (!userId) {

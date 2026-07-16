@@ -426,6 +426,11 @@ export interface IStorage {
   /** Claim the next pending (or expired-lease running) job, setting locked_by = instanceId. */
   claimNextPendingJob(instanceId: string): Promise<LeagueJob | undefined>;
   /**
+   * Renew the lease on a running job only if locked_by still matches instanceId.
+   * Returns true if the lease was renewed, false if ownership was lost.
+   */
+  renewLeagueJobLease(id: string, instanceId: string): Promise<boolean>;
+  /**
    * Complete or fail a job only if locked_by still matches instanceId.
    * Returns undefined if the ownership check fails (another instance took over).
    */
@@ -2823,6 +2828,26 @@ export class DatabaseStorage implements IStorage {
     );
     const row = result.rows[0];
     return row ? mapJobRow(row) : undefined;
+  }
+
+  /**
+   * Renews the lease on a running job only if locked_by still matches instanceId.
+   * Returns true if the lease was renewed, false if ownership was lost (another
+   * instance claimed the job while this one was still working).
+   */
+  async renewLeagueJobLease(id: string, instanceId: string): Promise<boolean> {
+    const { pool: pgPool } = await import("./db");
+    const result = await pgPool.query(
+      `UPDATE league_jobs
+          SET lease_expires_at = now() + interval '10 minutes',
+              updated_at       = now()
+        WHERE id        = $1
+          AND locked_by = $2
+          AND status    = 'running'
+       RETURNING id`,
+      [id, instanceId],
+    );
+    return (result.rowCount ?? 0) > 0;
   }
 
   /**

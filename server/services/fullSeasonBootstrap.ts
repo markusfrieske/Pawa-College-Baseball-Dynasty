@@ -41,8 +41,33 @@ async function updateProgress(jobId: string, progress: number, stage: string): P
   });
 }
 
-/** Main bootstrap entry point. Throws on fatal errors. */
-export async function runFullSeasonBootstrap(leagueId: string, jobId: string): Promise<void> {
+/**
+ * Throws an AbortError if the provided signal has been aborted.
+ * Called at every checkpoint boundary so lease-loss causes a clean stop.
+ */
+function throwIfAborted(signal: AbortSignal): void {
+  if (signal.aborted) {
+    const reason = signal.reason;
+    const err = reason instanceof Error ? reason : new Error(String(reason ?? "aborted"));
+    throw err;
+  }
+}
+
+/**
+ * Main bootstrap entry point.
+ *
+ * @param signal AbortSignal provided by the job runner's lease-heartbeat mechanism.
+ *               If the heartbeat detects lease loss, signal is aborted and the
+ *               bootstrap will throw at the next checkpoint boundary.
+ *               Throws on fatal errors.
+ */
+export async function runFullSeasonBootstrap(
+  leagueId: string,
+  jobId: string,
+  signal: AbortSignal = new AbortController().signal,
+): Promise<void> {
+
+  throwIfAborted(signal);
 
   // ── Checkpoint 2: Conferences ──────────────────────────────────────────────
   await updateProgress(jobId, 5, "Creating conferences");
@@ -57,6 +82,8 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
     conferences = await storage.getConferencesByLeague(leagueId);
   }
   console.log(`[bootstrap:${leagueId}] Conferences: ${conferences.length}`);
+
+  throwIfAborted(signal);
 
   // ── Checkpoint 3: Teams + Standings ───────────────────────────────────────
   await updateProgress(jobId, 10, "Creating teams");
@@ -91,6 +118,8 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
     }
   }
   console.log(`[bootstrap:${leagueId}] Teams: ${leagueTeams.length}`);
+
+  throwIfAborted(signal);
 
   // ── Checkpoint 4: Players ─────────────────────────────────────────────────
   // Idempotency guarantee: delete-before-regenerate per team.
@@ -130,6 +159,8 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   }
   console.log(`[bootstrap:${leagueId}] Players: generated for ${teamsNeedingPlayers.length} teams`);
 
+  throwIfAborted(signal);
+
   // Auto-assign lineups — independently idempotent per team.
   // A team has a complete lineup if ≥ 9 players have battingOrder set.
   // This check is independent of teamsNeedingPlayers so a crash after player
@@ -154,6 +185,8 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
   }
   console.log(`[bootstrap:${leagueId}] Coaches assigned`);
 
+  throwIfAborted(signal);
+
   // ── Checkpoint 6: Recruiting Class ───────────────────────────────────────
   // Idempotency guarantee: check EXACT expected count.
   // A partial write (crash mid-class-generation) leaves existingRecruits.length > 0
@@ -175,6 +208,8 @@ export async function runFullSeasonBootstrap(leagueId: string, jobId: string): P
     await storage.updateLeague(leagueId, { currentClassVintage: vintage });
     console.log(`[bootstrap:${leagueId}] Recruiting class: ${recruitCount} recruits generated`);
   }
+
+  throwIfAborted(signal);
 
   // ── Checkpoint 7: Schedule ────────────────────────────────────────────────
   // Transaction guarantee: the delete + bulk-insert runs inside a single DB
