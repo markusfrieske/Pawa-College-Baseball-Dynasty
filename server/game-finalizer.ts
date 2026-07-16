@@ -1146,6 +1146,15 @@ export async function finalizeGameAtomic(
   leagueId: string,
   opts: FinalizeGameOptions & { finalizer?: string } = {},
 ): Promise<{ alreadyFinalized: boolean }> {
+  // ── Exhibition games must never pollute standings, player stats, or coach XP ──
+  // gameType 'exhibition' is used by Spring Training games. We still persist the
+  // score and create a league event so the box score is viewable, but all
+  // competitive side-effects are suppressed regardless of caller-supplied opts.
+  const isExhibition = game.gameType === "exhibition";
+  const effectiveOpts = isExhibition
+    ? { ...opts, skipStandings: true, skipPlayerStats: true, skipPitcherRest: true, skipCoachXp: true }
+    : opts;
+
   const {
     finalizer = "unknown",
     skipStandings = false,
@@ -1160,7 +1169,7 @@ export async function finalizeGameAtomic(
     eventDescriptionSuffix,
     leagueCurrentWeek,
     leagueTeams: providedTeams,
-  } = opts;
+  } = effectiveOpts;
 
   const homeWon = homeScore > awayScore;
   const isConf  = game.isConference ?? false;
