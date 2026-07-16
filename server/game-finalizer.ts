@@ -1304,8 +1304,12 @@ export async function finalizeGameAtomic(
   // ── Post-commit: coachXpAccum batch accumulation ─────────────────────────
   // Running OUTSIDE the transaction ensures the map is not mutated if the
   // transaction rolls back (in-memory mutations are not rolled back by Drizzle).
-  if (coachXpAccum && pendingCoachDeltas) {
-    for (const { coachId, won } of pendingCoachDeltas) {
+  // TypeScript cannot track mutations to a let variable captured inside an async
+  // callback (it narrows the variable to its initial type 'null'). Use 'as' to
+  // restore the declared union type after the await resolves.
+  const capturedCoachDeltas = pendingCoachDeltas as Array<{ coachId: string; won: boolean }> | null;
+  if (coachXpAccum && capturedCoachDeltas) {
+    for (const { coachId, won } of capturedCoachDeltas) {
       const acc = coachXpAccum.get(coachId) ?? { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
       acc.xp     += won ? WIN_XP : LOSS_XP;
       acc.wins   += won ? 1 : 0;

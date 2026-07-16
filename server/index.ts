@@ -73,7 +73,12 @@ const _largeJsonParser = express.json({
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isLargeBodyRoute =
     (req.method === "POST" && req.path === "/api/saved-recruiting-classes") ||
-    (req.method === "PATCH" && req.path.startsWith("/api/saved-recruiting-classes/"));
+    (req.method === "PATCH" && req.path.startsWith("/api/saved-recruiting-classes/")) ||
+    // Recruiting wizard class save — 80-player class can exceed 100 KB
+    (req.method === "POST" && /^\/api\/leagues\/[^/]+\/recruiting\/save-wizard-class$/.test(req.path)) ||
+    // Class project create and draft update
+    (req.method === "POST" && req.path === "/api/class-projects") ||
+    (req.method === "PATCH" && /^\/api\/class-projects\/[^/]+\/draft$/.test(req.path));
   return isLargeBodyRoute
     ? _largeJsonParser(req, res, next)
     : _defaultJsonParser(req, res, next);

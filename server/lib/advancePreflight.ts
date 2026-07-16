@@ -118,24 +118,6 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
 
     const report = reportsByGameId.get(game.id);
 
-    // A report whose season/week doesn't match the game is an orphaned report —
-    // treat the game as if it has no report (unreported) plus flag it.
-    if (report && (report.season !== game.season || report.week !== game.week)) {
-      blockers.push({
-        gameId: game.id,
-        week: game.week,
-        season: game.season ?? league.currentSeason,
-        phase: game.phase ?? "regular",
-        homeTeamId: game.homeTeamId,
-        awayTeamId: game.awayTeamId,
-        homeTeamName: teamNameById.get(game.homeTeamId) ?? null,
-        awayTeamName: teamNameById.get(game.awayTeamId) ?? null,
-        status: "invalid_or_orphaned",
-        reportUrl: `/league/${leagueId}/report-game/${game.id}`,
-      });
-      continue;
-    }
-
     let status: GameBlockerStatus | null = null;
 
     if (!report) {
@@ -144,8 +126,11 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
       status = "pending_confirmation";
     } else if (report.status === "disputed") {
       status = "disputed";
+    } else if (report.status !== "confirmed") {
+      // Unknown or unexpected status — fail closed rather than silently passing.
+      status = "invalid_or_orphaned";
     }
-    // report.status === "accepted" → finalized, not a blocker
+    // report.status === "confirmed" → finalized, not a blocker
 
     if (status) {
       blockers.push({

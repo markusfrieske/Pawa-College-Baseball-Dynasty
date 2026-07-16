@@ -39,16 +39,21 @@ const MIGRATIONS_DIR = (() => {
  * The last migration file key that must be present before /health/ready returns 200.
  * Update this whenever a new migration file is added.
  */
-export const EXPECTED_MIGRATION = "0041_game_finalizations";
+export const EXPECTED_MIGRATION = "0046_fix_standings_uniqueness";
 
 /**
  * Errors that are safe to swallow — the statement was idempotent.
- * Only covers CREATE/INDEX "already exists" and unique-constraint "duplicate key".
- * "does not exist" is intentionally NOT in this list: FK resolution failures must
- * abort the migration, not be silently skipped.
+ * Only covers DDL "already exists" conditions (IF NOT EXISTS guards).
+ *
+ * "duplicate key" is intentionally NOT included: a constraint/index build
+ * that fails due to existing duplicate data represents a real data-integrity
+ * problem that must abort the migration, not be silently skipped.
+ *
+ * "does not exist" is also intentionally NOT in this list: FK resolution
+ * failures must abort the migration.
  */
 function isIdempotentError(msg: string): boolean {
-  return msg.includes("already exists") || msg.includes("duplicate key");
+  return msg.includes("already exists");
 }
 
 /**

@@ -7972,6 +7972,9 @@ export function registerSimulationRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can simulate a full season." });
       }
+      if (league.gameMode === "reported") {
+        return res.status(409).json({ message: "Quick-sim is not available in reported-score leagues. Each game must be reported individually." });
+      }
       const startSeason = league.currentSeason;
       const { league: finalLeague, steps } = await simulateUntil(
         leagueId, req.session.userId!,
@@ -8027,6 +8030,9 @@ export function registerSimulationRoutes(app: Express): void {
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
+      }
+      if (league.gameMode === "reported") {
+        return res.status(409).json({ message: "Quick-sim is not available in reported-score leagues. Each game must be reported individually." });
       }
       const preCwsPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason, Phase.ConferenceChampionship, Phase.SuperRegionals];
       if (!preCwsPhases.includes(league.currentPhase)) {
