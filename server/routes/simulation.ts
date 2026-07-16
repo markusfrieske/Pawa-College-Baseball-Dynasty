@@ -7268,10 +7268,20 @@ export function registerSimulationRoutes(app: Express): void {
 
       // In reported-game mode the same advance gate applies even for force-advance:
       // unreported games must be resolved before phase can move forward.
+      // Fail-CLOSED: if preflight cannot be computed, refuse to advance rather than
+      // silently bypassing the gate.  An empty catch here would allow force-advance
+      // to proceed even when the preflight service is broken, undermining phase integrity.
       if (league.gameMode === "reported") {
         let pf;
-        try { pf = await getAdvancePreflight(league.id); } catch {}
-        if (pf && !pf.canAdvance) {
+        try {
+          pf = await getAdvancePreflight(league.id);
+        } catch (pfErr) {
+          return res.status(500).json({
+            message: "Preflight check failed — cannot force-advance",
+            detail: String(pfErr),
+          });
+        }
+        if (!pf.canAdvance) {
           return res.status(409).json({
             message: `Cannot force-advance: ${pf.blockers.length} game(s) require final reports.`,
             blockers: pf.blockers,
@@ -7499,20 +7509,24 @@ export function registerSimulationRoutes(app: Express): void {
 
       // ── Concurrent-advance serialization ─────────────────────────────────────
       // If another advance is in-flight for this league, WAIT for it to complete
-      // rather than immediately returning 409. This gives concurrent callers the
-      // same final result as the original caller (idempotent semantics).
+      // rather than immediately returning 409.  This gives concurrent callers the
+      // same final result class as the original caller (idempotent semantics).
       //
-      // Implementation: poll the league_advances table every 3 s for up to 90 s.
-      // If the running op completes (status changes from 'running'), fall through
-      // to the idempotency gate at the top which will short-circuit.
+      // After the in-flight op resolves, we re-check the idempotency gate:
+      //   - If the first advance SUCCEEDED → a 'complete' row exists → return 200.
+      //   - If the first advance FAILED (e.g. reported-mode 409 preflight) → no
+      //     complete row → fall through and re-run full advance logic, which will
+      //     hit the same preflight/readiness gate and return the same 409.
+      //
+      // We never blindly return 200 after waiting; the outcome is always determined
+      // by re-running the decision logic rather than by absence of a running row.
       const CONCURRENT_POLL_INTERVAL_MS = 3_000;
       const CONCURRENT_TIMEOUT_MS = 90_000;
-      const locked = await acquireAdvanceLock(leagueId);
+      let locked = await acquireAdvanceLock(leagueId);
       if (!locked) {
         const waitStart = Date.now();
         while (Date.now() - waitStart < CONCURRENT_TIMEOUT_MS) {
           await new Promise(r => setTimeout(r, CONCURRENT_POLL_INTERVAL_MS));
-          // Re-check whether the running op has completed
           const stillRunning = await pool.query<{ status: string }>(
             `SELECT status FROM league_advances
               WHERE league_id = $1 AND status = 'running'
@@ -7520,13 +7534,35 @@ export function registerSimulationRoutes(app: Express): void {
             [leagueId],
           );
           if ((stillRunning.rowCount ?? 0) === 0) {
-            // Running advance has finished — return current league state
-            const freshLeague = await storage.getLeague(leagueId);
-            return res.json({ idempotent: true, data: freshLeague });
+            // In-flight advance has resolved.
+            // Re-run the idempotency gate: if a 'complete' row now exists for this
+            // exact league state, the first advance succeeded — return same result.
+            const recheck = await pool.query<{ id: string }>(
+              `SELECT id FROM league_advances
+                WHERE league_id  = $1
+                  AND status     = 'complete'
+                  AND from_phase = $2
+                  AND from_week  = $3
+                  AND from_season = $4
+                LIMIT 1`,
+              [leagueId, league.currentPhase, currentWeek, league.currentSeason],
+            );
+            if ((recheck.rowCount ?? 0) > 0) {
+              const freshLeague = await storage.getLeague(leagueId);
+              return res.json({ idempotent: true, data: freshLeague });
+            }
+            // No complete row — the first advance failed or was blocked (e.g. a
+            // reported-mode preflight 409).  Acquire the lock and re-run full advance
+            // logic so this caller gets the exact same outcome as the original.
+            locked = await acquireAdvanceLock(leagueId);
+            break;
           }
         }
-        // Timed out waiting — advise the client to retry
-        return res.status(409).json({ message: "League advance in progress and timed out waiting. Please retry." });
+        if (!locked) {
+          // Either timed out, or the in-flight op resolved but the lock re-acquire
+          // failed (another request slipped in).  Advise the client to retry.
+          return res.status(409).json({ message: "League advance in progress and timed out. Please retry." });
+        }
       }
 
       // ── Reported-mode game gate ────────────────────────────────────────────────
@@ -7723,10 +7759,15 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
       }
       // Reported-mode: quick-sim inherits the same blocking gate as normal advance.
+      // Fail-CLOSED: if preflight throws, refuse to sim rather than bypassing the gate.
       if (league.gameMode === "reported") {
         let pf;
-        try { pf = await getAdvancePreflight(leagueId); } catch {}
-        if (pf && !pf.canAdvance) {
+        try {
+          pf = await getAdvancePreflight(leagueId);
+        } catch (pfErr) {
+          return res.status(500).json({ message: "Preflight check failed — cannot quick-sim", detail: String(pfErr) });
+        }
+        if (!pf.canAdvance) {
           return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
         }
       }
@@ -7759,8 +7800,13 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
       }
       if (league.gameMode === "reported") {
-        let pf; try { pf = await getAdvancePreflight(leagueId); } catch {}
-        if (pf && !pf.canAdvance) return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
+        let pf;
+        try {
+          pf = await getAdvancePreflight(leagueId);
+        } catch (pfErr) {
+          return res.status(500).json({ message: "Preflight check failed — cannot quick-sim", detail: String(pfErr) });
+        }
+        if (!pf.canAdvance) return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
       }
       const offseasonPhases: string[] = [Phase.OffseasonDepartures, Phase.OffseasonRecruiting1, Phase.OffseasonRecruiting2, Phase.OffseasonRecruiting3, Phase.OffseasonRecruiting4, Phase.OffseasonSigningDay, Phase.OffseasonWalkons];
       if (!offseasonPhases.includes(league.currentPhase)) {
@@ -7811,8 +7857,13 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can sim." });
       }
       if (league.gameMode === "reported") {
-        let pf; try { pf = await getAdvancePreflight(leagueId); } catch {}
-        if (pf && !pf.canAdvance) return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
+        let pf;
+        try {
+          pf = await getAdvancePreflight(leagueId);
+        } catch (pfErr) {
+          return res.status(500).json({ message: "Preflight check failed — cannot quick-sim", detail: String(pfErr) });
+        }
+        if (!pf.canAdvance) return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
       }
       const preseasonPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason];
       if (!preseasonPhases.includes(league.currentPhase)) {
