@@ -72,12 +72,15 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
 
   const seasonGames = await storage.getGamesByLeagueSeason(leagueId, league.currentSeason);
 
-  // Only regular-phase games in the current week that involve two human teams.
-  // Exhibition games are simulated even in reported mode.
-  // Postseason advances have their own separate flow.
+  // Include all non-exhibition phase games in the current week that involve
+  // two human teams.  Spring training games are simulated even in reported
+  // mode; every other phase (regular, conference_champs, super_regionals,
+  // cws) can be played as eBaseball Power Pros matches and requires a report
+  // before the week/stage can advance.
+  const EXHIBITION_PHASES = new Set(["spring_training"]);
   const currentWeekHumanGames = seasonGames.filter(g =>
     g.week === league.currentWeek &&
-    g.phase === "regular" &&
+    !EXHIBITION_PHASES.has(g.phase ?? "") &&
     g.homeTeamId != null && humanTeamIds.has(g.homeTeamId) &&
     g.awayTeamId != null && humanTeamIds.has(g.awayTeamId),
   );

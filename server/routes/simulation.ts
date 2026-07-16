@@ -7470,7 +7470,8 @@ export function registerSimulationRoutes(app: Express): void {
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     let advOpId: string | null = null;
     // Tracks whether the catch block has already set the op to 'failed' so the
-    // res.on("finish") handler never races it back to 'complete'.
+    // success path does not overwrite it with 'complete' on an unexpected error
+    // that somehow exits the catch block and falls through to res.json().
     let advOpFailed = false;
     // Heartbeat timer — keeps the lease alive for long advances (renews every 5 min).
     let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -7665,7 +7666,19 @@ export function registerSimulationRoutes(app: Express): void {
            VALUES ($1, $2, 'running', $3, $4, $5, $6, now() + interval '15 minutes')`,
           [advOpId, leagueId, league.currentPhase, currentWeek, league.currentSeason, advOpId],
         );
-      } catch (opInsertErr) {
+      } catch (opInsertErr: any) {
+        // A 23505 unique violation means a 'running' or 'complete' row already exists
+        // for this (league_id, from_phase, from_week, from_season) — this is the
+        // unique constraint from 0045.  It should never happen in normal flow
+        // (the idempotency gate above guards against it), but if a concurrent caller
+        // slipped past the gate, treat it as idempotent success and return the
+        // current league state rather than 500.
+        if (opInsertErr?.code === "23505") {
+          console.warn(`[league-advances] Unique conflict on insert (league=${leagueId}) — treating as idempotent success`);
+          releaseAdvanceLock(leagueId);
+          const freshLeague = await storage.getLeague(leagueId);
+          return res.json({ idempotent: true, data: freshLeague });
+        }
         console.error("[league-advances] FATAL: Failed to insert op record:", opInsertErr);
         releaseAdvanceLock(leagueId);
         return res.status(500).json({ message: "Failed to create advance operation record. Please try again." });
@@ -7717,21 +7730,6 @@ export function registerSimulationRoutes(app: Express): void {
         });
       }
 
-      // Auto-clear progress, lock, and heartbeat once the response is fully sent.
-      // Only mark 'complete' if the catch block did NOT already mark it 'failed'
-      // (advOpFailed is set synchronously before any async DB update in catch).
-      res.on("finish", () => {
-        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-        clearAdvanceProgress(leagueId);
-        releaseAdvanceLock(leagueId);
-        if (advOpId && !advOpFailed) {
-          pool.query(
-            `UPDATE league_advances SET status = 'complete', updated_at = now() WHERE id = $1 AND status = 'running'`,
-            [advOpId],
-          ).catch(e => console.error("[league-advances] Failed to mark complete:", e));
-        }
-      });
-
       // ── Delegate all business logic to the unified advance engine ──────────
       // Pass priorCompletedStages so the engine can skip substeps that already
       // ran in a previous (crashed) advance attempt for this league state.
@@ -7739,6 +7737,22 @@ export function registerSimulationRoutes(app: Express): void {
         savedRecruitingClassId: req.body?.savedRecruitingClassId,
         completedStages: priorCompletedStages.size > 0 ? priorCompletedStages : undefined,
       });
+
+      // ── Mark 'complete' BEFORE releasing the lock ──────────────────────────
+      // Any concurrent caller waiting on the lock will see the 'complete' row
+      // and return 200 (idempotent) rather than racing to insert a duplicate row.
+      // This must be awaited — a concurrent caller may acquire the lock the
+      // instant releaseAdvanceLock() returns.
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+      clearAdvanceProgress(leagueId);
+      if (advOpId && !advOpFailed) {
+        await pool.query(
+          `UPDATE league_advances SET status = 'complete', updated_at = now() WHERE id = $1 AND status = 'running'`,
+          [advOpId],
+        ).catch(e => console.error("[league-advances] Failed to mark complete:", e));
+      }
+      releaseAdvanceLock(leagueId);
+
       res.json(data);
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
