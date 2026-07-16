@@ -432,7 +432,7 @@ function AiAssistPanel({
 
               <div className="flex gap-2 pt-1">
                 <RetroButton
-                  variant="default"
+                  variant="primary"
                   className="text-xs py-1 px-2.5 h-auto"
                   onClick={accept}
                   data-testid="ai-assist-accept"

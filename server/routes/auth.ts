@@ -6,6 +6,7 @@ import type { Express } from "express";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import rateLimit from "express-rate-limit";
 import { storage } from "../storage";
 import {
   requireAuth,
@@ -15,6 +16,22 @@ import {
   getOnlineCount,
 } from "../route-helpers";
 import { verifyUnsubToken } from "../digestEmail";
+
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts. Please try again later." },
+});
+
+const guestRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Guest creation limit reached. Please try again later." },
+});
 
 export function registerAuthRoutes(app: Express): void {
   // ── PRESENCE (public, no auth required) ─────────────────────────────────
@@ -30,7 +47,7 @@ export function registerAuthRoutes(app: Express): void {
   });
 
   // ── AUTH ─────────────────────────────────────────────────────────────────
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", authRateLimit, async (req, res) => {
     try {
       const result = authSchema.safeParse(req.body);
       if (!result.success) {
@@ -43,7 +60,13 @@ export function registerAuthRoutes(app: Express): void {
       }
       const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
       const user = await storage.createUser({ email, password: hashedPassword });
-      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) return reject(err);
+          req.session.userId = user.id;
+          resolve();
+        });
+      });
       res.json({ id: user.id, email: user.email });
     } catch (error) {
       console.error("Registration error:", error);
@@ -51,7 +74,7 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", authRateLimit, async (req, res) => {
     try {
       const result = authSchema.safeParse(req.body);
       if (!result.success) {
@@ -66,7 +89,13 @@ export function registerAuthRoutes(app: Express): void {
       if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) return reject(err);
+          req.session.userId = user.id;
+          resolve();
+        });
+      });
       res.json({ id: user.id, email: user.email });
     } catch (error) {
       console.error("Login error:", error);
@@ -90,7 +119,7 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/auth/guest", async (req, res) => {
+  app.post("/api/auth/guest", guestRateLimit, async (req, res) => {
     try {
       const guestId = `guest-${randomUUID()}`;
       const guestEmail = `guest-${randomUUID()}@guest.local`;

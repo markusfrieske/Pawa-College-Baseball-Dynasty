@@ -10,9 +10,18 @@
 
 import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
+import rateLimit from "express-rate-limit";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
 import type { InsertAiClassJob } from "@shared/schema";
+
+const aiGenRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "AI generation rate limit reached. Please try again later." },
+});
 
 const RATE_LIMIT = parseInt(process.env.AI_CLASS_JOBS_RATE_LIMIT_PER_HOUR ?? "10", 10);
 
@@ -400,10 +409,10 @@ export function registerAiClassJobRoutes(app: Express): void {
   });
 
   // POST /api/class-projects/:projectId/ai-jobs — create + process job synchronously
-  app.post("/api/class-projects/:projectId/ai-jobs", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/class-projects/:projectId/ai-jobs", requireAuth, aiGenRateLimit, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as string;
-      const { projectId } = req.params;
+      const projectId = req.params.projectId as string;
       const { jobType, prompt, metadata = {} } = req.body as {
         jobType: string;
         prompt: string;
@@ -488,7 +497,7 @@ export function registerAiClassJobRoutes(app: Express): void {
   app.get("/api/class-projects/:projectId/ai-jobs/:jobId", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as string;
-      const { jobId } = req.params;
+      const jobId = req.params.jobId as string;
       const job = await storage.getAiClassJob(jobId);
       if (!job) return res.status(404).json({ error: "Job not found" });
       if (job.userId !== userId) return res.status(403).json({ error: "Forbidden" });
@@ -503,7 +512,8 @@ export function registerAiClassJobRoutes(app: Express): void {
   app.post("/api/class-projects/:projectId/ai-jobs/:jobId/accept", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as string;
-      const { projectId, jobId } = req.params;
+      const projectId = req.params.projectId as string;
+      const jobId = req.params.jobId as string;
       const job = await storage.getAiClassJob(jobId);
       if (!job) return res.status(404).json({ error: "Job not found" });
       if (job.userId !== userId) return res.status(403).json({ error: "Forbidden" });
@@ -580,7 +590,7 @@ export function registerAiClassJobRoutes(app: Express): void {
   app.delete("/api/class-projects/:projectId/ai-jobs/:jobId", requireAuth, async (req: Request, res: Response) => {
     try {
       const userId = req.session.userId as string;
-      const { jobId } = req.params;
+      const jobId = req.params.jobId as string;
       const job = await storage.getAiClassJob(jobId);
       if (!job) return res.status(404).json({ error: "Job not found" });
       if (job.userId !== userId) return res.status(403).json({ error: "Forbidden" });

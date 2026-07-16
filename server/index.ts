@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
+import { randomUUID } from "crypto";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
 import { startJobRunner } from "./jobs/leagueJobRunner";
@@ -88,23 +89,14 @@ if (process.env.NODE_ENV !== 'production') {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  const reqId = randomUUID().slice(0, 8);
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      log(logLine);
+    if (path.startsWith("/api") && !path.startsWith("/api/presence")) {
+      const rawLen = res.getHeader("content-length");
+      const byteCount = rawLen ? parseInt(rawLen as string, 10) : 0;
+      log(`[${reqId}] ${req.method} ${path} ${res.statusCode} ${duration}ms ${byteCount}b`);
     }
   });
 

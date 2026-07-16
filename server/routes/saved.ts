@@ -3,13 +3,15 @@
  * Includes share-link creation/listing/revocation and the public import-by-token endpoints.
  */
 
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
 import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource, extractGeneration } from "../lib/buildClassEnvelope";
 import { migrateClassToVersion } from "../lib/migrateClassToVersion";
+
+const largeBodyParser = express.json({ limit: "5mb" });
 
 export function registerSavedRoutes(app: Express): void {
   // ── Saved Rosters ──────────────────────────────────────────────────────────
@@ -101,7 +103,7 @@ export function registerSavedRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/saved-recruiting-classes", requireAuth, async (req, res) => {
+  app.post("/api/saved-recruiting-classes", requireAuth, largeBodyParser, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const { name, description, classData } = req.body;
@@ -141,7 +143,7 @@ export function registerSavedRoutes(app: Express): void {
     }
   });
 
-  app.patch("/api/saved-recruiting-classes/:id", requireAuth, async (req, res) => {
+  app.patch("/api/saved-recruiting-classes/:id", requireAuth, largeBodyParser, async (req, res) => {
     try {
       const rc = await storage.getSavedRecruitingClass(req.params.id as string);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });

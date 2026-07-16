@@ -1909,6 +1909,23 @@ export type NilSeasonEarning = typeof nilSeasonEarnings.$inferSelect;
 // Wizard config type for the recruiting class creation wizard (no DB table)
 // ── Story Cast / Arc Studio types (wizard → class envelope → runtime) ─────────
 
+export interface WizardArcChapterChoice {
+  label: string;
+  outcomeText: string;
+  effectPreset: string;
+}
+
+export interface WizardArcChapter {
+  title: string;
+  eventText: string;
+  choices: WizardArcChapterChoice[];
+}
+
+export interface WizardArcDraft {
+  chapters: WizardArcChapter[];
+  aiAssisted?: boolean;
+}
+
 export interface WizardCastMember {
   /** Stable ID baked into the class at generation time. Survives save/load cycles. */
   templateRecruitId: string;
@@ -1916,6 +1933,8 @@ export interface WizardCastMember {
   arcMode: "template" | "off";
   /** When arcMode === "template": the archetype key (e.g. "late_bloomer"). */
   arcTemplateKey?: string;
+  /** AI-drafted arc chapters (accepted from an arc_draft AI job). */
+  arcDraftJson?: WizardArcDraft;
 }
 
 export interface WizardStoryPlan {

@@ -5,10 +5,19 @@
 
 import type { Express } from "express";
 import { randomUUID } from "crypto";
+import rateLimit from "express-rate-limit";
 import { storage } from "../storage";
 import { requireAuth, hasCommissionerAccess, ensureCoachTraits } from "../route-helpers";
 import { invalidateLeague } from "../cache";
 import { pool } from "../db";
+
+const inviteRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many invite attempts. Please try again later." },
+});
 
 /** Thrown inside the invite-accept transaction to short-circuit with a specific HTTP status. */
 class HttpError extends Error {
@@ -111,7 +120,7 @@ export function registerInviteRoutes(app: Express): void {
   // Concurrent accepts for the same code or the same team both SELECT...FOR UPDATE
   // — the second one blocks until the first commits, then sees status≠'pending' or
   // is_cpu=false and returns 409 Conflict.
-  app.post("/api/invites/:code/accept", requireAuth, async (req, res) => {
+  app.post("/api/invites/:code/accept", requireAuth, inviteRateLimit, async (req, res) => {
     const userId = req.session.userId!;
     const code = req.params.code as string;
     const { teamId, coachData } = req.body as {

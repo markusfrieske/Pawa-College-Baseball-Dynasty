@@ -8,6 +8,8 @@ import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
 import { FULL_SEASON_TOTAL, FULL_SEASON_CONF_NAMES, FULL_SEASON_RULES, CONF_SIZE_MAP, CONFERENCE_CATALOG } from "@shared/catalog";
 import { FULL_SEASON_RULES_SNAPSHOT, leagueRulesSnapshotSchema } from "@shared/leagueRules";
@@ -425,6 +427,36 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.set("trust proxy", 1);
 
+  // ── Security headers ───────────────────────────────────────────────────────
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+          imgSrc: ["'self'", "data:", "blob:", "https:"],
+          connectSrc: ["'self'", "wss:", "ws:"],
+          mediaSrc: ["'self'", "blob:"],
+          objectSrc: ["'none'"],
+          frameSrc: ["'self'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+
+  // ── Validate SESSION_SECRET ────────────────────────────────────────────────
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret || sessionSecret.length < 32) {
+    console.error(
+      "[startup] FATAL: SESSION_SECRET environment variable is missing or too short " +
+      "(minimum 32 characters). The server cannot start without a stable session secret."
+    );
+    process.exit(1);
+  }
+
   // Ensure the connect-pg-simple session table exists before any request
   // arrives. createTableIfMissing fires lazily on first store access, which
   // can race with the very first login attempt.
@@ -444,7 +476,7 @@ export async function registerRoutes(
         conString: process.env.DATABASE_URL,
         createTableIfMissing: true,
       }),
-      secret: process.env.SESSION_SECRET || randomUUID(),
+      secret: sessionSecret,
       resave: false,
       saveUninitialized: false,
       cookie: {
@@ -455,6 +487,21 @@ export async function registerRoutes(
       },
     })
   );
+
+  // ── Health endpoints (before auth middleware) ──────────────────────────────
+  app.get("/health/live", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
+  app.get("/health/ready", async (_req, res) => {
+    try {
+      await pool.query("SELECT 1");
+      res.status(200).json({ status: "ready" });
+    } catch (err) {
+      console.error("[health/ready] DB check failed:", err);
+      res.status(503).json({ status: "not ready", error: "Database unavailable" });
+    }
+  });
 
 
   // ── Domain route modules ─────────────────────────────────────────────────
