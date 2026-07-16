@@ -20,7 +20,7 @@
 
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, calculateIdentityRetentionBonus, autoAssignLineup, ensureCoachTraits } from "../route-helpers";
+import { requireAuth, hasCommissionerAccess, calculatePhilosophyRetentionBonus, calculateIdentityRetentionBonus, autoAssignLineup, ensureCoachTraits, loadLeagueScopedPlayer } from "../route-helpers";
 import { evaluatePlayerPromises, processOffseasonDepartures } from "../offseason-helpers";
 import type { TransferPortalInterest } from "@shared/schema";
 import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
@@ -121,7 +121,8 @@ export function registerDeparturesRoutes(app: Express): void {
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       if (!userCoach?.teamId) return res.status(403).json({ message: "No team assigned" });
 
-      const player = await storage.getPlayer(playerId);
+      // Use league-scoped loader so cross-league IDOR is impossible.
+      const player = await loadLeagueScopedPlayer(req.params.id as string, playerId);
       if (!player || !player.pendingDeparture || player.departureType !== "draft") {
         return res.status(400).json({ message: "Player not found or not a draft departure" });
       }
@@ -222,7 +223,8 @@ export function registerDeparturesRoutes(app: Express): void {
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       if (!userCoach?.teamId) return res.status(403).json({ message: "No team assigned" });
 
-      const player = await storage.getPlayer(playerId);
+      // Use league-scoped loader so cross-league IDOR is impossible.
+      const player = await loadLeagueScopedPlayer(req.params.id as string, playerId);
       if (!player || !player.pendingDeparture || player.departureType !== "transfer") {
         return res.status(400).json({ message: "Player not found or not a transfer departure" });
       }
@@ -814,7 +816,8 @@ export function registerDeparturesRoutes(app: Express): void {
       const PITCHER_POS_LP = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
       const teamId = userCoach?.teamId;
       for (const a of assignments) {
-        const player = await storage.getPlayer(a.playerId);
+        // League-scoped loader: silently skips players from other leagues.
+        const player = await loadLeagueScopedPlayer(req.params.id as string, a.playerId);
         if (!player) continue;
         if (!isCommissioner && player.teamId !== teamId) continue;
         if (PITCHER_POS_LP.includes(player.position)) continue;

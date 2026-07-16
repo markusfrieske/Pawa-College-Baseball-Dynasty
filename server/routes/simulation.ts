@@ -398,12 +398,19 @@ function assertInterestGainSane(actionType: string, interestGain: number, baseGa
 // In-memory map: leagueId -> { stage, pct, updatedAt }
 const advanceProgress = new Map<string, { stage: string; pct: number; updatedAt: number }>();
 
+// Per-league checkpoint writers registered by the advance route so that
+// setAdvanceProgress calls inside advanceLeagueStep persist to league_advances.
+// This provides per-substep checkpointing without modifying the advance engine.
+const advanceCheckpointWriters = new Map<string, (step: string, pct: number) => void>();
+
 function setAdvanceProgress(leagueId: string, stage: string, pct: number) {
   advanceProgress.set(leagueId, { stage, pct, updatedAt: Date.now() });
+  advanceCheckpointWriters.get(leagueId)?.(stage, pct);
 }
 
 function clearAdvanceProgress(leagueId: string) {
   advanceProgress.delete(leagueId);
+  advanceCheckpointWriters.delete(leagueId);
 }
 
 
@@ -7193,6 +7200,19 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can force-advance" });
       }
 
+      // In reported-game mode the same advance gate applies even for force-advance:
+      // unreported games must be resolved before phase can move forward.
+      if (league.gameMode === "reported") {
+        let pf;
+        try { pf = await getAdvancePreflight(league.id); } catch {}
+        if (pf && !pf.canAdvance) {
+          return res.status(409).json({
+            message: `Cannot force-advance: ${pf.blockers.length} game(s) require final reports.`,
+            blockers: pf.blockers,
+          });
+        }
+      }
+
       const allCoaches = await storage.getCoachesByLeague(league.id);
       const allTeams = await storage.getTeamsByLeague(league.id);
       // Human teams that are NOT on auto-pilot (auto-pilot teams are already treated as CPU-ready)
@@ -7435,8 +7455,9 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(500).json({ message: "Failed to create advance operation record. Please try again." });
       }
 
-      // Start a heartbeat that renews the lease every 5 minutes so a slow advance
-      // cannot be incorrectly declared abandoned by the clear-stuck endpoint.
+      // Start a heartbeat that renews the lease every 30 seconds so a slow advance
+      // cannot be incorrectly declared abandoned by the clear-stuck endpoint, while
+      // also allowing relatively fast abandoned-op detection (lease = 15 min window).
       heartbeatTimer = setInterval(() => {
         if (!advOpId) return;
         pool.query(
@@ -7445,7 +7466,7 @@ export function registerSimulationRoutes(app: Express): void {
             WHERE id = $1 AND status = 'running'`,
           [advOpId],
         ).catch(e => console.error("[league-advances] Heartbeat renewal failed:", e));
-      }, 5 * 60 * 1000);
+      }, 30_000);
 
       // Invalidate server cache immediately so data doesn't serve stale content after advance
       invalidateLeague(leagueId);
@@ -7463,6 +7484,23 @@ export function registerSimulationRoutes(app: Express): void {
       }
 
       setAdvanceProgress(leagueId, "initializing", 5);
+
+      // Register per-substep checkpoint writer.
+      // Every setAdvanceProgress() call inside advanceLeagueStep will invoke this,
+      // persisting the stage name and completion % to league_advances.checkpoints so
+      // crash recovery tooling can identify exactly where an interrupted advance stopped.
+      if (advOpId) {
+        const opId = advOpId;
+        advanceCheckpointWriters.set(leagueId, (step: string, pct: number) => {
+          pool.query(
+            `UPDATE league_advances
+                SET checkpoints = checkpoints || $2::jsonb, updated_at = now()
+              WHERE id = $1 AND status = 'running'`,
+            [opId, JSON.stringify({ [step]: { pct, at: new Date().toISOString() } })],
+          ).catch(e => console.error(`[league-advances] Checkpoint write failed (${step}):`, e));
+        });
+      }
+
       // Auto-clear progress, lock, and heartbeat once the response is fully sent.
       // Only mark 'complete' if the catch block did NOT already mark it 'failed'
       // (advOpFailed is set synchronously before any async DB update in catch).
@@ -7525,6 +7563,14 @@ export function registerSimulationRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
       }
+      // Reported-mode: quick-sim inherits the same blocking gate as normal advance.
+      if (league.gameMode === "reported") {
+        let pf;
+        try { pf = await getAdvancePreflight(leagueId); } catch {}
+        if (pf && !pf.canAdvance) {
+          return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
+        }
+      }
       // Only callable from in-season or postseason phases (not already in offseason)
       const inSeasonPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason, Phase.ConferenceChampionship, Phase.SuperRegionals, Phase.CWS];
       if (!inSeasonPhases.includes(league.currentPhase)) {
@@ -7552,6 +7598,10 @@ export function registerSimulationRoutes(app: Express): void {
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
+      }
+      if (league.gameMode === "reported") {
+        let pf; try { pf = await getAdvancePreflight(leagueId); } catch {}
+        if (pf && !pf.canAdvance) return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
       }
       const offseasonPhases: string[] = [Phase.OffseasonDepartures, Phase.OffseasonRecruiting1, Phase.OffseasonRecruiting2, Phase.OffseasonRecruiting3, Phase.OffseasonRecruiting4, Phase.OffseasonSigningDay, Phase.OffseasonWalkons];
       if (!offseasonPhases.includes(league.currentPhase)) {
@@ -7600,6 +7650,10 @@ export function registerSimulationRoutes(app: Express): void {
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
+      }
+      if (league.gameMode === "reported") {
+        let pf; try { pf = await getAdvancePreflight(leagueId); } catch {}
+        if (pf && !pf.canAdvance) return res.status(409).json({ message: `Cannot quick-sim: ${pf.blockers.length} game(s) require final reports.`, blockers: pf.blockers });
       }
       const preseasonPhases: string[] = [Phase.Preseason, Phase.SpringTraining, Phase.RegularSeason];
       if (!preseasonPhases.includes(league.currentPhase)) {

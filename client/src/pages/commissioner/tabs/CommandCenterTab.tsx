@@ -179,7 +179,9 @@ export function CommandCenterTab({
       return res.json();
     },
     staleTime: 15_000,
-    refetchInterval: advanceStatus?.hasActiveLock ? 10_000 : false,
+    // Use functional form to avoid TDZ: the callback receives the current query
+    // data so we don't reference the 'advanceStatus' variable before it is bound.
+    refetchInterval: (query) => query.state.data?.hasActiveLock ? 10_000 : false,
   });
 
   const clearStuckMutation = useMutation({
