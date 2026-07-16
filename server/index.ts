@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { randomUUID } from "crypto";
+import { runMigrations } from "./lib/runMigrations";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
 import { startJobRunner } from "./jobs/leagueJobRunner";
@@ -56,6 +57,7 @@ declare module "http" {
 
 app.use(
   express.json({
+    limit: "5mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
@@ -104,146 +106,21 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Run idempotent column-addition migrations sequentially using a single dedicated
-  // client with a 30s lock_timeout scoped only to that session.
-  //
-  // WHY dedicated client: setting lock_timeout on the pool would apply to every
-  // API connection, causing startDynasty INSERTs to fail if they queued behind a
-  // locked ALTER TABLE.  A dedicated client scopes the timeout to startup DDL only.
-  //
-  // WHY sequential: parallel ALTER TABLE queries exhaust the 10-connection pool when
-  // autovacuum holds a lock, causing the remaining queries to timeout waiting for a
-  // free slot and crashing the server with EADDRINUSE on the next restart.
-  {
-    const _ddlClient = await pool.connect();
-    try {
-      await _ddlClient.query("SET lock_timeout = '30s'");
-      const _columnMigrations = [
-        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP",
-        "ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb",
-        "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text",
-        "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer",
-        "ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer",
-        "ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
-        "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb",
-        "ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_prestige integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_facilities integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_academics integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_stadium integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_college_life integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS prestige_baseline integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS facilities_baseline integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS academics_baseline integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_baseline integer",
-        "ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer",
-        "ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0",
-        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false",
-        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS last_digest_at TIMESTAMP",
-        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS is_test_data boolean NOT NULL DEFAULT false",
-        "ALTER TABLE leagues ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT now()",
-        `CREATE TABLE IF NOT EXISTS session (sid varchar NOT NULL COLLATE "default" PRIMARY KEY, sess json NOT NULL, expire timestamp(6) NOT NULL)`,
-        `CREATE TABLE IF NOT EXISTS advance_digests (
-          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-          league_id varchar NOT NULL REFERENCES leagues(id),
-          season integer NOT NULL,
-          week integer NOT NULL,
-          phase text NOT NULL,
-          window_start timestamp NOT NULL,
-          window_end timestamp NOT NULL,
-          categories json NOT NULL,
-          created_at timestamp NOT NULL DEFAULT now()
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_advance_digests_league_id ON advance_digests (league_id)`,
-        `CREATE TABLE IF NOT EXISTS league_save_states (
-          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-          league_id varchar NOT NULL REFERENCES leagues(id),
-          season integer NOT NULL,
-          week integer NOT NULL,
-          phase text NOT NULL,
-          label text NOT NULL,
-          trigger text NOT NULL,
-          created_by_user_id varchar,
-          snapshot_data jsonb NOT NULL,
-          restored_at timestamp,
-          restored_by_user_id varchar,
-          created_at timestamp NOT NULL DEFAULT now()
-        )`,
-        `CREATE INDEX IF NOT EXISTS idx_league_save_states_league_id ON league_save_states (league_id)`,
-        // ── Versioned class library (Task 1364) ──────────────────────────────
-        `CREATE TABLE IF NOT EXISTS recruiting_class_projects (
-          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-          owner_user_id varchar NOT NULL REFERENCES users(id),
-          name text NOT NULL,
-          description text,
-          status text NOT NULL DEFAULT 'draft',
-          current_draft_revision integer NOT NULL DEFAULT 0,
-          class_data json,
-          source_class_id varchar,
-          created_at timestamp NOT NULL DEFAULT now(),
-          updated_at timestamp NOT NULL DEFAULT now()
-        )`,
-        `CREATE TABLE IF NOT EXISTS recruiting_class_versions (
-          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-          project_id varchar NOT NULL REFERENCES recruiting_class_projects(id) ON DELETE CASCADE,
-          version_number integer NOT NULL,
-          schema_version integer NOT NULL DEFAULT 1,
-          package_json json NOT NULL,
-          content_hash text NOT NULL,
-          source_type text NOT NULL DEFAULT 'manual',
-          is_sealed boolean NOT NULL DEFAULT false,
-          published_at timestamp NOT NULL DEFAULT now()
-        )`,
-        // Make class_id nullable so V2 shares can omit it
-        `ALTER TABLE recruiting_class_shares ALTER COLUMN class_id DROP NOT NULL`,
-        // Make token nullable so V2 shares use token_hash instead
-        `ALTER TABLE recruiting_class_shares ALTER COLUMN token DROP NOT NULL`,
-        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS token_hash text`,
-        `CREATE UNIQUE INDEX IF NOT EXISTS idx_rcs_token_hash ON recruiting_class_shares (token_hash) WHERE token_hash IS NOT NULL`,
-        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS version_id varchar`,
-        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS expires_at timestamp`,
-        `ALTER TABLE recruiting_class_shares ADD COLUMN IF NOT EXISTS max_imports integer`,
-        `CREATE INDEX IF NOT EXISTS idx_recruiting_class_projects_owner ON recruiting_class_projects (owner_user_id)`,
-        `CREATE INDEX IF NOT EXISTS idx_recruiting_class_versions_project ON recruiting_class_versions (project_id)`,
-        // Saved class lineage + sealed flag (added with versioned sharing)
-        `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS is_sealed boolean NOT NULL DEFAULT false`,
-        `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS source_version_id varchar`,
-        `ALTER TABLE saved_recruiting_classes ADD COLUMN IF NOT EXISTS source_content_hash text`,
-        // FK from recruiting_class_shares.version_id → recruiting_class_versions.id
-        // Ensures version_id references a real version; SET NULL on version deletion
-        // preserves the share row (it just loses its snapshot reference).
-        `ALTER TABLE recruiting_class_shares ADD CONSTRAINT IF NOT EXISTS fk_rcs_version_id
-           FOREIGN KEY (version_id) REFERENCES recruiting_class_versions(id) ON DELETE SET NULL`,
-        // ── AI class jobs (Task 1367) ──────────────────────────────────────
-        `CREATE TABLE IF NOT EXISTS ai_class_jobs (
-          id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-          project_id varchar NOT NULL REFERENCES recruiting_class_projects(id) ON DELETE CASCADE,
-          user_id varchar NOT NULL REFERENCES users(id),
-          job_type text NOT NULL,
-          prompt text,
-          model_identifier text,
-          schema_version integer NOT NULL DEFAULT 1,
-          response_json jsonb,
-          fallback_json jsonb,
-          status text NOT NULL DEFAULT 'pending',
-          accepted_at timestamp,
-          rejected_at timestamp,
-          created_at timestamp NOT NULL DEFAULT now()
-        )`,
-        `ALTER TABLE ai_class_jobs ADD COLUMN IF NOT EXISTS rejected_at timestamp`,
-        `CREATE INDEX IF NOT EXISTS idx_ai_class_jobs_project ON ai_class_jobs (project_id)`,
-        `CREATE INDEX IF NOT EXISTS idx_ai_class_jobs_user_created ON ai_class_jobs (user_id, created_at)`,
-      ];
-      for (const sql of _columnMigrations) {
-        try { await _ddlClient.query(sql); } catch (e) { console.warn("[startup-migration] column add failed:", e); }
-      }
-    } finally {
-      _ddlClient.release();
+  // ── Numbered SQL migration runner ──────────────────────────────────────────
+  // Applies pending *.sql files from server/migrations/ exactly once each.
+  // Uses db_schema_migrations table for version tracking.
+  // Replaces the former inline _columnMigrations array.
+  try {
+    const { applied, version } = await runMigrations(pool);
+    if (applied.length > 0) {
+      console.log(`[migration] ${applied.length} migration(s) applied; version=${version}`);
+    } else {
+      console.log(`[migration] all migrations up to date; version=${version}`);
     }
+  } catch (e) {
+    console.error("[migration] fatal error running migrations:", e);
   }
+
 
   // ── Sequential Startup Migration Runner ──────────────────────────────────────
   // All one-time startup migrations run inside a single async IIFE, in order.

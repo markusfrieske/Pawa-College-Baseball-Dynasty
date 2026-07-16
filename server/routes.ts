@@ -36,6 +36,7 @@ import { checkTeamRosterStructure } from "./rosterValidation";
 import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "./rosterScaleFactors";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool, db } from "./db";
+import { checkMigrationVersion } from "./lib/runMigrations";
 import { sql as drizzleSql } from "drizzle-orm";
 import { coaches as coachesTable } from "@shared/schema";
 
@@ -496,11 +497,15 @@ export async function registerRoutes(
   app.get("/health/ready", async (_req, res) => {
     try {
       await pool.query("SELECT 1");
-      res.status(200).json({ status: "ready" });
     } catch (err) {
       console.error("[health/ready] DB check failed:", err);
-      res.status(503).json({ status: "not ready", error: "Database unavailable" });
+      return res.status(503).json({ status: "not ready", error: "Database unavailable" });
     }
+    const migrationsOk = await checkMigrationVersion(pool);
+    if (!migrationsOk) {
+      return res.status(503).json({ status: "not ready", error: "Pending migrations" });
+    }
+    res.status(200).json({ status: "ready" });
   });
 
 
