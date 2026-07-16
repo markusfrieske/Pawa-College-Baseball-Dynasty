@@ -45,7 +45,8 @@ const REGRESSION_POINTS: Record<string, number> = {
 export interface GrowthBudget {
   totalPoints: number;
   regressionPoints: number;
-  pitchMixPoints: number;      // extra budget for pitch development (pitchers only)
+  pitchMixPoints: number;            // growth budget for pitch quality (pitchers only)
+  pitchMixRegressionPoints: number;  // regression budget for pitch quality (pitchers only)
   potentialGrade: string;
   basePoints: number;
   multiplier: number;
@@ -86,11 +87,16 @@ export function computeGrowthBudget(opts: {
   const regressionPoints = Math.round(regBase * traitMult);
 
   const pitchMixPoints = isPitcher ? Math.max(0, Math.round(totalPoints * 0.25)) : 0;
+  // Pitch repertoire regression: 25% of general regression budget, applied only
+  // to pitchers. High-potential pitchers have regressionPoints = 0 so this is
+  // automatically 0 for them — no regression on quality arsenals.
+  const pitchMixRegressionPoints = isPitcher ? Math.round(regressionPoints * 0.25) : 0;
 
   return {
     totalPoints,
     regressionPoints,
     pitchMixPoints,
+    pitchMixRegressionPoints,
     potentialGrade,
     basePoints: base,
     multiplier,

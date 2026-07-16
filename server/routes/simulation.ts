@@ -5113,7 +5113,31 @@ export async function advanceLeagueStep(
   // Games within a week play on distinct days: Wed (midweek OOC) → Fri → Sat → Sun
   // (conference series). We must simulate each day's games in order and commit
   // pitcher rest after each day so Friday starters cannot pitch Saturday.
-  // Within a single day, games may run in parallel because no team appears twice.
+
+  /**
+   * Partition games into conflict-free batches where no team appears twice,
+   * so each batch can run safely in parallel without stale-rest issues.
+   * In normal scheduling no team plays twice per day, so most days produce
+   * a single batch; this handles makeups/doubleheaders safely regardless.
+   */
+  function partitionConflictFreeBatches<T extends { homeTeamId: string; awayTeamId: string }>(
+    games: T[],
+  ): T[][] {
+    const batches: T[][] = [];
+    for (const game of games) {
+      let placed = false;
+      for (const batch of batches) {
+        const conflict = batch.some(
+          g => g.homeTeamId === game.homeTeamId || g.homeTeamId === game.awayTeamId ||
+               g.awayTeamId === game.homeTeamId || g.awayTeamId === game.awayTeamId,
+        );
+        if (!conflict) { batch.push(game); placed = true; break; }
+      }
+      if (!placed) batches.push([game]);
+    }
+    return batches;
+  }
+
   const DAY_ORDER: Record<string, number> = { midweek: 0, friday: 1, saturday: 2, sunday: 3 };
 
   // coachXpAccum is declared here so it spans the full simulation scope
@@ -5134,11 +5158,17 @@ export async function advanceLeagueStep(
     const sortedDays = [...gamesByDay.keys()].sort((a, b) => a - b);
     for (const day of sortedDays) {
       const dayGames = gamesByDay.get(day)!;
-      // Simulate this day's games in parallel (no team plays twice in one day)
-      const dayResults = await Promise.all(dayGames.map(async (game) => {
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
-        return { game, result };
-      }));
+      // Partition into conflict-free batches so no team appears twice in the
+      // same parallel Promise.all (handles makeup/doubleheader edge cases).
+      const dayResults: typeof gameResults = [];
+      const conflictFreeBatches = partitionConflictFreeBatches(dayGames);
+      for (const batch of conflictFreeBatches) {
+        const batchResults = await Promise.all(batch.map(async (game) => {
+          const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
+          return { game, result };
+        }));
+        dayResults.push(...batchResults);
+      }
       // Commit standings, stats, pitcher rest, and XP for this day before the next.
       // batchFinalizeGames is safe to call per-day: standings/stats are cumulative
       // so repeated calls with disjoint result sets are additive and idempotent.

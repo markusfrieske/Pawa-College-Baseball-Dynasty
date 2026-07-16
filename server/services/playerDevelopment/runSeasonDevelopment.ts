@@ -141,10 +141,10 @@ export async function runV3SeasonDevelopment(
       }
 
       // ── Dedicated pitch repertoire development ────────────────────────────
-      // pitchMixPoints fund quality improvements on pitches already in the
-      // pitcher's arsenal. This budget is strictly isolated from general attrs.
-      if (isPitcher && budget.pitchMixPoints > 0) {
-        const pitchDeltas = developPitchRepertoire(player, budget.pitchMixPoints, rng);
+      // pitchMixPoints fund growth and pitchMixRegressionPoints fund decay —
+      // both strictly isolated from the general attribute budget.
+      if (isPitcher && (budget.pitchMixPoints > 0 || budget.pitchMixRegressionPoints > 0)) {
+        const pitchDeltas = developPitchRepertoire(player, budget.pitchMixPoints, budget.pitchMixRegressionPoints, rng);
         for (const [key, delta] of Object.entries(pitchDeltas)) {
           if (delta === 0) continue;
           const oldVal = (player as Record<string, unknown>)[key] as number ?? 0;
@@ -217,46 +217,76 @@ const PITCH_QUALITY_FIELDS = [
 ] as const;
 
 /**
- * Spend pitchMixPoints to improve quality of pitches already in the pitcher's
- * arsenal. Does NOT add new pitches (those come from generation/signing only).
- * Each quality level costs 1 point; cap is 7.  Lower-quality pitches are
- * weighted more heavily to encourage balanced repertoire development.
+ * Spend pitchMixPoints (growth) and pitchMixRegressionPoints (regression) to
+ * develop/decay the quality of pitches already in the pitcher's arsenal.
+ *
+ * Growth: lower-quality pitches weighted more heavily (catch-up development).
+ * Regression: weaker pitches (closer to the minimum-usable floor of 1) are
+ *   more vulnerable — they represent secondary weapons the pitcher is still
+ *   mastering. High-quality pitches (5+) are treated as established and do
+ *   not regress. This mirrors the archetype/potential constraint: pitchers
+ *   with B+ or better potential have regressionPoints = 0 from
+ *   computeGrowthBudget, so pitchMixRegressionPoints will also be 0 for them.
  */
 function developPitchRepertoire(
   player: Player,
-  points: number,
+  growthPoints: number,
+  regressionPoints: number,
   rng: () => number,
 ): Record<string, number> {
   const deltas: Record<string, number> = {};
-  if (points <= 0) return deltas;
 
-  // Build eligible pitch list: pitches that exist (value > 0) and are below cap
   type PitchWork = { key: string; currentVal: number };
-  const eligible: PitchWork[] = PITCH_QUALITY_FIELDS
+
+  // Build the pitch list from the player's actual arsenal
+  const arsenal: PitchWork[] = PITCH_QUALITY_FIELDS
     .map(k => ({ key: k, currentVal: (player as Record<string, unknown>)[k] as number ?? 0 }))
-    .filter(p => p.currentVal > 0 && p.currentVal < 7);
+    .filter(p => p.currentVal > 0);
 
-  if (eligible.length === 0) return deltas;
+  if (arsenal.length === 0) return deltas;
 
-  let remaining = points;
-  while (remaining > 0 && eligible.some(p => (p.currentVal + (deltas[p.key] ?? 0)) < 7)) {
-    // Re-filter eligible pitches below cap
-    const available = eligible.filter(p => (p.currentVal + (deltas[p.key] ?? 0)) < 7);
+  // ── Growth pass ──────────────────────────────────────────────────────────
+  let growRemaining = growthPoints;
+  while (growRemaining > 0 && arsenal.some(p => (p.currentVal + (deltas[p.key] ?? 0)) < 7)) {
+    const available = arsenal.filter(p => (p.currentVal + (deltas[p.key] ?? 0)) < 7);
     if (available.length === 0) break;
 
-    // Weight inversely by current quality so weaker pitches develop faster
+    // Weight inversely by effective quality so weaker pitches grow faster
     const totalWeight = available.reduce((sum, p) => sum + (8 - (p.currentVal + (deltas[p.key] ?? 0))), 0);
-    const rand = rng() * totalWeight;
-    let cumulative = 0;
-    let chosen: PitchWork | null = null;
+    let rand = rng() * totalWeight;
+    let chosen: PitchWork = available[available.length - 1];
     for (const p of available) {
-      cumulative += 8 - (p.currentVal + (deltas[p.key] ?? 0));
-      if (rand <= cumulative) { chosen = p; break; }
+      rand -= 8 - (p.currentVal + (deltas[p.key] ?? 0));
+      if (rand <= 0) { chosen = p; break; }
     }
-    if (!chosen) chosen = available[available.length - 1];
-
     deltas[chosen.key] = (deltas[chosen.key] ?? 0) + 1;
-    remaining -= 1;
+    growRemaining -= 1;
+  }
+
+  // ── Regression pass ──────────────────────────────────────────────────────
+  // Only pitches below quality 5 are vulnerable; quality 5+ is "established".
+  // Minimum-usable floor: do not regress a pitch below 1 (do not eliminate it).
+  const REGRESSION_QUALITY_CEILING = 4; // pitches at quality ≤ 4 can regress
+  const PITCH_FLOOR = 1;
+
+  let regRemaining = regressionPoints;
+  while (regRemaining > 0) {
+    const vulnerable = arsenal.filter(p => {
+      const effective = p.currentVal + (deltas[p.key] ?? 0);
+      return effective <= REGRESSION_QUALITY_CEILING && effective > PITCH_FLOOR;
+    });
+    if (vulnerable.length === 0) break;
+
+    // Weight toward lower quality (weakest pitches regress first)
+    const totalWeight = vulnerable.reduce((sum, p) => sum + (REGRESSION_QUALITY_CEILING + 1 - (p.currentVal + (deltas[p.key] ?? 0))), 0);
+    let rand = rng() * totalWeight;
+    let chosen: PitchWork = vulnerable[vulnerable.length - 1];
+    for (const p of vulnerable) {
+      rand -= REGRESSION_QUALITY_CEILING + 1 - (p.currentVal + (deltas[p.key] ?? 0));
+      if (rand <= 0) { chosen = p; break; }
+    }
+    deltas[chosen.key] = (deltas[chosen.key] ?? 0) - 1;
+    regRemaining -= 1;
   }
 
   return deltas;

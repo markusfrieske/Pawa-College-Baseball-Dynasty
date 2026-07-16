@@ -35,7 +35,7 @@ import type { GameDay } from "@shared/pitcherRest";
 import type { Player } from "@shared/schema";
 import { generateRecruitCommitNewsArticle } from "../news-engine";
 import { invalidateLeague } from "../cache";
-import { awardRecruitSignXp } from "../game-finalizer";
+import { XP_AWARDS } from "@shared/coachPerks";
 import { getActionPointCost } from "@shared/stateDistance";
 import {
   getRecruitingBalanceProfile,
@@ -1743,28 +1743,35 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      // Atomically sign the recruit and debit NIL inside a single transaction
-      // with SELECT ... FOR UPDATE so concurrent sign requests for the same
-      // recruit produce exactly one signing and one NIL charge.
+      // Pre-compute XP amount so it can be awarded atomically inside the transaction.
+      const isBlueChip = !!(recruit as any).isBlueChip;
+      const xpAmount = isBlueChip
+        ? XP_AWARDS.SIGN_BLUE_CHIP
+        : (XP_AWARDS.SIGN_BY_STAR[Math.min(5, Math.max(1, recruit.starRank || 1)) as 1 | 2 | 3 | 4 | 5] ?? XP_AWARDS.SIGN_BY_STAR[1]);
+
+      // Atomically: sign recruit, debit NIL, enforce roster cap, and award coach
+      // XP — all inside a single DB transaction with SELECT ... FOR UPDATE locking.
+      // Concurrent sign requests for the same recruit produce exactly one signing,
+      // one NIL charge, and one XP award; all others get a clean 409.
       const signResult = await storage.atomicSignAndDebitNil(
         recruit.id,
         userTeam.id,
         nilCost,
         userTeam.nilRecruitingAlloc != null,
+        { coachId: userCoach.id, xpAmount },
       );
       if (!signResult.success) {
         if (signResult.reason === 'already_signed') {
           return res.status(409).json({ message: "This recruit has already been signed by another team." });
+        }
+        if (signResult.reason === 'roster_full') {
+          return res.status(400).json({ message: "Roster would exceed 30-player limit. Release or manage your roster before signing more recruits." });
         }
         return res.status(400).json({ message: "Insufficient NIL budget at time of signing. Please refresh and try again." });
       }
 
       // Fetch the freshly-signed recruit record for the response
       const updatedRecruit = await storage.getRecruit(recruit.id);
-
-      // Award XP to the coach for signing a recruit (star-based scale)
-      const isBlueChip = !!(recruit as any).isBlueChip;
-      await awardRecruitSignXp(userCoach.id, recruit.starRank || 1, isBlueChip);
 
       await storage.createAuditLog({
         leagueId: req.params.id as string,

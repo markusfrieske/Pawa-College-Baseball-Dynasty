@@ -255,7 +255,8 @@ export interface IStorage {
     teamId: string,
     nilCost: number,
     hasRecruitingAlloc: boolean,
-  ): Promise<{ success: true } | { success: false; reason: 'already_signed' | 'nil_budget' }>;
+    opts: { coachId: string; xpAmount: number },
+  ): Promise<{ success: true } | { success: false; reason: 'already_signed' | 'nil_budget' | 'roster_full' }>;
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
   getRecruitTopSchoolsByLeague(leagueId: string): Promise<RecruitTopSchools[]>;
@@ -2994,35 +2995,38 @@ export class DatabaseStorage implements IStorage {
     teamId: string,
     nilCost: number,
     hasRecruitingAlloc: boolean,
-  ): Promise<{ success: true } | { success: false; reason: 'already_signed' | 'nil_budget' }> {
+    opts: { coachId: string; xpAmount: number },
+  ): Promise<{ success: true } | { success: false; reason: 'already_signed' | 'nil_budget' | 'roster_full' }> {
+    const { coachId, xpAmount } = opts;
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
 
-      // Lock the recruit row to prevent concurrent signings
-      const { rows: recruitRows } = await client.query<{ signed_team_id: string | null }>(
-        'SELECT signed_team_id FROM recruits WHERE id = $1 FOR UPDATE',
+      // Lock the recruit row to prevent concurrent signings; grab league_id for cap check
+      const { rows: recruitRows } = await client.query<{ signed_team_id: string | null; league_id: string }>(
+        'SELECT signed_team_id, league_id FROM recruits WHERE id = $1 FOR UPDATE',
         [recruitId],
       );
       if (!recruitRows[0] || recruitRows[0].signed_team_id != null) {
         await client.query('ROLLBACK');
         return { success: false, reason: 'already_signed' };
       }
+      const leagueId = recruitRows[0].league_id;
+
+      // Lock the team row for the NIL debit check and roster stats
+      const { rows: teamRows } = await client.query<{
+        nil_budget: number;
+        nil_spent: number;
+        nil_recruiting_alloc: number | null;
+        nil_recruiting_spent: number;
+      }>(
+        'SELECT nil_budget, nil_spent, nil_recruiting_alloc, nil_recruiting_spent FROM teams WHERE id = $1 FOR UPDATE',
+        [teamId],
+      );
+      const t = teamRows[0];
+      if (!t) { await client.query('ROLLBACK'); return { success: false, reason: 'nil_budget' }; }
 
       if (nilCost > 0) {
-        // Lock the team row for the NIL debit check
-        const { rows: teamRows } = await client.query<{
-          nil_budget: number;
-          nil_spent: number;
-          nil_recruiting_alloc: number | null;
-          nil_recruiting_spent: number;
-        }>(
-          'SELECT nil_budget, nil_spent, nil_recruiting_alloc, nil_recruiting_spent FROM teams WHERE id = $1 FOR UPDATE',
-          [teamId],
-        );
-        const t = teamRows[0];
-        if (!t) { await client.query('ROLLBACK'); return { success: false, reason: 'nil_budget' }; }
-
         const remaining = hasRecruitingAlloc && t.nil_recruiting_alloc != null
           ? (t.nil_recruiting_alloc - (t.nil_recruiting_spent || 0))
           : ((t.nil_budget || 0) - (t.nil_spent || 0));
@@ -3031,7 +3035,37 @@ export class DatabaseStorage implements IStorage {
           await client.query('ROLLBACK');
           return { success: false, reason: 'nil_budget' };
         }
+      }
 
+      // ── Roster-size cap check (inside lock) ──────────────────────────────
+      // Mirrors the pre-check in the route but runs under the transaction lock so
+      // concurrent sign requests cannot both pass a 29-player roster check and
+      // both push the roster to 31.
+      const { rows: rosterRows } = await client.query<{
+        roster_size: string; departing: string; portal_count: string; current_commits: string;
+      }>(`
+        SELECT
+          (SELECT COUNT(*) FROM players WHERE team_id = $1)::text AS roster_size,
+          (SELECT COUNT(*) FROM players WHERE team_id = $1
+            AND pending_departure = true AND retention_status != 'retained')::text AS departing,
+          (SELECT COUNT(*) FROM players WHERE team_id = $1 AND in_transfer_portal = true)::text AS portal_count,
+          (SELECT COUNT(*) FROM recruits WHERE signed_team_id = $1 AND league_id = $2)::text AS current_commits
+      `, [teamId, leagueId]);
+      const rc = rosterRows[0];
+      if (rc) {
+        const rosterSize = parseInt(rc.roster_size, 10);
+        const departing = parseInt(rc.departing, 10);
+        const portalCount = parseInt(rc.portal_count, 10);
+        const currentCommits = parseInt(rc.current_commits, 10);
+        const projected = rosterSize - departing - portalCount + currentCommits + 1;
+        if (projected > 30) {
+          await client.query('ROLLBACK');
+          return { success: false, reason: 'roster_full' };
+        }
+      }
+
+      // Apply NIL debit
+      if (nilCost > 0) {
         await client.query(
           'UPDATE teams SET nil_spent = nil_spent + $1, nil_recruiting_spent = nil_recruiting_spent + $1 WHERE id = $2',
           [nilCost, teamId],
@@ -3043,6 +3077,26 @@ export class DatabaseStorage implements IStorage {
         "UPDATE recruits SET signed_team_id = $1, stage = 'signed' WHERE id = $2",
         [teamId, recruitId],
       );
+
+      // ── Coach XP award (inside transaction for exactly-once guarantee) ───
+      if (coachId && xpAmount > 0) {
+        const { rows: coachRows } = await client.query<{
+          xp: number; level: number; skill_points: number;
+        }>(
+          'SELECT xp, level, skill_points FROM coaches WHERE id = $1 FOR UPDATE',
+          [coachId],
+        );
+        if (coachRows[0]) {
+          const c = coachRows[0];
+          const newXp = c.xp + xpAmount;
+          const newLevel = Math.floor(newXp / 1000) + 1;
+          const skillPointsGained = Math.max(0, newLevel - c.level);
+          await client.query(
+            'UPDATE coaches SET xp = $1, level = $2, skill_points = skill_points + $3 WHERE id = $4',
+            [newXp, newLevel, skillPointsGained, coachId],
+          );
+        }
+      }
 
       await client.query('COMMIT');
       return { success: true };
