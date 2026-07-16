@@ -5348,9 +5348,24 @@ export async function advanceLeagueStep(
         try { const diagGames = await storage.getGamesByLeague(leagueId); const diagSR = diagGames.filter((g: any) => g.phase === "super_regionals" && g.season === league.currentSeason); console.warn(`[postseason-skip] SR done but no champion — league=${leagueId} season=${league.currentSeason} srGameCount=${diagSR.length} srResult=${JSON.stringify(srResult)}`); } catch { /* diagnostic */ }
         try { const swept = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek ?? 1); if (swept > 0) console.log(`[storylines] sr→offseason catch-up resolved ${swept} arc events`); } catch (e) { console.warn("[storylines] sr→offseason catch-up failed:", e); }
         const srSkipLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonDepartures, currentWeek: nextWeek, currentClassVintage: null });
-        setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
-        try { await evaluatePlayerPromises(leagueId, league.currentSeason); const depResult = await processOffseasonDepartures(leagueId, league.currentSeason); await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Offseason: Departures Phase", details: `${depResult.graduated} graduating, ${depResult.draftDeclared} draft eligible, ${depResult.transferPortal} considering transfer.` }); generateDeparturesSummaryNews(leagueId, league.currentSeason, depResult.graduated, depResult.draftDeclared, depResult.transferPortal).catch(e => console.error("Departures news error (sr-skip):", e)); } catch (e) { console.error("SR-skip departure processing error:", e); }
+        // Gate departures on whether they were already processed (idempotent guard for
+        // crash-after-updateLeague-before-departures resume).  processOffseasonDepartures
+        // populates player_pending_departures; if rows already exist for this season we
+        // can skip it to prevent double-graduated / double-draft-declared entries.
+        try {
+          const srSkipExistingDep = await storage.getPendingDeparturesByLeague(leagueId);
+          const srSkipDepAlreadyDone = srSkipExistingDep.some(p => p.departureType === "graduated" || p.departureType === "draft");
+          if (!srSkipDepAlreadyDone) {
+            await evaluatePlayerPromises(leagueId, league.currentSeason);
+            const depResult = await processOffseasonDepartures(leagueId, league.currentSeason);
+            await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Offseason: Departures Phase", details: `${depResult.graduated} graduating, ${depResult.draftDeclared} draft eligible, ${depResult.transferPortal} considering transfer.` });
+            generateDeparturesSummaryNews(leagueId, league.currentSeason, depResult.graduated, depResult.draftDeclared, depResult.transferPortal).catch(e => console.error("Departures news error (sr-skip):", e));
+          }
+        } catch (e) { console.error("SR-skip departure processing error:", e); }
+        // Checkpoint written AFTER all critical post-flip work so the outer stageAlreadyDone
+        // gate only fires when everything (updateLeague + departures) has been committed.
+        setAdvanceProgress(leagueId, "phase_transition", 100);
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-skipped hook:", e));
         return { data: { ...srSkipLeague, userTeamGame } };
       }
@@ -5411,7 +5426,6 @@ export async function advanceLeagueStep(
         }
         try { const swept = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, league.currentWeek ?? 1); if (swept > 0) console.log(`[storylines] cws→offseason catch-up resolved ${swept} arc events`); } catch (e) { console.warn("[storylines] cws→offseason catch-up failed:", e); }
         const cwsChampLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonDepartures, currentWeek: nextWeek, currentClassVintage: null });
-        setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
         if (champTeam && runnerUpTeam) {
           try { await generateCWSChampionNewsArticle(leagueId, champTeam, runnerUpTeam, league.currentSeason); await storage.createLeagueEvent({ leagueId, teamId: champTeam.id, teamName: champTeam.name, teamAbbreviation: champTeam.abbreviation, eventType: "AWARD", description: `${champTeam.name} wins the College World Series! Season ${league.currentSeason} National Champions.`, season: league.currentSeason, week: nextWeek }); } catch (e) { console.error("CWS news generation error:", e); }
@@ -5426,13 +5440,24 @@ export async function advanceLeagueStep(
             await storage.createLeagueEvent({ leagueId, teamId: entry.team.id, teamName: entry.team.name, teamAbbreviation: entry.team.abbreviation, eventType: "AWARD", description: `${entry.player.firstName} ${entry.player.lastName} (${entry.team.abbreviation}) named Season ${league.currentSeason} ${label}.`, season: league.currentSeason, week: nextWeek });
           }
         } catch (e) { console.error("Season award event error:", e); }
+        // Gate departures on whether they were already processed (idempotent guard for
+        // crash-after-updateLeague-before-departures resume).  processOffseasonDepartures
+        // populates player_pending_departures; if rows already exist for this season we
+        // can skip it to prevent double-graduated / double-draft-declared entries.
         try {
-          const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
-          if (promiseResult.broken > 0) await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Promise Evaluation", details: `${promiseResult.evaluated} promises evaluated: ${promiseResult.met} met, ${promiseResult.broken} broken.` });
-          const depResult = await processOffseasonDepartures(leagueId, league.currentSeason);
-          await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Offseason: Departures Phase", details: `${depResult.graduated} graduating, ${depResult.draftDeclared} draft eligible, ${depResult.transferPortal} considering transfer. Review departures before finalizing.` });
-          generateDeparturesSummaryNews(leagueId, league.currentSeason, depResult.graduated, depResult.draftDeclared, depResult.transferPortal).catch(e => console.error("Departures news error:", e));
+          const cwsExistingDep = await storage.getPendingDeparturesByLeague(leagueId);
+          const cwsDepAlreadyDone = cwsExistingDep.some(p => p.departureType === "graduated" || p.departureType === "draft");
+          if (!cwsDepAlreadyDone) {
+            const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
+            if (promiseResult.broken > 0) await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Promise Evaluation", details: `${promiseResult.evaluated} promises evaluated: ${promiseResult.met} met, ${promiseResult.broken} broken.` });
+            const depResult = await processOffseasonDepartures(leagueId, league.currentSeason);
+            await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Offseason: Departures Phase", details: `${depResult.graduated} graduating, ${depResult.draftDeclared} draft eligible, ${depResult.transferPortal} considering transfer. Review departures before finalizing.` });
+            generateDeparturesSummaryNews(leagueId, league.currentSeason, depResult.graduated, depResult.draftDeclared, depResult.transferPortal).catch(e => console.error("Departures news error:", e));
+          }
         } catch (e) { console.error("Auto-process departures error:", e); }
+        // Checkpoint written AFTER all critical post-flip work so the outer stageAlreadyDone
+        // gate only fires when everything (updateLeague + departures) has been committed.
+        setAdvanceProgress(leagueId, "phase_transition", 100);
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] cws-champion hook:", e));
         return { data: { ...cwsChampLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp, userTeamGame } };
       }
