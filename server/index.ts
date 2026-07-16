@@ -4,7 +4,7 @@ import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
 import { randomUUID, createHash } from "crypto";
-import { runMigrations } from "./lib/runMigrations";
+import { runMigrations, checkMigrationVersion, EXPECTED_MIGRATION } from "./lib/runMigrations";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
 import { startJobRunner } from "./jobs/leagueJobRunner";
@@ -55,14 +55,29 @@ declare module "http" {
   }
 }
 
-app.use(
-  express.json({
-    limit: "5mb",
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+// Default JSON parser (100 KB) for all routes except the two recruiting-class
+// save/publish endpoints which need 5 MB.  Using a single conditional middleware
+// ensures only those endpoints accept large payloads; all others retain the
+// default 100 KB limit, limiting request-amplification risk.
+const _defaultJsonParser = express.json({
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  },
+});
+const _largeJsonParser = express.json({
+  limit: "5mb",
+  verify: (req, _res, buf) => {
+    req.rawBody = buf;
+  },
+});
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const isLargeBodyRoute =
+    (req.method === "POST" && req.path === "/api/saved-recruiting-classes") ||
+    (req.method === "PATCH" && req.path.startsWith("/api/saved-recruiting-classes/"));
+  return isLargeBodyRoute
+    ? _largeJsonParser(req, res, next)
+    : _defaultJsonParser(req, res, next);
+});
 
 app.use(express.urlencoded({ extended: false }));
 
@@ -141,14 +156,17 @@ app.use((req, res, next) => {
     console.error("[migration] fatal error running migrations:", e);
   }
 
-  // Start the job runner only after numbered migrations have applied successfully.
-  // Gating prevents claimNextPendingJob() from racing against missing lease columns.
-  if (migrationsOk) {
+  // Start the job runner only when the numbered migration runner succeeded AND the
+  // expected migration key is present in db_schema_migrations.  This mirrors the
+  // same readiness criteria used by /health/ready, ensuring the job runner never
+  // starts in a state where /health/ready would return 503.
+  const readinessOk = migrationsOk && (await checkMigrationVersion(pool));
+  if (readinessOk) {
     startJobRunner();
   } else {
     console.error(
-      "[startup] skipping job runner: migrations did not complete — " +
-        "resolve migration errors and restart to enable background jobs"
+      "[startup] skipping job runner: migrations did not complete or expected " +
+        `version '${EXPECTED_MIGRATION}' is missing — resolve migration errors and restart`
     );
   }
 
