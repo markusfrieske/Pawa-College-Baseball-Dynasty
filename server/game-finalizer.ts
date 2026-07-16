@@ -22,8 +22,20 @@
  */
 
 import { storage } from "./storage";
-import { pool } from "./db";
+import { db } from "./db";
+import { eq, and, sql } from "drizzle-orm";
 import type { Game, GameReport, Team, InsertPlayerSeasonStats, Coach } from "@shared/schema";
+import {
+  games as gamesTable,
+  gameFinalizations,
+  standings,
+  playerSeasonStats,
+  leagueEvents,
+  coaches,
+  players,
+  coachRivalries,
+  teams as teamsTable,
+} from "@shared/schema";
 import {
   updateStandingsForGame,
   accumulatePlayerStats,
@@ -33,7 +45,11 @@ import {
 } from "./game-engine";
 import { invalidateLeague } from "./cache";
 import { hasPerk, XP_AWARDS } from "@shared/coachPerks";
+import { GAME_TYPE_TO_DAY, ipToOuts } from "@shared/pitcherRest";
 import { generateGameRecap } from "./lib/recap-generator";
+
+/** Drizzle transaction type (same interface as db). */
+type DrizzleTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const WIN_XP = XP_AWARDS.WIN;
 const LOSS_XP = XP_AWARDS.LOSS;
@@ -806,20 +822,315 @@ export async function batchFinalizeGames(
   }
 }
 
+// ── Private helpers for finalizeGameAtomic (use tx, not storage) ─────────────
+
 /**
- * Atomic wrapper around finalizeGame() that provides exactly-once finalization.
+ * Upserts player-season stats for one side of a box score inside a transaction.
+ * Replicates `accumulatePlayerStats` + `storage.upsertPlayerSeasonStats` using `tx`.
+ */
+async function upsertBoxSideStatsInTx(
+  tx: DrizzleTx,
+  leagueId: string,
+  season: number,
+  teamId: string,
+  boxData: any,
+  teamWon?: boolean,
+): Promise<void> {
+  if (!boxData) return;
+
+  // Resolve fake_ IDs the same way accumulatePlayerStats does.
+  const hasFakeIds =
+    (boxData.batting || []).some((b: any) => b.playerId?.startsWith("fake_")) ||
+    (boxData.pitching || []).some((p: any) => p.playerId?.startsWith("fake_"));
+  if (hasFakeIds) {
+    const teamPlayers = await tx.select({ id: players.id, firstName: players.firstName, lastName: players.lastName })
+      .from(players).where(eq(players.teamId, teamId));
+    const nameToId = new Map<string, string>();
+    for (const pl of teamPlayers) {
+      nameToId.set(`${pl.firstName} ${pl.lastName}`.toLowerCase(), pl.id);
+    }
+    const resolve = (entry: any) => {
+      if (!entry.playerId?.startsWith("fake_")) return entry;
+      const realId = nameToId.get((entry.name || "").toLowerCase());
+      return realId ? { ...entry, playerId: realId } : { ...entry, playerId: null };
+    };
+    boxData = {
+      ...boxData,
+      batting: (boxData.batting || []).map(resolve),
+      pitching: (boxData.pitching || []).map(resolve),
+    };
+  }
+
+  const playerStatsMap = new Map<string, InsertPlayerSeasonStats>();
+
+  for (const b of (boxData.batting || [])) {
+    if (!b.playerId || b.playerId.startsWith("fake_")) continue;
+    playerStatsMap.set(b.playerId, {
+      playerId: b.playerId, playerName: b.name, teamId, leagueId, season, position: b.position,
+      games: 1, ab: b.ab || 0, r: b.r || 0, h: b.h || 0, doubles: b.doubles || 0,
+      triples: b.triples || 0, hr: b.hr || 0, rbi: b.rbi || 0, bb: b.bb || 0,
+      hbp: b.hbp || 0, so: b.so || 0, sb: b.sb || 0, cs: b.cs || 0,
+      exitVeloTotal: b.exitVelo || 0, barrels: b.barrels || 0, ballsInPlay: b.ballsInPlay || 0,
+      hardHits: b.hardHits || 0, putouts: b.putouts || 0, assists: b.assists || 0,
+      fieldingErrors: b.fieldingErrors || 0, totalChances: b.totalChances || 0, wpa: 0,
+      pitchingGames: 0, wins: 0, losses: 0, ipOuts: 0,
+      pHits: 0, pRuns: 0, pEr: 0, pBb: 0, pSo: 0, pHr: 0,
+      totalPitches: 0, whiffs: 0, spinRateTotal: 0,
+    });
+  }
+
+  // Determine winning/losing pitcher using pitcher-of-record logic.
+  let winningPitcherId: string | null = null;
+  let losingPitcherId: string | null = null;
+  if (teamWon !== undefined && Array.isArray(boxData.pitching)) {
+    if (teamWon) {
+      for (const p of boxData.pitching) {
+        if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+        winningPitcherId = p.playerId;
+      }
+    } else {
+      let maxEr = -1, firstId: string | null = null;
+      for (const p of boxData.pitching) {
+        if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+        if (!firstId) firstId = p.playerId;
+        if ((p.er || 0) > maxEr) { maxEr = p.er || 0; losingPitcherId = p.playerId; }
+      }
+      if (!losingPitcherId) losingPitcherId = firstId;
+    }
+  }
+
+  for (const p of (boxData.pitching || [])) {
+    if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+    const ipParts = String(p.ip).split(".");
+    const ipOuts = Math.min(parseInt(ipParts[1]) || 0, 2) + (parseInt(ipParts[0]) || 0) * 3;
+    const isWin = p.playerId === winningPitcherId;
+    const isLoss = p.playerId === losingPitcherId;
+    const existing = playerStatsMap.get(p.playerId);
+    if (existing) {
+      existing.pitchingGames = 1; existing.ipOuts = ipOuts;
+      existing.pHits = p.h || 0; existing.pRuns = p.r || 0; existing.pEr = p.er || 0;
+      existing.pBb = p.bb || 0; existing.pSo = p.so || 0; existing.pHr = p.hr || 0;
+      existing.totalPitches = p.totalPitches || 0; existing.whiffs = p.whiffs || 0;
+      existing.spinRateTotal = p.spinRate || 0;
+      if (isWin) existing.wins = 1; if (isLoss) existing.losses = 1;
+    } else {
+      playerStatsMap.set(p.playerId, {
+        playerId: p.playerId, playerName: p.name, teamId, leagueId, season, position: "P",
+        games: 1, ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0,
+        bb: 0, hbp: 0, so: 0, sb: 0, cs: 0, exitVeloTotal: 0, barrels: 0,
+        ballsInPlay: 0, hardHits: 0, putouts: 0, assists: 0, fieldingErrors: 0,
+        totalChances: 0, wpa: 0,
+        pitchingGames: 1, wins: isWin ? 1 : 0, losses: isLoss ? 1 : 0, ipOuts,
+        pHits: p.h || 0, pRuns: p.r || 0, pEr: p.er || 0, pBb: p.bb || 0,
+        pSo: p.so || 0, pHr: p.hr || 0, totalPitches: p.totalPitches || 0,
+        whiffs: p.whiffs || 0, spinRateTotal: p.spinRate || 0,
+      });
+    }
+  }
+
+  for (const data of playerStatsMap.values()) {
+    const [existing] = await tx.select().from(playerSeasonStats).where(
+      and(eq(playerSeasonStats.playerId, data.playerId),
+          eq(playerSeasonStats.leagueId, data.leagueId),
+          eq(playerSeasonStats.season, data.season))
+    );
+    if (existing) {
+      await tx.update(playerSeasonStats).set({
+        playerName: data.playerName, teamId: data.teamId, position: data.position,
+        games:         existing.games         + (data.games ?? 0),
+        ab:            existing.ab            + (data.ab ?? 0),
+        r:             existing.r             + (data.r ?? 0),
+        h:             existing.h             + (data.h ?? 0),
+        doubles:       existing.doubles       + (data.doubles ?? 0),
+        triples:       existing.triples       + (data.triples ?? 0),
+        hr:            existing.hr            + (data.hr ?? 0),
+        rbi:           existing.rbi           + (data.rbi ?? 0),
+        bb:            existing.bb            + (data.bb ?? 0),
+        hbp:           existing.hbp           + (data.hbp ?? 0),
+        so:            existing.so            + (data.so ?? 0),
+        sb:            existing.sb            + (data.sb ?? 0),
+        cs:            existing.cs            + (data.cs ?? 0),
+        exitVeloTotal: existing.exitVeloTotal + (data.exitVeloTotal ?? 0),
+        barrels:       existing.barrels       + (data.barrels ?? 0),
+        ballsInPlay:   existing.ballsInPlay   + (data.ballsInPlay ?? 0),
+        hardHits:      existing.hardHits      + (data.hardHits ?? 0),
+        pitchingGames: existing.pitchingGames + (data.pitchingGames ?? 0),
+        wins:          existing.wins          + (data.wins ?? 0),
+        losses:        existing.losses        + (data.losses ?? 0),
+        ipOuts:        existing.ipOuts        + (data.ipOuts ?? 0),
+        pHits:         existing.pHits         + (data.pHits ?? 0),
+        pRuns:         existing.pRuns         + (data.pRuns ?? 0),
+        pEr:           existing.pEr           + (data.pEr ?? 0),
+        pBb:           existing.pBb           + (data.pBb ?? 0),
+        pSo:           existing.pSo           + (data.pSo ?? 0),
+        pHr:           existing.pHr           + (data.pHr ?? 0),
+        totalPitches:  existing.totalPitches  + (data.totalPitches ?? 0),
+        whiffs:        existing.whiffs        + (data.whiffs ?? 0),
+        spinRateTotal: existing.spinRateTotal + (data.spinRateTotal ?? 0),
+        putouts:       existing.putouts       + (data.putouts ?? 0),
+        assists:       existing.assists       + (data.assists ?? 0),
+        fieldingErrors:existing.fieldingErrors+ (data.fieldingErrors ?? 0),
+        totalChances:  existing.totalChances  + (data.totalChances ?? 0),
+        wpa:           existing.wpa           + (data.wpa ?? 0),
+      }).where(eq(playerSeasonStats.id, existing.id));
+    } else {
+      await tx.insert(playerSeasonStats).values(data);
+    }
+  }
+}
+
+/**
+ * Updates pitcher rest tracking inside a transaction.
+ * Replicates `bulkUpdatePlayerRest` + `updatePitcherRestFromBox` using `tx`.
+ */
+async function updatePitcherRestInTx(
+  tx: DrizzleTx,
+  homeBoxData: any,
+  awayBoxData: any,
+  game: { gameType?: string | null; week?: number | null },
+  leagueCurrentWeek?: number,
+): Promise<void> {
+  const gameDay = GAME_TYPE_TO_DAY[game.gameType ?? ""] ?? "WED";
+  const gameWeek = game.week ?? leagueCurrentWeek ?? 1;
+  const updates: Array<{ id: string; outs: number; week: number; day: string }> = [];
+  for (const boxData of [homeBoxData, awayBoxData]) {
+    if (!Array.isArray(boxData?.pitching)) continue;
+    for (const p of boxData.pitching) {
+      const pid = p.playerId as string | undefined;
+      if (!pid || pid.startsWith("fake_")) continue;
+      const outs = ipToOuts((p.ip as string) ?? "0.0");
+      if (outs > 0) updates.push({ id: pid, outs, week: gameWeek, day: gameDay });
+    }
+  }
+  if (updates.length === 0) return;
+  const outsWhen = sql.join(updates.map(u => sql`WHEN ${u.id} THEN ${u.outs}::integer`), sql` `);
+  const weekWhen = sql.join(updates.map(u => sql`WHEN ${u.id} THEN ${u.week}::integer`), sql` `);
+  const dayWhen  = sql.join(updates.map(u => sql`WHEN ${u.id} THEN ${u.day}`),          sql` `);
+  const ids      = sql.join(updates.map(u => sql`${u.id}`),                              sql`, `);
+  await tx.execute(sql`
+    UPDATE players
+    SET last_pitched_outs = CASE id ${outsWhen} END,
+        last_pitched_week = CASE id ${weekWhen} END,
+        last_pitched_day  = CASE id ${dayWhen}  END
+    WHERE id IN (${ids})
+  `);
+}
+
+/**
+ * Writes coach XP + rivalry inside a transaction (single-game path only).
+ * Batch callers use `coachXpAccum` and call `flushCoachXp()` instead.
+ */
+async function writeCoachXpAndRivalryInTx(
+  tx: DrizzleTx,
+  homeTeam: { coachId?: string | null } | undefined,
+  awayTeam: { coachId?: string | null } | undefined,
+  homeWon: boolean,
+  homeScore: number,
+  awayScore: number,
+  game: Pick<Game, "isConference" | "season" | "week" | "gameType">,
+  leagueId: string,
+): Promise<void> {
+  const writeXp = async (coachId: string | null | undefined, won: boolean): Promise<void> => {
+    if (!coachId) return;
+    const [coach] = await tx.select().from(coaches).where(eq(coaches.id, coachId));
+    if (!coach) return;
+    const isConf = !!(game.isConference && won);
+    const perkBonus = won && hasPerk(coach, "gm_tactician")
+      ? XP_AWARDS.TACTICIAN_WIN_BONUS + (isConf ? XP_AWARDS.TACTICIAN_CONF_BONUS : 0)
+      : 0;
+    const newXp     = coach.xp + (won ? WIN_XP : LOSS_XP) + perkBonus;
+    const newLevel  = Math.floor(newXp / 1000) + 1;
+    const newWins   = coach.careerWins   + (won ? 1 : 0);
+    const newLosses = coach.careerLosses + (won ? 0 : 1);
+    await tx.update(coaches).set({
+      xp:          newXp,
+      level:       newLevel,
+      skillPoints: coach.skillPoints + (newLevel > coach.level ? 1 : 0),
+      careerWins:  newWins,
+      careerLosses: newLosses,
+      confWins:    coach.confWins    + (isConf ? 1 : 0),
+      confLosses:  coach.confLosses  + ((game.isConference && !won) ? 1 : 0),
+      legacyScore: computeLegacyScore({ ...coach, careerWins: newWins }),
+    }).where(eq(coaches.id, coachId));
+  };
+
+  await writeXp(homeTeam?.coachId, homeWon);
+  await writeXp(awayTeam?.coachId, !homeWon);
+
+  // Rivalry update: HvH games only (both coaches must have a userId).
+  if (homeTeam?.coachId && awayTeam?.coachId) {
+    try {
+      const [hCoach] = await tx.select({ id: coaches.id, userId: coaches.userId })
+        .from(coaches).where(eq(coaches.id, homeTeam.coachId));
+      const [aCoach] = await tx.select({ id: coaches.id, userId: coaches.userId })
+        .from(coaches).where(eq(coaches.id, awayTeam.coachId));
+      if (hCoach?.userId && aCoach?.userId) {
+        const isPostseason = game.gameType === "super_regionals" || game.gameType === "cws";
+        const aIsHome = hCoach.id < aCoach.id;
+        const [coachAId, coachBId] = aIsHome
+          ? [hCoach.id, aCoach.id] : [aCoach.id, hCoach.id];
+        const aWon  = aIsHome ? homeWon : !homeWon;
+        const aRuns = aIsHome ? homeScore : awayScore;
+        const bRuns = aIsHome ? awayScore : homeScore;
+        const margin = Math.abs(aRuns - bRuns);
+        const winnerId = aWon ? coachAId : coachBId;
+        const [existing] = await tx.select().from(coachRivalries).where(
+          and(
+            eq(coachRivalries.leagueId, leagueId),
+            eq(coachRivalries.coachAId, coachAId),
+            eq(coachRivalries.coachBId, coachBId),
+          )
+        ).limit(1);
+        if (!existing) {
+          await tx.insert(coachRivalries).values({
+            leagueId,
+            coachAId, coachBId,
+            gamesPlayed: isPostseason ? 0 : 1,
+            coachAWins: isPostseason ? 0 : (aWon ? 1 : 0),
+            coachBWins: isPostseason ? 0 : (aWon ? 0 : 1),
+            coachARunsScored: isPostseason ? 0 : aRuns,
+            coachBRunsScored: isPostseason ? 0 : bRuns,
+            postseasonGames: isPostseason ? 1 : 0,
+            coachAPostseasonWins: isPostseason && aWon ? 1 : 0,
+            coachBPostseasonWins: isPostseason && !aWon ? 1 : 0,
+            currentStreakWinnerId: winnerId, currentStreakLength: 1,
+            lastMeetingSeason: game.season, lastMeetingWeek: game.week,
+            lastMeetingCoachAScore: aRuns, lastMeetingCoachBScore: bRuns,
+            lastMeetingWinnerId: winnerId, biggestWinMargin: margin, biggestWinCoachId: winnerId,
+          });
+        } else {
+          const newStreak = existing.currentStreakWinnerId === winnerId
+            ? existing.currentStreakLength + 1 : 1;
+          await tx.update(coachRivalries).set({
+            gamesPlayed:        isPostseason ? existing.gamesPlayed        : existing.gamesPlayed + 1,
+            coachAWins:         isPostseason ? existing.coachAWins         : existing.coachAWins  + (aWon ? 1 : 0),
+            coachBWins:         isPostseason ? existing.coachBWins         : existing.coachBWins  + (aWon ? 0 : 1),
+            postseasonGames:    isPostseason ? existing.postseasonGames + 1 : existing.postseasonGames,
+            coachAPostseasonWins: isPostseason && aWon  ? existing.coachAPostseasonWins + 1 : existing.coachAPostseasonWins,
+            coachBPostseasonWins: isPostseason && !aWon ? existing.coachBPostseasonWins + 1 : existing.coachBPostseasonWins,
+            currentStreakWinnerId: winnerId, currentStreakLength: newStreak,
+            lastMeetingSeason: game.season, lastMeetingWeek: game.week,
+            lastMeetingWinnerId: winnerId, updatedAt: new Date(),
+          }).where(eq(coachRivalries.id, existing.id));
+        }
+      }
+    } catch (e) {
+      console.error("[finalizeGameAtomic] rivalry update error:", e);
+    }
+  }
+}
+
+/**
+ * Exactly-once game finalisation using a single DB transaction.
  *
- * Uses a single DB transaction to:
- *   1. Lock the game row (FOR UPDATE) — serialises concurrent finalization calls
- *   2. Check the sentinel table (idempotency — returns immediately if already done)
- *   3. INSERT the sentinel row
- *   4. UPDATE games: scores + is_complete = true atomically
- *   5. COMMIT — after this point the game is permanently marked complete
+ * ALL mutations — sentinel claim, game score/status, standings, player stats,
+ * pitcher rest, coach XP, coach rivalry, league event — execute inside one
+ * `db.transaction()` and commit atomically. If any step fails the entire
+ * transaction rolls back and the caller can retry.
  *
- * Side-effects (standings, stats, XP, league events, cache) are applied OUTSIDE
- * the transaction after the commit. They run at most once per game: the sentinel
- * blocks re-entry, and `is_complete = true` means the game object itself reflects
- * completion even before side-effects finish.
+ * Cache invalidation and recap generation run OUTSIDE the transaction (they are
+ * non-transactional best-effort post-commit effects). `coachXpAccum` updates
+ * also run after commit so that in-memory map mutations do not survive a rollback.
  *
  * Usage:
  *   const { alreadyFinalized } = await finalizeGameAtomic(
@@ -835,68 +1146,174 @@ export async function finalizeGameAtomic(
   leagueId: string,
   opts: FinalizeGameOptions & { finalizer?: string } = {},
 ): Promise<{ alreadyFinalized: boolean }> {
-  const { finalizer = "unknown", ...finalizeOpts } = opts;
-  const isManualReport = finalizeOpts.isManualReport ?? false;
-  const reportedByUserId = finalizeOpts.reportedByUserId ?? null;
+  const {
+    finalizer = "unknown",
+    skipStandings = false,
+    skipPlayerStats = false,
+    skipPitcherRest = false,
+    skipCoachXp = false,
+    coachXpAccum,
+    skipLeagueEvent = false,
+    skipCacheInvalidation = false,
+    isManualReport = false,
+    reportedByUserId = null,
+    eventDescriptionSuffix,
+    leagueCurrentWeek,
+    leagueTeams: providedTeams,
+  } = opts;
 
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
+  const homeWon = homeScore > awayScore;
+  const isConf  = game.isConference ?? false;
 
-    // Step 1: lock game row — serialises concurrent calls on this game
-    await client.query("SELECT id FROM games WHERE id = $1 FOR UPDATE", [game.id]);
+  let alreadyFinalized = false;
+  // Collect coach deltas for the batch-accumulator path; populated inside the
+  // transaction ONLY after we know it will commit (i.e., after the sentinel check
+  // succeeds). The actual map.set() runs OUTSIDE the transaction so the mutation
+  // is not visible if the transaction rolls back.
+  let pendingCoachDeltas: Array<{ coachId: string; won: boolean }> | null = null;
 
-    // Step 2: idempotency check inside the transaction
-    const existing = await client.query<{ game_id: string }>(
-      "SELECT game_id FROM game_finalizations WHERE game_id = $1",
-      [game.id],
-    );
-    if (existing.rows.length > 0) {
-      await client.query("COMMIT");
-      return { alreadyFinalized: true };
+  await db.transaction(async (tx) => {
+    // ── 1. Lock game row (serialises concurrent finalization calls) ───────
+    await tx.execute(sql`SELECT id FROM games WHERE id = ${game.id} FOR UPDATE`);
+
+    // ── 2. Idempotency check ───────────────────────────────────────────────
+    const existingSentinel = await tx.select()
+      .from(gameFinalizations)
+      .where(eq(gameFinalizations.gameId, game.id))
+      .limit(1);
+    if (existingSentinel.length > 0) {
+      alreadyFinalized = true;
+      return; // no writes — transaction commits trivially
     }
 
-    // Step 3: claim sentinel
-    await client.query(
-      "INSERT INTO game_finalizations (game_id, finalizer) VALUES ($1, $2)",
-      [game.id, finalizer],
-    );
+    // ── 3. Claim sentinel ──────────────────────────────────────────────────
+    await tx.insert(gameFinalizations).values({ gameId: game.id, finalizer });
 
-    // Step 4: write scores + mark game complete atomically
-    const setParts: string[] = ["home_score = $2", "away_score = $3", "is_complete = true"];
-    const params: unknown[] = [game.id, homeScore, awayScore];
-    let paramIdx = 4;
-    if (rawBoxScore) {
-      setParts.push(`box_score = $${paramIdx++}`);
-      params.push(JSON.stringify(rawBoxScore));
-    }
+    // ── 4. Update game (scores + isComplete + optional fields) ────────────
+    const gameSet: Record<string, unknown> = { homeScore, awayScore, isComplete: true };
+    if (rawBoxScore) gameSet.boxScore = JSON.stringify(rawBoxScore);
     if (isManualReport) {
-      setParts.push("is_manually_reported = true");
-      if (reportedByUserId) {
-        setParts.push(`reported_by_user_id = $${paramIdx++}`);
-        params.push(reportedByUserId);
+      gameSet.isManuallyReported = true;
+      if (reportedByUserId) gameSet.reportedByUserId = reportedByUserId;
+    }
+    await tx.update(gamesTable).set(gameSet).where(eq(gamesTable.id, game.id));
+
+    // ── 5. Standings ───────────────────────────────────────────────────────
+    if (!skipStandings) {
+      let [homeRow] = await tx.select()
+        .from(standings)
+        .where(and(eq(standings.leagueId, leagueId), eq(standings.teamId, game.homeTeamId), eq(standings.season, game.season)));
+      if (!homeRow) {
+        [homeRow] = await tx.insert(standings).values({ leagueId, teamId: game.homeTeamId, season: game.season }).returning();
+      }
+      let [awayRow] = await tx.select()
+        .from(standings)
+        .where(and(eq(standings.leagueId, leagueId), eq(standings.teamId, game.awayTeamId), eq(standings.season, game.season)));
+      if (!awayRow) {
+        [awayRow] = await tx.insert(standings).values({ leagueId, teamId: game.awayTeamId, season: game.season }).returning();
+      }
+      await tx.update(standings).set({
+        wins:             sql`${standings.wins}             + ${homeWon ? 1 : 0}`,
+        losses:           sql`${standings.losses}           + ${homeWon ? 0 : 1}`,
+        conferenceWins:   sql`${standings.conferenceWins}   + ${isConf && homeWon  ? 1 : 0}`,
+        conferenceLosses: sql`${standings.conferenceLosses} + ${isConf && !homeWon ? 1 : 0}`,
+        runsScored:       sql`${standings.runsScored}       + ${homeScore}`,
+        runsAllowed:      sql`${standings.runsAllowed}      + ${awayScore}`,
+      }).where(eq(standings.id, homeRow.id));
+      await tx.update(standings).set({
+        wins:             sql`${standings.wins}             + ${homeWon ? 0 : 1}`,
+        losses:           sql`${standings.losses}           + ${homeWon ? 1 : 0}`,
+        conferenceWins:   sql`${standings.conferenceWins}   + ${isConf && !homeWon ? 1 : 0}`,
+        conferenceLosses: sql`${standings.conferenceLosses} + ${isConf && homeWon  ? 1 : 0}`,
+        runsScored:       sql`${standings.runsScored}       + ${awayScore}`,
+        runsAllowed:      sql`${standings.runsAllowed}      + ${homeScore}`,
+      }).where(eq(standings.id, awayRow.id));
+    }
+
+    // ── 6. Player season stats ─────────────────────────────────────────────
+    if (rawBoxScore && !skipPlayerStats) {
+      await upsertBoxSideStatsInTx(tx, leagueId, game.season, game.homeTeamId, rawBoxScore.home, homeWon);
+      await upsertBoxSideStatsInTx(tx, leagueId, game.season, game.awayTeamId, rawBoxScore.away, !homeWon);
+    }
+
+    // ── 7. Pitcher rest ────────────────────────────────────────────────────
+    if (rawBoxScore && !skipPitcherRest) {
+      await updatePitcherRestInTx(tx, rawBoxScore.home, rawBoxScore.away, game, leagueCurrentWeek);
+    }
+
+    // ── 8. Coach XP ─────────────────────────────────────────────────────────
+    // Batch callers (advance-week) pass `coachXpAccum`; their XP is flushed
+    // once per batch in `flushCoachXp()`. We record the pending deltas here so
+    // the map mutation happens OUTSIDE the transaction.
+    if (!skipCoachXp) {
+      const teams = providedTeams
+        ?? await tx.select().from(teamsTable).where(eq(teamsTable.leagueId, leagueId));
+      const homeTeam = teams.find((t: any) => t.id === game.homeTeamId);
+      const awayTeam = teams.find((t: any) => t.id === game.awayTeamId);
+
+      if (coachXpAccum) {
+        // Record for post-tx accumulation (does not write to DB).
+        pendingCoachDeltas = [];
+        if (homeTeam?.coachId) pendingCoachDeltas.push({ coachId: homeTeam.coachId, won: homeWon });
+        if (awayTeam?.coachId) pendingCoachDeltas.push({ coachId: awayTeam.coachId, won: !homeWon });
+      } else {
+        // Single-game path: write XP + rivalry directly inside the transaction.
+        await writeCoachXpAndRivalryInTx(tx, homeTeam, awayTeam, homeWon, homeScore, awayScore, game, leagueId);
       }
     }
-    await client.query(
-      `UPDATE games SET ${setParts.join(", ")} WHERE id = $1`,
-      params,
-    );
 
-    // Step 5: commit — game is now permanently complete
-    await client.query("COMMIT");
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
-  } finally {
-    client.release();
+    // ── 9. League event ────────────────────────────────────────────────────
+    if (!skipLeagueEvent) {
+      const teams = providedTeams
+        ?? await tx.select().from(teamsTable).where(eq(teamsTable.leagueId, leagueId));
+      const homeTeam = teams.find((t: any) => t.id === game.homeTeamId);
+      const awayTeam = teams.find((t: any) => t.id === game.awayTeamId);
+      const winner    = homeWon ? homeTeam : awayTeam;
+      const loser     = homeWon ? awayTeam : homeTeam;
+      const winScore  = homeWon ? homeScore : awayScore;
+      const lossScore = homeWon ? awayScore : homeScore;
+      const suffix    = eventDescriptionSuffix ? ` ${eventDescriptionSuffix}` : "";
+      await tx.insert(leagueEvents).values({
+        leagueId,
+        teamId:            winner?.id              ?? null,
+        teamName:          winner?.name            ?? null,
+        teamAbbreviation:  winner?.abbreviation    ?? null,
+        teamPrimaryColor:  winner?.primaryColor    ?? null,
+        eventType:         "GAME_RESULT",
+        description:       `${winner?.abbreviation ?? "?"} def. ${loser?.abbreviation ?? "?"} ${winScore}-${lossScore}${suffix}`,
+        season:            game.season,
+        week:              game.week,
+        metadata:          { gameId: game.id },
+      });
+    }
+
+    // ── Transaction commits here ───────────────────────────────────────────
+  });
+
+  if (alreadyFinalized) return { alreadyFinalized: true };
+
+  // ── Post-commit: coachXpAccum batch accumulation ─────────────────────────
+  // Running OUTSIDE the transaction ensures the map is not mutated if the
+  // transaction rolls back (in-memory mutations are not rolled back by Drizzle).
+  if (coachXpAccum && pendingCoachDeltas) {
+    for (const { coachId, won } of pendingCoachDeltas) {
+      const acc = coachXpAccum.get(coachId) ?? { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
+      acc.xp     += won ? WIN_XP : LOSS_XP;
+      acc.wins   += won ? 1 : 0;
+      acc.losses += won ? 0 : 1;
+      acc.confWins   += isConf && won  ? 1 : 0;
+      acc.confLosses += isConf && !won ? 1 : 0;
+      coachXpAccum.set(coachId, acc);
+    }
   }
 
-  // Side-effects run after the atomic commit. skipGameUpdate=true prevents
-  // finalizeGame() from re-writing scores/isComplete (already committed above).
-  await finalizeGame(game, homeScore, awayScore, rawBoxScore, leagueId, {
-    ...finalizeOpts,
-    skipGameUpdate: true,
-  });
+  // ── Post-commit: cache invalidation + recap (non-transactional) ───────────
+  if (!skipCacheInvalidation) {
+    invalidateLeague(leagueId);
+  }
+  generateAndStoreRecap(game, homeScore, awayScore, rawBoxScore, leagueId, opts).catch(e =>
+    console.error("[finalizeGameAtomic] recap generation error:", e),
+  );
 
   return { alreadyFinalized: false };
 }
