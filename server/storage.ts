@@ -244,6 +244,18 @@ export interface IStorage {
   getSeasonVisitCount(teamId: string, leagueId: string, season: number): Promise<{ total: number; campusVisits: number; hcVisits: number }>;
   createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog | undefined>;
   atomicSpendRecruitPoints(coachId: string, cost: number, maxAllowed: number): Promise<boolean>;
+  /**
+   * Atomically sign a recruit and debit the team's NIL budget inside a single
+   * database transaction with SELECT ... FOR UPDATE locking. Returns 'ok' on
+   * success, 'already_signed' if another request won the race, or 'nil_budget'
+   * if the team no longer has sufficient funds.
+   */
+  atomicSignAndDebitNil(
+    recruitId: string,
+    teamId: string,
+    nilCost: number,
+    hasRecruitingAlloc: boolean,
+  ): Promise<{ success: true } | { success: false; reason: 'already_signed' | 'nil_budget' }>;
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
   getRecruitTopSchoolsByLeague(leagueId: string): Promise<RecruitTopSchools[]>;
@@ -2975,6 +2987,71 @@ export class DatabaseStorage implements IStorage {
   async updatePostseasonSeries(id: string, data: Partial<PostseasonSeries>): Promise<PostseasonSeries | undefined> {
     const [series] = await db.update(postseason_series).set(data).where(eq(postseason_series.id, id)).returning();
     return series ?? undefined;
+  }
+
+  async atomicSignAndDebitNil(
+    recruitId: string,
+    teamId: string,
+    nilCost: number,
+    hasRecruitingAlloc: boolean,
+  ): Promise<{ success: true } | { success: false; reason: 'already_signed' | 'nil_budget' }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Lock the recruit row to prevent concurrent signings
+      const { rows: recruitRows } = await client.query<{ signed_team_id: string | null }>(
+        'SELECT signed_team_id FROM recruits WHERE id = $1 FOR UPDATE',
+        [recruitId],
+      );
+      if (!recruitRows[0] || recruitRows[0].signed_team_id != null) {
+        await client.query('ROLLBACK');
+        return { success: false, reason: 'already_signed' };
+      }
+
+      if (nilCost > 0) {
+        // Lock the team row for the NIL debit check
+        const { rows: teamRows } = await client.query<{
+          nil_budget: number;
+          nil_spent: number;
+          nil_recruiting_alloc: number | null;
+          nil_recruiting_spent: number;
+        }>(
+          'SELECT nil_budget, nil_spent, nil_recruiting_alloc, nil_recruiting_spent FROM teams WHERE id = $1 FOR UPDATE',
+          [teamId],
+        );
+        const t = teamRows[0];
+        if (!t) { await client.query('ROLLBACK'); return { success: false, reason: 'nil_budget' }; }
+
+        const remaining = hasRecruitingAlloc && t.nil_recruiting_alloc != null
+          ? (t.nil_recruiting_alloc - (t.nil_recruiting_spent || 0))
+          : ((t.nil_budget || 0) - (t.nil_spent || 0));
+
+        if (remaining < nilCost) {
+          await client.query('ROLLBACK');
+          return { success: false, reason: 'nil_budget' };
+        }
+
+        await client.query(
+          'UPDATE teams SET nil_spent = nil_spent + $1, nil_recruiting_spent = nil_recruiting_spent + $1 WHERE id = $2',
+          [nilCost, teamId],
+        );
+      }
+
+      // Atomically mark the recruit as signed
+      await client.query(
+        "UPDATE recruits SET signed_team_id = $1, stage = 'signed' WHERE id = $2",
+        [teamId, recruitId],
+      );
+
+      await client.query('COMMIT');
+      return { success: true };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async upsertCWSFinalSeries(leagueId: string, season: number, teamAId: string, teamBId: string): Promise<PostseasonSeries> {

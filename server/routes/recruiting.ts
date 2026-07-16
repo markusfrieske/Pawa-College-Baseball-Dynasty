@@ -1743,19 +1743,24 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      // Sign the recruit
-      const updatedRecruit = await storage.updateRecruit(recruit.id, {
-        signedTeamId: userTeam.id,
-        stage: "signed",
-      });
-
-      // Deduct NIL cost from recruiting envelope and total budget
-      if (nilCost > 0) {
-        await storage.updateTeam(userTeam.id, {
-          nilSpent: (userTeam.nilSpent || 0) + nilCost,
-          nilRecruitingSpent: (userTeam.nilRecruitingSpent || 0) + nilCost,
-        });
+      // Atomically sign the recruit and debit NIL inside a single transaction
+      // with SELECT ... FOR UPDATE so concurrent sign requests for the same
+      // recruit produce exactly one signing and one NIL charge.
+      const signResult = await storage.atomicSignAndDebitNil(
+        recruit.id,
+        userTeam.id,
+        nilCost,
+        userTeam.nilRecruitingAlloc != null,
+      );
+      if (!signResult.success) {
+        if (signResult.reason === 'already_signed') {
+          return res.status(409).json({ message: "This recruit has already been signed by another team." });
+        }
+        return res.status(400).json({ message: "Insufficient NIL budget at time of signing. Please refresh and try again." });
       }
+
+      // Fetch the freshly-signed recruit record for the response
+      const updatedRecruit = await storage.getRecruit(recruit.id);
 
       // Award XP to the coach for signing a recruit (star-based scale)
       const isBlueChip = !!(recruit as any).isBlueChip;

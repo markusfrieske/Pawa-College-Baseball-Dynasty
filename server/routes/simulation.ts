@@ -5108,10 +5108,45 @@ export async function advanceLeagueStep(
 
   setAdvanceProgress(leagueId, "game_simulation", 10);
   console.time("[advance-perf] game-sim");
-  const gameResults = stageAlreadyDone("game_simulation", completedStages) ? [] : await Promise.all(incompleteGames.map(async (game) => {
-    const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
-    return { game, result };
-  }));
+
+  // ── Day-sequential simulation ────────────────────────────────────────────
+  // Games within a week play on distinct days: Wed (midweek OOC) → Fri → Sat → Sun
+  // (conference series). We must simulate each day's games in order and commit
+  // pitcher rest after each day so Friday starters cannot pitch Saturday.
+  // Within a single day, games may run in parallel because no team appears twice.
+  const DAY_ORDER: Record<string, number> = { midweek: 0, friday: 1, saturday: 2, sunday: 3 };
+
+  // coachXpAccum is declared here so it spans the full simulation scope
+  const coachXpAccum = new Map<string, CoachXpDelta>();
+
+  const gameResults: Array<{ game: (typeof incompleteGames)[0]; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
+
+  if (!stageAlreadyDone("game_simulation", completedStages) && incompleteGames.length > 0) {
+    // Group games by logical day
+    const gamesByDay = new Map<number, typeof incompleteGames>();
+    for (const game of incompleteGames) {
+      const dayKey = DAY_ORDER[game.gameType ?? "friday"] ?? 1;
+      if (!gamesByDay.has(dayKey)) gamesByDay.set(dayKey, []);
+      gamesByDay.get(dayKey)!.push(game);
+    }
+
+    // Process each day in ascending order, committing rest before next day
+    const sortedDays = [...gamesByDay.keys()].sort((a, b) => a - b);
+    for (const day of sortedDays) {
+      const dayGames = gamesByDay.get(day)!;
+      // Simulate this day's games in parallel (no team plays twice in one day)
+      const dayResults = await Promise.all(dayGames.map(async (game) => {
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
+        return { game, result };
+      }));
+      // Commit standings, stats, pitcher rest, and XP for this day before the next.
+      // batchFinalizeGames is safe to call per-day: standings/stats are cumulative
+      // so repeated calls with disjoint result sets are additive and idempotent.
+      await batchFinalizeGames(dayResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches);
+      gameResults.push(...dayResults);
+    }
+  }
+
   console.timeEnd("[advance-perf] game-sim");
 
   // Exhibition games (preseason / spring_training)
@@ -5153,11 +5188,8 @@ export async function advanceLeagueStep(
     }
   }
 
-  const coachXpAccum = new Map<string, CoachXpDelta>();
-
-  // Batch-finalize regular season games
+  // Exhibition finalization (stats + XP only — rest handled per-game above)
   console.time("[advance-perf] standings-and-stats");
-  await batchFinalizeGames(gameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches);
   await Promise.all(exhibitionGameResults.map(async ({ game, result }) => {
     try {
       const box = JSON.parse(result.boxScore);

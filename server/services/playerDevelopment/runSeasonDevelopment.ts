@@ -107,34 +107,53 @@ export async function runV3SeasonDevelopment(
         isPitcher,
       });
 
-      // Build current ratings map
+      // Build current ratings map (excludes pitch fields — handled separately)
       const currentRatings = buildRatingsMap(player);
 
       // Seeded RNG for this player/season
       const seed = buildDevelopmentSeed(leagueId, player.id, season, 3);
       const rng = createRng(seed);
 
-      // For pitchers, add pitchMixPoints to the growth budget so pitch quality
-      // participates in the weighted allocation alongside the other attributes.
-      const effectiveGrowthPoints = budget.totalPoints + (isPitcher ? budget.pitchMixPoints : 0);
+      // Pitch-mix points are kept separate from the general attribute budget.
+      // General growth never touches pitchFB/pitchSL/etc.; a dedicated allocator
+      // handles those fields below using budget.pitchMixPoints.
+      const effectiveGrowthPoints = budget.totalPoints;
 
-      // Allocate growth and regression
+      // Allocate growth and regression (general attributes only)
       const growthDeltas = allocateGrowthPoints(archetypeId, currentRatings, caps, effectiveGrowthPoints, rng);
       const regrDeltas = allocateRegressionPoints(archetypeId, currentRatings, budget.regressionPoints, rng);
       const allDeltas = mergeDeltas(growthDeltas, regrDeltas);
 
-      // Apply deltas, clamping to [1, 99]
+      // Apply general attribute deltas, clamping to [1, 99]
       const updates: Record<string, unknown> = {};
       const persistedDeltas: Record<string, number> = {};
 
       for (const [key, delta] of Object.entries(allDeltas)) {
         if (delta === 0) continue;
+        if (key === "pitchMix") continue; // never write a phantom column
         const oldVal = currentRatings[key] ?? 50;
         const newVal = Math.max(1, Math.min(99, oldVal + delta));
         const actual = newVal - oldVal;
         if (actual !== 0) {
           updates[key] = newVal;
           persistedDeltas[key] = actual;
+        }
+      }
+
+      // ── Dedicated pitch repertoire development ────────────────────────────
+      // pitchMixPoints fund quality improvements on pitches already in the
+      // pitcher's arsenal. This budget is strictly isolated from general attrs.
+      if (isPitcher && budget.pitchMixPoints > 0) {
+        const pitchDeltas = developPitchRepertoire(player, budget.pitchMixPoints, rng);
+        for (const [key, delta] of Object.entries(pitchDeltas)) {
+          if (delta === 0) continue;
+          const oldVal = (player as Record<string, unknown>)[key] as number ?? 0;
+          const newVal = Math.max(0, Math.min(7, oldVal + delta));
+          const actual = newVal - oldVal;
+          if (actual !== 0) {
+            updates[key] = newVal;
+            persistedDeltas[key] = actual;
+          }
         }
       }
 
@@ -172,11 +191,14 @@ export async function runV3SeasonDevelopment(
 }
 
 function buildRatingsMap(player: Player): Record<string, number> {
+  // pitchMix is intentionally excluded — it is a phantom attribute used by
+  // archetype weight tables but has no real DB column. Pitch-field development
+  // is handled by the dedicated developPitchRepertoire allocator below.
   const keys = [
     "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance",
     "clutch", "vsLHP", "grit", "stealing", "running", "throwing",
     "recovery", "wRISP", "vsLefty", "poise", "heater", "agile", "catcherAbility",
-    "velocity", "control", "stamina", "stuff", "pitchMix",
+    "velocity", "control", "stamina", "stuff",
   ] as const;
   const map: Record<string, number> = {};
   for (const k of keys) {
@@ -184,4 +206,58 @@ function buildRatingsMap(player: Player): Record<string, number> {
     if (typeof v === "number") map[k] = v;
   }
   return map;
+}
+
+// All non-binary pitch quality fields (0–7 scale). pitchFB and pitch2S are
+// binary presence flags and are excluded from quality development.
+const PITCH_QUALITY_FIELDS = [
+  "pitchSL", "pitchCB", "pitchCH", "pitchCT", "pitchSNK", "pitchSPL",
+  "pitchSHU", "pitchCCH", "pitchHSL", "pitchSWP", "pitchKN", "pitchVSL",
+  "pitchSFF", "pitchFK", "pitchSCB", "pitchPCB",
+] as const;
+
+/**
+ * Spend pitchMixPoints to improve quality of pitches already in the pitcher's
+ * arsenal. Does NOT add new pitches (those come from generation/signing only).
+ * Each quality level costs 1 point; cap is 7.  Lower-quality pitches are
+ * weighted more heavily to encourage balanced repertoire development.
+ */
+function developPitchRepertoire(
+  player: Player,
+  points: number,
+  rng: () => number,
+): Record<string, number> {
+  const deltas: Record<string, number> = {};
+  if (points <= 0) return deltas;
+
+  // Build eligible pitch list: pitches that exist (value > 0) and are below cap
+  type PitchWork = { key: string; currentVal: number };
+  const eligible: PitchWork[] = PITCH_QUALITY_FIELDS
+    .map(k => ({ key: k, currentVal: (player as Record<string, unknown>)[k] as number ?? 0 }))
+    .filter(p => p.currentVal > 0 && p.currentVal < 7);
+
+  if (eligible.length === 0) return deltas;
+
+  let remaining = points;
+  while (remaining > 0 && eligible.some(p => (p.currentVal + (deltas[p.key] ?? 0)) < 7)) {
+    // Re-filter eligible pitches below cap
+    const available = eligible.filter(p => (p.currentVal + (deltas[p.key] ?? 0)) < 7);
+    if (available.length === 0) break;
+
+    // Weight inversely by current quality so weaker pitches develop faster
+    const totalWeight = available.reduce((sum, p) => sum + (8 - (p.currentVal + (deltas[p.key] ?? 0))), 0);
+    const rand = rng() * totalWeight;
+    let cumulative = 0;
+    let chosen: PitchWork | null = null;
+    for (const p of available) {
+      cumulative += 8 - (p.currentVal + (deltas[p.key] ?? 0));
+      if (rand <= cumulative) { chosen = p; break; }
+    }
+    if (!chosen) chosen = available[available.length - 1];
+
+    deltas[chosen.key] = (deltas[chosen.key] ?? 0) + 1;
+    remaining -= 1;
+  }
+
+  return deltas;
 }
