@@ -514,11 +514,14 @@ export async function finalizeReportedGame(report: GameReport, game: Game, leagu
     away: enrichBoxData(awayBoxData, awayErrors, awayScore, awayHits),
   };
 
-  await finalizeGame(game, homeScore, awayScore, boxScore, leagueId, {
+  // Use atomic wrapper so concurrent confirm/force-finalize calls can't
+  // double-apply standings, stats, or XP.
+  await finalizeGameAtomic(game, homeScore, awayScore, boxScore, leagueId, {
     isManualReport: true,
     reportedByUserId: report.reporterUserId,
     eventDescriptionSuffix: "(Reported)",
     skipCacheInvalidation: true,  // caller (games.ts) calls invalidateLeague after
+    finalizer: "reported-game",
   });
 }
 
@@ -830,6 +833,17 @@ export async function finalizeGameAtomic(
     return { alreadyFinalized: true };
   }
 
-  await finalizeGame(game, homeScore, awayScore, rawBoxScore, leagueId, finalizeOpts);
+  try {
+    await finalizeGame(game, homeScore, awayScore, rawBoxScore, leagueId, finalizeOpts);
+  } catch (err) {
+    // Roll back the sentinel so the caller can retry after fixing the root cause.
+    // Without this, any mid-flight failure would permanently lock the game out of
+    // future finalization attempts.
+    await pool.query(`DELETE FROM game_finalizations WHERE game_id = $1`, [game.id]).catch(
+      delErr => console.error("[finalizeGameAtomic] sentinel rollback failed:", delErr),
+    );
+    throw err;
+  }
+
   return { alreadyFinalized: false };
 }

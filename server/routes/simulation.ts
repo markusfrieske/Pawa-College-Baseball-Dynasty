@@ -68,7 +68,7 @@ import {
   updateStandingsForGame,
   computeLegacyScore,
 } from "../game-engine";
-import { finalizeGame, flushCoachXp, batchFinalizeGames, type CoachXpDelta } from "../game-finalizer";
+import { finalizeGame, finalizeGameAtomic, flushCoachXp, batchFinalizeGames, type CoachXpDelta } from "../game-finalizer";
 import {
   requireAuth,
   hasCommissionerAccess,
@@ -5112,7 +5112,7 @@ export async function advanceLeagueStep(
   await Promise.all(exhibitionGameResults.map(async ({ game, result }) => {
     try {
       const box = JSON.parse(result.boxScore);
-      await finalizeGame(game, result.homeScore, result.awayScore, box, leagueId, { coachXpAccum, leagueTeams: leagueTeamsForSim, skipLeagueEvent: true, skipCacheInvalidation: true });
+      await finalizeGameAtomic(game, result.homeScore, result.awayScore, box, leagueId, { coachXpAccum, leagueTeams: leagueTeamsForSim, skipLeagueEvent: true, skipCacheInvalidation: true, finalizer: "advance-exhibition" });
     } catch (e) { console.error("[advance-week] exhibition finalizer error:", e); }
   }));
   console.timeEnd("[advance-perf] standings-and-stats");
@@ -6930,7 +6930,7 @@ export function registerSimulationRoutes(app: Express): void {
         },
       };
 
-      await finalizeGame(game, homeScore, awayScore, boxScore, leagueId);
+      await finalizeGameAtomic(game, homeScore, awayScore, boxScore, leagueId, { finalizer: "play-by-play" });
 
       await storage.createAuditLog({
         leagueId,

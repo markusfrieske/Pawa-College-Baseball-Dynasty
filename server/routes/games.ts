@@ -22,7 +22,7 @@ import { validateBoxScore } from "../lib/validateBoxScore";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema } from "../route-helpers";
 import * as coachMsg from "../lib/coachMessages";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
-import { finalizeGame, finalizeReportedGame } from "../game-finalizer";
+import { finalizeGameAtomic, finalizeReportedGame } from "../game-finalizer";
 import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
 import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
 import { ObjectStorageService, ObjectNotFoundError, InvalidImageError } from "../replit_integrations/object_storage/objectStorage";
@@ -308,11 +308,16 @@ export function registerGameRoutes(app: Express): void {
       }
 
       const leagueTeams = await storage.getTeamsByLeague(patchLeagueId);
-      await finalizeGame(patchGame, homeScore, awayScore, null, patchLeagueId, {
+      const { alreadyFinalized } = await finalizeGameAtomic(patchGame, homeScore, awayScore, null, patchLeagueId, {
         skipPlayerStats: true,
         skipPitcherRest: true,
         leagueTeams,
+        finalizer: "quick-score",
       });
+      if (alreadyFinalized) {
+        const existing = await storage.getGame(patchGameId);
+        return res.json(existing);
+      }
 
       await storage.createAuditLog({
         leagueId: patchLeagueId,
@@ -452,15 +457,32 @@ export function registerGameRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the home or away team's coach, or the commissioner, can report this game" });
       }
 
+      // Commissioners reporting on behalf of a team must supply an explicit override reason.
+      if (isCommissionerForReport && !isInvolvedCoach) {
+        const overrideReason = typeof req.body.overrideReason === "string" ? req.body.overrideReason.trim() : "";
+        if (!overrideReason) {
+          return res.status(422).json({
+            message: "Commissioners must provide an override reason when reporting a game on behalf of a team",
+            validationErrors: [{ id: "override-reason-required", field: "overrideReason", severity: "error", message: "Override reason is required for commissioner reports" }],
+          });
+        }
+      }
+
       const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
       if (typeof homeScore !== "number" || typeof awayScore !== "number") {
         return res.status(400).json({ message: "homeScore and awayScore are required" });
       }
       if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0 || homeScore > 30 || awayScore > 30) {
-        return res.status(422).json({ message: "Scores must be non-negative integers between 0 and 30" });
+        return res.status(422).json({
+          message: "Scores must be non-negative integers between 0 and 30",
+          validationErrors: [{ id: "score-range", field: "score", severity: "error", message: "Scores must be non-negative integers between 0 and 30" }],
+        });
       }
       if (homeScore === awayScore) {
-        return res.status(422).json({ message: "Tied games are not valid — scores must differ" });
+        return res.status(422).json({
+          message: "Tied games are not valid — scores must differ",
+          validationErrors: [{ id: "score-tied", field: "score", severity: "error", message: "Tied games are not valid — scores must differ" }],
+        });
       }
 
       const hasFullBoxScore = !!(
@@ -486,7 +508,15 @@ export function registerGameRoutes(app: Express): void {
       const allTeams = await storage.getTeamsByLeague(leagueId);
       const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
       const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
-      const isCpuGame = !!(homeTeam?.isCpu || awayTeam?.isCpu);
+
+      // Auto-confirm only when a human-side coach submits against a CPU team.
+      // Commissioner submissions never auto-confirm — they still create a pending
+      // report so the opposing coach (or an explicit confirm action) can validate it.
+      const humanReporterTeamId = isInvolvedCoach ? (coach!.teamId ?? null) : null;
+      const opposingTeam = humanReporterTeamId
+        ? allTeams.find(t => t.id === (humanReporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId))
+        : null;
+      const autoConfirm = isInvolvedCoach && !!(opposingTeam?.isCpu);
 
       const report = await storage.createGameReport({
         gameId: game.id,
@@ -502,8 +532,8 @@ export function registerGameRoutes(app: Express): void {
         inningScores: inningScores ?? null,
         homeBoxData: homeBoxData ?? null,
         awayBoxData: awayBoxData ?? null,
-        status: isCpuGame ? "confirmed" : "pending",
-        confirmedByUserId: isCpuGame ? req.session.userId! : null,
+        status: autoConfirm ? "confirmed" : "pending",
+        confirmedByUserId: autoConfirm ? req.session.userId! : null,
         disputedByUserId: null,
         disputeReason: null,
       });
@@ -512,7 +542,7 @@ export function registerGameRoutes(app: Express): void {
         leagueId,
         userId: req.session.userId,
         action: "Game Report Submitted",
-        details: `Reported: ${awayScore}-${homeScore}${isCpuGame ? " (auto-confirmed vs CPU)" : ""}`,
+        details: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (auto-confirmed vs CPU)" : ""}`,
       });
 
       await persistCorrections(req.body.corrections, {
@@ -522,7 +552,7 @@ export function registerGameRoutes(app: Express): void {
         userId: req.session.userId!,
       });
 
-      if (isCpuGame) {
+      if (autoConfirm) {
         await finalizeReportedGame(report, game, leagueId);
         return res.json({ ...report, autoConfirmed: true });
       }
