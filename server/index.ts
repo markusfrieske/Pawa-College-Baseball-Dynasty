@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer, request as httpRequest } from "http";
 import { pool } from "./db";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
 import { runMigrations } from "./lib/runMigrations";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
@@ -57,7 +57,6 @@ declare module "http" {
 
 app.use(
   express.json({
-    limit: "5mb",
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
@@ -88,6 +87,22 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
+/** Replace dynamic segments (UUIDs, numeric IDs, tokens) with fixed placeholders. */
+function normalizePath(rawPath: string): string {
+  return rawPath
+    // UUID segments (e.g. league/player/invite IDs)
+    .replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "/:id")
+    // Numeric IDs (4+ digits) — catches page numbers, player IDs, etc.
+    .replace(/\/\d{4,}/g, "/:id")
+    // Token-bearing paths — invite/join/share/unsubscribe codes must never appear in logs
+    .replace(/(\/(?:invite|join|share|token|unsubscribe)\/)[A-Za-z0-9+/=_-]{6,}/g, "$1:token");
+}
+
+/** One-way 8-char fingerprint of a user ID — human-unreadable but correlation-safe. */
+function hashUserId(id: string): string {
+  return createHash("sha256").update(id).digest("hex").slice(0, 8);
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -98,7 +113,9 @@ app.use((req, res, next) => {
     if (path.startsWith("/api") && !path.startsWith("/api/presence")) {
       const rawLen = res.getHeader("content-length");
       const byteCount = rawLen ? parseInt(rawLen as string, 10) : 0;
-      log(`[${reqId}] ${req.method} ${path} ${res.statusCode} ${duration}ms ${byteCount}b`);
+      const uid = (req as any).session?.userId as string | undefined;
+      const userTag = uid ? ` u:${hashUserId(uid)}` : "";
+      log(`[${reqId}] ${req.method} ${normalizePath(path)} ${res.statusCode} ${duration}ms ${byteCount}b${userTag}`);
     }
   });
 
@@ -109,9 +126,11 @@ app.use((req, res, next) => {
   // ── Numbered SQL migration runner ──────────────────────────────────────────
   // Applies pending *.sql files from server/migrations/ exactly once each.
   // Uses db_schema_migrations table for version tracking.
-  // Replaces the former inline _columnMigrations array.
+  // Job runner is only started after migrations complete successfully.
+  let migrationsOk = false;
   try {
     const { applied, version } = await runMigrations(pool);
+    migrationsOk = true;
     if (applied.length > 0) {
       console.log(`[migration] ${applied.length} migration(s) applied; version=${version}`);
     } else {
@@ -119,6 +138,17 @@ app.use((req, res, next) => {
     }
   } catch (e) {
     console.error("[migration] fatal error running migrations:", e);
+  }
+
+  // Start the job runner only after numbered migrations have applied successfully.
+  // Gating prevents claimNextPendingJob() from racing against missing lease columns.
+  if (migrationsOk) {
+    startJobRunner();
+  } else {
+    console.error(
+      "[startup] skipping job runner: migrations did not complete — " +
+        "resolve migration errors and restart to enable background jobs"
+    );
   }
 
 
@@ -1146,8 +1176,7 @@ app.use((req, res, next) => {
   });
 
   await registerRoutes(httpServer, app);
-  // startJobRunner() is called inside the security-hardening migration .then()
-  // below so the job runner never polls before the lease columns exist.
+  // startJobRunner() is called in the main IIFE after runMigrations() completes.
 
   // One-time OVR resync — runs in background after startup, at most once ever.
   // Recomputes calculateOVR() for every player and corrects any stored `overall`
@@ -1456,89 +1485,11 @@ app.use((req, res, next) => {
       })
       .catch(e => console.warn("[startup-migration] full-season-schema-v4 failed:", e));
 
-  // ── full-season-schema-v5 ─────────────────────────────────────────────────
-  // Additive-only. Adds:
-  //   • leagues.schedule_version  — monotonic counter bumped on every publish
-  //   • Partial unique index on games for conference_championship phase
-  //     so concurrent advance requests cannot create duplicate CC games.
-  pool.query(`
-    ALTER TABLE leagues
-      ADD COLUMN IF NOT EXISTS schedule_version integer NOT NULL DEFAULT 0;
-
-    -- Prevent concurrent CC-game creation from producing duplicates.
-    -- Both home and away unique indexes are needed: they prevent any team
-    -- from appearing in more than one CC game per league/season, which
-    -- (since each team belongs to exactly one conference) guarantees at
-    -- most one CC game per conference.
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_games_cc_league_season_home
-      ON games (league_id, season, home_team_id)
-      WHERE phase = 'conference_championship';
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_games_cc_league_season_away
-      ON games (league_id, season, away_team_id)
-      WHERE phase = 'conference_championship';
-  `).then(() => {
-    console.log("[startup-migration] full-season-schema-v5: schedule_version column + CC unique index ensured");
-  }).catch(e => {
-    console.warn("[startup-migration] full-season-schema-v5 failed (non-fatal):", e);
-  });
-
-  // ── Security hardening migration (checkpoint-2) ───────────────────────────
-  // Creates league_advance_locks (DB-backed advance concurrency guard) and
-  // adds a partial unique index on coaches so one user can't claim multiple
-  // teams in the same league.  Idempotent — safe to run on every startup.
-  pool.query(`
-    CREATE TABLE IF NOT EXISTS league_advance_locks (
-      league_id varchar PRIMARY KEY,
-      locked_at timestamptz NOT NULL DEFAULT now()
-    );
-
-    -- Add locked_by column to advance locks table (idempotent; supports owner-token release).
-    ALTER TABLE league_advance_locks ADD COLUMN IF NOT EXISTS locked_by text;
-
-    -- One human coach per league per user (partial index: cpu coaches have null user_id).
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_user
-      ON coaches (league_id, user_id)
-      WHERE user_id IS NOT NULL;
-
-    -- One human coach per team per league (prevents two users claiming the same team).
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_coaches_league_team
-      ON coaches (league_id, team_id)
-      WHERE user_id IS NOT NULL AND team_id IS NOT NULL;
-
-    -- Job lease columns for expiry-based reclaim (idempotent ADD COLUMN IF NOT EXISTS).
-    ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS locked_by        text;
-    ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS lease_expires_at timestamptz;
-    ALTER TABLE league_jobs ADD COLUMN IF NOT EXISTS attempt_count    integer NOT NULL DEFAULT 0;
-  `).then(() => {
-    console.log("[startup-migration] security-hardening-v1: advance locks + coach unique indexes + job lease columns ensured");
-    // Start the job runner only after lease columns are confirmed to exist so
-    // claimNextPendingJob() never races against a missing column.
-    startJobRunner();
-  }).catch(e => {
-    console.warn("[startup-migration] security-hardening-v1 failed (non-fatal):", e);
-    // Start anyway so jobs aren't silently dropped; lease-column 42703 errors
-    // are already caught gracefully inside claimNextPendingJob / resetOrphanedJobs.
-    startJobRunner();
-  });
+  // DDL for full-season-schema-v5, security-hardening-v1, and storyline-resolutions-v1
+  // has been moved to numbered migration files 0035, 0036, and 0038 respectively.
+  // Those files are applied by runMigrations() above on every cold start.
 
   })();
-
-  // ── storyline_resolutions migration ──────────────────────────────────────────
-  // Idempotency ledger for applyStoryOutcomeToRecruit — one row per resolved event.
-  pool.query(`
-    CREATE TABLE IF NOT EXISTS storyline_resolutions (
-      id            varchar PRIMARY KEY DEFAULT gen_random_uuid(),
-      event_id      varchar NOT NULL UNIQUE REFERENCES storyline_events(id),
-      winning_choice text NOT NULL,
-      vote_snapshot_hash text,
-      effect_snapshot    jsonb,
-      before_ratings     jsonb,
-      after_ratings      jsonb,
-      resolved_at   timestamptz NOT NULL DEFAULT now()
-    );
-    CREATE INDEX IF NOT EXISTS idx_storyline_resolutions_event_id ON storyline_resolutions(event_id);
-  `).catch(e => console.warn("[startup-migration] storyline-resolutions-v1 failed (non-fatal):", e));
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
