@@ -391,7 +391,16 @@ export function registerDeparturesRoutes(app: Express): void {
         return res.status(403).json({ message: "Not authorized for this team" });
       }
 
-      const player = await storage.getPlayer(playerId);
+      // League-scope verification: ensure the teamId in the URL belongs to this league.
+      // Without this check a commissioner of League A could mutate League B captain data
+      // by supplying B's teamId under A's URL prefix.
+      const { loadLeagueScopedTeam, loadLeagueScopedPlayer } = await import("../route-helpers");
+      const team = await loadLeagueScopedTeam(leagueId, teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found in this league" });
+      }
+
+      const player = await loadLeagueScopedPlayer(leagueId, playerId);
       if (!player || player.teamId !== teamId) {
         return res.status(404).json({ message: "Player not found on this team" });
       }

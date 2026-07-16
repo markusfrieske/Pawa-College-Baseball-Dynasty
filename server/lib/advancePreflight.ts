@@ -5,11 +5,24 @@
  * have been finalized (accepted report).  Returns a structured blocker list so
  * the advance route can return 409 with per-game detail and the commissioner UI
  * can surface direct links to blocking games.
+ *
+ * GameBlockerStatus classifications:
+ *   "unreported"           — no game report has been submitted yet
+ *   "pending_confirmation" — report submitted but not yet accepted
+ *   "disputed"             — report disputed, needs commissioner resolution
+ *   "invalid_or_orphaned"  — game row exists but is in an unexpected/corrupt
+ *                            state (e.g. missing team references, stale partial
+ *                            data, or a report attached to a game that no longer
+ *                            matches the current season/week slot)
  */
 
 import { storage } from "../storage";
 
-export type GameBlockerStatus = "unreported" | "pending_confirmation" | "disputed";
+export type GameBlockerStatus =
+  | "unreported"
+  | "pending_confirmation"
+  | "disputed"
+  | "invalid_or_orphaned";
 
 export interface GameBlocker {
   gameId: string;
@@ -33,12 +46,15 @@ export interface AdvancePreflightResult {
  * Run advance preflight for a league.
  *
  * Simulated mode always returns canAdvance=true.
- * Reported mode scans current-week regular-phase games with two human teams:
- *   - "unreported"           — no report submitted
- *   - "pending_confirmation" — report submitted but pending
- *   - "disputed"             — report disputed, needs commissioner resolution
+ * Reported mode scans current-week regular-phase games with two human teams.
  *
- * Games with an "accepted" report, or CPU-vs-CPU games, are never blockers.
+ * Status determination order:
+ *   1. invalid_or_orphaned — game row is missing required team references, or
+ *      an attached report's season/week does not match the game's own values.
+ *   2. unreported           — no report row at all.
+ *   3. pending_confirmation — report exists but status = "pending".
+ *   4. disputed             — report status = "disputed".
+ *   (accepted → not a blocker)
  */
 export async function getAdvancePreflight(leagueId: string): Promise<AdvancePreflightResult> {
   const league = await storage.getLeague(leagueId);
@@ -74,7 +90,45 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
   const blockers: GameBlocker[] = [];
 
   for (const game of currentWeekHumanGames) {
+    // Step 1: Detect invalid/orphaned game rows before checking report status.
+    // A game is considered invalid_or_orphaned when:
+    //   - It is missing either team reference (should never happen for regular games), or
+    //   - An attached report's season/week fields don't match the game's own values
+    //     (indicates the report was created for a different game slot and reused).
+    if (!game.homeTeamId || !game.awayTeamId) {
+      blockers.push({
+        gameId: game.id,
+        week: game.week,
+        season: game.season ?? league.currentSeason,
+        phase: game.phase ?? "regular",
+        homeTeamId: game.homeTeamId ?? "",
+        awayTeamId: game.awayTeamId ?? "",
+        homeTeamName: game.homeTeamId ? (teamNameById.get(game.homeTeamId) ?? null) : null,
+        awayTeamName: game.awayTeamId ? (teamNameById.get(game.awayTeamId) ?? null) : null,
+        status: "invalid_or_orphaned",
+      });
+      continue;
+    }
+
     const report = reportsByGameId.get(game.id);
+
+    // A report whose season/week doesn't match the game is an orphaned report —
+    // treat the game as if it has no report (unreported) plus flag it.
+    if (report && (report.season !== game.season || report.week !== game.week)) {
+      blockers.push({
+        gameId: game.id,
+        week: game.week,
+        season: game.season ?? league.currentSeason,
+        phase: game.phase ?? "regular",
+        homeTeamId: game.homeTeamId,
+        awayTeamId: game.awayTeamId,
+        homeTeamName: teamNameById.get(game.homeTeamId) ?? null,
+        awayTeamName: teamNameById.get(game.awayTeamId) ?? null,
+        status: "invalid_or_orphaned",
+      });
+      continue;
+    }
+
     let status: GameBlockerStatus | null = null;
 
     if (!report) {
@@ -92,10 +146,10 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
         week: game.week,
         season: game.season ?? league.currentSeason,
         phase: game.phase ?? "regular",
-        homeTeamId: game.homeTeamId!,
-        awayTeamId: game.awayTeamId!,
-        homeTeamName: teamNameById.get(game.homeTeamId!) ?? null,
-        awayTeamName: teamNameById.get(game.awayTeamId!) ?? null,
+        homeTeamId: game.homeTeamId,
+        awayTeamId: game.awayTeamId,
+        homeTeamName: teamNameById.get(game.homeTeamId) ?? null,
+        awayTeamName: teamNameById.get(game.awayTeamId) ?? null,
         status,
       });
     }
