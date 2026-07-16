@@ -22,6 +22,7 @@
  */
 
 import { storage } from "./storage";
+import { pool } from "./db";
 import type { Game, GameReport, Team, InsertPlayerSeasonStats, Coach } from "@shared/schema";
 import {
   updateStandingsForGame,
@@ -106,6 +107,21 @@ export async function finalizeGame(
   leagueId: string,
   opts: FinalizeGameOptions = {},
 ): Promise<void> {
+  // ── Exhibition games must never pollute standings, player stats, or coach XP ──
+  // gameType 'exhibition' is used by Spring Training games. We still persist the
+  // score and create a league event so the box score is viewable, but all
+  // competitive side-effects are suppressed regardless of caller-supplied opts.
+  const isExhibition = game.gameType === "exhibition";
+  const effectiveOpts: FinalizeGameOptions = isExhibition
+    ? {
+        ...opts,
+        skipStandings: true,
+        skipPlayerStats: true,
+        skipPitcherRest: true,
+        skipCoachXp: true,
+      }
+    : opts;
+
   const {
     skipStandings = false,
     skipPlayerStats = false,
@@ -118,7 +134,7 @@ export async function finalizeGame(
     reportedByUserId = null,
     eventDescriptionSuffix,
     leagueCurrentWeek,
-  } = opts;
+  } = effectiveOpts;
 
   const homeWon = homeScore > awayScore;
 
@@ -772,4 +788,48 @@ export async function batchFinalizeGames(
       }).catch(e => console.error("[batchFinalizeGames] recap error:", e));
     } catch { /* non-critical */ }
   }
+}
+
+/**
+ * Atomic wrapper around finalizeGame() that uses the `game_finalizations` table
+ * as a DB-level idempotency guard.
+ *
+ * Exactly one concurrent caller will successfully insert the sentinel row and
+ * proceed to run all side-effects. Any subsequent call (retry, race, duplicate
+ * network request) finds the row already present and returns immediately with
+ * `{ alreadyFinalized: true }` — no double-standings, double-stats, or
+ * double-XP.
+ *
+ * Usage:
+ *   const { alreadyFinalized } = await finalizeGameAtomic(
+ *     game, home, away, box, leagueId, { finalizer: "quick-score" }
+ *   );
+ *   if (alreadyFinalized) return res.json(existingGame);
+ */
+export async function finalizeGameAtomic(
+  game: Pick<Game, "id" | "homeTeamId" | "awayTeamId" | "season" | "week" | "isConference" | "gameType">,
+  homeScore: number,
+  awayScore: number,
+  rawBoxScore: { home: any; away: any; innings?: any[] } | null,
+  leagueId: string,
+  opts: FinalizeGameOptions & { finalizer?: string } = {},
+): Promise<{ alreadyFinalized: boolean }> {
+  const { finalizer = "unknown", ...finalizeOpts } = opts;
+
+  // Attempt to claim the finalization slot. ON CONFLICT DO NOTHING means only
+  // one concurrent caller wins the INSERT; all others see an empty result set.
+  const result = await pool.query<{ game_id: string }>(
+    `INSERT INTO game_finalizations (game_id, finalizer)
+     VALUES ($1, $2)
+     ON CONFLICT (game_id) DO NOTHING
+     RETURNING game_id`,
+    [game.id, finalizer],
+  );
+
+  if (result.rows.length === 0) {
+    return { alreadyFinalized: true };
+  }
+
+  await finalizeGame(game, homeScore, awayScore, rawBoxScore, leagueId, finalizeOpts);
+  return { alreadyFinalized: false };
 }

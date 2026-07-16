@@ -2427,3 +2427,14 @@ export const aiClassJobs = pgTable("ai_class_jobs", {
 export const insertAiClassJobSchema = createInsertSchema(aiClassJobs).omit({ id: true, createdAt: true });
 export type InsertAiClassJob = z.infer<typeof insertAiClassJobSchema>;
 export type AiClassJob = typeof aiClassJobs.$inferSelect;
+
+// Game finalizations — idempotency guard
+// One row per game, inserted atomically by finalizeGameAtomic() before any
+// side-effects fire. A duplicate-key on insert means the game is already done.
+export const gameFinalizations = pgTable("game_finalizations", {
+  gameId: varchar("game_id").primaryKey().references(() => games.id, { onDelete: "cascade" }),
+  finalizedAt: timestamp("finalized_at").notNull().defaultNow(),
+  finalizer: text("finalizer").notNull().default("unknown"),
+});
+
+export type GameFinalization = typeof gameFinalizations.$inferSelect;

@@ -278,7 +278,8 @@ export function registerGameRoutes(app: Express): void {
     try {
       const scoreResult = gameScoreSchema.safeParse(req.body);
       if (!scoreResult.success) {
-        return res.status(400).json({ message: "Invalid score data — scores must be non-negative integers" });
+        const firstIssue = scoreResult.error.issues[0];
+        return res.status(400).json({ message: firstIssue?.message ?? "Invalid score data — scores must be non-negative integers between 0 and 30" });
       }
       const { homeScore, awayScore } = scoreResult.data;
 
@@ -299,6 +300,12 @@ export function registerGameRoutes(app: Express): void {
 
       const patchGame = await storage.getGame(patchGameId);
       if (!patchGame) return res.status(404).json({ message: "Game not found" });
+      if (patchGame.leagueId !== patchLeagueId) return res.status(404).json({ message: "Game not found in this league" });
+
+      // Idempotency: if the game is already complete, return the existing result.
+      if (patchGame.isComplete) {
+        return res.json(patchGame);
+      }
 
       const leagueTeams = await storage.getTeamsByLeague(patchLeagueId);
       await finalizeGame(patchGame, homeScore, awayScore, null, patchLeagueId, {
@@ -434,16 +441,26 @@ export function registerGameRoutes(app: Express): void {
         return res.status(400).json({ message: statusMsg });
       }
 
+      const isCommissionerForReport = hasCommissionerAccess(league, req.session.userId);
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
-      const isLeagueMember = hasCommissionerAccess(league, req.session.userId) || !!coach;
-      if (!isLeagueMember) {
-        return res.status(403).json({ message: "Only league members can report game results" });
+      const isInvolvedCoach = !!(
+        coach?.teamId &&
+        (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId)
+      );
+      if (!isCommissionerForReport && !isInvolvedCoach) {
+        return res.status(403).json({ message: "Only the home or away team's coach, or the commissioner, can report this game" });
       }
 
       const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
       if (typeof homeScore !== "number" || typeof awayScore !== "number") {
         return res.status(400).json({ message: "homeScore and awayScore are required" });
+      }
+      if (!Number.isInteger(homeScore) || !Number.isInteger(awayScore) || homeScore < 0 || awayScore < 0 || homeScore > 30 || awayScore > 30) {
+        return res.status(422).json({ message: "Scores must be non-negative integers between 0 and 30" });
+      }
+      if (homeScore === awayScore) {
+        return res.status(422).json({ message: "Tied games are not valid — scores must differ" });
       }
 
       const hasFullBoxScore = !!(

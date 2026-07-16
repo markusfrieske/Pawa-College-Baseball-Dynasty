@@ -200,8 +200,11 @@ export const leagueCreateSchema = z.object({
 });
 
 export const gameScoreSchema = z.object({
-  homeScore: z.number().min(0),
-  awayScore: z.number().min(0),
+  homeScore: z.number().int().min(0).max(30),
+  awayScore: z.number().int().min(0).max(30),
+}).refine(d => d.homeScore !== d.awayScore, {
+  message: "Tied games are not valid — scores must differ",
+  path: ["awayScore"],
 });
 
 export const setupSchema = z.object({
