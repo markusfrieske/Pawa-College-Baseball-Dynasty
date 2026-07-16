@@ -82,6 +82,12 @@ export interface FinalizeGameOptions {
   skipLeagueEvent?: boolean;
   /** Skip cache invalidation (default false). Batch callers invalidate once after all games. */
   skipCacheInvalidation?: boolean;
+  /**
+   * Skip the game row updates (scores + isComplete) inside finalizeGame().
+   * Set true when the caller (finalizeGameAtomic) has already committed these
+   * writes atomically before running side-effects.
+   */
+  skipGameUpdate?: boolean;
   /** Mark the game row as manually reported (sets isManuallyReported + reportedByUserId). */
   isManualReport?: boolean;
   reportedByUserId?: string | null;
@@ -130,6 +136,7 @@ export async function finalizeGame(
     coachXpAccum,
     skipLeagueEvent = false,
     skipCacheInvalidation = false,
+    skipGameUpdate = false,
     isManualReport = false,
     reportedByUserId = null,
     eventDescriptionSuffix,
@@ -139,13 +146,16 @@ export async function finalizeGame(
   const homeWon = homeScore > awayScore;
 
   // ── 1. Persist score + box score (isComplete deferred to step 7) ───────────
-  const gameUpdate: Record<string, unknown> = { homeScore, awayScore };
-  if (rawBoxScore) gameUpdate.boxScore = JSON.stringify(rawBoxScore);
-  if (isManualReport) {
-    gameUpdate.isManuallyReported = true;
-    if (reportedByUserId) gameUpdate.reportedByUserId = reportedByUserId;
+  // Skipped when finalizeGameAtomic() has already committed these writes atomically.
+  if (!skipGameUpdate) {
+    const gameUpdate: Record<string, unknown> = { homeScore, awayScore };
+    if (rawBoxScore) gameUpdate.boxScore = JSON.stringify(rawBoxScore);
+    if (isManualReport) {
+      gameUpdate.isManuallyReported = true;
+      if (reportedByUserId) gameUpdate.reportedByUserId = reportedByUserId;
+    }
+    await storage.updateGame(game.id, gameUpdate);
   }
-  await storage.updateGame(game.id, gameUpdate);
 
   // ── 2. Standings ───────────────────────────────────────────────────────────
   if (!skipStandings) {
@@ -278,7 +288,10 @@ export async function finalizeGame(
   }
 
   // ── 7. Mark complete (after stats + standings confirmed) ───────────────────
-  await storage.updateGame(game.id, { isComplete: true });
+  // Skipped when finalizeGameAtomic() has already committed is_complete=true atomically.
+  if (!skipGameUpdate) {
+    await storage.updateGame(game.id, { isComplete: true });
+  }
 
   // ── 8. Cache ───────────────────────────────────────────────────────────────
   if (!skipCacheInvalidation) {
@@ -794,14 +807,19 @@ export async function batchFinalizeGames(
 }
 
 /**
- * Atomic wrapper around finalizeGame() that uses the `game_finalizations` table
- * as a DB-level idempotency guard.
+ * Atomic wrapper around finalizeGame() that provides exactly-once finalization.
  *
- * Exactly one concurrent caller will successfully insert the sentinel row and
- * proceed to run all side-effects. Any subsequent call (retry, race, duplicate
- * network request) finds the row already present and returns immediately with
- * `{ alreadyFinalized: true }` — no double-standings, double-stats, or
- * double-XP.
+ * Uses a single DB transaction to:
+ *   1. Lock the game row (FOR UPDATE) — serialises concurrent finalization calls
+ *   2. Check the sentinel table (idempotency — returns immediately if already done)
+ *   3. INSERT the sentinel row
+ *   4. UPDATE games: scores + is_complete = true atomically
+ *   5. COMMIT — after this point the game is permanently marked complete
+ *
+ * Side-effects (standings, stats, XP, league events, cache) are applied OUTSIDE
+ * the transaction after the commit. They run at most once per game: the sentinel
+ * blocks re-entry, and `is_complete = true` means the game object itself reflects
+ * completion even before side-effects finish.
  *
  * Usage:
  *   const { alreadyFinalized } = await finalizeGameAtomic(
@@ -818,32 +836,67 @@ export async function finalizeGameAtomic(
   opts: FinalizeGameOptions & { finalizer?: string } = {},
 ): Promise<{ alreadyFinalized: boolean }> {
   const { finalizer = "unknown", ...finalizeOpts } = opts;
+  const isManualReport = finalizeOpts.isManualReport ?? false;
+  const reportedByUserId = finalizeOpts.reportedByUserId ?? null;
 
-  // Attempt to claim the finalization slot. ON CONFLICT DO NOTHING means only
-  // one concurrent caller wins the INSERT; all others see an empty result set.
-  const result = await pool.query<{ game_id: string }>(
-    `INSERT INTO game_finalizations (game_id, finalizer)
-     VALUES ($1, $2)
-     ON CONFLICT (game_id) DO NOTHING
-     RETURNING game_id`,
-    [game.id, finalizer],
-  );
-
-  if (result.rows.length === 0) {
-    return { alreadyFinalized: true };
-  }
-
+  const client = await pool.connect();
   try {
-    await finalizeGame(game, homeScore, awayScore, rawBoxScore, leagueId, finalizeOpts);
-  } catch (err) {
-    // Roll back the sentinel so the caller can retry after fixing the root cause.
-    // Without this, any mid-flight failure would permanently lock the game out of
-    // future finalization attempts.
-    await pool.query(`DELETE FROM game_finalizations WHERE game_id = $1`, [game.id]).catch(
-      delErr => console.error("[finalizeGameAtomic] sentinel rollback failed:", delErr),
+    await client.query("BEGIN");
+
+    // Step 1: lock game row — serialises concurrent calls on this game
+    await client.query("SELECT id FROM games WHERE id = $1 FOR UPDATE", [game.id]);
+
+    // Step 2: idempotency check inside the transaction
+    const existing = await client.query<{ game_id: string }>(
+      "SELECT game_id FROM game_finalizations WHERE game_id = $1",
+      [game.id],
     );
+    if (existing.rows.length > 0) {
+      await client.query("COMMIT");
+      return { alreadyFinalized: true };
+    }
+
+    // Step 3: claim sentinel
+    await client.query(
+      "INSERT INTO game_finalizations (game_id, finalizer) VALUES ($1, $2)",
+      [game.id, finalizer],
+    );
+
+    // Step 4: write scores + mark game complete atomically
+    const setParts: string[] = ["home_score = $2", "away_score = $3", "is_complete = true"];
+    const params: unknown[] = [game.id, homeScore, awayScore];
+    let paramIdx = 4;
+    if (rawBoxScore) {
+      setParts.push(`box_score = $${paramIdx++}`);
+      params.push(JSON.stringify(rawBoxScore));
+    }
+    if (isManualReport) {
+      setParts.push("is_manually_reported = true");
+      if (reportedByUserId) {
+        setParts.push(`reported_by_user_id = $${paramIdx++}`);
+        params.push(reportedByUserId);
+      }
+    }
+    await client.query(
+      `UPDATE games SET ${setParts.join(", ")} WHERE id = $1`,
+      params,
+    );
+
+    // Step 5: commit — game is now permanently complete
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
     throw err;
+  } finally {
+    client.release();
   }
+
+  // Side-effects run after the atomic commit. skipGameUpdate=true prevents
+  // finalizeGame() from re-writing scores/isComplete (already committed above).
+  await finalizeGame(game, homeScore, awayScore, rawBoxScore, leagueId, {
+    ...finalizeOpts,
+    skipGameUpdate: true,
+  });
 
   return { alreadyFinalized: false };
 }

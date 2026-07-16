@@ -23,6 +23,7 @@ import { requireAuth, hasCommissionerAccess, gameScoreSchema } from "../route-he
 import * as coachMsg from "../lib/coachMessages";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGameAtomic, finalizeReportedGame } from "../game-finalizer";
+import { pool } from "../db";
 import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
 import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
 import { ObjectStorageService, ObjectNotFoundError, InvalidImageError } from "../replit_integrations/object_storage/objectStorage";
@@ -34,6 +35,19 @@ import {
 } from "@shared/pitcherRest";
 
 const objectStorageService = new ObjectStorageService();
+
+/**
+ * Derives a stable 31-bit integer from a game ID string for use with
+ * PostgreSQL's two-argument pg_advisory_lock(int, int). The namespace (0x1382)
+ * ensures no accidental collision with advisory locks from other subsystems.
+ */
+function gameIdToAdvisoryKey(gameId: string): number {
+  let h = 5381;
+  for (let i = 0; i < gameId.length; i++) {
+    h = (Math.imul(h, 33) ^ gameId.charCodeAt(i)) >>> 0;
+  }
+  return (h & 0x7fffffff) || 1; // ensure positive non-zero
+}
 
 // Shape of a single coach correction logged during OCR review. `ocrValue`/`correctedValue`
 // are stored as strings (already stringified client-side) so the audit trail can compare
@@ -509,6 +523,63 @@ export function registerGameRoutes(app: Express): void {
       const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
       const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
 
+      // ── Roster membership + duplicate player-ID validation ──────────────────
+      // Only validate when full box data is present (commissioner-only quick submissions are exempt).
+      if (hasFullBoxScore) {
+        const [homePlayers, awayPlayers] = await Promise.all([
+          storage.getPlayersByTeam(game.homeTeamId),
+          storage.getPlayersByTeam(game.awayTeamId),
+        ]);
+        const homePlayerIds = new Set(homePlayers.map((p) => p.id));
+        const awayPlayerIds = new Set(awayPlayers.map((p) => p.id));
+
+        type BoxRow = { playerId?: string | null };
+        const rosterErrors: Array<{ id: string; field: string; severity: string; message: string }> = [];
+
+        function checkBoxSide(
+          rows: BoxRow[] | undefined,
+          validIds: Set<string>,
+          side: "home" | "away",
+          section: "batting" | "pitching",
+        ): void {
+          if (!rows) return;
+          const seen = new Set<string>();
+          for (const row of rows) {
+            const pid = row.playerId;
+            if (!pid) continue;
+            if (seen.has(pid)) {
+              rosterErrors.push({
+                id: `duplicate-${side}-${section}-${pid}`,
+                field: `${side}BoxData.${section}`,
+                severity: "error",
+                message: `Duplicate player ID in ${side} ${section}: ${pid}`,
+              });
+            }
+            seen.add(pid);
+            if (!validIds.has(pid)) {
+              rosterErrors.push({
+                id: `unauthorized-${side}-${section}-${pid}`,
+                field: `${side}BoxData.${section}`,
+                severity: "error",
+                message: `Player ${pid} in ${side} ${section} does not belong to the ${side} team's roster`,
+              });
+            }
+          }
+        }
+
+        checkBoxSide(homeBoxData?.batting, homePlayerIds, "home", "batting");
+        checkBoxSide(homeBoxData?.pitching, homePlayerIds, "home", "pitching");
+        checkBoxSide(awayBoxData?.batting, awayPlayerIds, "away", "batting");
+        checkBoxSide(awayBoxData?.pitching, awayPlayerIds, "away", "pitching");
+
+        if (rosterErrors.length > 0) {
+          return res.status(422).json({
+            message: rosterErrors[0].message,
+            validationErrors: rosterErrors,
+          });
+        }
+      }
+
       // Auto-confirm only when a human-side coach submits against a CPU team.
       // Commissioner submissions never auto-confirm — they still create a pending
       // report so the opposing coach (or an explicit confirm action) can validate it.
@@ -518,25 +589,53 @@ export function registerGameRoutes(app: Express): void {
         : null;
       const autoConfirm = isInvolvedCoach && !!(opposingTeam?.isCpu);
 
-      const report = await storage.createGameReport({
-        gameId: game.id,
-        leagueId,
-        reporterUserId: req.session.userId!,
-        reporterTeamId:
-          coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId)
-            ? coach.teamId
-            : null,
-        homeScore, awayScore,
-        homeHits: homeHits ?? 0, awayHits: awayHits ?? 0,
-        homeErrors: homeErrors ?? 0, awayErrors: awayErrors ?? 0,
-        inningScores: inningScores ?? null,
-        homeBoxData: homeBoxData ?? null,
-        awayBoxData: awayBoxData ?? null,
-        status: autoConfirm ? "confirmed" : "pending",
-        confirmedByUserId: autoConfirm ? req.session.userId! : null,
-        disputedByUserId: null,
-        disputeReason: null,
-      });
+      // ── Advisory lock: serialise concurrent report submissions for this game ─
+      // Holds a session-level pg_advisory_lock on a dedicated client for the
+      // duration of the existence re-check + createGameReport to prevent a
+      // TOCTOU race where two concurrent callers both see "no existing report"
+      // and then both attempt to insert one.
+      const lockKey = gameIdToAdvisoryKey(game.id);
+      const lockClient = await pool.connect();
+      let lockHeld = false;
+      let report: Awaited<ReturnType<typeof storage.createGameReport>>;
+      try {
+        await lockClient.query("SELECT pg_advisory_lock(0x1382, $1)", [lockKey]);
+        lockHeld = true;
+
+        // Re-check for an existing report inside the lock
+        const raceCheck = await lockClient.query<{ id: string }>(
+          "SELECT id FROM game_reports WHERE game_id = $1 LIMIT 1",
+          [game.id],
+        );
+        if (raceCheck.rows.length > 0) {
+          return res.status(409).json({ message: "A concurrent report for this game was already submitted" });
+        }
+
+        report = await storage.createGameReport({
+          gameId: game.id,
+          leagueId,
+          reporterUserId: req.session.userId!,
+          reporterTeamId:
+            coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId)
+              ? coach.teamId
+              : null,
+          homeScore, awayScore,
+          homeHits: homeHits ?? 0, awayHits: awayHits ?? 0,
+          homeErrors: homeErrors ?? 0, awayErrors: awayErrors ?? 0,
+          inningScores: inningScores ?? null,
+          homeBoxData: homeBoxData ?? null,
+          awayBoxData: awayBoxData ?? null,
+          status: autoConfirm ? "confirmed" : "pending",
+          confirmedByUserId: autoConfirm ? req.session.userId! : null,
+          disputedByUserId: null,
+          disputeReason: null,
+        });
+      } finally {
+        if (lockHeld) {
+          await lockClient.query("SELECT pg_advisory_unlock(0x1382, $1)", [lockKey]).catch(() => {});
+        }
+        lockClient.release();
+      }
 
       await storage.createAuditLog({
         leagueId,

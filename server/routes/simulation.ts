@@ -5534,11 +5534,11 @@ export async function simulateUntil(
 
 export function registerSimulationRoutes(app: Express): void {
   // ============ PLAY-BY-PLAY SIMULATION ============
-  // Feature-flagged: set PBP_ENABLED=true in the environment to enable.
+  // Feature-flagged: set PBP_ENABLED=true (exact string) in the environment to enable.
   // Returns 404 (not 403) when disabled so clients treat it as a missing feature
   // rather than an auth failure.
   app.post("/api/leagues/:id/games/:gameId/play-by-play", requireAuth, async (req, res) => {
-    if (!process.env.PBP_ENABLED) {
+    if (process.env.PBP_ENABLED !== "true") {
       return res.status(404).json({ message: "Play-by-play is not available in this league." });
     }
     try {
@@ -6838,7 +6838,7 @@ export function registerSimulationRoutes(app: Express): void {
 
   // ============ FINALIZE PLAY-BY-PLAY ============
   app.post("/api/leagues/:id/games/:gameId/finalize-play-by-play", requireAuth, async (req, res) => {
-    if (!process.env.PBP_ENABLED) {
+    if (process.env.PBP_ENABLED !== "true") {
       return res.status(404).json({ message: "Play-by-play is not available in this league." });
     }
     try {
