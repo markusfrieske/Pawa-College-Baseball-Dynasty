@@ -34,6 +34,8 @@ export interface GameBlocker {
   homeTeamName: string | null;
   awayTeamName: string | null;
   status: GameBlockerStatus;
+  /** Client-side deep link to the report-game page for this blocker (e.g. "/league/:id/report-game/:gameId"). */
+  reportUrl: string;
 }
 
 export interface AdvancePreflightResult {
@@ -106,6 +108,7 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
         homeTeamName: game.homeTeamId ? (teamNameById.get(game.homeTeamId) ?? null) : null,
         awayTeamName: game.awayTeamId ? (teamNameById.get(game.awayTeamId) ?? null) : null,
         status: "invalid_or_orphaned",
+        reportUrl: `/league/${leagueId}/report-game/${game.id}`,
       });
       continue;
     }
@@ -125,6 +128,7 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
         homeTeamName: teamNameById.get(game.homeTeamId) ?? null,
         awayTeamName: teamNameById.get(game.awayTeamId) ?? null,
         status: "invalid_or_orphaned",
+        reportUrl: `/league/${leagueId}/report-game/${game.id}`,
       });
       continue;
     }
@@ -151,6 +155,7 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
         homeTeamName: teamNameById.get(game.homeTeamId) ?? null,
         awayTeamName: teamNameById.get(game.awayTeamId) ?? null,
         status,
+        reportUrl: `/league/${leagueId}/report-game/${game.id}`,
       });
     }
   }

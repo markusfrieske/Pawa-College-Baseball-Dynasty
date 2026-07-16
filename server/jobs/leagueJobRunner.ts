@@ -2,12 +2,22 @@
  * League job runner — polls league_jobs for pending bootstrap jobs and
  * processes them sequentially (bounded concurrency = 1 to avoid DB overload).
  *
- * Starts automatically on server boot. Crashed "running" jobs are reset to
- * "pending" so they can be retried by the next polling cycle.
+ * Lease ownership model (MP-014):
+ *  - Each server process generates a unique RUNNER_INSTANCE_ID at startup.
+ *  - claimNextPendingJob() sets locked_by = RUNNER_INSTANCE_ID so two concurrent
+ *    instances cannot claim the same job.
+ *  - completeLeagueJob() / failLeagueJob() check locked_by before writing so a
+ *    slow instance that lost its lease cannot overwrite a new owner's status.
+ *  - On startup: resetExpiredJobs() sets status = 'pending' for any 'running'
+ *    job whose lease has already expired (orphaned by a prior crash), so the next
+ *    poll cycle picks them up fresh.
  */
 
+import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { runFullSeasonBootstrap } from "../services/fullSeasonBootstrap";
+
+export const RUNNER_INSTANCE_ID = randomUUID();
 
 const POLL_INTERVAL_MS = 5_000;
 let isProcessing = false;
@@ -19,12 +29,13 @@ async function processNextJob(): Promise<void> {
   let jobId: string | null = null;
   try {
     // Atomic claim: UPDATE ... WHERE id = (SELECT ... FOR UPDATE SKIP LOCKED)
-    // so concurrent runners can never double-claim the same job.
-    const pending = await storage.claimNextPendingJob();
+    // locked_by is set to this instance's UUID so ownership can be verified on
+    // complete/fail and concurrent instances never double-claim.
+    const pending = await storage.claimNextPendingJob(RUNNER_INSTANCE_ID);
     if (!pending) return;
 
     jobId = pending.id;
-    console.log(`[job-runner] Starting job ${jobId} (type=${pending.jobType}, league=${pending.leagueId})`);
+    console.log(`[job-runner] Starting job ${jobId} (type=${pending.jobType}, league=${pending.leagueId}) instance=${RUNNER_INSTANCE_ID.slice(0, 8)}`);
 
     if (pending.jobType === "bootstrap") {
       await runFullSeasonBootstrap(pending.leagueId, jobId);
@@ -32,13 +43,19 @@ async function processNextJob(): Promise<void> {
       throw new Error(`Unknown job type: ${pending.jobType}`);
     }
 
-    await storage.updateLeagueJob(jobId, { status: "complete", progress: 100 });
-    console.log(`[job-runner] Job ${jobId} completed`);
+    // Ownership check: only mark complete if we still own the lease.
+    const completed = await storage.completeLeagueJob(jobId, RUNNER_INSTANCE_ID, { status: "complete", progress: 100 });
+    if (!completed) {
+      console.warn(`[job-runner] Job ${jobId} finished but lease was already taken by another instance — skipping status update`);
+    } else {
+      console.log(`[job-runner] Job ${jobId} completed`);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[job-runner] Job ${jobId ?? "?"} failed:`, msg);
     if (jobId) {
-      await storage.updateLeagueJob(jobId, {
+      // Ownership check: only mark failed if we still own the lease.
+      await storage.completeLeagueJob(jobId, RUNNER_INSTANCE_ID, {
         status: "failed",
         errorMessage: msg,
       }).catch(e => console.error("[job-runner] Failed to mark job as failed:", e));
@@ -49,18 +66,16 @@ async function processNextJob(): Promise<void> {
 }
 
 /**
- * Reset only pre-lease "running" jobs at startup.
- *
- * Jobs that have a valid lease are left alone — claimNextPendingJob() will
- * reclaim them automatically once their lease_expires_at passes.  Only jobs
- * with a NULL lease_expires_at (created before the lease feature) are reset
- * to "pending" here so they can be retried.
+ * Resets running jobs on startup:
+ *  - Jobs with NO lease (created before the lease feature) → reset to 'pending'.
+ *  - Jobs with an EXPIRED lease → reset to 'pending' (orphaned by a crashed instance).
+ *  - Jobs with an ACTIVE lease are left alone (another live instance owns them).
  */
-async function resetOrphanedJobs(): Promise<void> {
+async function resetExpiredJobs(): Promise<void> {
   try {
     const orphans = await storage.getOrphanedLeagueJobs();
     for (const job of orphans) {
-      console.warn(`[job-runner] Resetting pre-lease orphaned job ${job.id} to pending`);
+      console.warn(`[job-runner] Resetting orphaned/expired job ${job.id} to pending (was: ${job.status}, lease: ${job.leaseExpiresAt ?? "none"})`);
       await storage.updateLeagueJob(job.id, { status: "pending", progress: 0 });
     }
     if (orphans.length === 0) {
@@ -73,7 +88,7 @@ async function resetOrphanedJobs(): Promise<void> {
 
 /** Start the polling loop. Call once at server startup. */
 export function startJobRunner(): void {
-  resetOrphanedJobs().then(() => {
+  resetExpiredJobs().then(() => {
     setInterval(processNextJob, POLL_INTERVAL_MS);
     console.log("[job-runner] Started — polling every", POLL_INTERVAL_MS / 1000, "s");
   });

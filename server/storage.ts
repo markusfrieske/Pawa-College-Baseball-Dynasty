@@ -423,7 +423,15 @@ export interface IStorage {
   getLeagueJob(id: string): Promise<LeagueJob | undefined>;
   getLatestLeagueJob(leagueId: string): Promise<LeagueJob | undefined>;
   updateLeagueJob(id: string, data: Partial<LeagueJob>): Promise<LeagueJob | undefined>;
+  /** Claim the next pending (or expired-lease running) job, setting locked_by = instanceId. */
+  claimNextPendingJob(instanceId: string): Promise<LeagueJob | undefined>;
+  /**
+   * Complete or fail a job only if locked_by still matches instanceId.
+   * Returns undefined if the ownership check fails (another instance took over).
+   */
+  completeLeagueJob(id: string, instanceId: string, data: Partial<LeagueJob>): Promise<LeagueJob | undefined>;
   getPendingLeagueJobs(): Promise<LeagueJob[]>;
+  /** Returns running jobs with no lease OR with an expired lease (to be reset on startup). */
   getOrphanedLeagueJobs(): Promise<LeagueJob[]>;
 
   // FS Postseason: entries (national seeding) and series (best-of-N tracking)
@@ -2790,43 +2798,70 @@ export class DatabaseStorage implements IStorage {
    * Uses FOR UPDATE SKIP LOCKED — rows already locked by another connection
    * are transparently skipped, so this is safe under parallel workers.
    */
-  async claimNextPendingJob(): Promise<LeagueJob | undefined> {
+  async claimNextPendingJob(instanceId: string): Promise<LeagueJob | undefined> {
     const { pool: pgPool } = await import("./db");
     // Claim either a genuinely pending job OR a running job whose lease expired.
-    // SET locked_by / lease_expires_at so multi-instance runners don't double-claim,
-    // and bump attempt_count for observability.
-    const result = await pgPool.query(`
-      UPDATE league_jobs
-         SET status           = 'running',
-             updated_at       = now(),
-             locked_by        = 'runner',
-             lease_expires_at = now() + interval '10 minutes',
-             attempt_count    = attempt_count + 1
-       WHERE id = (
-               SELECT id FROM league_jobs
-                WHERE status = 'pending'
-                   OR (status = 'running' AND lease_expires_at IS NOT NULL AND lease_expires_at < now())
-             ORDER BY created_at ASC
-                LIMIT 1
-                 FOR UPDATE SKIP LOCKED
-             )
-    RETURNING *
-    `);
+    // locked_by is set to the caller's instanceId (a UUID generated per server process)
+    // so ownership checks on complete/fail can verify we still own the job.
+    const result = await pgPool.query(
+      `UPDATE league_jobs
+          SET status           = 'running',
+              updated_at       = now(),
+              locked_by        = $1,
+              lease_expires_at = now() + interval '10 minutes',
+              attempt_count    = attempt_count + 1
+        WHERE id = (
+                SELECT id FROM league_jobs
+                 WHERE status = 'pending'
+                    OR (status = 'running' AND lease_expires_at IS NOT NULL AND lease_expires_at < now())
+              ORDER BY created_at ASC
+                 LIMIT 1
+                  FOR UPDATE SKIP LOCKED
+              )
+      RETURNING *`,
+      [instanceId],
+    );
     const row = result.rows[0];
     return row ? mapJobRow(row) : undefined;
   }
 
   /**
-   * Returns jobs that are still "running" but have no lease (created before the
-   * lease feature) so startJobRunner() can reset them on startup.
-   * Jobs with an active or expired lease are handled by claimNextPendingJob().
+   * Completes or fails a job only if locked_by still matches instanceId.
+   * Returns undefined (without throwing) if the ownership check fails — this
+   * means another instance took over the lease while this one was still working.
+   */
+  async completeLeagueJob(id: string, instanceId: string, data: Partial<LeagueJob>): Promise<LeagueJob | undefined> {
+    const { pool: pgPool } = await import("./db");
+    // Build SET clause dynamically from data fields we accept.
+    const sets: string[] = ["updated_at = now()"];
+    const vals: unknown[] = [id, instanceId];
+    if (data.status !== undefined)       { sets.push(`status = $${vals.length + 1}`);        vals.push(data.status); }
+    if (data.progress !== undefined)     { sets.push(`progress = $${vals.length + 1}`);      vals.push(data.progress); }
+    if (data.errorMessage !== undefined) { sets.push(`error_message = $${vals.length + 1}`); vals.push(data.errorMessage); }
+    const result = await pgPool.query(
+      `UPDATE league_jobs SET ${sets.join(", ")}
+        WHERE id = $1 AND locked_by = $2
+       RETURNING *`,
+      vals,
+    );
+    const row = result.rows[0];
+    return row ? mapJobRow(row) : undefined;
+  }
+
+  /**
+   * Returns running jobs that should be reset to 'pending' on startup:
+   *   1. Jobs with NO lease_expires_at (created before the lease feature).
+   *   2. Jobs with an EXPIRED lease (orphaned by a crashed instance).
+   * Jobs with an ACTIVE lease are left alone — claimNextPendingJob() will
+   * reclaim them when their lease expires.
    */
   async getOrphanedLeagueJobs(): Promise<LeagueJob[]> {
     const { pool: pgPool } = await import("./db");
     try {
       const result = await pgPool.query(`
         SELECT * FROM league_jobs
-         WHERE status = 'running' AND lease_expires_at IS NULL
+         WHERE status = 'running'
+           AND (lease_expires_at IS NULL OR lease_expires_at < now())
          ORDER BY created_at ASC
       `);
       return result.rows.map(mapJobRow);

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   CheckCircle,
@@ -13,6 +14,7 @@ import {
   ChevronRight,
   Clock,
   ShieldAlert,
+  FileText,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RetroCard } from "@/components/ui/retro-card";
@@ -34,6 +36,22 @@ interface PreflightResult {
   canAdvance: boolean;
   checks: PreflightCheck[];
   runAt: string;
+}
+
+interface GameBlocker {
+  gameId: string;
+  week: number;
+  season: number;
+  homeTeamName: string | null;
+  awayTeamName: string | null;
+  status: "unreported" | "pending_confirmation" | "disputed" | "invalid_or_orphaned";
+  reportUrl: string;
+}
+
+interface AdvancePreflightResult {
+  canAdvance: boolean;
+  blockers: GameBlocker[];
+  isReportedMode: boolean;
 }
 
 interface SaveStateMeta {
@@ -199,6 +217,25 @@ export function CommandCenterTab({
     op => op.status === "running" && new Date(op.lease_expires_at) < new Date()
   );
   const hasStuckOp = stuckRunningOps.length > 0 || advanceStatus?.hasActiveLock;
+
+  // ── Reported-mode advance blockers (per-game deep links) ──────────────────
+  // Only fetched when the league is in reported-game mode and the commissioner
+  // is on this tab. Surfaces per-game links so commissioners can navigate
+  // directly to the report-game screen for each blocking game.
+  const isReportedMode = league.gameMode === "reported";
+  const { data: advancePreflight, refetch: refetchAdvancePreflight, isFetching: isAdvancePreflightFetching } =
+    useQuery<AdvancePreflightResult>({
+      queryKey: ["/api/leagues", leagueId, "advance", "preflight"],
+      queryFn: async () => {
+        const res = await fetch(`/api/leagues/${leagueId}/advance/preflight`);
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      },
+      enabled: isReportedMode,
+      staleTime: 30_000,
+      refetchOnWindowFocus: isReportedMode,
+    });
+  const advanceBlockers = advancePreflight?.blockers ?? [];
 
   return (
     <div className="space-y-4">
@@ -374,7 +411,65 @@ export function CommandCenterTab({
         </RetroCard>
       )}
 
-      {/* ── D. Stuck Advance Recovery ── */}
+      {/* ── D. Reported-mode Game Blockers — per-game deep links ── */}
+      {isReportedMode && (
+        <RetroCard className={advanceBlockers.length > 0 ? "border-orange-500/30" : "border-border/40"}>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <p className="text-xs font-semibold text-gold">REPORTED-MODE GAME BLOCKERS</p>
+            <RetroButton
+              size="sm"
+              variant="outline"
+              onClick={() => refetchAdvancePreflight()}
+              disabled={isAdvancePreflightFetching}
+              className="h-7 px-2"
+              data-testid="button-refresh-advance-preflight"
+            >
+              <RefreshCw className={`w-3 h-3 ${isAdvancePreflightFetching ? "animate-spin" : ""}`} />
+            </RetroButton>
+          </div>
+          {advancePreflight === undefined ? (
+            <p className="text-xs text-muted-foreground">Loading game report status…</p>
+          ) : advanceBlockers.length === 0 ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded border border-green-500/30 bg-green-500/5 text-xs text-green-400" data-testid="banner-advance-preflight-clear">
+              <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>All games reported — league can advance</span>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground mb-2">
+                {advanceBlockers.length} game{advanceBlockers.length !== 1 ? "s" : ""} need reports before the league can advance. Click each to go directly to the report page.
+              </p>
+              {advanceBlockers.map(b => (
+                <Link
+                  key={b.gameId}
+                  href={b.reportUrl}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded border border-orange-500/30 bg-orange-500/5 text-left min-h-[44px] hover:bg-orange-500/10 transition-colors"
+                  data-testid={`link-game-blocker-${b.gameId}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs text-orange-300 font-medium block">
+                        {b.awayTeamName ?? "Away"} @ {b.homeTeamName ?? "Home"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        S{b.season} W{b.week} —{" "}
+                        {b.status === "unreported" ? "Not reported" :
+                          b.status === "pending_confirmation" ? "Pending confirmation" :
+                          b.status === "disputed" ? "Disputed" :
+                          "Invalid / orphaned"}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </RetroCard>
+      )}
+
+      {/* ── E. Stuck Advance Recovery ── */}
       {hasStuckOp && (
         <RetroCard className="border-orange-500/40">
           <div className="flex items-start gap-3 mb-3">

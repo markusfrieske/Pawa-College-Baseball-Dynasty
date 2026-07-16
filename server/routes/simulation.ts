@@ -7507,6 +7507,25 @@ export function registerSimulationRoutes(app: Express): void {
         return res.json({ idempotent: true, data: freshLeague });
       }
 
+      // ── Reported-mode preflight: checked BEFORE acquiring any lock ───────────
+      // This gate must run before any DB mutation (including lock-table writes) so
+      // that a blocked advance truly makes zero DB changes.  Both the lock-acquire
+      // and the league_advances insert happen only after this check passes.
+      if (league.gameMode === "reported") {
+        let earlyPreflight;
+        try {
+          earlyPreflight = await getAdvancePreflight(leagueId);
+        } catch (pfErr) {
+          return res.status(500).json({ message: "Preflight check failed", detail: String(pfErr) });
+        }
+        if (!earlyPreflight.canAdvance) {
+          return res.status(409).json({
+            message: `Cannot advance: ${earlyPreflight.blockers.length} game(s) require final reports before advancing.`,
+            blockers: earlyPreflight.blockers,
+          });
+        }
+      }
+
       // ── Concurrent-advance serialization ─────────────────────────────────────
       // If another advance is in-flight for this league, WAIT for it to complete
       // rather than immediately returning 409.  This gives concurrent callers the
