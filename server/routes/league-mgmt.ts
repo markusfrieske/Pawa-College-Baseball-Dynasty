@@ -19,6 +19,7 @@ import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../rosterScaleFactors";
 import { getRecruitPoolSize } from "../utils";
 import { assignTrajectory } from "../../shared/trajectory";
 import { validateAndNormalizeRecruitingClass, ClassValidationError, ClassValidationResult } from "../lib/validateRecruitingClass";
+import { getAdvancePreflight, type AdvancePreflightResult } from "../lib/advancePreflight";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
 import { archetypeDefs } from "../storylineEngine";
@@ -1803,7 +1804,8 @@ app.get("/api/leagues/:id/teams/:teamId/program-profile", requireAuth, async (re
 app.get("/api/leagues/:id/recruits/:recruitId", requireAuth, async (req, res) => {
   try {
     const recruit = await storage.getRecruit(req.params.recruitId as string);
-    if (!recruit) {
+    // Cross-league IDOR guard: ensure this recruit belongs to the league in the URL.
+    if (!recruit || recruit.leagueId !== (req.params.id as string)) {
       return res.status(404).json({ message: "Recruit not found" });
     }
 
@@ -2208,15 +2210,19 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     let prevalidatedClass: ClassValidationResult | undefined;
     if (recruitingClassId) {
       const earlyClass = await storage.getSavedRecruitingClass(recruitingClassId);
-      if (earlyClass && earlyClass.userId === userId) {
-        try {
-          prevalidatedClass = validateAndNormalizeRecruitingClass(earlyClass.classData as unknown);
-        } catch (e) {
-          if (e instanceof ClassValidationError) {
-            return res.status(422).json({ message: `Recruiting class is invalid: ${e.message}` });
-          }
-          throw e;
+      // If the class doesn't exist or isn't owned by this user, fail hard BEFORE
+      // touching any league data.  Returning 422 here keeps the league in dynasty_setup
+      // so the commissioner can retry with a valid class.
+      if (!earlyClass || earlyClass.userId !== userId) {
+        return res.status(422).json({ message: "Recruiting class not found or not authorized. Provide a valid recruitingClassId owned by your account." });
+      }
+      try {
+        prevalidatedClass = validateAndNormalizeRecruitingClass(earlyClass.classData as unknown);
+      } catch (e) {
+        if (e instanceof ClassValidationError) {
+          return res.status(422).json({ message: `Recruiting class is invalid: ${e.message}` });
         }
+        throw e;
       }
     }
 
@@ -2805,32 +2811,25 @@ app.get("/api/leagues/:id/commissioner/preflight", requireAuth, async (req, res)
       items: truncate(disputedReports.map(r => `Game #${r.gameId.slice(0, 8)}`)),
     };
 
-    // unreported_games: complete games with 2 human teams, no accepted report
-    let unreportedGames: typeof allGames = [];
-    if (isReportedMode) {
-      const acceptedGameIds = new Set(gameReports.filter(r => r.status === "accepted").map(r => r.gameId));
-      unreportedGames = allGames.filter(g =>
-        g.isComplete &&
-        g.homeTeamId && humanTeamIds.has(g.homeTeamId) &&
-        g.awayTeamId && humanTeamIds.has(g.awayTeamId) &&
-        !acceptedGameIds.has(g.id)
-      );
+    // unreported_games: delegate to the shared getAdvancePreflight() service so the
+    // commissioner UI and the /advance POST route agree on exactly which games block.
+    let advPreflightResult: AdvancePreflightResult;
+    try {
+      advPreflightResult = await getAdvancePreflight(leagueId);
+    } catch {
+      advPreflightResult = { canAdvance: !isReportedMode, blockers: [], isReportedMode };
     }
     const unreportedGamesCheck = {
       id: "unreported_games",
       label: "Unreported human games",
-      status: !isReportedMode ? "pass" : unreportedGames.length === 0 ? "pass" : "fail",
+      status: !isReportedMode ? "pass" : advPreflightResult.blockers.length === 0 ? "pass" : "fail",
       detail: !isReportedMode
         ? "Not applicable (simulated mode)"
-        : unreportedGames.length === 0
-        ? "All human-vs-human games have accepted reports"
-        : `${unreportedGames.length} completed game(s) missing accepted report`,
-      count: unreportedGames.length,
-      items: truncate(unreportedGames.map(g => {
-        const home = teamById.get(g.homeTeamId!)?.name ?? "?";
-        const away = teamById.get(g.awayTeamId!)?.name ?? "?";
-        return `W${g.week}: ${home} vs ${away}`;
-      })),
+        : advPreflightResult.blockers.length === 0
+        ? "All current-week human-vs-human games have accepted reports"
+        : `${advPreflightResult.blockers.length} current-week game(s) missing accepted report`,
+      count: advPreflightResult.blockers.length,
+      items: truncate(advPreflightResult.blockers.map(b => `W${b.week}: ${b.homeTeamName ?? "?"} vs ${b.awayTeamName ?? "?"}`)),
     };
 
     // roster_limits: teams with >25 players

@@ -7376,6 +7376,8 @@ export function registerSimulationRoutes(app: Express): void {
     // Tracks whether the catch block has already set the op to 'failed' so the
     // res.on("finish") handler never races it back to 'complete'.
     let advOpFailed = false;
+    // Heartbeat timer — keeps the lease alive for long advances (renews every 5 min).
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -7417,8 +7419,8 @@ export function registerSimulationRoutes(app: Express): void {
 
       // ── Durable operation tracking ─────────────────────────────────────────────
       // Insert a league_advances row so a crashed-server scenario is visible to the
-      // commissioner via GET /advance/status.  Status stays 'running' until the
-      // process marks it complete/failed or the lease expires.
+      // commissioner via GET /advance/status.  This is FATAL — if we can't persist
+      // the op record, we cannot guarantee exactly-one semantics, so we refuse to proceed.
       advOpId = randomUUID();
       try {
         await pool.query(
@@ -7428,8 +7430,22 @@ export function registerSimulationRoutes(app: Express): void {
           [advOpId, leagueId, league.currentPhase, currentWeek, league.currentSeason, advOpId],
         );
       } catch (opInsertErr) {
-        console.error("[league-advances] Failed to insert op record (non-fatal):", opInsertErr);
+        console.error("[league-advances] FATAL: Failed to insert op record:", opInsertErr);
+        releaseAdvanceLock(leagueId);
+        return res.status(500).json({ message: "Failed to create advance operation record. Please try again." });
       }
+
+      // Start a heartbeat that renews the lease every 5 minutes so a slow advance
+      // cannot be incorrectly declared abandoned by the clear-stuck endpoint.
+      heartbeatTimer = setInterval(() => {
+        if (!advOpId) return;
+        pool.query(
+          `UPDATE league_advances
+              SET lease_expires_at = now() + interval '15 minutes', updated_at = now()
+            WHERE id = $1 AND status = 'running'`,
+          [advOpId],
+        ).catch(e => console.error("[league-advances] Heartbeat renewal failed:", e));
+      }, 5 * 60 * 1000);
 
       // Invalidate server cache immediately so data doesn't serve stale content after advance
       invalidateLeague(leagueId);
@@ -7447,10 +7463,11 @@ export function registerSimulationRoutes(app: Express): void {
       }
 
       setAdvanceProgress(leagueId, "initializing", 5);
-      // Auto-clear progress and lock once the response is fully sent.
+      // Auto-clear progress, lock, and heartbeat once the response is fully sent.
       // Only mark 'complete' if the catch block did NOT already mark it 'failed'
       // (advOpFailed is set synchronously before any async DB update in catch).
       res.on("finish", () => {
+        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
         clearAdvanceProgress(leagueId);
         releaseAdvanceLock(leagueId);
         if (advOpId && !advOpFailed) {
@@ -7468,6 +7485,7 @@ export function registerSimulationRoutes(app: Express): void {
       res.json(data);
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
+        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
         releaseAdvanceLock(req.params.id as string);
         // Set flag synchronously BEFORE the async DB update so the finish handler
         // (which fires when res.status().json() is sent) never overwrites 'failed' with 'complete'.
@@ -7482,6 +7500,7 @@ export function registerSimulationRoutes(app: Express): void {
         return;
       }
       console.error("Failed to advance week:", e);
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
       releaseAdvanceLock(req.params.id as string);
       advOpFailed = true;
       if (advOpId) {
