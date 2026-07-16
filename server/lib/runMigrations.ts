@@ -16,9 +16,24 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import type { Pool } from "pg";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const MIGRATIONS_DIR = join(__dirname, "../migrations");
+/**
+ * Resolve the migrations directory in a way that works for both:
+ *   - Development (tsx / ESM): import.meta.url is populated.
+ *   - Production build (esbuild CJS): import.meta is {} so .url is undefined;
+ *     fall back to process.cwd() + /server/migrations which matches the
+ *     project root when running `node dist/index.cjs`.
+ */
+const MIGRATIONS_DIR = (() => {
+  try {
+    const metaUrl = import.meta.url;
+    if (metaUrl) {
+      return join(dirname(fileURLToPath(metaUrl)), "../migrations");
+    }
+  } catch {
+    // no-op — import.meta unavailable in CJS output
+  }
+  return join(process.cwd(), "server/migrations");
+})();
 
 /**
  * The last migration file key that must be present before /health/ready returns 200.
