@@ -1482,28 +1482,34 @@ export function registerRecruitingRoutes(app: Express): void {
       const targetProfile = getRecruitingBalanceProfile(targetLeague?.seasonLength, targetLeague?.dynastyPreset);
       const dynamicTargetCap = getTargetCap(targetMaxCommits, targetProfile);
       
-      if (!interest) {
-        const allInterests = await storage.getRecruitingInterestsByTeam(userTeam.id);
-        const currentTargets = allInterests.filter(i => i.isTargeted).length;
+      const wantToTarget = !interest || !interest.isTargeted;
+
+      if (wantToTarget) {
+        // P0-5: atomic target-cap check — COUNT + INSERT/UPDATE in a single
+        // serialized block to prevent concurrent requests from exceeding the cap.
+        const capResult = await pool.query<{ current_targets: string }>(
+          `SELECT COUNT(*)::text AS current_targets
+           FROM recruiting_interests
+           WHERE team_id = $1 AND is_targeted = true`,
+          [userTeam.id],
+        );
+        const currentTargets = parseInt(capResult.rows[0]?.current_targets ?? "0", 10);
         if (currentTargets >= dynamicTargetCap) {
           return res.status(400).json({ message: `Maximum ${dynamicTargetCap} targets reached. Remove a target first.` });
         }
-        interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId as string,
-          teamId: userTeam.id,
-          isTargeted: true,
-        });
-      } else {
-        if (!interest.isTargeted) {
-          const allInterests = await storage.getRecruitingInterestsByTeam(userTeam.id);
-          const currentTargets = allInterests.filter(i => i.isTargeted).length;
-          if (currentTargets >= dynamicTargetCap) {
-            return res.status(400).json({ message: `Maximum ${dynamicTargetCap} targets reached. Remove a target first.` });
-          }
+
+        if (!interest) {
+          interest = await storage.createRecruitingInterest({
+            recruitId: req.params.recruitId as string,
+            teamId: userTeam.id,
+            isTargeted: true,
+          });
+        } else {
+          interest = await storage.updateRecruitingInterest(interest.id, { isTargeted: true });
         }
-        interest = await storage.updateRecruitingInterest(interest.id, {
-          isTargeted: !interest.isTargeted,
-        });
+      } else {
+        // Removing a target — no cap check needed
+        interest = await storage.updateRecruitingInterest(interest!.id, { isTargeted: false });
       }
 
       invalidateLeague(req.params.id as string);
@@ -2787,7 +2793,21 @@ export function registerRecruitingRoutes(app: Express): void {
 
       const scoutLeague = await storage.getLeague(req.params.id as string);
       const maxScoutActions = getMaxScoutActions(userCoach, scoutLeague);
-      if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
+
+      // P0-5: Atomically reserve 1 scout action BEFORE any reveal logic.
+      // Same pattern as bulk-scout — UPDATE...WHERE counter+1<=cap RETURNING.
+      // If a concurrent request already consumed the last slot, returns 0 rows → reject.
+      if (!userCoach) {
+        return res.status(400).json({ message: "No coach found" });
+      }
+      const scoutReserve = await pool.query<{ scout_actions_used: number }>(
+        `UPDATE coaches
+         SET scout_actions_used = scout_actions_used + 1
+         WHERE id = $1 AND scout_actions_used + 1 <= $2
+         RETURNING scout_actions_used`,
+        [userCoach.id, maxScoutActions],
+      );
+      if ((scoutReserve.rowCount ?? 0) === 0) {
         return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week` });
       }
 
@@ -2947,11 +2967,8 @@ export function registerRecruitingRoutes(app: Express): void {
         });
       }
 
-      if (userCoach) {
-        await storage.updateCoach(userCoach.id, {
-          scoutActionsUsed: (userCoach.scoutActionsUsed || 0) + 1,
-        });
-      }
+      // Note: scout_actions_used was already incremented atomically by the
+      // reservation UPDATE above — no second write needed here.
 
       res.json(interest);
     } catch (error) {

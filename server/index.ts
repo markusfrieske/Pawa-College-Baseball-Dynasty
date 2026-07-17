@@ -170,9 +170,11 @@ app.use((req, res, next) => {
     startJobRunner();
   } else {
     console.error(
-      "[startup] skipping job runner: migrations did not complete or expected " +
-        `version '${EXPECTED_MIGRATION}' is missing — resolve migration errors and restart`
+      "[startup] FATAL: migrations did not complete or expected " +
+        `version '${EXPECTED_MIGRATION}' is missing — resolve migration errors and restart. ` +
+        "Refusing to bind public port."
     );
+    process.exit(1);
   }
 
 

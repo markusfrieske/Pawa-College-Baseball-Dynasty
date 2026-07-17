@@ -39,7 +39,7 @@ const MIGRATIONS_DIR = (() => {
  * The last migration file key that must be present before /health/ready returns 200.
  * Update this whenever a new migration file is added.
  */
-export const EXPECTED_MIGRATION = "0047_recruiting_actions_unique_indexes";
+export const EXPECTED_MIGRATION = "0048_coach_strategy_columns";
 
 /**
  * Errors that are safe to swallow — the statement was idempotent.
@@ -131,8 +131,12 @@ export async function runMigrations(pool: Pool): Promise<{ applied: string[]; ve
       files = (await readdir(MIGRATIONS_DIR))
         .filter((f) => f.endsWith(".sql"))
         .sort();
-    } catch {
-      return { applied: [], version: null };
+    } catch (err) {
+      // An unreadable/missing migration directory is always fatal — do NOT
+      // silently return { version: null }.  Caller must not bind the port.
+      throw new Error(
+        `[migration] Cannot read migrations directory "${MIGRATIONS_DIR}": ${(err as Error).message}`
+      );
     }
 
     const newlyApplied: string[] = [];

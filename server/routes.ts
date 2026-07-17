@@ -1342,6 +1342,15 @@ export async function registerRoutes(
           }
         }
 
+        // Pre-validate all team names before any writes (fail fast, no orphan rows)
+        for (const selection of selectedTeams) {
+          for (const teamName of selection.teamNames) {
+            if (!allTeamPools.find(t => t.name === teamName)) {
+              return res.status(400).json({ message: `Unknown team name: "${teamName}". Only teams from the official catalog are allowed.` });
+            }
+          }
+        }
+
         for (const selection of selectedTeams) {
           const conf = conferences.find(c => c.id === selection.conferenceId);
           if (!conf) continue;
@@ -1426,6 +1435,21 @@ export async function registerRoutes(
       }
       
       const { teamId, coach: coachData } = result.data;
+
+      // P0-2: verify teamId actually belongs to this league before creating coach
+      const leagueForSetup = await storage.getLeague(req.params.id as string);
+      if (!leagueForSetup) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      const leagueTeamsForSetup = await storage.getTeamsByLeague(req.params.id as string);
+      if (!leagueTeamsForSetup.find(t => t.id === teamId)) {
+        return res.status(403).json({ message: "Team does not belong to this league" });
+      }
+      // Also reject if the team already has a human coach (prevents double-setup)
+      const existingTeamForSetup = leagueTeamsForSetup.find(t => t.id === teamId);
+      if (existingTeamForSetup && !existingTeamForSetup.isCpu) {
+        return res.status(409).json({ message: "This team already has a coach" });
+      }
 
       const coach = await storage.createCoach({
         userId,

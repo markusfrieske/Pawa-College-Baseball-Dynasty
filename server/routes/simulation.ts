@@ -76,6 +76,7 @@ import {
   hasCommissionerAccess,
   acquireAdvanceLock,
   releaseAdvanceLock,
+  getAdvanceLockToken,
   potentialGradeToNumber,
   autoAssignLineup,
   ensureCoachTraits,
@@ -1465,7 +1466,13 @@ async function advanceSuperRegionals(leagueId: string, season: number): Promise<
       const result = await simulateGame(game.homeTeamId, game.awayTeamId, psGameType, undefined, undefined, game.week);
       return { game, result };
     }));
-    await batchFinalizeGames(srSimResults, leagueId, season, new Map<string, CoachXpDelta>(), srTeams, undefined, { skipStandings: true, skipCoachXp: true });
+    for (const { game, result } of srSimResults) {
+      let rawBox: { home: any; away: any; innings?: any[] } | null = null;
+      try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+      await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
+        skipStandings: true, skipCoachXp: true, finalizer: "postseason-sr",
+      });
+    }
     console.log(`[advance-perf] super-regionals-sim: ${Date.now() - _srSimStart}ms`);
   }
 
@@ -1502,7 +1509,13 @@ async function advanceCWS(leagueId: string, season: number): Promise<{ done: boo
     const result = await simulateGame(game.homeTeamId, game.awayTeamId, cwsGameType, undefined, undefined, game.week);
     return { game, result };
   }));
-  await batchFinalizeGames(cwsSimResults, leagueId, season, new Map<string, CoachXpDelta>(), cwsTeams, undefined, { skipStandings: true, skipCoachXp: true });
+  for (const { game, result } of cwsSimResults) {
+    let rawBox: { home: any; away: any; innings?: any[] } | null = null;
+    try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+    await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
+      skipStandings: true, skipCoachXp: true, finalizer: "postseason-cws",
+    });
+  }
   console.log(`[advance-perf] cws-sim: ${Date.now() - _cwsSimStart}ms`);
   
   const updatedGames = await storage.getGamesByLeague(leagueId);
@@ -5475,7 +5488,13 @@ export async function advanceLeagueStep(
         const fsIncompleteSR = (await storage.getGamesByLeague(leagueId)).filter((g: any) => g.phase === "super_regionals" && g.season === league.currentSeason && !g.isComplete);
         if (fsIncompleteSR.length > 0) {
           const fsSimResultsSR = await Promise.all(fsIncompleteSR.map(async (game: any) => { const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week); return { game, result }; }));
-          await batchFinalizeGames(fsSimResultsSR, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches, { skipStandings: true });
+          for (const { game, result } of fsSimResultsSR) {
+            let rawBox: { home: any; away: any; innings?: any[] } | null = null;
+            try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+            await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
+              skipStandings: true, coachXpAccum, finalizer: "postseason-fs-sr",
+            });
+          }
         }
         const bracketResult = await advanceFSSRBracket(leagueId, league.currentSeason);
         srResult = { done: bracketResult.done, champion1: bracketResult.winners[0], champion2: bracketResult.winners[1], allWinners: bracketResult.winners, isFSResult: true };
@@ -5554,7 +5573,19 @@ export async function advanceLeagueStep(
       let cwsResult: { done: boolean; champion?: string; runnerUp?: string };
       if (league.dynastyPreset === "full_season") {
         const fsIncompleteCWS = (await storage.getGamesByLeague(leagueId)).filter((g: any) => g.phase === "cws" && g.season === league.currentSeason && !g.isComplete);
-        if (fsIncompleteCWS.length > 0) { const fsSimResultsCWS = await Promise.all(fsIncompleteCWS.map(async (game: any) => { const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week); return { game, result }; })); await batchFinalizeGames(fsSimResultsCWS, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches, { skipStandings: true }); }
+        if (fsIncompleteCWS.length > 0) {
+          const fsSimResultsCWS = await Promise.all(fsIncompleteCWS.map(async (game: any) => {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
+            return { game, result };
+          }));
+          for (const { game, result } of fsSimResultsCWS) {
+            let rawBox: { home: any; away: any; innings?: any[] } | null = null;
+            try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+            await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
+              skipStandings: true, coachXpAccum, finalizer: "postseason-fs-cws",
+            });
+          }
+        }
         cwsResult = await advanceFSCWSBracket(leagueId, league.currentSeason);
       } else {
         cwsResult = await advanceCWS(leagueId, league.currentSeason);
@@ -7875,6 +7906,7 @@ export function registerSimulationRoutes(app: Express): void {
       // Start a heartbeat that renews the lease every 30 seconds so a slow advance
       // cannot be incorrectly declared abandoned by the clear-stuck endpoint, while
       // also allowing relatively fast abandoned-op detection (lease = 15 min window).
+      let lockLostDuringAdvance = false;
       heartbeatTimer = setInterval(() => {
         if (!advOpId) return;
         pool.query(
@@ -7883,13 +7915,23 @@ export function registerSimulationRoutes(app: Express): void {
             WHERE id = $1 AND status = 'running'`,
           [advOpId],
         ).catch(e => console.error("[league-advances] Heartbeat renewal failed:", e));
-        // Also keep the advance-lock row's locked_at current so the clear-stuck
-        // safety check (locked_at >= now() - 15 min) correctly blocks clearing
-        // a lock that belongs to a still-running advance longer than 15 minutes.
+        // Require the owner token so a stale heartbeat cannot renew a new owner's lock.
+        // If rowCount = 0 the lock row was taken by a different process; abort this operation.
+        const hbToken = getAdvanceLockToken(leagueId);
+        if (!hbToken) {
+          console.error("[league-advances] Heartbeat: owner token missing from registry — lock may have been lost");
+          lockLostDuringAdvance = true;
+          return;
+        }
         pool.query(
-          `UPDATE league_advance_locks SET locked_at = now() WHERE league_id = $1`,
-          [leagueId],
-        ).catch(e => console.error("[league-advances] Lock heartbeat refresh failed:", e));
+          `UPDATE league_advance_locks SET locked_at = now() WHERE league_id = $1 AND locked_by = $2`,
+          [leagueId, hbToken],
+        ).then(r => {
+          if ((r.rowCount ?? 0) === 0) {
+            console.error("[league-advances] Heartbeat: 0 rows updated — lock ownership lost to another process");
+            lockLostDuringAdvance = true;
+          }
+        }).catch(e => console.error("[league-advances] Lock heartbeat refresh failed:", e));
       }, 30_000);
 
       // Invalidate server cache immediately so data doesn't serve stale content after advance
@@ -7932,6 +7974,12 @@ export function registerSimulationRoutes(app: Express): void {
         savedRecruitingClassId: req.body?.savedRecruitingClassId,
         completedStages: priorCompletedStages.size > 0 ? priorCompletedStages : undefined,
       });
+
+      // ── Verify lock was not taken by another process during advance ─────────
+      if (lockLostDuringAdvance) {
+        console.error(`[league-advances] Aborting post-advance commit: lock lost to another process (league=${leagueId})`);
+        throw new Error("Advance lock was lost to another process mid-operation. Verify league state before retrying.");
+      }
 
       // ── Mark 'complete' BEFORE releasing the lock ──────────────────────────
       // Any concurrent caller waiting on the lock will see the 'complete' row
@@ -7983,7 +8031,7 @@ export function registerSimulationRoutes(app: Express): void {
   // Note: advanceLeagueStep returns currentPhase="offseason_departures" when CWS (or SR-skip)
   // transitions out — the predicate catches that result before any departure auto-finalization
   // would occur on a subsequent call.
-  app.post("/api/leagues/:id/sim-to-offseason", async (req, res) => {
+  app.post("/api/leagues/:id/sim-to-offseason", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
@@ -8024,7 +8072,7 @@ export function registerSimulationRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/leagues/:id/sim-to-signing-day", async (req, res) => {
+  app.post("/api/leagues/:id/sim-to-signing-day", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
@@ -8059,7 +8107,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   // Sim Full Season - advances from any phase all the way to preseason of the next season.
-  app.post("/api/leagues/:id/sim-full-season", async (req, res) => {
+  app.post("/api/leagues/:id/sim-full-season", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
@@ -8084,7 +8132,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   // Sim to Postseason - stops at conference_championship.
-  app.post("/api/leagues/:id/sim-to-postseason", async (req, res) => {
+  app.post("/api/leagues/:id/sim-to-postseason", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
@@ -8118,7 +8166,7 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   // Sim to CWS - advances through regular season + conference championships + super regionals, stops at CWS.
-  app.post("/api/leagues/:id/sim-to-cws", async (req, res) => {
+  app.post("/api/leagues/:id/sim-to-cws", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);

@@ -304,6 +304,15 @@ export async function releaseAdvanceLock(leagueId: string): Promise<void> {
   }
 }
 
+/**
+ * Return the owner token for an active advance lock held by this process.
+ * Returns undefined if this process does not hold the lock for the given league.
+ * Used by the heartbeat to scope its UPDATE to the owner it actually acquired.
+ */
+export function getAdvanceLockToken(leagueId: string): string | undefined {
+  return activeLockTokens.get(leagueId);
+}
+
 // Legacy in-memory set kept for backwards-compat imports; no longer used.
 export const advancingLeagues = new Set<string>();
 
