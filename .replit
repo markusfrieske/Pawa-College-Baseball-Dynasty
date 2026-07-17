@@ -54,6 +54,10 @@ args = "validate-rosters"
 task = "workflow.run"
 args = "validate-objects-authz"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "verify-db-invariants"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -114,6 +118,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx scripts/verify-objects-authz.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "verify-db-invariants"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx scripts/verify-db-invariants.ts --all"
 
 [workflows.workflow.metadata]
 outputType = "console"
