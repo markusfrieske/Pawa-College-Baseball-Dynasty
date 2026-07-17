@@ -77,8 +77,9 @@ async function validateAndNormalizeImageUrl(imageUrl: string | null | undefined)
     }
     return normalizedPath;
   }
-  // External https:// (or http://) URLs are stored as-is.
-  if (lower.startsWith("https://") || lower.startsWith("http://")) {
+  // External https:// URLs are stored as-is. http:// is rejected to avoid
+  // mixed-content issues and potential security downgrade behavior.
+  if (lower.startsWith("https://")) {
     return imageUrl;
   }
   throw new Error("Unsupported imageUrl format. Use a /objects/ path or a https:// URL.");
