@@ -13,7 +13,7 @@ import { pool } from "../db";
 
 const inviteRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 20,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: "Too many invite attempts. Please try again later." },
