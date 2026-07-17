@@ -44,26 +44,30 @@ const _leagueMgmtObjectStorage = new ObjectStorageService();
 
 /**
  * Validate and normalize a client-supplied imageUrl before persisting it.
- * - /objects/... paths: must resolve to a real uploaded object.
+ * - /objects/... paths: must resolve to a real uploaded object (verified against storage).
  * - Full GCS URLs (https://storage.googleapis.com/...): normalized to /objects/... then verified.
- * - https:// external URLs: allowed as-is.
- * - Unsafe schemes (javascript:, data:, vbscript:, etc.): rejected.
- * Returns the normalized path to persist, or null if no imageUrl was supplied.
- * Throws with a human-readable message string if the URL is invalid/unsafe.
+ * - All other URLs (arbitrary https://, http://, data:, javascript:, etc.): rejected.
+ *
+ * Only paths that we own and have already verified can be stored. External URLs are
+ * not accepted — they allow hotlinking arbitrary third-party content (including tracking
+ * pixels and potentially harmful images) from league members' browsers.
+ *
+ * Returns the normalized /objects/... path to persist, or null if no imageUrl was supplied.
+ * Throws with a human-readable message string if the URL is invalid/unverified.
  */
 async function validateAndNormalizeImageUrl(imageUrl: string | null | undefined): Promise<string | null> {
   if (!imageUrl) return null;
   const lower = imageUrl.toLowerCase().trimStart();
-  // Reject unsafe URI schemes before any further processing.
+  // Reject unsafe URI schemes immediately.
   if (
     lower.startsWith("javascript:") ||
     lower.startsWith("data:") ||
     lower.startsWith("vbscript:") ||
     lower.startsWith("blob:")
   ) {
-    throw new Error("Unsafe imageUrl scheme. Only https:// or /objects/ paths are accepted.");
+    throw new Error("Unsafe imageUrl scheme. Only uploaded /objects/ paths are accepted.");
   }
-  // Normalize full GCS presigned URLs to /objects/... paths.
+  // Normalize full GCS presigned URLs to /objects/... paths, then verify.
   const normalizedPath = _leagueMgmtObjectStorage.normalizeObjectEntityPath(imageUrl);
   if (normalizedPath.startsWith("/objects/")) {
     // Must reference a real, already-uploaded object we control.
@@ -77,12 +81,9 @@ async function validateAndNormalizeImageUrl(imageUrl: string | null | undefined)
     }
     return normalizedPath;
   }
-  // External https:// URLs are stored as-is. http:// is rejected to avoid
-  // mixed-content issues and potential security downgrade behavior.
-  if (lower.startsWith("https://")) {
-    return imageUrl;
-  }
-  throw new Error("Unsupported imageUrl format. Use a /objects/ path or a https:// URL.");
+  // Everything else — including arbitrary https:// external URLs — is rejected.
+  // Images must be uploaded through the object-storage flow first.
+  throw new Error("Invalid imageUrl. Only /objects/ paths from uploaded files are accepted. Upload the image first.");
 }
 
 const settingsSchema = z.object({

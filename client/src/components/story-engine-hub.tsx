@@ -49,16 +49,37 @@ function NewsSubTab({ leagueId }: { leagueId: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("general");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [filterJournalist, setFilterJournalist] = useState<string>("all");
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return;
-    const reader = new FileReader();
-    reader.onload = () => setImageUrl(reader.result as string);
-    reader.readAsDataURL(file);
+    if (file.size > 2 * 1024 * 1024) {
+      setImageError("Image must be under 2 MB.");
+      return;
+    }
+    setImageError(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(null);
+    setImageError(null);
+  };
+
+  const resetForm = () => {
+    clearImage();
+    setTitle("");
+    setContent("");
+    setCategory("general");
+    setShowForm(false);
   };
 
   const { data: news, isLoading } = useQuery<DynastyNews[]>({
@@ -66,16 +87,28 @@ function NewsSubTab({ leagueId }: { leagueId: string }) {
   });
 
   const createNewsMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string; category: string; imageUrl?: string | null }) => {
-      return await apiRequest("POST", `/api/leagues/${leagueId}/news`, data);
+    mutationFn: async () => {
+      let imageUrl: string | undefined;
+      if (imageFile) {
+        const resp = await apiRequest("POST", "/api/uploads/request-url", {
+          name: imageFile.name, size: imageFile.size, contentType: imageFile.type,
+        });
+        if (!resp.ok) {
+          const json = await resp.json().catch(() => ({}));
+          throw new Error(json.error ?? "Failed to prepare upload — please try again.");
+        }
+        const { uploadURL, objectPath } = await resp.json();
+        const putResp = await fetch(uploadURL, {
+          method: "PUT", headers: { "Content-Type": imageFile.type }, body: imageFile,
+        });
+        if (!putResp.ok) throw new Error("Image upload failed — please try again.");
+        imageUrl = objectPath;
+      }
+      return apiRequest("POST", `/api/leagues/${leagueId}/news`, { title, content, category, imageUrl });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] });
-      setShowForm(false);
-      setTitle("");
-      setContent("");
-      setCategory("general");
-      setImageUrl(null);
+      resetForm();
     },
   });
 
@@ -168,20 +201,21 @@ function NewsSubTab({ leagueId }: { leagueId: string }) {
               className="w-full bg-background border border-border rounded p-2 text-sm min-h-[100px] resize-none focus:outline-none focus:border-gold"
               data-testid="input-news-content"
             />
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer bg-background border border-border rounded px-2 py-1 text-sm hover:border-gold transition-colors">
                 <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Add Image</span>
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" data-testid="input-news-image" />
+                <span className="text-muted-foreground">{imageFile ? "Change Image" : "Add Image"}</span>
+                <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" data-testid="input-news-image" />
               </label>
-              {imageUrl && (
+              {imagePreview && (
                 <div className="flex items-center gap-2">
-                  <img src={imageUrl} alt="Preview" className="w-10 h-10 object-cover rounded" />
-                  <button onClick={() => setImageUrl(null)} className="text-muted-foreground hover:text-foreground">
+                  <img src={imagePreview} alt="Preview" className="w-10 h-10 object-cover rounded" />
+                  <button onClick={clearImage} className="text-muted-foreground hover:text-foreground" data-testid="button-clear-image">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
+              {imageError && <p className="text-xs text-red-400">{imageError}</p>}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <select
@@ -197,12 +231,12 @@ function NewsSubTab({ leagueId }: { leagueId: string }) {
                 <option value="announcement">Announcement</option>
               </select>
               <div className="flex-1" />
-              <RetroButton variant="outline" size="sm" onClick={() => setShowForm(false)} data-testid="button-cancel-news">
+              <RetroButton variant="outline" size="sm" onClick={resetForm} data-testid="button-cancel-news">
                 Cancel
               </RetroButton>
               <RetroButton
                 size="sm"
-                onClick={() => createNewsMutation.mutate({ title, content, category, imageUrl })}
+                onClick={() => createNewsMutation.mutate()}
                 disabled={!title.trim() || !content.trim() || createNewsMutation.isPending}
                 data-testid="button-submit-news"
               >

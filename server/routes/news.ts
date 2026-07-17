@@ -47,8 +47,9 @@ export function registerNewsRoutes(app: Express): void {
       if (!hasCommissionerAccess(league, userId)) {
         return res.status(403).json({ message: "Commissioner only" });
       }
-      // imageUrl may be either a full GCS URL (https://storage.googleapis.com/...)
-      // or an already-normalized /objects/... path — accept both forms.
+      // imageUrl must be either a full GCS URL (https://storage.googleapis.com/...)
+      // or an already-normalized /objects/... path. External https:// URLs are NOT
+      // accepted — only images uploaded through our object-storage flow are stored.
       const bodySchema = z.object({
         title: z.string().min(1).max(120),
         subtitle: z.string().max(200).optional(),
@@ -60,6 +61,7 @@ export function registerNewsRoutes(app: Express): void {
 
       // Normalize any full GCS URL to its /objects/... path form, then verify
       // magic bytes to ensure the upload is actually an image file.
+      // Reject anything that does not resolve to an /objects/... path we own.
       const rawImageUrl = parsed.data.imageUrl || null;
       let verifiedImageUrl: string | null = null;
       if (rawImageUrl) {
@@ -77,8 +79,11 @@ export function registerNewsRoutes(app: Express): void {
           }
           verifiedImageUrl = normalizedPath;
         } else {
-          // External URL or unrecognised format — store as-is (not our storage)
-          verifiedImageUrl = rawImageUrl;
+          // External URL or unrecognised format — rejected. Images must be uploaded
+          // through the object-storage flow before they can be attached to a news post.
+          return res.status(400).json({
+            message: "Invalid imageUrl. Only /objects/ paths from uploaded files are accepted. Upload the image first.",
+          });
         }
       }
 
