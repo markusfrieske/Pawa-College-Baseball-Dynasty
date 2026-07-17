@@ -1259,10 +1259,6 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const visitProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
-      const seasonVisits = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
-      if (seasonVisits.total >= visitProfile.visitCombinedCap) {
-        return res.status(400).json({ message: `You've used all ${visitProfile.visitCombinedCap} visits for this season (${seasonVisits.campusVisits} campus + ${seasonVisits.hcVisits} head coach). The cap resets next season.` });
-      }
 
       const { baseGain, interestGain, totalMultiplier } = computeVisitGain(recruit, userTeam, userCoach);
       assertInterestGainSane("visit", interestGain, baseGain);
@@ -1279,7 +1275,11 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: actionCost,
         maxAllowed: maxRecruitingActions,
         notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
+        visitCap: visitProfile.visitCombinedCap,
       });
+      if (visitResult.capExceeded) {
+        return res.status(409).json({ message: `You've used all ${visitProfile.visitCombinedCap} visits for this season. The cap resets next season.`, capExceeded: true });
+      }
       if (visitResult.alreadyDone) {
         return res.status(409).json({ message: "You've already used your Campus Visit for this recruit. This action can only be done once per recruit.", alreadyDone: true });
       }
@@ -1337,10 +1337,6 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const hcvProfile = getRecruitingBalanceProfile(league.seasonLength, league.dynastyPreset);
-      const seasonVisitsHcv = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
-      if (seasonVisitsHcv.total >= hcvProfile.visitCombinedCap) {
-        return res.status(400).json({ message: `You've used all ${hcvProfile.visitCombinedCap} visits for this season (${seasonVisitsHcv.campusVisits} campus + ${seasonVisitsHcv.hcVisits} head coach). The cap resets next season.` });
-      }
 
       const { baseGain, interestGain: rawHcvGain, totalMultiplier } = computeHeadCoachVisitGain(recruit, userTeam, userCoach);
       // TRANSFER recruit: prestige band modifier applies (HC visit pitches prestige)
@@ -1360,7 +1356,11 @@ export function registerRecruitingRoutes(app: Express): void {
         cost: actionCost,
         maxAllowed: maxRecruitingActions,
         notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
+        visitCap: hcvProfile.visitCombinedCap,
       });
+      if (hcvResult.capExceeded) {
+        return res.status(409).json({ message: `You've used all ${hcvProfile.visitCombinedCap} visits for this season. The cap resets next season.`, capExceeded: true });
+      }
       if (hcvResult.alreadyDone) {
         return res.status(409).json({ message: "You've already used your Head Coach Visit for this recruit. This action can only be done once per recruit.", alreadyDone: true });
       }

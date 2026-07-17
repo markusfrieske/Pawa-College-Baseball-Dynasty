@@ -1,10 +1,9 @@
 /**
  * verify-recruiting-action-dedup.ts
  *
- * Regression guard for the recruiting-action unique-index idempotency gates
- * (uq_action_log_weekly / uq_action_log_seasonal) introduced in Task #1389.
+ * Regression guard for the recruiting-action idempotency + cap enforcement gates.
  *
- * Two suites run in sequence:
+ * Three suites run in sequence:
  *
  *   SUITE 1 — Service-layer concurrency (no HTTP, pure DB)
  *     Calls executeRecruitingAction() via Promise.all to simulate concurrent
@@ -20,10 +19,19 @@
  *       - The 409 body carries alreadyDone: true
  *       - Exactly 1 row remains in recruiting_actions_log for each action type
  *
+ *   SUITE 3 — Concurrent visit-cap enforcement (different recruits, same cap slot)
+ *     The unique indexes only prevent duplicate actions against the *same* recruit.
+ *     Two simultaneous visits to *different* recruits when cap=1 previously raced
+ *     past the pre-check and both committed, exceeding the cap.  This suite verifies
+ *     the team-row lock + in-transaction count prevents that:
+ *       - Promise.all(×2) on two different recruits with visitCap=1 → 1 success, 1 capExceeded
+ *       - HTTP concurrent visits to two different recruits with cap=1 → 1 HTTP 200, 1 HTTP 409
+ *
  * Usage:
  *   npx tsx scripts/verify-recruiting-action-dedup.ts
  *   npx tsx scripts/verify-recruiting-action-dedup.ts --suite1-only
  *   npx tsx scripts/verify-recruiting-action-dedup.ts --suite2-only
+ *   npx tsx scripts/verify-recruiting-action-dedup.ts --suite3-only
  */
 
 import { randomUUID } from "crypto";
@@ -67,6 +75,8 @@ interface Fixture {
   teamId: string;
   coachId: string;
   recruitId: string;
+  /** Second recruit — needed for Suite 3 concurrent cap test (different recruits, same cap slot) */
+  recruitId2: string;
   cookie: string;
 }
 
@@ -121,7 +131,7 @@ async function buildFixture(): Promise<Fixture> {
   );
   const coachId = coach.id;
 
-  // Recruit (only notNull-without-default columns required)
+  // Recruit 1
   const { rows: [recruit] } = await pool.query<{ id: string }>(
     `INSERT INTO recruits
        (league_id, first_name, last_name, position, home_state, hometown,
@@ -132,12 +142,23 @@ async function buildFixture(): Promise<Fixture> {
   );
   const recruitId = recruit.id;
 
-  // recruit_top_schools row so the UPDATE inside executeRecruitingAction doesn't update 0 rows
+  // Recruit 2 — used by Suite 3 concurrent cap tests
+  const { rows: [recruit2] } = await pool.query<{ id: string }>(
+    `INSERT INTO recruits
+       (league_id, first_name, last_name, position, home_state, hometown,
+        class_rank, position_rank)
+     VALUES ($1, 'Jake', 'Secondman', 'P', 'TX', 'Austin', 2, 2)
+     RETURNING id`,
+    [leagueId],
+  );
+  const recruitId2 = recruit2.id;
+
+  // recruit_top_schools rows so the UPDATE inside executeRecruitingAction doesn't update 0 rows
   // (safe to omit — the UPDATE is non-fatal if it matches 0 rows, but we add it for completeness)
   await pool.query(
     `INSERT INTO recruit_top_schools (recruit_id, team_id, accumulated_interest)
-     VALUES ($1, $2, 0) ON CONFLICT DO NOTHING`,
-    [recruitId, teamId],
+     VALUES ($1, $2, 0), ($3, $2, 0) ON CONFLICT DO NOTHING`,
+    [recruitId, teamId, recruitId2],
   );
 
   // Session cookie (same signing pattern as express-session / seed-14-coach-league.ts)
@@ -158,7 +179,7 @@ async function buildFixture(): Promise<Fixture> {
   const signed = cookieSig.sign(sid, SESS_SECRET);
   const cookie = encodeURIComponent(`s:${signed}`);
 
-  return { userId, leagueId, teamId, coachId, recruitId, cookie };
+  return { userId, leagueId, teamId, coachId, recruitId, recruitId2, cookie };
 }
 
 async function teardownFixture(leagueId: string, userId: string): Promise<void> {
@@ -467,6 +488,181 @@ async function runSuite2(fix: Fixture): Promise<void> {
   console.log(`\n  Suite 2 complete — ${passed} pass, ${failed} fail so far`);
 }
 
+// ── SUITE 3 — Concurrent visit-cap enforcement (different recruits) ───────────
+
+async function runSuite3(fix: Fixture): Promise<void> {
+  header("SUITE 3 — Concurrent visit cap enforcement (different recruits)");
+
+  console.log("\n  Rationale: the unique indexes only guard duplicate actions to the SAME");
+  console.log("  recruit. Two simultaneous visits to DIFFERENT recruits could both pass a");
+  console.log("  pre-check when the team is at cap-1 and both commit, exceeding the cap.");
+  console.log("  The team-row lock + in-transaction count prevents this.\n");
+
+  const VISIT_CAP = 1; // artificially tight so we can test with 2 recruits
+
+  const baseParams = {
+    teamId:     fix.teamId,
+    leagueId:   fix.leagueId,
+    coachId:    fix.coachId,
+    week:       1,
+    season:     1,
+    cost:       2,
+    maxAllowed: 50,
+    interestGain: 20,
+    notes:      "cap-test",
+    visitCap:   VISIT_CAP,
+  };
+
+  // ── 3a: service-layer — two concurrent visits to DIFFERENT recruits, cap=1 ──
+  console.log("  3a — Service-layer: two concurrent visits to different recruits, cap=1");
+  await resetCoachActions(fix.coachId);
+  await clearActionLog(fix.leagueId);
+
+  const [capA, capB] = await Promise.all([
+    executeRecruitingAction({ ...baseParams, actionType: "visit", recruitId: fix.recruitId }),
+    executeRecruitingAction({ ...baseParams, actionType: "visit", recruitId: fix.recruitId2 }),
+  ]);
+
+  const capSuccesses    = [capA, capB].filter(r => r.success).length;
+  const capExceededCnt  = [capA, capB].filter(r => r.capExceeded).length;
+  const capAlreadyDone  = [capA, capB].filter(r => r.alreadyDone).length;
+
+  // Count total visits for this team this season
+  const { rows: [totalRow] } = await pool.query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM recruiting_actions_log
+      WHERE team_id = $1 AND league_id = $2 AND season = 1
+        AND action_type IN ('visit', 'head_coach_visit')`,
+    [fix.teamId, fix.leagueId],
+  );
+  const totalVisits = parseInt(totalRow.cnt, 10);
+  const actionsUsedAfterCap = await getCoachActionsUsed(fix.coachId);
+
+  assert("cap-service: exactly 1 success",               capSuccesses === 1,           `got ${capSuccesses}`);
+  assert("cap-service: exactly 1 capExceeded",           capExceededCnt === 1,         `got ${capExceededCnt}`);
+  assert("cap-service: 0 alreadyDone (different recruits)", capAlreadyDone === 0,      `got ${capAlreadyDone}`);
+  assert("cap-service: total visits = 1 (cap held)",    totalVisits === 1,             `got ${totalVisits}`);
+  assert("cap-service: budget deducted exactly once",   actionsUsedAfterCap === 2,     `recruit_actions_used=${actionsUsedAfterCap}`);
+
+  // ── 3b: service-layer — third request after cap is full → capExceeded ───────
+  console.log("\n  3b — Service-layer: additional visit when already at cap → capExceeded");
+  await resetCoachActions(fix.coachId);
+
+  // Create a third recruit for this sub-test
+  const { rows: [r3] } = await pool.query<{ id: string }>(
+    `INSERT INTO recruits
+       (league_id, first_name, last_name, position, home_state, hometown, class_rank, position_rank)
+     VALUES ($1, 'Third', 'Recruit', 'C', 'TX', 'Houston', 3, 3) RETURNING id`,
+    [fix.leagueId],
+  );
+  const thirdRecruitId = r3.id;
+
+  const thirdResult = await executeRecruitingAction({
+    ...baseParams,
+    actionType: "visit",
+    recruitId: thirdRecruitId,
+  });
+
+  assert("cap-service: third visit also capExceeded", thirdResult.capExceeded === true,  `got ${JSON.stringify(thirdResult)}`);
+  assert("cap-service: third visit not alreadyDone",  thirdResult.alreadyDone === false, `got alreadyDone=${thirdResult.alreadyDone}`);
+  const visitsAfterThird = parseInt(
+    (await pool.query<{ cnt: string }>(
+      `SELECT COUNT(*)::text AS cnt FROM recruiting_actions_log
+        WHERE team_id = $1 AND league_id = $2 AND season = 1
+          AND action_type IN ('visit', 'head_coach_visit')`,
+      [fix.teamId, fix.leagueId],
+    )).rows[0]?.cnt ?? "0",
+    10,
+  );
+  assert("cap-service: total visits still = 1 after third blocked", visitsAfterThird === 1, `got ${visitsAfterThird}`);
+
+  // ── 3c: HTTP — concurrent visits to two different recruits, real cap ──────────
+  console.log("\n  3c — HTTP: concurrent visits to two different recruits when cap=1");
+  console.log("       Note: HTTP cap uses real visitCombinedCap from league profile.");
+  console.log("       We pre-fill cap-1 visits, then fire two concurrent visits to the last slot.");
+
+  await resetCoachActions(fix.coachId);
+  await clearActionLog(fix.leagueId);
+
+  // First, get the real visitCombinedCap by hitting the league profile
+  // The fixture league is 'standard' season → visitCombinedCap should be 12
+  // Pre-fill cap-1 visits so only 1 slot remains
+  const { rows: [capRow] } = await pool.query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM recruiting_actions_log
+      WHERE team_id = $1 AND league_id = $2 AND season = 1`,
+    [fix.teamId, fix.leagueId],
+  );
+
+  // Get real combined cap from a quick GET to the recruiting page balance profile endpoint
+  // Since we can't easily hit the balance profile API without a recruit, we'll determine
+  // the cap by querying what the server knows — instead, seed cap-1 = 11 visits directly
+  // then the two concurrent requests race for the last slot.
+  const REAL_CAP = 12; // standard season visitCombinedCap
+  const PREFILL  = REAL_CAP - 1;
+
+  // Insert PREFILL synthetic visit rows for existing recruits (season 1 only)
+  // We need PREFILL different recruits; create them now
+  const prefillRecruitIds: string[] = [];
+  for (let i = 0; i < PREFILL; i++) {
+    const { rows: [pr] } = await pool.query<{ id: string }>(
+      `INSERT INTO recruits
+         (league_id, first_name, last_name, position, home_state, hometown, class_rank, position_rank)
+       VALUES ($1, $2, $3, 'OF', 'TX', 'Test', $4, $4) RETURNING id`,
+      [fix.leagueId, `Prefill${i}`, "Visitee", i + 10],
+    );
+    prefillRecruitIds.push(pr.id);
+  }
+
+  // Insert pre-fill visit log rows directly
+  for (const pid of prefillRecruitIds) {
+    await pool.query(
+      `INSERT INTO recruiting_actions_log
+         (id, recruit_id, team_id, league_id, week, season, action_type, interest_change, notes, is_auto_pilot)
+       VALUES (gen_random_uuid(), $1, $2, $3, 1, 1, 'visit', 10, 'prefill', false)`,
+      [pid, fix.teamId, fix.leagueId],
+    );
+  }
+
+  // Verify pre-fill count
+  const { rows: [preCheck] } = await pool.query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM recruiting_actions_log
+      WHERE team_id = $1 AND league_id = $2 AND season = 1
+        AND action_type IN ('visit', 'head_coach_visit')`,
+    [fix.teamId, fix.leagueId],
+  );
+  assert(`cap-http pre-fill: ${PREFILL} visits already in DB`, parseInt(preCheck.cnt, 10) === PREFILL, `got ${preCheck.cnt}`);
+
+  // Now concurrently hit the visit endpoint for two different recruits
+  const visitUrl1 = `/api/leagues/${fix.leagueId}/recruiting/${fix.recruitId}/visit`;
+  const visitUrl2 = `/api/leagues/${fix.leagueId}/recruiting/${fix.recruitId2}/visit`;
+
+  const [httpCap1, httpCap2] = await Promise.all([
+    httpPost(visitUrl1, fix.cookie),
+    httpPost(visitUrl2, fix.cookie),
+  ]);
+
+  const httpCapStatuses = [httpCap1.status, httpCap2.status].sort();
+  const httpCapHas200   = httpCapStatuses.includes(200);
+  const httpCapHas409   = httpCapStatuses.includes(409);
+
+  // Verify the 409 carries capExceeded (not alreadyDone)
+  const rejected = httpCap1.status === 409 ? httpCap1 : httpCap2;
+
+  const { rows: [afterRow] } = await pool.query<{ cnt: string }>(
+    `SELECT COUNT(*)::text AS cnt FROM recruiting_actions_log
+      WHERE team_id = $1 AND league_id = $2 AND season = 1
+        AND action_type IN ('visit', 'head_coach_visit')`,
+    [fix.teamId, fix.leagueId],
+  );
+  const totalAfter = parseInt(afterRow.cnt, 10);
+
+  assert("cap-http: one 200 received",                   httpCapHas200,                  `statuses: ${httpCapStatuses}`);
+  assert("cap-http: one 409 received",                   httpCapHas409,                  `statuses: ${httpCapStatuses}`);
+  assert("cap-http: 409 body has capExceeded=true",      rejected.data?.capExceeded === true, `body=${JSON.stringify(rejected.data)}`);
+  assert("cap-http: total visits = REAL_CAP (not over)", totalAfter === REAL_CAP,        `got ${totalAfter}, expected ${REAL_CAP}`);
+
+  console.log(`\n  Suite 3 complete — ${passed} pass, ${failed} fail so far`);
+}
+
 // ── Schema guard — partial indexes must exist ─────────────────────────────────
 
 async function assertIndexesExist(): Promise<void> {
@@ -496,6 +692,7 @@ async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const suite1Only = args.includes("--suite1-only");
   const suite2Only = args.includes("--suite2-only");
+  const suite3Only = args.includes("--suite3-only");
 
   console.log("\n  verify-recruiting-action-dedup.ts\n");
 
@@ -510,10 +707,12 @@ async function main(): Promise<void> {
   try {
     header("Fixture setup");
     fix = await buildFixture();
-    console.log(`  ·  league=${fix.leagueId}  team=${fix.teamId}  coach=${fix.coachId}  recruit=${fix.recruitId}`);
+    console.log(`  ·  league=${fix.leagueId}  team=${fix.teamId}  coach=${fix.coachId}  recruit=${fix.recruitId}  recruit2=${fix.recruitId2}`);
 
-    if (!suite2Only) await runSuite1(fix);
-    if (!suite1Only) await runSuite2(fix);
+    const runAll = !suite1Only && !suite2Only && !suite3Only;
+    if (runAll || suite1Only) await runSuite1(fix);
+    if (runAll || suite2Only) await runSuite2(fix);
+    if (runAll || suite3Only) await runSuite3(fix);
 
     header("Results");
     console.log(`  Total: ${passed} assertions passed, ${failed} failed`);
