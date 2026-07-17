@@ -428,21 +428,22 @@ app.use((req, res, next) => {
       // Backfill: null out any news imageUrls that are not /objects/ paths.
       // This remediates legacy rows that may have been stored before the
       // write-path was hardened to reject external URLs.
-      await serialRunner.run("news-imageurl-backfill-v1", async () => {
+      // Uses onceAfter so it retries on partial failure.
+      await onceAfter("news-imageurl-backfill-v1", async () => {
         const r1 = await pool.query(`
           UPDATE dynasty_news
-          SET    "imageUrl" = NULL
-          WHERE  "imageUrl" IS NOT NULL
-            AND  "imageUrl" NOT LIKE '/objects/%'
+          SET    image_url = NULL
+          WHERE  image_url IS NOT NULL
+            AND  image_url NOT LIKE '/objects/%'
         `);
         const r2 = await pool.query(`
           UPDATE league_news_posts
-          SET    "imageUrl" = NULL
-          WHERE  "imageUrl" IS NOT NULL
-            AND  "imageUrl" NOT LIKE '/objects/%'
+          SET    image_url = NULL
+          WHERE  image_url IS NOT NULL
+            AND  image_url NOT LIKE '/objects/%'
         `);
         const total = (r1.rowCount ?? 0) + (r2.rowCount ?? 0);
-        console.log(`[startup-migration] news-imageurl-backfill-v1: nulled ${total} non-/objects/ imageUrl(s)`);
+        console.log(`[startup-migration] news-imageurl-backfill-v1: nulled ${total} non-/objects/ image_url(s)`);
       });
 
     } catch (e) {
