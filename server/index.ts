@@ -425,6 +425,26 @@ app.use((req, res, next) => {
         console.log("[startup-migration] league-advances-schema-v1: table created");
       });
 
+      // Backfill: null out any news imageUrls that are not /objects/ paths.
+      // This remediates legacy rows that may have been stored before the
+      // write-path was hardened to reject external URLs.
+      await serialRunner.run("news-imageurl-backfill-v1", async () => {
+        const r1 = await pool.query(`
+          UPDATE dynasty_news
+          SET    "imageUrl" = NULL
+          WHERE  "imageUrl" IS NOT NULL
+            AND  "imageUrl" NOT LIKE '/objects/%'
+        `);
+        const r2 = await pool.query(`
+          UPDATE league_news_posts
+          SET    "imageUrl" = NULL
+          WHERE  "imageUrl" IS NOT NULL
+            AND  "imageUrl" NOT LIKE '/objects/%'
+        `);
+        const total = (r1.rowCount ?? 0) + (r2.rowCount ?? 0);
+        console.log(`[startup-migration] news-imageurl-backfill-v1: nulled ${total} non-/objects/ imageUrl(s)`);
+      });
+
     } catch (e) {
       console.error("[startup-migrations] sequential runner failed:", e);
     }

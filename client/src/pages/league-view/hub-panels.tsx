@@ -550,7 +550,7 @@ function NewsPostCard({
   const canDelete = isCommissioner || (!!currentUserId && post.authorId === currentUserId);
   return (
     <article className="border border-border/50 rounded-lg overflow-hidden bg-card/30" data-testid={`news-post-${post.id}`}>
-      {post.imageUrl && (
+      {post.imageUrl?.startsWith("/objects/") && (
         <div className="h-36 sm:h-48 overflow-hidden bg-background/40">
           <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
         </div>
@@ -1243,7 +1243,7 @@ export function NewsroomPanel({
                       </button>
                       {expandedPostId === post.id && (
                         <div className="px-3 pb-3 border-t border-border/30">
-                          {post.imageUrl && (
+                          {post.imageUrl?.startsWith("/objects/") && (
                             <div className="h-32 overflow-hidden rounded bg-background/40 mb-2 mt-2">
                               <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover" />
                             </div>

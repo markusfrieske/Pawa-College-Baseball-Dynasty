@@ -330,7 +330,7 @@ function NewsArticle({ item }: { item: DynastyNews }) {
           </p>
         </div>
       </div>
-      {item.imageUrl && (
+      {item.imageUrl?.startsWith("/objects/") && (
         <div className="my-3 pl-[52px]">
           <img src={item.imageUrl} alt={item.title} className="max-w-full max-h-64 rounded-lg object-cover" />
         </div>
