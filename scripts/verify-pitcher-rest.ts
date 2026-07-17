@@ -212,6 +212,54 @@ function runUnitTests() {
   assert(`Advance-week scenario: FRI starter (18 outs, wk=${WEEK}) unavailable for SAT same week`, !satAvail.available,
     `available=${satAvail.available}, daysOfRest=${satAvail.daysOfRest}`);
 
+  // ── 1l. SAT→SUN unavailability cases ─────────────────────────────────────
+  // daysOfRest SAT→SUN = DAY_OFFSET[SUN] - DAY_OFFSET[SAT] = 4 - 3 = 1
+  // outsToRestNeeded(18)=4, daysOfRest=1 → unavailable
+  const sat18Outs = computePitcherAvailability(18, WEEK, "SAT", 60, WEEK, "SUN");
+  assert("SAT→SUN: typical Saturday starter (18 outs, daysOfRest=1, restNeeded=4) is UNAVAILABLE Sunday", !sat18Outs.available,
+    `available=${sat18Outs.available}, daysOfRest=${sat18Outs.daysOfRest}`);
+
+  // outsToRestNeeded(27)=5, daysOfRest=1 → unavailable
+  const sat27Outs = computePitcherAvailability(27, WEEK, "SAT", 70, WEEK, "SUN");
+  assert("SAT→SUN: complete-game Saturday starter (27 outs, daysOfRest=1, restNeeded=5) is UNAVAILABLE Sunday", !sat27Outs.available,
+    `available=${sat27Outs.available}, daysOfRest=${sat27Outs.daysOfRest}`);
+
+  // outsToRestNeeded(9)=2, daysOfRest=1 → suggestedMaxIP=0 → unavailable
+  const sat9Outs = computePitcherAvailability(9, WEEK, "SAT", 60, WEEK, "SUN");
+  assert("SAT→SUN: 3-inning Saturday start (9 outs, daysOfRest=1, restNeeded=2) is UNAVAILABLE Sunday", !sat9Outs.available,
+    `available=${sat9Outs.available}, daysOfRest=${sat9Outs.daysOfRest}`);
+
+  // outsToRestNeeded(3)=1, daysOfRest=1 → suggestedMaxIP=1 → available limited
+  const sat3Outs = computePitcherAvailability(3, WEEK, "SAT", 60, WEEK, "SUN");
+  assert("SAT→SUN: tiny Saturday outing (3 outs, daysOfRest=1, restNeeded=1) is available-but-limited Sunday",
+    sat3Outs.available && sat3Outs.limited,
+    `available=${sat3Outs.available}, limited=${sat3Outs.limited}, maxIP=${sat3Outs.suggestedMaxIP}`);
+
+  // outsToRestNeeded(2)=1, daysOfRest=1 → suggestedMaxIP=1 → available limited
+  const sat2Outs = computePitcherAvailability(2, WEEK, "SAT", 60, WEEK, "SUN");
+  assert("SAT→SUN: 2-out Saturday outing (daysOfRest=1, restNeeded=1) is available-but-limited Sunday",
+    sat2Outs.available && sat2Outs.limited,
+    `available=${sat2Outs.available}, limited=${sat2Outs.limited}, maxIP=${sat2Outs.suggestedMaxIP}`);
+
+  // outsToRestNeeded(0)=0 → restNeeded=0, daysOfRest=1 ≥ restNeeded → not blocked.
+  // However suggestedMaxIP is still set to 1 because daysOfRest===1 in the formula, so limited=true.
+  // A pitcher who appeared but recorded 0 outs is still treated as limited-availability the next day.
+  const sat0Outs = computePitcherAvailability(0, WEEK, "SAT", 60, WEEK, "SUN");
+  assert("SAT→SUN: 0-out Saturday appearance (daysOfRest=1, restNeeded=0) is available-but-limited Sunday", sat0Outs.available && sat0Outs.limited,
+    `available=${sat0Outs.available}, limited=${sat0Outs.limited}, maxIP=${sat0Outs.suggestedMaxIP}`);
+
+  // Same-day guard: pitcher who pitched SAT is blocked from a second SAT slot
+  const satSameDay = computePitcherAvailability(18, WEEK, "SAT", 60, WEEK, "SAT");
+  assert("SAT same-day guard: Saturday starter is blocked from a second same-week SAT slot", !satSameDay.available,
+    `available=${satSameDay.available}`);
+
+  // Cross-week carry-over: Saturday starter from prior week is fully rested by next week's Saturday
+  // daysOfRest = (WEEK+1)*7+3 - WEEK*7+3 = 7 → fully rested
+  const satNextWeekSat = computePitcherAvailability(27, WEEK, "SAT", 70, WEEK + 1, "SAT");
+  assert("SAT→SUN cross-week: prior-week Saturday starter (27 outs) is FULLY AVAILABLE next week Saturday",
+    satNextWeekSat.available && !satNextWeekSat.limited,
+    `available=${satNextWeekSat.available}, limited=${satNextWeekSat.limited}`);
+
   console.log(`\n  Suite 1 complete.`);
 }
 
@@ -442,7 +490,7 @@ async function runIntegrationTest() {
       `available=${homeAvailSun.available}, daysOfRest=${homeAvailSun.daysOfRest}`);
 
     // ── SUB-TEST B: findStartingPitcher logic respects committed rest ─────────
-    section("SUITE 2 — Sub-test B: starter rotation enforced by DB rest state");
+    section("SUITE 2 — Sub-test B: starter rotation enforced by DB rest state (FRI→SAT→SUN)");
     console.log("  Replicating findStartingPitcher sort+availability for each day.");
     console.log("  All pitchers share role 'FRI' — role-priority cannot mask rest regressions.");
 
@@ -462,11 +510,62 @@ async function runIntegrationTest() {
 
     console.log(`  [SAT] Home Saturday starter: Pitcher B (OVR=400) ✓`);
 
-    // Simulate committing Saturday rest for Pitcher B (as finalizeGameAtomic would after Saturday)
-    await storage.bulkUpdatePlayerRest([
-      { id: homePitcherB.id, lastPitchedOuts: expectedOuts, lastPitchedWeek: TEST_WEEK, lastPitchedDay: "SAT" },
-      { id: awayPitcherB.id, lastPitchedOuts: expectedOuts, lastPitchedWeek: TEST_WEEK, lastPitchedDay: "SAT" },
+    // ── Sub-test B2: finalizeGameAtomic commits Saturday rest to DB ──────────
+    // Create a Saturday game record and finalize it with Pitcher B as the starter.
+    // This exercises the full Saturday commit path (updatePitcherRestInTx with day="SAT")
+    // so that we verify the SAT→SUN link via actual box score finalization, not a manual
+    // bulkUpdatePlayerRest call. A bug in the SAT finalization step would be invisible
+    // to a test that manually patches rest state.
+    section("SUITE 2 — Sub-test B2: finalizeGameAtomic() commits Saturday rest (SAT→SUN link)");
+    console.log("  Creating Saturday game record and calling finalizeGameAtomic() with Pitcher B as starter.");
+
+    const SAT_IP = "6.0"; // 18 outs → restNeeded=4, daysOfRest SAT→SUN=1 → unavailable Sunday
+    const [satGameRow] = await db
+      .insert(gamesTable)
+      .values({ leagueId: testLeagueId, season: TEST_SEASON, week: TEST_WEEK, homeTeamId, awayTeamId, isComplete: false, phase: "regular", isConference: true, gameType: "saturday" })
+      .returning({ id: gamesTable.id });
+
+    const syntheticSatBox = {
+      home: {
+        pitching: [{ playerId: homePitcherB.id, ip: SAT_IP, h: 4, r: 1, er: 1, bb: 1, so: 7, hr: 0, era: "1.50", totalPitches: 95, whiffs: 9, spinRate: 2350 }],
+        batting: [], innings: [],
+      },
+      away: {
+        pitching: [{ playerId: awayPitcherB.id, ip: SAT_IP, h: 6, r: 2, er: 2, bb: 2, so: 5, hr: 0, era: "3.00", totalPitches: 105, whiffs: 8, spinRate: 2100 }],
+        batting: [], innings: [],
+      },
+    };
+
+    await finalizeGameAtomic(
+      { id: satGameRow.id, homeTeamId, awayTeamId, season: TEST_SEASON, week: TEST_WEEK, isConference: true, gameType: "saturday" },
+      4, 1,
+      syntheticSatBox,
+      testLeagueId,
+      { skipStandings: true, skipPlayerStats: true, skipCoachXp: true, skipLeagueEvent: true, skipCacheInvalidation: true, finalizer: "pitcher-rest-test-sat" },
+    );
+
+    // Read back DB state for Pitcher B after Saturday finalization
+    const [homeB_db, awayB_db] = await Promise.all([
+      db.select({ id: players.id, lastPitchedOuts: players.lastPitchedOuts, lastPitchedWeek: players.lastPitchedWeek, lastPitchedDay: players.lastPitchedDay, stamina: players.stamina })
+        .from(players).where(eq(players.id, homePitcherB.id)).then(r => r[0]),
+      db.select({ id: players.id, lastPitchedOuts: players.lastPitchedOuts, lastPitchedWeek: players.lastPitchedWeek, lastPitchedDay: players.lastPitchedDay, stamina: players.stamina })
+        .from(players).where(eq(players.id, awayPitcherB.id)).then(r => r[0]),
     ]);
+
+    const expectedSatOuts = ipToOuts(SAT_IP); // 18
+    assert(`Home Pitcher B: lastPitchedOuts = ${expectedSatOuts} written to DB by Saturday finalizeGameAtomic`, homeB_db.lastPitchedOuts === expectedSatOuts,
+      `got ${homeB_db.lastPitchedOuts}, expected ${expectedSatOuts}`);
+    assert(`Home Pitcher B: lastPitchedWeek = ${TEST_WEEK} in DB after Saturday finalization`, homeB_db.lastPitchedWeek === TEST_WEEK,
+      `got ${homeB_db.lastPitchedWeek}`);
+    assert(`Home Pitcher B: lastPitchedDay = "SAT" in DB after Saturday finalization`, homeB_db.lastPitchedDay === "SAT",
+      `got ${homeB_db.lastPitchedDay}`);
+    assert(`Away Pitcher B: lastPitchedDay = "SAT" in DB after Saturday finalization`, awayB_db.lastPitchedDay === "SAT",
+      `got ${awayB_db.lastPitchedDay}`);
+
+    // Confirm computePitcherAvailability confirms the committed SAT rest blocks SUN
+    const homeB_sunAvail = computePitcherAvailability(homeB_db.lastPitchedOuts, homeB_db.lastPitchedWeek, homeB_db.lastPitchedDay as GameDay, homeB_db.stamina ?? 60, TEST_WEEK, "SUN");
+    assert(`Home Pitcher B DB rest (${homeB_db.lastPitchedOuts} outs, SAT wk${TEST_WEEK}) blocks SUN via computePitcherAvailability`, !homeB_sunAvail.available,
+      `available=${homeB_sunAvail.available}, daysOfRest=${homeB_sunAvail.daysOfRest}`);
 
     // Read fresh DB state (as advance-week would before Sunday simulation)
     const homePlayersAfterSat = await db
@@ -474,17 +573,25 @@ async function runIntegrationTest() {
       .from(players)
       .where(inArray(players.id, homePitcherRows.map(r => r.id)));
 
-    // ── Sunday: Pitcher A (FRI rest) and Pitcher B (SAT rest) both blocked ──
+    // Confirm the Saturday starter (committed via box score) ≠ Sunday starter
+    // Pitcher A is blocked by FRI rest, Pitcher B is blocked by SAT rest (committed via finalizeGameAtomic)
+    const satStarterFromDB = homePlayersAfterSat.find(p => p.lastPitchedDay === "SAT")?.id ?? null;
+    assert(`SAT→SUN: DB records a Saturday starter (lastPitchedDay=SAT)`, satStarterFromDB !== null,
+      `No player found with lastPitchedDay=SAT after Saturday finalization`);
+
+    // ── Sunday: Pitcher A (FRI rest) and Pitcher B (SAT rest via finalizeGameAtomic) both blocked ──
     const sunHomePick = simulatedFindStartingPitcher(homePlayersAfterSat, "sunday", TEST_WEEK);
     assert(`Sunday: findStartingPitcher picks a valid pitcher`, sunHomePick !== null);
     assert(`Sunday: findStartingPitcher does NOT pick Pitcher A (still blocked by FRI rest)`, sunHomePick !== homePitcherA.id,
       `got ${sunHomePick?.slice(0,8)}, expected ≠ ${homePitcherA.id.slice(0,8)}`);
-    assert(`Sunday: findStartingPitcher does NOT pick Pitcher B (blocked by SAT rest)`, sunHomePick !== homePitcherB.id,
+    assert(`Sunday: findStartingPitcher does NOT pick Pitcher B (blocked by SAT rest committed via finalizeGameAtomic)`, sunHomePick !== homePitcherB.id,
       `got ${sunHomePick?.slice(0,8)}, expected ≠ ${homePitcherB.id.slice(0,8)}`);
     assert(`Sunday: findStartingPitcher picks Pitcher C (third OVR, only fresh starter available)`, sunHomePick === homePitcherC.id,
       `got ${sunHomePick?.slice(0,8)}, expected ${homePitcherC.id.slice(0,8)}`);
+    assert(`SAT→SUN: Saturday starter (${satStarterFromDB?.slice(0,8)}) ≠ Sunday starter (${sunHomePick?.slice(0,8)})`, satStarterFromDB !== sunHomePick,
+      `Both are ${sunHomePick?.slice(0,8)} — Saturday rest from finalizeGameAtomic did not block Sunday`);
 
-    console.log(`  [SUN] Home Sunday starter: Pitcher C (OVR=350) ✓`);
+    console.log(`  [SAT→SUN] Saturday starter (Pitcher B) ≠ Sunday starter (Pitcher C) confirmed via DB box score ✓`);
 
     // Verify that if rest commits were MISSING (simulate regression), Pitcher A would be picked
     const homePlayersNoRest = homePlayersAfterSat.map(p => ({ ...p, lastPitchedOuts: 0, lastPitchedWeek: null as null, lastPitchedDay: null as null }));
@@ -492,7 +599,7 @@ async function runIntegrationTest() {
     assert(`REGRESSION CONTROL: Without rest commits, Pitcher A (highest OVR) would be picked every day`, regressed_satPick === homePitcherA.id,
       `regression check picked ${regressed_satPick?.slice(0,8)}, expected ${homePitcherA.id.slice(0,8)} — rest commit is what forces rotation`);
 
-    console.log(`\n  [done] All weekend series rotation assertions passed.`);
+    console.log(`\n  [done] All weekend series rotation assertions passed (FRI→SAT→SUN chain via finalizeGameAtomic)`);
 
   } catch (err) {
     console.error("  [integration] Unexpected error:", err);
