@@ -5138,29 +5138,73 @@ export async function advanceLeagueStep(
     return batches;
   }
 
+  // DAY_ORDER defines the canonical simulation sequence for a week.
+  // midweek (OOC) must run before the conference weekend series so pitcher rest
+  // accumulated on Wednesday is visible to Friday's starters.
+  // !! DO NOT change this to an unordered structure (e.g. a Set or object keys) !!
   const DAY_ORDER: Record<string, number> = { midweek: 0, friday: 1, saturday: 2, sunday: 3 };
 
-  // coachXpAccum is declared here so it spans the full simulation scope
-  const coachXpAccum = new Map<string, CoachXpDelta>();
-
-  const gameResults: Array<{ game: (typeof incompleteGames)[0]; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
-
-  if (!stageAlreadyDone("game_simulation", completedStages) && incompleteGames.length > 0) {
-    // Group games by logical day
+  /**
+   * Simulate all games in a week **day by day, in strict ascending DAY_ORDER**,
+   * committing pitcher-rest state to the database after every day before
+   * proceeding to the next.
+   *
+   * ─── ORDERING INVARIANT (do not break) ───────────────────────────────────────
+   * Within-day games may run in parallel (via Promise.all over conflict-free
+   * batches), but the outer day loop MUST remain sequential (`for...of` over
+   * ascending sorted day keys, NOT `Promise.all` across days).
+   *
+   * Rationale: `finalizeGameAtomic` writes pitcher-rest cooldowns to the DB as
+   * part of each day's commit.  If days ran concurrently a Friday starter's rest
+   * record would not be visible when Saturday's lineup is built, allowing the
+   * same pitcher to start back-to-back days — the exact race condition this loop
+   * was introduced to fix.
+   *
+   * A runtime assertion below (`prevDay` guard) will throw immediately if this
+   * invariant is ever violated, surfacing the bug during dev/CI rather than
+   * silently corrupting pitcher-rest data in production.
+   * ─────────────────────────────────────────────────────────────────────────────
+   *
+   * @param games        The week's incomplete regular-season games.
+   * @param leagueId     Used by finalizeGameAtomic for DB writes.
+   * @param xpAccum      Coach-XP accumulator shared across the full advance-week scope.
+   * @param leagueTeams  Full team list required by finalizeGameAtomic.
+   * @returns            All game results in the order they were committed.
+   */
+  async function simulateWeekDaySequential(
+    games: typeof incompleteGames,
+    leagueId: string,
+    xpAccum: Map<string, CoachXpDelta>,
+    leagueTeams: typeof leagueTeamsForSim,
+  ): Promise<Array<{ game: (typeof incompleteGames)[0]; result: { homeScore: number; awayScore: number; boxScore: string } }>> {
+    // Group games by logical day index
     const gamesByDay = new Map<number, typeof incompleteGames>();
-    for (const game of incompleteGames) {
+    for (const game of games) {
       const dayKey = DAY_ORDER[game.gameType ?? "friday"] ?? 1;
       if (!gamesByDay.has(dayKey)) gamesByDay.set(dayKey, []);
       gamesByDay.get(dayKey)!.push(game);
     }
 
-    // Process each day in ascending order, committing rest before next day
+    const results: Array<{ game: (typeof incompleteGames)[0]; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
+
+    // ── Runtime assertion: days MUST be processed in strict ascending order ──
+    // If this ever throws, a refactor has broken the pitcher-rest invariant.
     const sortedDays = [...gamesByDay.keys()].sort((a, b) => a - b);
+    let prevDay = -1;
     for (const day of sortedDays) {
+      if (day <= prevDay) {
+        throw new Error(
+          `[simulateWeekDaySequential] Day-order invariant violated: ` +
+          `attempted to process day=${day} after day=${prevDay}. ` +
+          `Days must run in strict ascending DAY_ORDER to prevent pitcher-rest race conditions.`,
+        );
+      }
+      prevDay = day;
+
       const dayGames = gamesByDay.get(day)!;
       // Partition into conflict-free batches so no team appears twice in the
-      // same parallel Promise.all (handles makeup/doubleheader edge cases).
-      const dayResults: typeof gameResults = [];
+      // same Promise.all (handles makeup/doubleheader edge cases).
+      const dayResults: typeof results = [];
       const conflictFreeBatches = partitionConflictFreeBatches(dayGames);
       for (const batch of conflictFreeBatches) {
         const batchResults = await Promise.all(batch.map(async (game) => {
@@ -5169,24 +5213,44 @@ export async function advanceLeagueStep(
         }));
         dayResults.push(...batchResults);
       }
+
       // Commit each game atomically through finalizeGameAtomic so that standings,
-      // stats, pitcher rest, and XP are all committed in one transaction per game
+      // stats, pitcher rest, and XP are all written in one transaction per game
       // with an idempotency sentinel.  A crash mid-day leaves completed games fully
       // committed and unfinished games untouched; a retry is safe.
+      // Pitcher-rest rows written here MUST be visible before the next day's loop
+      // iteration starts — this is guaranteed by the sequential outer loop.
       for (const { game, result } of dayResults) {
         try {
           const box = JSON.parse(result.boxScore);
           await finalizeGameAtomic(game, result.homeScore, result.awayScore, box, leagueId, {
-            coachXpAccum,
-            leagueTeams: leagueTeamsForSim,
+            coachXpAccum: xpAccum,
+            leagueTeams,
             skipLeagueEvent: true,
             skipCacheInvalidation: true,
             finalizer: "advance-week",
           });
         } catch (e) { console.error("[advance-week] finalizeGameAtomic error:", e); }
       }
-      gameResults.push(...dayResults);
+      results.push(...dayResults);
     }
+
+    return results;
+  }
+
+  // coachXpAccum is declared here so it spans the full simulation scope
+  const coachXpAccum = new Map<string, CoachXpDelta>();
+
+  const gameResults: Array<{ game: (typeof incompleteGames)[0]; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
+
+  if (!stageAlreadyDone("game_simulation", completedStages) && incompleteGames.length > 0) {
+    const weekResults = await simulateWeekDaySequential(
+      incompleteGames,
+      leagueId,
+      coachXpAccum,
+      leagueTeamsForSim,
+    );
+    gameResults.push(...weekResults);
   }
 
   console.timeEnd("[advance-perf] game-sim");
