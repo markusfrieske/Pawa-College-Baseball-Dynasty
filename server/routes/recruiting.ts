@@ -1091,14 +1091,6 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(404).json({ message: "League not found" });
       }
 
-      const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
-      const phoneThisWeek = existingActions.filter(a => 
-        a.actionType === "phone" && a.week === league.currentWeek && a.season === league.currentSeason
-      );
-      if (phoneThisWeek.length >= 1) {
-        return res.status(400).json({ message: "You've already called this recruit this week. Max 1 phone call per recruit per week." });
-      }
-
       const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
       const phoneCost = getActionPointCost("phone", userTeam.state, recruit.homeState);
       if ((userCoach?.recruitActionsUsed || 0) + phoneCost > maxRecruitingActions) {
@@ -1178,14 +1170,6 @@ export function registerRecruitingRoutes(app: Express): void {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
-      }
-
-      const existingEmailActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
-      const emailThisWeek = existingEmailActions.filter(a => 
-        a.actionType === "email" && a.week === league.currentWeek && a.season === league.currentSeason
-      );
-      if (emailThisWeek.length >= 1) {
-        return res.status(400).json({ message: "You've already emailed this recruit this week. Max 1 email per recruit per week." });
       }
 
       const maxRecruitingActions = getMaxRecruitingActions(userCoach, league);
@@ -1280,12 +1264,6 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: `You've used all ${visitProfile.visitCombinedCap} visits for this season (${seasonVisits.campusVisits} campus + ${seasonVisits.hcVisits} head coach). The cap resets next season.` });
       }
 
-      const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
-      const previousVisit = existingActions.find(a => a.actionType === "visit");
-      if (previousVisit) {
-        return res.status(400).json({ message: "You've already used your Campus Visit for this recruit. This action can only be done once per recruit." });
-      }
-
       const { baseGain, interestGain, totalMultiplier } = computeVisitGain(recruit, userTeam, userCoach);
       assertInterestGainSane("visit", interestGain, baseGain);
 
@@ -1362,12 +1340,6 @@ export function registerRecruitingRoutes(app: Express): void {
       const seasonVisitsHcv = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
       if (seasonVisitsHcv.total >= hcvProfile.visitCombinedCap) {
         return res.status(400).json({ message: `You've used all ${hcvProfile.visitCombinedCap} visits for this season (${seasonVisitsHcv.campusVisits} campus + ${seasonVisitsHcv.hcVisits} head coach). The cap resets next season.` });
-      }
-
-      const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
-      const previousHCV = existingActions.find(a => a.actionType === "head_coach_visit");
-      if (previousHCV) {
-        return res.status(400).json({ message: "You've already used your Head Coach Visit for this recruit. This action can only be done once per recruit." });
       }
 
       const { baseGain, interestGain: rawHcvGain, totalMultiplier } = computeHeadCoachVisitGain(recruit, userTeam, userCoach);
@@ -1449,12 +1421,6 @@ export function registerRecruitingRoutes(app: Express): void {
       const offerPlayingTimeMod = computePlayingTimeMod(recruit, offerTransferPlayers);
       const interestGain = Math.max(2, Math.round(rawOfferGain * offerPlayingTimeMod));
       assertInterestGainSane("offer", interestGain, baseGain);
-
-      // Check if already offered (before the action-log gate, so we give a clear 400)
-      const existingOfferInterest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
-      if (existingOfferInterest?.hasOffer) {
-        return res.status(400).json({ message: "Already offered scholarship" });
-      }
 
       const offerResult = await executeRecruitingAction({
         actionType: "offer",

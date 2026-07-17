@@ -39,7 +39,7 @@ const MIGRATIONS_DIR = (() => {
  * The last migration file key that must be present before /health/ready returns 200.
  * Update this whenever a new migration file is added.
  */
-export const EXPECTED_MIGRATION = "0046_fix_standings_uniqueness";
+export const EXPECTED_MIGRATION = "0047_recruiting_actions_unique_indexes";
 
 /**
  * Errors that are safe to swallow — the statement was idempotent.

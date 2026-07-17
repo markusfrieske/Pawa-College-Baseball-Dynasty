@@ -25,14 +25,23 @@ export interface RecruitingActionResult {
 /**
  * Unified transactional recruiting action executor — used by BOTH human routes and CPU simulation.
  *
- * All mutations run in a single DB transaction with deterministic lock order to prevent
- * partial state corruption under concurrent requests:
+ * All mutations run in a single DB transaction to prevent partial state corruption and
+ * double-spend under concurrent requests. The lock order is deterministic:
  *
- *   1. INSERT action log (ON CONFLICT DO NOTHING — idempotency gate).
- *      If the row already exists (0 rows inserted): ROLLBACK, return alreadyDone.
- *   2. If coachId provided: UPDATE coaches SET recruit_actions_used = ... WHERE used + cost <= max.
+ *   1. INSERT action log (ON CONFLICT DO NOTHING against the partial unique indexes
+ *      uq_action_log_weekly  — one phone/email per recruit per week
+ *      uq_action_log_seasonal — one visit/hcv/offer per recruit per season
+ *      If 0 rows inserted the action already happened): ROLLBACK, return alreadyDone.
+ *      This is the idempotency gate — no pre-read needed in the route.
+ *
+ *   2. Atomic action-budget spend (the "NIL actions budget" for non-signing actions):
+ *        UPDATE coaches
+ *          SET recruit_actions_used = recruit_actions_used + cost
+ *          WHERE id = coachId AND recruit_actions_used + cost <= maxAllowed
  *      If 0 rows updated (budget exhausted concurrently): ROLLBACK, return spendFailed.
- *      The spend ROLLBACK also reverts the action log insert, so retries are NOT blocked.
+ *      The ROLLBACK also reverts the action log insert so the slot stays available for retry.
+ *      This is a guarded read-modify-write — never a plain read → check → write.
+ *
  *   3. UPSERT recruiting_interests (create or increment interest_level, set has_offer).
  *   4. UPDATE recruit_top_schools accumulated_interest.
  *   5. COMMIT.
