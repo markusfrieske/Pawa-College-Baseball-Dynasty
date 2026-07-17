@@ -956,6 +956,14 @@ export const recruitingActionsLog = pgTable("recruiting_actions_log", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   idx_recruiting_actions_team_league_season: index("idx_recruiting_actions_team_league_season").on(t.teamId, t.leagueId, t.season),
+  // Partial unique: phone/email are capped at 1 per recruit per week
+  uq_action_log_weekly: uniqueIndex("uq_action_log_weekly")
+    .on(t.recruitId, t.teamId, t.season, t.week, t.actionType)
+    .where(sql`action_type = ANY(ARRAY['email'::text, 'phone'::text])`),
+  // Partial unique: campus visit, head coach visit, and offer are capped at 1 per recruit per season
+  uq_action_log_seasonal: uniqueIndex("uq_action_log_seasonal")
+    .on(t.recruitId, t.teamId, t.season, t.actionType)
+    .where(sql`action_type = ANY(ARRAY['visit'::text, 'head_coach_visit'::text, 'offer'::text])`),
 }));
 
 export const insertRecruitingActionsLogSchema = createInsertSchema(recruitingActionsLog).pick({

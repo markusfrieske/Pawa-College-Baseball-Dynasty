@@ -1131,7 +1131,7 @@ export function registerRecruitingRoutes(app: Express): void {
         notes: `Phone call: ${topicSummary}`,
       });
       if (phoneResult.alreadyDone) {
-        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
+        return res.status(409).json({ message: "You've already called this recruit this week. Max 1 phone call per recruit per week.", alreadyDone: true });
       }
       if (phoneResult.spendFailed) {
         return res.status(400).json({ message: "Not enough recruiting points remaining." });
@@ -1218,7 +1218,7 @@ export function registerRecruitingRoutes(app: Express): void {
         notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
       });
       if (emailResult.alreadyDone) {
-        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
+        return res.status(409).json({ message: "You've already emailed this recruit this week. Max 1 email per recruit per week.", alreadyDone: true });
       }
       if (emailResult.spendFailed) {
         return res.status(400).json({ message: "Not enough recruiting points remaining." });
@@ -1303,7 +1303,7 @@ export function registerRecruitingRoutes(app: Express): void {
         notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
       });
       if (visitResult.alreadyDone) {
-        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
+        return res.status(409).json({ message: "You've already used your Campus Visit for this recruit. This action can only be done once per recruit.", alreadyDone: true });
       }
       if (visitResult.spendFailed) {
         return res.status(400).json({ message: "Not enough recruiting points remaining." });
@@ -1390,7 +1390,7 @@ export function registerRecruitingRoutes(app: Express): void {
         notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
       });
       if (hcvResult.alreadyDone) {
-        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - actionsUsed, alreadyDone: true });
+        return res.status(409).json({ message: "You've already used your Head Coach Visit for this recruit. This action can only be done once per recruit.", alreadyDone: true });
       }
       if (hcvResult.spendFailed) {
         return res.status(400).json({ message: "Not enough recruiting points remaining." });
@@ -1471,7 +1471,7 @@ export function registerRecruitingRoutes(app: Express): void {
         notes: `Offered scholarship (+${interestGain}% interest)`,
       });
       if (offerResult.alreadyDone) {
-        return res.json({ interestGain: 0, actionsRemaining: maxRecruitingActions - (userCoach?.recruitActionsUsed ?? 0), alreadyDone: true });
+        return res.status(409).json({ message: "You've already offered a scholarship to this recruit.", alreadyDone: true });
       }
       if (offerResult.spendFailed) {
         return res.status(400).json({ message: "Not enough recruiting points remaining." });
