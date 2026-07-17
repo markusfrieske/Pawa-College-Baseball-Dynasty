@@ -50,6 +50,10 @@ args = "validate-all"
 task = "workflow.run"
 args = "validate-rosters"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "validate-objects-authz"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -99,6 +103,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx scripts/validate-roster-structure.ts && npx tsx scripts/validate-ovr-dist.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "validate-objects-authz"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx scripts/verify-objects-authz.ts"
 
 [workflows.workflow.metadata]
 outputType = "console"
