@@ -1499,6 +1499,12 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "No team assigned" });
       }
 
+      // Validate the recruit belongs to this league before any mutation
+      const recruitRecord = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruitRecord || recruitRecord.leagueId !== req.params.id) {
+        return res.status(404).json({ message: "Recruit not found in this league" });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
 
       const [targetLeague, targetRoster] = await Promise.all([
@@ -2988,18 +2994,31 @@ export function registerRecruitingRoutes(app: Express): void {
     }
   });
 
-  // Bulk-scout endpoint — atomically consumes one action per recruit and runs
-  // each scout sequentially so the action counter is never double-read.
+  // Bulk-scout endpoint.
+  //
+  // Safety properties:
+  // 1. Recruit IDs are deduplicated before any processing.
+  // 2. Every recruit is validated as belonging to this league before consuming
+  //    any action budget (cross-league IDs are silently skipped).
+  // 3. Scout actions are reserved atomically (UPDATE...WHERE counter+N<=cap
+  //    RETURNING) BEFORE reveals are applied.  A concurrent request that
+  //    consumes the remaining budget first causes this UPDATE to return 0 rows,
+  //    and the handler aborts without touching any recruit data.
+  // 4. No post-loop counter update — the reservation above is the single write.
   app.post("/api/leagues/:id/recruiting/bulk-scout", requireAuth, async (req, res) => {
     try {
-      const { recruitIds } = req.body as { recruitIds: string[] };
-      if (!Array.isArray(recruitIds) || recruitIds.length === 0) {
+      const rawIds = (req.body as { recruitIds: string[] }).recruitIds;
+      if (!Array.isArray(rawIds) || rawIds.length === 0) {
         return res.status(400).json({ message: "recruitIds must be a non-empty array" });
       }
 
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      // Deduplicate before any processing
+      const uniqueIds = [...new Set(rawIds as string[])];
+
+      const leagueId = req.params.id as string;
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
       const userId = req.session.userId;
-      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const coaches = await storage.getCoachesByLeague(leagueId);
       const userCoach = coaches.find((c) => c.userId === userId);
       const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
 
@@ -3007,20 +3026,44 @@ export function registerRecruitingRoutes(app: Express): void {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const bulkScoutLeague = await storage.getLeague(req.params.id as string);
-      const maxScoutActions = getMaxScoutActions(userCoach, bulkScoutLeague);
+      const league = await storage.getLeague(leagueId);
+      const maxScoutActions = getMaxScoutActions(userCoach, league);
       const actionsUsed = userCoach?.scoutActionsUsed || 0;
       const actionsRemaining = Math.max(0, maxScoutActions - actionsUsed);
 
       if (actionsRemaining === 0) {
-        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week`, scouted: 0, skipped: recruitIds.length });
+        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week`, scouted: 0, skipped: uniqueIds.length });
       }
 
-      // Cap the list to available actions — no race condition because we read once here
-      const allowedIds = recruitIds.slice(0, actionsRemaining);
-      const skippedCount = recruitIds.length - allowedIds.length;
+      // Pre-validate: load each recruit and reject any that don't belong to this league
+      const validRecruits: Array<{ id: string; recruit: NonNullable<Awaited<ReturnType<typeof storage.getRecruit>>> }> = [];
+      for (const recruitId of uniqueIds) {
+        const r = await storage.getRecruit(recruitId);
+        if (!r || r.leagueId !== leagueId) continue;
+        validRecruits.push({ id: recruitId, recruit: r });
+      }
 
-      const league = await storage.getLeague(req.params.id as string);
+      // Cap to available actions
+      const toProcess = validRecruits.slice(0, actionsRemaining);
+      const skippedCount = rawIds.length - toProcess.length;
+
+      if (toProcess.length === 0) {
+        return res.status(400).json({ message: `No valid recruits to scout`, scouted: 0, skipped: rawIds.length });
+      }
+
+      // Atomically reserve exactly toProcess.length scout actions BEFORE applying
+      // any reveals.  If a concurrent request already consumed the budget, this
+      // UPDATE returns 0 rows and we abort without touching any recruit data.
+      const reserveResult = await pool.query<{ scout_actions_used: number }>(
+        `UPDATE coaches
+         SET scout_actions_used = scout_actions_used + $1
+         WHERE id = $2 AND scout_actions_used + $1 <= $3
+         RETURNING scout_actions_used`,
+        [toProcess.length, userCoach!.id, maxScoutActions],
+      );
+      if ((reserveResult.rowCount ?? 0) === 0) {
+        return res.status(400).json({ message: `No scouting actions remaining`, scouted: 0, skipped: rawIds.length });
+      }
 
       // Archetype/skill bonuses (same as single-scout endpoint)
       const archetypeScoutEfficiency: Record<string, number> = {
@@ -3063,12 +3106,9 @@ export function registerRecruitingRoutes(app: Express): void {
         return { newMin: 1, newMax: 5 };
       };
 
-      // Process each allowed recruit sequentially
+      // Apply reveals for exactly the reserved set (actions are committed above)
       const results = [];
-      for (const recruitId of allowedIds) {
-        const recruit = await storage.getRecruit(recruitId);
-        if (!recruit) continue;
-
+      for (const { id: recruitId, recruit } of toProcess) {
         const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
         const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
         const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype ?? ""] || 1.0) + philosophyNarrowBonus;
@@ -3120,7 +3160,7 @@ export function registerRecruitingRoutes(app: Express): void {
           await storage.createRecruitingAction({
             recruitId,
             teamId: userTeam.id,
-            leagueId: req.params.id as string,
+            leagueId,
             week: league.currentWeek,
             season: league.currentSeason,
             actionType: "scout",
@@ -3132,15 +3172,7 @@ export function registerRecruitingRoutes(app: Express): void {
         results.push(interest);
       }
 
-      // Increment scoutActionsUsed atomically using a SQL expression so concurrent
-      // requests cannot overwrite each other's writes. LEAST(..., max) prevents
-      // exceeding the weekly cap even if two requests race past the initial check.
-      if (userCoach && results.length > 0) {
-        await db.update(coachesTable)
-          .set({ scoutActionsUsed: drizzleSql`LEAST(${coachesTable.scoutActionsUsed} + ${results.length}, ${maxScoutActions})` })
-          .where(drizzleSql`${coachesTable.id} = ${userCoach.id}`);
-      }
-
+      // No counter update needed here — actions were reserved atomically above.
       res.json({ scouted: results.length, skipped: skippedCount });
     } catch (error) {
       console.error("Failed to bulk scout recruits:", error);

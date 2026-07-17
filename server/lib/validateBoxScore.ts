@@ -36,8 +36,15 @@ export function validateBoxScore(data: {
   const issues: BoxScoreIssue[] = [];
   const { homeScore, awayScore, homeHits, awayHits, inningScores, homeBoxData, awayBoxData } = data;
 
-  if (homeScore < 0 || awayScore < 0) {
-    issues.push({ id: "neg-score", severity: "error", message: "Scores cannot be negative" });
+  // Scores must be finite integers, 0–30, and not tied (baseball has no ties).
+  if (!Number.isFinite(homeScore) || !Number.isInteger(homeScore) || homeScore < 0 || homeScore > 30) {
+    issues.push({ id: "invalid-home-score", severity: "error", message: `Home score must be a whole number 0–30 (got ${homeScore})` });
+  }
+  if (!Number.isFinite(awayScore) || !Number.isInteger(awayScore) || awayScore < 0 || awayScore > 30) {
+    issues.push({ id: "invalid-away-score", severity: "error", message: `Away score must be a whole number 0–30 (got ${awayScore})` });
+  }
+  if (Number.isFinite(homeScore) && Number.isFinite(awayScore) && homeScore === awayScore) {
+    issues.push({ id: "tied-score", severity: "error", message: `Tied scores are not valid in baseball (${homeScore}–${awayScore})` });
   }
 
   if (Array.isArray(inningScores) && inningScores.length > 0) {

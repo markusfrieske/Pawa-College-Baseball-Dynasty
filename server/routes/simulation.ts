@@ -5169,10 +5169,22 @@ export async function advanceLeagueStep(
         }));
         dayResults.push(...batchResults);
       }
-      // Commit standings, stats, pitcher rest, and XP for this day before the next.
-      // batchFinalizeGames is safe to call per-day: standings/stats are cumulative
-      // so repeated calls with disjoint result sets are additive and idempotent.
-      await batchFinalizeGames(dayResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches);
+      // Commit each game atomically through finalizeGameAtomic so that standings,
+      // stats, pitcher rest, and XP are all committed in one transaction per game
+      // with an idempotency sentinel.  A crash mid-day leaves completed games fully
+      // committed and unfinished games untouched; a retry is safe.
+      for (const { game, result } of dayResults) {
+        try {
+          const box = JSON.parse(result.boxScore);
+          await finalizeGameAtomic(game, result.homeScore, result.awayScore, box, leagueId, {
+            coachXpAccum,
+            leagueTeams: leagueTeamsForSim,
+            skipLeagueEvent: true,
+            skipCacheInvalidation: true,
+            finalizer: "advance-week",
+          });
+        } catch (e) { console.error("[advance-week] finalizeGameAtomic error:", e); }
+      }
       gameResults.push(...dayResults);
     }
   }
@@ -5302,7 +5314,19 @@ export async function advanceLeagueStep(
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
         return { game, result };
       }));
-      await batchFinalizeGames(confGameResults, leagueId, league.currentSeason, coachXpAccum, leagueTeamsForSim, coaches, league.dynastyPreset === "full_season" ? { skipStandings: true } : undefined);
+      for (const { game, result } of confGameResults) {
+        try {
+          const box = JSON.parse(result.boxScore);
+          await finalizeGameAtomic(game, result.homeScore, result.awayScore, box, leagueId, {
+            coachXpAccum,
+            leagueTeams: leagueTeamsForSim,
+            skipLeagueEvent: true,
+            skipCacheInvalidation: true,
+            skipStandings: league.dynastyPreset === "full_season",
+            finalizer: "advance-conf-champ",
+          });
+        } catch (e) { console.error("[advance-conf-champ] finalizeGameAtomic error:", e); }
+      }
       console.timeEnd("[advance-perf] conf-champ-games");
 
       if (!fast && simUserTeamId && !userTeamGame) {
@@ -7795,6 +7819,13 @@ export function registerSimulationRoutes(app: Express): void {
             WHERE id = $1 AND status = 'running'`,
           [advOpId],
         ).catch(e => console.error("[league-advances] Heartbeat renewal failed:", e));
+        // Also keep the advance-lock row's locked_at current so the clear-stuck
+        // safety check (locked_at >= now() - 15 min) correctly blocks clearing
+        // a lock that belongs to a still-running advance longer than 15 minutes.
+        pool.query(
+          `UPDATE league_advance_locks SET locked_at = now() WHERE league_id = $1`,
+          [leagueId],
+        ).catch(e => console.error("[league-advances] Lock heartbeat refresh failed:", e));
       }, 30_000);
 
       // Invalidate server cache immediately so data doesn't serve stale content after advance

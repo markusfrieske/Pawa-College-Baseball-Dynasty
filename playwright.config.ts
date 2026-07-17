@@ -30,6 +30,7 @@ const executablePath = findPlaywrightChromium();
 
 export default defineConfig({
   testDir: "./tests",
+  testIgnore: ["**/unit/**"],
   timeout: 300_000,
   expect: { timeout: 30_000 },
   fullyParallel: false,
