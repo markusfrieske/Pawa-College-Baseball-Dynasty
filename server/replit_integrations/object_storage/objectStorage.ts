@@ -165,6 +165,12 @@ export class ObjectStorageService {
       throw new ObjectNotFoundError();
     }
 
+    // Reject path-traversal attempts — ".." segments are never present in
+    // server-generated UUIDs and must not be resolved against the private dir.
+    if (parts.some((p) => p === "..")) {
+      throw new ObjectNotFoundError();
+    }
+
     const entityId = parts.slice(1).join("/");
     let entityDir = this.getPrivateObjectDir();
     if (!entityDir.endsWith("/")) {

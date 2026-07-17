@@ -38,6 +38,51 @@ import { calibrateRpiOvr } from "../calibrateRpiOvr";
 import { pool } from "../db";
 import type { AdvanceDigestCategories } from "@shared/schema";
 import { resolveRecruitSigningWinner } from "../signing-resolver";
+import { ObjectStorageService, ObjectNotFoundError } from "../replit_integrations/object_storage/objectStorage";
+
+const _leagueMgmtObjectStorage = new ObjectStorageService();
+
+/**
+ * Validate and normalize a client-supplied imageUrl before persisting it.
+ * - /objects/... paths: must resolve to a real uploaded object.
+ * - Full GCS URLs (https://storage.googleapis.com/...): normalized to /objects/... then verified.
+ * - https:// external URLs: allowed as-is.
+ * - Unsafe schemes (javascript:, data:, vbscript:, etc.): rejected.
+ * Returns the normalized path to persist, or null if no imageUrl was supplied.
+ * Throws with a human-readable message string if the URL is invalid/unsafe.
+ */
+async function validateAndNormalizeImageUrl(imageUrl: string | null | undefined): Promise<string | null> {
+  if (!imageUrl) return null;
+  const lower = imageUrl.toLowerCase().trimStart();
+  // Reject unsafe URI schemes before any further processing.
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:") ||
+    lower.startsWith("blob:")
+  ) {
+    throw new Error("Unsafe imageUrl scheme. Only https:// or /objects/ paths are accepted.");
+  }
+  // Normalize full GCS presigned URLs to /objects/... paths.
+  const normalizedPath = _leagueMgmtObjectStorage.normalizeObjectEntityPath(imageUrl);
+  if (normalizedPath.startsWith("/objects/")) {
+    // Must reference a real, already-uploaded object we control.
+    try {
+      await _leagueMgmtObjectStorage.getObjectEntityFile(normalizedPath);
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) {
+        throw new Error("imageUrl does not reference an uploaded object.");
+      }
+      throw err;
+    }
+    return normalizedPath;
+  }
+  // External https:// (or http://) URLs are stored as-is.
+  if (lower.startsWith("https://") || lower.startsWith("http://")) {
+    return imageUrl;
+  }
+  throw new Error("Unsupported imageUrl format. Use a /objects/ path or a https:// URL.");
+}
 
 const settingsSchema = z.object({
   auditLogPublic: z.boolean().optional(),
@@ -3146,6 +3191,15 @@ app.post("/api/leagues/:id/news", requireAuth, async (req, res) => {
       ? `${myCoach.firstName} ${myCoach.lastName}`.trim()
       : user.email.split("@")[0] || "Unknown";
 
+    // Validate and normalize imageUrl before persisting — rejects unsafe schemes
+    // (javascript:, data:, vbscript:) and verifies /objects/ paths against real uploads.
+    let safeImageUrl: string | null = null;
+    try {
+      safeImageUrl = await validateAndNormalizeImageUrl(imageUrl);
+    } catch (err) {
+      return res.status(400).json({ message: err instanceof Error ? err.message : "Invalid imageUrl" });
+    }
+
     const news = await storage.createDynastyNews({
       leagueId,
       authorId: userId,
@@ -3153,7 +3207,7 @@ app.post("/api/leagues/:id/news", requireAuth, async (req, res) => {
       title,
       content: postContent,
       category: category || "general",
-      imageUrl: imageUrl || null,
+      imageUrl: safeImageUrl,
       isSticky: isSticky || false,
     });
 
