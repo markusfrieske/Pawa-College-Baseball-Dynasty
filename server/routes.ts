@@ -1283,7 +1283,14 @@ export async function registerRoutes(
       }
 
       // Fetch actual league conferences first — needed for exact distribution validation
-      const conferences = await storage.getConferencesByLeague(league.id);
+      // Use the same deterministic conference order as GET /team-selection.
+      // Database row order is not guaranteed, which can misassign the 6+4+4 targets.
+      const catalogOrder = FULL_SEASON_CONF_NAMES;
+      const conferences = (await storage.getConferencesByLeague(league.id)).sort((a, b) => {
+        const ai = catalogOrder.indexOf(a.name);
+        const bi = catalogOrder.indexOf(b.name);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
       const actualConfCount = conferences.length;
 
       const teamsToCreate: Array<{

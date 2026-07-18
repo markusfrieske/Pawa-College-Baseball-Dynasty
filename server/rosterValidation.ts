@@ -50,10 +50,10 @@ export function checkTeamRosterStructure(
     fail(`has ${players.length} players (expected 25)`);
   }
 
-  // 2. Freshmen count
+  // 2. Freshmen count. Real rosters preserve actual eligibility.
   const frCount = players.filter(p => p.eligibility === "FR").length;
-  if (frCount !== 5) {
-    fail(`has ${frCount} freshmen (expected 5)`);
+  if (frCount < 2 || frCount > 7) {
+    fail(`has ${frCount} freshmen (expected 2–7)`);
   }
 
   // 3. Unknown positions
@@ -69,10 +69,10 @@ export function checkTeamRosterStructure(
   const infielders = players.filter(p => INFIELD_POSITIONS.has(p.position)).length;
   const outfielders = players.filter(p => OUTFIELD_POSITIONS.has(p.position)).length;
 
-  if (pitchers !== 10)                           fail(`has ${pitchers} pitchers (expected 10)`);
+  if (pitchers < 9 || pitchers > 11)             fail(`has ${pitchers} pitchers (expected 9–11)`);
   if (catchers !== 2)                            fail(`has ${catchers} catchers (expected 2)`);
-  if (infielders < 6 || infielders > 7)          fail(`has ${infielders} infielders (expected 6–7)`);
-  if (outfielders !== 6)                         fail(`has ${outfielders} outfielders (expected 6)`);
+  if (infielders < 6 || infielders > 8)          fail(`has ${infielders} infielders (expected 6–8)`);
+  if (outfielders < 6 || outfielders > 7)        fail(`has ${outfielders} outfielders (expected 6–7)`);
 
   return violations;
 }

@@ -1920,6 +1920,10 @@ export class DatabaseStorage implements IStorage {
       const leagueTeams = await tx.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, id));
       const teamIds = leagueTeams.map(t => t.id);
 
+      // Startup jobs retain diagnostics and do not cascade automatically.
+      // Remove them explicitly when deleting a league.
+      await tx.delete(league_jobs).where(eq(league_jobs.leagueId, id));
+
       await tx.delete(playerSeasonStats).where(eq(playerSeasonStats.leagueId, id));
 
       await tx.delete(playerPromises).where(eq(playerPromises.leagueId, id));
