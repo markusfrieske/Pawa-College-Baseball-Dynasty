@@ -596,8 +596,9 @@ export async function generateSchedule(leagueId: string, season: number = 1) {
     totalGames++;
   }
 
-  // Flush all buffered game inserts in batches (M2 performance: one round-trip vs 4000+).
-  await storage.batchCreateGames(pendingGames);
+  // Atomically replace the unplayed regular schedule. A failed or retried
+  // dynasty start can never leave a partial schedule or append duplicates.
+  await storage.replaceRegularGamesByLeagueSeason(leagueId, season, pendingGames);
 
   // Post-generation validation: soft range check — warn if any team is more than 4 below target.
   const gameCounts = leagueTeams.map(t => teamGameCounts.get(t.id) ?? 0);
@@ -1074,7 +1075,11 @@ export async function generateRecruits(
   count: number,
   forceStorylineReset = false,
   targetSeason?: number,
-  opts?: { pitcherRatio?: number; positionGroupWeights?: { C?: number; IF?: number; OF?: number } },
+  opts?: {
+    pitcherRatio?: number;
+    positionGroupWeights?: { C?: number; IF?: number; OF?: number };
+    awaitStorylines?: boolean;
+  },
 ) {
   const leagueForProgression = await storage.getLeague(leagueId);
   const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
@@ -1124,7 +1129,15 @@ export async function generateRecruits(
       }
     };
     // Run asynchronously — do not await so generateRecruits returns sooner
-    doInit().catch(err => console.error("[storylines] generateRecruits background init threw:", err));
+    if (opts?.awaitStorylines) {
+      await doInit();
+      const initialized = await storage.getStorylineRecruitsByLeague(leagueId, storylineSeason);
+      if (initialized.length !== 10) {
+        throw new Error(`Expected 10 storyline recruits, found ${initialized.length}`);
+      }
+    } else {
+      doInit().catch(err => console.error("[storylines] generateRecruits background init threw:", err));
+    }
   }
 
   return recruits[0]?.classVintage ?? null;

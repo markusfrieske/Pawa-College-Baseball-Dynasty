@@ -30,12 +30,13 @@ import {
   storylineRecruits,
   storylineEvents,
   storylineVotes,
+  leagues,
 } from "@shared/schema";
 import { eq, inArray } from "drizzle-orm";
 import { storage } from "../storage";
 import type { InsertRecruit, InsertStorylineRecruit } from "@shared/schema";
 import { captureLeagueSaveState, type SaveStateTrigger } from "./leagueSaveState";
-import { pickStorylineRecruits, _setStorylineRng, _resetStorylineRng } from "../storylineEngine";
+import { pickStorylineRecruits, _setStorylineRng, _resetStorylineRng, archetypeDefs } from "../storylineEngine";
 import { initializeStorylineRecruits, generateInitialStorylineEvents } from "../storyline-routes";
 import { invalidateLeague } from "../cache";
 import type { WizardStoryPlan } from "@shared/schema";
@@ -138,6 +139,22 @@ export async function replaceLeagueRecruitingClass(
     saveState,
     audit,
   } = opts;
+
+  if (storyPlan) {
+    if (storyPlan.mode !== "authored" || storyPlan.cast.length > 10) {
+      throw new Error("Story Plan must be authored and contain no more than 10 cast members");
+    }
+    const castIds = new Set<string>();
+    for (const member of storyPlan.cast) {
+      if (!member.templateRecruitId || castIds.has(member.templateRecruitId)) {
+        throw new Error("Story Plan cast members must have unique recruit IDs");
+      }
+      castIds.add(member.templateRecruitId);
+      if (member.arcMode === "template" && (!member.arcTemplateKey || !(member.arcTemplateKey in archetypeDefs))) {
+        throw new Error(`Invalid Story Plan archetype for recruit ${member.templateRecruitId}`);
+      }
+    }
+  }
 
   // 1. Safety save state (outside transaction — non-fatal if it fails) ────────
   if (saveState) {
@@ -410,9 +427,9 @@ export async function replaceLeagueRecruitingClass(
 
     // 2e. Update currentClassVintage inside the same transaction
     if (vintage !== undefined) {
-      await tx.execute(
-        `UPDATE leagues SET "currentClassVintage" = ${vintage === null ? "NULL" : `'${String(vintage).replace(/'/g, "''")}'`} WHERE id = '${leagueId.replace(/'/g, "''")}'`
-      );
+      await tx.update(leagues)
+        .set({ currentClassVintage: vintage })
+        .where(eq(leagues.id, leagueId));
     }
   });
 

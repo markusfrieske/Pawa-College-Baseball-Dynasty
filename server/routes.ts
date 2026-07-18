@@ -37,8 +37,14 @@ import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "./rosterScaleFactors";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool, db } from "./db";
 import { checkMigrationVersion } from "./lib/runMigrations";
-import { sql as drizzleSql } from "drizzle-orm";
-import { coaches as coachesTable } from "@shared/schema";
+import { and, eq, isNull, sql as drizzleSql } from "drizzle-orm";
+import {
+  auditLogs as auditLogsTable,
+  coaches as coachesTable,
+  leagues as leaguesTable,
+  standings as standingsTable,
+  teams as teamsTable,
+} from "@shared/schema";
 
 // ── Domain route modules ─────────────────────────────────────────────────────
 import { registerAuthRoutes } from "./routes/auth";
@@ -786,6 +792,11 @@ export async function registerRoutes(
   app.get("/api/leagues/:id/job", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
       const job = await storage.getLatestLeagueJob(leagueId);
       if (!job) return res.status(404).json({ message: "No job found for this league" });
       res.json(job);
@@ -1275,7 +1286,10 @@ export async function registerRoutes(
       const conferences = await storage.getConferencesByLeague(league.id);
       const actualConfCount = conferences.length;
 
-      let totalTeamsCreated = 0;
+      const teamsToCreate: Array<{
+        data: ReturnType<typeof getTeamsForConference>[number];
+        conferenceId: string;
+      }> = [];
 
       const allTeamPools = FULL_SEASON_CONF_NAMES.flatMap(name => getTeamsForConference(name));
 
@@ -1284,15 +1298,7 @@ export async function registerRoutes(
         for (const conf of conferences) {
           const confTeams = getTeamsForConference(conf.name);
           for (const teamData of confTeams) {
-            const team = await storage.createTeam({
-              ...teamData,
-              leagueId: league.id,
-              conferenceId: conf.id,
-              isCpu: true,
-              nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
-            });
-            await storage.createStandings({ leagueId: league.id, teamId: team.id, season: 1 });
-            totalTeamsCreated++;
+            teamsToCreate.push({ data: teamData, conferenceId: conf.id });
           }
         }
       } else {
@@ -1303,6 +1309,9 @@ export async function registerRoutes(
         }
 
         const payloadConfIds = new Set(selectedTeams.map(s => s.conferenceId));
+        if (payloadConfIds.size !== selectedTeams.length) {
+          return res.status(400).json({ message: "Each conference may appear only once in team selection" });
+        }
         for (const conf of conferences) {
           if (!payloadConfIds.has(conf.id)) {
             return res.status(400).json({ message: `Conference "${conf.name}" is missing from team selection` });
@@ -1343,10 +1352,19 @@ export async function registerRoutes(
         }
 
         // Pre-validate all team names before any writes (fail fast, no orphan rows)
+        const requestedTeamNames = selectedTeams.flatMap(selection => selection.teamNames);
+        if (new Set(requestedTeamNames).size !== requestedTeamNames.length) {
+          return res.status(400).json({ message: "A school may be selected only once" });
+        }
         for (const selection of selectedTeams) {
+          const selectedConference = conferences.find(c => c.id === selection.conferenceId);
+          if (!selectedConference) {
+            return res.status(400).json({ message: "Unknown conference in selection" });
+          }
+          const allowedNames = new Set(getTeamsForConference(selectedConference.name).map(t => t.name));
           for (const teamName of selection.teamNames) {
-            if (!allTeamPools.find(t => t.name === teamName)) {
-              return res.status(400).json({ message: `Unknown team name: "${teamName}". Only teams from the official catalog are allowed.` });
+            if (!allowedNames.has(teamName)) {
+              return res.status(400).json({ message: `School "${teamName}" does not belong to conference "${selectedConference.name}".` });
             }
           }
         }
@@ -1357,30 +1375,50 @@ export async function registerRoutes(
           for (const teamName of selection.teamNames) {
             const teamData = allTeamPools.find(t => t.name === teamName);
             if (!teamData) continue;
-            const team = await storage.createTeam({
-              ...teamData,
-              leagueId: league.id,
-              conferenceId: conf.id,
-              isCpu: true,
-              nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
-            });
-            await storage.createStandings({ leagueId: league.id, teamId: team.id, season: 1 });
-            totalTeamsCreated++;
+            teamsToCreate.push({ data: teamData, conferenceId: conf.id });
           }
         }
       }
 
       // Generate recruits now that teams exist — scale class size to team count
-      const initClassVintage = await generateRecruits(league.id, getRecruitPoolSize(totalTeamsCreated, league.dynastyPreset ?? undefined));
-      if (initClassVintage) {
-        await storage.updateLeague(league.id, { currentClassVintage: initClassVintage });
-      }
+      const totalTeamsCreated = await db.transaction(async (tx) => {
+        const lockedLeague = await tx
+          .select({ id: leaguesTable.id, phase: leaguesTable.currentPhase })
+          .from(leaguesTable)
+          .where(eq(leaguesTable.id, league.id))
+          .for("update");
+        if (!lockedLeague[0] || lockedLeague[0].phase !== "dynasty_setup") {
+          throw new Error("League is no longer accepting team selections");
+        }
+        const alreadyCreated = await tx
+          .select({ id: teamsTable.id })
+          .from(teamsTable)
+          .where(eq(teamsTable.leagueId, league.id));
+        if (alreadyCreated.length > 0) {
+          throw new Error("Teams have already been selected for this league");
+        }
 
-      await storage.createAuditLog({
-        leagueId: league.id,
-        userId,
-        action: "Teams Selected",
-        details: `${totalTeamsCreated} teams added to the dynasty`,
+        for (const selection of teamsToCreate) {
+          const [team] = await tx.insert(teamsTable).values({
+            ...selection.data,
+            leagueId: league.id,
+            conferenceId: selection.conferenceId,
+            isCpu: true,
+            nationalRank: NATIONAL_RANKS[selection.data.name] ?? TOTAL_NATIONAL_TEAMS,
+          }).returning();
+          await tx.insert(standingsTable).values({
+            leagueId: league.id,
+            teamId: team.id,
+            season: 1,
+          });
+        }
+        await tx.insert(auditLogsTable).values({
+          leagueId: league.id,
+          userId,
+          action: "Teams Selected",
+          details: `${teamsToCreate.length} teams added to the dynasty`,
+        });
+        return teamsToCreate.length;
       });
 
       res.json({ success: true, teamsCreated: totalTeamsCreated });
@@ -1441,26 +1479,53 @@ export async function registerRoutes(
       if (!leagueForSetup) {
         return res.status(404).json({ message: "League not found" });
       }
-      const leagueTeamsForSetup = await storage.getTeamsByLeague(req.params.id as string);
-      if (!leagueTeamsForSetup.find(t => t.id === teamId)) {
-        return res.status(403).json({ message: "Team does not belong to this league" });
+      if (!hasCommissionerAccess(leagueForSetup, userId)) {
+        return res.status(403).json({ message: "Join this dynasty through a commissioner invite" });
       }
-      // Also reject if the team already has a human coach (prevents double-setup)
-      const existingTeamForSetup = leagueTeamsForSetup.find(t => t.id === teamId);
-      if (existingTeamForSetup && !existingTeamForSetup.isCpu) {
-        return res.status(409).json({ message: "This team already has a coach" });
+      if (leagueForSetup.currentPhase !== "dynasty_setup") {
+        return res.status(409).json({ message: "Teams can only be claimed before the dynasty starts" });
       }
 
-      const coach = await storage.createCoach({
-        userId,
-        teamId,
-        leagueId: (req.params.id as string),
-        firstName: coachData.firstName,
-        lastName: coachData.lastName,
-        archetype: coachData.archetype || "Balanced",
-        skinTone: coachData.skinTone || "light",
-        hairColor: coachData.hairColor || "brown",
-        hairStyle: coachData.hairStyle || "short",
+      const leagueId = req.params.id as string;
+      const coach = await db.transaction(async (tx) => {
+        const [lockedTeam] = await tx.select().from(teamsTable)
+          .where(and(eq(teamsTable.id, teamId), eq(teamsTable.leagueId, leagueId)))
+          .for("update");
+        if (!lockedTeam) throw new Error("TEAM_NOT_IN_LEAGUE");
+        if (!lockedTeam.isCpu) throw new Error("TEAM_ALREADY_CLAIMED");
+
+        const existingForUser = await tx.select({ id: coachesTable.id }).from(coachesTable)
+          .where(and(eq(coachesTable.leagueId, leagueId), eq(coachesTable.userId, userId)))
+          .limit(1);
+        if (existingForUser.length > 0) throw new Error("USER_ALREADY_HAS_TEAM");
+
+        // Full Season bootstrap may have provisioned a placeholder CPU coach.
+        // Remove only that locked team's userless placeholder before the human claim.
+        await tx.delete(coachesTable).where(and(
+          eq(coachesTable.leagueId, leagueId),
+          eq(coachesTable.teamId, teamId),
+          isNull(coachesTable.userId),
+        ));
+
+        const [createdCoach] = await tx.insert(coachesTable).values({
+          userId, teamId, leagueId,
+          firstName: coachData.firstName,
+          lastName: coachData.lastName,
+          archetype: coachData.archetype || "Balanced",
+          skinTone: coachData.skinTone || "light",
+          hairColor: coachData.hairColor || "brown",
+          hairStyle: coachData.hairStyle || "short",
+        }).returning();
+        const claimed = await tx.update(teamsTable)
+          .set({ coachId: createdCoach.id, isCpu: false })
+          .where(and(eq(teamsTable.id, teamId), eq(teamsTable.leagueId, leagueId), eq(teamsTable.isCpu, true)))
+          .returning({ id: teamsTable.id });
+        if (claimed.length !== 1) throw new Error("TEAM_ALREADY_CLAIMED");
+        await tx.insert(auditLogsTable).values({
+          leagueId, userId, action: "Coach Created",
+          details: `${coachData.firstName} ${coachData.lastName} joined as coach`,
+        });
+        return createdCoach;
       });
 
       // Initialize personality/traits/philosophy at creation time
@@ -1468,55 +1533,16 @@ export async function registerRoutes(
         console.error("[createCoach] ensureCoachTraits failed:", traitErr);
       }
 
-      await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
-
-      const leagueForGen = await storage.getLeague((req.params.id as string));
-      const progressionOn = leagueForGen?.progressionEnabled ?? false;
-
-      const leagueTeams = await storage.getTeamsByLeague((req.params.id as string));
-      const leagueConfs = await storage.getConferencesByLeague((req.params.id as string));
-      const confNameById: Record<string, string> = {};
-      for (const c of leagueConfs) confNameById[c.id] = c.name;
-      for (const team of leagueTeams) {
-        const existingPlayers = await storage.getPlayersByTeam(team.id);
-        if (existingPlayers.length === 0) {
-          const confName = team.conferenceId ? confNameById[team.conferenceId] : undefined;
-          await generatePlayersForTeam(team.id, progressionOn, team.name, confName);
-          // #9 — validate immediately so bad CPU rosters are caught at dynasty creation time
-          const genPlayers = await storage.getPlayersByTeam(team.id);
-          const setupViolations = checkTeamRosterStructure(team.name, genPlayers);
-          if (setupViolations.length > 0) {
-            console.error(`[roster-validation:dynasty-setup] ${setupViolations.length} violation(s) for "${team.name}":`);
-            for (const v of setupViolations) console.error(`  [${v.teamName}]: ${v.message}`);
-          }
-        }
-      }
-
-      for (const team of leagueTeams) {
-        if (!team.isCpu) continue; // never overwrite a human coach's lineup
-        const teamPlayers = await storage.getPlayersByTeam(team.id);
-        await autoAssignLineup(storage, teamPlayers, team.id);
-      }
-
-      // Generate initial schedule (only if not already present — startDynasty may have run first)
-      const existingGamesForCoach = await storage.getGamesByLeague((req.params.id as string));
-      if (existingGamesForCoach.length === 0) {
-        await createScheduleForSeason((req.params.id as string), 1);
-        if (leagueForGen?.dynastyPreset !== "full_season") {
-          await generateExhibitionGames((req.params.id as string), 1);
-        }
-      }
-
-      await storage.createAuditLog({
-        leagueId: (req.params.id as string),
-        userId,
-        action: "Coach Created",
-        details: `${coachData.firstName} ${coachData.lastName} joined as coach`,
-      });
-
+      // Whole-league roster, lineup, recruit, and schedule generation is owned by
+      // the durable dynasty-start operation, never an individual team claim.
       res.json({ coach });
+      return;
+
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
+      if (errMsg === "TEAM_NOT_IN_LEAGUE") return res.status(403).json({ message: "Team does not belong to this league" });
+      if (errMsg === "TEAM_ALREADY_CLAIMED") return res.status(409).json({ message: "This team already has a coach" });
+      if (errMsg === "USER_ALREADY_HAS_TEAM") return res.status(409).json({ message: "You already coach a team in this league" });
       const errStack = error instanceof Error ? error.stack : '';
       console.error("Setup failed:", errMsg, errStack);
       res.status(500).json({ message: "Setup failed", detail: errMsg });

@@ -77,6 +77,9 @@ import {
   acquireAdvanceLock,
   releaseAdvanceLock,
   getAdvanceLockToken,
+  renewAdvanceLock,
+  withLeagueAdvanceLease,
+  AdvanceLeaseBusyError,
   potentialGradeToNumber,
   autoAssignLineup,
   ensureCoachTraits,
@@ -1468,7 +1471,9 @@ async function advanceSuperRegionals(leagueId: string, season: number): Promise<
     }));
     for (const { game, result } of srSimResults) {
       let rawBox: { home: any; away: any; innings?: any[] } | null = null;
-      try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+      try { rawBox = JSON.parse(result.boxScore); } catch {
+        throw new Error(`Postseason simulation produced an invalid box score for game ${game.id}`);
+      }
       await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
         skipStandings: true, skipCoachXp: true, finalizer: "postseason-sr",
       });
@@ -1511,7 +1516,9 @@ async function advanceCWS(leagueId: string, season: number): Promise<{ done: boo
   }));
   for (const { game, result } of cwsSimResults) {
     let rawBox: { home: any; away: any; innings?: any[] } | null = null;
-    try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+    try { rawBox = JSON.parse(result.boxScore); } catch {
+      throw new Error(`Postseason simulation produced an invalid box score for game ${game.id}`);
+    }
     await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
       skipStandings: true, skipCoachXp: true, finalizer: "postseason-cws",
     });
@@ -5490,7 +5497,9 @@ export async function advanceLeagueStep(
           const fsSimResultsSR = await Promise.all(fsIncompleteSR.map(async (game: any) => { const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week); return { game, result }; }));
           for (const { game, result } of fsSimResultsSR) {
             let rawBox: { home: any; away: any; innings?: any[] } | null = null;
-            try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+            try { rawBox = JSON.parse(result.boxScore); } catch {
+              throw new Error(`Full Season Super Regional produced an invalid box score for game ${game.id}`);
+            }
             await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
               skipStandings: true, coachXpAccum, finalizer: "postseason-fs-sr",
             });
@@ -5580,7 +5589,9 @@ export async function advanceLeagueStep(
           }));
           for (const { game, result } of fsSimResultsCWS) {
             let rawBox: { home: any; away: any; innings?: any[] } | null = null;
-            try { rawBox = JSON.parse(result.boxScore); } catch { /* no box score available */ }
+            try { rawBox = JSON.parse(result.boxScore); } catch {
+              throw new Error(`Full Season CWS produced an invalid box score for game ${game.id}`);
+            }
             await finalizeGameAtomic(game, result.homeScore, result.awayScore, rawBox, leagueId, {
               skipStandings: true, coachXpAccum, finalizer: "postseason-fs-cws",
             });
@@ -5815,15 +5826,34 @@ export async function simulateUntil(
   leagueId: string,
   actorUserId: string,
   predicate: (league: Record<string, unknown>) => boolean,
-  { maxIterations = 200 }: { maxIterations?: number } = {}
+  {
+    maxIterations = 200,
+    assertLease,
+  }: { maxIterations?: number; assertLease?: () => Promise<void> } = {}
 ): Promise<{ league: Record<string, unknown>; steps: number }> {
   let steps = 0;
   while (steps < maxIterations) {
+    if (assertLease) await assertLease();
     steps++;
     const { data } = await advanceLeagueStep(leagueId, actorUserId, { mode: "fast" });
+    if (assertLease) await assertLease();
     if (predicate(data)) return { league: data, steps };
   }
   throw new Error(`simulateUntil: max iterations (${maxIterations}) exceeded for league ${leagueId}`);
+}
+
+async function simulateUntilWithLease(
+  leagueId: string,
+  actorUserId: string,
+  predicate: (league: Record<string, unknown>) => boolean,
+  options: { maxIterations?: number } = {},
+): Promise<{ league: Record<string, unknown>; steps: number }> {
+  return withLeagueAdvanceLease(leagueId, async ({ assertOwned }) =>
+    simulateUntil(leagueId, actorUserId, predicate, {
+      ...options,
+      assertLease: assertOwned,
+    }),
+  );
 }
 
 export function registerSimulationRoutes(app: Express): void {
@@ -7609,7 +7639,7 @@ export function registerSimulationRoutes(app: Express): void {
       // window) are considered orphaned by a crashed process.
       const activeLock = await pool.query<{ locked_at: string }>(
         `SELECT locked_at FROM league_advance_locks
-          WHERE league_id = $1 AND locked_at >= now() - interval '15 minutes'`,
+          WHERE league_id = $1 AND lease_expires_at >= now()`,
         [leagueId],
       );
       if ((activeLock.rowCount ?? 0) > 0) {
@@ -7622,7 +7652,7 @@ export function registerSimulationRoutes(app: Express): void {
       // Delete orphaned advance lock (lock older than 15 min → safe to remove)
       const lockDel = await pool.query(
         `DELETE FROM league_advance_locks
-          WHERE league_id = $1 AND locked_at < now() - interval '15 minutes'
+          WHERE league_id = $1 AND lease_expires_at < now()
           RETURNING league_id`,
         [leagueId],
       );
@@ -7688,6 +7718,7 @@ export function registerSimulationRoutes(app: Express): void {
 
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     let advOpId: string | null = null;
+    let advanceLockToken: string | null = null;
     // Tracks whether the catch block has already set the op to 'failed' so the
     // success path does not overwrite it with 'complete' on an unexpected error
     // that somehow exits the catch block and falls through to res.json().
@@ -7809,6 +7840,13 @@ export function registerSimulationRoutes(app: Express): void {
         }
       }
 
+      // Capture this request's immutable owner token. If the lease expires and
+      // another request takes over, stale cleanup must not release its lock.
+      advanceLockToken = getAdvanceLockToken(leagueId) ?? null;
+      if (!advanceLockToken) {
+        return res.status(409).json({ message: "League advance ownership was lost. Please retry." });
+      }
+
       // ── Reported-mode game gate ────────────────────────────────────────────────
       // In reported-game leagues every human-vs-human game for the current week
       // must have an accepted report before the week can advance.
@@ -7817,11 +7855,11 @@ export function registerSimulationRoutes(app: Express): void {
         try {
           preflight = await getAdvancePreflight(leagueId);
         } catch (pfErr) {
-          releaseAdvanceLock(leagueId);
+          await releaseAdvanceLock(leagueId, advanceLockToken);
           return res.status(500).json({ message: "Preflight check failed", detail: String(pfErr) });
         }
         if (!preflight.canAdvance) {
-          releaseAdvanceLock(leagueId);
+          await releaseAdvanceLock(leagueId, advanceLockToken);
           return res.status(409).json({
             message: `Cannot advance: ${preflight.blockers.length} game(s) require final reports before advancing.`,
             blockers: preflight.blockers,
@@ -7883,7 +7921,7 @@ export function registerSimulationRoutes(app: Express): void {
           `INSERT INTO league_advances
              (id, league_id, status, from_phase, from_week, from_season, locked_by, lease_expires_at)
            VALUES ($1, $2, 'running', $3, $4, $5, $6, now() + interval '15 minutes')`,
-          [advOpId, leagueId, league.currentPhase, currentWeek, league.currentSeason, advOpId],
+          [advOpId, leagueId, league.currentPhase, currentWeek, league.currentSeason, advanceLockToken],
         );
       } catch (opInsertErr: any) {
         // A 23505 unique violation means a 'running' or 'complete' row already exists
@@ -7894,12 +7932,12 @@ export function registerSimulationRoutes(app: Express): void {
         // current league state rather than 500.
         if (opInsertErr?.code === "23505") {
           console.warn(`[league-advances] Unique conflict on insert (league=${leagueId}) — treating as idempotent success`);
-          releaseAdvanceLock(leagueId);
+          await releaseAdvanceLock(leagueId, advanceLockToken);
           const freshLeague = await storage.getLeague(leagueId);
           return res.json({ idempotent: true, data: freshLeague });
         }
         console.error("[league-advances] FATAL: Failed to insert op record:", opInsertErr);
-        releaseAdvanceLock(leagueId);
+        await releaseAdvanceLock(leagueId, advanceLockToken);
         return res.status(500).json({ message: "Failed to create advance operation record. Please try again." });
       }
 
@@ -7912,19 +7950,21 @@ export function registerSimulationRoutes(app: Express): void {
         pool.query(
           `UPDATE league_advances
               SET lease_expires_at = now() + interval '15 minutes', updated_at = now()
-            WHERE id = $1 AND status = 'running'`,
-          [advOpId],
+            WHERE id = $1 AND locked_by = $2 AND status = 'running'`,
+          [advOpId, advanceLockToken],
         ).catch(e => console.error("[league-advances] Heartbeat renewal failed:", e));
         // Require the owner token so a stale heartbeat cannot renew a new owner's lock.
         // If rowCount = 0 the lock row was taken by a different process; abort this operation.
-        const hbToken = getAdvanceLockToken(leagueId);
+        const hbToken = advanceLockToken;
         if (!hbToken) {
           console.error("[league-advances] Heartbeat: owner token missing from registry — lock may have been lost");
           lockLostDuringAdvance = true;
           return;
         }
         pool.query(
-          `UPDATE league_advance_locks SET locked_at = now() WHERE league_id = $1 AND locked_by = $2`,
+          `UPDATE league_advance_locks
+              SET locked_at = now(), lease_expires_at = now() + interval '15 minutes'
+            WHERE league_id = $1 AND locked_by = $2 AND lease_expires_at >= now()`,
           [leagueId, hbToken],
         ).then(r => {
           if ((r.rowCount ?? 0) === 0) {
@@ -7961,8 +8001,8 @@ export function registerSimulationRoutes(app: Express): void {
           pool.query(
             `UPDATE league_advances
                 SET checkpoints = checkpoints || $2::jsonb, updated_at = now()
-              WHERE id = $1 AND status = 'running'`,
-            [opId, JSON.stringify({ [step]: { pct, at: new Date().toISOString() } })],
+              WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
+            [opId, JSON.stringify({ [step]: { pct, at: new Date().toISOString() } }), advanceLockToken],
           ).catch(e => console.error(`[league-advances] Checkpoint write failed (${step}):`, e));
         });
       }
@@ -7970,10 +8010,18 @@ export function registerSimulationRoutes(app: Express): void {
       // ── Delegate all business logic to the unified advance engine ──────────
       // Pass priorCompletedStages so the engine can skip substeps that already
       // ran in a previous (crashed) advance attempt for this league state.
+      const mutationLeaseToken = advanceLockToken;
+      if (!mutationLeaseToken || !(await renewAdvanceLock(leagueId, mutationLeaseToken))) {
+        throw new Error("Advance lease ownership was lost before league mutations began.");
+      }
       const { data } = await advanceLeagueStep(leagueId, req.session.userId!, {
         savedRecruitingClassId: req.body?.savedRecruitingClassId,
         completedStages: priorCompletedStages.size > 0 ? priorCompletedStages : undefined,
       });
+
+      if (!(await renewAdvanceLock(leagueId, mutationLeaseToken))) {
+        lockLostDuringAdvance = true;
+      }
 
       // ── Verify lock was not taken by another process during advance ─────────
       if (lockLostDuringAdvance) {
@@ -7990,24 +8038,26 @@ export function registerSimulationRoutes(app: Express): void {
       clearAdvanceProgress(leagueId);
       if (advOpId && !advOpFailed) {
         await pool.query(
-          `UPDATE league_advances SET status = 'complete', updated_at = now() WHERE id = $1 AND status = 'running'`,
-          [advOpId],
+          `UPDATE league_advances SET status = 'complete', updated_at = now()
+            WHERE id = $1 AND locked_by = $2 AND status = 'running'`,
+          [advOpId, advanceLockToken],
         ).catch(e => console.error("[league-advances] Failed to mark complete:", e));
       }
-      releaseAdvanceLock(leagueId);
+      await releaseAdvanceLock(leagueId, advanceLockToken);
 
       res.json(data);
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
         if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-        releaseAdvanceLock(req.params.id as string);
+        if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
         // Set flag synchronously BEFORE the async DB update so the finish handler
         // (which fires when res.status().json() is sent) never overwrites 'failed' with 'complete'.
         advOpFailed = true;
         if (advOpId) {
           pool.query(
-            `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1 AND status = 'running'`,
-            [advOpId, e?.message || "AdvancePreconditionError"],
+            `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now()
+              WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
+            [advOpId, e?.message || "AdvancePreconditionError", advanceLockToken],
           ).catch(() => {});
         }
         if (!res.headersSent) return res.status(e.statusCode).json(e.body);
@@ -8015,12 +8065,13 @@ export function registerSimulationRoutes(app: Express): void {
       }
       console.error("Failed to advance week:", e);
       if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-      releaseAdvanceLock(req.params.id as string);
+      if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
       advOpFailed = true;
       if (advOpId) {
         pool.query(
-          `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now() WHERE id = $1 AND status = 'running'`,
-          [advOpId, e?.message || String(e)],
+          `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now()
+            WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
+          [advOpId, e?.message || String(e), advanceLockToken],
         ).catch(() => {});
       }
       if (!res.headersSent) res.status(500).json({ message: "Failed to advance week", detail: e?.message || String(e) });
@@ -8033,11 +8084,14 @@ export function registerSimulationRoutes(app: Express): void {
   // would occur on a subsequent call.
   app.post("/api/leagues/:id/sim-to-offseason", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
+      }
+      if (league.gameMode === "reported") {
+        return res.status(409).json({ message: "Quick-sim is disabled in reported-score leagues. Advance one week at a time after all reports are final." });
       }
       // Reported-mode: quick-sim inherits the same blocking gate as normal advance.
       // Fail-CLOSED: if preflight throws, refuse to sim rather than bypassing the gate.
@@ -8058,7 +8112,7 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(400).json({ message: "Can only sim to offseason from an in-season phase." });
       }
       const startSeason = league.currentSeason;
-      const { league: finalLeague, steps } = await simulateUntil(
+      const { league: finalLeague, steps } = await simulateUntilWithLease(
         leagueId, req.session.userId!,
         // Primary: stop as soon as the CWS/SR-skip step returns offseason_departures.
         // Safety net: stop if season increments (handles edge cases like postseason skip).
@@ -8067,6 +8121,7 @@ export function registerSimulationRoutes(app: Express): void {
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Offseason", details: `Fast-forwarded ${steps} steps to ${finalLeague.currentPhase}.` });
       res.json(finalLeague);
     } catch (error) {
+      if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       console.error("Failed to sim to offseason:", error);
       res.status(500).json({ message: "Failed to sim to offseason" });
     }
@@ -8074,11 +8129,14 @@ export function registerSimulationRoutes(app: Express): void {
 
   app.post("/api/leagues/:id/sim-to-signing-day", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
+      }
+      if (league.gameMode === "reported") {
+        return res.status(409).json({ message: "Quick-sim is disabled in reported-score leagues. Advance one week at a time." });
       }
       if (league.gameMode === "reported") {
         let pf;
@@ -8094,13 +8152,14 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(400).json({ message: "Can only sim to signing day during offseason phases." });
       }
       const startSeason = league.currentSeason;
-      const { league: finalLeague, steps } = await simulateUntil(
+      const { league: finalLeague, steps } = await simulateUntilWithLease(
         leagueId, req.session.userId!,
         d => (d.currentPhase as string) === Phase.Preseason && (d.currentSeason as number) > startSeason,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Signing Day", details: `Fast-forwarded ${steps} steps to preseason season ${finalLeague.currentSeason}.` });
       res.json({ ...finalLeague, seasonTransition: (finalLeague as any).seasonTransition });
     } catch (error) {
+      if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       console.error("Failed to sim to signing day:", error);
       res.status(500).json({ message: "Failed to sim to signing day" });
     }
@@ -8109,7 +8168,7 @@ export function registerSimulationRoutes(app: Express): void {
   // Sim Full Season - advances from any phase all the way to preseason of the next season.
   app.post("/api/leagues/:id/sim-full-season", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
@@ -8119,13 +8178,14 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(409).json({ message: "Quick-sim is not available in reported-score leagues. Each game must be reported individually." });
       }
       const startSeason = league.currentSeason;
-      const { league: finalLeague, steps } = await simulateUntil(
+      const { league: finalLeague, steps } = await simulateUntilWithLease(
         leagueId, req.session.userId!,
         d => (d.currentPhase as string) === Phase.Preseason && (d.currentSeason as number) > startSeason,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim Full Season", details: `Simulated ${steps} advances. Now season ${finalLeague.currentSeason}, phase ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
+      if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       console.error("Failed to sim full season:", error);
       res.status(500).json({ message: "Failed to simulate full season" });
     }
@@ -8134,11 +8194,14 @@ export function registerSimulationRoutes(app: Express): void {
   // Sim to Postseason - stops at conference_championship.
   app.post("/api/leagues/:id/sim-to-postseason", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
+      }
+      if (league.gameMode === "reported") {
+        return res.status(409).json({ message: "Quick-sim is disabled in reported-score leagues. Advance one week at a time after all reports are final." });
       }
       if (league.gameMode === "reported") {
         let pf;
@@ -8153,13 +8216,14 @@ export function registerSimulationRoutes(app: Express): void {
       if (!preseasonPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to postseason during the regular season." });
       }
-      const { league: finalLeague, steps } = await simulateUntil(
+      const { league: finalLeague, steps } = await simulateUntilWithLease(
         leagueId, req.session.userId!,
         d => (d.currentPhase as string) === Phase.ConferenceChampionship,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Postseason", details: `Simulated ${steps} advances to ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
+      if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       console.error("Failed to sim to postseason:", error);
       res.status(500).json({ message: "Failed to sim to postseason" });
     }
@@ -8168,7 +8232,7 @@ export function registerSimulationRoutes(app: Express): void {
   // Sim to CWS - advances through regular season + conference championships + super regionals, stops at CWS.
   app.post("/api/leagues/:id/sim-to-cws", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (!hasCommissionerAccess(league, req.session.userId)) {
@@ -8181,13 +8245,14 @@ export function registerSimulationRoutes(app: Express): void {
       if (!preCwsPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to CWS before the College World Series." });
       }
-      const { league: finalLeague, steps } = await simulateUntil(
+      const { league: finalLeague, steps } = await simulateUntilWithLease(
         leagueId, req.session.userId!,
         d => (d.currentPhase as string) === Phase.CWS,
       );
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to CWS", details: `Simulated ${steps} advances to ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
+      if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       console.error("Failed to sim to CWS:", error);
       res.status(500).json({ message: "Failed to sim to CWS" });
     }

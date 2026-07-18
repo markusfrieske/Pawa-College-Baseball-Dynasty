@@ -249,8 +249,11 @@ export function getOnlineCount(): number {
 // Prevents concurrent advance calls for the same league (double-click /
 // network-retry protection). Uses `league_advance_locks` (league_id PK,
 // locked_by uuid) so the guard is durable across requests.
+// Current behavior: the lock has a renewable 15-minute lease. Only the UUID
+// owner token can renew or release it; expired rows may be reclaimed after a
+// crash, and long-running operations heartbeat every 30 seconds.
 //
-// KEY DESIGN PRINCIPLE: no time-based expiry.  Only the process that acquired
+// HISTORICAL DESIGN (superseded by the renewable lease above): only the process that acquired
 // the lock (identified by a UUID token it holds in `activeLockTokens`) can
 // release it.  A second request that arrives while the lock is held — even
 // hours later — will always receive `false`.  A crash leaves an orphaned row;
@@ -268,14 +271,34 @@ import { randomUUID } from "crypto";
 // this server process.  Token is also stored in the DB so a second instance
 // cannot release a lock it did not acquire.
 const activeLockTokens = new Map<string, string>();
+const ADVANCE_LEASE_SQL = "interval '15 minutes'";
+
+export class AdvanceLeaseBusyError extends Error {
+  constructor(public readonly leagueId: string) {
+    super("Another league operation is already in progress");
+    this.name = "AdvanceLeaseBusyError";
+  }
+}
+
+export class AdvanceLeaseLostError extends Error {
+  constructor(public readonly leagueId: string) {
+    super("League operation lease was lost");
+    this.name = "AdvanceLeaseLostError";
+  }
+}
 
 export async function acquireAdvanceLock(leagueId: string): Promise<boolean> {
   try {
     const token = randomUUID();
     const result = await pool.query(
-      `INSERT INTO league_advance_locks (league_id, locked_at, locked_by)
-       VALUES ($1, now(), $2)
-       ON CONFLICT (league_id) DO NOTHING
+      `INSERT INTO league_advance_locks (league_id, locked_at, locked_by, lease_expires_at)
+       VALUES ($1, now(), $2, now() + ${ADVANCE_LEASE_SQL})
+       ON CONFLICT (league_id) DO UPDATE
+         SET locked_at = now(),
+             locked_by = EXCLUDED.locked_by,
+             lease_expires_at = now() + ${ADVANCE_LEASE_SQL}
+       WHERE league_advance_locks.lease_expires_at IS NULL
+          OR league_advance_locks.lease_expires_at < now()
        RETURNING league_id`,
       [leagueId, token],
     );
@@ -290,10 +313,12 @@ export async function acquireAdvanceLock(leagueId: string): Promise<boolean> {
   }
 }
 
-export async function releaseAdvanceLock(leagueId: string): Promise<void> {
+export async function releaseAdvanceLock(leagueId: string, expectedToken?: string): Promise<void> {
   try {
-    const token = activeLockTokens.get(leagueId);
-    activeLockTokens.delete(leagueId);          // clear regardless of DB result
+    const token = expectedToken ?? activeLockTokens.get(leagueId);
+    if (!expectedToken || activeLockTokens.get(leagueId) === expectedToken) {
+      activeLockTokens.delete(leagueId);
+    }
     if (!token) return;                          // not the owner; do nothing
     await pool.query(
       `DELETE FROM league_advance_locks WHERE league_id = $1 AND locked_by = $2`,
@@ -311,6 +336,63 @@ export async function releaseAdvanceLock(leagueId: string): Promise<void> {
  */
 export function getAdvanceLockToken(leagueId: string): string | undefined {
   return activeLockTokens.get(leagueId);
+}
+
+/** Renew the lease only when the caller still owns a non-expired token. */
+export async function renewAdvanceLock(leagueId: string, token?: string): Promise<boolean> {
+  const owner = token ?? activeLockTokens.get(leagueId);
+  if (!owner) return false;
+  const result = await pool.query(
+    `UPDATE league_advance_locks
+        SET locked_at = now(), lease_expires_at = now() + ${ADVANCE_LEASE_SQL}
+      WHERE league_id = $1
+        AND locked_by = $2
+        AND lease_expires_at >= now()
+      RETURNING league_id`,
+    [leagueId, owner],
+  );
+  return (result.rowCount ?? 0) === 1;
+}
+
+export async function assertAdvanceLockOwned(leagueId: string, token?: string): Promise<void> {
+  if (!(await renewAdvanceLock(leagueId, token))) {
+    throw new AdvanceLeaseLostError(leagueId);
+  }
+}
+
+/** Shared durable lease wrapper for advance and fast-forward operations. */
+export async function withLeagueAdvanceLease<T>(
+  leagueId: string,
+  fn: (lease: { token: string; assertOwned: () => Promise<void> }) => Promise<T>,
+): Promise<T> {
+  if (!(await acquireAdvanceLock(leagueId))) throw new AdvanceLeaseBusyError(leagueId);
+  const token = getAdvanceLockToken(leagueId);
+  if (!token) {
+    await releaseAdvanceLock(leagueId);
+    throw new AdvanceLeaseLostError(leagueId);
+  }
+
+  let lost = false;
+  const heartbeat = setInterval(() => {
+    renewAdvanceLock(leagueId, token)
+      .then((ok) => { if (!ok) lost = true; })
+      .catch(() => { lost = true; });
+  }, 30_000);
+
+  const assertOwned = async () => {
+    if (lost) throw new AdvanceLeaseLostError(leagueId);
+    await assertAdvanceLockOwned(leagueId, token);
+  };
+
+  try {
+    await assertOwned();
+    const result = await fn({ token, assertOwned });
+    await assertOwned();
+    return result;
+  } finally {
+    clearInterval(heartbeat);
+    await releaseAdvanceLock(leagueId, token);
+  }
 }
 
 // Legacy in-memory set kept for backwards-compat imports; no longer used.

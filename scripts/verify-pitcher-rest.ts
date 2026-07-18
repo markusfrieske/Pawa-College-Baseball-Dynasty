@@ -47,18 +47,6 @@ import {
   ipToOuts,
   type GameDay,
 } from "../shared/pitcherRest";
-import { db, pool } from "../server/db";
-import {
-  users,
-  leagues,
-  conferences,
-  teams,
-  players,
-  games as gamesTable,
-} from "../shared/schema";
-import { eq, inArray } from "drizzle-orm";
-import { storage } from "../server/storage";
-import { finalizeGameAtomic } from "../server/game-finalizer";
 
 const UNIT_ONLY = process.argv.includes("--unit-only");
 
@@ -266,6 +254,22 @@ function runUnitTests() {
 // ─── SUITE 2: Deterministic DB integration test ───────────────────────────────
 
 async function runIntegrationTest() {
+  // Keep all DB-backed modules out of the unit-only process. Importing server/db
+  // at module scope used to make `--unit-only` require DATABASE_URL even though
+  // the pure regression suite never touches the database.
+  const [databaseModule, schema, drizzle, storageModule, finalizerModule] = await Promise.all([
+    import("../server/db"),
+    import("../shared/schema"),
+    import("drizzle-orm"),
+    import("../server/storage"),
+    import("../server/game-finalizer"),
+  ]);
+  const { db, pool } = databaseModule;
+  const { users, leagues, conferences, teams, players, games: gamesTable } = schema;
+  const { eq, inArray } = drizzle;
+  const { storage } = storageModule;
+  const { finalizeGameAtomic } = finalizerModule;
+
   section("SUITE 2 — Deterministic DB integration: finalizeGameAtomic + starter rotation");
 
   console.log(`
@@ -622,6 +626,7 @@ async function runIntegrationTest() {
         console.warn("  [cleanup] user delete failed:", (e as Error).message);
       }
     }
+    await pool.end().catch(() => {});
   }
 }
 
@@ -658,7 +663,4 @@ main()
   .catch(err => {
     console.error("[fatal]", err);
     process.exit(1);
-  })
-  .finally(() => {
-    pool.end().catch(() => {});
   });

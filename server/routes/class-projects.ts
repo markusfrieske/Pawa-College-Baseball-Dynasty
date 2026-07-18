@@ -29,6 +29,8 @@ import {
   extractSummary,
   computeSummary,
   detectSource,
+  extractGeneration,
+  extractStoryPlan,
 } from "../lib/buildClassEnvelope";
 
 // ── Token helpers ──────────────────────────────────────────────────────────────
@@ -218,7 +220,12 @@ export function registerClassProjectRoutes(app: Express): void {
           throw e;
         }
         const { source, theme, config } = detectSource(req.body.classData);
-        patch.classData = buildClassEnvelope(validated.recruits, source, { theme, config });
+        patch.classData = buildClassEnvelope(validated.recruits, source, {
+          theme,
+          config,
+          generation: extractGeneration(req.body.classData) ?? undefined,
+          storyPlan: extractStoryPlan(req.body.classData) ?? undefined,
+        });
         patch.currentDraftRevision = (project.currentDraftRevision ?? 0) + 1;
       }
 
@@ -254,7 +261,12 @@ export function registerClassProjectRoutes(app: Express): void {
       }
 
       const { source, theme, config } = detectSource(project.classData as unknown);
-      const packageJson = buildClassEnvelope(validated.recruits, source, { theme, config });
+      const packageJson = buildClassEnvelope(validated.recruits, source, {
+        theme,
+        config,
+        generation: extractGeneration(project.classData as unknown) ?? undefined,
+        storyPlan: extractStoryPlan(project.classData as unknown) ?? undefined,
+      });
       const hash = contentHash(packageJson);
 
       const existing = await storage.getRecruitingClassVersionsByProject(project.id);
@@ -385,7 +397,12 @@ export function registerClassProjectRoutes(app: Express): void {
       try {
         const validated = validateAndNormalizeRecruitingClass(rc.classData as unknown);
         const { source, theme, config } = detectSource(rc.classData as unknown);
-        packageJson = buildClassEnvelope(validated.recruits, source, { theme, config });
+        packageJson = buildClassEnvelope(validated.recruits, source, {
+          theme,
+          config,
+          generation: extractGeneration(rc.classData as unknown) ?? undefined,
+          storyPlan: extractStoryPlan(rc.classData as unknown) ?? undefined,
+        });
       } catch {
         // If validation fails, store raw (best-effort)
         packageJson = rc.classData;
@@ -573,6 +590,8 @@ export function registerClassProjectRoutes(app: Express): void {
       const envelope = buildClassEnvelope(recruitsToStore, "import", {
         theme: sourceTheme,
         config: sourceConfig,
+        generation: extractGeneration(packageJson) ?? undefined,
+        storyPlan: extractStoryPlan(packageJson) ?? undefined,
       });
 
       const imported = await storage.createSavedRecruitingClass({

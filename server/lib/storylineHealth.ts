@@ -16,7 +16,21 @@
  *   SKIPPED_ARC_STAGES           — recruit arc stage is 0 but events exist (stage counter drift)
  */
 
-import { storage } from "../storage";
+/** Read-only persistence surface used by the health checker. */
+export interface StorylineHealthStorage {
+  getRecruitsByLeague(leagueId: string): Promise<Array<{ id: string }>>;
+  getStorylineRecruitsByLeague(leagueId: string, season: number): Promise<Array<{
+    id: string;
+    recruitId: string;
+    currentArcStage: number;
+  }>>;
+  getUnresolvedStorylineEvents(leagueId: string, season: number): Promise<Array<{
+    week: number;
+  }>>;
+  getStorylineEventsByRecruit(storylineRecruitId: string): Promise<Array<{
+    resolvedChoice: string | null;
+  }>>;
+}
 
 export interface StorylineHealthIssue {
   severity: "error" | "warning" | "info";
@@ -57,14 +71,19 @@ export async function checkStorylineHealth(
   leagueId: string,
   season: number,
   currentWeek: number,
+  injectedStorage?: StorylineHealthStorage,
 ): Promise<StorylineHealthReport> {
+  // Load the real database-backed store only in production calls. Unit tests
+  // inject the four readers above and therefore need neither a DB nor env vars.
+  const healthStorage = injectedStorage
+    ?? (await import("../storage")).storage as StorylineHealthStorage;
   const issues: StorylineHealthIssue[] = [];
 
   // ── Fetch base data ────────────────────────────────────────────────────────
   const [recruits, storylines, unresolvedEvents] = await Promise.all([
-    storage.getRecruitsByLeague(leagueId),
-    storage.getStorylineRecruitsByLeague(leagueId, season),
-    storage.getUnresolvedStorylineEvents(leagueId, season),
+    healthStorage.getRecruitsByLeague(leagueId),
+    healthStorage.getStorylineRecruitsByLeague(leagueId, season),
+    healthStorage.getUnresolvedStorylineEvents(leagueId, season),
   ]);
 
   // ── Check 1: Missing storyline recruits ───────────────────────────────────
@@ -80,7 +99,9 @@ export async function checkStorylineHealth(
 
   // ── Check 2: Storyline count anomaly ──────────────────────────────────────
   if (recruits.length > 0 && storylines.length > 0) {
-    const expectedMin = Math.max(3, Math.floor(recruits.length * 0.05));
+    // Tiny test/custom classes cannot contain more storyline recruits than
+    // recruits. Cap the absolute floor accordingly.
+    const expectedMin = Math.min(recruits.length, Math.max(3, Math.floor(recruits.length * 0.05)));
     const expectedMax = Math.ceil(recruits.length * 0.20);
     if (storylines.length < expectedMin) {
       issues.push({
@@ -123,7 +144,7 @@ export async function checkStorylineHealth(
   let skippedArcStages = 0;
 
   const perRecruitEvents = await Promise.all(
-    storylines.map(sl => storage.getStorylineEventsByRecruit(sl.id)),
+    storylines.map(sl => healthStorage.getStorylineEventsByRecruit(sl.id)),
   );
 
   for (let i = 0; i < storylines.length; i++) {

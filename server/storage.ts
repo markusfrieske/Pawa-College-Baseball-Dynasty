@@ -168,6 +168,7 @@ export interface IStorage {
   getGamesByTeam(teamId: string): Promise<Game[]>;
   createGame(game: InsertGame): Promise<Game>;
   batchCreateGames(gamesData: InsertGame[]): Promise<Game[]>;
+  replaceRegularGamesByLeagueSeason(leagueId: string, season: number, gamesData: InsertGame[]): Promise<Game[]>;
   deleteRegularGamesByLeagueSeason(leagueId: string, season: number): Promise<void>;
   updateGame(id: string, data: Partial<Game>): Promise<Game | undefined>;
   batchUpdateGames(updates: Array<{id: string; homeScore: number; awayScore: number; boxScore: string}>): Promise<void>;
@@ -889,13 +890,44 @@ export class DatabaseStorage implements IStorage {
   async batchCreateGames(gamesData: InsertGame[]): Promise<Game[]> {
     if (gamesData.length === 0) return [];
     const CHUNK = 500;
-    const results: Game[] = [];
-    for (let i = 0; i < gamesData.length; i += CHUNK) {
-      const chunk = gamesData.slice(i, i + CHUNK);
-      const rows = await db.insert(games).values(chunk).returning();
-      results.push(...rows);
-    }
-    return results;
+    return db.transaction(async (tx) => {
+      const results: Game[] = [];
+      for (let i = 0; i < gamesData.length; i += CHUNK) {
+        const rows = await tx.insert(games).values(gamesData.slice(i, i + CHUNK)).returning();
+        results.push(...rows);
+      }
+      return results;
+    });
+  }
+
+  async replaceRegularGamesByLeagueSeason(
+    leagueId: string,
+    season: number,
+    gamesData: InsertGame[],
+  ): Promise<Game[]> {
+    const CHUNK = 500;
+    return db.transaction(async (tx) => {
+      const completed = await tx.select({ id: games.id }).from(games).where(and(
+        eq(games.leagueId, leagueId),
+        eq(games.season, season),
+        eq(games.phase, "regular"),
+        eq(games.isComplete, true),
+      )).limit(1);
+      if (completed.length > 0) {
+        throw new Error("Cannot rebuild a regular-season schedule after games have been completed");
+      }
+      await tx.delete(games).where(and(
+        eq(games.leagueId, leagueId),
+        eq(games.season, season),
+        eq(games.phase, "regular"),
+      ));
+      const inserted: Game[] = [];
+      for (let i = 0; i < gamesData.length; i += CHUNK) {
+        const rows = await tx.insert(games).values(gamesData.slice(i, i + CHUNK)).returning();
+        inserted.push(...rows);
+      }
+      return inserted;
+    });
   }
 
   async deleteRegularGamesByLeagueSeason(leagueId: string, season: number): Promise<void> {
@@ -2830,8 +2862,9 @@ export class DatabaseStorage implements IStorage {
               attempt_count    = attempt_count + 1
         WHERE id = (
                 SELECT id FROM league_jobs
-                 WHERE status = 'pending'
-                    OR (status = 'running' AND lease_expires_at IS NOT NULL AND lease_expires_at < now())
+                 WHERE job_type = 'bootstrap'
+                   AND (status = 'pending'
+                    OR (status = 'running' AND lease_expires_at IS NOT NULL AND lease_expires_at < now()))
               ORDER BY created_at ASC
                  LIMIT 1
                   FOR UPDATE SKIP LOCKED
@@ -2898,7 +2931,8 @@ export class DatabaseStorage implements IStorage {
     try {
       const result = await pgPool.query(`
         SELECT * FROM league_jobs
-         WHERE status = 'running'
+         WHERE job_type = 'bootstrap'
+           AND status = 'running'
            AND (lease_expires_at IS NULL OR lease_expires_at < now())
          ORDER BY created_at ASC
       `);

@@ -1,14 +1,14 @@
 /**
  * seed-14-coach-league.ts
  *
- * Provisions a 15-team dynasty with 14 human coaches + 1 CPU slot via the
+ * Provisions an exact 14-team dynasty with 14 human coaches and no CPU slots via the
  * real HTTP API.  User creation and session management bypass the rate-limited
  * HTTP auth endpoints by writing directly to the DB — all other actions (league
  * creation, team-selection, invite, accept) go through real API routes.
  *
  * Steps:
  *  1. Create commissioner (DB) + build signed session cookie
- *  2. Create 15-team / 3-conference league (POST /api/leagues)
+ *  2. Create 14-team / 3-conference league (POST /api/leagues)
  *  3. GET /api/leagues/:id/team-selection → pick 5 teams per conference
  *  4. Commissioner claims first team (POST /api/leagues/:id/setup)
  *  5. For each of remaining 13 coaches:
@@ -37,7 +37,7 @@ const LEAGUE_NAME  = "e2e-14coach-multiplayer";
 const PASSWORD     = "test1234!!Aa";   // meets any strength requirements
 const SALT_ROUNDS  = 10;
 const TOTAL_COACHES = 14;
-const TOTAL_TEAMS   = 15;             // 14 human + 1 CPU
+const TOTAL_TEAMS   = 14;
 
 const ARCHETYPES = [
   "Balanced", "Pure CEO", "Player's Coach", "Tactician",
@@ -188,7 +188,7 @@ async function main(): Promise<void> {
   ok(`Server recognised session — user id: ${me.id}`);
 
   // ── Step 2: Create league ─────────────────────────────────────────────────
-  header("Step 2 — Create 15-team league");
+  header("Step 2 — Create exact 14-human reported league");
 
   const league = await commClient.mustPost("/api/leagues", {
     name: LEAGUE_NAME,
@@ -196,15 +196,15 @@ async function main(): Promise<void> {
     cpuDifficulty: "high_school",
     conferenceCount: 3,
     seasonLength: "standard",
-    progressionEnabled: false,
+    progressionEnabled: true,
     isTestData: true,
-    gameMode: "simulated",
+    gameMode: "reported",
   });
   ok(`League: "${league.name}" (id=${league.id})`);
   ok(`Phase: ${league.currentPhase}`);
 
   // ── Step 3: Team selection ────────────────────────────────────────────────
-  header("Step 3 — Select teams (5 per conference)");
+  header("Step 3 — Select teams (6 + 4 + 4)");
 
   const catalogData = await commClient.mustGet(`/api/leagues/${league.id}/team-selection`);
   const { conferences, conferenceTeamPools } = catalogData as {
@@ -219,10 +219,9 @@ async function main(): Promise<void> {
     throw new Error(`Expected conferenceTeamPools, got: ${JSON.stringify(catalogData)}`);
   }
 
-  const teamsPerConf = Math.floor(TOTAL_TEAMS / conferences.length);
-  const selectedTeams = conferenceTeamPools.map(({ conference, teams }) => ({
+  const selectedTeams = conferenceTeamPools.map(({ conference, teams }, index) => ({
     conferenceId: conference.id,
-    teamNames: teams.slice(0, teamsPerConf).map((t) => t.name),
+    teamNames: teams.slice(0, index === 0 ? 6 : 4).map((t) => t.name),
   }));
 
   for (const sel of selectedTeams) {
@@ -314,6 +313,10 @@ async function main(): Promise<void> {
     fail(`Expected ${TOTAL_COACHES} human teams, got ${humanTeams.length}`);
     allGood = false;
   }
+  if (cpuTeams.length !== 0) {
+    fail(`Expected 0 CPU teams in the launch profile, got ${cpuTeams.length}`);
+    allGood = false;
+  }
   for (const t of humanTeams) {
     if (Number(t.coach_count) !== 1) {
       fail(`Team "${t.name}" has ${t.coach_count} coaches (expected 1)`);
@@ -322,12 +325,67 @@ async function main(): Promise<void> {
   }
   if (!allGood) throw new Error("Verification failed — see errors above");
 
+  const { rows: [launchRules] } = await pool.query<{
+    max_teams: number; progression_enabled: boolean; game_mode: string;
+  }>(
+    `SELECT max_teams, progression_enabled, game_mode FROM leagues WHERE id = $1`,
+    [league.id],
+  );
+  if (Number(launchRules?.max_teams) !== 14 || !launchRules?.progression_enabled || launchRules?.game_mode !== "reported") {
+    throw new Error(`Launch rules mismatch: ${JSON.stringify(launchRules)}`);
+  }
+  ok("Launch rules: 14 teams, progression ON, reported results");
+
   // ── Step 7: Start dynasty (optional) ─────────────────────────────────────
   if (autoStart) {
     header("Step 7 — Start dynasty (commissioner)");
     info("Triggers full roster + schedule generation — may take 30–90 s…");
-    const startResp = await commClient.mustPost(`/api/leagues/${league.id}/start`, {});
-    ok(`Dynasty started — phase: ${startResp.currentPhase ?? startResp.phase ?? "pending"}`);
+    await commClient.mustPost(`/api/leagues/${league.id}/start`, {});
+    const startedLeague = await commClient.mustGet(`/api/leagues/${league.id}`);
+    if (startedLeague.currentPhase !== "preseason") {
+      throw new Error(`Expected preseason after start, got ${startedLeague.currentPhase}`);
+    }
+    const { rows: [startCounts] } = await pool.query<{
+      teams: string; human_teams: string; players: string; recruits: string; games: string;
+      regular_games: string; standings: string; storylines: string; storyline_events: string;
+    }>(
+      `SELECT
+         (SELECT COUNT(*) FROM teams WHERE league_id = $1) AS teams,
+         (SELECT COUNT(*) FROM teams WHERE league_id = $1 AND is_cpu = false) AS human_teams,
+         (SELECT COUNT(*) FROM players p JOIN teams t ON t.id = p.team_id WHERE t.league_id = $1) AS players,
+         (SELECT COUNT(*) FROM recruits WHERE league_id = $1) AS recruits,
+         (SELECT COUNT(*) FROM games WHERE league_id = $1 AND season = 1) AS games,
+         (SELECT COUNT(*) FROM games WHERE league_id = $1 AND season = 1 AND phase = 'regular') AS regular_games,
+         (SELECT COUNT(*) FROM standings WHERE league_id = $1 AND season = 1) AS standings,
+         (SELECT COUNT(*) FROM storyline_recruits WHERE league_id = $1 AND season = 1) AS storylines,
+         (SELECT COUNT(*) FROM storyline_events WHERE league_id = $1 AND season = 1) AS storyline_events`,
+      [league.id],
+    );
+    if (Number(startCounts.teams) !== 14 || Number(startCounts.human_teams) !== 14
+        || Number(startCounts.players) !== 350 || Number(startCounts.recruits) !== 102
+        || Number(startCounts.regular_games) !== 140 || Number(startCounts.standings) !== 14
+        || Number(startCounts.storylines) !== 10 || Number(startCounts.storyline_events) === 0
+        || Number(startCounts.games) < Number(startCounts.regular_games)) {
+      throw new Error(`Started dynasty invariant mismatch: ${JSON.stringify(startCounts)}`);
+    }
+    const { rows: [scheduleRange] } = await pool.query<{ min_games: string; max_games: string }>(
+      `WITH appearances AS (
+         SELECT home_team_id AS team_id FROM games WHERE league_id = $1 AND season = 1 AND phase = 'regular'
+         UNION ALL
+         SELECT away_team_id FROM games WHERE league_id = $1 AND season = 1 AND phase = 'regular'
+       ), totals AS (
+         SELECT team_id, COUNT(*) AS games FROM appearances GROUP BY team_id
+       ) SELECT MIN(games)::text AS min_games, MAX(games)::text AS max_games FROM totals`,
+      [league.id],
+    );
+    if (Number(scheduleRange.min_games) !== 20 || Number(scheduleRange.max_games) !== 20) {
+      throw new Error(`14-team schedule must give every team 20 regular games: ${JSON.stringify(scheduleRange)}`);
+    }
+    const quickSim = await commClient.request("POST", `/api/leagues/${league.id}/sim-to-offseason`, {});
+    if (quickSim.status !== 409) {
+      throw new Error(`Reported-mode quick sim must return 409, got ${quickSim.status}`);
+    }
+    ok("Dynasty started — phase: preseason; reported quick-sim blocked");
   } else {
     header("Step 7 — Skipped (--no-start flag)");
     info("League is in dynasty_setup phase. Start from the commissioner page.");

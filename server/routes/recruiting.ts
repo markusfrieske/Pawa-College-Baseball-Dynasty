@@ -52,6 +52,11 @@ import {
 } from "@shared/recruitingBalance";
 import { computeRecruitingEconomyWithLedger } from "../services/recruitingEconomyService";
 import { executeRecruitingAction } from "../services/recruitingActionService";
+import {
+  RecruitingTransactionError,
+  scoutRecruitsTransactional,
+  toggleRecruitTargetTransactional,
+} from "../services/recruitingTransactions";
 import { getPotentialRange, rollV3Potential, getPotentialGrade } from "@shared/potential";
 import {
   getAttributesToRevealCount,
@@ -1276,6 +1281,8 @@ export function registerRecruitingRoutes(app: Express): void {
         maxAllowed: maxRecruitingActions,
         notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
         visitCap: visitProfile.visitCombinedCap,
+        campusVisitCap: visitProfile.campusVisitCap,
+        headCoachVisitCap: visitProfile.headCoachVisitCap,
       });
       if (visitResult.capExceeded) {
         return res.status(409).json({ message: `You've used all ${visitProfile.visitCombinedCap} visits for this season. The cap resets next season.`, capExceeded: true });
@@ -1357,6 +1364,8 @@ export function registerRecruitingRoutes(app: Express): void {
         maxAllowed: maxRecruitingActions,
         notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
         visitCap: hcvProfile.visitCombinedCap,
+        campusVisitCap: hcvProfile.campusVisitCap,
+        headCoachVisitCap: hcvProfile.headCoachVisitCap,
       });
       if (hcvResult.capExceeded) {
         return res.status(409).json({ message: `You've used all ${hcvProfile.visitCombinedCap} visits for this season. The cap resets next season.`, capExceeded: true });
@@ -1481,6 +1490,16 @@ export function registerRecruitingRoutes(app: Express): void {
       const targetMaxCommits = Math.max(0, 25 - targetRoster.length + targetSeniorsCount);
       const targetProfile = getRecruitingBalanceProfile(targetLeague?.seasonLength, targetLeague?.dynastyPreset);
       const dynamicTargetCap = getTargetCap(targetMaxCommits, targetProfile);
+
+      const targetResult = await toggleRecruitTargetTransactional({
+        leagueId: req.params.id as string,
+        teamId: userTeam.id,
+        recruitId: req.params.recruitId as string,
+        cap: dynamicTargetCap,
+      });
+      invalidateLeague(req.params.id as string);
+      return res.json(targetResult);
+      /* Legacy non-transactional target toggle disabled.
       
       const wantToTarget = !interest || !interest.isTargeted;
 
@@ -1514,7 +1533,12 @@ export function registerRecruitingRoutes(app: Express): void {
 
       invalidateLeague(req.params.id as string);
       res.json(interest);
+      */
     } catch (error) {
+      if (error instanceof RecruitingTransactionError) {
+        const status = error.code === "RECRUIT_NOT_FOUND" ? 404 : 400;
+        return res.status(status).json({ message: error.message });
+      }
       console.error("Failed to target recruit:", error);
       res.status(500).json({ message: "Failed to target recruit" });
     }
@@ -2800,17 +2824,6 @@ export function registerRecruitingRoutes(app: Express): void {
       if (!userCoach) {
         return res.status(400).json({ message: "No coach found" });
       }
-      const scoutReserve = await pool.query<{ scout_actions_used: number }>(
-        `UPDATE coaches
-         SET scout_actions_used = scout_actions_used + 1
-         WHERE id = $1 AND scout_actions_used + 1 <= $2
-         RETURNING scout_actions_used`,
-        [userCoach.id, maxScoutActions],
-      );
-      if ((scoutReserve.rowCount ?? 0) === 0) {
-        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week` });
-      }
-
       const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
@@ -2839,6 +2852,25 @@ export function registerRecruitingRoutes(app: Express): void {
       const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
       const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
       const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype ?? ""] || 1.0) + philosophyNarrowBonus;
+
+      if (!scoutLeague) return res.status(404).json({ message: "League not found" });
+      const scoutResult = await scoutRecruitsTransactional({
+        leagueId: req.params.id as string,
+        teamId: userTeam.id,
+        coachId: userCoach.id,
+        maxActions: maxScoutActions,
+        week: scoutLeague.currentWeek,
+        season: scoutLeague.currentSeason,
+        items: [{
+          recruitId: req.params.recruitId as string,
+          revealAmount,
+          potentialNarrowMultiplier,
+        }],
+      });
+      invalidateLeague(req.params.id as string);
+      return res.json(scoutResult.interests[0]);
+
+      /* Legacy non-transactional single-scout implementation disabled.
 
       // Helper function to narrow down a range (with archetype potential narrowing bonus).
       // Scouting is partially capped before signing day — attrs cap at 60%, common abilities at 50%.
@@ -2971,7 +3003,12 @@ export function registerRecruitingRoutes(app: Express): void {
       // reservation UPDATE above — no second write needed here.
 
       res.json(interest);
+      */
     } catch (error) {
+      if (error instanceof RecruitingTransactionError) {
+        const status = error.code === "RECRUIT_NOT_FOUND" || error.code === "NO_VALID_RECRUITS" ? 404 : 400;
+        return res.status(status).json({ message: error.message });
+      }
       console.error("Failed to scout recruit:", error);
       res.status(500).json({ message: "Failed to scout recruit" });
     }
@@ -3037,17 +3074,6 @@ export function registerRecruitingRoutes(app: Express): void {
       // Atomically reserve exactly toProcess.length scout actions BEFORE applying
       // any reveals.  If a concurrent request already consumed the budget, this
       // UPDATE returns 0 rows and we abort without touching any recruit data.
-      const reserveResult = await pool.query<{ scout_actions_used: number }>(
-        `UPDATE coaches
-         SET scout_actions_used = scout_actions_used + $1
-         WHERE id = $2 AND scout_actions_used + $1 <= $3
-         RETURNING scout_actions_used`,
-        [toProcess.length, userCoach!.id, maxScoutActions],
-      );
-      if ((reserveResult.rowCount ?? 0) === 0) {
-        return res.status(400).json({ message: `No scouting actions remaining`, scouted: 0, skipped: rawIds.length });
-      }
-
       // Archetype/skill bonuses (same as single-scout endpoint)
       const archetypeScoutEfficiency: Record<string, number> = {
         "Scout Master": 15,
@@ -3090,6 +3116,32 @@ export function registerRecruitingRoutes(app: Express): void {
       };
 
       // Apply reveals for exactly the reserved set (actions are committed above)
+      if (!league || !userCoach) return res.status(400).json({ message: "Coach or league not found" });
+      const transactionalItems = toProcess.map(({ id, recruit }) => {
+        const { revealBonus, narrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
+        return {
+          recruitId: id,
+          revealAmount: 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + revealBonus,
+          potentialNarrowMultiplier: (ARCHETYPE_POTENTIAL_NARROWING[userCoach.archetype ?? ""] || 1.0) + narrowBonus,
+        };
+      });
+      const bulkResult = await scoutRecruitsTransactional({
+        leagueId,
+        teamId: userTeam.id,
+        coachId: userCoach.id,
+        maxActions: maxScoutActions,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        items: transactionalItems,
+      });
+      invalidateLeague(leagueId);
+      return res.json({
+        scouted: bulkResult.interests.length,
+        skipped: skippedCount + bulkResult.skipped,
+      });
+
+      /* Legacy non-transactional bulk-scout implementation disabled.
+
       const results = [];
       for (const { id: recruitId, recruit } of toProcess) {
         const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
@@ -3157,7 +3209,11 @@ export function registerRecruitingRoutes(app: Express): void {
 
       // No counter update needed here — actions were reserved atomically above.
       res.json({ scouted: results.length, skipped: skippedCount });
+      */
     } catch (error) {
+      if (error instanceof RecruitingTransactionError) {
+        return res.status(400).json({ message: error.message, scouted: 0 });
+      }
       console.error("Failed to bulk scout recruits:", error);
       res.status(500).json({ message: "Failed to bulk scout recruits" });
     }

@@ -1,15 +1,18 @@
 #!/bin/bash
 set -e
-npm install
-npm run db:push -- --force
+npm ci
 echo ""
-echo "Running roster validators..."
+echo "Running release-safe static checks..."
+
+# Production schema changes are applied only by server/migrations through the
+# numbered migration runner at startup. Never use drizzle-kit push --force here.
+npm run typecheck
 
 # validate-recruits is stochastic (Gem/Bust OVR depends on random attribute generation).
 # Retry up to 3 times before treating a failure as real.
 MAX_TRIES=3
 for try in $(seq 1 $MAX_TRIES); do
-  if npx tsx scripts/validate-all.ts; then
+  if npm run validate:data; then
     exit 0
   fi
   if [ $try -lt $MAX_TRIES ]; then

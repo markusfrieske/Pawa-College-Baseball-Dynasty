@@ -13,6 +13,13 @@
  */
 
 import { Pool } from "pg";
+import { FULL_SEASON_CONF_NAMES } from "../shared/catalog";
+import {
+  getRecruitingBalanceProfile,
+  getTargetCap,
+  getTurnContactCap,
+  getTurnScoutCap,
+} from "../shared/recruitingBalance";
 
 interface Violation {
   check: string;
@@ -72,11 +79,26 @@ async function checkLeagueTeamCoach(pool: Pool, leagueId: string) {
     } else {
       pass("full-season-team-count", leagueId);
     }
+    if (league.game_mode !== "simulated" || !league.progression_enabled) {
+      fail("full-season-rules", "Full Season requires simulated results and progression enabled", leagueId);
+    } else {
+      pass("full-season-rules", leagueId);
+    }
+    const confs = await pool.query<{ name: string }>(
+      `SELECT name FROM conferences WHERE league_id = $1`, [leagueId],
+    );
+    const actual = new Set(confs.rows.map(row => row.name));
+    const missing = FULL_SEASON_CONF_NAMES.filter(name => !actual.has(name));
+    if (missing.length > 0 || actual.size !== FULL_SEASON_CONF_NAMES.length || confs.rows.length !== FULL_SEASON_CONF_NAMES.length) {
+      fail("full-season-conferences", `Missing/extra conferences; missing: ${missing.join(", ") || "none"}`, leagueId);
+    } else {
+      pass("full-season-conferences", leagueId);
+    }
   }
 
   // 2. No duplicate team names within a league
   const dupTeams = await pool.query(
-    `SELECT name FROM teams WHERE league_id = $1 GROUP BY name HAVING COUNT(*) > 1`,
+    `SELECT lower(name) AS name FROM teams WHERE league_id = $1 GROUP BY lower(name) HAVING COUNT(*) > 1`,
     [leagueId],
   );
   if (dupTeams.rows.length > 0) {
@@ -88,7 +110,7 @@ async function checkLeagueTeamCoach(pool: Pool, leagueId: string) {
 
   // 3. No coach controls more than one team in a league
   const dupCoachUser = await pool.query(
-    `SELECT user_id, COUNT(*) AS n FROM coaches WHERE league_id = $1
+    `SELECT user_id, COUNT(*) AS n FROM coaches WHERE league_id = $1 AND user_id IS NOT NULL
      GROUP BY user_id HAVING COUNT(*) > 1`,
     [leagueId],
   );
@@ -101,7 +123,7 @@ async function checkLeagueTeamCoach(pool: Pool, leagueId: string) {
 
   // 4. No team has more than one coach
   const dupTeamCoach = await pool.query(
-    `SELECT team_id, COUNT(*) AS n FROM coaches WHERE league_id = $1
+    `SELECT team_id, COUNT(*) AS n FROM coaches WHERE league_id = $1 AND team_id IS NOT NULL
      GROUP BY team_id HAVING COUNT(*) > 1`,
     [leagueId],
   );
@@ -116,7 +138,7 @@ async function checkLeagueTeamCoach(pool: Pool, leagueId: string) {
   const humanNoCoach = await pool.query(
     `SELECT t.name FROM teams t
      LEFT JOIN coaches c ON c.team_id = t.id AND c.league_id = $1
-     WHERE t.league_id = $1 AND t.is_cpu = false AND c.id IS NULL`,
+     WHERE t.league_id = $1 AND t.is_cpu = false AND (c.id IS NULL OR c.user_id IS NULL)`,
     [leagueId],
   );
   if (humanNoCoach.rows.length > 0) {
@@ -193,14 +215,14 @@ async function checkRostersAndRecruiting(pool: Pool, leagueId: string) {
   // 10. All players belong to a team in this league (no cross-league players)
   const crossLeaguePlayers = await pool.query(
     `SELECT COUNT(*) AS n FROM players p
-     JOIN teams t ON t.id = p.team_id
-     WHERE t.league_id != $1 AND p.team_id IN (
-       SELECT id FROM teams WHERE league_id = $1
-     )`,
-    [leagueId],
+     LEFT JOIN teams t ON t.id = p.team_id
+     WHERE t.id IS NULL`,
   );
-  // Simpler: every player's team must be in this league
-  pass("player-league-membership", leagueId);
+  if (parseInt(crossLeaguePlayers.rows[0].n) > 0) {
+    fail("player-league-membership", `${crossLeaguePlayers.rows[0].n} player(s) reference a missing team`, leagueId);
+  } else {
+    pass("player-league-membership", leagueId);
+  }
 
   // 11. Active recruit pool is not empty during a season (warning only)
   const recruitCnt = await pool.query(
@@ -235,15 +257,18 @@ async function checkRostersAndRecruiting(pool: Pool, leagueId: string) {
   // 13. No signed recruit is committed to multiple teams
   //     (signed_team_id must be the only committed interest)
   const multiCommitRecruits = await pool.query(
-    `SELECT r.id, COUNT(ri.team_id) AS n
-     FROM recruits r
-     JOIN recruiting_interests ri ON ri.recruit_id = r.id AND ri.is_targeted = false
-     WHERE r.league_id = $1 AND r.signed_team_id IS NOT NULL
-     GROUP BY r.id, r.signed_team_id
-     HAVING COUNT(DISTINCT ri.team_id) > 1
-       AND COUNT(DISTINCT CASE WHEN ri.team_id != r.signed_team_id THEN ri.team_id END) > 0`,
+    `SELECT source_player_id, COUNT(DISTINCT signed_team_id) AS n
+       FROM recruits
+      WHERE league_id = $1 AND signed_team_id IS NOT NULL AND source_player_id IS NOT NULL
+      GROUP BY source_player_id
+     HAVING COUNT(DISTINCT signed_team_id) > 1`,
     [leagueId],
   );
+  if (multiCommitRecruits.rows.length > 0) {
+    fail("single-recruit-commit", `${multiCommitRecruits.rows.length} source recruit(s) are signed to multiple teams`, leagueId);
+  } else {
+    pass("single-recruit-commit", leagueId);
+  }
   // Use a simpler check: no recruit has signed_team_id pointing to a non-member team
   const invalidSignedTeam = await pool.query(
     `SELECT COUNT(*) AS n FROM recruits r
@@ -260,31 +285,182 @@ async function checkRostersAndRecruiting(pool: Pool, leagueId: string) {
     pass("signed-recruit-team-valid", leagueId);
   }
 
-  // 14. Target count per team must not exceed a hard cap of 30
-  const overTargetTeams = await pool.query(
-    `SELECT ri.team_id, COUNT(*) AS target_count
-     FROM recruiting_interests ri
-     JOIN recruits r ON r.id = ri.recruit_id
-     WHERE r.league_id = $1 AND ri.is_targeted = true
-     GROUP BY ri.team_id HAVING COUNT(*) > 30`,
+  // 14. Target count per team must respect the canonical dynamic cap.
+  const targetRows = await pool.query<{
+    team_id: string; roster_size: string; seniors: string; targets: string;
+    season_length: string; dynasty_preset: string;
+  }>(
+    `SELECT t.id AS team_id,
+            COUNT(DISTINCT p.id) AS roster_size,
+            COUNT(DISTINCT p.id) FILTER (WHERE p.eligibility = 'SR') AS seniors,
+            COUNT(DISTINCT ri.id) FILTER (WHERE ri.is_targeted = true) AS targets,
+            l.season_length, l.dynasty_preset
+       FROM teams t
+       JOIN leagues l ON l.id = t.league_id
+       LEFT JOIN players p ON p.team_id = t.id
+       LEFT JOIN recruiting_interests ri ON ri.team_id = t.id
+      WHERE t.league_id = $1
+      GROUP BY t.id, l.season_length, l.dynasty_preset`,
     [leagueId],
   );
-  if (overTargetTeams.rows.length > 0) {
-    fail("target-cap",
-      `${overTargetTeams.rows.length} team(s) exceed 30 recruiting targets`, leagueId);
-  } else {
-    pass("target-cap", leagueId);
+  let targetViolations = 0;
+  for (const row of targetRows.rows) {
+    const plannedClass = Math.max(0, 25 - Number(row.roster_size) + Number(row.seniors));
+    const cap = getTargetCap(plannedClass, getRecruitingBalanceProfile(row.season_length, row.dynasty_preset));
+    if (Number(row.targets) > cap) {
+      fail("target-cap", `Team ${row.team_id} has ${row.targets} targets (dynamic cap ${cap})`, leagueId);
+      targetViolations++;
+    }
   }
+  if (targetViolations === 0) pass("target-cap", leagueId);
+
+  // 14b. Current-turn counters, visit caps, and NIL ledgers respect the same
+  // canonical economy rules used by the routes.
+  const economyRows = await pool.query<{
+    coach_id: string; team_id: string; archetype: string; scouting_skill: number;
+    evaluation_skill: number; pitching_recruiting_skill: number; hitting_recruiting_skill: number;
+    perks: Record<string, boolean> | null; scout_actions_used: number; recruit_actions_used: number;
+    season_length: string; dynasty_preset: string; current_phase: string; current_week: number;
+    nil_budget: number; nil_spent: number; nil_recruiting_spent: number;
+    nil_retention_spent: number; nil_walkon_spent: number;
+    campus_visits: string; hc_visits: string;
+  }>(
+    `SELECT c.id AS coach_id, c.team_id, c.archetype, c.scouting_skill, c.evaluation_skill,
+            c.pitching_recruiting_skill, c.hitting_recruiting_skill, c.perks,
+            c.scout_actions_used, c.recruit_actions_used,
+            l.season_length, l.dynasty_preset, l.current_phase, l.current_week,
+            t.nil_budget, t.nil_spent, t.nil_recruiting_spent, t.nil_retention_spent, t.nil_walkon_spent,
+            COUNT(ral.id) FILTER (WHERE ral.action_type = 'visit' AND ral.season = l.current_season) AS campus_visits,
+            COUNT(ral.id) FILTER (WHERE ral.action_type = 'head_coach_visit' AND ral.season = l.current_season) AS hc_visits
+       FROM coaches c
+       JOIN leagues l ON l.id = c.league_id
+       JOIN teams t ON t.id = c.team_id AND t.league_id = c.league_id
+       LEFT JOIN recruiting_actions_log ral ON ral.team_id = t.id AND ral.league_id = l.id
+      WHERE c.league_id = $1
+      GROUP BY c.id, t.id, l.id`,
+    [leagueId],
+  );
+  let economyViolations = 0;
+  for (const row of economyRows.rows) {
+    const base = {
+      seasonLength: row.season_length,
+      dynastyPreset: row.dynasty_preset,
+      avgRecruitSkill: (Number(row.pitching_recruiting_skill) + Number(row.hitting_recruiting_skill)) / 2,
+      avgScoutSkill: (Number(row.scouting_skill) + Number(row.evaluation_skill)) / 2,
+      archetype: row.archetype,
+      hasQuickStudy: !!row.perks?.scout_quick_study,
+      currentPhase: row.current_phase,
+      currentWeek: Number(row.current_week),
+    };
+    const contactCap = getTurnContactCap(base);
+    const scoutCap = getTurnScoutCap(base);
+    const profile = getRecruitingBalanceProfile(row.season_length, row.dynasty_preset);
+    const componentSpend = Number(row.nil_recruiting_spent) + Number(row.nil_retention_spent) + Number(row.nil_walkon_spent);
+    const messages: string[] = [];
+    if (Number(row.recruit_actions_used) > contactCap) messages.push(`contacts ${row.recruit_actions_used}/${contactCap}`);
+    if (Number(row.scout_actions_used) > scoutCap) messages.push(`scouts ${row.scout_actions_used}/${scoutCap}`);
+    if (Number(row.campus_visits) > profile.campusVisitCap) messages.push(`campus visits ${row.campus_visits}/${profile.campusVisitCap}`);
+    if (Number(row.hc_visits) > profile.headCoachVisitCap) messages.push(`HC visits ${row.hc_visits}/${profile.headCoachVisitCap}`);
+    if (Number(row.campus_visits) + Number(row.hc_visits) > profile.visitCombinedCap) messages.push("combined visit cap exceeded");
+    if (Number(row.nil_spent) > Number(row.nil_budget) || componentSpend > Number(row.nil_budget)) messages.push("NIL budget exceeded");
+    if (componentSpend !== Number(row.nil_spent)) messages.push(`NIL ledger mismatch ${componentSpend} != ${row.nil_spent}`);
+    if (messages.length > 0) {
+      fail("recruiting-economy", `Team ${row.team_id}: ${messages.join("; ")}`, leagueId);
+      economyViolations++;
+    }
+  }
+  if (economyViolations === 0) pass("recruiting-economy", leagueId);
 }
 
 // ─── Section 3: Games and Standings ──────────────────────────────────────────
 
 async function checkGamesAndStandings(pool: Pool, leagueId: string) {
   const lr = await pool.query(
-    `SELECT current_season FROM leagues WHERE id = $1`, [leagueId],
+    `SELECT current_season, dynasty_preset, current_phase, max_teams, season_length,
+            game_mode, progression_enabled
+       FROM leagues WHERE id = $1`, [leagueId],
   );
   if (lr.rows.length === 0) return;
   const season = parseInt(lr.rows[0].current_season ?? 1);
+
+  const isStarted = !["dynasty_setup", "starting"].includes(lr.rows[0].current_phase);
+  if (isStarted) {
+    const storylineState = await pool.query<{ cast_count: string; event_count: string }>(
+      `SELECT
+         (SELECT COUNT(*) FROM storyline_recruits WHERE league_id = $1 AND season = $2) AS cast_count,
+         (SELECT COUNT(*) FROM storyline_events WHERE league_id = $1 AND season = $2) AS event_count`,
+      [leagueId, season],
+    );
+    if (Number(storylineState.rows[0].cast_count) !== 10 || Number(storylineState.rows[0].event_count) === 0) {
+      fail("storyline-launch-state", `Expected cast=10 and opening events>0; found cast=${storylineState.rows[0].cast_count}, events=${storylineState.rows[0].event_count}`, leagueId);
+    } else {
+      pass("storyline-launch-state", leagueId);
+    }
+  }
+
+  const is14LaunchProfile = isStarted
+    && Number(lr.rows[0].max_teams) === 14
+    && lr.rows[0].game_mode === "reported"
+    && lr.rows[0].progression_enabled;
+  if (is14LaunchProfile) {
+    const launchCounts = await pool.query<{
+      recruits: string; regular_games: string; min_games: string; max_games: string; cpu_teams: string;
+    }>(
+      `WITH appearances AS (
+         SELECT home_team_id AS team_id FROM games
+          WHERE league_id = $1 AND season = $2 AND phase IN ('regular', 'regular_season')
+         UNION ALL
+         SELECT away_team_id FROM games
+          WHERE league_id = $1 AND season = $2 AND phase IN ('regular', 'regular_season')
+       ), totals AS (
+         SELECT team_id, COUNT(*) AS games FROM appearances GROUP BY team_id
+       )
+       SELECT
+         (SELECT COUNT(*) FROM recruits WHERE league_id = $1) AS recruits,
+         (SELECT COUNT(*) FROM games WHERE league_id = $1 AND season = $2 AND phase IN ('regular', 'regular_season')) AS regular_games,
+         (SELECT MIN(games) FROM totals) AS min_games,
+         (SELECT MAX(games) FROM totals) AS max_games,
+         (SELECT COUNT(*) FROM teams WHERE league_id = $1 AND is_cpu = true) AS cpu_teams`,
+      [leagueId, season],
+    );
+    const row = launchCounts.rows[0];
+    if (Number(row.recruits) !== 102 || Number(row.regular_games) !== 140
+        || Number(row.min_games) !== 20 || Number(row.max_games) !== 20 || Number(row.cpu_teams) !== 0) {
+      fail("14-human-launch-profile", `Expected recruits=102, regular games=140, games/team=20, CPU=0; found ${JSON.stringify(row)}`, leagueId);
+    } else {
+      pass("14-human-launch-profile", leagueId);
+    }
+  }
+
+  if (lr.rows[0].dynasty_preset === "full_season") {
+    const gameCounts = await pool.query<{ min_games: string; max_games: string }>(
+      `WITH appearances AS (
+         SELECT home_team_id AS team_id FROM games
+          WHERE league_id = $1 AND season = $2 AND phase IN ('regular', 'regular_season')
+         UNION ALL
+         SELECT away_team_id FROM games
+          WHERE league_id = $1 AND season = $2 AND phase IN ('regular', 'regular_season')
+       ), counts AS (
+         SELECT t.id, COUNT(a.team_id) AS games
+           FROM teams t LEFT JOIN appearances a ON a.team_id = t.id
+          WHERE t.league_id = $1 GROUP BY t.id
+       ) SELECT MIN(games) AS min_games, MAX(games) AS max_games FROM counts`,
+      [leagueId, season],
+    );
+    const minGames = Number(gameCounts.rows[0]?.min_games ?? 0);
+    const maxGames = Number(gameCounts.rows[0]?.max_games ?? 0);
+    if (minGames !== 56 || maxGames !== 56) {
+      fail("full-season-56-games", `Regular schedule range is ${minGames}-${maxGames}; expected 56`, leagueId);
+    } else {
+      pass("full-season-56-games", leagueId);
+    }
+    const recruitCount = await pool.query(`SELECT COUNT(*) AS n FROM recruits WHERE league_id = $1`, [leagueId]);
+    if (Number(recruitCount.rows[0].n) !== 1081) {
+      fail("full-season-recruit-pool", `Expected 1,081 recruits, found ${recruitCount.rows[0].n}`, leagueId);
+    } else {
+      pass("full-season-recruit-pool", leagueId);
+    }
+  }
 
   // 15. No self-games
   const selfGames = await pool.query(
@@ -398,7 +574,7 @@ async function checkGamesAndStandings(pool: Pool, leagueId: string) {
   //     (only after at least 1 regular-season game is complete)
   const anyRegular = await pool.query(
     `SELECT COUNT(*) AS n FROM games
-     WHERE league_id = $1 AND season = $2 AND phase = 'regular_season' AND is_complete = true`,
+     WHERE league_id = $1 AND season = $2 AND phase IN ('regular', 'regular_season') AND is_complete = true`,
     [leagueId, season],
   );
   if (parseInt(anyRegular.rows[0].n) > 0) {
@@ -408,14 +584,14 @@ async function checkGamesAndStandings(pool: Pool, leagueId: string) {
                 SUM(CASE WHEN home_score > away_score THEN 1 ELSE 0 END) AS wins,
                 SUM(CASE WHEN home_score < away_score THEN 1 ELSE 0 END) AS losses
          FROM games WHERE league_id = $1 AND season = $2
-           AND phase = 'regular_season' AND is_complete = true
+           AND phase IN ('regular', 'regular_season') AND is_complete = true
          GROUP BY home_team_id
          UNION ALL
          SELECT away_team_id,
                 SUM(CASE WHEN away_score > home_score THEN 1 ELSE 0 END),
                 SUM(CASE WHEN away_score < home_score THEN 1 ELSE 0 END)
          FROM games WHERE league_id = $1 AND season = $2
-           AND phase = 'regular_season' AND is_complete = true
+           AND phase IN ('regular', 'regular_season') AND is_complete = true
          GROUP BY away_team_id
        ),
        totals AS (
@@ -470,12 +646,12 @@ async function checkSeasonRollover(pool: Pool, leagueId: string) {
   const s1n = parseInt(s1Count.rows[0].n);
   const s2n = parseInt(s2Count.rows[0].n);
 
-  if (s1n < total) {
+  if (s1n !== total) {
     fail("season-standings-separate",
-      `Season ${prevSeason}: only ${s1n}/${total} standings rows`, leagueId);
-  } else if (s2n < total) {
+      `Season ${prevSeason}: ${s1n}/${total} standings rows`, leagueId);
+  } else if (s2n !== total) {
     fail("season-standings-separate",
-      `Season ${currentSeason}: only ${s2n}/${total} standings rows`, leagueId);
+      `Season ${currentSeason}: ${s2n}/${total} standings rows`, leagueId);
   } else {
     pass("season-standings-separate", leagueId);
   }
@@ -533,19 +709,21 @@ async function runLeague(pool: Pool, leagueId: string) {
 
 async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const args = process.argv.slice(2).filter(a => a !== "--all");
+  const rawArgs = process.argv.slice(2);
+  const includeAll = rawArgs.includes("--all");
+  const args = rawArgs.filter(a => a !== "--all");
 
   let leagueIds: string[];
 
   if (args.length > 0) {
     leagueIds = args;
   } else {
-    const r = await pool.query(
-      `SELECT id FROM leagues WHERE is_test_data IS NOT TRUE ORDER BY created_at DESC`,
-    );
+    const r = await pool.query(includeAll
+      ? `SELECT id FROM leagues ORDER BY created_at DESC`
+      : `SELECT id FROM leagues WHERE is_test_data IS NOT TRUE ORDER BY created_at DESC`);
     leagueIds = r.rows.map((row: any) => row.id);
     if (leagueIds.length === 0) {
-      console.log("No non-test leagues found in database.");
+      console.log(includeAll ? "No leagues found in database." : "No non-test leagues found in database.");
       await pool.end();
       process.exit(0);
     }

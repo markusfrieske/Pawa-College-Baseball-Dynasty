@@ -15,6 +15,7 @@ import { readdirSync } from "fs";
 import { resolve, join } from "path";
 
 const scriptDir = join(process.cwd(), "scripts");
+const tsxCli = resolve(process.cwd(), "node_modules/tsx/dist/cli.mjs");
 
 // Auto-discover every validate-*.ts except this file
 const VALIDATORS = readdirSync(scriptDir)
@@ -36,8 +37,8 @@ for (const { label, script } of VALIDATORS) {
   console.log(`${divider}`);
 
   const result = spawnSync(
-    "npx",
-    ["tsx", resolve(script)],
+    process.execPath,
+    [tsxCli, resolve(script)],
     { stdio: "inherit", encoding: "utf8" }
   );
 

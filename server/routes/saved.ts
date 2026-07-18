@@ -8,7 +8,7 @@ import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../route-helpers";
 import { validateAndNormalizeRecruitingClass, ClassValidationError } from "../lib/validateRecruitingClass";
-import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource, extractGeneration } from "../lib/buildClassEnvelope";
+import { buildClassEnvelope, extractRecruits, extractSummary, computeSummary, detectSource, extractGeneration, extractStoryPlan } from "../lib/buildClassEnvelope";
 import { migrateClassToVersion } from "../lib/migrateClassToVersion";
 
 const largeBodyParser = express.json({ limit: "5mb" });
@@ -127,6 +127,7 @@ export function registerSavedRoutes(app: Express): void {
       // Detect source / theme / generation from the inbound shape before validation strips context
       const { source, theme, config } = detectSource(classData);
       const existingGeneration = extractGeneration(classData);
+      const existingStoryPlan = extractStoryPlan(classData);
 
       let validated;
       try {
@@ -144,7 +145,13 @@ export function registerSavedRoutes(app: Express): void {
         ? (classData as Record<string, unknown>).ai_assisted === true
         : false;
       // Pass generation metadata through so seed/version are preserved in the stored envelope
-      const envelope = buildClassEnvelope(validated.recruits, source, { theme, config, generation: existingGeneration ?? undefined, aiAssisted: inboundAiAssisted });
+      const envelope = buildClassEnvelope(validated.recruits, source, {
+        theme,
+        config,
+        generation: existingGeneration ?? undefined,
+        aiAssisted: inboundAiAssisted,
+        storyPlan: existingStoryPlan ?? undefined,
+      });
 
       const rc = await storage.createSavedRecruitingClass({
         userId, name, description,
@@ -187,12 +194,19 @@ export function registerSavedRoutes(app: Express): void {
       if ("classData" in req.body) {
         const { source, theme, config } = detectSource(req.body.classData);
         const patchGeneration = extractGeneration(req.body.classData);
+        const patchStoryPlan = extractStoryPlan(req.body.classData);
         const patchAiAssisted = !Array.isArray(req.body.classData) && typeof req.body.classData === "object" && req.body.classData !== null
           ? (req.body.classData as Record<string, unknown>).ai_assisted === true
           : false;
         try {
           const validated = validateAndNormalizeRecruitingClass(req.body.classData);
-          patchBody.classData = buildClassEnvelope(validated.recruits, source, { theme, config, generation: patchGeneration ?? undefined, aiAssisted: patchAiAssisted });
+          patchBody.classData = buildClassEnvelope(validated.recruits, source, {
+            theme,
+            config,
+            generation: patchGeneration ?? undefined,
+            aiAssisted: patchAiAssisted,
+            storyPlan: patchStoryPlan ?? undefined,
+          });
           patchBody.recruitCount = validated.recruitCount;
         } catch (e) {
           if (e instanceof ClassValidationError) return res.status(400).json({ message: e.message });
@@ -467,7 +481,12 @@ export function registerSavedRoutes(app: Express): void {
             return s as typeof r;
           })
         : validated.recruits;
-      const envelope = buildClassEnvelope(recruitsToStore, "import", { theme: sourceTheme, config: sourceConfig });
+      const envelope = buildClassEnvelope(recruitsToStore, "import", {
+        theme: sourceTheme,
+        config: sourceConfig,
+        generation: extractGeneration(sourceData) ?? undefined,
+        storyPlan: extractStoryPlan(sourceData) ?? undefined,
+      });
 
       const imported = await storage.createSavedRecruitingClass({
         userId,

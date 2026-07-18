@@ -1,6 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
+import path from "node:path";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -44,7 +45,9 @@ async function buildAll() {
   await import("./validate-recruits");
 
   console.log("building client...");
-  await viteBuild();
+  // Loading the config through Vite's module runner avoids writing a bundled
+  // temporary config and is reliable in restricted/containerized build hosts.
+  await viteBuild({ configLoader: "runner" });
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
@@ -55,11 +58,12 @@ async function buildAll() {
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
   await esbuild({
-    entryPoints: ["server/index.ts"],
+    absWorkingDir: process.cwd(),
+    entryPoints: ["./server/index.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "dist/index.cjs",
+    outfile: path.resolve("dist/index.cjs"),
     define: {
       "process.env.NODE_ENV": '"production"',
     },

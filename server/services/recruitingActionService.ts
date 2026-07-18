@@ -21,6 +21,8 @@ export interface RecruitingActionParams {
    * Omit (or leave undefined) for phone / email / offer.
    */
   visitCap?: number;
+  campusVisitCap?: number;
+  headCoachVisitCap?: number;
 }
 
 export interface RecruitingActionResult {
@@ -74,7 +76,7 @@ export async function executeRecruitingAction(
   const {
     actionType, recruitId, teamId, leagueId, coachId,
     week, season, interestGain, hasOffer, cost, maxAllowed, notes, isAutoPilot,
-    visitCap,
+    visitCap, campusVisitCap, headCoachVisitCap,
   } = params;
 
   const isVisitAction = actionType === "visit" || actionType === "head_coach_visit";
@@ -93,8 +95,10 @@ export async function executeRecruitingAction(
       );
 
       // Count visits already committed for this team this season.
-      const { rows: [capRow] } = await client.query<{ cnt: string }>(
-        `SELECT COUNT(*)::text AS cnt
+      const { rows: [capRow] } = await client.query<{ cnt: string; campus: string; hc: string }>(
+        `SELECT COUNT(*)::text AS cnt,
+                COUNT(*) FILTER (WHERE action_type = 'visit')::text AS campus,
+                COUNT(*) FILTER (WHERE action_type = 'head_coach_visit')::text AS hc
            FROM recruiting_actions_log
           WHERE team_id  = $1
             AND league_id = $2
@@ -103,8 +107,13 @@ export async function executeRecruitingAction(
         [teamId, leagueId, season],
       );
       const currentVisits = parseInt(capRow?.cnt ?? "0", 10);
+      const currentCampus = parseInt(capRow?.campus ?? "0", 10);
+      const currentHc = parseInt(capRow?.hc ?? "0", 10);
 
-      if (currentVisits >= visitCap) {
+      const typeCapReached =
+        (actionType === "visit" && campusVisitCap !== undefined && currentCampus >= campusVisitCap)
+        || (actionType === "head_coach_visit" && headCoachVisitCap !== undefined && currentHc >= headCoachVisitCap);
+      if (currentVisits >= visitCap || typeCapReached) {
         await client.query("ROLLBACK");
         return { success: false, alreadyDone: false, spendFailed: false, capExceeded: true };
       }

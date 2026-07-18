@@ -30,6 +30,7 @@ import { FULL_SEASON_CONF_NAMES } from "../../shared/catalog";
 import { getRecruitPoolSize } from "../utils";
 import { autoAssignLineup } from "../route-helpers";
 import { buildFullSeasonSchedule, validateFullSeasonSchedule } from "./schedule/fullSeasonScheduler";
+import { initializeStorylineRecruits } from "../storyline-routes";
 
 const EXPECTED_PLAYERS_PER_TEAM = 25;
 const EXPECTED_TOTAL_GAMES = 4172;
@@ -204,9 +205,22 @@ export async function runFullSeasonBootstrap(
       // Partial class from a prior crashed run — delete before regenerating.
       await storage.deleteRecruitsByLeague(leagueId);
     }
-    const vintage = await generateRecruits(leagueId, recruitCount, true);
+    const vintage = await generateRecruits(
+      leagueId,
+      recruitCount,
+      true,
+      1,
+      { awaitStorylines: true },
+    );
     await storage.updateLeague(leagueId, { currentClassVintage: vintage });
     console.log(`[bootstrap:${leagueId}] Recruiting class: ${recruitCount} recruits generated`);
+  }
+  const bootstrapStorylines = await storage.getStorylineRecruitsByLeague(leagueId, 1);
+  if (bootstrapStorylines.length !== 10) {
+    const initialized = await initializeStorylineRecruits(leagueId, 1, true);
+    if (initialized !== 10) {
+      throw new Error(`Full Season bootstrap expected 10 storyline recruits, initialized ${initialized}`);
+    }
   }
 
   throwIfAborted(signal);

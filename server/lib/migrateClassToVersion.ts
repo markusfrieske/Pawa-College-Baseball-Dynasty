@@ -19,6 +19,8 @@ import {
 import {
   buildClassEnvelope,
   detectSource,
+  extractGeneration,
+  extractStoryPlan,
 } from "./buildClassEnvelope";
 import type {
   RecruitingClassProject,
@@ -59,7 +61,12 @@ export async function migrateClassToVersion(classId: string): Promise<{
   try {
     const validated = validateAndNormalizeRecruitingClass(rc.classData as unknown);
     const { source, theme, config } = detectSource(rc.classData as unknown);
-    packageJson = buildClassEnvelope(validated.recruits, source, { theme, config });
+    packageJson = buildClassEnvelope(validated.recruits, source, {
+      theme,
+      config,
+      generation: extractGeneration(rc.classData as unknown) ?? undefined,
+      storyPlan: extractStoryPlan(rc.classData as unknown) ?? undefined,
+    });
   } catch {
     packageJson = rc.classData;
   }

@@ -170,6 +170,14 @@ export function registerInviteRoutes(app: Express): void {
       const leagueId = invRow.league_id;
       claimedLeagueId = leagueId;
 
+      const { rows: leagueRows } = await client.query<{ current_phase: string }>(
+        `SELECT current_phase FROM leagues WHERE id = $1 FOR SHARE`,
+        [leagueId],
+      );
+      if (leagueRows[0]?.current_phase !== "dynasty_setup") {
+        throw new HttpError(409, "This dynasty has already started");
+      }
+
       // ── Step 2: duplicate-user guard ─────────────────────────────────────
       // Two simultaneous accepts by the same user both SELECT here; whoever
       // committed first will already have inserted a coaches row, so the

@@ -23,8 +23,14 @@ import { getAdvancePreflight, type AdvancePreflightResult } from "../lib/advance
 import { loadLeagueScopedTeam, loadLeagueScopedRecruit } from "../route-helpers";
 import { validateWizardConfig } from "../lib/validateWizardConfig";
 import { replaceLeagueRecruitingClass } from "../lib/replaceLeagueRecruitingClass";
+import { extractGeneration, extractStoryPlan } from "../lib/buildClassEnvelope";
 import { archetypeDefs } from "../storylineEngine";
 import { createScheduleForSeason } from "../services/schedule/createScheduleForSeason";
+import {
+  DynastyStartConflictError,
+  DynastyStartInProgressError,
+  runDurableDynastyStart,
+} from "../services/dynastyStartService";
 import {
   generateSchedule,
   generateRecruits,
@@ -2258,6 +2264,8 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     // Validate any saved recruiting class BEFORE touching any roster data so
     // an invalid class returns 422 without leaving the league in a partial state.
     let prevalidatedClass: ClassValidationResult | undefined;
+    let prevalidatedStoryPlan: import("@shared/schema").WizardStoryPlan | undefined;
+    let prevalidatedMasterSeed: string | undefined;
     if (recruitingClassId) {
       const earlyClass = await storage.getSavedRecruitingClass(recruitingClassId);
       // If the class doesn't exist or isn't owned by this user, fail hard BEFORE
@@ -2268,6 +2276,8 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
       }
       try {
         prevalidatedClass = validateAndNormalizeRecruitingClass(earlyClass.classData as unknown);
+        prevalidatedStoryPlan = extractStoryPlan(earlyClass.classData as unknown) ?? undefined;
+        prevalidatedMasterSeed = extractGeneration(earlyClass.classData as unknown)?.seed;
       } catch (e) {
         if (e instanceof ClassValidationError) {
           return res.status(422).json({ message: `Recruiting class is invalid: ${e.message}` });
@@ -2281,6 +2291,23 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     // two concurrent /start requests from both seeing 'dynasty_setup' and both
     // running setup.  The winning request sets phase to 'starting'; all others
     // get rowCount=0 and return success immediately.
+    const durableResult = await runDurableDynastyStart({
+      leagueId,
+      userId: userId!,
+      rosterId: typeof rosterId === "string" ? rosterId : null,
+      recruitingClassId: typeof recruitingClassId === "string" ? recruitingClassId : null,
+      perTeamRosters: perTeamRosters && typeof perTeamRosters === "object"
+        ? perTeamRosters as Record<string, string>
+        : null,
+      validatedRecruitingClass: prevalidatedClass,
+      storyPlan: prevalidatedStoryPlan,
+      masterSeed: prevalidatedMasterSeed,
+    });
+    return res.json(durableResult);
+
+    /* Legacy synchronous start implementation retained only as migration
+       history. The durable service above is the sole executable path.
+
     const claimResult = await pool.query(
       `UPDATE leagues SET current_phase = 'starting' WHERE id = $1 AND current_phase = 'dynasty_setup' RETURNING id`,
       [leagueId],
@@ -2405,8 +2432,21 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     });
     
     res.json({ success: true });
+    */
   } catch (error) {
+    if (error instanceof DynastyStartInProgressError) {
+      return res.status(202).json({ success: false, status: "starting", jobId: error.jobId });
+    }
+    if (error instanceof DynastyStartConflictError) {
+      return res.status(409).json({ message: error.message });
+    }
     console.error("Failed to start dynasty:", error);
+    return res.status(500).json({
+      message: "Failed to start dynasty. The durable operation can be retried safely.",
+      detail: error instanceof Error ? error.message : String(error),
+    });
+    /* Legacy phase-only rollback intentionally disabled. Partial work is resumed
+       from the durable operation instead of being mislabeled as dynasty_setup.
     // Revert the transitional 'starting' phase back to 'dynasty_setup' so the
     // commissioner can retry.  Only reverts if we actually won the atomic claim
     // (i.e. a concurrent request that never touched the DB would already have
@@ -2419,6 +2459,7 @@ app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
       console.error("[start-dynasty] Failed to revert transitional phase:", revertErr);
     });
     res.status(500).json({ message: "Failed to start dynasty" });
+    */
   }
 });
 
