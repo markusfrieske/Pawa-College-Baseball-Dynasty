@@ -1,8 +1,8 @@
 /**
  * cleanupStaleLeagues.ts
  *
- * Reusable, targeted deletion of stale/abandoned leagues (test-runner leagues
- * and inactive guest-created leagues) plus every row that references them.
+ * Reusable, targeted deletion of explicitly marked stale test leagues plus
+ * every row that references them. Guest-owned leagues are real saves.
  *
  * IMPORTANT: this does NOT use TRUNCATE CASCADE. Real user leagues coexist in
  * this database at all times, so deletes are always scoped to an explicit set
@@ -17,8 +17,6 @@ import type { Pool } from "pg";
 export interface CleanupOptions {
   /** Delete isTestData leagues older than this many hours. Default 6. */
   testDataMaxAgeHours?: number;
-  /** Delete guest-owned leagues older than this many days. Default 7. */
-  guestMaxAgeDays?: number;
   /** If true, only report what would be deleted without deleting anything. */
   dryRun?: boolean;
 }
@@ -31,7 +29,7 @@ export interface CleanupResult {
 }
 
 /**
- * Finds and deletes stale test/guest leagues and all dependent rows.
+ * Finds and deletes explicitly marked stale test leagues and all dependent rows.
  * Safe to call repeatedly (idempotent — no-op if nothing matches).
  */
 export async function cleanupStaleLeagues(
@@ -39,20 +37,19 @@ export async function cleanupStaleLeagues(
   options: CleanupOptions = {}
 ): Promise<CleanupResult> {
   const testDataMaxAgeHours = options.testDataMaxAgeHours ?? 6;
-  const guestMaxAgeDays = options.guestMaxAgeDays ?? 7;
   const dryRun = options.dryRun ?? false;
+  if (!Number.isFinite(testDataMaxAgeHours) || testDataMaxAgeHours <= 0) {
+    throw new Error("testDataMaxAgeHours must be a positive finite number");
+  }
 
   const client = await pool.connect();
   try {
-    // 1. Find target league ids: explicitly-flagged test data OR guest-owned
-    //    leagues that have gone stale.
+    // 1. Only an explicit test-data flag authorizes automatic deletion.
+    // Creation age and guest identity do not establish save inactivity.
     const { rows: targetRows } = await client.query<{ id: string }>(
       `SELECT id FROM leagues
-       WHERE (is_test_data = true AND created_at < now() - $1::interval)
-          OR (commissioner_id IN (
-                SELECT id FROM users WHERE email LIKE 'guest-%@guest.local'
-              ) AND created_at < now() - $2::interval)`,
-      [`${testDataMaxAgeHours} hours`, `${guestMaxAgeDays} days`]
+       WHERE is_test_data = true AND created_at < now() - $1::interval`,
+      [`${testDataMaxAgeHours} hours`]
     );
     const leagueIds = targetRows.map((r) => r.id);
 

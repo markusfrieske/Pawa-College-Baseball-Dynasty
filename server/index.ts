@@ -8,6 +8,7 @@ import { runMigrations, checkMigrationVersion, EXPECTED_MIGRATION } from "./lib/
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { cleanupStaleLeagues } from "./lib/cleanupStaleLeagues";
 import { startJobRunner } from "./jobs/leagueJobRunner";
+import { publicErrorHandler } from "./lib/httpErrors";
 import { CONFERENCE_CATALOG, FULL_SEASON_TOTAL, CONF_SIZE_MAP, CATALOG_TEAMS } from "../shared/catalog";
 import { TOTAL_NATIONAL_TEAMS, NATIONAL_RANKS, ROSTER_SCALE_FACTORS } from "./rosterScaleFactors";
 
@@ -48,6 +49,15 @@ import { TOTAL_NATIONAL_TEAMS, NATIONAL_RANKS, ROSTER_SCALE_FACTORS } from "./ro
 
 const app = express();
 const httpServer = createServer(app);
+
+// Allow isolated loopback development on Windows without changing deployment's
+// default bind address. Reject invalid ports before running any startup jobs.
+const portText = process.env.PORT ?? "5000";
+if (!/^\d+$/.test(portText) || Number(portText) > 65535) {
+  throw new Error("PORT must be an integer from 0 through 65535");
+}
+const port = Number(portText);
+const host = process.env.HOST || "0.0.0.0";
 
 declare module "http" {
   interface IncomingMessage {
@@ -1145,6 +1155,9 @@ app.use((req, res, next) => {
 
   // Proxy /__mockup/ to the mockup sandbox dev server (port 23636)
   app.use('/__mockup', (req, res) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ message: "Not found" });
+    }
     const proxyPath = `/__mockup${req.originalUrl.slice('/__mockup'.length)}`;
     const proxyReq = httpRequest(
       { hostname: 'localhost', port: 23636, path: proxyPath, method: req.method, headers: req.headers },
@@ -1275,14 +1288,9 @@ app.use((req, res, next) => {
     }
   })();
 
-  // Daily automatic prune of stale E2E-test and abandoned guest leagues.
-  //
-  // WHY: E2E test runs and anonymous guest sessions previously left leagues
-  // (and their teams/players/recruits/etc) in the database indefinitely,
-  // eventually bloating it to ~10k leftover leagues. This targeted cleanup
-  // (never TRUNCATE) deletes only leagues explicitly flagged `is_test_data`
-  // that are a few hours old, plus guest-owned leagues that have been
-  // inactive for a week — real user leagues are never touched.
+  // Daily prune of old leagues explicitly flagged as E2E/test data.
+  // Creation age cannot establish inactivity or consent to remove a guest save.
+  // Unflagged guest and registered-user dynasties are preserved.
   //
   // Gated by a date-keyed `_startup_migrations` row so it runs at most once
   // per calendar day regardless of how many times the server restarts.
@@ -1329,19 +1337,6 @@ app.use((req, res, next) => {
   // Those files are applied by runMigrations() above on every cold start.
 
 
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error("Internal Server Error:", err);
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    return res.status(status).json({ message });
-  });
-
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
@@ -1356,15 +1351,18 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
+  // Register last so parser, session, route and static-file errors share the
+  // public error contract rather than Express's default HTML error page.
+  app.use(publicErrorHandler);
   httpServer.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host,
+      reusePort: process.platform !== "win32",
     },
     () => {
-      log(`serving on port ${port}`);
+      const address = httpServer.address();
+      log(`serving on ${host} port ${typeof address === "object" && address ? address.port : port}`);
     },
   );
 })();
