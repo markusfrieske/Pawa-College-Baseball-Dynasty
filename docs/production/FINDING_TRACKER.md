@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 verified, TI-02 mitigated, TI-13 in review; 39 findings remain planned. See [W01 evidence and limitations](W01_BATCH_01.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 verified, TI-02 mitigated, TI-12 implementing, TI-13 in review; 38 findings remain planned. See [W01 batch 01](W01_BATCH_01.md), [batch 02](W01_BATCH_02.md), and its [independent audit](audits/W01_BATCH_02_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -17,7 +17,7 @@ Production has started: TI-01 verified, TI-02 mitigated, TI-13 in review; 39 fin
 | [TI-09](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects. | planned |
 | [TI-10](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Approved evidence manifests and OCR revisions cannot be silently replaced/deleted; amendments remain auditable. | planned |
 | [TI-11](../audits/2026-09-14/technical-integrity.md) | W13 · 2026-12-11 | Gibs QA & Player Research Lead | Executable 14-coach end-to-end rehearsal proves promised workflow and fails certification on missing prerequisites. | planned |
-| [TI-12](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated. | planned |
+| [TI-12](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated. | implementing |
 | [TI-13](../audits/2026-09-14/technical-integrity.md) | W01 · 2026-09-18 | Gilfoyle Roblox Technical Director | Clean locked install succeeds outside Replit with intended versions/integrity and documented runtimes. | review |
 | [TI-14](../audits/2026-09-14/technical-integrity.md) | W05 · 2026-10-16 | Gilfoyle Roblox Technical Director | Expired/resumed worker cannot commit stale writes after a new lease owner begins. | planned |
 | [SYS-01](../audits/2026-09-14/systems-baseball.md) | W07 · 2026-10-30 | Passan Baseball Expert | One event ledger reconciles score, runs, outs and opposing batting/pitching stats across fixtures and seeded campaign. | planned |

@@ -191,7 +191,7 @@
     {
       "id": "TI-12",
       "title": "P2: the migration/release story needs a reproducible bootstrap and recovery contract",
-      "status": "planned",
+      "status": "implementing",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 4,
       "targetStart": "2026-10-05",
@@ -200,13 +200,16 @@
       "acceptance": "Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
+      "implementationCommit": "fe77dde7157eb50deb77293dc7142a7008e5be5f",
       "evidence": [
         "DB_SPIKE.md",
-        "W01_BATCH_01.md"
+        "W01_BATCH_01.md",
+        "W01_BATCH_02.md",
+        "audits/W01_BATCH_02_AUDIT.md",
+        "../../scripts/verify-migrations.ts"
       ],
       "verifiedBy": null,
-      "notes": "W01 spike reproduced invalid ADD CONSTRAINT IF NOT EXISTS in migration 0032. Prioritize clean-bootstrap repair within W01; broader upgrade/concurrency/recovery closure remains W04."
+      "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery."
     },
     {
       "id": "TI-13",

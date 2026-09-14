@@ -2,6 +2,8 @@
 
 Date: 2026-09-14. Scope: synthetic local HTTP authorization/cache tests, with no production credentials, records, or connections.
 
+**Follow-up:** [W01 batch 02](W01_BATCH_02.md) repaired the migration-0032/runner defects and verified fresh numbered bootstrap, rollback/retry and HTTP readiness. The original findings and failed attempt below are preserved as historical evidence. Use `npm run db:bootstrap:test` for an empty disposable database; broader production upgrades/recovery remain open.
+
 ## Findings
 
 - No PostgreSQL, psql or Docker command was available on CommandCenter. Common installation and app-cache locations did not contain PostgreSQL executables.
