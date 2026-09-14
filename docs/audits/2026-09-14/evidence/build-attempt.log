@@ -1,0 +1,587 @@
+validating rosters...
+
+Roster validation: 0 error(s)
+validating recruiting classes...
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=11 busts=9 raw=6 lateBloomer=1 overdraft=1 normal=47
+[recruit-handedness] throw LH=15/80 (19%) | bat L=13 S=4 R=63
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=7 raw=7 lateBloomer=2 overdraft=7 normal=40
+[recruit-handedness] throw LH=14/80 (18%) | bat L=16 S=1 R=63
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=9 raw=10 lateBloomer=4 overdraft=0 normal=38
+[recruit-handedness] throw LH=10/80 (13%) | bat L=18 S=6 R=56
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=10 raw=6 lateBloomer=5 overdraft=6 normal=30
+[recruit-handedness] throw LH=11/80 (14%) | bat L=20 S=4 R=56
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=8 raw=7 lateBloomer=1 overdraft=3 normal=42
+[recruit-handedness] throw LH=16/80 (20%) | bat L=16 S=2 R=62
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=11 busts=7 raw=6 lateBloomer=4 overdraft=3 normal=44
+[recruit-handedness] throw LH=11/80 (14%) | bat L=20 S=2 R=58
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=7 raw=7 lateBloomer=4 overdraft=2 normal=38
+[recruit-handedness] throw LH=21/80 (26%) | bat L=14 S=3 R=63
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=7 raw=6 lateBloomer=4 overdraft=3 normal=43
+[recruit-handedness] throw LH=8/80 (10%) | bat L=15 S=4 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=8 raw=10 lateBloomer=5 overdraft=3 normal=39
+[recruit-handedness] throw LH=11/80 (14%) | bat L=15 S=4 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=7 raw=5 lateBloomer=4 overdraft=0 normal=47
+[recruit-handedness] throw LH=11/80 (14%) | bat L=18 S=1 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=9 raw=5 lateBloomer=3 overdraft=2 normal=38
+[recruit-handedness] throw LH=8/80 (10%) | bat L=27 S=1 R=52
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=5 raw=10 lateBloomer=3 overdraft=4 normal=40
+[recruit-handedness] throw LH=14/80 (18%) | bat L=19 S=4 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=11 raw=10 lateBloomer=2 overdraft=3 normal=34
+[recruit-handedness] throw LH=9/80 (11%) | bat L=9 S=5 R=66
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=9 raw=6 lateBloomer=7 overdraft=4 normal=33
+[recruit-handedness] throw LH=14/80 (18%) | bat L=21 S=6 R=53
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=11 busts=12 raw=8 lateBloomer=6 overdraft=3 normal=35
+[recruit-handedness] throw LH=13/80 (16%) | bat L=14 S=0 R=66
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=22 busts=7 raw=10 lateBloomer=4 overdraft=3 normal=30
+[recruit-handedness] throw LH=24/80 (30%) | bat L=15 S=4 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=8 raw=8 lateBloomer=2 overdraft=4 normal=37
+[recruit-handedness] throw LH=14/80 (18%) | bat L=19 S=8 R=53
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=7 raw=9 lateBloomer=3 overdraft=2 normal=36
+[recruit-handedness] throw LH=12/80 (15%) | bat L=23 S=3 R=54
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=7 raw=5 lateBloomer=4 overdraft=9 normal=39
+[recruit-handedness] throw LH=12/80 (15%) | bat L=17 S=4 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=10 busts=11 raw=8 lateBloomer=6 overdraft=1 normal=40
+[recruit-handedness] throw LH=15/80 (19%) | bat L=16 S=5 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=9 raw=10 lateBloomer=3 overdraft=7 normal=31
+[recruit-handedness] throw LH=9/80 (11%) | bat L=21 S=4 R=55
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=8 busts=10 raw=8 lateBloomer=1 overdraft=3 normal=46
+[recruit-handedness] throw LH=5/80 (6%) | bat L=23 S=5 R=52
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=6 raw=5 lateBloomer=4 overdraft=1 normal=49
+[recruit-handedness] throw LH=16/80 (20%) | bat L=12 S=8 R=60
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=6 raw=5 lateBloomer=0 overdraft=3 normal=45
+[recruit-handedness] throw LH=11/80 (14%) | bat L=12 S=1 R=67
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=11 raw=6 lateBloomer=5 overdraft=0 normal=38
+[recruit-handedness] throw LH=14/80 (18%) | bat L=25 S=2 R=53
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=6 raw=5 lateBloomer=7 overdraft=3 normal=41
+[recruit-handedness] throw LH=8/80 (10%) | bat L=18 S=3 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=10 raw=7 lateBloomer=5 overdraft=3 normal=36
+[recruit-handedness] throw LH=12/80 (15%) | bat L=15 S=5 R=60
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=9 raw=5 lateBloomer=4 overdraft=4 normal=37
+[recruit-handedness] throw LH=11/80 (14%) | bat L=17 S=7 R=56
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=7 raw=10 lateBloomer=0 overdraft=6 normal=34
+[recruit-handedness] throw LH=16/80 (20%) | bat L=14 S=4 R=62
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=12 raw=5 lateBloomer=3 overdraft=5 normal=32
+[recruit-handedness] throw LH=18/80 (23%) | bat L=16 S=3 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=5 raw=7 lateBloomer=3 overdraft=2 normal=44
+[recruit-handedness] throw LH=12/80 (15%) | bat L=22 S=3 R=55
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=19 busts=8 raw=6 lateBloomer=6 overdraft=4 normal=32
+[recruit-handedness] throw LH=22/80 (28%) | bat L=17 S=5 R=58
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=11 raw=8 lateBloomer=0 overdraft=6 normal=37
+[recruit-handedness] throw LH=17/80 (21%) | bat L=17 S=4 R=59
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=7 raw=5 lateBloomer=2 overdraft=0 normal=49
+[recruit-handedness] throw LH=11/80 (14%) | bat L=10 S=4 R=66
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=9 raw=9 lateBloomer=5 overdraft=4 normal=30
+[recruit-handedness] throw LH=17/80 (21%) | bat L=13 S=1 R=66
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=7 raw=9 lateBloomer=3 overdraft=1 normal=40
+[recruit-handedness] throw LH=18/80 (23%) | bat L=24 S=1 R=55
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=9 raw=7 lateBloomer=5 overdraft=3 normal=37
+[recruit-handedness] throw LH=15/80 (19%) | bat L=20 S=4 R=56
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=8 raw=6 lateBloomer=5 overdraft=5 normal=29
+[recruit-handedness] throw LH=14/80 (18%) | bat L=19 S=3 R=58
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=10 raw=8 lateBloomer=2 overdraft=5 normal=35
+[recruit-handedness] throw LH=9/80 (11%) | bat L=16 S=0 R=64
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=10 raw=7 lateBloomer=5 overdraft=3 normal=36
+[recruit-handedness] throw LH=22/80 (28%) | bat L=17 S=4 R=59
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=10 raw=10 lateBloomer=4 overdraft=4 normal=32
+[recruit-handedness] throw LH=13/80 (16%) | bat L=16 S=5 R=59
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=13 raw=7 lateBloomer=4 overdraft=3 normal=35
+[recruit-handedness] throw LH=16/80 (20%) | bat L=21 S=5 R=54
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=7 raw=8 lateBloomer=1 overdraft=3 normal=44
+[recruit-handedness] throw LH=23/80 (29%) | bat L=18 S=7 R=55
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=19 busts=7 raw=6 lateBloomer=4 overdraft=3 normal=36
+[recruit-handedness] throw LH=13/80 (16%) | bat L=17 S=3 R=60
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=8 raw=7 lateBloomer=3 overdraft=1 normal=41
+[recruit-handedness] throw LH=11/80 (14%) | bat L=17 S=3 R=60
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=11 raw=6 lateBloomer=3 overdraft=1 normal=37
+[recruit-handedness] throw LH=19/80 (24%) | bat L=20 S=2 R=58
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=10 busts=12 raw=8 lateBloomer=3 overdraft=1 normal=42
+[recruit-handedness] throw LH=19/80 (24%) | bat L=16 S=3 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=12 raw=5 lateBloomer=3 overdraft=5 normal=37
+[recruit-handedness] throw LH=14/80 (18%) | bat L=14 S=6 R=60
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=9 raw=7 lateBloomer=3 overdraft=4 normal=40
+[recruit-handedness] throw LH=13/80 (16%) | bat L=15 S=1 R=64
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=9 raw=9 lateBloomer=3 overdraft=1 normal=40
+[recruit-handedness] throw LH=21/80 (26%) | bat L=20 S=0 R=60
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=7 raw=6 lateBloomer=2 overdraft=3 normal=40
+[recruit-handedness] throw LH=17/80 (21%) | bat L=17 S=1 R=62
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=7 raw=7 lateBloomer=4 overdraft=6 normal=35
+[recruit-handedness] throw LH=16/80 (20%) | bat L=12 S=3 R=65
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=9 busts=12 raw=10 lateBloomer=1 overdraft=4 normal=39
+[recruit-handedness] throw LH=17/80 (21%) | bat L=17 S=0 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=10 busts=6 raw=6 lateBloomer=4 overdraft=5 normal=44
+[recruit-handedness] throw LH=10/80 (13%) | bat L=14 S=5 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=10 busts=11 raw=5 lateBloomer=4 overdraft=4 normal=42
+[recruit-handedness] throw LH=12/80 (15%) | bat L=22 S=1 R=57
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=12 raw=8 lateBloomer=2 overdraft=4 normal=31
+[recruit-handedness] throw LH=15/80 (19%) | bat L=10 S=2 R=68
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=12 raw=9 lateBloomer=0 overdraft=7 normal=30
+[recruit-handedness] throw LH=17/80 (21%) | bat L=20 S=6 R=54
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=6 raw=6 lateBloomer=3 overdraft=3 normal=47
+[recruit-handedness] throw LH=15/80 (19%) | bat L=14 S=3 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=11 raw=10 lateBloomer=5 overdraft=2 normal=29
+[recruit-handedness] throw LH=13/80 (16%) | bat L=13 S=2 R=65
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=6 raw=7 lateBloomer=6 overdraft=2 normal=36
+[recruit-handedness] throw LH=12/80 (15%) | bat L=12 S=3 R=65
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=5 raw=6 lateBloomer=2 overdraft=0 normal=47
+[recruit-handedness] throw LH=9/80 (11%) | bat L=20 S=6 R=54
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=8 raw=8 lateBloomer=4 overdraft=2 normal=41
+[recruit-handedness] throw LH=12/80 (15%) | bat L=17 S=2 R=61
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=9 raw=6 lateBloomer=3 overdraft=5 normal=37
+[recruit-handedness] throw LH=9/80 (11%) | bat L=16 S=3 R=61
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=20 busts=9 raw=7 lateBloomer=5 overdraft=3 normal=32
+[recruit-handedness] throw LH=14/80 (18%) | bat L=25 S=3 R=52
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=7 raw=7 lateBloomer=2 overdraft=4 normal=39
+[recruit-handedness] throw LH=9/80 (11%) | bat L=16 S=10 R=54
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=12 raw=6 lateBloomer=1 overdraft=5 normal=34
+[recruit-handedness] throw LH=10/80 (13%) | bat L=17 S=6 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=9 raw=6 lateBloomer=2 overdraft=5 normal=35
+[recruit-handedness] throw LH=10/80 (13%) | bat L=11 S=4 R=65
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=8 raw=8 lateBloomer=3 overdraft=0 normal=38
+[recruit-handedness] throw LH=11/80 (14%) | bat L=13 S=2 R=65
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=11 busts=11 raw=10 lateBloomer=1 overdraft=4 normal=38
+[recruit-handedness] throw LH=11/80 (14%) | bat L=16 S=4 R=60
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=11 busts=10 raw=7 lateBloomer=3 overdraft=3 normal=41
+[recruit-handedness] throw LH=13/80 (16%) | bat L=13 S=5 R=62
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=19 busts=9 raw=7 lateBloomer=4 overdraft=4 normal=32
+[recruit-handedness] throw LH=8/80 (10%) | bat L=20 S=3 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=7 raw=8 lateBloomer=4 overdraft=5 normal=39
+[recruit-handedness] throw LH=13/80 (16%) | bat L=17 S=0 R=63
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=8 raw=10 lateBloomer=3 overdraft=7 normal=30
+[recruit-handedness] throw LH=10/80 (13%) | bat L=17 S=6 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=12 raw=7 lateBloomer=5 overdraft=5 normal=30
+[recruit-handedness] throw LH=11/80 (14%) | bat L=15 S=3 R=62
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=11 raw=7 lateBloomer=2 overdraft=3 normal=35
+[recruit-handedness] throw LH=10/80 (13%) | bat L=18 S=4 R=58
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=8 raw=9 lateBloomer=3 overdraft=7 normal=38
+[recruit-handedness] throw LH=14/80 (18%) | bat L=24 S=4 R=52
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=9 busts=11 raw=7 lateBloomer=3 overdraft=3 normal=42
+[recruit-handedness] throw LH=12/80 (15%) | bat L=16 S=6 R=58
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=10 raw=6 lateBloomer=2 overdraft=2 normal=38
+[recruit-handedness] throw LH=12/80 (15%) | bat L=23 S=4 R=53
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=6 raw=5 lateBloomer=2 overdraft=3 normal=41
+[recruit-handedness] throw LH=11/80 (14%) | bat L=18 S=5 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=20 busts=6 raw=8 lateBloomer=2 overdraft=3 normal=37
+[recruit-handedness] throw LH=11/80 (14%) | bat L=15 S=2 R=63
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=9 raw=5 lateBloomer=4 overdraft=2 normal=39
+[recruit-handedness] throw LH=16/80 (20%) | bat L=19 S=4 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=9 raw=10 lateBloomer=8 overdraft=3 normal=27
+[recruit-handedness] throw LH=15/80 (19%) | bat L=12 S=2 R=66
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=13 raw=10 lateBloomer=1 overdraft=2 normal=29
+[recruit-handedness] throw LH=9/80 (11%) | bat L=18 S=5 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=10 raw=7 lateBloomer=2 overdraft=5 normal=35
+[recruit-handedness] throw LH=9/80 (11%) | bat L=17 S=4 R=59
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=8 raw=10 lateBloomer=4 overdraft=1 normal=30
+[recruit-handedness] throw LH=9/80 (11%) | bat L=22 S=4 R=54
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=10 raw=8 lateBloomer=1 overdraft=3 normal=37
+[recruit-handedness] throw LH=9/80 (11%) | bat L=12 S=3 R=65
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=10 raw=9 lateBloomer=3 overdraft=6 normal=34
+[recruit-handedness] throw LH=13/80 (16%) | bat L=14 S=2 R=64
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=7 raw=9 lateBloomer=5 overdraft=5 normal=39
+[recruit-handedness] throw LH=8/80 (10%) | bat L=23 S=1 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=6 raw=9 lateBloomer=3 overdraft=4 normal=40
+[recruit-handedness] throw LH=8/80 (10%) | bat L=23 S=1 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=11 raw=9 lateBloomer=5 overdraft=1 normal=31
+[recruit-handedness] throw LH=10/80 (13%) | bat L=16 S=3 R=61
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=5 raw=10 lateBloomer=5 overdraft=1 normal=37
+[recruit-handedness] throw LH=13/80 (16%) | bat L=19 S=6 R=55
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=9 raw=9 lateBloomer=3 overdraft=0 normal=40
+[recruit-handedness] throw LH=21/80 (26%) | bat L=15 S=6 R=59
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=6 raw=7 lateBloomer=5 overdraft=4 normal=31
+[recruit-handedness] throw LH=14/80 (18%) | bat L=20 S=8 R=52
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=10 raw=9 lateBloomer=5 overdraft=2 normal=39
+[recruit-handedness] throw LH=12/80 (15%) | bat L=19 S=3 R=58
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=11 raw=10 lateBloomer=4 overdraft=3 normal=31
+[recruit-handedness] throw LH=14/80 (18%) | bat L=16 S=1 R=63
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=8 raw=9 lateBloomer=2 overdraft=2 normal=43
+[recruit-handedness] throw LH=11/80 (14%) | bat L=13 S=3 R=64
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=11 raw=6 lateBloomer=4 overdraft=2 normal=39
+[recruit-handedness] throw LH=17/80 (21%) | bat L=19 S=4 R=57
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=9 raw=8 lateBloomer=0 overdraft=4 normal=38
+[recruit-handedness] throw LH=11/80 (14%) | bat L=15 S=5 R=60
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=9 raw=9 lateBloomer=4 overdraft=1 normal=41
+[recruit-handedness] throw LH=15/80 (19%) | bat L=19 S=1 R=60
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=19 busts=6 raw=10 lateBloomer=1 overdraft=4 normal=35
+[recruit-handedness] throw LH=11/80 (14%) | bat L=16 S=4 R=60
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=7 raw=7 lateBloomer=7 overdraft=4 normal=37
+[recruit-handedness] throw LH=10/80 (13%) | bat L=21 S=0 R=59
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=8 raw=8 lateBloomer=2 overdraft=3 normal=37
+[recruit-handedness] throw LH=10/80 (13%) | bat L=13 S=1 R=66
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=9 raw=5 lateBloomer=1 overdraft=2 normal=47
+[recruit-handedness] throw LH=11/80 (14%) | bat L=25 S=2 R=53
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=21 busts=10 raw=5 lateBloomer=1 overdraft=4 normal=34
+[recruit-handedness] throw LH=7/80 (9%) | bat L=17 S=3 R=60
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=9 raw=10 lateBloomer=6 overdraft=2 normal=35
+[recruit-handedness] throw LH=20/80 (25%) | bat L=12 S=5 R=63
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=10 raw=10 lateBloomer=3 overdraft=2 normal=36
+[recruit-handedness] throw LH=17/80 (21%) | bat L=24 S=8 R=48
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=5 raw=7 lateBloomer=5 overdraft=4 normal=41
+[recruit-handedness] throw LH=14/80 (18%) | bat L=14 S=6 R=60
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=7 raw=10 lateBloomer=2 overdraft=0 normal=42
+[recruit-handedness] throw LH=11/80 (14%) | bat L=16 S=4 R=60
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=5 raw=7 lateBloomer=2 overdraft=3 normal=43
+[recruit-handedness] throw LH=12/80 (15%) | bat L=18 S=4 R=58
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=9 raw=10 lateBloomer=4 overdraft=3 normal=33
+[recruit-handedness] throw LH=14/80 (18%) | bat L=19 S=3 R=58
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=10 raw=9 lateBloomer=4 overdraft=3 normal=32
+[recruit-handedness] throw LH=7/80 (9%) | bat L=26 S=2 R=52
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=10 raw=7 lateBloomer=4 overdraft=2 normal=41
+[recruit-handedness] throw LH=14/80 (18%) | bat L=21 S=1 R=58
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=9 raw=8 lateBloomer=2 overdraft=3 normal=41
+[recruit-handedness] throw LH=11/80 (14%) | bat L=18 S=3 R=59
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=10 raw=10 lateBloomer=1 overdraft=2 normal=38
+[recruit-handedness] throw LH=16/80 (20%) | bat L=12 S=3 R=65
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=9 raw=6 lateBloomer=1 overdraft=3 normal=39
+[recruit-handedness] throw LH=16/80 (20%) | bat L=17 S=4 R=59
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=10 busts=7 raw=6 lateBloomer=4 overdraft=0 normal=48
+[recruit-handedness] throw LH=10/80 (13%) | bat L=18 S=4 R=58
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=8 raw=8 lateBloomer=3 overdraft=2 normal=37
+[recruit-handedness] throw LH=11/80 (14%) | bat L=19 S=3 R=58
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=10 raw=8 lateBloomer=2 overdraft=2 normal=36
+[recruit-handedness] throw LH=14/80 (18%) | bat L=18 S=3 R=59
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=11 raw=10 lateBloomer=2 overdraft=3 normal=39
+[recruit-handedness] throw LH=9/80 (11%) | bat L=12 S=2 R=66
+[recruit-class] theme=top_heavy count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=8 raw=9 lateBloomer=2 overdraft=3 normal=36
+[recruit-handedness] throw LH=10/80 (13%) | bat L=20 S=4 R=56
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=7 raw=7 lateBloomer=4 overdraft=3 normal=32
+[recruit-handedness] throw LH=13/80 (16%) | bat L=19 S=2 R=59
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=9 raw=5 lateBloomer=4 overdraft=2 normal=37
+[recruit-handedness] throw LH=15/80 (19%) | bat L=19 S=3 R=58
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=28 busts=10 raw=6 lateBloomer=4 overdraft=2 normal=25
+[recruit-handedness] throw LH=8/80 (10%) | bat L=12 S=2 R=66
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=25 busts=6 raw=5 lateBloomer=7 overdraft=1 normal=32
+[recruit-handedness] throw LH=13/80 (16%) | bat L=20 S=3 R=57
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=7 raw=5 lateBloomer=6 overdraft=1 normal=39
+[recruit-handedness] throw LH=14/80 (18%) | bat L=22 S=6 R=52
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=19 busts=9 raw=10 lateBloomer=5 overdraft=3 normal=29
+[recruit-handedness] throw LH=24/80 (30%) | bat L=21 S=1 R=58
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=20 busts=11 raw=9 lateBloomer=6 overdraft=1 normal=29
+[recruit-handedness] throw LH=9/80 (11%) | bat L=23 S=5 R=52
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=22 busts=8 raw=8 lateBloomer=4 overdraft=0 normal=34
+[recruit-handedness] throw LH=8/80 (10%) | bat L=18 S=3 R=59
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=23 busts=10 raw=10 lateBloomer=0 overdraft=2 normal=30
+[recruit-handedness] throw LH=13/80 (16%) | bat L=16 S=2 R=62
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=9 raw=5 lateBloomer=6 overdraft=4 normal=33
+[recruit-handedness] throw LH=14/80 (18%) | bat L=13 S=3 R=64
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=24 busts=11 raw=10 lateBloomer=2 overdraft=2 normal=27
+[recruit-handedness] throw LH=11/80 (14%) | bat L=19 S=6 R=55
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=6 raw=6 lateBloomer=6 overdraft=1 normal=40
+[recruit-handedness] throw LH=13/80 (16%) | bat L=19 S=1 R=60
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=9 raw=8 lateBloomer=5 overdraft=5 normal=26
+[recruit-handedness] throw LH=10/80 (13%) | bat L=14 S=3 R=63
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=24 busts=9 raw=6 lateBloomer=3 overdraft=2 normal=32
+[recruit-handedness] throw LH=12/80 (15%) | bat L=27 S=0 R=53
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=26 busts=6 raw=5 lateBloomer=1 overdraft=2 normal=36
+[recruit-handedness] throw LH=8/80 (10%) | bat L=21 S=4 R=55
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=10 raw=9 lateBloomer=2 overdraft=1 normal=36
+[recruit-handedness] throw LH=9/80 (11%) | bat L=22 S=5 R=53
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=23 busts=9 raw=9 lateBloomer=2 overdraft=5 normal=27
+[recruit-handedness] throw LH=17/80 (21%) | bat L=16 S=2 R=62
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=5 raw=7 lateBloomer=2 overdraft=3 normal=36
+[recruit-handedness] throw LH=12/80 (15%) | bat L=14 S=3 R=63
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=23 busts=5 raw=5 lateBloomer=1 overdraft=2 normal=39
+[recruit-handedness] throw LH=17/80 (21%) | bat L=22 S=4 R=54
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=6 raw=10 lateBloomer=5 overdraft=3 normal=35
+[recruit-handedness] throw LH=14/80 (18%) | bat L=7 S=2 R=71
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=8 raw=9 lateBloomer=3 overdraft=4 normal=37
+[recruit-handedness] throw LH=7/80 (9%) | bat L=13 S=1 R=66
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=21 busts=9 raw=7 lateBloomer=2 overdraft=3 normal=33
+[recruit-handedness] throw LH=14/80 (18%) | bat L=19 S=4 R=57
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=21 busts=6 raw=7 lateBloomer=3 overdraft=5 normal=33
+[recruit-handedness] throw LH=11/80 (14%) | bat L=19 S=3 R=58
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=10 raw=7 lateBloomer=2 overdraft=4 normal=32
+[recruit-handedness] throw LH=9/80 (11%) | bat L=18 S=2 R=60
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=24 busts=6 raw=9 lateBloomer=3 overdraft=2 normal=32
+[recruit-handedness] throw LH=19/80 (24%) | bat L=18 S=3 R=59
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=27 busts=6 raw=5 lateBloomer=3 overdraft=3 normal=32
+[recruit-handedness] throw LH=7/80 (9%) | bat L=19 S=6 R=55
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=7 raw=8 lateBloomer=4 overdraft=4 normal=30
+[recruit-handedness] throw LH=13/80 (16%) | bat L=19 S=5 R=56
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=21 busts=8 raw=10 lateBloomer=5 overdraft=1 normal=30
+[recruit-handedness] throw LH=12/80 (15%) | bat L=15 S=2 R=63
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=10 busts=7 raw=8 lateBloomer=4 overdraft=6 normal=41
+[recruit-handedness] throw LH=9/80 (11%) | bat L=27 S=0 R=53
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=6 raw=7 lateBloomer=2 overdraft=0 normal=42
+[recruit-handedness] throw LH=14/80 (18%) | bat L=21 S=6 R=53
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=8 raw=9 lateBloomer=4 overdraft=0 normal=40
+[recruit-handedness] throw LH=11/80 (14%) | bat L=18 S=1 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=9 raw=10 lateBloomer=2 overdraft=3 normal=35
+[recruit-handedness] throw LH=12/80 (15%) | bat L=17 S=3 R=60
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=9 raw=5 lateBloomer=4 overdraft=3 normal=41
+[recruit-handedness] throw LH=7/80 (9%) | bat L=18 S=1 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=8 raw=7 lateBloomer=4 overdraft=1 normal=40
+[recruit-handedness] throw LH=8/80 (10%) | bat L=19 S=4 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=6 raw=10 lateBloomer=0 overdraft=4 normal=38
+[recruit-handedness] throw LH=8/80 (10%) | bat L=20 S=0 R=60
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=10 busts=8 raw=9 lateBloomer=4 overdraft=2 normal=43
+[recruit-handedness] throw LH=12/80 (15%) | bat L=19 S=2 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=12 raw=7 lateBloomer=3 overdraft=2 normal=31
+[recruit-handedness] throw LH=9/80 (11%) | bat L=18 S=4 R=58
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=12 raw=6 lateBloomer=4 overdraft=4 normal=34
+[recruit-handedness] throw LH=11/80 (14%) | bat L=15 S=4 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=6 raw=10 lateBloomer=2 overdraft=1 normal=39
+[recruit-handedness] throw LH=19/80 (24%) | bat L=18 S=3 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=8 raw=7 lateBloomer=6 overdraft=2 normal=40
+[recruit-handedness] throw LH=10/80 (13%) | bat L=14 S=4 R=62
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=10 raw=8 lateBloomer=1 overdraft=3 normal=36
+[recruit-handedness] throw LH=12/80 (15%) | bat L=25 S=1 R=54
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=10 raw=5 lateBloomer=5 overdraft=4 normal=33
+[recruit-handedness] throw LH=12/80 (15%) | bat L=18 S=4 R=58
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=5 raw=6 lateBloomer=1 overdraft=5 normal=48
+[recruit-handedness] throw LH=14/80 (18%) | bat L=18 S=5 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=21 busts=9 raw=9 lateBloomer=1 overdraft=3 normal=32
+[recruit-handedness] throw LH=14/80 (18%) | bat L=18 S=5 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=10 busts=10 raw=8 lateBloomer=4 overdraft=4 normal=39
+[recruit-handedness] throw LH=10/80 (13%) | bat L=21 S=0 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=6 raw=9 lateBloomer=1 overdraft=6 normal=37
+[recruit-handedness] throw LH=15/80 (19%) | bat L=10 S=0 R=70
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=11 raw=6 lateBloomer=7 overdraft=3 normal=36
+[recruit-handedness] throw LH=15/80 (19%) | bat L=17 S=6 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=10 busts=10 raw=9 lateBloomer=3 overdraft=3 normal=41
+[recruit-handedness] throw LH=10/80 (13%) | bat L=19 S=7 R=54
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=9 busts=8 raw=7 lateBloomer=1 overdraft=5 normal=46
+[recruit-handedness] throw LH=9/80 (11%) | bat L=18 S=1 R=61
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=12 raw=6 lateBloomer=1 overdraft=5 normal=34
+[recruit-handedness] throw LH=8/80 (10%) | bat L=13 S=2 R=65
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=7 raw=9 lateBloomer=2 overdraft=5 normal=35
+[recruit-handedness] throw LH=16/80 (20%) | bat L=9 S=8 R=63
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=10 raw=5 lateBloomer=1 overdraft=5 normal=39
+[recruit-handedness] throw LH=12/80 (15%) | bat L=21 S=2 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=7 raw=8 lateBloomer=2 overdraft=6 normal=38
+[recruit-handedness] throw LH=8/80 (10%) | bat L=16 S=7 R=57
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=9 raw=8 lateBloomer=6 overdraft=4 normal=32
+[recruit-handedness] throw LH=10/80 (13%) | bat L=17 S=3 R=60
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=7 raw=9 lateBloomer=0 overdraft=5 normal=40
+[recruit-handedness] throw LH=8/80 (10%) | bat L=20 S=5 R=55
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=6 raw=6 lateBloomer=1 overdraft=4 normal=47
+[recruit-handedness] throw LH=12/80 (15%) | bat L=16 S=5 R=59
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=10 raw=6 lateBloomer=1 overdraft=6 normal=40
+[recruit-handedness] throw LH=10/80 (13%) | bat L=10 S=5 R=65
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=10 raw=6 lateBloomer=3 overdraft=2 normal=42
+[recruit-handedness] throw LH=13/80 (16%) | bat L=23 S=2 R=55
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=24 busts=8 raw=6 lateBloomer=1 overdraft=3 normal=34
+[recruit-handedness] throw LH=13/80 (16%) | bat L=15 S=3 R=62
+[recruit-class] theme=balanced count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=10 raw=6 lateBloomer=4 overdraft=4 normal=33
+[recruit-handedness] throw LH=16/80 (20%) | bat L=14 S=3 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=9 busts=10 raw=5 lateBloomer=4 overdraft=3 normal=45
+[recruit-handedness] throw LH=19/80 (24%) | bat L=21 S=0 R=59
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=10 raw=7 lateBloomer=1 overdraft=3 normal=32
+[recruit-handedness] throw LH=15/80 (19%) | bat L=15 S=4 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=11 raw=10 lateBloomer=1 overdraft=5 normal=34
+[recruit-handedness] throw LH=10/80 (13%) | bat L=22 S=3 R=55
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=13 raw=5 lateBloomer=0 overdraft=6 normal=38
+[recruit-handedness] throw LH=16/80 (20%) | bat L=22 S=2 R=56
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=9 raw=7 lateBloomer=6 overdraft=4 normal=34
+[recruit-handedness] throw LH=16/80 (20%) | bat L=9 S=4 R=67
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=7 raw=8 lateBloomer=2 overdraft=2 normal=39
+[recruit-handedness] throw LH=9/80 (11%) | bat L=17 S=1 R=62
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=17 busts=10 raw=6 lateBloomer=3 overdraft=2 normal=37
+[recruit-handedness] throw LH=16/80 (20%) | bat L=20 S=2 R=58
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=11 raw=8 lateBloomer=1 overdraft=3 normal=37
+[recruit-handedness] throw LH=10/80 (13%) | bat L=14 S=3 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=10 raw=9 lateBloomer=5 overdraft=3 normal=32
+[recruit-handedness] throw LH=19/80 (24%) | bat L=12 S=4 R=64
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=11 raw=8 lateBloomer=4 overdraft=4 normal=30
+[recruit-handedness] throw LH=9/80 (11%) | bat L=15 S=2 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=9 raw=8 lateBloomer=0 overdraft=2 normal=41
+[recruit-handedness] throw LH=15/80 (19%) | bat L=17 S=0 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=9 raw=9 lateBloomer=4 overdraft=5 normal=32
+[recruit-handedness] throw LH=19/80 (24%) | bat L=22 S=4 R=54
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=7 raw=9 lateBloomer=1 overdraft=6 normal=36
+[recruit-handedness] throw LH=14/80 (18%) | bat L=14 S=2 R=64
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=20 busts=6 raw=9 lateBloomer=3 overdraft=7 normal=31
+[recruit-handedness] throw LH=13/80 (16%) | bat L=14 S=4 R=62
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=9 raw=7 lateBloomer=6 overdraft=1 normal=35
+[recruit-handedness] throw LH=17/80 (21%) | bat L=13 S=4 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=9 raw=8 lateBloomer=0 overdraft=3 normal=40
+[recruit-handedness] throw LH=14/80 (18%) | bat L=13 S=2 R=65
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=7 raw=9 lateBloomer=4 overdraft=1 normal=40
+[recruit-handedness] throw LH=12/80 (15%) | bat L=14 S=4 R=62
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=5 raw=10 lateBloomer=3 overdraft=3 normal=41
+[recruit-handedness] throw LH=19/80 (24%) | bat L=16 S=4 R=60
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=7 raw=6 lateBloomer=3 overdraft=3 normal=40
+[recruit-handedness] throw LH=12/80 (15%) | bat L=20 S=2 R=58
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=10 raw=8 lateBloomer=3 overdraft=2 normal=37
+[recruit-handedness] throw LH=8/80 (10%) | bat L=11 S=1 R=68
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=8 raw=10 lateBloomer=4 overdraft=3 normal=35
+[recruit-handedness] throw LH=16/80 (20%) | bat L=16 S=3 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=7 raw=8 lateBloomer=5 overdraft=2 normal=36
+[recruit-handedness] throw LH=11/80 (14%) | bat L=18 S=1 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=6 raw=6 lateBloomer=2 overdraft=4 normal=43
+[recruit-handedness] throw LH=9/80 (11%) | bat L=17 S=3 R=60
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=9 raw=9 lateBloomer=4 overdraft=2 normal=33
+[recruit-handedness] throw LH=13/80 (16%) | bat L=10 S=2 R=68
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=12 busts=11 raw=5 lateBloomer=4 overdraft=4 normal=40
+[recruit-handedness] throw LH=11/80 (14%) | bat L=17 S=6 R=57
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=9 raw=9 lateBloomer=1 overdraft=1 normal=43
+[recruit-handedness] throw LH=15/80 (19%) | bat L=12 S=7 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=12 raw=6 lateBloomer=1 overdraft=4 normal=36
+[recruit-handedness] throw LH=10/80 (13%) | bat L=16 S=1 R=63
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=8 raw=9 lateBloomer=2 overdraft=3 normal=37
+[recruit-handedness] throw LH=17/80 (21%) | bat L=16 S=3 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=9 raw=6 lateBloomer=5 overdraft=4 normal=36
+[recruit-handedness] throw LH=17/80 (21%) | bat L=16 S=3 R=61
+[recruit-class] theme=high_velocity count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=7 raw=5 lateBloomer=6 overdraft=5 normal=34
+[recruit-handedness] throw LH=10/80 (13%) | bat L=18 S=3 R=59
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=5 raw=10 lateBloomer=3 overdraft=7 normal=33
+[recruit-handedness] throw LH=15/80 (19%) | bat L=18 S=2 R=60
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=10 raw=6 lateBloomer=1 overdraft=3 normal=42
+[recruit-handedness] throw LH=8/80 (10%) | bat L=23 S=3 R=54
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=8 raw=7 lateBloomer=4 overdraft=2 normal=38
+[recruit-handedness] throw LH=13/80 (16%) | bat L=20 S=3 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=14 busts=10 raw=5 lateBloomer=1 overdraft=2 normal=43
+[recruit-handedness] throw LH=8/80 (10%) | bat L=13 S=2 R=65
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=7 raw=9 lateBloomer=3 overdraft=4 normal=42
+[recruit-handedness] throw LH=13/80 (16%) | bat L=16 S=3 R=61
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=9 raw=9 lateBloomer=1 overdraft=2 normal=41
+[recruit-handedness] throw LH=9/80 (11%) | bat L=19 S=4 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=8 raw=8 lateBloomer=3 overdraft=3 normal=38
+[recruit-handedness] throw LH=3/80 (4%) | bat L=24 S=4 R=52
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=19 busts=7 raw=8 lateBloomer=5 overdraft=5 normal=32
+[recruit-handedness] throw LH=12/80 (15%) | bat L=18 S=1 R=61
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=13 busts=9 raw=8 lateBloomer=4 overdraft=2 normal=40
+[recruit-handedness] throw LH=14/80 (18%) | bat L=17 S=3 R=60
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=13 busts=12 raw=10 lateBloomer=1 overdraft=1 normal=38
+[recruit-handedness] throw LH=12/80 (15%) | bat L=21 S=4 R=55
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=9 raw=10 lateBloomer=2 overdraft=3 normal=36
+[recruit-handedness] throw LH=10/80 (13%) | bat L=15 S=5 R=60
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=9 raw=8 lateBloomer=7 overdraft=2 normal=33
+[recruit-handedness] throw LH=9/80 (11%) | bat L=20 S=5 R=55
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=5 raw=5 lateBloomer=2 overdraft=5 normal=45
+[recruit-handedness] throw LH=11/80 (14%) | bat L=22 S=2 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=7 raw=7 lateBloomer=1 overdraft=3 normal=43
+[recruit-handedness] throw LH=12/80 (15%) | bat L=22 S=7 R=51
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=9 raw=8 lateBloomer=4 overdraft=2 normal=37
+[recruit-handedness] throw LH=10/80 (13%) | bat L=18 S=6 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=11 raw=8 lateBloomer=5 overdraft=2 normal=34
+[recruit-handedness] throw LH=9/80 (11%) | bat L=20 S=5 R=55
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=12 busts=5 raw=6 lateBloomer=3 overdraft=2 normal=47
+[recruit-handedness] throw LH=7/80 (9%) | bat L=27 S=3 R=50
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=17 busts=10 raw=8 lateBloomer=2 overdraft=3 normal=36
+[recruit-handedness] throw LH=15/80 (19%) | bat L=14 S=3 R=63
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=10 raw=9 lateBloomer=4 overdraft=7 normal=30
+[recruit-handedness] throw LH=8/80 (10%) | bat L=20 S=4 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=9 raw=5 lateBloomer=4 overdraft=7 normal=37
+[recruit-handedness] throw LH=7/80 (9%) | bat L=20 S=3 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=8 raw=5 lateBloomer=3 overdraft=2 normal=42
+[recruit-handedness] throw LH=13/80 (16%) | bat L=14 S=4 R=62
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=6 raw=9 lateBloomer=3 overdraft=2 normal=45
+[recruit-handedness] throw LH=8/80 (10%) | bat L=25 S=2 R=53
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=11 busts=8 raw=9 lateBloomer=3 overdraft=5 normal=39
+[recruit-handedness] throw LH=12/80 (15%) | bat L=18 S=5 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=15 busts=7 raw=9 lateBloomer=5 overdraft=2 normal=38
+[recruit-handedness] throw LH=10/80 (13%) | bat L=21 S=3 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=16 busts=6 raw=9 lateBloomer=4 overdraft=2 normal=38
+[recruit-handedness] throw LH=7/80 (9%) | bat L=20 S=2 R=58
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=14 busts=9 raw=9 lateBloomer=4 overdraft=4 normal=36
+[recruit-handedness] throw LH=6/80 (8%) | bat L=21 S=2 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=16 busts=10 raw=8 lateBloomer=3 overdraft=7 normal=32
+[recruit-handedness] throw LH=7/80 (9%) | bat L=20 S=4 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=2 gems=11 busts=13 raw=10 lateBloomer=0 overdraft=2 normal=40
+[recruit-handedness] throw LH=13/80 (16%) | bat L=21 S=3 R=56
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=11 raw=7 lateBloomer=2 overdraft=1 normal=39
+[recruit-handedness] throw LH=6/80 (8%) | bat L=19 S=4 R=57
+[recruit-class] theme=sluggers count=80 | genGems=1 genBusts=1 blueChips=3 gems=15 busts=8 raw=8 lateBloomer=1 overdraft=5 normal=38
+[recruit-handedness] throw LH=5/80 (6%) | bat L=21 S=5 R=54
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=9 raw=9 lateBloomer=3 overdraft=2 normal=35
+[recruit-handedness] throw LH=10/80 (13%) | bat L=12 S=1 R=67
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=25 busts=6 raw=9 lateBloomer=3 overdraft=2 normal=31
+[recruit-handedness] throw LH=10/80 (13%) | bat L=18 S=1 R=61
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=10 raw=9 lateBloomer=3 overdraft=2 normal=29
+[recruit-handedness] throw LH=10/80 (13%) | bat L=21 S=3 R=56
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=7 raw=9 lateBloomer=3 overdraft=3 normal=31
+[recruit-handedness] throw LH=7/80 (9%) | bat L=15 S=5 R=60
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=8 raw=6 lateBloomer=1 overdraft=2 normal=38
+[recruit-handedness] throw LH=12/80 (15%) | bat L=20 S=3 R=57
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=23 busts=8 raw=10 lateBloomer=5 overdraft=1 normal=28
+[recruit-handedness] throw LH=10/80 (13%) | bat L=20 S=3 R=57
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=20 busts=9 raw=6 lateBloomer=3 overdraft=3 normal=35
+[recruit-handedness] throw LH=12/80 (15%) | bat L=20 S=4 R=56
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=10 raw=9 lateBloomer=6 overdraft=0 normal=28
+[recruit-handedness] throw LH=5/80 (6%) | bat L=19 S=5 R=56
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=6 raw=10 lateBloomer=3 overdraft=3 normal=33
+[recruit-handedness] throw LH=13/80 (16%) | bat L=17 S=0 R=63
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=5 raw=5 lateBloomer=6 overdraft=4 normal=35
+[recruit-handedness] throw LH=8/80 (10%) | bat L=22 S=3 R=55
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=18 busts=10 raw=8 lateBloomer=3 overdraft=5 normal=32
+[recruit-handedness] throw LH=13/80 (16%) | bat L=20 S=3 R=57
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=9 raw=7 lateBloomer=1 overdraft=0 normal=36
+[recruit-handedness] throw LH=14/80 (18%) | bat L=15 S=3 R=62
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=18 busts=6 raw=6 lateBloomer=5 overdraft=4 normal=36
+[recruit-handedness] throw LH=10/80 (13%) | bat L=19 S=5 R=56
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=21 busts=7 raw=5 lateBloomer=4 overdraft=3 normal=36
+[recruit-handedness] throw LH=10/80 (13%) | bat L=21 S=2 R=57
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=26 busts=7 raw=6 lateBloomer=3 overdraft=1 normal=33
+[recruit-handedness] throw LH=15/80 (19%) | bat L=18 S=2 R=60
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=22 busts=10 raw=9 lateBloomer=0 overdraft=3 normal=32
+[recruit-handedness] throw LH=6/80 (8%) | bat L=23 S=6 R=51
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=20 busts=10 raw=5 lateBloomer=5 overdraft=3 normal=32
+[recruit-handedness] throw LH=8/80 (10%) | bat L=29 S=2 R=49
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=8 raw=7 lateBloomer=1 overdraft=1 normal=36
+[recruit-handedness] throw LH=10/80 (13%) | bat L=20 S=5 R=55
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=26 busts=10 raw=10 lateBloomer=2 overdraft=4 normal=23
+[recruit-handedness] throw LH=7/80 (9%) | bat L=15 S=3 R=62
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=29 busts=8 raw=10 lateBloomer=4 overdraft=3 normal=21
+[recruit-handedness] throw LH=12/80 (15%) | bat L=21 S=9 R=50
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=22 busts=7 raw=9 lateBloomer=4 overdraft=6 normal=28
+[recruit-handedness] throw LH=16/80 (20%) | bat L=26 S=2 R=52
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=27 busts=9 raw=5 lateBloomer=3 overdraft=2 normal=29
+[recruit-handedness] throw LH=16/80 (20%) | bat L=24 S=1 R=55
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=26 busts=9 raw=7 lateBloomer=5 overdraft=0 normal=28
+[recruit-handedness] throw LH=11/80 (14%) | bat L=18 S=3 R=59
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=22 busts=7 raw=8 lateBloomer=2 overdraft=4 normal=33
+[recruit-handedness] throw LH=7/80 (9%) | bat L=20 S=7 R=53
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=23 busts=5 raw=8 lateBloomer=5 overdraft=6 normal=28
+[recruit-handedness] throw LH=12/80 (15%) | bat L=17 S=1 R=62
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=22 busts=10 raw=8 lateBloomer=3 overdraft=1 normal=31
+[recruit-handedness] throw LH=9/80 (11%) | bat L=18 S=4 R=58
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=28 busts=5 raw=5 lateBloomer=3 overdraft=5 normal=29
+[recruit-handedness] throw LH=16/80 (20%) | bat L=22 S=0 R=58
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=25 busts=8 raw=6 lateBloomer=7 overdraft=2 normal=27
+[recruit-handedness] throw LH=13/80 (16%) | bat L=12 S=7 R=61
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=3 gems=24 busts=5 raw=10 lateBloomer=4 overdraft=1 normal=31
+[recruit-handedness] throw LH=17/80 (21%) | bat L=13 S=3 R=64
+[recruit-class] theme=hidden_gems count=80 | genGems=1 genBusts=1 blueChips=2 gems=23 busts=6 raw=5 lateBloomer=5 overdraft=1 normal=36
+[recruit-handedness] throw LH=9/80 (11%) | bat L=12 S=6 R=62
+
+Recruit-class validation: 0 error(s)
+building client...
+vite v7.3.0 building client environment for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 11 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
+
+/fonts/press-start-2p-latin-400-normal.woff2 referenced in /fonts/press-start-2p-latin-400-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/inter-latin-wght-normal.woff2 referenced in /fonts/inter-latin-wght-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/barlow-semi-condensed-latin-600-normal.woff2 referenced in /fonts/barlow-semi-condensed-latin-600-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/barlow-semi-condensed-latin-700-normal.woff2 referenced in /fonts/barlow-semi-condensed-latin-700-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/barlow-semi-condensed-latin-800-normal.woff2 referenced in /fonts/barlow-semi-condensed-latin-800-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/ibm-plex-mono-latin-500-normal.woff2 referenced in /fonts/ibm-plex-mono-latin-500-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/ibm-plex-mono-latin-600-normal.woff2 referenced in /fonts/ibm-plex-mono-latin-600-normal.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+✓ 2070 modules transformed.
+✗ Build failed in 3.81s
+[vite:asset] Could not load <audit-checkout>\attached_assets/Recruiting_Desktop_1783727759422.png (imported by client/src/lib/art-assets.ts): ENOENT: no such file or directory, open '<audit-checkout>\attached_assets\Recruiting_Desktop_1783727759422.png'
+    at async open (node:internal/fs/promises:697:25)
+    at async Object.readFile (node:internal/fs/promises:1348:14)
+    at async fileToBuiltUrl (<audit-checkout>\node_modules\vite\dist\node\chunks\config.js:8777:18)
+    at async Object.handler (<audit-checkout>\node_modules\vite\dist\node\chunks\config.js:8671:17)
+    at async PluginDriver.hookFirstAndGetPlugin (<audit-checkout>\node_modules\rollup\dist\es\shared\node-entry.js:22376:28)
+    at async <anonymous> (<audit-checkout>\node_modules\rollup\dist\es\shared\node-entry.js:21376:33)
+    at async Queue.work (<audit-checkout>\node_modules\rollup\dist\es\shared\node-entry.js:22604:32) {
+  errno: -4058,
+  code: 'PLUGIN_ERROR',
+  syscall: 'open',
+  path: '<audit-checkout>\\attached_assets\\Recruiting_Desktop_1783727759422.png',
+  pluginCode: 'ENOENT',
+  plugin: 'vite:asset',
+  hook: 'load',
+  [verbose watch-file list omitted]
+}

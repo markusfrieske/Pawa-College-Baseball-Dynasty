@@ -1,0 +1,143 @@
+{
+  "sourceRevision": "8a1e113070c1e809da83cc66fc7eb84ffb9bec21",
+  "nodeVersion": "v24.19.0",
+  "scenario": "Negative AB, 999 HR, no player IDs, one inning, zero outs",
+  "validationIssues": [],
+  "defectReproduced": true,
+  "payload": {
+    "homeScore": 1,
+    "awayScore": 0,
+    "inningScores": [
+      [
+        0,
+        1
+      ]
+    ],
+    "homeBoxData": {
+      "batting": [
+        {
+          "r": 1,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        }
+      ],
+      "pitching": [
+        {
+          "ip": "0.0"
+        }
+      ]
+    },
+    "awayBoxData": {
+      "batting": [
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        },
+        {
+          "r": 0,
+          "h": 0,
+          "ab": -7,
+          "hr": 999
+        }
+      ],
+      "pitching": [
+        {
+          "ip": "0.0"
+        }
+      ]
+    }
+  }
+}

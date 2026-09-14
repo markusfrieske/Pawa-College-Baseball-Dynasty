@@ -1,0 +1,101 @@
+{
+  "sourceCommit": "8a1e113070c1e809da83cc66fc7eb84ffb9bec21",
+  "runtime": "v24.19.0",
+  "method": "Actual extracted pure source, TypeScript stripping, synthetic fixtures, deterministic LCG, no app imports/DB",
+  "caveat": "27-out check uses current fixed-nine-full-innings generator; not a full baseball legality check. Starter expected hp1 is derived from inspected selection branch, not an instrumented returned field.",
+  "hashes": {
+    "server/routes/simulation.ts": "73b473a904c733c238bfb941367529449e6310f7b83e08b9d232804926496332",
+    "shared/pitcherRest.ts": "dc348e1be099e6365e79f8fb301b3cc6712270d55331035908fd119717f2d36e",
+    "shared/catalog/conferences.ts": "31d7757d0314aef3ab0812199c7d154e69c98129a501039543ad161bc81e3b41",
+    "shared/catalog/teams.ts": "eab0a9d9be6d153a3ef94fcbc200103f63f75f291ede77d3dc7505ad2ee717f4",
+    "server/services/schedule/fullSeasonScheduler.ts": "6180f11b519cb379e37abbd856724551ad6951a82e04bca48c5ac299254be778"
+  },
+  "games": 1000,
+  "mismatches": {
+    "pitchingOuts": 963,
+    "hits": 988,
+    "walks": 943,
+    "strikeouts": 999,
+    "hr": 914,
+    "playerRuns": 261
+  },
+  "firstSample": {
+    "scoreAwayHome": [
+      3,
+      4
+    ],
+    "homePitchingOuts": 29,
+    "awayPitchingOuts": 27,
+    "awayBattingHits": 7,
+    "homePitchingHits": 7
+  },
+  "lineupReversalSameSeed": {
+    "originalHomeAway": [
+      3,
+      2
+    ],
+    "reversedHomeAway": [
+      3,
+      2
+    ]
+  },
+  "restStarterMismatch": {
+    "scoringStarterExpectedFromSource": "hp1 (rested SAT)",
+    "boxStarter": "hp0"
+  },
+  "schedule": {
+    "teams": 149,
+    "games": 4172,
+    "typeCounts": {
+      "weekend": 3066,
+      "midweek": 1106
+    },
+    "validatorErrors": [],
+    "duplicateTeamWeekDaySlots": 2086,
+    "maxGamesInTeamWeekDay": 4,
+    "examples": [
+      [
+        "t0|1|weekend",
+        3
+      ],
+      [
+        "t15|1|weekend",
+        3
+      ],
+      [
+        "t1|1|weekend",
+        3
+      ],
+      [
+        "t14|1|weekend",
+        3
+      ],
+      [
+        "t2|1|weekend",
+        3
+      ]
+    ],
+    "midweekCollisions": [
+      [
+        "t112|1|midweek",
+        4
+      ],
+      [
+        "t32|1|midweek",
+        4
+      ],
+      [
+        "t71|1|midweek",
+        4
+      ],
+      [
+        "t47|2|midweek",
+        4
+      ],
+      [
+        "t80|2|midweek",
+        4
+      ]
+    ]
+  }
+}
