@@ -52,7 +52,9 @@ The entry point honors `HOST` (default `0.0.0.0`) and a strictly numeric `PORT` 
 
 Run `npm run test:static-serving` without a database to verify production static/SPA boundaries with owned synthetic files and real HTTP. The expanded `test:auth-sessions` also verifies direct-route revocation across monolithic, modular, storyline and protected object routes before `/api/auth/me`. See [W01 batch 05](W01_BATCH_05.md).
 
-Build on a checkout containing the [required media assets](BUILD_PREREQUISITES.md) and run `npm run release:gate` in the configured release-test environment. That gate includes migration, production-access, real session, stale-cleanup, actual-entry-point and static-serving checks (with their explicit local database/role requirements), build, database integrations, browser tests, rest integration, and database invariants. Review skipped tests explicitly. An incomplete media checkout or unavailable test database must be recorded as an incomplete gate.
+Run `npm run test:reported-results` with the explicit loopback test URL and database-creation role. It creates its own random database, exercises real report routes/session/storage, snapshots persisted state on rejected writes, checks positive full and score-only finalization, then removes its database and HTTP process. It does not certify historical recovery, concurrency or all baseball ending rules. See [W02 batch 01](W02_BATCH_01.md).
+
+Build on a checkout containing the [required media assets](BUILD_PREREQUISITES.md) and run `npm run release:gate` in the configured release-test environment. That gate includes migration, production-access, real session, stale-cleanup, actual-entry-point, static-serving and reported-result checks (with their explicit local database/role requirements), build, database integrations, browser tests, rest integration, and database invariants. Review skipped tests explicitly. An incomplete media checkout or unavailable test database must be recorded as an incomplete gate.
 
 ## TI-13 implementation evidence
 

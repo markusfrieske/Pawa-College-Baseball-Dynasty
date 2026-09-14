@@ -49,7 +49,7 @@
     {
       "id": "TI-03",
       "title": "P1: invalid box scores pass validation, and unmatched player rows silently vanish from history",
-      "status": "planned",
+      "status": "implementing",
       "owner": "Passan Baseball Expert",
       "targetWeek": 2,
       "targetStart": "2026-09-21",
@@ -58,14 +58,20 @@
       "acceptance": "All result entry points reject impossible counters, absent/foreign IDs and inconsistent supported game structures.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "1b6c24633654798793f50d80eb4d6b74b36d1639",
+      "evidence": [
+        "W02_BATCH_01.md",
+        "audits/W02_BATCH_01_AUDIT.md",
+        "../../scripts/verify-reported-results.ts",
+        "../../tests/unit/boxScoreValidation.test.ts"
+      ],
+      "verifiedBy": null,
+      "notes": "W02 supplied-data/current-roster validation slice independently verified (15 pure tests, 81 HTTP assertions). Full TI-03 stays open for approved endings/outs policy, complete reconciliation, completeness metadata and per-game ledger acceptance."
     },
     {
       "id": "TI-04",
       "title": "P1: dispute resolution can finalize a tied or internally contradictory official game",
-      "status": "planned",
+      "status": "mitigated",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 3,
       "targetStart": "2026-09-28",
@@ -73,10 +79,16 @@
       "dependsOn": "TI-03",
       "acceptance": "Correction accepts a fully validated revision; scores, innings, box and official projections reconcile atomically.",
       "source": "../audits/2026-09-14/technical-integrity.md",
-      "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "mitigationWeek": 2,
+      "implementationCommit": "1b6c24633654798793f50d80eb4d6b74b36d1639",
+      "evidence": [
+        "W02_BATCH_01.md",
+        "audits/W02_BATCH_01_AUDIT.md",
+        "../../scripts/verify-reported-results.ts",
+        "../../tests/unit/boxScoreValidation.test.ts"
+      ],
+      "verifiedBy": null,
+      "notes": "W02 validation containment: invalid score proposals and contradictions with retained box/innings reject before writes. Atomic corrected revisions, provenance and concurrency remain W03; not full closure."
     },
     {
       "id": "TI-05",

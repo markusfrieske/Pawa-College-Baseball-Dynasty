@@ -2,14 +2,14 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 verified, TI-02 mitigated, TI-12 implementing, TI-13 in review; 38 findings remain planned. See [W01 batch 01](W01_BATCH_01.md), [batch 02](W01_BATCH_02.md), and its [independent audit](audits/W01_BATCH_02_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 verified; TI-02 and TI-04 mitigated; TI-03 and TI-12 implementing; TI-13 in review; 36 findings remain planned. Latest evidence: [W02 batch 01](W02_BATCH_01.md) and its [independent audit](audits/W02_BATCH_01_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
 | [TI-01](../audits/2026-09-14/technical-integrity.md) | W01 · 2026-09-18 | Gilfoyle Roblox Technical Director | Private league DTOs and cached reads reject outsiders and exclude account emails. | verified |
 | [TI-02](../audits/2026-09-14/technical-integrity.md) | W08 · 2026-11-06 | Gilfoyle Roblox Technical Director | PBP uses authorized server sessions; fabricated, stale, foreign and reported-mode finalizations fail with no mutations. | mitigated |
-| [TI-03](../audits/2026-09-14/technical-integrity.md) | W02 · 2026-09-25 | Passan Baseball Expert | All result entry points reject impossible counters, absent/foreign IDs and inconsistent supported game structures. | planned |
-| [TI-04](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Correction accepts a fully validated revision; scores, innings, box and official projections reconcile atomically. | planned |
+| [TI-03](../audits/2026-09-14/technical-integrity.md) | W02 · 2026-09-25 | Passan Baseball Expert | All result entry points reject impossible counters, absent/foreign IDs and inconsistent supported game structures. | implementing |
+| [TI-04](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Correction accepts a fully validated revision; scores, innings, box and official projections reconcile atomically. | mitigated |
 | [TI-05](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision. | planned |
 | [TI-06](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Mature-state restore preserves all intended tables, FK relationships, evidence and finalization identity. | planned |
 | [TI-07](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Concurrent snapshots are wholly before or after a transaction; restore coordinates every relevant writer. | planned |
@@ -51,7 +51,7 @@ Production has started: TI-01 verified, TI-02 mitigated, TI-12 implementing, TI-
 
 ## Milestone audit follow-ups
 
-The 42 original findings above retain their status. [W01 batch 03](W01_BATCH_03.md), [W01 batch 04](W01_BATCH_04.md) and [W01 batch 05](W01_BATCH_05.md) record independently audited evidence and follow-ups in the same JSON tracker:
+[W02 batch 01](W02_BATCH_01.md) advances TI-03 to implementing and TI-04 to mitigated; neither finding is fully closed. [W01 batch 03](W01_BATCH_03.md), [W01 batch 04](W01_BATCH_04.md) and [W01 batch 05](W01_BATCH_05.md) record independently audited evidence and follow-ups in the same JSON tracker:
 
 | ID | Priority | Owner | Next gate | Status |
 | --- | --- | --- | --- | --- |
