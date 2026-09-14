@@ -38,7 +38,9 @@ node --import tsx server/index.ts
 
 This is a shell-compatible equivalent of the development entry point, not evidence that server startup or database bootstrap passed. On a POSIX shell, use `npm run dev`.
 
-Build on a checkout containing the required media assets and run `npm run release:gate` in the configured release-test environment. That gate includes build, database integrations, browser tests, rest integration, and database invariants. Review skipped tests explicitly. An incomplete media checkout or unavailable test database must be recorded as an incomplete gate.
+Run `npm run test:production-access` with `PAWA_TEST_DATABASE_URL` set to a disposable loopback PostgreSQL database with the shared schema installed. The database name must match `pawa_test_*` or `pawa_wNN_test`; this script deliberately refuses a `DATABASE_URL` fallback. It creates unique synthetic fixtures, exercises real HTTP routes/storage with test-only session authentication, and cleans up only its own rows. Login and production session storage are separate integration gates. See the [database spike](DB_SPIKE.md) for setup and the unresolved migration failure.
+
+Build on a checkout containing the required media assets and run `npm run release:gate` in the configured release-test environment. That gate includes the new production-access check (and its explicit disposable URL requirement), build, database integrations, browser tests, rest integration, and database invariants. Review skipped tests explicitly. An incomplete media checkout or unavailable test database must be recorded as an incomplete gate.
 
 ## TI-13 implementation evidence
 

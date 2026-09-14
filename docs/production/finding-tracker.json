@@ -4,12 +4,12 @@
   "branch": "codex/pawa-quality-overhaul",
   "auditedCommit": "8a1e113070c1e809da83cc66fc7eb84ffb9bec21",
   "schedule": "PRODUCTION_SCHEDULE.md",
-  "status": "planning",
+  "status": "production",
   "findings": [
     {
       "id": "TI-01",
       "title": "P1: authenticated outsiders can read private league details and coach emails",
-      "status": "planned",
+      "status": "verified",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 1,
       "targetStart": "2026-09-14",
@@ -18,14 +18,17 @@
       "acceptance": "Private league DTOs and cached reads reject outsiders and exclude account emails.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "18a08aa0d9aa5328ec06707213cb77d0ac11d5db",
+      "evidence": [
+        "W01_BATCH_01.md",
+        "../../scripts/verify-production-access.ts"
+      ],
+      "verifiedBy": "Gibs security/QA agent; parent independently reran real PostgreSQL HTTP regression on 2026-09-14"
     },
     {
       "id": "TI-02",
       "title": "P1 conditional security blocker: enabling play-by-play enables arbitrary external result submission",
-      "status": "planned",
+      "status": "mitigated",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 8,
       "targetStart": "2026-11-02",
@@ -34,9 +37,12 @@
       "acceptance": "PBP uses authorized server sessions; fabricated, stale, foreign and reported-mode finalizations fail with no mutations.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": 1,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "90b3da2141e54de443db71060b2108f1a8a0b3cb",
+      "evidence": [
+        "W01_BATCH_01.md",
+        "../../scripts/verify-production-access.ts"
+      ],
+      "verifiedBy": "Containment only: Gibs security/QA agent and parent HTTP rerun; authoritative sessions still due W08"
     },
     {
       "id": "TI-03",
@@ -195,13 +201,17 @@
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "evidence": [
+        "DB_SPIKE.md",
+        "W01_BATCH_01.md"
+      ],
+      "verifiedBy": null,
+      "notes": "W01 spike reproduced invalid ADD CONSTRAINT IF NOT EXISTS in migration 0032. Prioritize clean-bootstrap repair within W01; broader upgrade/concurrency/recovery closure remains W04."
     },
     {
       "id": "TI-13",
       "title": "P2 reproducibility blocker: committed package URLs depend on Replit's private network",
-      "status": "planned",
+      "status": "review",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 1,
       "targetStart": "2026-09-14",
@@ -210,8 +220,11 @@
       "acceptance": "Clean locked install succeeds outside Replit with intended versions/integrity and documented runtimes.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
+      "implementationCommit": "076479f3135dc18178ec0d9c64d830a17057c44b",
+      "evidence": [
+        "DEVELOPMENT.md",
+        "W01_BATCH_01.md"
+      ],
       "verifiedBy": null
     },
     {

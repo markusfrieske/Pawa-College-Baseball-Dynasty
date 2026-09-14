@@ -4,7 +4,7 @@
 
 **Scope:** Resolve all 42 findings in the [September 14 studio audit](../audits/2026-09-14/README.md), including the measurement and design work needed to resolve its balance hypotheses. Deliver a reliable Power Pros league companion and a coherent standalone text simulation. The detailed [implementation packets](../audits/2026-09-14/implementation-plan.md) remain the acceptance reference.
 
-**Status:** Schedule and branch setup only. Implementation has not started. Dates are a provisional production baseline, not a release promise or a scheduled background automation. This plan assigns studio responsibilities; it does not book staff, send invitations, or dispatch another device.
+**Status:** Production started September 14. [W01 batch 01](W01_BATCH_01.md) implements portable package downloads, verifies the league-read privacy repair, and contains legacy PBP. Clean bootstrap now has a reproduced migration-0032 blocker that must be repaired during W01; the wider migration/recovery redesign remains W04. Dates are a provisional production baseline, not a release promise or a scheduled background automation. No other device has been dispatched.
 
 ## Capacity and estimation assumptions
 
@@ -62,7 +62,7 @@ W06 is an internal workflow checkpoint, not permission to run an official dynast
 
 ## All 42 findings have a closure assignment
 
-The machine-readable [finding tracker](finding-tracker.json) and [readable coverage table](FINDING_TRACKER.md) list every audit ID exactly once with target week, owner, acceptance requirement and evidence fields. All start `planned`; assignments and target dates do not count as progress.
+The machine-readable [finding tracker](finding-tracker.json) and [readable coverage table](FINDING_TRACKER.md) list every audit ID exactly once with target week, owner, acceptance requirement and evidence fields. They now record the first implementation and verification results; assignments and target dates alone do not count as progress.
 
 Status progression: `planned → implementing → review → verified`. Use `blocked` with a named dependency when necessary. A temporary disabled feature is `mitigated`, not `verified`. Every verified row needs `implementationCommit`, `evidence`, and `verifiedBy`; unresolved measured hypotheses must include the experiment and resulting decision. Sophia Production Director updates the tracker after each review.
 
