@@ -6,7 +6,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
 import {
-  Calendar, Play, ChevronRight, Home, Plane, FileText, ClipboardList, Target,
+  Calendar, ChevronRight, Home, Plane, FileText, ClipboardList, Target,
   UserMinus, UserPlus, Check, Clock, Settings, Trophy, AlertTriangle, History,
   TrendingUp, TrendingDown, Bell, Zap, Star, Swords, Building2, Users,
   GraduationCap, BarChart2, BookOpen, Archive, FastForward, Loader2,
@@ -309,10 +309,10 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
                 </RetroButton>
               </Link>
             ) : (
-              <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
-                <RetroButton variant="primary" size="sm" data-testid="button-next-game-simulate">
-                  <Play className="w-3 h-3 mr-1" />
-                  Simulate
+              <Link href={`/league/${leagueId}/schedule`}>
+                <RetroButton variant="primary" size="sm" data-testid="button-next-game-schedule">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  Open schedule
                 </RetroButton>
               </Link>
             )}

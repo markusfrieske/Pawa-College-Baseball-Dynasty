@@ -82,7 +82,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
               </div>
             );
             return g.gameId ? (
-              <Link key={i} href={`/league/${leagueId}/game/${g.gameId}/play-by-play`}>{row}</Link>
+              <Link key={i} href={`/league/${leagueId}/schedule`}>{row}</Link>
             ) : (
               <div key={i}>{row}</div>
             );
@@ -91,7 +91,7 @@ function DigestCard({ digest, leagueId }: { digest: AdvanceDigest; leagueId: str
 
         <CategorySection icon={<Star className="w-4 h-4" />} title="TOP PERFORMANCES" count={c.topPerformances?.length ?? 0} testId={`cat-performances-${digest.id}`}>
           {c.topPerformances?.map((p, i) => (
-            <Link key={i} href={`/league/${leagueId}/game/${p.gameId}/play-by-play`}>
+            <Link key={i} href={`/league/${leagueId}/schedule`}>
               <div className="bg-muted/30 rounded p-2 hover:bg-muted/50 cursor-pointer" data-testid={`item-performance-${digest.id}-${i}`}>
                 <p className="text-xs">
                   <span className="font-semibold">{p.playerName}</span>

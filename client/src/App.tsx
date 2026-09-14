@@ -50,7 +50,7 @@ const StorylinesPage = lazy(() => import("@/pages/storylines"));
 const ManageRecruitingPage = lazy(() => import("@/pages/manage-recruiting"));
 const ImportClassPage = lazy(() => import("@/pages/import-class"));
 const ClassSharePage = lazy(() => import("@/pages/class-share"));
-const PlayByPlayPage = lazy(() => import("@/pages/play-by-play"));
+const PlayByPlayPage = lazy(() => import("@/pages/play-by-play-unavailable"));
 const ReportGamePage = lazy(() => import("@/pages/report-game"));
 const PostseasonHubPage = lazy(() => import("@/pages/postseason-hub"));
 const ChampionshipScreenPage = lazy(() => import("@/pages/championship-screen"));

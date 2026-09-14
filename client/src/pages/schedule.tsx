@@ -13,7 +13,7 @@ import { QueryError } from "@/components/ui/query-error";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2, Shield, Newspaper } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp, Eye, Loader2, Shield, Newspaper } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -340,19 +340,6 @@ export default function SchedulePage() {
     },
   });
 
-  const simExhibitionMutation = useMutation({
-    mutationFn: async (gameId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/play-by-play`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      toast({ title: "Game Simulated", description: "Exhibition game has been auto-simulated." });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
   const filteredGames = useMemo(() => {
     const all = showMyTeam && data?.userTeamId
       ? (data?.games || []).filter(g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId)
@@ -546,6 +533,10 @@ export default function SchedulePage() {
                 {exhibitionGames.filter(g => g.isComplete).length}/{exhibitionGames.length} Complete
               </span>
             </div>
+            <p className="px-3 py-3 text-sm text-muted-foreground border-b border-border/30">
+              Individual exhibition simulation and play-by-play are temporarily unavailable.
+              You can still report a played exhibition or view its completed box score.
+            </p>
             <div className="divide-y divide-border/20">
               {exhibitionGames.map(game => {
                 const isUserExhibGame = !!(data?.userTeamId && (game.homeTeamId === data.userTeamId || game.awayTeamId === data.userTeamId));
@@ -597,25 +588,6 @@ export default function SchedulePage() {
                             <FileText className="w-3 h-3" />
                           </RetroButton>
                         </Link>
-                      )}
-                      {!game.isComplete && (
-                        <Link href={`/league/${id}/game/${game.id}/play-by-play`}>
-                          <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-exhb-${game.id}`}>
-                            <Play className="w-3 h-3" />
-                          </RetroButton>
-                        </Link>
-                      )}
-                      {!game.isComplete && data?.isCommissioner && (
-                        <RetroButton
-                          variant="outline"
-                          size="sm"
-                          title="Simulate Game"
-                          data-testid={`button-sim-exhb-${game.id}`}
-                          disabled={simExhibitionMutation.isPending}
-                          onClick={() => simExhibitionMutation.mutate(game.id)}
-                        >
-                          <Swords className="w-3 h-3" />
-                        </RetroButton>
                       )}
                     </div>
                   </div>
@@ -1424,19 +1396,6 @@ function CompactGameRow({
               </RetroButton>
             </Link>
           )}
-          {!game.isComplete && (
-            isSeriesLocked ? (
-              <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
-                <Lock className="w-3 h-3" />
-              </RetroButton>
-            ) : (
-              <Link href={`/league/${callbacks.leagueId}/game/${game.id}/play-by-play`}>
-                <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-${game.id}`}>
-                  <Play className="w-3 h-3" />
-                </RetroButton>
-              </Link>
-            )
-          )}
           {game.isComplete && (
             <>
               <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
@@ -1702,19 +1661,6 @@ function StandaloneGameRow({
                     <Edit2 className="w-3 h-3" />
                   </RetroButton>
                 </Link>
-              )}
-              {(
-                isSeriesLocked ? (
-                  <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
-                    <Lock className="w-3 h-3" />
-                  </RetroButton>
-                ) : (
-                  <Link href={`/league/${callbacks.leagueId}/game/${game.id}/play-by-play`}>
-                    <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-${game.id}`}>
-                      <Play className="w-3 h-3" />
-                    </RetroButton>
-                  </Link>
-                )
               )}
             </>
           )}
