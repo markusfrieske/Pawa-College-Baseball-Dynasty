@@ -48,3 +48,12 @@ Production has started: TI-01 verified, TI-02 mitigated, TI-12 implementing, TI-
 | [UX-10](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Reviewed dilemmas have defensible alternatives and ownership/costs; confirmed-game claims are evidence-linked. | planned |
 | [UX-11](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Unified player identity/history survives transfers, departures, corrections and archive navigation. | planned |
 | [UX-12](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Selecting the correct OCR batter changes roster ID while retaining extracted stats; submission then validates. | planned |
+
+## Milestone audit follow-ups
+
+The 42 original findings above retain their status. [W01 batch 03](W01_BATCH_03.md) adds independently audited session evidence and these follow-ups in the same JSON tracker:
+
+| ID | Priority | Owner | Next gate | Status |
+| --- | --- | --- | --- | --- |
+| W01-AUTH-01 | P2 | Gilfoyle + Gibs | Revoke deleted actors on direct protected requests before offering account deletion. | planned |
+| W01-AUTH-02 | P2 | Gilfoyle + Gibs | Sanitize actual production middleware failures in the next startup milestone. | planned |

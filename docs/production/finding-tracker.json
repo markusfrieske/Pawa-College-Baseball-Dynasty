@@ -185,7 +185,11 @@
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
+      "evidence": [
+        "W01_BATCH_03.md",
+        "audits/W01_BATCH_03_AUDIT.md",
+        "../../scripts/verify-auth-sessions.ts"
+      ],
       "verifiedBy": null
     },
     {
@@ -206,7 +210,10 @@
         "W01_BATCH_01.md",
         "W01_BATCH_02.md",
         "audits/W01_BATCH_02_AUDIT.md",
-        "../../scripts/verify-migrations.ts"
+        "../../scripts/verify-migrations.ts",
+        "W01_BATCH_03.md",
+        "audits/W01_BATCH_03_AUDIT.md",
+        "../../scripts/verify-auth-sessions.ts"
       ],
       "verifiedBy": null,
       "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery."
@@ -693,6 +700,30 @@
       "implementationCommit": null,
       "evidence": [],
       "verifiedBy": null
+    }
+  ],
+  "followUps": [
+    {
+      "id": "W01-AUTH-01",
+      "priority": "P2",
+      "status": "planned",
+      "title": "Direct-route revocation after account deletion",
+      "owner": "Gilfoyle technical integrity + Gibs security/QA",
+      "target": "Before introducing account deletion; keep in W01 hardening backlog",
+      "acceptance": "A deleted actor cannot use an existing SID on protected reads or writes before calling /api/auth/me; test real sessions.",
+      "source": "audits/W01_BATCH_03_AUDIT.md",
+      "implementationCommit": null
+    },
+    {
+      "id": "W01-AUTH-02",
+      "priority": "P2",
+      "status": "planned",
+      "title": "Production middleware error sanitization",
+      "owner": "Gilfoyle technical integrity + Gibs security/QA",
+      "target": "Next W01 production-entry-point milestone",
+      "acceptance": "Injected PgStore read/middleware failure through the actual entry point returns a stable public error without database details and remains observable internally.",
+      "source": "audits/W01_BATCH_03_AUDIT.md",
+      "implementationCommit": null
     }
   ]
 }
