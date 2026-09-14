@@ -8,7 +8,8 @@
  * Each migration runs inside a single transaction.  If any statement fails
  * with an unexpected error the transaction is rolled back and the migration
  * key is NOT recorded, so the runner will retry on the next startup.
- * Only truly idempotent SQL errors (e.g. "already exists") are tolerated.
+ * Expected duplicates must be guarded in SQL. Unexpected errors are never
+ * swallowed: PostgreSQL aborts the transaction after a failed statement.
  */
 
 import { readdir, readFile } from "fs/promises";
@@ -40,74 +41,6 @@ const MIGRATIONS_DIR = (() => {
  * Update this whenever a new migration file is added.
  */
 export const EXPECTED_MIGRATION = "0049_launch_integrity";
-
-/**
- * Errors that are safe to swallow — the statement was idempotent.
- * Only covers DDL "already exists" conditions (IF NOT EXISTS guards).
- *
- * "duplicate key" is intentionally NOT included: a constraint/index build
- * that fails due to existing duplicate data represents a real data-integrity
- * problem that must abort the migration, not be silently skipped.
- *
- * "does not exist" is also intentionally NOT in this list: FK resolution
- * failures must abort the migration.
- */
-function isIdempotentError(msg: string): boolean {
-  return msg.includes("already exists");
-}
-
-/**
- * Splits a SQL file into individual statements, handling multi-line CREATE TABLE
- * blocks with balanced parentheses and skipping SQL comments.
- */
-function splitSqlStatements(sql: string): string[] {
-  const statements: string[] = [];
-  let current = "";
-  let depth = 0;
-  let inLineComment = false;
-  let inBlockComment = false;
-  let inString = false;
-  let stringChar = "";
-
-  for (let i = 0; i < sql.length; i++) {
-    const ch = sql[i];
-    const next = sql[i + 1] ?? "";
-
-    if (inLineComment) {
-      if (ch === "\n") inLineComment = false;
-      continue;
-    }
-    if (inBlockComment) {
-      if (ch === "*" && next === "/") { inBlockComment = false; i++; }
-      continue;
-    }
-    if (inString) {
-      current += ch;
-      if (ch === stringChar && next !== stringChar) inString = false;
-      else if (ch === stringChar && next === stringChar) { current += next; i++; }
-      continue;
-    }
-
-    if (ch === "-" && next === "-") { inLineComment = true; continue; }
-    if (ch === "/" && next === "*") { inBlockComment = true; i++; continue; }
-    if (ch === "'" || ch === '"') { inString = true; stringChar = ch; current += ch; continue; }
-
-    if (ch === "(") depth++;
-    if (ch === ")") depth--;
-
-    if (ch === ";" && depth === 0) {
-      const stmt = current.trim();
-      if (stmt.length > 0) statements.push(stmt);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-
-  const remaining = current.trim();
-  if (remaining.length > 0) statements.push(remaining);
-  return statements;
-}
 
 export async function runMigrations(pool: Pool): Promise<{ applied: string[]; version: string | null }> {
   const client = await pool.connect();
@@ -146,25 +79,15 @@ export async function runMigrations(pool: Pool): Promise<{ applied: string[]; ve
       if (applied.has(key)) continue;
 
       const sql = await readFile(join(MIGRATIONS_DIR, file), "utf-8");
-      const statements = splitSqlStatements(sql);
 
       // Run each migration inside a transaction so a partial failure rolls back
       // and the key is never recorded as applied.
       await client.query("BEGIN");
       try {
-        for (const stmt of statements) {
-          try {
-            await client.query(stmt);
-          } catch (e: unknown) {
-            const msg = (e as { message?: string }).message ?? "";
-            if (isIdempotentError(msg)) {
-              // Safe to ignore — IF NOT EXISTS / duplicate guard already fired.
-              continue;
-            }
-            // Unexpected error — abort this migration.
-            throw e;
-          }
-        }
+        // Let PostgreSQL parse the complete file, including dollar-quoted DO
+        // blocks, strings and comments containing semicolons. Migration files
+        // must not contain transaction-control statements; this runner owns it.
+        await client.query(sql);
 
         await client.query(
           "INSERT INTO db_schema_migrations (migration_key) VALUES ($1) ON CONFLICT DO NOTHING",

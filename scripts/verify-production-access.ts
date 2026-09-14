@@ -3,8 +3,9 @@
  * Deliberately not named *.test.ts: this standalone runner must not execute while
  * Playwright discovers its unrelated browser tests.
  * Requires PAWA_TEST_DATABASE_URL pointing to a disposable loopback database with
- * shared/schema.ts installed, named pawa_test_* or pawa_wNN_test. Never reads
- * DATABASE_URL or imports server/index. This does not certify migration readiness.
+ * shared/schema.ts and numbered migrations installed, named pawa_test_* or pawa_wNN_test.
+ * Never reads DATABASE_URL or imports server/index. Readiness is checked over HTTP;
+ * full startup jobs and data transforms remain separate from this route gate.
  * Uses real registerRoutes, HTTP, PostgreSQL fixtures, and storage. Only authentication
  * is injected through a test-only MemoryStore session route; login/PG session storage
  * and production bootstrap are deliberately outside this gate.
@@ -18,6 +19,8 @@ import session from "express-session";
 const connection = process.env.PAWA_TEST_DATABASE_URL;
 assert(connection, "PAWA_TEST_DATABASE_URL is required; refusing DATABASE_URL fallback");
 const target = new URL(connection);
+assert(["postgres:", "postgresql:"].includes(target.protocol), "Expected a PostgreSQL URL");
+assert(!target.search, "Connection URL overrides are forbidden for disposable tests");
 assert(["127.0.0.1", "localhost", "[::1]"].includes(target.hostname), "Test DB must be loopback");
 assert(/^\/pawa_(?:test_[a-z0-9_]+|w\d+_test)$/i.test(target.pathname), "Expected an explicitly named disposable pawa test database");
 process.env.DATABASE_URL = connection;
@@ -85,6 +88,9 @@ try {
   const address = httpServer.address();
   assert(address && typeof address === "object");
   const origin = `http://127.0.0.1:${address.port}`;
+  const readiness = await fetch(`${origin}/health/ready`);
+  check(readiness.status === 200, "Migration-backed HTTP readiness must pass before access tests");
+  console.log("PASS migration-backed HTTP readiness");
   const cookies: Record<string, string> = {};
   for (const role of [...roles, "guest-without-id"]) {
     const response = await fetch(`${origin}/__test/session`, {

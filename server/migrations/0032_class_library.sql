@@ -31,8 +31,20 @@ CREATE INDEX IF NOT EXISTS idx_recruiting_class_versions_project ON recruiting_c
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_rcs_token_hash ON recruiting_class_shares (token_hash) WHERE token_hash IS NOT NULL;
 
-ALTER TABLE recruiting_class_shares ADD CONSTRAINT IF NOT EXISTS fk_rcs_version_id
-  FOREIGN KEY (version_id) REFERENCES recruiting_class_versions(id) ON DELETE SET NULL;
+-- PostgreSQL has no ADD CONSTRAINT IF NOT EXISTS. Check the owning relation,
+-- since another table may legitimately use the same constraint name.
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'fk_rcs_version_id'
+      AND conrelid = 'recruiting_class_shares'::regclass
+  ) THEN
+    ALTER TABLE recruiting_class_shares ADD CONSTRAINT fk_rcs_version_id
+      FOREIGN KEY (version_id) REFERENCES recruiting_class_versions(id) ON DELETE SET NULL;
+  END IF;
+END
+$migration$;
 
 CREATE TABLE IF NOT EXISTS ai_class_jobs (
   id varchar PRIMARY KEY DEFAULT gen_random_uuid(),

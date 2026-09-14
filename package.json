@@ -11,6 +11,8 @@
     "validate:data": "tsx scripts/validate-all.ts",
     "check": "npm run typecheck && npm run validate:data",
     "db:push": "drizzle-kit push",
+    "db:bootstrap:test": "tsx scripts/bootstrap-test-db.ts",
+    "test:migrations": "tsx scripts/verify-migrations.ts",
     "test": "playwright test",
     "test:unit": "playwright test --config=playwright.unit.config.ts",
     "test:integration": "playwright test --config=playwright.integration.config.ts",
@@ -21,7 +23,7 @@
     "test:rest:unit": "tsx scripts/verify-pitcher-rest.ts --unit-only",
     "test:rest:integration": "tsx scripts/verify-pitcher-rest.ts",
     "verify:invariants": "tsx scripts/verify-db-invariants.ts --all",
-    "release:gate": "npm run typecheck && npm run validate:data && npm run test:unit && npm run test:rest:unit && npm run test:production-access && npm run build && npm run test:integration && npm run test:rest:integration && npm run test:e2e && npm run verify:invariants"
+    "release:gate": "npm run typecheck && npm run validate:data && npm run test:unit && npm run test:rest:unit && npm run test:migrations && npm run test:production-access && npm run build && npm run test:integration && npm run test:rest:integration && npm run test:e2e && npm run verify:invariants"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
