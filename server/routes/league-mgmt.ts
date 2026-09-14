@@ -2162,19 +2162,13 @@ app.get("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
     const conferences = await storage.getConferencesByLeague(leagueId);
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const games = await storage.getGamesByLeague(leagueId);
-    const invites = await storage.getLeagueInvitesByLeague(leagueId);
+    const isCommissioner = hasCommissionerAccess(league, userId);
+    const invites = isCommissioner ? await storage.getLeagueInvitesByLeague(leagueId) : [];
     
     const teamsWithCoaches = await Promise.all(teams.map(async (team) => {
       const coach = team.coachId ? await storage.getCoach(team.coachId) : null;
-      let user = null;
-      if (coach?.userId) {
-        const userData = await storage.getUser(coach.userId);
-        user = userData ? { email: userData.email } : null;
-      }
-      return { ...team, coach, user };
+      return { ...team, coach };
     }));
-    
-    const isCommissioner = hasCommissionerAccess(league, userId);
     
     res.json({
       league,

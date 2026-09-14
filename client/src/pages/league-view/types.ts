@@ -8,10 +8,6 @@ export interface TeamWithCoach extends Team {
     lastName: string;
     userId: string;
   } | null;
-  user?: {
-    email: string;
-    username?: string | null;
-  } | null;
 }
 
 export interface LeagueDetails extends League {

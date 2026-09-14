@@ -7,18 +7,6 @@ export function formatNil(value: number): string {
   return `$${Math.round(value / 1000)}K`;
 }
 
-// Helper to get display name from user email/username
-export function getDisplayName(user?: { email: string; username?: string | null } | null): string {
-  if (!user) return "";
-  if (user.username) return user.username;
-  const emailPrefix = user.email.split("@")[0];
-  // For guest accounts, show shortened version
-  if (emailPrefix.startsWith("guest-")) {
-    return "Guest";
-  }
-  return emailPrefix;
-}
-
 export function fmtKLeague(n: number): string {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `$${Math.round(n / 1000)}K`;

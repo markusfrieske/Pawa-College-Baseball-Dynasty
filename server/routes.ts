@@ -1,5 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
-import { resolveUserTeam } from "./route-helpers";
+import { requireLeagueMember, resolveUserTeam } from "./route-helpers";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents } from "./storyline-routes";
@@ -507,6 +507,15 @@ export async function registerRoutes(
   });
 
 
+  // All league-scoped reads are private, including responses served from cache.
+  // Run before domain registration so new read endpoints inherit this boundary.
+  // Invite previews/acceptance live under /api/invites and remain accessible.
+  app.use("/api/leagues/:id", (req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    res.set("Cache-Control", "private, no-store");
+    return requireLeagueMember(req, res, next);
+  });
+
   // ── Domain route modules ─────────────────────────────────────────────────
   // These handle auth, games/reports, invites, and saved-data endpoints.
   // Extracted from this file to keep registerRoutes manageable.
@@ -854,7 +863,7 @@ export async function registerRoutes(
       const leagueId = req.params.id as string;
       const cacheKey = leagueCacheKey(leagueId, "main");
       const cached = cacheGet(cacheKey);
-      res.set("Cache-Control", "private, max-age=30, must-revalidate");
+      res.set("Cache-Control", "private, no-store");
       if (cached) {
         return res.json(cached);
       }
@@ -869,13 +878,8 @@ export async function registerRoutes(
       const leagueStandings = await storage.getStandingsByLeague(league.id, league.currentSeason);
       const coaches = await storage.getCoachesByLeague(league.id);
 
-      const teamsWithStandingsAndCoach = await Promise.all(leagueTeams.map(async (team) => {
+      const teamsWithStandingsAndCoach = leagueTeams.map((team) => {
         const coach = coaches.find(c => c.teamId === team.id);
-        let user = null;
-        if (coach?.userId) {
-          const userData = await storage.getUser(coach.userId);
-          user = userData ? { email: userData.email } : null;
-        }
         return {
           ...team,
           standings: leagueStandings.find((s) => s.teamId === team.id),
@@ -886,9 +890,8 @@ export async function registerRoutes(
             userId: coach.userId,
             archetype: coach.archetype,
           } : null,
-          user,
         };
-      }));
+      });
 
       const payload = {
         ...league,

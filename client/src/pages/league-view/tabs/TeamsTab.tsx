@@ -230,9 +230,6 @@ export function TeamsTab({ league }: { league: LeagueDetails }) {
                         <div>
                           <div className="flex items-center gap-1">
                             <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
-                            {team.user && (
-                              <span className="text-muted-foreground">({team.user.email.split("@")[0]})</span>
-                            )}
                           </div>
                           {(team.coach as any).archetype && (
                             <div className="text-xs text-muted-foreground/60">{(team.coach as any).archetype}</div>

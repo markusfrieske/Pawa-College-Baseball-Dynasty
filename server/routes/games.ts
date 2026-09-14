@@ -175,7 +175,7 @@ export function registerGameRoutes(app: Express): void {
       const userTeamId = shared.coachTeamMap[userId] || null;
       const isCommissioner = shared.commissionerUserIds.includes(userId);
 
-      res.set("Cache-Control", "private, max-age=30, must-revalidate");
+      res.set("Cache-Control", "private, no-store");
       res.json({
         games: shared.games,
         currentWeek: shared.currentWeek,

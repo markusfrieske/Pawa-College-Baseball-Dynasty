@@ -5,7 +5,6 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
 import { User, Cpu, Compass } from "lucide-react";
 import type { LeagueDetails, PowerRankingEntry } from "../types";
-import { getDisplayName } from "../helpers";
 
 export function StandingsTab({ league }: { league: LeagueDetails }) {
   const { data: rankData } = useQuery<{ rankings: PowerRankingEntry[]; userTeamId: string | null }>({
@@ -94,11 +93,7 @@ export function StandingsTab({ league }: { league: LeagueDetails }) {
                             )}
                             <div>
                               <span className="text-foreground hover:text-gold">{team.coach.firstName} {team.coach.lastName}</span>
-                              {team.coach.userId ? (
-                                team.user && (
-                                  <span className="text-xs text-muted-foreground ml-1">({getDisplayName(team.user)})</span>
-                                )
-                              ) : (
+                              {!team.coach.userId && (
                                 <span className="text-xs text-orange-400 ml-1">(CPU)</span>
                               )}
                               {(team.coach as any).archetype && (

@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import {
   formatNil,
-  getDisplayName,
   fmtKLeague,
   STAR_COLORS,
   STAR_TEXT_COLORS,
@@ -32,14 +31,6 @@ test.describe("league-view helpers", () => {
     expect(fmtKLeague(2_500_000)).toBe("$2.5M");
     expect(fmtKLeague(50_000)).toBe("$50K");
     expect(fmtKLeague(500)).toBe("$500");
-  });
-
-  test("getDisplayName returns correct name for various user shapes", () => {
-    expect(getDisplayName(undefined)).toBe("");
-    expect(getDisplayName(null)).toBe("");
-    expect(getDisplayName({ email: "coach@example.com", username: "CoachBob" })).toBe("CoachBob");
-    expect(getDisplayName({ email: "coach@example.com" })).toBe("coach");
-    expect(getDisplayName({ email: "guest-abc123@example.com" })).toBe("Guest");
   });
 
   test("percentileToGrade buckets correctly", () => {

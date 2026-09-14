@@ -304,9 +304,6 @@ export default function DynastySetupPage() {
                           <div className="flex items-center gap-1 text-muted-foreground text-xs">
                             <User className="w-3 h-3" />
                             <span>{team.coach.firstName} {team.coach.lastName}</span>
-                            {team.user && (
-                              <span className="text-gold">({team.user.email.split("@")[0]})</span>
-                            )}
                           </div>
                         ) : (
                           <div className="flex items-center gap-1 text-muted-foreground text-xs">
