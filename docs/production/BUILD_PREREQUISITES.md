@@ -23,3 +23,7 @@ Select the 22 exact `attached_assets` paths from the import statements and inclu
 5. Obtain independent technical and player-experience review, repair blocking findings, and update the existing tracker with evidence. Continue to the remaining release checks; one successful build does not certify TI-11/12 or gameplay quality.
 
 One existing source mismatch to inspect in this browser milestone: `notification-center.tsx` requests `/favicon.ico`, while the tracked public favicon is `/favicon.png`. This is an inventory observation, not a verified browser failure or a separate backlog.
+
+## Batch 05 update
+
+The full media/build dependency remains open; no assets were downloaded. [Batch 05](W01_BATCH_05.md) now verifies missing-resource errors and static bytes/content types with synthetic fixtures. Existing browser configuration starts the development server and can reuse an existing server; it does not certify a built production app. The future production-browser gate needs an owned disposable database/process, actual built entry point and explicit startup identity. Continue ready reported-result validation while this device dependency remains unresolved.

@@ -21,7 +21,9 @@
       "implementationCommit": "18a08aa0d9aa5328ec06707213cb77d0ac11d5db",
       "evidence": [
         "W01_BATCH_01.md",
-        "../../scripts/verify-production-access.ts"
+        "../../scripts/verify-production-access.ts",
+        "W01_BATCH_05.md",
+        "audits/W01_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": "Gibs security/QA agent; parent independently reran real PostgreSQL HTTP regression on 2026-09-14"
     },
@@ -237,7 +239,9 @@
         "DEVELOPMENT.md",
         "W01_BATCH_01.md",
         "W01_BATCH_04.md",
-        "audits/W01_BATCH_04_AUDIT.md"
+        "audits/W01_BATCH_04_AUDIT.md",
+        "W01_BATCH_05.md",
+        "audits/W01_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": null
     },
@@ -710,13 +714,19 @@
     {
       "id": "W01-AUTH-01",
       "priority": "P2",
-      "status": "planned",
+      "status": "verified",
       "title": "Direct-route revocation after account deletion",
       "owner": "Gilfoyle technical integrity + Gibs security/QA",
-      "target": "Before introducing account deletion; keep in W01 hardening backlog",
+      "target": "W01 batch 05 completed",
       "acceptance": "A deleted actor cannot use an existing SID on protected reads or writes before calling /api/auth/me; test real sessions.",
       "source": "audits/W01_BATCH_03_AUDIT.md",
-      "implementationCommit": null
+      "implementationCommit": "0b6dadee60aef1e1a2af90ec4b91f17a8559e163",
+      "evidence": [
+        "W01_BATCH_05.md",
+        "audits/W01_BATCH_05_AUDIT.md",
+        "../../scripts/verify-auth-sessions.ts"
+      ],
+      "verifiedBy": "Independent authentication audit: 114 real-session assertions passed"
     },
     {
       "id": "W01-AUTH-02",
@@ -750,6 +760,22 @@
         "../../scripts/verify-stale-cleanup.ts"
       ],
       "verifiedBy": "Independent startup audit: 21 cleanup assertions passed"
+    },
+    {
+      "id": "W01-WEB-01",
+      "priority": "P2",
+      "status": "verified",
+      "title": "Missing static resources and unmatched API requests returned successful SPA HTML",
+      "owner": "Gilfoyle technical integrity + Gibs security/QA",
+      "target": "W01 batch 05 completed",
+      "acceptance": "Missing assets and reserved server paths fail with stable errors; GET/HEAD pages and real static bytes/content types remain correct.",
+      "source": "audits/W01_BATCH_05_AUDIT.md",
+      "implementationCommit": "0b6dadee60aef1e1a2af90ec4b91f17a8559e163",
+      "evidence": [
+        "W01_BATCH_05.md",
+        "../../scripts/verify-static-serving.ts"
+      ],
+      "verifiedBy": "Independent parent rerun: 86 static HTTP assertions passed; independent security source review"
     }
   ]
 }
