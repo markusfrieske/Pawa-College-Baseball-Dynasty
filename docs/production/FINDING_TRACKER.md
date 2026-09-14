@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03 and TI-12 implementing; TI-13 in review; 35 findings remain planned. Latest evidence: [W02 batch 02](W02_BATCH_02.md) and its [independent audit](audits/W02_BATCH_02_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-12, UX-01 and UX-03 implementing; TI-13 in review; 33 findings remain planned. Latest evidence: [W02 batch 03](W02_BATCH_03.md) and its [independent audit](audits/W02_BATCH_03_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -36,9 +36,9 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | [SYS-14](../audits/2026-09-14/systems-baseball.md) | W11 · 2026-11-27 | Banks Gameplay Systems & Economy Designer | Bounded development choices create explainable differences and approved old/new Power Pros roster deltas. | planned |
 | [SYS-15](../audits/2026-09-14/systems-baseball.md) | W13 · 2026-12-11 | Banks Gameplay Systems & Economy Designer | 10-20-season campaigns evaluate parity, inflation and rebuild mobility; decision and any calibration pass retest. | planned |
 | [SYS-16](../audits/2026-09-14/systems-baseball.md) | W08 · 2026-11-06 | Passan Baseball Expert | Counting stats and supported formulas are correct; inputs, units and coverage distinguish observed/derived/estimated/unknown. | planned |
-| [UX-01](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Reporting requirements match policy and validators before entry begins, with linked field-level failures. | planned |
+| [UX-01](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Reporting requirements match policy and validators before entry begins, with linked field-level failures. | implementing |
 | [UX-02](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | Manual/OCR drafts recover from refresh/interruption and expose offline, unsynced and conflicting edits. | planned |
-| [UX-03](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Routine feedback is nonblocking and accessible; errors persist with retained inputs and useful retry. | planned |
+| [UX-03](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Routine feedback is nonblocking and accessible; errors persist with retained inputs and useful retry. | implementing |
 | [UX-04](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Role/mode-specific Today exposes one next action without duplicate obligations at phone widths and zoom. | planned |
 | [UX-05](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Every navigation destination resolves correctly; News, refresh, Back and selected state have route assertions. | planned |
 | [UX-06](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Keyboard and touch can inspect, assign and reorder the full roster; narrow widths/focus/zoom pass. | planned |
@@ -51,7 +51,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 
 ## Milestone audit follow-ups
 
-[W02 batch 02](W02_BATCH_02.md) verifies UX-12. UX-01/UX-03 remain planned with partial first-message persistence evidence; complete requirements and structured feedback are next.
+[W02 batch 02](W02_BATCH_02.md) verifies UX-12. [W02 batch 03](W02_BATCH_03.md) moves UX-01/UX-03 to implementing and verifies bounded W02-OCR-01. Structured feedback and correction continuity are implemented; role-aware reporting and the full-page journey remain open.
 
 [W02 batch 01](W02_BATCH_01.md) advances TI-03 to implementing and TI-04 to mitigated; neither finding is fully closed. [W01 batch 03](W01_BATCH_03.md), [W01 batch 04](W01_BATCH_04.md) and [W01 batch 05](W01_BATCH_05.md) record independently audited evidence and follow-ups in the same JSON tracker:
 
@@ -61,4 +61,4 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | W01-AUTH-02 | P2 | Gilfoyle + Gibs | Actual production middleware fault/recovery: 33 startup assertions passed. | verified |
 | W01-SAVE-01 | P1 | Gilfoyle + Gibs | Preserve unflagged guest saves; 21 cleanup assertions passed. | verified |
 | W01-WEB-01 | P2 | Gilfoyle + Gibs | Honest missing-resource errors; 86 static HTTP assertions passed. | verified |
-| W02-OCR-01 | P2 | JD + Gilfoyle | Keep score-step edits/removals aligned with submitted OCR correction metadata. | planned |
+| W02-OCR-01 | P2 | JD + Gilfoyle | Shared row correction path; 11 regressions plus independent integration source review passed. | verified |

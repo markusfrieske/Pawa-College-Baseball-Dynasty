@@ -532,7 +532,7 @@
     {
       "id": "UX-01",
       "title": "P1: The report form breaks its own promise about required work",
-      "status": "planned",
+      "status": "implementing",
       "owner": "JD Player Experience Lead",
       "targetWeek": 2,
       "targetStart": "2026-09-21",
@@ -541,13 +541,16 @@
       "acceptance": "Reporting requirements match policy and validators before entry begins, with linked field-level failures.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
+      "implementationCommit": "e66da49fcce3399126a7e7d69fd20315a649ce5e",
       "evidence": [
         "W02_BATCH_02.md",
-        "audits/W02_BATCH_02_AUDIT.md"
+        "audits/W02_BATCH_02_AUDIT.md",
+        "W02_BATCH_03.md",
+        "audits/W02_BATCH_03_AUDIT.md",
+        "../../scripts/verify-report-errors.ts"
       ],
       "verifiedBy": null,
-      "notes": "Partial progress: POST/PATCH first error persists and roster failures block review. Complete requirements and structured field feedback remain planned."
+      "notes": "W02 batch03 implements persistent structured issues, known-section links and accurate full-report form guidance. Full-page interaction, commissioner score-only/on-behalf override role flow and exact-field focus remain open."
     },
     {
       "id": "UX-02",
@@ -568,7 +571,7 @@
     {
       "id": "UX-03",
       "title": "P1: Everyday feedback blocks the entire game, then vanishes too quickly",
-      "status": "planned",
+      "status": "implementing",
       "owner": "JD Player Experience Lead",
       "targetWeek": 2,
       "targetStart": "2026-09-21",
@@ -577,13 +580,16 @@
       "acceptance": "Routine feedback is nonblocking and accessible; errors persist with retained inputs and useful retry.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
+      "implementationCommit": "e66da49fcce3399126a7e7d69fd20315a649ce5e",
       "evidence": [
         "W02_BATCH_02.md",
-        "audits/W02_BATCH_02_AUDIT.md"
+        "audits/W02_BATCH_02_AUDIT.md",
+        "W02_BATCH_03.md",
+        "audits/W02_BATCH_03_AUDIT.md",
+        "../../scripts/verify-report-errors.ts"
       ],
       "verifiedBy": null,
-      "notes": "Partial progress: POST/PATCH first error persists and roster failures block review. Complete requirements and structured field feedback remain planned."
+      "notes": "W02 batch03 implements persistent structured issues, known-section links and accurate full-report form guidance. Full-page interaction, commissioner score-only/on-behalf override role flow and exact-field focus remain open."
     },
     {
       "id": "UX-04",
@@ -806,17 +812,19 @@
     {
       "id": "W02-OCR-01",
       "priority": "P2",
-      "status": "planned",
+      "status": "verified",
       "title": "Score-step edits and removals can leave OCR correction provenance stale",
       "owner": "JD Player Experience Lead + Gilfoyle technical integrity",
-      "target": "W02 next reporting slice",
+      "target": "W02 batch03 bounded row correction acceptance completed",
       "acceptance": "After OCR review, returning to score entry and editing, repeatedly correcting or removing a row keeps submitted corrections aligned with final values and prunes unowned keys; shared update path and regression tests cover both steps. Immutable server revisions remain W03.",
       "source": "audits/W02_BATCH_02_AUDIT.md",
-      "implementationCommit": null,
+      "implementationCommit": "e66da49fcce3399126a7e7d69fd20315a649ce5e",
       "evidence": [
-        "W02_BATCH_02.md"
+        "W02_BATCH_03.md",
+        "audits/W02_BATCH_03_AUDIT.md",
+        "../../tests/unit/reportCorrections.test.ts"
       ],
-      "verifiedBy": null
+      "verifiedBy": "Independent JD/Gibs: 117 unit tests including 11 correction regressions passed; parent callback integration source-reviewed. Full-page browser and immutable server history remain separate gates."
     }
   ]
 }
