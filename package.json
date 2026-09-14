@@ -20,13 +20,14 @@
     "test:auth-sessions": "tsx scripts/verify-auth-sessions.ts",
     "test:production-startup": "tsx scripts/verify-production-startup.ts",
     "test:stale-cleanup": "tsx scripts/verify-stale-cleanup.ts",
+    "test:static-serving": "tsx scripts/verify-static-serving.ts",
     "test:e2e": "playwright test",
     "test:launch:14": "playwright test tests/e2e/14-human-reported-launch.test.ts",
     "test:smoke": "playwright test tests/smoke",
     "test:rest:unit": "tsx scripts/verify-pitcher-rest.ts --unit-only",
     "test:rest:integration": "tsx scripts/verify-pitcher-rest.ts",
     "verify:invariants": "tsx scripts/verify-db-invariants.ts --all",
-    "release:gate": "npm run typecheck && npm run validate:data && npm run test:unit && npm run test:rest:unit && npm run test:migrations && npm run test:production-access && npm run test:auth-sessions && npm run test:stale-cleanup && npm run test:production-startup && npm run build && npm run test:integration && npm run test:rest:integration && npm run test:e2e && npm run verify:invariants"
+    "release:gate": "npm run typecheck && npm run validate:data && npm run test:unit && npm run test:rest:unit && npm run test:migrations && npm run test:production-access && npm run test:auth-sessions && npm run test:stale-cleanup && npm run test:production-startup && npm run test:static-serving && npm run build && npm run test:integration && npm run test:rest:integration && npm run test:e2e && npm run verify:invariants"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",

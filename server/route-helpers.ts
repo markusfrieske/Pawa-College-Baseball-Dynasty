@@ -9,6 +9,7 @@ import type { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
 import { storage } from "./storage";
+import { clearSessionCookie } from "./lib/sessionCookie";
 import type { Player } from "@shared/schema";
 import type { CoachSeasonHistory } from "@shared/schema";
 import { getProgramCulture } from "@shared/programIdentity";
@@ -22,9 +23,35 @@ declare module "express-session" {
   }
 }
 
-export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.userId) {
+// Reuse validation only within this HTTP request, never across requests/SIDs.
+const validatedActors = new WeakMap<Request, string>();
+
+export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.session?.userId;
+  if (!userId) {
+    res.set("Cache-Control", "no-store");
     return res.status(401).json({ message: "Unauthorized" });
+  }
+  if (validatedActors.get(req) !== userId) {
+    try {
+      const user = await storage.getUser(userId);
+      if (!user) {
+        // Expire the browser cookie even if the session store cannot delete.
+        // A failed delete must never fall through to a protected handler.
+        res.set("Cache-Control", "no-store");
+        clearSessionCookie(res);
+        await new Promise<void>((resolve, reject) => req.session.destroy(error => error ? reject(error) : resolve()));
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      validatedActors.set(req, userId);
+    } catch (error) {
+      console.error("Protected identity validation failed:", {
+        name: error instanceof Error ? error.name : "UnknownError",
+      });
+      // A transient lookup failure is not proof of deletion: preserve the SID.
+      res.set("Cache-Control", "no-store");
+      return res.status(500).json({ message: "Unable to check authentication" });
+    }
   }
   next();
 };

@@ -72,7 +72,10 @@ if (process.argv.includes("--http-child")) {
       headers: { "X-Forwarded-Proto": "https", ...(cookie ? { Cookie: cookie } : {}), ...(body ? { "Content-Type": "application/json" } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const data = await response.json();
+    const text = await response.text();
+    let data: any;
+    try { data = method === "HEAD" ? undefined : JSON.parse(text); }
+    catch { throw new Error(`Expected JSON from ${method} ${route}, status ${response.status}`); }
     return { response, data, cookie: response.headers.get("set-cookie")?.split(";")[0] };
   };
   const sid = (cookie: string) => decodeURIComponent(cookie.split("=")[1]).slice(2).split(".")[0];
@@ -169,8 +172,23 @@ if (process.argv.includes("--http-child")) {
     const failedLookup = await invoke("/api/auth/me", "GET", logged.cookie);
     equal(failedLookup.response.status, 500, "Identity lookup error handled");
     equal(failedLookup.data.message, "Unable to check authentication", "Lookup details not exposed");
+    for (const [route, method, body] of [
+      ["/api/leagues", "GET", undefined],
+      ["/api/users/email-preferences", "PATCH", { emailOptOut: false }],
+    ] as const) {
+      const failed = await invoke(route, method, logged.cookie, body);
+      equal(failed.response.status, 500, `${method} ${route} fails closed on actor lookup failure`);
+      equal(failed.data.message, "Unable to check authentication", "Protected lookup error is generic");
+      equal(failed.response.headers.get("cache-control"), "no-store", "Protected lookup failure not cached");
+    }
+    equal((await stored(logged.cookie)).sess.userId, userId, "Lookup failure preserves legitimate session");
+    equal((await pool.query("SELECT email_opt_out FROM users WHERE id=$1", [userId])).rows[0].email_opt_out, true, "Failed protected write preserves preference");
+    equal((await invoke("/api/catalog", "GET", logged.cookie)).response.status, 200, "Public catalog independent of actor lookup");
+    equal((await invoke("/api/presence/online-count")).response.status, 200, "Anonymous public presence remains available");
+    equal((await invoke("/health/live", "GET", logged.cookie)).response.status, 200, "Liveness independent of actor lookup");
     await lookupFault(false);
     equal((await invoke("/api/auth/me", "GET", logged.cookie)).data.id, userId, "Server/session survive transient lookup error");
+    equal((await invoke("/api/leagues", "GET", logged.cookie)).response.status, 200, "Protected route recovers with same SID");
     const logout = await invoke("/api/auth/logout", "POST", logged.cookie);
     equal(logout.response.status, 200, "Logout succeeds");
     equal(logout.response.headers.get("set-cookie")?.includes("Expires=Thu, 01 Jan 1970"), true, "Logout expires browser cookie");
@@ -202,14 +220,64 @@ if (process.argv.includes("--http-child")) {
     equal((await invoke("/api/auth/me", "GET", third.cookie)).response.status, 401, "Changed signing secret rejects previous cookie");
     const other = await invoke("/api/auth/register", "POST", undefined, { email: "other@example.test", password });
     equal(other.response.status, 200, "Second account registration"); assert(other.cookie);
+    const leagueId = "session-revocation-league";
+    await pool.query("INSERT INTO leagues (id,name,commissioner_id,co_commissioner_ids,current_phase,is_test_data,game_mode) VALUES ($1,'Preserved companion',$2,$3,'dynasty_setup',true,'reported')", [leagueId, userId, JSON.stringify([other.data.id])]);
+    await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state) VALUES ('session-team',$1,'Preserved College','Owls','OWL','Test','IA')", [leagueId]);
+    await pool.query("INSERT INTO league_events (id,league_id,team_id,event_type,description) VALUES ('session-event',$1,'session-team','game_result','Preserved synthetic result')", [leagueId]);
+    equal((await invoke(`/api/leagues/${leagueId}`, "GET", other.cookie)).response.status, 200, "Live co-commissioner warms private read/cache");
+    const protectedRequests: Array<[string, string, unknown?]> = [
+      ["/api/leagues", "GET"],
+      [`/api/leagues/${leagueId}`, "GET"],
+      [`/api/leagues/${leagueId}`, "HEAD"],
+      [`/api/leagues/${leagueId}/team-selection`, "POST", { selectedTeams: [] }],
+      ["/api/users/email-preferences", "PATCH", { emailOptOut: true }],
+      ["/api/saved-rosters", "POST", { name: "Unauthorized copy", rosterData: [] }],
+      [`/api/leagues/${leagueId}/storylines/events/nonexistent/vote`, "POST", { choice: "A" }],
+      ["/objects/synthetic-evidence.png", "GET"],
+    ];
+    // Independently signed, real logins prevent a first revoked SID from masking
+    // missing checks on later routes. Leave one extra SID for store-delete failure.
+    const cookies = [other.cookie];
+    for (let i = 0; i < protectedRequests.length; i++) {
+      const extra = await invoke("/api/auth/login", "POST", undefined, { email: "other@example.test", password });
+      equal(extra.response.status, 200, "Independent pre-deletion login"); assert(extra.cookie); cookies.push(extra.cookie);
+    }
+    const snapshot = async () => ({
+      leagues: (await pool!.query("SELECT * FROM leagues ORDER BY id")).rows,
+      teams: (await pool!.query("SELECT * FROM teams ORDER BY id")).rows,
+      events: (await pool!.query("SELECT * FROM league_events ORDER BY id")).rows,
+      rosters: (await pool!.query("SELECT * FROM saved_rosters ORDER BY id")).rows,
+    });
+    const beforeRevocation = await snapshot();
     await pool.query("DELETE FROM users WHERE id=$1", [other.data.id]);
+    for (const [index, [route, method, body]] of protectedRequests.entries()) {
+      const denied = await invoke(route, method, cookies[index], body);
+      equal(denied.response.status, 401, `Deleted actor blocked directly: ${method} ${route}`);
+      equal(denied.response.headers.get("cache-control"), "no-store", "Revocation response not cached");
+      equal(denied.response.headers.get("set-cookie")?.includes("Expires=Thu, 01 Jan 1970"), true, "Deleted actor cookie expired");
+      equal(await stored(cookies[index]), undefined, "Each deleted actor SID revoked independently");
+    }
+    equal(await snapshot(), beforeRevocation, "Denied reads/writes preserve league, teams, history and saved rosters");
+    await pool.query("CREATE TRIGGER session_test_delete BEFORE DELETE ON session FOR EACH ROW EXECUTE FUNCTION session_test_fail()");
+    const failedRevoke = await invoke("/api/saved-rosters", "POST", cookies[8], { name: "Denied while store fails", rosterData: [] });
+    equal(failedRevoke.response.status, 500, "Failed SID deletion remains fail-closed");
+    equal(failedRevoke.data.message, "Unable to check authentication", "SID deletion failure is generic");
+    equal(failedRevoke.response.headers.get("set-cookie")?.includes("Expires=Thu, 01 Jan 1970"), true, "Cookie expires even when SID deletion fails");
+    equal(await snapshot(), beforeRevocation, "Session-delete failure cannot reach write handler");
+    await pool.query("DROP TRIGGER session_test_delete ON session");
+    equal((await invoke("/api/leagues", "GET", cookies[8])).response.status, 401, "Retained SID still denied after store recovery");
+    equal(await stored(cookies[8]), undefined, "Retained stale SID removed on retry");
     equal((await invoke("/api/auth/me", "GET", other.cookie)).response.status, 401, "Deleted normal user rejected");
     equal(await stored(other.cookie), undefined, "Deleted identity session revoked");
     const deletedGuest = await invoke("/api/auth/guest", "POST", undefined, {});
     equal(deletedGuest.response.status, 200, "Guest for deletion fixture"); assert(deletedGuest.cookie);
     await pool.query("DELETE FROM users WHERE id=$1", [deletedGuest.data.id]);
-    equal((await invoke("/api/auth/me", "GET", deletedGuest.cookie)).response.status, 401, "Deleted guest cannot authenticate via flag");
+    equal((await invoke("/api/saved-rosters", "GET", deletedGuest.cookie)).response.status, 401, "Deleted guest cannot authenticate directly via flag");
     equal(await stored(deletedGuest.cookie), undefined, "Deleted guest SID revoked");
+    const flagOnly = await invoke("/api/auth/guest", "POST", undefined, {});
+    equal(flagOnly.response.status, 200, "Guest-only-flag fixture"); assert(flagOnly.cookie);
+    await pool.query("UPDATE session SET sess=(sess::jsonb - 'userId')::json WHERE sid=$1", [sid(flagOnly.cookie)]);
+    equal((await invoke("/api/leagues", "GET", flagOnly.cookie)).response.status, 401, "Guest flag without actor ID is not authentication");
     console.log(`[session-test] PASS ${checks} assertions: real auth/PgStore, process restart, revocation and fault recovery`);
   } finally {
     await stop();

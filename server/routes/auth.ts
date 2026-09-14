@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import { storage } from "../storage";
+import { clearSessionCookie } from "../lib/sessionCookie";
 import {
   requireAuth,
   SALT_ROUNDS,
@@ -32,13 +33,6 @@ const guestRateLimit = rateLimit({
   legacyHeaders: false,
   message: { message: "Guest creation limit reached. Please try again later." },
 });
-
-function clearSessionCookie(res: Response): void {
-  res.clearCookie("connect.sid", {
-    path: "/", httpOnly: true, sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-}
 
 async function establishSession(req: Request, userId: string, isGuest = false): Promise<void> {
   await new Promise<void>((resolve, reject) => req.session.regenerate(error => error ? reject(error) : resolve()));

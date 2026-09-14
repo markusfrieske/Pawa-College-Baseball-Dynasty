@@ -6,7 +6,7 @@ import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights, StoryOutcome } from "@shared/schema";
 import { getAbilitiesForPosition, calculateOVR } from "@shared/abilities";
 import { isPitcher } from "@shared/positions";
-import { hasCommissionerAccess, isLeagueMember } from "./route-helpers";
+import { requireAuth, hasCommissionerAccess, isLeagueMember } from "./route-helpers";
 import { checkStorylineHealth } from "./lib/storylineHealth";
 import { getSeasonMaxWeeks } from "@shared/phase";
 
@@ -271,11 +271,6 @@ function getOutcomeForChoice(
     isLegendary,
   );
   return outcomes[winningChoice] ?? outcomes.A;
-}
-
-function requireAuth(req: Request, res: Response, next: () => void) {
-  if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-  next();
 }
 
 export async function warmupEventSceneImages(): Promise<void> {}

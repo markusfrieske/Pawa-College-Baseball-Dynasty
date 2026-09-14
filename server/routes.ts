@@ -1,5 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
-import { requireLeagueMember, resolveUserTeam } from "./route-helpers";
+import { requireAuth, requireLeagueMember, resolveUserTeam } from "./route-helpers";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents } from "./storyline-routes";
@@ -143,13 +143,6 @@ const settingsSchema = z.object({
 });
 
 const SALT_ROUNDS = 10;
-
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  next();
-};
 
 function hasCommissionerAccess(
   league: { commissionerId: string; coCommissionerIds?: unknown },
@@ -513,7 +506,7 @@ export async function registerRoutes(
   app.use("/api/leagues/:id", (req, res, next) => {
     if (req.method !== "GET" && req.method !== "HEAD") return next();
     res.set("Cache-Control", "private, no-store");
-    return requireLeagueMember(req, res, next);
+    return requireAuth(req, res, () => requireLeagueMember(req, res, next));
   });
 
   // ── Domain route modules ─────────────────────────────────────────────────
