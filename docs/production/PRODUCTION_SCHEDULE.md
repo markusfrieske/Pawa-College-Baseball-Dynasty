@@ -4,7 +4,17 @@
 
 **Scope:** Resolve all 42 findings in the [September 14 studio audit](../audits/2026-09-14/README.md), including the measurement and design work needed to resolve its balance hypotheses. Deliver a reliable Power Pros league companion and a coherent standalone text simulation. The detailed [implementation packets](../audits/2026-09-14/implementation-plan.md) remain the acceptance reference.
 
-**Status:** Production started September 14. [W01 batch 01](W01_BATCH_01.md) implements portable package downloads, verifies the league-read privacy repair, and contains legacy PBP. Clean bootstrap now has a reproduced migration-0032 blocker that must be repaired during W01; the wider migration/recovery redesign remains W04. Dates are a provisional production baseline, not a release promise or a scheduled background automation. No other device has been dispatched.
+**Status:** Production started September 14. [W01 batch 01](W01_BATCH_01.md) implements portable package downloads, verifies the league-read privacy repair, and contains legacy PBP. Clean bootstrap now has a reproduced migration-0032 blocker that must be repaired during W01; the wider migration/recovery redesign remains W04. Dates are a provisional production baseline, not a release promise. Frisk subsequently authorized hourly development continuations with independent game-dev audits between milestones; see the operating cadence below. No other device has been dispatched.
+
+## Hourly development and milestone audits
+
+On September 14, Frisk authorized active development to continue hourly in the existing task. The active app automation is **Pawa development and milestone audits**, ID `pawa-development-and-milestone-audits`. This cadence advances work; it does not imply a milestone can be completed each hour. The computer and desktop app must remain running for local work.
+
+Each continuation reads this schedule, the tracker and latest batch evidence, resumes unfinished implementation or failed checks, and advances the next dependency-ready step on `codex/pawa-quality-overhaul`. Maintain a single task/device writer, pull safely before edits, preserve unrelated work, and use synthetic local fixtures. The first pending step is the migration-0032 bootstrap repair; later runs must follow updated evidence instead of repeating this starting instruction.
+
+Before proceeding from one milestone to the next, obtain an independent, critical game-dev audit using the relevant technical integrity, baseball systems, gameplay/economy, player-experience and QA specialists. Keep implementation ownership separate from review and avoid overlapping agent edits. Store the audit in the milestone evidence with severity, reproducible triggers, acceptance criteria and code/test links. Fix critical and milestone-blocking findings, then rerun affected checks. Broader findings enter the existing tracker with a clear dependency; do not create a competing backlog or equate source inspection with verified player enjoyment.
+
+Checkpoint verified work and evidence in Git, push to the authorized branch, and report concrete progress, tests, audit findings, blockers and the next step in the existing task each hourly continuation. Unknown essential Power Pros rules remain explicit inputs; continue independent work while awaiting them. This authorization does not include merging, deploying, production-data operations, purchases or messages to other people. Pause the continuation once all authorized milestones and final audits are verified and present the release candidate to Frisk.
 
 ## Capacity and estimation assumptions
 
