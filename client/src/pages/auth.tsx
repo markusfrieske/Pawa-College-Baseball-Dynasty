@@ -5,7 +5,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, applySessionIdentity, type SessionIdentity } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle } from "lucide-react";
 
@@ -31,9 +31,11 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const authMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
-      return apiRequest("POST", endpoint, data);
+      const response = await apiRequest("POST", endpoint, data);
+      return response.json() as Promise<SessionIdentity>;
     },
-    onSuccess: () => {
+    onSuccess: async (identity) => {
+      await applySessionIdentity(identity);
       toast({
         title: mode === "login" ? "Welcome back!" : "Account created!",
         description: mode === "login" 

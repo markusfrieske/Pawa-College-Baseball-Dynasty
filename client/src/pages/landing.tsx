@@ -13,7 +13,7 @@ import {
   Globe, Settings,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, applySessionIdentity } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DynastyLogo } from "@/components/dynasty-logo";
 
@@ -51,9 +51,12 @@ export default function LandingPage() {
 
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/auth/logout"),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: async () => {
+      await applySessionIdentity(null);
       toast({ title: "Signed out successfully" });
+    },
+    onError: () => {
+      toast({ title: "Sign out failed", description: "Please try again.", variant: "destructive" });
     },
   });
 

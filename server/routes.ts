@@ -145,7 +145,7 @@ const settingsSchema = z.object({
 const SALT_ROUNDS = 10;
 
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.userId && !req.session.isGuest) {
+  if (!req.session.userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
   next();

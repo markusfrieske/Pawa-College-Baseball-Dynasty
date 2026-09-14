@@ -23,7 +23,7 @@ declare module "express-session" {
 }
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session.userId && !req.session.isGuest) {
+  if (!req.session.userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
   next();

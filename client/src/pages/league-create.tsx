@@ -6,7 +6,7 @@ import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, applySessionIdentity } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Star, ArrowLeft, TrendingUp, Check, Camera, Globe, Settings, Lock } from "lucide-react";
 import { Link } from "wouter";
@@ -112,9 +112,9 @@ export default function LeagueCreatePage() {
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" }).then(res => {
       if (res.status === 401) {
-        fetch("/api/auth/guest", { method: "POST", credentials: "include" }).then(guestRes => {
+        fetch("/api/auth/guest", { method: "POST", credentials: "include" }).then(async guestRes => {
           if (guestRes.ok) {
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+            await applySessionIdentity(await guestRes.json(), queryClient);
           }
         }).catch(() => {});
       }

@@ -2,7 +2,7 @@
  * Auth, user preferences, and presence routes.
  */
 
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
 import { z } from "zod";
@@ -33,7 +33,33 @@ const guestRateLimit = rateLimit({
   message: { message: "Guest creation limit reached. Please try again later." },
 });
 
+function clearSessionCookie(res: Response): void {
+  res.clearCookie("connect.sid", {
+    path: "/", httpOnly: true, sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+async function establishSession(req: Request, userId: string, isGuest = false): Promise<void> {
+  await new Promise<void>((resolve, reject) => req.session.regenerate(error => error ? reject(error) : resolve()));
+  req.session.userId = userId;
+  if (isGuest) req.session.isGuest = true;
+  try {
+    // Do not declare successful authentication until PostgreSQL stores the SID.
+    await new Promise<void>((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()));
+  } catch (error) {
+    // Prevent express-session from automatically retrying this failed identity
+    // save while the error response is sent.
+    await new Promise<void>(resolve => req.session.destroy(() => resolve()));
+    throw error;
+  }
+}
+
 export function registerAuthRoutes(app: Express): void {
+  app.use("/api/auth", (_req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  });
   // ── PRESENCE (public, no auth required) ─────────────────────────────────
   app.post("/api/presence/heartbeat", (req, res) => {
     const token = typeof req.body?.token === "string" ? req.body.token.slice(0, 64) : null;
@@ -48,6 +74,7 @@ export function registerAuthRoutes(app: Express): void {
 
   // ── AUTH ─────────────────────────────────────────────────────────────────
   app.post("/api/auth/register", authRateLimit, async (req, res) => {
+    let accountCreated = false;
     try {
       const result = authSchema.safeParse(req.body);
       if (!result.success) {
@@ -60,17 +87,12 @@ export function registerAuthRoutes(app: Express): void {
       }
       const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
       const user = await storage.createUser({ email, password: hashedPassword });
-      await new Promise<void>((resolve, reject) => {
-        req.session.regenerate((err) => {
-          if (err) return reject(err);
-          req.session.userId = user.id;
-          resolve();
-        });
-      });
-      res.json({ id: user.id, email: user.email });
+      accountCreated = true;
+      await establishSession(req, user.id);
+      res.json({ id: user.id, email: user.email, emailOptOut: user.emailOptOut ?? false });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
+      res.status(500).json({ message: accountCreated ? "Account created, but sign-in failed. Please sign in." : "Registration failed" });
     }
   });
 
@@ -89,33 +111,26 @@ export function registerAuthRoutes(app: Express): void {
       if (!passwordMatch) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      await new Promise<void>((resolve, reject) => {
-        req.session.regenerate((err) => {
-          if (err) return reject(err);
-          req.session.userId = user.id;
-          resolve();
-        });
-      });
-      res.json({ id: user.id, email: user.email });
+      await establishSession(req, user.id);
+      res.json({ id: user.id, email: user.email, emailOptOut: user.emailOptOut ?? false });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });
 
-  app.get("/api/auth/me", (req, res) => {
-    if (req.session.isGuest) {
-      res.json({ id: req.session.userId || "guest", email: "guest@guest.com", emailOptOut: false });
-    } else if (req.session.userId) {
-      storage.getUser(req.session.userId).then((user) => {
-        if (user) {
-          res.json({ id: user.id, email: user.email, emailOptOut: user.emailOptOut ?? false });
-        } else {
-          res.status(401).json({ message: "Not authenticated" });
-        }
-      });
-    } else {
-      res.status(401).json({ message: "Not authenticated" });
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const user = req.session.userId ? await storage.getUser(req.session.userId) : undefined;
+      if (!user) {
+        await new Promise<void>((resolve, reject) => req.session.destroy(error => error ? reject(error) : resolve()));
+        clearSessionCookie(res);
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      res.json({ id: user.id, email: user.email, emailOptOut: user.emailOptOut ?? false });
+    } catch (error) {
+      console.error("Session identity lookup failed:", error);
+      res.status(500).json({ message: "Unable to check authentication" });
     }
   });
 
@@ -128,15 +143,8 @@ export function registerAuthRoutes(app: Express): void {
         email: guestEmail,
         password: randomUUID(),
       });
-      req.session.isGuest = true;
-      req.session.userId = guestId;
-      req.session.save((err) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ message: "Failed to create guest session" });
-        }
-        res.json({ id: guestId, email: guestEmail });
-      });
+      await establishSession(req, guestId, true);
+      res.json({ id: guestId, email: guestEmail, emailOptOut: false });
     } catch (error) {
       console.error("Guest creation error:", error);
       res.status(500).json({ message: "Failed to create guest session" });
@@ -148,6 +156,7 @@ export function registerAuthRoutes(app: Express): void {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
       }
+      clearSessionCookie(res);
       res.json({ message: "Logged out" });
     });
   });
