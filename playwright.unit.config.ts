@@ -15,6 +15,8 @@ export default defineConfig({
     "ocrBattingMerge.test.ts",
     "reportRosterIdentity.test.ts",
     "reportPitching.test.ts",
+    "reportCorrections.test.ts",
+    "reportErrors.test.ts",
     "recruitingUtils.test.ts",
     "phaseHelpers.test.ts",
     "storyline-health.test.ts",

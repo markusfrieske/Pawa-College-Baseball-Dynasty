@@ -29,7 +29,8 @@
     "test:rest:unit": "tsx scripts/verify-pitcher-rest.ts --unit-only",
     "test:rest:integration": "tsx scripts/verify-pitcher-rest.ts",
     "verify:invariants": "tsx scripts/verify-db-invariants.ts --all",
-    "release:gate": "npm run typecheck && npm run validate:data && npm run test:unit && npm run test:rest:unit && npm run test:migrations && npm run test:production-access && npm run test:auth-sessions && npm run test:stale-cleanup && npm run test:production-startup && npm run test:static-serving && npm run test:reported-results && npm run test:ocr-review && npm run build && npm run test:integration && npm run test:rest:integration && npm run test:e2e && npm run verify:invariants"
+    "release:gate": "npm run typecheck && npm run validate:data && npm run test:unit && npm run test:rest:unit && npm run test:migrations && npm run test:production-access && npm run test:auth-sessions && npm run test:stale-cleanup && npm run test:production-startup && npm run test:static-serving && npm run test:reported-results && npm run test:ocr-review && npm run test:report-errors && npm run build && npm run test:integration && npm run test:rest:integration && npm run test:e2e && npm run verify:invariants",
+    "test:report-errors": "tsx scripts/verify-report-errors.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
