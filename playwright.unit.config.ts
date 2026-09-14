@@ -9,6 +9,7 @@ export default defineConfig({
   testDir: "./tests/unit",
   testMatch: [
     "authSession.test.ts",
+    "boxScoreValidation.test.ts",
     "rosterHelpers.test.ts",
     "leagueViewHelpers.test.ts",
     "ocrBattingMerge.test.ts",

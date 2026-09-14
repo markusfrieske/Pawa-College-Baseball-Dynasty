@@ -22,6 +22,7 @@
  */
 
 import { storage } from "./storage";
+import { assertReportedResult } from "./lib/validateReportedResult";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 import type { Game, GameReport, Team, InsertPlayerSeasonStats, Coach } from "@shared/schema";
@@ -528,6 +529,7 @@ export async function awardRecruitSignXp(
  * Cache invalidation is left to the caller (games.ts confirm/finalize routes).
  */
 export async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string): Promise<void> {
+  await assertReportedResult(report, game, leagueId);
   const { homeScore, awayScore } = report;
   const homeBoxData = report.homeBoxData as Record<string, unknown> | null;
   const awayBoxData = report.awayBoxData as Record<string, unknown> | null;

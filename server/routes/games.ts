@@ -19,6 +19,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { validateBoxScore } from "../lib/validateBoxScore";
+import { validateReportedResult, assertReportedResult, ReportValidationError } from "../lib/validateReportedResult";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema, requireLeagueMember } from "../route-helpers";
 import * as coachMsg from "../lib/coachMessages";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
@@ -513,7 +514,7 @@ export function registerGameRoutes(app: Express): void {
         });
       }
 
-      const validationIssues = validateBoxScore({ homeScore, awayScore, homeHits, awayHits, inningScores, homeBoxData, awayBoxData });
+      const validationIssues = await validateReportedResult({ homeScore, awayScore, homeHits: homeHits ?? 0, awayHits: awayHits ?? 0, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData }, game, leagueId);
       const validationErrors = validationIssues.filter(i => i.severity === "error");
       if (validationErrors.length > 0) {
         return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
@@ -522,63 +523,6 @@ export function registerGameRoutes(app: Express): void {
       const allTeams = await storage.getTeamsByLeague(leagueId);
       const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
       const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
-
-      // ── Roster membership + duplicate player-ID validation ──────────────────
-      // Only validate when full box data is present (commissioner-only quick submissions are exempt).
-      if (hasFullBoxScore) {
-        const [homePlayers, awayPlayers] = await Promise.all([
-          storage.getPlayersByTeam(game.homeTeamId),
-          storage.getPlayersByTeam(game.awayTeamId),
-        ]);
-        const homePlayerIds = new Set(homePlayers.map((p) => p.id));
-        const awayPlayerIds = new Set(awayPlayers.map((p) => p.id));
-
-        type BoxRow = { playerId?: string | null };
-        const rosterErrors: Array<{ id: string; field: string; severity: string; message: string }> = [];
-
-        function checkBoxSide(
-          rows: BoxRow[] | undefined,
-          validIds: Set<string>,
-          side: "home" | "away",
-          section: "batting" | "pitching",
-        ): void {
-          if (!rows) return;
-          const seen = new Set<string>();
-          for (const row of rows) {
-            const pid = row.playerId;
-            if (!pid) continue;
-            if (seen.has(pid)) {
-              rosterErrors.push({
-                id: `duplicate-${side}-${section}-${pid}`,
-                field: `${side}BoxData.${section}`,
-                severity: "error",
-                message: `Duplicate player ID in ${side} ${section}: ${pid}`,
-              });
-            }
-            seen.add(pid);
-            if (!validIds.has(pid)) {
-              rosterErrors.push({
-                id: `unauthorized-${side}-${section}-${pid}`,
-                field: `${side}BoxData.${section}`,
-                severity: "error",
-                message: `Player ${pid} in ${side} ${section} does not belong to the ${side} team's roster`,
-              });
-            }
-          }
-        }
-
-        checkBoxSide(homeBoxData?.batting, homePlayerIds, "home", "batting");
-        checkBoxSide(homeBoxData?.pitching, homePlayerIds, "home", "pitching");
-        checkBoxSide(awayBoxData?.batting, awayPlayerIds, "away", "batting");
-        checkBoxSide(awayBoxData?.pitching, awayPlayerIds, "away", "pitching");
-
-        if (rosterErrors.length > 0) {
-          return res.status(422).json({
-            message: rosterErrors[0].message,
-            validationErrors: rosterErrors,
-          });
-        }
-      }
 
       // Auto-confirm only when a human-side coach submits against a CPU team.
       // Commissioner submissions never auto-confirm — they still create a pending
@@ -689,6 +633,7 @@ export function registerGameRoutes(app: Express): void {
 
       res.json(report);
     } catch (error) {
+      if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to create game report:", error);
       res.status(500).json({ message: "Failed to create game report" });
     }
@@ -732,7 +677,9 @@ export function registerGameRoutes(app: Express): void {
       if (!awayBoxData || !Array.isArray(awayBoxData.pitching) || awayBoxData.pitching.length === 0) {
         return res.status(400).json({ message: "awayBoxData.pitching is required and must be a non-empty array" });
       }
-      const validationIssues = validateBoxScore({ homeScore, awayScore, homeHits, awayHits, inningScores, homeBoxData, awayBoxData });
+      const game = await storage.getGame(gameId);
+      if (!game || game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
+      const validationIssues = await validateReportedResult({ homeScore, awayScore, homeHits: homeHits ?? 0, awayHits: awayHits ?? 0, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData }, game, leagueId);
       const validationErrors = validationIssues.filter(i => i.severity === "error");
       if (validationErrors.length > 0) {
         return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
@@ -759,6 +706,7 @@ export function registerGameRoutes(app: Express): void {
       });
       res.json(updated);
     } catch (error) {
+      if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to update game report:", error);
       res.status(500).json({ message: "Failed to update game report" });
     }
@@ -868,6 +816,7 @@ export function registerGameRoutes(app: Express): void {
       const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
       const confirmerLabel = isCommissioner ? "Commissioner" : "Opposing coach";
 
+      await assertReportedResult(report, game, leagueId);
       if (game.isComplete) {
         await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
         await storage.createAuditLog({
@@ -921,6 +870,7 @@ export function registerGameRoutes(app: Express): void {
       invalidateLeague(leagueId);
       res.json({ message: "Report confirmed and game finalized" });
     } catch (error) {
+      if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to confirm game report:", error);
       res.status(500).json({ message: "Failed to confirm game report" });
     }
@@ -973,16 +923,18 @@ export function registerGameRoutes(app: Express): void {
         correctedHomeScore?: unknown;
         correctedAwayScore?: unknown;
       };
-      const hasCorrectedScore =
-        typeof correctedHomeScore === "number" && typeof correctedAwayScore === "number" &&
-        correctedHomeScore >= 0 && correctedAwayScore >= 0;
+      const hasCorrectedScore = correctedHomeScore != null || correctedAwayScore != null;
+      if (hasCorrectedScore) {
+        const issues = validateBoxScore({ homeScore: correctedHomeScore, awayScore: correctedAwayScore });
+        if (issues.some(issue => issue.severity === "error")) throw new ReportValidationError(issues);
+      }
 
       await storage.updateGameReport(report.id, {
         status: "disputed",
         disputedByUserId: req.session.userId,
         disputeReason: req.body.reason || "Score disputed by opposing coach",
-        disputeCorrectedHomeScore: hasCorrectedScore ? correctedHomeScore : null,
-        disputeCorrectedAwayScore: hasCorrectedScore ? correctedAwayScore : null,
+        disputeCorrectedHomeScore: hasCorrectedScore ? correctedHomeScore as number : null,
+        disputeCorrectedAwayScore: hasCorrectedScore ? correctedAwayScore as number : null,
       });
 
       const disputeDetails = hasCorrectedScore
@@ -1014,6 +966,7 @@ export function registerGameRoutes(app: Express): void {
 
       res.json({ message: "Report disputed. Commissioner will review." });
     } catch (error) {
+      if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to dispute game report:", error);
       res.status(500).json({ message: "Failed to dispute game report" });
     }
@@ -1087,6 +1040,7 @@ export function registerGameRoutes(app: Express): void {
       invalidateLeague(leagueId);
       res.json({ message: "Game finalized by commissioner" });
     } catch (error) {
+      if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to finalize game report:", error);
       res.status(500).json({ message: "Failed to finalize game report" });
     }
