@@ -93,4 +93,4 @@ Dependencies: trustworthy results/calendar and declared league rules. Primary fi
 
 **Defer:** more attributes, generic news volume, larger catalogs, microservices, automatic console-sync promises, and a broad visual reskin. Reconsider only when they solve an observed player problem and do not distract from the release gates.
 
-No calendar estimate is offered: the simulation/recovery changes are substantial and need an implementation spike plus deployment access to estimate responsibly. Size packets by verified player outcomes, and stop each milestone for independent evidence review before widening scope.
+Frisk subsequently requested a production schedule. The [dated production baseline and complete finding tracker](../../production/PRODUCTION_SCHEDULE.md) now assign these packets to provisional weeks, owners and exit gates. Re-estimate after the initial technical spike and environment verification. Size packets by verified player outcomes, and stop each milestone for independent evidence review before widening scope.

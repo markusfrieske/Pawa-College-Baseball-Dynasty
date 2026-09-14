@@ -1,0 +1,50 @@
+# Audit finding coverage — all 42 findings
+
+[Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
+
+All findings are planned. A target week is not closure evidence. Each source report supplies the detailed trigger and test requirements; the acceptance column states the specific closure outcome. Update this view with the JSON tracker after milestone reviews.
+
+| ID | Target | Owner | Closure requirement | Status |
+| --- | --- | --- | --- | --- |
+| [TI-01](../audits/2026-09-14/technical-integrity.md) | W01 · 2026-09-18 | Gilfoyle Roblox Technical Director | Private league DTOs and cached reads reject outsiders and exclude account emails. | planned |
+| [TI-02](../audits/2026-09-14/technical-integrity.md) | W08 · 2026-11-06 | Gilfoyle Roblox Technical Director | PBP uses authorized server sessions; fabricated, stale, foreign and reported-mode finalizations fail with no mutations. | planned |
+| [TI-03](../audits/2026-09-14/technical-integrity.md) | W02 · 2026-09-25 | Passan Baseball Expert | All result entry points reject impossible counters, absent/foreign IDs and inconsistent supported game structures. | planned |
+| [TI-04](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Correction accepts a fully validated revision; scores, innings, box and official projections reconcile atomically. | planned |
+| [TI-05](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision. | planned |
+| [TI-06](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Mature-state restore preserves all intended tables, FK relationships, evidence and finalization identity. | planned |
+| [TI-07](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Concurrent snapshots are wholly before or after a transaction; restore coordinates every relevant writer. | planned |
+| [TI-08](../audits/2026-09-14/technical-integrity.md) | W05 · 2026-10-16 | Gilfoyle Roblox Technical Director | Failure of a required game prevents clock advancement; retry finishes missing work once without false news. | planned |
+| [TI-09](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects. | planned |
+| [TI-10](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Approved evidence manifests and OCR revisions cannot be silently replaced/deleted; amendments remain auditable. | planned |
+| [TI-11](../audits/2026-09-14/technical-integrity.md) | W13 · 2026-12-11 | Gibs QA & Player Research Lead | Executable 14-coach end-to-end rehearsal proves promised workflow and fails certification on missing prerequisites. | planned |
+| [TI-12](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated. | planned |
+| [TI-13](../audits/2026-09-14/technical-integrity.md) | W01 · 2026-09-18 | Gilfoyle Roblox Technical Director | Clean locked install succeeds outside Replit with intended versions/integrity and documented runtimes. | planned |
+| [TI-14](../audits/2026-09-14/technical-integrity.md) | W05 · 2026-10-16 | Gilfoyle Roblox Technical Director | Expired/resumed worker cannot commit stale writes after a new lease owner begins. | planned |
+| [SYS-01](../audits/2026-09-14/systems-baseball.md) | W07 · 2026-10-30 | Passan Baseball Expert | One event ledger reconciles score, runs, outs and opposing batting/pitching stats across fixtures and seeded campaign. | planned |
+| [SYS-02](../audits/2026-09-14/systems-baseball.md) | W05 · 2026-10-16 | Passan Baseball Expert | Full catalog uses explicit ordered day slots and feasible byes; rest is committed before next team game. | planned |
+| [SYS-03](../audits/2026-09-14/systems-baseball.md) | W07 · 2026-10-30 | Passan Baseball Expert | Only active participants drive game events; unequal active/bench and batting-order fixtures prove intended causality. | planned |
+| [SYS-04](../audits/2026-09-14/systems-baseball.md) | W08 · 2026-11-06 | Passan Baseball Expert | Selected scoring/event/box/rest pitcher agrees; fatigue and canonical pitcher positions affect legal staff use. | planned |
+| [SYS-05](../audits/2026-09-14/systems-baseball.md) | W08 · 2026-11-06 | Banks Gameplay Systems & Economy Designer | Strategy changes contextual risk/reward; benchmark different personnel to reject an unconditional dominant preset. | planned |
+| [SYS-06](../audits/2026-09-14/systems-baseball.md) | W09 · 2026-11-13 | Banks Gameplay Systems & Economy Designer | Promise fulfillment uses authoritative achievements, opportunities and deadlines; missing evidence remains pending. | planned |
+| [SYS-07](../audits/2026-09-14/systems-baseball.md) | W07 · 2026-10-30 | Passan Baseball Expert | Pitcher responsibility and external verified W/L/SV preserve correct decisions; unknown decisions are not guessed. | planned |
+| [SYS-08](../audits/2026-09-14/systems-baseball.md) | W08 · 2026-11-06 | Passan Baseball Expert | Quick and PBP/replay share the engine and produce equivalent official outcomes and statistics from identical inputs. | planned |
+| [SYS-09](../audits/2026-09-14/systems-baseball.md) | W08 · 2026-11-06 | Passan Baseball Expert | PBP baseball-state edge fixtures pass and event/box persistence preserves supported statistics. | planned |
+| [SYS-10](../audits/2026-09-14/systems-baseball.md) | W09 · 2026-11-13 | Passan Baseball Expert | Qualified factual performance determines awards and correctly classified career achievements. | planned |
+| [SYS-11](../audits/2026-09-14/systems-baseball.md) | W09 · 2026-11-13 | Passan Baseball Expert | Chosen postseason preset, strength-of-schedule treatment and tiebreaks are transparent, reproducible and tested. | planned |
+| [SYS-12](../audits/2026-09-14/systems-baseball.md) | W10 · 2026-11-20 | Banks Gameplay Systems & Economy Designer | CPU high-potential strategy handles numeric grades and respects scouting knowledge, needs and affordability. | planned |
+| [SYS-13](../audits/2026-09-14/systems-baseball.md) | W10 · 2026-11-20 | Banks Gameplay Systems & Economy Designer | Same-cost policy experiments and fair tie resolution support multiple choices without alphabetical advantage. | planned |
+| [SYS-14](../audits/2026-09-14/systems-baseball.md) | W11 · 2026-11-27 | Banks Gameplay Systems & Economy Designer | Bounded development choices create explainable differences and approved old/new Power Pros roster deltas. | planned |
+| [SYS-15](../audits/2026-09-14/systems-baseball.md) | W13 · 2026-12-11 | Banks Gameplay Systems & Economy Designer | 10-20-season campaigns evaluate parity, inflation and rebuild mobility; decision and any calibration pass retest. | planned |
+| [SYS-16](../audits/2026-09-14/systems-baseball.md) | W08 · 2026-11-06 | Passan Baseball Expert | Counting stats and supported formulas are correct; inputs, units and coverage distinguish observed/derived/estimated/unknown. | planned |
+| [UX-01](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Reporting requirements match policy and validators before entry begins, with linked field-level failures. | planned |
+| [UX-02](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | Manual/OCR drafts recover from refresh/interruption and expose offline, unsynced and conflicting edits. | planned |
+| [UX-03](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Routine feedback is nonblocking and accessible; errors persist with retained inputs and useful retry. | planned |
+| [UX-04](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Role/mode-specific Today exposes one next action without duplicate obligations at phone widths and zoom. | planned |
+| [UX-05](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Every navigation destination resolves correctly; News, refresh, Back and selected state have route assertions. | planned |
+| [UX-06](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Keyboard and touch can inspect, assign and reorder the full roster; narrow widths/focus/zoom pass. | planned |
+| [UX-07](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | Reported unknown data never appears measured or as observed zero; provenance and coverage flow through UI/API. | planned |
+| [UX-08](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | One stable game workspace shows exact roster/rules revision, evidence, state and permitted next action. | planned |
+| [UX-09](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Solo/run/join intent selects reviewed presets; unfamiliar users reach their first meaningful task without admin confusion. | planned |
+| [UX-10](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Reviewed dilemmas have defensible alternatives and ownership/costs; confirmed-game claims are evidence-linked. | planned |
+| [UX-11](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Unified player identity/history survives transfers, departures, corrections and archive navigation. | planned |
+| [UX-12](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Selecting the correct OCR batter changes roster ID while retaining extracted stats; submission then validates. | planned |

@@ -1,0 +1,97 @@
+# Pawa quality overhaul — production schedule
+
+**Planning baseline:** September 14–December 18, 2026. **Branch:** `codex/pawa-quality-overhaul`.
+
+**Scope:** Resolve all 42 findings in the [September 14 studio audit](../audits/2026-09-14/README.md), including the measurement and design work needed to resolve its balance hypotheses. Deliver a reliable Power Pros league companion and a coherent standalone text simulation. The detailed [implementation packets](../audits/2026-09-14/implementation-plan.md) remain the acceptance reference.
+
+**Status:** Schedule and branch setup only. Implementation has not started. Dates are a provisional production baseline, not a release promise or a scheduled background automation. This plan assigns studio responsibilities; it does not book staff, send invitations, or dispatch another device.
+
+## Capacity and estimation assumptions
+
+- Thirteen production weeks and one contingency week. Week 1 begins September 14. The target release-review window is December 14–18, conditional on all release gates passing.
+- One integrated code workstream, with a technical implementation owner, assigned specialist input, and independent QA capacity. Plan approximately five focused implementation days and two reviewer-days per week across the team. These are required capacity assumptions, not measured agent throughput or confirmed human availability.
+- Keep one shared task branch active. Only one device writes to it at a time. Independent agents can research, design, or review a fixed commit while the implementation owner works; do not concurrently change overlapping files or database contracts.
+- Monday: scope and dependency check. Tuesday–Thursday: implement and verify small vertical slices. Friday: independent review, evidence, demo, and re-estimate. This cadence is an operating proposal, not calendar events.
+- Confirm actual capacity, holiday availability, Power Pros rules, and disposable environment access during the first three workdays. Week 11 includes November 26; no full holiday-week staffing is assumed confirmed. Rebaseline if capacity differs.
+- Recovery/migrations and the simulation replacement have the highest estimation uncertainty. If the first spike disproves the estimate, move dates or narrow the release candidate explicitly. Do not remove correctness, recovery, or human-use gates to hit the calendar.
+- No fixes are called complete until they have an implementation commit and independent verification evidence. Hypotheses require measurement, a documented design decision, and retesting of any change; they need not be “fixed” by inventing a balance problem.
+
+## Accountable owners
+
+| Responsibility | Studio owner |
+| --- | --- |
+| Schedule, scope, dependencies, handoffs, release checklist | Sophia Production Director |
+| Web implementation, authorization, transactions, migrations, build/release | Gilfoyle Roblox Technical Director, applying the role to this TypeScript stack |
+| Baseball state, scoring, rules, schedule and Power Pros mapping | Passan Baseball Expert |
+| Recruiting, AI, NIL, development, strategy and balance experiments | Banks Gameplay Systems & Economy Designer |
+| Workflow, reporting, mobile, keyboard and onboarding | JD Player Experience Lead |
+| Cohesion and the player-visible quality bar | CeeDee Creative Director |
+| Player memory, authored dilemmas and narrative continuity | Bookie Narrative & Character Lead |
+| Typography, composition, art, motion and audio presentation | Clarke Art Director |
+| Independent verification, fault injection, usability and closure evidence | Gibs QA & Player Research Lead |
+| Rules choices, scope changes and production release approval | Frisk |
+
+Where two roles appear in a weekly row, the first is the accountable lead and the second supplies specialist review. Gilfoyle Roblox Technical Director integrates code; Gibs QA & Player Research Lead independently verifies every milestone. Assigned roles must be invoked for actual work; this document alone does not start agents.
+
+## Weekly schedule
+
+| Week / dates | Player-visible outcome and planned work | Accountable lead | Dependencies / exit gate |
+| --- | --- | --- | --- |
+| **W01 · Sep 14–18** | Reproducible development and safe access. Fix portable dependency downloads; document runtime; create disposable DB/bootstrap spike and upgrade fixture; enumerate permissions; remove ordinary coach-email disclosure; contain unsafe PBP behind a verified disabled gate. Freeze proposed rules/reporting contracts. | Gilfoyle Roblox Technical Director | Fresh install, full media build on suitable device, database baseline proof, outsider/member/cache tests. Re-estimate by Sep 18. TI-01/13 close; TI-02 contained only. |
+| **W02 · Sep 21–25** | Reports cannot submit impossible baseball. Shared strict result schema and validation across initial reports, edits, disputes and finalization; exact player identity mapping; accurate required-field guidance; explicit supported endings, workload and data completeness. Replace blocking transient error feedback. | Passan Baseball Expert + JD Player Experience Lead | W01 environment and policy draft. Adversarial payloads, legal endings, tied corrections and OCR remapping fixtures pass. TI-03, UX-01/03/12. |
+| **W03 · Sep 28–Oct 2** | One result means one accepted revision. Versioned report state machine, atomic finalization, durable per-game stats/rest/coach effects, corrections and reconciliation. Stop silently skipping required game-finalization failures. Add evidence revision/manifests and immutable approvals. | Gilfoyle Roblox Technical Director | W02 normalized contract. Concurrency and crash/retry tests; original and corrected records remain traceable. TI-04/05/09/10 and immediate TI-08 containment. |
+| **W04 · Oct 5–9** | A played league can actually be restored. Complete snapshot inventory, consistent capture, writer coordination, old-snapshot handling, migration locking/checksums, clean bootstrap/upgrade and mature-league recovery drill. | Gilfoyle Roblox Technical Director | W03 result ledger. Restore with evidence links, finalization receipts, stories, rivalries, recruiting and postseason; interruption and concurrent capture tests. TI-06/07/12. |
+| **W05 · Oct 12–16** | Calendar and advancement agree with real workload. Explicit day/order/series slots, legal bye allocation, same-team chronological commits, lease-fenced durable advance stages, reliable failure/resume status. | Passan Baseball Expert + Gilfoyle Roblox Technical Director | W03/04 transaction/recovery boundaries. Full catalog calendar invariants and injected failure/lease-loss tests; no lost XP or skipped required games. SYS-02 and TI-08/14 close; SYS-04 calendar portion. |
+| **W06 · Oct 19–23** | A coach can prepare, report and confirm a game without losing work. Durable drafts, conflict/sync states, one game workspace, opponent confirmation/dispute, commissioner blocker queue, truthful missing-stat display, versioned roster/rules prep packet. | JD Player Experience Lead | W02–05 contracts. Two-coach interrupted-report/correction/recovery walkthrough; manual entry works without OCR. UX-02/07/08 close; SYS-16 provenance portion. **Internal companion-workflow candidate only.** |
+| **W07 · Oct 26–30** | Quick sim produces one coherent baseball game. Pure seeded event engine; legal base/out/inning/end state; actual participants and positions; all box-score counters derived from one event history; correct pitcher responsibility and explicit external W/L/SV handling. | Passan Baseball Expert | W03 official-result contract and W05 calendar. Conservation fixtures and large seeded campaign, including extras/walk-offs/two-way substitutions. SYS-01/03/07 close. |
+| **W08 · Nov 2–6** | Coaching choices matter and replay agrees with quick sim. Complete staff/fatigue integration; replace unconditional style bonuses with contextual risk/reward; unify PBP/replay; server-owned simulation sessions; secure finalization; rectify derived metric formulas/labels. | Banks Gameplay Systems & Economy Designer + Passan Baseball Expert | W07 engine. Quick/replay equivalence, unequal-lineup paired experiments, rested/limited/tired staff tests, role/mode authorization matrix. SYS-04/05/08/09/16 and TI-02 close. |
+| **W09 · Nov 9–13** | Achievements, recognition and competition rules are credible. Factual promise fulfillment and awards; missing-data policy; postseason selection/tiebreak explanation and chosen field presets; versioned Power Pros roster/ratings adapter and approved change sheets. | Passan Baseball Expert + Banks Gameplay Systems & Economy Designer | W06 reported data and W08 sim data. Championship/usage/award truth fixtures; edition-specific roster reconciliation; full season-to-offseason rehearsal. SYS-06/10/11. |
+| **W10 · Nov 16–20** | Recruiting and NIL support several defensible strategies. Correct potential comparisons and knowledge boundaries; fair signing ties; meaningful information/cost choices; CPU needs/affordability decisions; economy/parity experiment harness and first 10–20-season campaigns. | Banks Gameplay Systems & Economy Designer | W08 stable simulation and W09 season facts. Seeded policy comparisons, no hidden-information leaks, reproducible class/budget history. SYS-12/13 close; SYS-15 measured, final tuning closes W13. |
+| **W11 · Nov 23–27** | Players grow into roles and remain memorable. Bounded development plans, role/workload tradeoffs, honest progression explanations and export deltas; authored dilemmas with defensible alternatives; unified player history across transfers and departures. | Banks Gameplay Systems & Economy Designer + Bookie Narrative & Character Lead | W09 adapter/history and W10 economy. Plan-vs-plan paired tests, stable identity/correction fixtures, narrative review. SYS-14, UX-10/11. Confirm holiday capacity in W01. |
+| **W12 · Nov 30–Dec 4** | Daily coaching is understandable and comfortable. Intent-first presets; consolidated Today; canonical News/deep links; keyboard/touch roster management; readable narrow layouts and zoom; targeted visual/audio polish and task-based usability sessions. | JD Player Experience Lead + Clarke Art Director | W06 workflows and W11 daily choices stable. Five unfamiliar coaches/two commissioners; 320/390/768px, keyboard and zoom gates. UX-04/05/06/09. |
+| **W13 · Dec 7–11** | Complete release candidates prove both modes. Full 14-coach reported rehearsal; 149-team season/postseason/next-season test; restart/restore; OCR benchmark; multi-season economy/development calibration; performance and dependency triage; close remaining regressions. | Gibs QA & Player Research Lead + Sophia Production Director | W01–12 evidence. All 42 findings closed or explicitly returned to backlog with release blocked; no silent skipped DB gates. TI-11 and SYS-15 close. |
+| **W14 · Dec 14–18** | Contingency, final rehearsal and release review. Fix defects from W13, rerun affected gates, prepare deployment/rollback instructions and final reviewed change summary. | Sophia Production Director | Release only after independent verification and Frisk's approval. Unused contingency is not permission to add scope. |
+
+## Critical path and earlier mitigation
+
+The critical path is **environment and rules → valid result contract → atomic ledger → recovery/calendar/advance → engine and companion integration → factual seasons → multi-season and human verification**. UI work can be designed early, but implementation must consume stable contracts.
+
+Do not leave known easy failures live merely because their complete redesign lands later. W01 contains unsafe PBP; W02 fixes false reporting instructions, invalid counters and OCR identity; W03 stops skipping failed games. Fix the dead News destination alongside the first relevant navigation change if isolated; its broader route regression gate stays in W12. Early containment is recorded separately from final closure.
+
+W06 is an internal workflow checkpoint, not permission to run an official dynasty with unverified recognition, progression or season transition. The full two-mode release target remains W14. A narrower companion pilot requires a separately declared rules/feature scope and passing evidence for that scope.
+
+## All 42 findings have a closure assignment
+
+The machine-readable [finding tracker](finding-tracker.json) and [readable coverage table](FINDING_TRACKER.md) list every audit ID exactly once with target week, owner, acceptance requirement and evidence fields. All start `planned`; assignments and target dates do not count as progress.
+
+Status progression: `planned → implementing → review → verified`. Use `blocked` with a named dependency when necessary. A temporary disabled feature is `mitigated`, not `verified`. Every verified row needs `implementationCommit`, `evidence`, and `verifiedBy`; unresolved measured hypotheses must include the experiment and resulting decision. Sophia Production Director updates the tracker after each review.
+
+## First three workdays and first implementation batch
+
+| Day | Concrete output | Completion check |
+| --- | --- | --- |
+| Sep 14 | Branch, schedule, complete finding tracker; inventory clean-runtime/DB/build needs; rules decision sheet. | Remote branch contains audit and production plan; source remains unchanged at this setup stage. |
+| Sep 15 | Reproducible clean install; supported-runtime note; disposable DB bootstrap/upgrade spike; baseline failure fixtures. | Another checkout can reproduce install and DB setup without production credentials or Replit-private package URLs. |
+| Sep 16 | Endpoint authorization matrix, private DTO repair, verified PBP containment; initial result/ledger/recovery design. | Outsider/cache/role tests; blockers and revised effort estimate recorded. |
+
+**First implementation batch:** `TI-13 portable lockfile + TI-01 league-read authorization + TI-02 safe PBP containment`, with separate reviewable commits. Build the disposable PostgreSQL environment in parallel with source inspection, then run the real authorization tests there. Do not change production data to create fixtures.
+
+The following rules decisions are due before the W02 result contract is finalized: Power Pros edition/platform; innings/ties/mercy; roster capacity and update method; required box/evidence/workload fields; confirmation/dispute authority and timing; progression/parity; postponement/forfeit policy. Planning assumes the repository's 14-human reported profile for rehearsal; unconfirmed edition-specific behavior must remain an open input, not silently hard-coded.
+
+## Release acceptance
+
+**Companion:** 14 separate coach sessions join/claim; prepare the correct roster version; play/report every assigned game in a week; fix OCR mapping; recover a draft; confirm/dispute/correct; retry safely; advance once; reload; reconcile standings/stats/rest/balances; complete season transition; export and restore a mature league. Official evidence and accepted revision remain inspectable.
+
+**Solo:** one seeded event model passes at least 100,000 conservation checks as a proposed target, real lineup/strategy changes have appropriate effects, chronology governs staff availability, quick/replay agree, awards/promises use facts, safe restart/advance/restore works, and multi-season data/balance remain explainable. Unknown or estimated metrics are labeled honestly.
+
+**Experience:** core tasks work on phones and keyboard; errors persist; progress is saved; returning users find the next action; unfamiliar coaches and commissioners complete workflows without database repair. Runtime layout and performance must be measured on the built app.
+
+**Delivery:** exact release SHA, schema version, tested upgrade and backup restoration, build and suite results including skips, dependency/runtime review, rollback runbook, and Frisk's explicit deployment approval. A GitHub branch or green typecheck is not a release gate.
+
+## Device and branch operation
+
+CommandCenter owns planning, review and lightweight source work. BuildLab should own implementation/build/load experiments when dispatched; MediaHQ can provide actual Power Pros workflow and device playtests when assigned. Resolve each device's root through its ignored `context/device-paths.local.json`. No machine-specific paths belong in committed plans.
+
+Every actual handoff goes through the Cross-Device Command Queue and links this Git artifact plus the selected work packet. Handoffs must identify branch, exact starting commit, active writer, acceptance evidence and return conditions. Pull before editing; stop one writer before another takes ownership. No cross-device handoff is dispatched by this schedule.
+
+Create small commits on this branch and review them by completed outcome. Do not force-push, merge to main or deploy merely because a target date arrived. Rebaseline the schedule weekly with evidence and preserve scope changes in this document.

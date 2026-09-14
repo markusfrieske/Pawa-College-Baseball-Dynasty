@@ -31,6 +31,7 @@ Read the detailed reports for exact file/line evidence, triggers, impact, correc
 - [Player experience and creative direction](player-experience.md)
 - [Verification record and remaining coverage](verification.md)
 - [Implementation packets](implementation-plan.md)
+- [Dated production schedule and 42-finding tracker](../../production/PRODUCTION_SCHEDULE.md)
 
 ## The findings that should change the plan
 
