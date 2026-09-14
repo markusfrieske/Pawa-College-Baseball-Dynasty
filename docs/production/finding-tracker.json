@@ -542,8 +542,12 @@
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "evidence": [
+        "W02_BATCH_02.md",
+        "audits/W02_BATCH_02_AUDIT.md"
+      ],
+      "verifiedBy": null,
+      "notes": "Partial progress: POST/PATCH first error persists and roster failures block review. Complete requirements and structured field feedback remain planned."
     },
     {
       "id": "UX-02",
@@ -574,8 +578,12 @@
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "evidence": [
+        "W02_BATCH_02.md",
+        "audits/W02_BATCH_02_AUDIT.md"
+      ],
+      "verifiedBy": null,
+      "notes": "Partial progress: POST/PATCH first error persists and roster failures block review. Complete requirements and structured field feedback remain planned."
     },
     {
       "id": "UX-04",
@@ -708,7 +716,7 @@
     {
       "id": "UX-12",
       "title": "P1: Correcting an OCR batter's displayed name does not repair its roster identity",
-      "status": "planned",
+      "status": "verified",
       "owner": "JD Player Experience Lead",
       "targetWeek": 2,
       "targetStart": "2026-09-21",
@@ -717,9 +725,15 @@
       "acceptance": "Selecting the correct OCR batter changes roster ID while retaining extracted stats; submission then validates.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "6276509ee21f905e4afe9b2b13e806389afd7fc1",
+      "evidence": [
+        "W02_BATCH_02.md",
+        "audits/W02_BATCH_02_AUDIT.md",
+        "../../scripts/verify-ocr-review.ts",
+        "../../scripts/verify-reported-results.ts",
+        "../../tests/unit/reportRosterIdentity.test.ts"
+      ],
+      "verifiedBy": "Independent JD/Gibs identity audit: 19 pure tests, 45 component-browser assertions and 83 real HTTP/PostgreSQL assertions passed on 2026-09-14; full application browser gate remains separate"
     }
   ],
   "followUps": [
@@ -788,6 +802,21 @@
         "../../scripts/verify-static-serving.ts"
       ],
       "verifiedBy": "Independent parent rerun: 86 static HTTP assertions passed; independent security source review"
+    },
+    {
+      "id": "W02-OCR-01",
+      "priority": "P2",
+      "status": "planned",
+      "title": "Score-step edits and removals can leave OCR correction provenance stale",
+      "owner": "JD Player Experience Lead + Gilfoyle technical integrity",
+      "target": "W02 next reporting slice",
+      "acceptance": "After OCR review, returning to score entry and editing, repeatedly correcting or removing a row keeps submitted corrections aligned with final values and prunes unowned keys; shared update path and regression tests cover both steps. Immutable server revisions remain W03.",
+      "source": "audits/W02_BATCH_02_AUDIT.md",
+      "implementationCommit": null,
+      "evidence": [
+        "W02_BATCH_02.md"
+      ],
+      "verifiedBy": null
     }
   ]
 }

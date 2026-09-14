@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 verified; TI-02 and TI-04 mitigated; TI-03 and TI-12 implementing; TI-13 in review; 36 findings remain planned. Latest evidence: [W02 batch 01](W02_BATCH_01.md) and its [independent audit](audits/W02_BATCH_01_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03 and TI-12 implementing; TI-13 in review; 35 findings remain planned. Latest evidence: [W02 batch 02](W02_BATCH_02.md) and its [independent audit](audits/W02_BATCH_02_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -47,9 +47,11 @@ Production has started: TI-01 verified; TI-02 and TI-04 mitigated; TI-03 and TI-
 | [UX-09](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Solo/run/join intent selects reviewed presets; unfamiliar users reach their first meaningful task without admin confusion. | planned |
 | [UX-10](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Reviewed dilemmas have defensible alternatives and ownership/costs; confirmed-game claims are evidence-linked. | planned |
 | [UX-11](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Unified player identity/history survives transfers, departures, corrections and archive navigation. | planned |
-| [UX-12](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Selecting the correct OCR batter changes roster ID while retaining extracted stats; submission then validates. | planned |
+| [UX-12](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Selecting the correct OCR batter changes roster ID while retaining extracted stats; submission then validates. | verified |
 
 ## Milestone audit follow-ups
+
+[W02 batch 02](W02_BATCH_02.md) verifies UX-12. UX-01/UX-03 remain planned with partial first-message persistence evidence; complete requirements and structured feedback are next.
 
 [W02 batch 01](W02_BATCH_01.md) advances TI-03 to implementing and TI-04 to mitigated; neither finding is fully closed. [W01 batch 03](W01_BATCH_03.md), [W01 batch 04](W01_BATCH_04.md) and [W01 batch 05](W01_BATCH_05.md) record independently audited evidence and follow-ups in the same JSON tracker:
 
@@ -59,3 +61,4 @@ Production has started: TI-01 verified; TI-02 and TI-04 mitigated; TI-03 and TI-
 | W01-AUTH-02 | P2 | Gilfoyle + Gibs | Actual production middleware fault/recovery: 33 startup assertions passed. | verified |
 | W01-SAVE-01 | P1 | Gilfoyle + Gibs | Preserve unflagged guest saves; 21 cleanup assertions passed. | verified |
 | W01-WEB-01 | P2 | Gilfoyle + Gibs | Honest missing-resource errors; 86 static HTTP assertions passed. | verified |
+| W02-OCR-01 | P2 | JD + Gilfoyle | Keep score-step edits/removals aligned with submitted OCR correction metadata. | planned |
