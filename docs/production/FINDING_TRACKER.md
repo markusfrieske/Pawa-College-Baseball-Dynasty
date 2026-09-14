@@ -51,9 +51,10 @@ Production has started: TI-01 verified, TI-02 mitigated, TI-12 implementing, TI-
 
 ## Milestone audit follow-ups
 
-The 42 original findings above retain their status. [W01 batch 03](W01_BATCH_03.md) adds independently audited session evidence and these follow-ups in the same JSON tracker:
+The 42 original findings above retain their status. [W01 batch 03](W01_BATCH_03.md) and [W01 batch 04](W01_BATCH_04.md) record independently audited evidence and follow-ups in the same JSON tracker:
 
 | ID | Priority | Owner | Next gate | Status |
 | --- | --- | --- | --- | --- |
 | W01-AUTH-01 | P2 | Gilfoyle + Gibs | Revoke deleted actors on direct protected requests before offering account deletion. | planned |
-| W01-AUTH-02 | P2 | Gilfoyle + Gibs | Sanitize actual production middleware failures in the next startup milestone. | planned |
+| W01-AUTH-02 | P2 | Gilfoyle + Gibs | Actual production middleware fault/recovery: 33 startup assertions passed. | verified |
+| W01-SAVE-01 | P1 | Gilfoyle + Gibs | Preserve unflagged guest saves; 21 cleanup assertions passed. | verified |

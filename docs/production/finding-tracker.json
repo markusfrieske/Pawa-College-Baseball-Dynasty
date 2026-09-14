@@ -213,10 +213,12 @@
         "../../scripts/verify-migrations.ts",
         "W01_BATCH_03.md",
         "audits/W01_BATCH_03_AUDIT.md",
-        "../../scripts/verify-auth-sessions.ts"
+        "../../scripts/verify-auth-sessions.ts",
+        "W01_BATCH_04.md",
+        "audits/W01_BATCH_04_AUDIT.md"
       ],
       "verifiedBy": null,
-      "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery."
+      "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery. Batch 04 verifies actual entry-point startup on an empty bootstrapped fixture and preserves guest saves; asynchronous backfills, historical upgrades and recovery remain unverified."
     },
     {
       "id": "TI-13",
@@ -233,7 +235,9 @@
       "implementationCommit": "076479f3135dc18178ec0d9c64d830a17057c44b",
       "evidence": [
         "DEVELOPMENT.md",
-        "W01_BATCH_01.md"
+        "W01_BATCH_01.md",
+        "W01_BATCH_04.md",
+        "audits/W01_BATCH_04_AUDIT.md"
       ],
       "verifiedBy": null
     },
@@ -717,13 +721,35 @@
     {
       "id": "W01-AUTH-02",
       "priority": "P2",
-      "status": "planned",
+      "status": "verified",
       "title": "Production middleware error sanitization",
       "owner": "Gilfoyle technical integrity + Gibs security/QA",
-      "target": "Next W01 production-entry-point milestone",
+      "target": "W01 batch 04 completed",
       "acceptance": "Injected PgStore read/middleware failure through the actual entry point returns a stable public error without database details and remains observable internally.",
       "source": "audits/W01_BATCH_03_AUDIT.md",
-      "implementationCommit": null
+      "implementationCommit": "49c55dbb0bc8191a9dfe3271de53d04c6a6e0b7b",
+      "evidence": [
+        "W01_BATCH_04.md",
+        "audits/W01_BATCH_04_AUDIT.md",
+        "../../scripts/verify-production-startup.ts"
+      ],
+      "verifiedBy": "Independent startup audit: 33 assertions passed"
+    },
+    {
+      "id": "W01-SAVE-01",
+      "priority": "P1",
+      "status": "verified",
+      "title": "Automatic cleanup deleted guest dynasties by creation age",
+      "owner": "Gilfoyle technical integrity + Gibs security/QA",
+      "target": "W01 batch 04 completed",
+      "acceptance": "Old and recently played unflagged guest dynasties and dependents survive automatic/manual cleanup; only stale explicitly flagged test data is selected.",
+      "source": "audits/W01_BATCH_04_AUDIT.md",
+      "implementationCommit": "49c55dbb0bc8191a9dfe3271de53d04c6a6e0b7b",
+      "evidence": [
+        "W01_BATCH_04.md",
+        "../../scripts/verify-stale-cleanup.ts"
+      ],
+      "verifiedBy": "Independent startup audit: 21 cleanup assertions passed"
     }
   ]
 }
