@@ -4,14 +4,14 @@
  * Covers:
  *   - Rows for the same roster player across multiple screenshots are deduplicated into one entry.
  *   - The most complete (most OCR-provided fields) duplicate wins.
- *   - Unmatched-but-named rows dedupe by normalized name.
+ *   - Unmatched and ambiguous named rows remain separate for roster assignment.
  *   - Nameless/ambiguous rows are preserved (never dropped) and flagged `needsName`.
  *   - Merge order follows first-appearance order across screenshots.
  *
  * These are pure-logic tests — no database, HTTP server, or OCR call required.
  */
 import { test, expect } from "@playwright/test";
-import { mergeBattingRows, type OcrBattingPlayer } from "../../client/src/lib/ocr-batting-merge";
+import { matchRosterPlayer, mergeBattingRows, type OcrBattingPlayer } from "../../client/src/lib/ocr-batting-merge";
 import type { Player } from "../../shared/schema";
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
@@ -63,16 +63,16 @@ test.describe("mergeBattingRows", () => {
     expect(entries.map(e => e.playerId)).toEqual(["p-smith", "p-jones"]);
   });
 
-  test("dedupes an unmatched-but-named player by normalized name across screenshots", () => {
+  test("preserves unmatched named rows across screenshots until their roster identities are known", () => {
     const shot1: OcrBattingPlayer[] = [{ name: "Randy Walker", ab: 3, h: 0 }];
     const shot2: OcrBattingPlayer[] = [{ name: "randy   walker", ab: 3, h: 0, so: 2 }];
 
     const { entries } = mergeBattingRows("home", [shot1, shot2], players);
 
-    expect(entries).toHaveLength(1);
-    // The more complete row (with `so` present) wins, carrying its own raw OCR name text.
-    expect(entries[0].so).toBe(2);
-    expect(entries[0].needsName).toBeFalsy();
+    expect(entries).toHaveLength(2);
+    expect(entries.map(row => row.so)).toEqual([0, 2]);
+    expect(entries.every(row => row.needsName)).toBe(true);
+    expect(new Set(entries.map(row => row.playerId)).size).toBe(2);
   });
 
   test("preserves nameless rows as distinct, flagged needsName, instead of dropping or merging them", () => {
@@ -102,4 +102,26 @@ test.describe("mergeBattingRows", () => {
     expect(entries).toHaveLength(0);
     expect(screenshotCount).toBe(0);
   });
+});
+
+test("ambiguous exact names, initials and substring matches never choose the first roster entry", () => {
+  const sameNames = [makePlayer({ id: "a", firstName: "Alex", lastName: "Smith" }), makePlayer({ id: "b", firstName: "Alex", lastName: "Smith" })];
+  expect(matchRosterPlayer("Alex Smith", sameNames)).toBeUndefined();
+  const sameInitials = [sameNames[0], makePlayer({ id: "b", firstName: "Andrew", lastName: "Smith" })];
+  expect(matchRosterPlayer("A Smith", sameInitials)).toBeUndefined();
+  expect(matchRosterPlayer("Unknown Smith", sameInitials)).toBeUndefined();
+  expect(matchRosterPlayer("Smith", [sameNames[0], makePlayer({ id: "s", firstName: "Sam", lastName: "Smith" })])).toBeUndefined();
+  const partials = [makePlayer({ lastName: "Smithson" }), makePlayer({ id: "b", lastName: "Smithfield" })];
+  expect(matchRosterPlayer("A Smith", partials)).toBeUndefined();
+  expect(matchRosterPlayer("Alex Smith", sameInitials)?.id).toBe("a");
+  expect(matchRosterPlayer("B Smith", [...sameInitials, makePlayer({ id: "c", firstName: "Bo", lastName: "Smith" })])?.id).toBe("c");
+});
+
+test("same-image and cross-image ambiguous names retain every stat row and low confidence field", () => {
+  const roster = [makePlayer({ id: "a", firstName: "Alex", lastName: "Smith" }), makePlayer({ id: "b", firstName: "Andrew", lastName: "Smith" })];
+  const result = mergeBattingRows("away", [[{ name: "A Smith", ab: 4, h: 2 }, { name: "A Smith", ab: 3, h: 1 }], [{ name: "A Smith", ab: 2, h: 0 }]], roster);
+  expect(result.entries.map(row => row.ab)).toEqual([4, 3, 2]);
+  expect(result.entries.every(row => row.needsName)).toBe(true);
+  expect(new Set(result.entries.map(row => row.playerId)).size).toBe(3);
+  for (const row of result.entries) expect(result.fieldMeta[`batting.away.${row.playerId}.hr`]).toBe("low");
 });

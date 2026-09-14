@@ -3,8 +3,10 @@ import { ChevronDown, ChevronUp, Sparkles, Pencil, AlertTriangle, AlertCircle } 
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Team } from "@shared/schema";
-import { ipToDecimal, liveEra, type BatterEntry, type PitcherEntry } from "@/pages/report-game";
+import type { Team, Player } from "@shared/schema";
+import { collectReportIdentityIssues } from "@/lib/report-roster-identity";
+import { ipToDecimal, liveEra, type PitcherEntry } from "@/lib/report-pitching";
+import type { BatterEntry } from "@/lib/ocr-batting-merge";
 
 /**
  * Per-field provenance used to distinguish raw OCR values from coach-corrected
@@ -40,6 +42,7 @@ export function computeReviewIssues(input: {
   homeTeamName: string; awayTeamName: string;
   lowConfidenceCount: number;
   homeHits?: number; awayHits?: number;
+  homePlayers: Player[]; awayPlayers: Player[];
 }): ReviewIssue[] {
   const {
     homeScore, awayScore, showInnings, numInnings, homeInnings, awayInnings,
@@ -47,6 +50,12 @@ export function computeReviewIssues(input: {
     homeHits, awayHits,
   } = input;
   const issues: ReviewIssue[] = [];
+  for (const [side, section, rows, roster] of [
+    ["home", "batting", homeBatting, input.homePlayers], ["away", "batting", awayBatting, input.awayPlayers],
+    ["home", "pitching", homePitching, input.homePlayers], ["away", "pitching", awayPitching, input.awayPlayers],
+  ] as const) {
+    for (const issue of collectReportIdentityIssues(rows, roster)) issues.push({ id: `${side}-${section}-${issue.code}-${issue.rowIndex}`, section: `${side}_${section}`, severity: "hard", message: `Row ${issue.rowIndex + 1}: ${issue.message}` });
+  }
 
   if (homeScore < 0 || awayScore < 0) {
     issues.push({ id: "neg-score", section: "score", severity: "hard", message: "Scores cannot be negative." });
@@ -80,7 +89,7 @@ export function computeReviewIssues(input: {
     if (homeHits != null) {
       const battingH = homeBatting.reduce((a, b) => a + b.h, 0);
       if (battingH !== homeHits) {
-        issues.push({ id: "home-hits-mismatch", section: "home_batting", severity: "soft", message: `${homeTeamName} batting hit total (${battingH}) doesn't match the reported H stat (${homeHits}) — double-check hit entries.` });
+        issues.push({ id: "home-hits-mismatch", section: "home_batting", severity: "hard", message: `${homeTeamName} batting hit total (${battingH}) doesn't match the reported H stat (${homeHits}) — double-check hit entries.` });
       }
     }
   }
@@ -95,28 +104,9 @@ export function computeReviewIssues(input: {
     if (awayHits != null) {
       const battingH = awayBatting.reduce((a, b) => a + b.h, 0);
       if (battingH !== awayHits) {
-        issues.push({ id: "away-hits-mismatch", section: "away_batting", severity: "soft", message: `${awayTeamName} batting hit total (${battingH}) doesn't match the reported H stat (${awayHits}) — double-check hit entries.` });
+        issues.push({ id: "away-hits-mismatch", section: "away_batting", severity: "hard", message: `${awayTeamName} batting hit total (${battingH}) doesn't match the reported H stat (${awayHits}) — double-check hit entries.` });
       }
     }
-  }
-
-  const homeNeedsName = homeBatting.filter(b => b.needsName);
-  if (homeNeedsName.length > 0) {
-    issues.push({
-      id: "home-needs-name",
-      section: "home_batting",
-      severity: "soft",
-      message: `${homeNeedsName.length} ${homeTeamName} batting row(s) are missing a readable name — assign a player before submitting.`,
-    });
-  }
-  const awayNeedsName = awayBatting.filter(b => b.needsName);
-  if (awayNeedsName.length > 0) {
-    issues.push({
-      id: "away-needs-name",
-      section: "away_batting",
-      severity: "soft",
-      message: `${awayNeedsName.length} ${awayTeamName} batting row(s) are missing a readable name — assign a player before submitting.`,
-    });
   }
 
   const ipRe = /^\d+(\.[012])?$/;
@@ -291,8 +281,27 @@ export function IssueBanner({ issues, section }: { issues: ReviewIssue[]; sectio
   );
 }
 
-function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrect }: {
+type ReassignPlayer = (side: "home" | "away", section: "batting" | "pitching", index: number, playerId: string) => void;
+type RemoveRow = (side: "home" | "away", section: "batting" | "pitching", index: number) => void;
+
+function RosterIdentitySelect({ row, rows, players, label, testId, onSelect }: {
+  row: { playerId: string; name: string; needsName?: boolean }; rows: Array<{ playerId: string }>;
+  players: Player[]; label: string; testId: string; onSelect: (id: string) => void;
+}) {
+  const resolved = !row.needsName && players.some(player => player.id === row.playerId);
+  return <label className="flex flex-col gap-1 min-w-0 flex-1 text-xs">
+    <span>{label} — roster player</span>
+    {!resolved && <span className="text-yellow-400">OCR read: {row.name || "Unreadable name"}. Select the matching roster player.</span>}
+    <select className="w-full min-h-[44px] bg-background border border-border rounded px-2 text-foreground" data-testid={testId} value={resolved ? row.playerId : ""} onChange={event => onSelect(event.target.value)}>
+      <option value="" disabled>Select roster player</option>
+      {players.filter(player => player.id === row.playerId || !rows.some(other => other.playerId === player.id)).map(player => <option key={player.id} value={player.id}>{player.firstName} {player.lastName} — {player.position} — {player.id.slice(-8)}</option>)}
+    </select>
+  </label>;
+}
+
+function BattingReviewTable({ side, team, batting, players, onReassign, onRemoveRow, onChange, fieldMeta, onCorrect }: {
   side: "home" | "away"; team: Team; batting: BatterEntry[];
+  players: Player[]; onReassign: ReassignPlayer; onRemoveRow: RemoveRow;
   onChange: (b: BatterEntry[]) => void;
   fieldMeta: Record<string, FieldSource>; onCorrect: (key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) => void;
 }) {
@@ -317,7 +326,7 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
       </div>
       {batting.map((b, i) => (
         <div
-          key={b.playerId}
+          key={`batter-${side}-${i}`}
           className={`border rounded-lg p-2.5 space-y-2 ${b.needsName ? "border-yellow-600/60 bg-yellow-900/10" : "border-border/40"}`}
           data-testid={`row-review-batter-${side}-${i}`}
         >
@@ -326,13 +335,8 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
               <AlertTriangle className="w-3 h-3" /> Needs a name — OCR couldn't read this row
             </div>
           )}
-          <TextField
-            value={b.name}
-            onChange={v => update(i, "name", v, `batting.${side}.${b.playerId}.name`, `${team.abbreviation} Batter Name`)}
-            testId={`review-batter-${side}-${i}-name`}
-            source={fieldMeta[`batting.${side}.${b.playerId}.name`]}
-            width="w-full"
-          />
+          <RosterIdentitySelect row={b} rows={batting} players={players} label={team.abbreviation + " batter " + (i + 1)} testId={"review-batter-" + side + "-" + i + "-player"} onSelect={id => onReassign(side, "batting", i, id)} />
+          <button type="button" className="text-xs underline" aria-label={"Remove " + team.abbreviation + " batting row " + (i + 1)} onClick={() => onRemoveRow(side, "batting", i)}>Remove duplicate or extra row</button>
           <div className="grid grid-cols-5 gap-1.5">
             {fields.map(field => (
               <div key={field} className="flex flex-col items-center gap-1">
@@ -353,8 +357,9 @@ function BattingReviewTable({ side, team, batting, onChange, fieldMeta, onCorrec
   );
 }
 
-function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorrect }: {
+function PitchingReviewTable({ side, team, pitching, players, onReassign, onRemoveRow, onChange, fieldMeta, onCorrect }: {
   side: "home" | "away"; team: Team; pitching: PitcherEntry[];
+  players: Player[]; onReassign: ReassignPlayer; onRemoveRow: RemoveRow;
   onChange: (p: PitcherEntry[]) => void;
   fieldMeta: Record<string, FieldSource>; onCorrect: (key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) => void;
 }) {
@@ -376,15 +381,10 @@ function PitchingReviewTable({ side, team, pitching, onChange, fieldMeta, onCorr
     <div className="space-y-3">
       <span className="text-xs text-gold/80">{team.abbreviation} • {pitching.length} pitchers</span>
       {pitching.map((p, i) => (
-        <div key={p.playerId} className="border border-border/40 rounded-lg p-2.5 space-y-2" data-testid={`row-review-pitcher-${side}-${i}`}>
+        <div key={`pitcher-${side}-${i}`} className="border border-border/40 rounded-lg p-2.5 space-y-2" data-testid={`row-review-pitcher-${side}-${i}`}>
           <div className="flex items-center gap-2">
-            <TextField
-              value={p.name}
-              onChange={v => update(i, "name", v, `pitching.${side}.${p.playerId}.name`, `${team.abbreviation} Pitcher Name`)}
-              testId={`review-pitcher-${side}-${i}-name`}
-              source={fieldMeta[`pitching.${side}.${p.playerId}.name`]}
-              width="flex-1"
-            />
+            <RosterIdentitySelect row={p} rows={pitching} players={players} label={team.abbreviation + " pitcher " + (i + 1)} testId={"review-pitcher-" + side + "-" + i + "-player"} onSelect={id => onReassign(side, "pitching", i, id)} />
+            <button type="button" className="text-xs underline" aria-label={"Remove " + team.abbreviation + " pitching row " + (i + 1)} onClick={() => onRemoveRow(side, "pitching", i)}>Remove row</button>
             <div className="flex flex-col items-center gap-1">
               <span className="text-xs text-muted-foreground uppercase">IP</span>
               <IpField
@@ -494,7 +494,7 @@ function DecisionsSection({ homeTeam, awayTeam, homePitching, awayPitching, onCh
  * report-game form state.
  */
 export function OcrReviewScreen({
-  homeTeam, awayTeam,
+  homeTeam, awayTeam, homePlayers, awayPlayers, onReassign, onRemoveRow,
   homeScore, awayScore, onChangeHomeScore, onChangeAwayScore,
   homeErrors, awayErrors, onChangeHomeErrors, onChangeAwayErrors,
   homeHits, awayHits,
@@ -505,6 +505,7 @@ export function OcrReviewScreen({
   issues, ackWarnings, onChangeAckWarnings,
 }: {
   homeTeam: Team; awayTeam: Team;
+  homePlayers: Player[]; awayPlayers: Player[]; onReassign: ReassignPlayer; onRemoveRow: RemoveRow;
   homeScore: number; awayScore: number;
   onChangeHomeScore: (v: number) => void; onChangeAwayScore: (v: number) => void;
   homeErrors: number; awayErrors: number;
@@ -637,22 +638,22 @@ export function OcrReviewScreen({
 
       <Section label={`${homeTeam.name} Batting`} open={openSections.home_batting} onToggle={() => toggle("home_batting")} testId="home-batting" badge={sectionBadge("home_batting")}>
         <IssueBanner issues={issues} section="home_batting" />
-        <BattingReviewTable side="home" team={homeTeam} batting={homeBatting} onChange={onChangeHomeBatting} fieldMeta={fieldMeta} onCorrect={onCorrect} />
+        <BattingReviewTable side="home" team={homeTeam} players={homePlayers} onReassign={onReassign} onRemoveRow={onRemoveRow} batting={homeBatting} onChange={onChangeHomeBatting} fieldMeta={fieldMeta} onCorrect={onCorrect} />
       </Section>
 
       <Section label={`${awayTeam.name} Batting`} open={openSections.away_batting} onToggle={() => toggle("away_batting")} testId="away-batting" badge={sectionBadge("away_batting")}>
         <IssueBanner issues={issues} section="away_batting" />
-        <BattingReviewTable side="away" team={awayTeam} batting={awayBatting} onChange={onChangeAwayBatting} fieldMeta={fieldMeta} onCorrect={onCorrect} />
+        <BattingReviewTable side="away" team={awayTeam} players={awayPlayers} onReassign={onReassign} onRemoveRow={onRemoveRow} batting={awayBatting} onChange={onChangeAwayBatting} fieldMeta={fieldMeta} onCorrect={onCorrect} />
       </Section>
 
       <Section label={`${homeTeam.name} Pitching`} open={openSections.home_pitching} onToggle={() => toggle("home_pitching")} testId="home-pitching" badge={sectionBadge("home_pitching")}>
         <IssueBanner issues={issues} section="home_pitching" />
-        <PitchingReviewTable side="home" team={homeTeam} pitching={homePitching} onChange={onChangeHomePitching} fieldMeta={fieldMeta} onCorrect={onCorrect} />
+        <PitchingReviewTable side="home" team={homeTeam} players={homePlayers} onReassign={onReassign} onRemoveRow={onRemoveRow} pitching={homePitching} onChange={onChangeHomePitching} fieldMeta={fieldMeta} onCorrect={onCorrect} />
       </Section>
 
       <Section label={`${awayTeam.name} Pitching`} open={openSections.away_pitching} onToggle={() => toggle("away_pitching")} testId="away-pitching" badge={sectionBadge("away_pitching")}>
         <IssueBanner issues={issues} section="away_pitching" />
-        <PitchingReviewTable side="away" team={awayTeam} pitching={awayPitching} onChange={onChangeAwayPitching} fieldMeta={fieldMeta} onCorrect={onCorrect} />
+        <PitchingReviewTable side="away" team={awayTeam} players={awayPlayers} onReassign={onReassign} onRemoveRow={onRemoveRow} pitching={awayPitching} onChange={onChangeAwayPitching} fieldMeta={fieldMeta} onCorrect={onCorrect} />
       </Section>
 
       <Section label="Pitcher Decisions" open={openSections.decisions} onToggle={() => toggle("decisions")} testId="decisions" badge={sectionBadge("decisions")}>

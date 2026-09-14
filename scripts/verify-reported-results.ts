@@ -5,6 +5,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { reassignReportRosterPlayer } from "../client/src/lib/report-roster-identity";
 
 const connection = process.env.PAWA_TEST_DATABASE_URL;
 assert(connection, "PAWA_TEST_DATABASE_URL required; refusing DATABASE_URL fallback");
@@ -127,7 +128,16 @@ if (process.argv.includes("--http-child")) {
       equal((await invoke(endpoint("submit"), "POST", data)).response.status, 422, `Submission rejects ${label}`);
       equal(await snapshot(), before, `Rejected ${label} performs no persisted writes`);
     }
-    equal((await invoke(endpoint("submit"), "POST", valid())).response.status, 200, "Valid full report accepted with two-way IDs");
+    const extracted = valid();
+    extracted.homeBoxData.batting[0].playerId = "screenshot-unmatched";
+    extracted.homeBoxData.batting[0].name = "Unmatched OCR name";
+    const actualRoster = (await pool.query('SELECT id,first_name AS "firstName",last_name AS "lastName",position FROM players WHERE team_id=$1', ["home"])).rows;
+    const remapped = reassignReportRosterPlayer({ rows: extracted.homeBoxData.batting, rowIndex: 0, selectedPlayerId: "home-0", roster: actualRoster, fieldMeta: {}, side: "home", section: "batting" });
+    assert(remapped.ok);
+    equal(remapped.rows[0].playerId, "home-0", "OCR roster selection updates the submitted ID");
+    equal([remapped.rows[0].ab, remapped.rows[0].r, remapped.rows[0].h], [3, 1, 1], "OCR roster selection retains extracted counting stats");
+    extracted.homeBoxData.batting = remapped.rows;
+    equal((await invoke(endpoint("submit"), "POST", extracted)).response.status, 200, "Remapped full report passes actual roster validation with two-way IDs");
     const pending = (await pool.query("SELECT * FROM game_reports WHERE game_id='submit'")).rows[0];
     equal(pending.status, "pending", "Commissioner full report remains pending");
     for (const [label, mutate] of mutations.filter(([label]) => !["string rows", "partial commissioner foreign row"].includes(label))) {

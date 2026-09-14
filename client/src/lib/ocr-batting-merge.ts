@@ -7,9 +7,8 @@ export interface BatterEntry {
   position: string;
   ab: number; r: number; h: number; doubles: number; triples: number; hr: number;
   rbi: number; bb: number; so: number; sb: number;
-  // True when OCR could not confidently read a name for this row (e.g. a name cut off by
-  // a scroll boundary between two batting screenshots). The row is still kept — never
-  // silently dropped — so the coach can identify/correct it during review.
+  // True whenever OCR could not uniquely resolve this row to a roster player.
+  // Named, ambiguous and unreadable rows remain available for coach assignment.
   needsName?: boolean;
 }
 
@@ -49,16 +48,22 @@ export function matchRosterPlayer(ocrName: string, players: Player[]): Player | 
   const lastName = parts[parts.length - 1];
   const firstInitial = parts[0][0];
 
-  const exact = players.find(p => normalizeOcrName(`${p.firstName} ${p.lastName}`) === norm);
-  if (exact) return exact;
+  const exact = players.filter(p => normalizeOcrName(`${p.firstName} ${p.lastName}`) === norm);
+  if (exact.length > 0) return exact.length === 1 ? exact[0] : undefined;
 
-  const lastNameMatches = players.filter(p => p.lastName.toLowerCase() === lastName);
+  const lastNameMatches = players.filter(p => normalizeOcrName(p.lastName) === lastName);
   if (lastNameMatches.length === 1) return lastNameMatches[0];
   if (lastNameMatches.length > 1) {
-    return lastNameMatches.find(p => p.firstName.toLowerCase()[0] === firstInitial) ?? lastNameMatches[0];
+    if (parts.length < 2) return undefined; // A surname is not also a given-name initial.
+    const initialMatches = lastNameMatches.filter(p => normalizeOcrName(p.firstName)[0] === firstInitial);
+    return initialMatches.length === 1 ? initialMatches[0] : undefined;
   }
 
-  return players.find(p => p.lastName.toLowerCase().includes(lastName) || lastName.includes(p.lastName.toLowerCase()));
+  const partialMatches = players.filter(p => {
+    const rosterLastName = normalizeOcrName(p.lastName);
+    return rosterLastName && (rosterLastName.includes(lastName) || lastName.includes(rosterLastName));
+  });
+  return partialMatches.length === 1 ? partialMatches[0] : undefined;
 }
 
 export function ocrNumberOrDefault(value: unknown, fallback = 0): number {
@@ -81,8 +86,9 @@ export interface BattingMergeResult { entries: BatterEntry[]; fieldMeta: Record<
  * into a single deduplicated table. Power Pros' batting screen often doesn't fit on one
  * screen, so coaches attach multiple screenshots (with scroll overlap) per team; the same
  * player can appear in more than one screenshot and must be recognized as one row rather
- * than counted twice. Rows with an unreadable name are preserved (never dropped) and
- * flagged with `needsName` for the coach to resolve during review. Duplicates are resolved
+ * than counted twice. Unresolved names are preserved separately and flagged with
+ * `needsName`: matching OCR labels alone cannot establish that two rows are one player.
+ * Confident roster duplicates are resolved
  * by keeping whichever raw row has the most OCR-provided fields (most complete read).
  */
 export function mergeBattingRows(side: "home" | "away", screenshots: OcrBattingPlayer[][], players: Player[]): BattingMergeResult {
@@ -96,7 +102,7 @@ export function mergeBattingRows(side: "home" | "away", screenshots: OcrBattingP
       let key: string;
       if (hasName) {
         const match = matchRosterPlayer(row.name!, players);
-        key = match ? `player:${match.id}` : `unmatched:${normalizeOcrName(row.name!)}`;
+        key = match ? `player:${match.id}` : `unmatched:${unnamedSeq++}`;
       } else {
         // Rows with no readable name are never merged into each other — each stays distinct
         // so the coach can identify and fix each one individually.
@@ -131,7 +137,7 @@ export function mergeBattingRows(side: "home" | "away", screenshots: OcrBattingP
           name: hasName ? best.row.name! : "(unidentified batter)",
           position: best.row.position ?? "?",
           ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0, sb: 0,
-          needsName: !hasName,
+          needsName: true,
         };
     const entry: BatterEntry = {
       ...base,

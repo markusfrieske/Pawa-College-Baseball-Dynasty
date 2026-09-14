@@ -13,6 +13,8 @@ export default defineConfig({
     "rosterHelpers.test.ts",
     "leagueViewHelpers.test.ts",
     "ocrBattingMerge.test.ts",
+    "reportRosterIdentity.test.ts",
+    "reportPitching.test.ts",
     "recruitingUtils.test.ts",
     "phaseHelpers.test.ts",
     "storyline-health.test.ts",

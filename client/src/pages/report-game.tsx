@@ -1,3 +1,5 @@
+import { defaultPitcher, ipToDecimal, liveEra, ocrPitchersToEntries, pitchingFieldMeta, type PitcherEntry, type OcrPitchingPlayer } from "@/lib/report-pitching";
+import { reassignReportRosterPlayer } from "@/lib/report-roster-identity";
 import { useState, useEffect, useRef, useMemo, Component, type ReactNode, type ErrorInfo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -63,33 +65,8 @@ interface GameWithTeams extends Game {
 }
 
 export type { BatterEntry };
-
-export interface PitcherEntry {
-  playerId: string;
-  name: string;
-  role: "starter" | "reliever" | "closer";
-  ip: string;
-  h: number; r: number; er: number; bb: number; so: number; hr: number;
-  win: boolean; loss: boolean;
-}
-
-function defaultPitcher(player: Player): PitcherEntry {
-  return {
-    playerId: player.id, name: playerName(player), role: "starter",
-    ip: "0.0", h: 0, r: 0, er: 0, bb: 0, so: 0, hr: 0, win: false, loss: false,
-  };
-}
-
-export function ipToDecimal(ip: string): number {
-  const [whole, frac] = ip.split(".");
-  return (parseInt(whole) || 0) + (parseInt(frac) || 0) / 3;
-}
-
-export function liveEra(er: number, ip: string): string {
-  const dec = ipToDecimal(ip);
-  if (dec <= 0) return "--";
-  return (9 * er / dec).toFixed(2);
-}
+export type { PitcherEntry } from "@/lib/report-pitching";
+export { ipToDecimal, liveEra } from "@/lib/report-pitching";
 
 interface OcrFinalScoreData {
   homeScore?: number | null; awayScore?: number | null;
@@ -98,31 +75,6 @@ interface OcrFinalScoreData {
   innings?: Array<[number, number]> | null;
 }
 
-interface OcrPitchingPlayer {
-  name?: string; ip?: string; h?: number; r?: number; er?: number; bb?: number; so?: number; hr?: number;
-  decision?: "W" | "L" | "S" | null;
-}
-
-function ocrPitchersToEntries(data: Record<string, unknown>, players: Player[]): PitcherEntry[] {
-  const raw = (data.players as OcrPitchingPlayer[] | undefined) ?? [];
-  return raw
-    .filter(p => p.name)
-    .map((p, idx) => {
-      const match = matchRosterPlayer(p.name!, players);
-      const base = match ? defaultPitcher(match) : {
-        playerId: `screenshot-${idx}-${p.name}`, name: p.name!, role: "starter" as const,
-        ip: "0.0", h: 0, r: 0, er: 0, bb: 0, so: 0, hr: 0, win: false, loss: false,
-      };
-      return {
-        ...base,
-        role: idx === 0 ? "starter" as const : "reliever" as const,
-        ip: p.ip ?? base.ip,
-        h: ocrNumberOrDefault(p.h), r: ocrNumberOrDefault(p.r), er: ocrNumberOrDefault(p.er),
-        bb: ocrNumberOrDefault(p.bb), so: ocrNumberOrDefault(p.so), hr: ocrNumberOrDefault(p.hr),
-        win: p.decision === "W", loss: p.decision === "L",
-      };
-    });
-}
 
 function scoreFieldMeta(d: OcrFinalScoreData): Record<string, FieldSource> {
   const meta: Record<string, FieldSource> = {
@@ -137,22 +89,6 @@ function scoreFieldMeta(d: OcrFinalScoreData): Record<string, FieldSource> {
       meta[`inning.${i}.home`] = pair?.[1] != null ? "ocr" : "low";
     });
   }
-  return meta;
-}
-
-const PITCHING_META_FIELDS: (keyof OcrPitchingPlayer)[] = ["h", "r", "er", "bb", "so", "hr"];
-
-function pitchingFieldMeta(side: "home" | "away", data: Record<string, unknown>, entries: PitcherEntry[]): Record<string, FieldSource> {
-  const raw = (data.players as OcrPitchingPlayer[] | undefined ?? []).filter(p => p.name);
-  const meta: Record<string, FieldSource> = {};
-  entries.forEach((entry, idx) => {
-    const r = raw[idx];
-    meta[`pitching.${side}.${entry.playerId}.name`] = r?.name != null ? "ocr" : "low";
-    meta[`pitching.${side}.${entry.playerId}.ip`] = r?.ip != null ? "ocr" : "low";
-    PITCHING_META_FIELDS.forEach(f => {
-      meta[`pitching.${side}.${entry.playerId}.${f}`] = r?.[f] != null ? "ocr" : "low";
-    });
-  });
   return meta;
 }
 
@@ -397,8 +333,49 @@ function ReportGameInner() {
   const hasAnyScreenshots = (screenshotImages ?? []).length > 0;
   const allOcrSettled = hasAnyScreenshots && pendingOcrCount === 0;
 
+  function reassignIdentity(side: "home" | "away", section: "batting" | "pitching", index: number, selectedPlayerId: string) {
+    const rows = section === "batting" ? (side === "home" ? homeBatting : awayBatting) : (side === "home" ? homePitching : awayPitching);
+    const result = reassignReportRosterPlayer<BatterEntry | PitcherEntry>({ rows, rowIndex: index, selectedPlayerId, roster: (side === "home" ? homePlayers : awayPlayers) ?? [], fieldMeta, side, section });
+    if (!result.ok) { setValidationError(result.error.message); return; }
+    const previousId = rows[index].playerId;
+    const oldPrefix = section + "." + side + "." + previousId + ".";
+    const newPrefix = section + "." + side + "." + selectedPlayerId + ".";
+    if (section === "batting") (side === "home" ? setHomeBatting : setAwayBatting)(result.rows as BatterEntry[]);
+    else (side === "home" ? setHomePitching : setAwayPitching)(result.rows as PitcherEntry[]);
+    setFieldMeta(result.fieldMeta);
+    setCorrections(previous => {
+      const next: typeof previous = {};
+      const oldStillUsed = result.rows.some((row, i) => i !== index && row.playerId === previousId);
+      for (const [key, value] of Object.entries(previous)) {
+        if (newPrefix !== oldPrefix && key.startsWith(newPrefix)) continue;
+        if (oldStillUsed || !key.startsWith(oldPrefix)) next[key] = value;
+        if (key.startsWith(oldPrefix)) next[newPrefix + key.slice(oldPrefix.length)] = value;
+      }
+      for (const correction of result.corrections) {
+        const key = correction.fieldPath;
+        next[key] = { fieldLabel: key, ocrValue: next[key]?.ocrValue ?? String(correction.originalValue ?? ""), correctedValue: String(correction.correctedValue ?? "") };
+      }
+      return next;
+    });
+    setValidationError(null); setAckReviewWarnings(false);
+  }
+
+  function removeReviewRow(side: "home" | "away", section: "batting" | "pitching", index: number) {
+    const rows = section === "batting" ? (side === "home" ? homeBatting : awayBatting) : (side === "home" ? homePitching : awayPitching);
+    if (!rows[index]) return;
+    const prefix = section + "." + side + "." + rows[index].playerId + ".";
+    const remaining = rows.filter((_, i) => i !== index);
+    if (section === "batting") (side === "home" ? setHomeBatting : setAwayBatting)(remaining as BatterEntry[]);
+    else (side === "home" ? setHomePitching : setAwayPitching)(remaining as PitcherEntry[]);
+    if (!remaining.some(row => row.playerId === rows[index].playerId)) {
+      setFieldMeta(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith(prefix))));
+      setCorrections(prev => Object.fromEntries(Object.entries(prev).filter(([key]) => !key.startsWith(prefix))));
+    }
+    setAckReviewWarnings(false);
+  }
+
   function markFieldCorrected(key: string, oldValue?: unknown, newValue?: unknown, fieldLabel?: string) {
-    const hadOcrProvenance = fieldMeta[key] === "ocr" || fieldMeta[key] === "low";
+    const hadOcrProvenance = fieldMeta[key] !== undefined;
     setFieldMeta(prev => (prev[key] ? { ...prev, [key]: "corrected" } : prev));
     if (!hadOcrProvenance) return;
     setCorrections(prev => ({
@@ -421,7 +398,7 @@ function ReportGameInner() {
     retry: 1,
   });
 
-  const { data: homePlayers, isLoading: homePlayersLoading } = useQuery<Player[]>({
+  const { data: homePlayers, isLoading: homePlayersLoading, isError: homePlayersError } = useQuery<Player[]>({
     queryKey: [`/api/leagues/${id}/roster`, gameData?.game.homeTeamId],
     enabled: !!gameData?.game.homeTeamId,
     queryFn: async () => {
@@ -432,7 +409,7 @@ function ReportGameInner() {
     },
   });
 
-  const { data: awayPlayers, isLoading: awayPlayersLoading } = useQuery<Player[]>({
+  const { data: awayPlayers, isLoading: awayPlayersLoading, isError: awayPlayersError } = useQuery<Player[]>({
     queryKey: [`/api/leagues/${id}/roster`, gameData?.game.awayTeamId],
     enabled: !!gameData?.game.awayTeamId,
     queryFn: async () => {
@@ -675,6 +652,7 @@ function ReportGameInner() {
       setPhase("submitted");
     },
     onError: (error: Error) => {
+      setValidationError(parseErrorMessage(error));
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
@@ -687,6 +665,7 @@ function ReportGameInner() {
       setLocation(`/league/${id}/schedule`);
     },
     onError: (error: Error) => {
+      setValidationError(parseErrorMessage(error));
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
@@ -738,6 +717,7 @@ function ReportGameInner() {
   }
 
   function handleSubmit() {
+    if (submitBlocked) { setValidationError(reviewHardErrors[0]?.message ?? "Review and acknowledge the remaining warnings before submitting."); return; }
     const err = validateScores();
     if (err) { setValidationError(err); return; }
     setValidationError(null);
@@ -758,9 +738,11 @@ function ReportGameInner() {
     homeBatting, awayBatting, homePitching, awayPitching,
     homeTeamName: homeTeam.abbreviation, awayTeamName: awayTeam.abbreviation,
     lowConfidenceCount,
+    homePlayers: homePlayers ?? [], awayPlayers: awayPlayers ?? [],
     homeHits, awayHits,
   });
   const reviewHardErrors: ReviewIssue[] = [
+    ...(playersLoading || homePlayersError || awayPlayersError ? [{ id: "roster-unavailable", section: "score" as const, severity: "hard" as const, message: "Both team rosters must load before you can submit. Retry loading the report if a roster is unavailable." }] : []),
     ...reviewIssues.filter(i => i.severity === "hard"),
     ...(!hasBoxScoreDetail && !isEditMode
       ? [{ id: "box-score-required", section: "score" as const, severity: "hard" as const, message: "Full box score (batting + pitching) is required. Add lineup data in the score step." }]
@@ -937,12 +919,13 @@ function ReportGameInner() {
                   onChangeHome={setHomePitching}
                   onChangeAway={setAwayPitching}
                   onInit={initPitchers}
+                  onSelectPlayer={(side, i, playerId) => reassignIdentity(side, "pitching", i, playerId)}
                 />
               }
             </CollapsibleSection>
 
             {validationError && (
-              <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" data-testid="text-validation-error">
+              <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" role="alert" data-testid="text-validation-error">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{validationError}</span>
               </div>
@@ -984,6 +967,9 @@ function ReportGameInner() {
             </div>
             {hasOcrData ? (
               <OcrReviewScreen
+                homePlayers={homePlayers ?? []} awayPlayers={awayPlayers ?? []}
+                onReassign={reassignIdentity}
+                onRemoveRow={removeReviewRow}
                 homeTeam={homeTeam}
                 awayTeam={awayTeam}
                 homeScore={homeScore}
@@ -1012,7 +998,7 @@ function ReportGameInner() {
                 onChangeAwayPitching={setAwayPitching}
                 fieldMeta={fieldMeta}
                 onCorrect={markFieldCorrected}
-                issues={reviewIssues}
+                issues={[...reviewHardErrors, ...reviewSoftIssues]}
                 ackWarnings={ackReviewWarnings}
                 onChangeAckWarnings={setAckReviewWarnings}
               />
@@ -1041,7 +1027,7 @@ function ReportGameInner() {
             )}
 
             {validationError && (
-              <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" data-testid="text-validation-error-review">
+              <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" role="alert" data-testid="text-validation-error-review">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{validationError}</span>
               </div>
@@ -1531,11 +1517,12 @@ function PitcherAvailTooltip({ p, slot, day }: { p: PitcherAvailRow; slot: Pitch
   );
 }
 
-function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit }: {
+function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit, onSelectPlayer }: {
   leagueId: string | undefined; gameType: string | null;
   homeTeam: Team; awayTeam: Team; homePlayers: Player[]; awayPlayers: Player[];
   homePitching: PitcherEntry[]; awayPitching: PitcherEntry[];
   onChangeHome: (l: PitcherEntry[]) => void; onChangeAway: (l: PitcherEntry[]) => void; onInit: () => void;
+  onSelectPlayer: (side: "home" | "away", index: number, playerId: string) => void;
 }) {
   const [availOpen, setAvailOpen] = useState(false);
 
@@ -1580,9 +1567,10 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
     setList(list.filter((_, i) => i !== idx));
   }
 
-  function PitcherTable({ team, players, pitching, onUpdate, onAdd, onRemove }: {
+  function PitcherTable({ team, players, pitching, onUpdate, onSelect, onAdd, onRemove }: {
     team: Team; players: Player[]; pitching: PitcherEntry[];
     onUpdate: <K extends keyof PitcherEntry>(i: number, f: K, v: PitcherEntry[K]) => void;
+    onSelect: (i: number, playerId: string) => void;
     onAdd: () => void; onRemove: (i: number) => void;
   }) {
     return (
@@ -1614,10 +1602,11 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
                 <tr key={p.playerId} className="border-b border-gold/10">
                   <td className="p-1">
                     <select value={p.playerId}
-                      onChange={e => { const pl = players.find(pl => pl.id === e.target.value); if (pl) { onUpdate(i, "playerId", pl.id); onUpdate(i, "name", `${pl.firstName} ${pl.lastName}`); } }}
+                      onChange={e => onSelect(i, e.target.value)}
                       className="w-32 h-7 text-xs bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground px-1"
                       data-testid={`select-pitcher-${i}-player`}>
-                      {players.filter(pl => pl.position === "P" || pl.id === p.playerId).map(pl => (
+                      {!players.some(pl => pl.id === p.playerId) && <option value={p.playerId}>Select roster player: {p.name}</option>}
+                      {players.filter(pl => pl.id === p.playerId || !pitching.some(row => row.playerId === pl.id)).map(pl => (
                         <option key={pl.id} value={pl.id}>{pl.firstName} {pl.lastName}</option>
                       ))}
                     </select>
@@ -1718,10 +1707,12 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
         </div>
       )}
       <PitcherTable team={homeTeam} players={homePlayers} pitching={homePitching}
+        onSelect={(i, playerId) => onSelectPlayer("home", i, playerId)}
         onUpdate={(i, f, v) => updatePitcher(homePitching, onChangeHome, i, f, v)}
         onAdd={() => addPitcher(homePitching, onChangeHome, homePlayers)}
         onRemove={i => removePitcher(homePitching, onChangeHome, i)} />
       <PitcherTable team={awayTeam} players={awayPlayers} pitching={awayPitching}
+        onSelect={(i, playerId) => onSelectPlayer("away", i, playerId)}
         onUpdate={(i, f, v) => updatePitcher(awayPitching, onChangeAway, i, f, v)}
         onAdd={() => addPitcher(awayPitching, onChangeAway, awayPlayers)}
         onRemove={i => removePitcher(awayPitching, onChangeAway, i)} />
