@@ -1,5 +1,5 @@
 import { ReportEntryMode } from "@/components/report-entry-mode";
-import { buildScoreOnlyReport, reportOverrideReasonError, type ReportRole } from "@shared/reporting";
+import { buildScoreOnlyReport, isReportEditVersion, reportOverrideReasonError, type ReportRole } from "@shared/reporting";
 import { ReportOverrideReason } from "@/components/report-override-reason";
 import { defaultPitcher, ipToDecimal, liveEra, ocrPitchersToEntries, pitchingFieldMeta, type PitcherEntry, type OcrPitchingPlayer } from "@/lib/report-pitching";
 import { recordReportCorrection, reconcileReportRowCorrections, pruneReportInningCorrections, pruneReportPlayerCorrections, type ReportCorrectionState } from "@/lib/report-corrections";
@@ -428,6 +428,8 @@ function ReportGameInner() {
     },
   });
 
+  const [loadedEditVersion, setLoadedEditVersion] = useState<number | null>(null);
+  const hydratedReportId = useRef<string | null>(null);
   const { data: existingReport } = useQuery<Record<string, unknown>>({
     queryKey: ["/api/leagues", id, "games", gameId, "report"],
     enabled: isEditMode,
@@ -439,7 +441,11 @@ function ReportGameInner() {
   });
 
   useEffect(() => {
-    if (!isEditMode || !existingReport) return;
+    if (!isEditMode || !existingReport || existingReport.gameId !== gameId || typeof existingReport.id !== "string") return;
+    // Keep the token bound to this draft. Refetching must not silently rebase it.
+    if (hydratedReportId.current === existingReport.id) return;
+    hydratedReportId.current = existingReport.id;
+    setLoadedEditVersion(isReportEditVersion(existingReport.editVersion) ? existingReport.editVersion : null);
     const innings = (existingReport.inningScores as number[][] | null) ?? [];
     if (innings.length > 0) {
       setNumInnings(innings.length);
@@ -462,7 +468,7 @@ function ReportGameInner() {
     if (ab?.batting?.length) { setAwayBatting(ab.batting); setShowAwayBatting(true); }
     if (hb?.pitching?.length) { setHomePitching(hb.pitching); setHomePitchersInitialized(true); setShowPitching(true); }
     if (ab?.pitching?.length) { setAwayPitching(ab.pitching); setAwayPitchersInitialized(true); setShowPitching(true); }
-  }, [existingReport, isEditMode]);
+  }, [existingReport, isEditMode, gameId]);
 
   const canUseScoreOnly = !isEditMode && gameData?.reporting?.isCommissioner === true;
   const isScoreOnly = !isEditMode && entryMode === "score-only";
@@ -641,6 +647,7 @@ function ReportGameInner() {
   const requiresOverrideReason = !isEditMode && gameData?.reporting?.requiresOverrideReason === true;
 
   interface ReportPayload {
+    expectedEditVersion?: number;
     overrideReason?: string;
     homeScore: number; awayScore: number; homeHits: number; awayHits: number;
     homeErrors: number; awayErrors: number; inningScores: number[][];
@@ -681,6 +688,7 @@ function ReportGameInner() {
     return {
       homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData,
       corrections: correctionsPayload.length > 0 ? correctionsPayload : undefined,
+      ...(isEditMode && loadedEditVersion !== null ? { expectedEditVersion: loadedEditVersion } : {}),
       ...(requiresOverrideReason ? { overrideReason: overrideReason.trim() } : {}),
     };
   }
@@ -802,6 +810,7 @@ function ReportGameInner() {
     homeHits, awayHits,
   });
   const reviewHardErrors: ReviewIssue[] = [
+    ...(isEditMode && loadedEditVersion === null ? [{ id: "report-version-unavailable", section: "score" as const, severity: "hard" as const, message: "The report edit version could not be loaded. Reload this page before submitting changes." }] : []),
     ...(!gameData.reporting || (isEditMode ? !gameData.reporting.isCommissioner : !gameData.reporting.isCommissioner && !gameData.reporting.isInvolvedCoach) ? [{ id: "report-role-unavailable", section: "score" as const, severity: "hard" as const, message: "Reporting access is unavailable for this account. Reload to check current access; submitted-report edits require a commissioner." }] : []),
     ...(requiresOverrideReason && reportOverrideReasonError(overrideReason) ? [{ id: "override-reason-invalid", section: "score" as const, severity: "hard" as const, message: reportOverrideReasonError(overrideReason)! }] : []),
     ...(isScoreOnly && !canUseScoreOnly ? [{ id: "score-only-role", section: "score" as const, severity: "hard" as const, message: "Only a current commissioner can submit a new score-only report." }] : []),
@@ -1429,10 +1438,11 @@ function SubmittedPhase({
 }
 
 export default function ReportGamePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, gameId } = useParams<{ id: string; gameId: string }>();
+  const search = useSearch();
   return (
     <ReportGameErrorBoundary leagueId={id}>
-      <ReportGameInner />
+      <ReportGameInner key={`${id}/${gameId}/${new URLSearchParams(search).get("mode") ?? "new"}`} />
     </ReportGameErrorBoundary>
   );
 }

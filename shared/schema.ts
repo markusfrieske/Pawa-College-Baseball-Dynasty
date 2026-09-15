@@ -1720,6 +1720,7 @@ export type InsertStorylineResolution = typeof storyline_resolutions.$inferInser
 // League Events table - activity feed for league news
 // Game Reports table (manual reporting for multiplayer leagues)
 export const gameReports = pgTable("game_reports", {
+  editVersion: integer("edit_version").notNull().default(1),
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   gameId: varchar("game_id").notNull().references(() => games.id).unique(),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),

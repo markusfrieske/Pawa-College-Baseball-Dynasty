@@ -23,3 +23,8 @@ export function reportOverrideReasonError(value: unknown): string | null {
   if (value.trim().length > REPORT_OVERRIDE_REASON_MAX_LENGTH) return `Keep the commissioner reason to ${REPORT_OVERRIDE_REASON_MAX_LENGTH} characters or fewer.`;
   return null;
 }
+
+/** Version carried by the draft being edited, bounded by the PostgreSQL integer column. */
+export function isReportEditVersion(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 2147483647;
+}

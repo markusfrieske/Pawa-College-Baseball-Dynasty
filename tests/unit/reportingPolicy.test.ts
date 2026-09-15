@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { buildScoreOnlyReport, reportOverrideReasonError, REPORT_OVERRIDE_REASON_MAX_LENGTH } from "../../shared/reporting";
+import { buildScoreOnlyReport, isReportEditVersion, reportOverrideReasonError, REPORT_OVERRIDE_REASON_MAX_LENGTH } from "../../shared/reporting";
 
 test("on-behalf reasons require intentional nonblank text", () => {
   for (const reason of [undefined, null, false, 5, {}, [], "", " \n\t "]) expect(reportOverrideReasonError(reason)).not.toBeNull();
@@ -23,4 +23,9 @@ test("involved commissioner score-only payload does not invent a reason or corre
   const result = buildScoreOnlyReport({ homeScore: 1, awayScore: 0 });
   expect(result).not.toHaveProperty("overrideReason");
   expect(result).not.toHaveProperty("corrections");
+});
+
+test("edit versions reject coercion, fractions and values outside the stored integer range", () => {
+  for (const value of [undefined, null, "1", true, {}, [], 0, -1, 1.5, NaN, Infinity, 2147483648, Number.MAX_SAFE_INTEGER + 1]) expect(isReportEditVersion(value)).toBe(false);
+  for (const value of [1, 2, 2147483647]) expect(isReportEditVersion(value)).toBe(true);
 });

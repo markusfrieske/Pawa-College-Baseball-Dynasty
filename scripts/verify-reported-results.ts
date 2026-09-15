@@ -143,11 +143,14 @@ if (process.argv.includes("--http-child")) {
     const pending = (await pool.query("SELECT * FROM game_reports WHERE game_id='submit'")).rows[0];
     equal(pending.status, "pending", "Commissioner full report remains pending");
     for (const [label, mutate] of mutations.filter(([label]) => !["string rows", "partial commissioner foreign row"].includes(label))) {
-      const data = valid(); mutate(data); const before = await snapshot();
+      const data = { ...valid(), expectedEditVersion: pending.edit_version }; mutate(data); const before = await snapshot();
       equal((await invoke(endpoint("submit"), "PATCH", data)).response.status, 422, `Edit rejects ${label}`);
       equal(await snapshot(), before, `Rejected edit ${label} preserves report and game`);
     }
-    equal((await invoke(endpoint("submit"), "PATCH", valid())).response.status, 200, "Valid full edit accepted");
+    equal(pending.edit_version, 1, "New report starts at edit version one");
+    const edited = await invoke(endpoint("submit"), "PATCH", { ...valid(), expectedEditVersion: pending.edit_version });
+    equal(edited.response.status, 200, "Valid full edit accepted");
+    equal(edited.data.editVersion, 2, "Successful edit returns the incremented version");
     for (const scores of [[1, 1], [-1, 0], [1.5, 0], [31, 0], [1, undefined]]) {
       const before = await snapshot();
       equal((await invoke(endpoint("submit") + "/dispute", "POST", { reason: "Synthetic correction", correctedHomeScore: scores[0], correctedAwayScore: scores[1] })).response.status, 422, "Invalid corrected score rejected before dispute write");
@@ -201,17 +204,19 @@ if (process.argv.includes("--http-child")) {
 
     // Exercise the real upgrade from the original required summary columns,
     // with existing reports present, rather than relying only on a fresh schema.
-    const reportsBeforeUpgrade = (await pool.query("SELECT * FROM game_reports ORDER BY id")).rows;
+    const reportDataBeforeUpgrade = (await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows;
     for (const column of ["home_hits", "away_hits", "home_errors", "away_errors"]) {
       await pool.query(`ALTER TABLE game_reports ALTER COLUMN ${column} SET NOT NULL`);
     }
-    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key='0050_report_unknown_summaries'");
+    await pool.query("ALTER TABLE game_reports DROP COLUMN edit_version");
+    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version')");
     equal(await checkMigrationVersion(pool), false, "Schema readiness fails before the required unknown-summary migration");
     const upgraded = await runMigrations(pool);
-    equal(upgraded.applied, ["0050_report_unknown_summaries"], "Populated database upgrade applies only the missing summary migration");
-    equal(upgraded.version, "0050_report_unknown_summaries", "Unknown-summary migration is the recorded schema head");
+    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version"], "Populated database upgrades both missing report migrations in order");
+    equal(upgraded.version, "0051_report_edit_version", "Edit-version migration is the recorded schema head");
     equal(await checkMigrationVersion(pool), true, "Schema readiness succeeds after the required migration is recorded");
-    equal((await pool.query("SELECT * FROM game_reports ORDER BY id")).rows, reportsBeforeUpgrade, "Unknown-summary migration preserves existing report rows intact");
+    equal((await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows, reportDataBeforeUpgrade, "Report upgrades preserve all existing report data intact");
+    equal((await pool.query("SELECT DISTINCT edit_version FROM game_reports")).rows, [{ edit_version: 1 }], "Edit-version migration backfills existing reports to version one");
     equal((await pool.query("SELECT column_name,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='game_reports' AND column_name IN ('home_hits','away_hits','home_errors','away_errors') ORDER BY column_name")).rows.map(row => row.is_nullable), ["YES", "YES", "YES", "YES"], "All four report summary columns allow explicit unknown values after upgrade");
 
     await newGame("mixed-summaries");
@@ -223,6 +228,70 @@ if (process.argv.includes("--http-child")) {
     equal([mixedSummaryBox.away.totals, mixedSummaryBox.away.errors], [{ r: 1, h: null }, 2], "Finalized away summary preserves unknown hits and known errors without inventing other counters");
     equal((await pool.query("SELECT home_hits,away_hits,home_errors,away_errors FROM game_reports WHERE game_id='mixed-summaries'")).rows[0], { home_hits: 3, away_hits: null, home_errors: null, away_errors: 2 }, "Finalization also preserves the mixed summary observations in the report");
     equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeScoreOnlyStats, "Mixed team summaries fabricate no player statistics");
+
+    // Optimistic edit versions prevent a stale commissioner tab from silently
+    // replacing a newer result. All rejection snapshots include every public
+    // table except session expiry bookkeeping.
+    await newGame("edit-version");
+    equal((await invoke(endpoint("edit-version"), "POST", valid())).response.status, 200, "Version fixture submission accepted");
+    equal((await invoke(endpoint("edit-version"))).data.editVersion, 1, "Initial report fetch exposes the edit version to clients");
+    const versionPayload = (expectedEditVersion: unknown) => ({ ...valid(), expectedEditVersion });
+    for (const version of [undefined, null, 0, -1, 1.5, "1", true, {}, [], Number.MAX_SAFE_INTEGER + 1]) {
+      const beforeVersion = await snapshot();
+      const rejected = await invoke(endpoint("edit-version"), "PATCH", versionPayload(version));
+      equal(rejected.response.status, 422, "Missing or malformed expected edit version rejected");
+      equal(rejected.data.validationErrors?.some((issue: any) => issue.field === "expectedEditVersion"), true, "Invalid version identifies the actionable field");
+      equal(await snapshot(), beforeVersion, "Malformed version changes no persisted state");
+    }
+    const auditCount = async () => Number((await pool!.query("SELECT count(*) FROM audit_logs WHERE action='Game Report Edited'")).rows[0].count);
+    const auditsBeforeRace = await auditCount();
+    const contenders = [versionPayload(1), { ...versionPayload(1), homeErrors: 1 }];
+    const edits = await Promise.all(contenders.map(data => invoke(endpoint("edit-version"), "PATCH", data)));
+    equal(edits.map(result => result.response.status).sort(), [200, 409], "Two concurrent edits from one version yield exactly one success and one conflict");
+    const winningIndex = edits.findIndex(result => result.response.status === 200);
+    const winningEdit = edits[winningIndex];
+    equal(winningEdit.data.editVersion, 2, "Concurrent winner returns exactly one version increment");
+    equal((await invoke(endpoint("edit-version"))).data.editVersion, 2, "Refetch after a conflict exposes the winning current version");
+    equal((await pool.query("SELECT edit_version,home_errors FROM game_reports WHERE game_id='edit-version'")).rows[0],
+      { edit_version: 2, home_errors: contenders[winningIndex].homeErrors }, "Stored report contains only the winning edit");
+    equal(await auditCount(), auditsBeforeRace + 1, "Concurrent edit pair writes exactly one edit audit");
+    const winnerAudit = (await pool.query("SELECT user_id,details FROM audit_logs WHERE action='Game Report Edited' ORDER BY timestamp DESC LIMIT 1")).rows[0];
+    equal(winnerAudit.user_id, registration.data.id, "Winning edit audit identifies the authenticated actor");
+    equal(JSON.parse(winnerAudit.details), { gameId: "edit-version", reportId: winningEdit.data.id,
+      previousEditVersion: 1, editVersion: 2, awayScore: 0, homeScore: 1 }, "Winning edit audit binds game, report, both versions, and accepted scores");
+    const beforeStale = await snapshot();
+    equal((await invoke(endpoint("edit-version"), "PATCH", versionPayload(1))).response.status, 409, "Already-used edit version conflicts");
+    equal(await snapshot(), beforeStale, "Stale edit preserves every persisted table");
+    equal((await invoke(endpoint("edit-version"), "PATCH", versionPayload(2))).response.status, 200, "Reloaded current version can be edited");
+    equal((await pool.query("SELECT edit_version FROM game_reports WHERE game_id='edit-version'")).rows[0].edit_version, 3, "Subsequent accepted edit advances to version three");
+
+    // Force the audit insert to fail inside this owned fixture. The report
+    // itself must roll back with it; a successful edit without evidence is unsafe.
+    await pool.query("CREATE FUNCTION reject_fixture_edit_audit() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN IF NEW.action = 'Game Report Edited' THEN RAISE EXCEPTION 'synthetic audit failure'; END IF; RETURN NEW; END $fixture$");
+    await pool.query("CREATE TRIGGER reject_fixture_edit_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION reject_fixture_edit_audit()");
+    try {
+      const beforeAuditFailure = await snapshot();
+      equal((await invoke(endpoint("edit-version"), "PATCH", { ...versionPayload(3), homeErrors: 2 })).response.status, 500, "Failed audit insert rejects the edit");
+      equal(await snapshot(), beforeAuditFailure, "Audit failure rolls back report changes and version increment atomically");
+    } finally {
+      await pool.query("DROP TRIGGER reject_fixture_edit_audit ON audit_logs");
+      await pool.query("DROP FUNCTION reject_fixture_edit_audit()");
+    }
+    for (const state of ["complete", "receipt", "confirmed", "rejected"]) {
+      const gameId = 'edit-locked-' + state;
+      await newGame(gameId);
+      equal((await invoke(endpoint(gameId), "POST", valid())).response.status, 200, "Closed-state edit fixture submitted");
+      if (state === "complete") await pool.query("UPDATE games SET is_complete=true WHERE id=$1", [gameId]);
+      else if (state === "receipt") await pool.query("INSERT INTO game_finalizations (game_id,finalizer) VALUES ($1,'synthetic-receipt')", [gameId]);
+      else await pool.query("UPDATE game_reports SET status=$1 WHERE game_id=$2", [state, gameId]);
+      const beforeClosedEdit = await snapshot();
+      equal((await invoke(endpoint(gameId), "PATCH", versionPayload(1))).response.status, 409, state + " report cannot be edited");
+      equal(await snapshot(), beforeClosedEdit, state + " edit rejection preserves all persisted tables");
+    }
+    await newGame("edit-disputed");
+    equal((await invoke(endpoint("edit-disputed"), "POST", valid())).response.status, 200, "Disputed edit fixture submitted");
+    await pool.query("UPDATE game_reports SET status='disputed' WHERE game_id='edit-disputed'");
+    equal((await invoke(endpoint("edit-disputed"), "PATCH", versionPayload(1))).response.status, 200, "Disputed unfinalized report remains editable with current version");
 
     // Commissioner metadata and on-behalf reporting use real sessions, not client role hints.
     // Keep this matrix after the original finalization assertions so extra pending reports

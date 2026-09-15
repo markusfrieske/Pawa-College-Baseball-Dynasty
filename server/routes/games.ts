@@ -1,4 +1,5 @@
-import { reportOverrideReasonError, type ReportRole } from "../../shared/reporting";
+import { editGameReport, ReportEditConflict } from "../lib/edit-game-report";
+import { isReportEditVersion, reportOverrideReasonError, type ReportRole } from "../../shared/reporting";
 /**
  * Game schedule and game-report routes.
  *
@@ -666,8 +667,10 @@ export function registerGameRoutes(app: Express): void {
       const existing = await storage.getGameReport(gameId);
       if (!existing) return res.status(404).json({ message: "No report found for this game" });
       if (existing.leagueId !== leagueId) return res.status(404).json({ message: "Report not found in this league" });
-      if (existing.status === "confirmed") {
-        return res.status(400).json({ message: "Cannot edit a confirmed report" });
+      const { expectedEditVersion } = req.body;
+      if (!isReportEditVersion(expectedEditVersion)) {
+        const message = "Reload the report to obtain a valid edit version before submitting.";
+        return res.status(422).json({ message, validationErrors: [{ id: "edit-version-required", field: "expectedEditVersion", severity: "error", message }] });
       }
       const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
       if (typeof homeScore !== "number" || typeof awayScore !== "number") {
@@ -695,20 +698,14 @@ export function registerGameRoutes(app: Express): void {
       if (validationErrors.length > 0) {
         return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
       }
-      const updated = await storage.updateGameReport(existing.id, {
+      const updated = await editGameReport({ gameId, leagueId, reportId: existing.id, userId: req.session.userId!, expectedEditVersion, changes: {
         homeScore, awayScore,
         homeHits: homeHits ?? 0, awayHits: awayHits ?? 0,
         homeErrors: homeErrors ?? 0, awayErrors: awayErrors ?? 0,
         inningScores: inningScores ?? null,
         homeBoxData: homeBoxData ?? null,
         awayBoxData: awayBoxData ?? null,
-      });
-      await storage.createAuditLog({
-        leagueId,
-        userId: req.session.userId,
-        action: "Game Report Edited",
-        details: `Commissioner updated report: ${awayScore}-${homeScore}`,
-      });
+      } });
       await persistCorrections(req.body.corrections, {
         gameReportId: existing.id,
         gameId,
@@ -717,6 +714,7 @@ export function registerGameRoutes(app: Express): void {
       });
       res.json(updated);
     } catch (error) {
+      if (error instanceof ReportEditConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to update game report:", error);
       res.status(500).json({ message: "Failed to update game report" });
