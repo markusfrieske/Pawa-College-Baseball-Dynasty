@@ -93,7 +93,7 @@
     {
       "id": "TI-05",
       "title": "P1: report approval, editing, and dispute are separate unversioned writes",
-      "status": "planned",
+      "status": "implementing",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 3,
       "targetStart": "2026-09-28",
@@ -102,9 +102,15 @@
       "acceptance": "Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "679a2034c4358abe3cfafc30c7c638ce36fa46c4",
+      "evidence": [
+        "W03_BATCH_01.md",
+        "audits/W03_BATCH_01_AUDIT.md",
+        "REPORT_REVISION_CONTRACT.md",
+        "../../scripts/verify-reported-results.ts"
+      ],
+      "verifiedBy": null,
+      "notes": "W03 batch 01 independently verifies commissioner edit CAS, terminal guards and edit/audit rollback (291 HTTP assertions; 127 unit tests). Confirm/dispute stale snapshots, postcommit correction provenance, accepted receipt identity and durable recovery remain open. Client hydration/refetch integration is source-reviewed only."
     },
     {
       "id": "TI-06",

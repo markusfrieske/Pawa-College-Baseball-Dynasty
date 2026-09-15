@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 32 findings remain planned. Latest evidence: [W02 batch 05](W02_BATCH_05.md) and its [independent audit](audits/W02_BATCH_05_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 31 findings remain planned. Latest evidence: [W03 batch 01](W03_BATCH_01.md) and its [independent audit](audits/W03_BATCH_01_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -10,7 +10,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | [TI-02](../audits/2026-09-14/technical-integrity.md) | W08 · 2026-11-06 | Gilfoyle Roblox Technical Director | PBP uses authorized server sessions; fabricated, stale, foreign and reported-mode finalizations fail with no mutations. | mitigated |
 | [TI-03](../audits/2026-09-14/technical-integrity.md) | W02 · 2026-09-25 | Passan Baseball Expert | All result entry points reject impossible counters, absent/foreign IDs and inconsistent supported game structures. | implementing |
 | [TI-04](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Correction accepts a fully validated revision; scores, innings, box and official projections reconcile atomically. | mitigated |
-| [TI-05](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision. | planned |
+| [TI-05](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision. | implementing |
 | [TI-06](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Mature-state restore preserves all intended tables, FK relationships, evidence and finalization identity. | planned |
 | [TI-07](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Concurrent snapshots are wholly before or after a transaction; restore coordinates every relevant writer. | planned |
 | [TI-08](../audits/2026-09-14/technical-integrity.md) | W05 · 2026-10-16 | Gilfoyle Roblox Technical Director | Failure of a required game prevents clock advancement; retry finishes missing work once without false news. | planned |
@@ -50,6 +50,8 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | [UX-12](../audits/2026-09-14/player-experience.md) | W02 · 2026-09-25 | JD Player Experience Lead | Selecting the correct OCR batter changes roster ID while retaining extracted stats; submission then validates. | verified |
 
 ## Milestone audit follow-ups
+
+[W03 batch 01](W03_BATCH_01.md) moves TI-05 to implementing: concurrent commissioner edits use a draft version, terminal guards and an atomic edit audit. Confirm/dispute stale snapshots, postcommit correction persistence and immutable accepted receipts remain open; next implement those transition guards under the [revision contract](REPORT_REVISION_CONTRACT.md).
 
 [W02 batch 02](W02_BATCH_02.md) verifies UX-12. [W02 batch 03](W02_BATCH_03.md) moves UX-01/UX-03 to implementing and verifies bounded W02-OCR-01. Structured feedback, correction continuity and [on-behalf commissioner reasons](W02_BATCH_04.md) are implemented. [W02 batch 05](W02_BATCH_05.md) implements score-only entry and verifies W02-NOTIFY-01. UX-07 now implements explicit unknown-stat preservation; broader partial displays, recap completeness and the full-page journey remain open.
 
