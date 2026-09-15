@@ -1,5 +1,5 @@
 export interface ReportErrorTarget {
-  section: "score" | "errors" | "innings" | "batting" | "pitching";
+  section: "score" | "errors" | "innings" | "batting" | "pitching" | "override";
   side?: "home" | "away";
   rowIndex?: number;
 }
@@ -69,7 +69,7 @@ export function describeReportField(field?: string): { label: string; target?: R
         : {}),
     };
   }
-  if (field === "overrideReason") return { label: "Commissioner override reason" };
+  if (field === "overrideReason") return { label: "Commissioner override reason", target: { section: "override" } };
   if (field === "boxData") return { label: "Full box score" };
   // Unknown paths are diagnostic data, not coach-facing labels or navigation IDs.
   return { label: "Report" };

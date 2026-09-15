@@ -49,3 +49,7 @@ test("preserves warnings distinctly and does not invent a navigable field for un
   expect(parsed?.issues[1].target).toEqual({ section: "score" });
   expect(describeReportField("homeBoxData.batting.999999999999999999999.playerId").target).toBeUndefined();
 });
+
+test("commissioner reason errors point to the dedicated reason field", () => {
+  expect(describeReportField("overrideReason")).toEqual({ label: "Commissioner override reason", target: { section: "override" } });
+});

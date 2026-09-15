@@ -185,6 +185,131 @@ if (process.argv.includes("--http-child")) {
     const beforeScoreOnlyStats = (await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows;
     equal((await invoke(endpoint("score-only") + "/finalize", "POST", {})).response.status, 200, "Commissioner score-only result still finalizes");
     equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeScoreOnlyStats, "Score-only finalization adds no fabricated player lines");
+
+    // Commissioner metadata and on-behalf reporting use real sessions, not client role hints.
+    // Keep this matrix after the original finalization assertions so extra pending reports
+    // cannot change that fixture's participant/stat expectations.
+    const primary = { id: registration.data.id as string, cookie };
+    const actors: Record<string, { id: string; cookie: string }> = { primary };
+    for (const role of ["co", "involved", "unrelated", "outsider"]) {
+      cookie = "";
+      const registered = await invoke("/api/auth/register", "POST", { email: `reports-${role}@example.test`, password: "synthetic-reports-password" });
+      equal(registered.response.status, 200, `Real ${role} actor registration`);
+      actors[role] = { id: registered.data.id, cookie: registered.response.headers.get("set-cookie")!.split(";")[0] };
+    }
+    await pool.query("UPDATE leagues SET co_commissioner_ids=$1 WHERE id='report-league'", [JSON.stringify([actors.co.id])]);
+    await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ('unrelated-team','report-league','Other fixture','Owls','OTH','Test','IA',false)");
+    for (const [role, teamId] of [["involved", "home"], ["unrelated", "unrelated-team"]]) {
+      await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ($1,$2,$3,'report-league','Synthetic',$4)", [`coach-${role}`, actors[role].id, teamId, role]);
+    }
+    await newGame("role-matrix");
+    for (const [role, expected] of [
+      ["primary", { isCommissioner: true, isInvolvedCoach: false, requiresOverrideReason: true }],
+      ["co", { isCommissioner: true, isInvolvedCoach: false, requiresOverrideReason: true }],
+      ["involved", { isCommissioner: false, isInvolvedCoach: true, requiresOverrideReason: false }],
+      ["unrelated", { isCommissioner: false, isInvolvedCoach: false, requiresOverrideReason: false }],
+    ] as const) {
+      cookie = actors[role].cookie;
+      const result = await invoke("/api/leagues/report-league/games/role-matrix");
+      equal(result.response.status, 200, `${role} can read member game metadata`);
+      equal(result.response.headers.get("cache-control"), "private, no-store", `${role} personalized reporting metadata cannot enter shared caches`);
+      equal(result.data.reporting, expected, `${role} metadata contains only server-derived permission booleans`);
+    }
+    cookie = actors.outsider.cookie;
+    const outsiderGame = await invoke("/api/leagues/report-league/games/role-matrix");
+    equal(outsiderGame.response.status, 403, "Outsider cannot read league game metadata");
+    equal(outsiderGame.data.reporting, undefined, "Outsider receives no reporting metadata or identity data");
+    await pool.query("INSERT INTO leagues (id,name,commissioner_id,game_mode,current_phase,is_test_data) VALUES ('other-report-league','Other report fixture',$1,'reported','regular_season',true)", [primary.id]);
+    cookie = primary.cookie;
+    const crossLeagueGame = await invoke("/api/leagues/other-report-league/games/role-matrix");
+    equal(crossLeagueGame.response.status, 404, "Commissioner cannot read a game through the wrong league route");
+    equal(crossLeagueGame.data.reporting, undefined, "Wrong-league game response exposes no reporting metadata");
+
+    const invalidReasons: Array<[string, (data: any) => void]> = [
+      ["missing", d => delete d.overrideReason],
+      ["blank", d => d.overrideReason = " \n\t "],
+      ["number", d => d.overrideReason = 123],
+      ["object", d => d.overrideReason = { reason: "client supplied object" }],
+      ["array", d => d.overrideReason = ["client supplied array"]],
+      ["over limit", d => d.overrideReason = "x".repeat(2001)],
+      ["forged reason exemption", d => { delete d.overrideReason; d.requiresOverrideReason = false; d.isInvolvedCoach = true; d.reporting = { requiresOverrideReason: false, isInvolvedCoach: true }; }],
+    ];
+    for (const role of ["primary", "co"]) {
+      cookie = actors[role].cookie;
+      for (const [label, mutate] of invalidReasons) {
+        const data = valid(); mutate(data);
+        const before = await snapshot();
+        const rejected = await invoke(endpoint("role-matrix"), "POST", data);
+        equal(rejected.response.status, 422, `${role} rejects ${label} on-behalf reason`);
+        equal(rejected.data.validationErrors?.some((issue: any) => issue.field === "overrideReason" && issue.severity === "error"), true, `${role} ${label} reason has actionable field feedback`);
+        equal(await snapshot(), before, `${role} ${label} reason rejection performs no persisted writes`);
+      }
+    }
+    for (const role of ["unrelated", "outsider"]) {
+      cookie = actors[role].cookie;
+      const before = await snapshot();
+      const forged = { ...valid(), isCommissioner: true, isInvolvedCoach: true, requiresOverrideReason: false,
+        reporting: { isCommissioner: true, isInvolvedCoach: true, requiresOverrideReason: false },
+        reporterUserId: primary.id, reporterTeamId: "home", role: "commissioner" };
+      equal((await invoke(endpoint("role-matrix"), "POST", forged)).response.status, 403, `${role} cannot forge commissioner or involved-coach authority`);
+      equal(await snapshot(), before, `Forged ${role} authority performs no persisted writes`);
+    }
+    cookie = actors.involved.cookie;
+    const beforeCoachForgery = await snapshot();
+    equal((await invoke(endpoint("role-matrix"), "POST", { homeScore: 1, awayScore: 0, isCommissioner: true,
+      reporting: { isCommissioner: true }, overrideReason: "Forged commissioner exception" })).response.status, 422, "Involved coach cannot forge the commissioner score-only exception");
+    equal(await snapshot(), beforeCoachForgery, "Forged coach exception performs no persisted writes");
+
+    // Coaching an unrelated team does not make a co-commissioner involved in this game.
+    await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ('co-unrelated-team','report-league','Commissioner other fixture','Owls','COO','Test','IA',false)");
+    await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ('coach-co-unrelated',$1,'co-unrelated-team','report-league','Synthetic','Co')", [actors.co.id]);
+    cookie = actors.co.cookie;
+    equal((await invoke("/api/leagues/report-league/games/role-matrix")).data.reporting,
+      { isCommissioner: true, isInvolvedCoach: false, requiresOverrideReason: true }, "Commissioner coaching another team still needs on-behalf reason");
+    const noReason: any = valid(); delete noReason.overrideReason;
+    const beforeUnrelatedCommissioner = await snapshot();
+    equal((await invoke(endpoint("role-matrix"), "POST", noReason)).response.status, 422, "Unrelated-team co-commissioner cannot omit reason");
+    equal(await snapshot(), beforeUnrelatedCommissioner, "Unrelated-team commissioner missing reason performs no persisted writes");
+
+    for (const role of ["primary", "co"]) {
+      const gameId = `on-behalf-${role}`;
+      await newGame(gameId);
+      cookie = actors[role].cookie;
+      const reason = `${role}: recording the coaches' agreed synthetic result`;
+      const accepted = await invoke(endpoint(gameId), "POST", { ...valid(), overrideReason: `  ${reason}\n ` });
+      equal(accepted.response.status, 200, `${role} on-behalf report with reason accepted`);
+      const stored = (await pool.query("SELECT id,status,reporter_user_id,reporter_team_id FROM game_reports WHERE game_id=$1", [gameId])).rows[0];
+      equal([stored.status, stored.reporter_user_id, stored.reporter_team_id], ["pending", actors[role].id, null], `${role} on-behalf report stays pending with genuine actor and no invented coaching team`);
+      equal((await pool.query("SELECT is_complete FROM games WHERE id=$1", [gameId])).rows[0].is_complete, false, `${role} on-behalf submission does not finalize game`);
+      const audit = (await pool.query("SELECT details FROM audit_logs WHERE user_id=$1 AND action='Game Report Submitted' ORDER BY timestamp DESC LIMIT 1", [actors[role].id])).rows[0]?.details as string;
+      equal(typeof audit, "string", `${role} submission writes audit evidence`);
+      equal(audit.includes(gameId) && audit.includes(stored.id), true, `${role} audit binds game and report IDs`);
+      equal(audit.includes(reason) && !audit.includes(`  ${reason}`) && !audit.includes(`${reason}\n `), true, `${role} audit preserves trimmed on-behalf reason`);
+    }
+    // Maximum accepted reason must be stored intact, rather than silently truncated.
+    await newGame("reason-limit");
+    cookie = primary.cookie;
+    const limitReason = "b".repeat(2000);
+    equal((await invoke(endpoint("reason-limit"), "POST", { ...valid(), overrideReason: `  ${limitReason}\n ` })).response.status, 200, "Exactly 2000 trimmed reason characters are accepted");
+    equal((await pool.query("SELECT details FROM audit_logs WHERE user_id=$1 AND action='Game Report Submitted' ORDER BY timestamp DESC LIMIT 1", [primary.id])).rows[0].details.includes(limitReason), true, "Maximum reason is retained intact in audit");
+
+    for (const role of ["involved", "primary"]) {
+      if (role === "primary") {
+        await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ('coach-primary',$1,'away','report-league','Synthetic','Primary')", [primary.id]);
+      }
+      const gameId = `as-coach-${role}`;
+      await newGame(gameId);
+      cookie = actors[role].cookie;
+      const metadata = await invoke(`/api/leagues/report-league/games/${gameId}`);
+      equal(metadata.data.reporting, { isCommissioner: role === "primary", isInvolvedCoach: true, requiresOverrideReason: false }, `${role} acting as involved coach needs no override reason`);
+      const data: any = valid(); delete data.overrideReason;
+      const accepted = await invoke(endpoint(gameId), "POST", data);
+      equal(accepted.response.status, 200, `${role} involved-coach report succeeds without reason`);
+      equal(accepted.data.status, "pending", `${role} involved-coach report against human opponent remains pending`);
+      equal(accepted.data.reporterTeamId, role === "primary" ? "away" : "home", `${role} coaching report retains actual coaching team`);
+      const audit = (await pool.query("SELECT details FROM audit_logs WHERE user_id=$1 AND action='Game Report Submitted' ORDER BY timestamp DESC LIMIT 1", [actors[role].id])).rows[0].details as string;
+      equal(audit.includes("commissioner override:"), false, `${role} normal coaching submission has no invented override reason`);
+    }
     console.log(`[reported-result-test] PASS ${checks} assertions: real HTTP, shared validation, and no-write rejection snapshots`);
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) await new Promise<void>((done, reject) => {

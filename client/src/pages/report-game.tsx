@@ -1,3 +1,5 @@
+import { reportOverrideReasonError, type ReportRole } from "@shared/reporting";
+import { ReportOverrideReason } from "@/components/report-override-reason";
 import { defaultPitcher, ipToDecimal, liveEra, ocrPitchersToEntries, pitchingFieldMeta, type PitcherEntry, type OcrPitchingPlayer } from "@/lib/report-pitching";
 import { recordReportCorrection, reconcileReportRowCorrections, pruneReportInningCorrections, pruneReportPlayerCorrections, type ReportCorrectionState } from "@/lib/report-corrections";
 import { ReportErrors } from "@/components/report-errors";
@@ -212,6 +214,7 @@ function ReportGameInner() {
   const queryClient = useQueryClient();
 
   const [phase, setPhase] = useState<Phase>("score");
+  const [overrideReason, setOverrideReason] = useState("");
 
   const [homeScoreDirect, setHomeScoreDirect] = useState(0);
   const [awayScoreDirect, setAwayScoreDirect] = useState(0);
@@ -390,7 +393,7 @@ function ReportGameInner() {
     setAckReviewWarnings(false);
   }
 
-  const { data: gameData, isLoading: gameLoading, isError: gameError } = useQuery<{ game: GameWithTeams; homeTeam: Team; awayTeam: Team }>({
+  const { data: gameData, isLoading: gameLoading, isError: gameError } = useQuery<{ game: GameWithTeams; homeTeam: Team; awayTeam: Team; reporting: ReportRole }>({
     queryKey: ["/api/leagues", id, "games", gameId],
     queryFn: async () => {
       const res = await fetch(`/api/leagues/${id}/games/${gameId}`, { credentials: "include" });
@@ -622,7 +625,10 @@ function ReportGameInner() {
     }
   }
 
+  const requiresOverrideReason = !isEditMode && gameData?.reporting?.requiresOverrideReason === true;
+
   interface ReportPayload {
+    overrideReason?: string;
     homeScore: number; awayScore: number; homeHits: number; awayHits: number;
     homeErrors: number; awayErrors: number; inningScores: number[][];
     homeBoxData: { batting: BatterEntry[]; pitching: PitcherEntry[]; totals: Record<string, number> };
@@ -659,6 +665,7 @@ function ReportGameInner() {
     return {
       homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData,
       corrections: correctionsPayload.length > 0 ? correctionsPayload : undefined,
+      ...(requiresOverrideReason ? { overrideReason: overrideReason.trim() } : {}),
     };
   }
 
@@ -735,6 +742,10 @@ function ReportGameInner() {
     if (target.section === "errors") setShowHitsErrors(true);
     if (target.section === "innings" && !showInnings) toggleInnings();
     requestAnimationFrame(() => {
+      if (target.section === "override") {
+        const reason = document.getElementById("report-override-reason");
+        reason?.focus(); reason?.scrollIntoView({ block: "center", behavior: "smooth" }); return;
+      }
       const testId = target.section === "batting" ? "toggle-" + (target.side ?? "home") + "-batting" : target.section === "pitching" ? "toggle-pitching" : target.section === "errors" ? "toggle-hits-errors" : target.section === "innings" ? "toggle-innings" : hasLineScore ? "toggle-innings" : "score-" + (target.side ?? "home") + "-input";
       const element = document.querySelector<HTMLElement>('[data-testid="' + testId + '"]');
       element?.focus(); element?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -742,6 +753,7 @@ function ReportGameInner() {
   }
 
   function handleContinueToReview() {
+    if (requiresOverrideReason) { const error = reportOverrideReasonError(overrideReason); if (error) { setValidationError(error); return; } }
     const err = validateScores();
     if (err) { setValidationError(err); return; }
     setAckReviewWarnings(false);
@@ -774,6 +786,8 @@ function ReportGameInner() {
     homeHits, awayHits,
   });
   const reviewHardErrors: ReviewIssue[] = [
+    ...(!gameData.reporting || (isEditMode ? !gameData.reporting.isCommissioner : !gameData.reporting.isCommissioner && !gameData.reporting.isInvolvedCoach) ? [{ id: "report-role-unavailable", section: "score" as const, severity: "hard" as const, message: "Reporting access is unavailable for this account. Reload to check current access; submitted-report edits require a commissioner." }] : []),
+    ...(requiresOverrideReason && reportOverrideReasonError(overrideReason) ? [{ id: "override-reason-invalid", section: "score" as const, severity: "hard" as const, message: reportOverrideReasonError(overrideReason)! }] : []),
     ...(playersLoading || homePlayersError || awayPlayersError ? [{ id: "roster-unavailable", section: "score" as const, severity: "hard" as const, message: "Both team rosters must load before you can submit. Retry loading the report if a roster is unavailable." }] : []),
     ...reviewIssues.filter(i => i.severity === "hard"),
     ...((!hasLineScore || !homeBatting.length || !awayBatting.length || !homePitching.length || !awayPitching.length)
@@ -858,6 +872,8 @@ function ReportGameInner() {
                 correctedCategories={correctedCategories}
               />
             )}
+
+            {requiresOverrideReason && <ReportOverrideReason value={overrideReason} onChange={value => { setOverrideReason(value); setAckReviewWarnings(false); }} />}
 
             {hasOcrData && (
               <div className="flex items-start gap-2 p-2.5 bg-gold/5 border border-gold/20 rounded text-xs text-gold/80" data-testid="banner-ocr-autofilled">
@@ -986,6 +1002,7 @@ function ReportGameInner() {
 
         {phase === "review" && (
           <>
+            {requiresOverrideReason && <ReportOverrideReason value={overrideReason} onChange={value => { setOverrideReason(value); setAckReviewWarnings(false); }} />}
             <div className="flex items-start gap-2 p-2.5 bg-muted/30 border border-border rounded text-xs text-muted-foreground" data-testid="banner-review-before-submit">
               <ClipboardCheck className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
               <span>

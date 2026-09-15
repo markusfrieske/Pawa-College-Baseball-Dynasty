@@ -1,3 +1,4 @@
+import { reportOverrideReasonError, type ReportRole } from "../../shared/reporting";
 /**
  * Game schedule and game-report routes.
  *
@@ -206,7 +207,13 @@ export function registerGameRoutes(app: Express): void {
       const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
       const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
       if (!homeTeam || !awayTeam) return res.status(404).json({ message: "Teams not found" });
-      res.json({ game: { ...game, homeTeam, awayTeam }, homeTeam, awayTeam });
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const coach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+      const isInvolvedCoach = !!(coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId));
+      const reporting: ReportRole = { isCommissioner, isInvolvedCoach, requiresOverrideReason: isCommissioner && !isInvolvedCoach };
+      res.setHeader("Cache-Control", "private, no-store");
+      res.json({ game: { ...game, homeTeam, awayTeam }, homeTeam, awayTeam, reporting });
     } catch (error) {
       console.error("Error fetching game:", error);
       res.status(500).json({ message: "Failed to fetch game" });
@@ -472,13 +479,14 @@ export function registerGameRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the home or away team's coach, or the commissioner, can report this game" });
       }
 
-      // Commissioners reporting on behalf of a team must supply an explicit override reason.
+      // Use the same normalized value for validation and the submission audit.
+      const overrideReason = typeof req.body.overrideReason === "string" ? req.body.overrideReason.trim() : "";
       if (isCommissionerForReport && !isInvolvedCoach) {
-        const overrideReason = typeof req.body.overrideReason === "string" ? req.body.overrideReason.trim() : "";
-        if (!overrideReason) {
+        const reasonError = reportOverrideReasonError(req.body.overrideReason);
+        if (reasonError) {
           return res.status(422).json({
-            message: "Commissioners must provide an override reason when reporting a game on behalf of a team",
-            validationErrors: [{ id: "override-reason-required", field: "overrideReason", severity: "error", message: "Override reason is required for commissioner reports" }],
+            message: reasonError,
+            validationErrors: [{ id: "override-reason-invalid", field: "overrideReason", severity: "error", message: reasonError }],
           });
         }
       }
@@ -585,7 +593,7 @@ export function registerGameRoutes(app: Express): void {
         leagueId,
         userId: req.session.userId,
         action: "Game Report Submitted",
-        details: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (auto-confirmed vs CPU)" : ""}`,
+        details: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (auto-confirmed vs CPU)" : ""}; Game ${game.id}; report ${report.id}${isCommissionerForReport && !isInvolvedCoach ? `; commissioner override: ${overrideReason}` : ""}`,
       });
 
       await persistCorrections(req.body.corrections, {
