@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-12, UX-01 and UX-03 implementing; TI-13 in review; 33 findings remain planned. Latest evidence: [W02 batch 04](W02_BATCH_04.md) and its [independent audit](audits/W02_BATCH_04_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 32 findings remain planned. Latest evidence: [W02 batch 05](W02_BATCH_05.md) and its [independent audit](audits/W02_BATCH_05_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -42,7 +42,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | [UX-04](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Role/mode-specific Today exposes one next action without duplicate obligations at phone widths and zoom. | planned |
 | [UX-05](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Every navigation destination resolves correctly; News, refresh, Back and selected state have route assertions. | planned |
 | [UX-06](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Keyboard and touch can inspect, assign and reorder the full roster; narrow widths/focus/zoom pass. | planned |
-| [UX-07](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | Reported unknown data never appears measured or as observed zero; provenance and coverage flow through UI/API. | planned |
+| [UX-07](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | Reported unknown data never appears measured or as observed zero; provenance and coverage flow through UI/API. | implementing |
 | [UX-08](../audits/2026-09-14/player-experience.md) | W06 · 2026-10-23 | JD Player Experience Lead | One stable game workspace shows exact roster/rules revision, evidence, state and permitted next action. | planned |
 | [UX-09](../audits/2026-09-14/player-experience.md) | W12 · 2026-12-04 | JD Player Experience Lead | Solo/run/join intent selects reviewed presets; unfamiliar users reach their first meaningful task without admin confusion. | planned |
 | [UX-10](../audits/2026-09-14/player-experience.md) | W11 · 2026-11-27 | Bookie Narrative & Character Lead | Reviewed dilemmas have defensible alternatives and ownership/costs; confirmed-game claims are evidence-linked. | planned |
@@ -51,7 +51,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 
 ## Milestone audit follow-ups
 
-[W02 batch 02](W02_BATCH_02.md) verifies UX-12. [W02 batch 03](W02_BATCH_03.md) moves UX-01/UX-03 to implementing and verifies bounded W02-OCR-01. Structured feedback, correction continuity and [on-behalf commissioner reasons](W02_BATCH_04.md) are implemented. Score-only entry, coach notification awareness and the full-page journey remain open.
+[W02 batch 02](W02_BATCH_02.md) verifies UX-12. [W02 batch 03](W02_BATCH_03.md) moves UX-01/UX-03 to implementing and verifies bounded W02-OCR-01. Structured feedback, correction continuity and [on-behalf commissioner reasons](W02_BATCH_04.md) are implemented. [W02 batch 05](W02_BATCH_05.md) implements score-only entry and verifies W02-NOTIFY-01. UX-07 now implements explicit unknown-stat preservation; broader partial displays, recap completeness and the full-page journey remain open.
 
 [W02 batch 01](W02_BATCH_01.md) advances TI-03 to implementing and TI-04 to mitigated; neither finding is fully closed. [W01 batch 03](W01_BATCH_03.md), [W01 batch 04](W01_BATCH_04.md) and [W01 batch 05](W01_BATCH_05.md) record independently audited evidence and follow-ups in the same JSON tracker:
 
@@ -62,4 +62,4 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | W01-SAVE-01 | P1 | Gilfoyle + Gibs | Preserve unflagged guest saves; 21 cleanup assertions passed. | verified |
 | W01-WEB-01 | P2 | Gilfoyle + Gibs | Honest missing-resource errors; 86 static HTTP assertions passed. | verified |
 | W02-OCR-01 | P2 | JD + Gilfoyle | Shared row correction path; 11 regressions plus independent integration source review passed. | verified |
-| W02-NOTIFY-01 | P2 | JD + Gilfoyle | Correct pending-report recipients for no-team and unrelated-team commissioner submissions. | planned |
+| W02-NOTIFY-01 | P2 | JD + Gilfoyle | Actual participant inbox rows verified within 229 HTTP/database assertions; deduplication pure tests passed. | verified |

@@ -541,7 +541,7 @@
       "acceptance": "Reporting requirements match policy and validators before entry begins, with linked field-level failures.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": "107a4ee102080ca6f259ddc9e96b6745e7091704",
+      "implementationCommit": "72874e25c3eb9e8bd751cb44c0e205836370353a",
       "evidence": [
         "W02_BATCH_02.md",
         "audits/W02_BATCH_02_AUDIT.md",
@@ -550,10 +550,12 @@
         "../../scripts/verify-report-errors.ts",
         "W02_BATCH_04.md",
         "audits/W02_BATCH_04_AUDIT.md",
-        "../../scripts/verify-report-override.ts"
+        "../../scripts/verify-report-override.ts",
+        "W02_BATCH_05.md",
+        "audits/W02_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": null,
-      "notes": "W02 batch04 adds server-derived reporting role and retained on-behalf commissioner reason, with actual permission and audit tests. Score-only UI, notification awareness and full-page role/error/retry journeys remain open."
+      "notes": "W02 batch05 adds explicit commissioner score-only entry with retained full draft and correct participant inbox routing. Complete authenticated report-page role/error/retry and reload/media verification remain open."
     },
     {
       "id": "UX-02",
@@ -583,7 +585,7 @@
       "acceptance": "Routine feedback is nonblocking and accessible; errors persist with retained inputs and useful retry.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": "107a4ee102080ca6f259ddc9e96b6745e7091704",
+      "implementationCommit": "72874e25c3eb9e8bd751cb44c0e205836370353a",
       "evidence": [
         "W02_BATCH_02.md",
         "audits/W02_BATCH_02_AUDIT.md",
@@ -592,10 +594,12 @@
         "../../scripts/verify-report-errors.ts",
         "W02_BATCH_04.md",
         "audits/W02_BATCH_04_AUDIT.md",
-        "../../scripts/verify-report-override.ts"
+        "../../scripts/verify-report-override.ts",
+        "W02_BATCH_05.md",
+        "audits/W02_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": null,
-      "notes": "W02 batch04 adds server-derived reporting role and retained on-behalf commissioner reason, with actual permission and audit tests. Score-only UI, notification awareness and full-page role/error/retry journeys remain open."
+      "notes": "W02 batch05 adds explicit commissioner score-only entry with retained full draft and correct participant inbox routing. Complete authenticated report-page role/error/retry and reload/media verification remain open."
     },
     {
       "id": "UX-04",
@@ -648,7 +652,7 @@
     {
       "id": "UX-07",
       "title": "P1: Statistics are presented with more certainty than the companion UI can justify",
-      "status": "planned",
+      "status": "implementing",
       "owner": "JD Player Experience Lead",
       "targetWeek": 6,
       "targetStart": "2026-10-19",
@@ -657,9 +661,13 @@
       "acceptance": "Reported unknown data never appears measured or as observed zero; provenance and coverage flow through UI/API.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "72874e25c3eb9e8bd751cb44c0e205836370353a",
+      "evidence": [
+        "W02_BATCH_05.md",
+        "audits/W02_BATCH_05_AUDIT.md"
+      ],
+      "verifiedBy": null,
+      "notes": "Explicit new score-only reports preserve null summaries and finalize without invented box/player lines; known/mixed summaries persist. Broader partial-summary display still coerces null H/E to zero and recap completeness treats summary boxes as complete; historical defaults are not reinterpreted. These remain W03/W06 acceptance."
     },
     {
       "id": "UX-08",
@@ -835,17 +843,20 @@
     {
       "id": "W02-NOTIFY-01",
       "priority": "P2",
-      "status": "planned",
+      "status": "verified",
       "title": "On-behalf reports do not notify all appropriate participating coaches",
       "owner": "JD Player Experience Lead + Gilfoyle technical integrity",
-      "target": "W02 next role-aware reporting slice",
+      "target": "W02 batch05 recipient correctness completed",
       "acceptance": "For commissioner submissions with no coach team or an unrelated team, participating coaches receive the appropriate pending-report notice without duplicate recipients or invented reporter-team ownership. Verify synthetic notification records for both cases.",
       "source": "audits/W02_BATCH_04_AUDIT.md",
-      "implementationCommit": null,
+      "implementationCommit": "72874e25c3eb9e8bd751cb44c0e205836370353a",
       "evidence": [
-        "W02_BATCH_04.md"
+        "W02_BATCH_05.md",
+        "audits/W02_BATCH_05_AUDIT.md",
+        "../../scripts/verify-reported-results.ts",
+        "../../tests/unit/reportNotificationRecipients.test.ts"
       ],
-      "verifiedBy": null
+      "verifiedBy": "Independent JD/Gibs: 229 HTTP/PostgreSQL assertions include exact persisted participant inbox rows; recipient deduplication in pure tests. Best-effort delivery is not an atomic outbox or human delivery guarantee."
     }
   ]
 }
