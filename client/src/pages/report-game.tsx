@@ -1,4 +1,5 @@
-import { reportOverrideReasonError, type ReportRole } from "@shared/reporting";
+import { ReportEntryMode } from "@/components/report-entry-mode";
+import { buildScoreOnlyReport, reportOverrideReasonError, type ReportRole } from "@shared/reporting";
 import { ReportOverrideReason } from "@/components/report-override-reason";
 import { defaultPitcher, ipToDecimal, liveEra, ocrPitchersToEntries, pitchingFieldMeta, type PitcherEntry, type OcrPitchingPlayer } from "@/lib/report-pitching";
 import { recordReportCorrection, reconcileReportRowCorrections, pruneReportInningCorrections, pruneReportPlayerCorrections, type ReportCorrectionState } from "@/lib/report-corrections";
@@ -215,6 +216,8 @@ function ReportGameInner() {
 
   const [phase, setPhase] = useState<Phase>("score");
   const [overrideReason, setOverrideReason] = useState("");
+  const [entryMode, setEntryMode] = useState<"full" | "score-only">("full");
+  const [scoreOnlyDraft, setScoreOnlyDraft] = useState<{ home: number; away: number } | null>(null);
 
   const [homeScoreDirect, setHomeScoreDirect] = useState(0);
   const [awayScoreDirect, setAwayScoreDirect] = useState(0);
@@ -461,12 +464,22 @@ function ReportGameInner() {
     if (ab?.pitching?.length) { setAwayPitching(ab.pitching); setAwayPitchersInitialized(true); setShowPitching(true); }
   }, [existingReport, isEditMode]);
 
-  const homeScore = hasLineScore ? homeInnings.reduce((a, b) => a + b, 0) : homeScoreDirect;
-  const awayScore = hasLineScore ? awayInnings.reduce((a, b) => a + b, 0) : awayScoreDirect;
+  const canUseScoreOnly = !isEditMode && gameData?.reporting?.isCommissioner === true;
+  const isScoreOnly = !isEditMode && entryMode === "score-only";
+  const fullHomeScore = hasLineScore ? homeInnings.reduce((a, b) => a + b, 0) : homeScoreDirect;
+  const fullAwayScore = hasLineScore ? awayInnings.reduce((a, b) => a + b, 0) : awayScoreDirect;
+  const homeScore = isScoreOnly ? (scoreOnlyDraft?.home ?? fullHomeScore) : fullHomeScore;
+  const awayScore = isScoreOnly ? (scoreOnlyDraft?.away ?? fullAwayScore) : fullAwayScore;
+  function changeEntryMode(mode: "full" | "score-only") {
+    if (mode === "score-only" && !canUseScoreOnly) return;
+    if (mode === "score-only" && !scoreOnlyDraft) setScoreOnlyDraft({ home: fullHomeScore, away: fullAwayScore });
+    setEntryMode(mode); setAckReviewWarnings(false);
+  }
   const homeHits = homeBatting.reduce((a, b) => a + b.h, 0);
   const awayHits = awayBatting.reduce((a, b) => a + b.h, 0);
 
   function updateDirectScore(side: "home" | "away", value: number) {
+    if (isScoreOnly) { setScoreOnlyDraft(previous => ({ home: previous?.home ?? fullHomeScore, away: previous?.away ?? fullAwayScore, [side]: value })); return; }
     const old = side === "home" ? homeScore : awayScore;
     markFieldCorrected("score." + side + "Score", old, value);
     (side === "home" ? setHomeScoreDirect : setAwayScoreDirect)(value);
@@ -636,7 +649,10 @@ function ReportGameInner() {
     corrections?: Array<{ fieldKey: string; fieldLabel?: string; ocrValue: string; correctedValue: string }>;
   }
 
-  function buildPayload(): ReportPayload {
+  type SubmissionPayload = ReportPayload | ReturnType<typeof buildScoreOnlyReport>;
+
+  function buildPayload(): SubmissionPayload {
+    if (isScoreOnly) return buildScoreOnlyReport({ homeScore, awayScore, ...(requiresOverrideReason ? { overrideReason } : {}) });
     const includeInnings = hasLineScore;
     const inningScores = includeInnings ? awayInnings.map((a, i) => [a, homeInnings[i] ?? 0]) : [];
     const homeBoxData = {
@@ -670,7 +686,7 @@ function ReportGameInner() {
   }
 
   const submitMutation = useMutation({
-    mutationFn: async (payload: ReportPayload) => apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, payload),
+    mutationFn: async (payload: SubmissionPayload) => apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, payload),
     onSuccess: () => {
       import("@/lib/sfx").then(({ playScoreSubmitSfx }) => playScoreSubmitSfx());
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
@@ -684,7 +700,7 @@ function ReportGameInner() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (payload: ReportPayload) => apiRequest("PATCH", `/api/leagues/${id}/games/${gameId}/report`, payload),
+    mutationFn: async (payload: SubmissionPayload) => apiRequest("PATCH", `/api/leagues/${id}/games/${gameId}/report`, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       toast({ title: "Report Updated", description: "The submitted report has been corrected." });
@@ -722,7 +738,7 @@ function ReportGameInner() {
   function validateScores(): string | null {
     if (![homeScore, awayScore].every(score => Number.isInteger(score) && score >= 0 && score <= 30)) return "Scores must be whole numbers between 0 and 30";
     if (homeScore === awayScore) return "Scores must differ; tied reports are not supported";
-    if (hasLineScore) {
+    if (!isScoreOnly && hasLineScore) {
       const inningHome = homeInnings.reduce((a, b) => a + b, 0);
       const inningAway = awayInnings.reduce((a, b) => a + b, 0);
       if (homeBatting.length > 0 && homeBatting.reduce((a, b) => a + b.r, 0) !== inningHome) {
@@ -746,7 +762,7 @@ function ReportGameInner() {
         const reason = document.getElementById("report-override-reason");
         reason?.focus(); reason?.scrollIntoView({ block: "center", behavior: "smooth" }); return;
       }
-      const testId = target.section === "batting" ? "toggle-" + (target.side ?? "home") + "-batting" : target.section === "pitching" ? "toggle-pitching" : target.section === "errors" ? "toggle-hits-errors" : target.section === "innings" ? "toggle-innings" : hasLineScore ? "toggle-innings" : "score-" + (target.side ?? "home") + "-input";
+      const testId = target.section === "batting" ? "toggle-" + (target.side ?? "home") + "-batting" : target.section === "pitching" ? "toggle-pitching" : target.section === "errors" ? "toggle-hits-errors" : target.section === "innings" ? "toggle-innings" : !isScoreOnly && hasLineScore ? "toggle-innings" : "score-" + (target.side ?? "home") + "-input";
       const element = document.querySelector<HTMLElement>('[data-testid="' + testId + '"]');
       element?.focus(); element?.scrollIntoView({ block: "center", behavior: "smooth" });
     });
@@ -777,7 +793,7 @@ function ReportGameInner() {
   const hasBoxScoreDetail = homeBatting.length > 0 || awayBatting.length > 0 || homePitching.length > 0 || awayPitching.length > 0;
   const hasOcrData = Object.keys(fieldMeta).length > 0;
   const lowConfidenceCount = Object.values(fieldMeta).filter(v => v === "low").length;
-  const reviewIssues = computeReviewIssues({
+  const reviewIssues = isScoreOnly ? [] : computeReviewIssues({
     homeScore, awayScore, showInnings: hasLineScore, numInnings, homeInnings, awayInnings,
     homeBatting, awayBatting, homePitching, awayPitching,
     homeTeamName: homeTeam.abbreviation, awayTeamName: awayTeam.abbreviation,
@@ -788,9 +804,10 @@ function ReportGameInner() {
   const reviewHardErrors: ReviewIssue[] = [
     ...(!gameData.reporting || (isEditMode ? !gameData.reporting.isCommissioner : !gameData.reporting.isCommissioner && !gameData.reporting.isInvolvedCoach) ? [{ id: "report-role-unavailable", section: "score" as const, severity: "hard" as const, message: "Reporting access is unavailable for this account. Reload to check current access; submitted-report edits require a commissioner." }] : []),
     ...(requiresOverrideReason && reportOverrideReasonError(overrideReason) ? [{ id: "override-reason-invalid", section: "score" as const, severity: "hard" as const, message: reportOverrideReasonError(overrideReason)! }] : []),
-    ...(playersLoading || homePlayersError || awayPlayersError ? [{ id: "roster-unavailable", section: "score" as const, severity: "hard" as const, message: "Both team rosters must load before you can submit. Retry loading the report if a roster is unavailable." }] : []),
+    ...(isScoreOnly && !canUseScoreOnly ? [{ id: "score-only-role", section: "score" as const, severity: "hard" as const, message: "Only a current commissioner can submit a new score-only report." }] : []),
+    ...(!isScoreOnly && (playersLoading || homePlayersError || awayPlayersError) ? [{ id: "roster-unavailable", section: "score" as const, severity: "hard" as const, message: "Both team rosters must load before you can submit. Retry loading the report if a roster is unavailable." }] : []),
     ...reviewIssues.filter(i => i.severity === "hard"),
-    ...((!hasLineScore || !homeBatting.length || !awayBatting.length || !homePitching.length || !awayPitching.length)
+    ...(!isScoreOnly && (!hasLineScore || !homeBatting.length || !awayBatting.length || !homePitching.length || !awayPitching.length)
       ? [{ id: "box-score-required", section: "score" as const, severity: "hard" as const, message: "Add inning scores and batting/pitching rows for both teams in the score step." }]
       : []),
   ];
@@ -862,7 +879,8 @@ function ReportGameInner() {
 
         {phase === "score" && (
           <>
-            {id && gameId && (
+            {canUseScoreOnly && <ReportEntryMode value={entryMode} onChange={changeEntryMode} />}
+            {!isScoreOnly && id && gameId && (
               <GameScreenshotUpload
                 leagueId={id}
                 gameId={gameId}
@@ -875,13 +893,22 @@ function ReportGameInner() {
 
             {requiresOverrideReason && <ReportOverrideReason value={overrideReason} onChange={value => { setOverrideReason(value); setAckReviewWarnings(false); }} />}
 
-            {hasOcrData && (
+            {!isScoreOnly && hasOcrData && (
               <div className="flex items-start gap-2 p-2.5 bg-gold/5 border border-gold/20 rounded text-xs text-gold/80" data-testid="banner-ocr-autofilled">
                 <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
                 <span>Form auto-filled from screenshots — fields marked ✦ came from OCR. Correct anything that looks wrong, then continue to review.</span>
               </div>
             )}
 
+            {isScoreOnly ? (
+              <div className="space-y-3" data-testid="score-only-entry">
+                <p className="text-sm">Enter the final score (0–30, no ties). Hits, errors, inning scores and player statistics are not included. Your full-report draft is retained if you switch back.</p>
+                <div className="flex justify-around gap-4">
+                  <ScoreStepper value={awayScore} onChange={value => updateDirectScore("away", value)} label="Away" testId="score-away" />
+                  <ScoreStepper value={homeScore} onChange={value => updateDirectScore("home", value)} label="Home" testId="score-home" />
+                </div>
+              </div>
+            ) : (<>
             <div className="text-xs text-muted-foreground border border-border rounded p-3" data-testid="report-requirements">
               Coach submissions and report edits require inning scores, at least 9 batters and at least one pitcher for each team. Enter the players who appeared and their recorded stats. Current score limits are 0–30 with no ties. Batting runs and inning totals must match the final score; pitching innings use .0, .1 or .2 for outs. Once enabled, the final score is calculated from the innings you enter; enter the actual scoring sequence. Inning totals remain included when the section is collapsed.
             </div>
@@ -974,16 +1001,18 @@ function ReportGameInner() {
               }
             </CollapsibleSection>
 
+            </>)}
+
             <ReportErrors error={validationError} onNavigate={navigateReportError} />
 
-            {pendingOcrCount > 0 && (
+            {!isScoreOnly && pendingOcrCount > 0 && (
               <div className="flex items-center gap-2 p-2.5 bg-yellow-900/20 border border-yellow-700/40 rounded text-xs text-yellow-300" data-testid="banner-ocr-pending">
                 <Loader2 className="w-3 h-3 shrink-0 animate-spin" />
                 <span>Still reading {pendingOcrCount} screenshot{pendingOcrCount !== 1 ? "s" : ""} — wait for them to finish for the best auto-fill.</span>
               </div>
             )}
 
-            {allOcrSettled && (
+            {!isScoreOnly && allOcrSettled && (
               <div className="flex items-center gap-2 p-2.5 bg-green-900/20 border border-green-700/40 rounded text-xs text-green-300" data-testid="banner-ocr-complete">
                 <CheckCircle className="w-3 h-3 shrink-0" />
                 <span>All screenshots read — form is ready to review.</span>
@@ -995,7 +1024,7 @@ function ReportGameInner() {
               onClick={handleContinueToReview}
               data-testid="button-continue-review"
             >
-              {hasOcrData ? "Review Auto-filled Stats" : "Review Box Score"} <ChevronRight className="w-4 h-4 ml-1" />
+              {isScoreOnly ? "Review Final Score" : hasOcrData ? "Review Auto-filled Stats" : "Review Box Score"} <ChevronRight className="w-4 h-4 ml-1" />
             </RetroButton>
           </>
         )}
@@ -1006,12 +1035,18 @@ function ReportGameInner() {
             <div className="flex items-start gap-2 p-2.5 bg-muted/30 border border-border rounded text-xs text-muted-foreground" data-testid="banner-review-before-submit">
               <ClipboardCheck className="w-3 h-3 shrink-0 mt-0.5 text-gold" />
               <span>
-                {hasOcrData
+                {isScoreOnly ? "Review the final score. This report contains no inning or player statistics; missing hits and errors remain unknown." : hasOcrData
                   ? "Review every field before submitting — OCR is a reading aid, not a guarantee. Correct anything that looks wrong. Your reviewed data is what gets submitted."
                   : "Review your box score below. Batting runs must match the final score, pitching IPs must be valid, and at least 9 batters per team. Go back to edit."}
               </span>
             </div>
-            {hasOcrData ? (
+            {isScoreOnly ? (
+              <section className="rounded border border-border p-4 space-y-3" data-testid="score-only-review">
+                <p className="text-lg">{awayTeam.abbreviation} {awayScore} @ {homeTeam.abbreviation} {homeScore}</p>
+                <p className="text-sm text-muted-foreground">Score-only report. Hits, errors, innings and player stats: not recorded. No player stat lines will be added.</p>
+                {reviewHardErrors.map(issue => <p key={issue.id} role="alert" className="text-sm text-destructive">{issue.message}</p>)}
+              </section>
+            ) : hasOcrData ? (
               <OcrReviewScreen
                 homePlayers={homePlayers ?? []} awayPlayers={awayPlayers ?? []}
                 onReassign={reassignIdentity}
@@ -1335,7 +1370,7 @@ function SubmittedPhase({
         <p className="text-xs text-muted-foreground max-w-xs">
           {isAutoFinalized
             ? "The game result has been confirmed and recorded."
-            : "Your report has been submitted. The opposing coach must confirm or dispute before the result is finalized."
+            : "Your report has been submitted and awaits review before finalization."
           }
         </p>
       </div>
@@ -1366,7 +1401,7 @@ function SubmittedPhase({
           <Clock className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs text-yellow-300 font-medium">Waiting for confirmation</p>
-            <p className="text-xs text-yellow-400/70 mt-0.5">The opposing coach will see a confirm/dispute prompt on their schedule page.</p>
+            <p className="text-xs text-yellow-400/70 mt-0.5">Participating coaches can review this report on their schedule page.</p>
           </div>
         </div>
       )}

@@ -23,6 +23,7 @@ import { validateBoxScore } from "../lib/validateBoxScore";
 import { validateReportedResult, assertReportedResult, ReportValidationError } from "../lib/validateReportedResult";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema, requireLeagueMember } from "../route-helpers";
 import * as coachMsg from "../lib/coachMessages";
+import { reportPendingRecipientIds } from "../lib/report-notification-recipients";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGameAtomic, finalizeReportedGame } from "../game-finalizer";
 import { pool } from "../db";
@@ -522,7 +523,15 @@ export function registerGameRoutes(app: Express): void {
         });
       }
 
-      const validationIssues = await validateReportedResult({ homeScore, awayScore, homeHits: homeHits ?? 0, awayHits: awayHits ?? 0, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData }, game, leagueId);
+      // Explicit unknown summaries are valid only for a report with no box or
+      // inning data. Keep legacy omitted-field defaults for other submissions.
+      const scoreOnly = inningScores == null && homeBoxData == null && awayBoxData == null;
+      const summaryValue = (value: unknown) => scoreOnly && value === null ? null : value ?? 0;
+      const reportHomeHits = summaryValue(homeHits) as number | null;
+      const reportAwayHits = summaryValue(awayHits) as number | null;
+      const reportHomeErrors = summaryValue(homeErrors) as number | null;
+      const reportAwayErrors = summaryValue(awayErrors) as number | null;
+      const validationIssues = await validateReportedResult({ homeScore, awayScore, homeHits: reportHomeHits, awayHits: reportAwayHits, homeErrors: reportHomeErrors, awayErrors: reportAwayErrors, inningScores, homeBoxData, awayBoxData }, game, leagueId);
       const validationErrors = validationIssues.filter(i => i.severity === "error");
       if (validationErrors.length > 0) {
         return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
@@ -572,8 +581,8 @@ export function registerGameRoutes(app: Express): void {
               ? coach.teamId
               : null,
           homeScore, awayScore,
-          homeHits: homeHits ?? 0, awayHits: awayHits ?? 0,
-          homeErrors: homeErrors ?? 0, awayErrors: awayErrors ?? 0,
+          homeHits: reportHomeHits, awayHits: reportAwayHits,
+          homeErrors: reportHomeErrors, awayErrors: reportAwayErrors,
           inningScores: inningScores ?? null,
           homeBoxData: homeBoxData ?? null,
           awayBoxData: awayBoxData ?? null,
@@ -610,7 +619,7 @@ export function registerGameRoutes(app: Express): void {
 
       // Notify submitter that their report is pending confirmation
       if (req.session.userId) {
-        void coachMsg.notifyReportSubmitted({
+        await coachMsg.notifyReportSubmitted({
           leagueId,
           userId: req.session.userId,
           homeTeamName: homeTeam?.name ?? "Home",
@@ -621,23 +630,17 @@ export function registerGameRoutes(app: Express): void {
         });
       }
 
-      // Notify the opposing coach to confirm/dispute
-      const reporterTeamId2 = coach?.teamId ?? null;
-      if (reporterTeamId2) {
-        const opposingTeamId2 =
-          reporterTeamId2 === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
-        const opposingCoach = (await storage.getCoachesByLeague(leagueId))
-          .find(c => c.teamId === opposingTeamId2 && c.userId);
-        if (opposingCoach?.userId) {
-          void coachMsg.notifyReportPending({
-            leagueId,
-            userId: opposingCoach.userId,
-            homeTeamName: homeTeam?.name ?? "Home",
-            awayTeamName: awayTeam?.name ?? "Away",
-            gameId,
-          });
-        }
-      }
+      // Coach reports notify the opposition; on-behalf reports notify both
+      // participating teams. Each real user receives at most one pending alert.
+      await Promise.all(reportPendingRecipientIds(coaches, game, req.session.userId!, report.reporterTeamId)
+        .map(userId => coachMsg.notifyReportPending({
+          leagueId,
+          userId,
+          homeTeamName: homeTeam?.name ?? "Home",
+          awayTeamName: awayTeam?.name ?? "Away",
+          gameId,
+          onBehalf: !isInvolvedCoach,
+        })));
 
       res.json(report);
     } catch (error) {

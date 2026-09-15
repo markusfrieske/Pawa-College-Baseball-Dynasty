@@ -539,10 +539,16 @@ export async function finalizeReportedGame(report: GameReport, game: Game, leagu
   const homeErrors = report.homeErrors ?? 0;
   const awayErrors = report.awayErrors ?? 0;
 
-  const boxScore = {
+  // Only explicit unknown summaries omit the box; preserve supplied historical totals.
+  const scoreOnly = !homeBoxData && !awayBoxData && inningScores.length === 0
+    && report.homeHits === null && report.awayHits === null
+    && report.homeErrors === null && report.awayErrors === null;
+  const boxScore = scoreOnly ? null : {
     innings: inningScores,
-    home: enrichBoxData(homeBoxData, homeErrors, homeScore, homeHits),
-    away: enrichBoxData(awayBoxData, awayErrors, awayScore, awayHits),
+    home: homeBoxData ? enrichBoxData(homeBoxData, homeErrors, homeScore, homeHits)
+      : { batting: [], pitching: [], totals: { r: homeScore, h: report.homeHits }, errors: report.homeErrors },
+    away: awayBoxData ? enrichBoxData(awayBoxData, awayErrors, awayScore, awayHits)
+      : { batting: [], pitching: [], totals: { r: awayScore, h: report.awayHits }, errors: report.awayErrors },
   };
 
   // Use atomic wrapper so concurrent confirm/force-finalize calls can't

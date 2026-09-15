@@ -2,8 +2,9 @@
  * Coach Office Inbox — server-side message creation helpers.
  *
  * Call these from route handlers, advance logic, or any background job
- * to drop messages into a coach's inbox.  All functions are fire-and-forget
- * (errors are logged, not thrown) so they never block the primary operation.
+ * to drop messages into a coach's inbox. Errors are logged, not thrown, so
+ * failed delivery does not fail the primary operation. Callers may await
+ * completion when they need notification writes settled before responding.
  */
 import { storage } from "../storage";
 import type { CoachMessageCategory } from "@shared/schema";
@@ -223,12 +224,13 @@ export async function notifyReportPending(opts: {
   homeTeamName: string;
   awayTeamName: string;
   gameId: string;
+  onBehalf?: boolean;
 }): Promise<void> {
   const { leagueId, userId, homeTeamName, awayTeamName, gameId } = opts;
   await sendToUser(leagueId, userId, {
     category: "reports",
     title: "Report awaiting confirmation",
-    body: `${awayTeamName} @ ${homeTeamName}: the other coach submitted a score. Confirm or dispute it.`,
+    body: `${awayTeamName} @ ${homeTeamName}: ${opts.onBehalf ? "a commissioner reported this result on behalf of the coaches" : "the other coach submitted a score"}. Confirm or dispute it.`,
     ctaLabel: "Confirm Report",
     ctaUrl: `/league/${leagueId}/schedule`,
     metadata: { gameId },
@@ -248,7 +250,7 @@ export async function notifyReportFinalized(opts: {
   await sendToUser(leagueId, userId, {
     category: "reports",
     title: "Report confirmed",
-    body: `${awayTeamName} ${awayScore} @ ${homeTeamName} ${homeScore} — final. Stats updated.`,
+    body: `${awayTeamName} ${awayScore} @ ${homeTeamName} ${homeScore} — final. Result recorded.`,
     ctaLabel: "View Schedule",
     ctaUrl: `/league/${leagueId}/schedule`,
     metadata: { gameId },

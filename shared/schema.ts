@@ -1730,10 +1730,10 @@ export const gameReports = pgTable("game_reports", {
   // but both names represent the same data; this choice keeps cross-table joins unambiguous.
   homeScore: integer("home_score").notNull(),
   awayScore: integer("away_score").notNull(),
-  homeHits: integer("home_hits").notNull().default(0),
-  awayHits: integer("away_hits").notNull().default(0),
-  homeErrors: integer("home_errors").notNull().default(0),
-  awayErrors: integer("away_errors").notNull().default(0),
+  homeHits: integer("home_hits").default(0),
+  awayHits: integer("away_hits").default(0),
+  homeErrors: integer("home_errors").default(0),
+  awayErrors: integer("away_errors").default(0),
   // inningScores shape: number[][] where each element is [awayRuns, homeRuns] for that inning.
   // e.g. [[0,1],[2,0],[0,3]] = away 2 runs, home 4 runs across 3 innings.
   // Note: columns are named homeScore/awayScore (not homeRuns/awayRuns) to align with the

@@ -6,6 +6,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { reassignReportRosterPlayer } from "../client/src/lib/report-roster-identity";
+import { buildScoreOnlyReport } from "../shared/reporting";
+import { checkMigrationVersion, runMigrations } from "../server/lib/runMigrations";
 
 const connection = process.env.PAWA_TEST_DATABASE_URL;
 assert(connection, "PAWA_TEST_DATABASE_URL required; refusing DATABASE_URL fallback");
@@ -186,12 +188,48 @@ if (process.argv.includes("--http-child")) {
     equal((await invoke(endpoint("score-only") + "/finalize", "POST", {})).response.status, 200, "Commissioner score-only result still finalizes");
     equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeScoreOnlyStats, "Score-only finalization adds no fabricated player lines");
 
+    // Summary-only legacy reports contain real observations even without
+    // per-player data. The explicit-unknown path must not erase those totals.
+    await newGame("known-summaries");
+    equal((await invoke(endpoint("known-summaries"), "POST", { homeScore: 2, awayScore: 1,
+      homeHits: 3, awayHits: 1, homeErrors: 0, awayErrors: 2, overrideReason: "Synthetic known team summaries" })).response.status, 200, "Commissioner report accepts known team totals without player data");
+    equal((await invoke(endpoint("known-summaries") + "/finalize", "POST", {})).response.status, 200, "Known team summaries finalize successfully");
+    const knownSummaryBox = JSON.parse((await pool.query("SELECT box_score FROM games WHERE id='known-summaries'")).rows[0].box_score);
+    equal([knownSummaryBox.home.totals.r, knownSummaryBox.home.totals.h, knownSummaryBox.home.errors,
+      knownSummaryBox.away.totals.r, knownSummaryBox.away.totals.h, knownSummaryBox.away.errors], [2, 3, 0, 1, 1, 2], "Finalization preserves supplied runs, hits and errors instead of discarding the box");
+    equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeScoreOnlyStats, "Known team summaries still fabricate no player stat lines");
+
+    // Exercise the real upgrade from the original required summary columns,
+    // with existing reports present, rather than relying only on a fresh schema.
+    const reportsBeforeUpgrade = (await pool.query("SELECT * FROM game_reports ORDER BY id")).rows;
+    for (const column of ["home_hits", "away_hits", "home_errors", "away_errors"]) {
+      await pool.query(`ALTER TABLE game_reports ALTER COLUMN ${column} SET NOT NULL`);
+    }
+    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key='0050_report_unknown_summaries'");
+    equal(await checkMigrationVersion(pool), false, "Schema readiness fails before the required unknown-summary migration");
+    const upgraded = await runMigrations(pool);
+    equal(upgraded.applied, ["0050_report_unknown_summaries"], "Populated database upgrade applies only the missing summary migration");
+    equal(upgraded.version, "0050_report_unknown_summaries", "Unknown-summary migration is the recorded schema head");
+    equal(await checkMigrationVersion(pool), true, "Schema readiness succeeds after the required migration is recorded");
+    equal((await pool.query("SELECT * FROM game_reports ORDER BY id")).rows, reportsBeforeUpgrade, "Unknown-summary migration preserves existing report rows intact");
+    equal((await pool.query("SELECT column_name,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='game_reports' AND column_name IN ('home_hits','away_hits','home_errors','away_errors') ORDER BY column_name")).rows.map(row => row.is_nullable), ["YES", "YES", "YES", "YES"], "All four report summary columns allow explicit unknown values after upgrade");
+
+    await newGame("mixed-summaries");
+    equal((await invoke(endpoint("mixed-summaries"), "POST", { homeScore: 2, awayScore: 1,
+      homeHits: 3, awayHits: null, homeErrors: null, awayErrors: 2, overrideReason: "Synthetic partially known team summaries" })).response.status, 200, "Commissioner can retain a mix of known and unknown team summaries");
+    equal((await invoke(endpoint("mixed-summaries") + "/finalize", "POST", {})).response.status, 200, "Mixed known and unknown summaries finalize");
+    const mixedSummaryBox = JSON.parse((await pool.query("SELECT box_score FROM games WHERE id='mixed-summaries'")).rows[0].box_score);
+    equal([mixedSummaryBox.home.totals, mixedSummaryBox.home.errors], [{ r: 2, h: 3 }, null], "Finalized home summary preserves known hits and unknown errors without inventing other counters");
+    equal([mixedSummaryBox.away.totals, mixedSummaryBox.away.errors], [{ r: 1, h: null }, 2], "Finalized away summary preserves unknown hits and known errors without inventing other counters");
+    equal((await pool.query("SELECT home_hits,away_hits,home_errors,away_errors FROM game_reports WHERE game_id='mixed-summaries'")).rows[0], { home_hits: 3, away_hits: null, home_errors: null, away_errors: 2 }, "Finalization also preserves the mixed summary observations in the report");
+    equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeScoreOnlyStats, "Mixed team summaries fabricate no player statistics");
+
     // Commissioner metadata and on-behalf reporting use real sessions, not client role hints.
     // Keep this matrix after the original finalization assertions so extra pending reports
     // cannot change that fixture's participant/stat expectations.
     const primary = { id: registration.data.id as string, cookie };
     const actors: Record<string, { id: string; cookie: string }> = { primary };
-    for (const role of ["co", "involved", "unrelated", "outsider"]) {
+    for (const role of ["co", "involved", "away", "unrelated", "outsider"]) {
       cookie = "";
       const registered = await invoke("/api/auth/register", "POST", { email: `reports-${role}@example.test`, password: "synthetic-reports-password" });
       equal(registered.response.status, 200, `Real ${role} actor registration`);
@@ -199,7 +237,7 @@ if (process.argv.includes("--http-child")) {
     }
     await pool.query("UPDATE leagues SET co_commissioner_ids=$1 WHERE id='report-league'", [JSON.stringify([actors.co.id])]);
     await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ('unrelated-team','report-league','Other fixture','Owls','OTH','Test','IA',false)");
-    for (const [role, teamId] of [["involved", "home"], ["unrelated", "unrelated-team"]]) {
+    for (const [role, teamId] of [["involved", "home"], ["away", "away"], ["unrelated", "unrelated-team"]]) {
       await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ($1,$2,$3,'report-league','Synthetic',$4)", [`coach-${role}`, actors[role].id, teamId, role]);
     }
     await newGame("role-matrix");
@@ -285,7 +323,49 @@ if (process.argv.includes("--http-child")) {
       equal(typeof audit, "string", `${role} submission writes audit evidence`);
       equal(audit.includes(gameId) && audit.includes(stored.id), true, `${role} audit binds game and report IDs`);
       equal(audit.includes(reason) && !audit.includes(`  ${reason}`) && !audit.includes(`${reason}\n `), true, `${role} audit preserves trimmed on-behalf reason`);
+      const notifications = (await pool.query("SELECT user_id,title,body,cta_url FROM coach_messages WHERE league_id='report-league' AND metadata->>'gameId'=$1 ORDER BY user_id,title", [gameId])).rows;
+      equal(notifications.filter(row => row.title === "Report awaiting confirmation").map(row => row.user_id).sort(), [actors.involved.id, actors.away.id].sort(), `${role} on-behalf report notifies exactly both participating coaches`);
+      equal(notifications.filter(row => row.title === "Game report submitted").map(row => row.user_id), [actors[role].id], `${role} gets exactly one submitted receipt and no self-pending notification`);
+      equal(notifications.filter(row => row.title === "Report awaiting confirmation").every(row => row.body.includes("a commissioner reported this result on behalf") && row.cta_url === "/league/report-league/schedule"), true, `${role} pending notices truthfully identify on-behalf reporting and link to the schedule`);
     }
+
+    const scoreOnlyPayload = () => buildScoreOnlyReport({ homeScore: 2, awayScore: 1, overrideReason: "Synthetic explicit score-only exception" });
+    for (const role of ["primary", "co"]) {
+      const gameId = `explicit-score-only-${role}`;
+      await newGame(gameId); cookie = actors[role].cookie;
+      const missingReason: any = scoreOnlyPayload(); delete missingReason.overrideReason;
+      const beforeMissingReason = await snapshot();
+      equal((await invoke(endpoint(gameId), "POST", missingReason)).response.status, 422, `${role} explicit score-only still requires the on-behalf reason`);
+      equal(await snapshot(), beforeMissingReason, `${role} missing score-only reason performs no writes`);
+      const submitted = await invoke(endpoint(gameId), "POST", scoreOnlyPayload());
+      equal(submitted.response.status, 200, `${role} explicit score-only report succeeds`);
+      equal(submitted.data.status, "pending", `${role} explicit score-only report awaits confirmation`);
+      const reportBeforeFinalization = (await pool.query("SELECT home_hits,away_hits,home_errors,away_errors,inning_scores,home_box_data,away_box_data FROM game_reports WHERE game_id=$1", [gameId])).rows[0];
+      equal(Object.values(reportBeforeFinalization), [null, null, null, null, null, null, null], `${role} unknown summaries and absent box data remain null in storage`);
+      const notices = (await pool.query("SELECT user_id FROM coach_messages WHERE metadata->>'gameId'=$1 AND title='Report awaiting confirmation' ORDER BY user_id", [gameId])).rows;
+      equal(notices.map(row => row.user_id), [actors.involved.id, actors.away.id].sort(), `${role} score-only report notifies both affected coaches`);
+      const beforeStats = (await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows;
+      const finalizationPath = role === "primary" ? "/confirm" : "/finalize";
+      equal((await invoke(endpoint(gameId) + finalizationPath, "POST", {})).response.status, 200, `${role} score-only result finalizes through the real ${finalizationPath} route`);
+      equal((await pool.query("SELECT is_complete,home_score,away_score,box_score FROM games WHERE id=$1", [gameId])).rows[0], { is_complete: true, home_score: 2, away_score: 1, box_score: null }, `${role} finalized score-only game stores scores without a fabricated box score`);
+      equal((await pool.query("SELECT home_hits,away_hits,home_errors,away_errors,inning_scores,home_box_data,away_box_data FROM game_reports WHERE game_id=$1", [gameId])).rows[0], reportBeforeFinalization, `${role} finalization preserves unknown report summaries`);
+      equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeStats, `${role} explicit score-only finalization fabricates no player statistics`);
+      if (role === "primary") {
+        const confirmedMessages = async () => (await pool!.query("SELECT user_id,body FROM coach_messages WHERE metadata->>'gameId'=$1 AND title='Report confirmed' ORDER BY user_id", [gameId])).rows;
+        let messages = await confirmedMessages();
+        for (let attempt = 0; messages.length < 2 && attempt < 40; attempt++) {
+          await new Promise(done => setTimeout(done, 25));
+          messages = await confirmedMessages();
+        }
+        equal(messages.map(row => row.user_id), [actors.involved.id, actors.away.id].sort(), "Score-only confirmation reaches both coaches");
+        equal(messages.map(row => row.body), Array(2).fill("Fixture away 1 @ Fixture home 2 — final. Result recorded."), "Score-only confirmation does not falsely claim player statistics were updated");
+      }
+    }
+    await newGame("score-only-forged");
+    cookie = actors.involved.cookie;
+    const beforeExplicitForgery = await snapshot();
+    equal((await invoke(endpoint("score-only-forged"), "POST", { ...scoreOnlyPayload(), isCommissioner: true, reporting: { isCommissioner: true } })).response.status, 422, "Coach cannot submit explicit-null score-only by forging client permissions");
+    equal(await snapshot(), beforeExplicitForgery, "Explicit-null score-only forgery performs no writes");
     // Maximum accepted reason must be stored intact, rather than silently truncated.
     await newGame("reason-limit");
     cookie = primary.cookie;
@@ -295,6 +375,7 @@ if (process.argv.includes("--http-child")) {
 
     for (const role of ["involved", "primary"]) {
       if (role === "primary") {
+        await pool.query("UPDATE coaches SET team_id=NULL WHERE id='coach-away'");
         await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ('coach-primary',$1,'away','report-league','Synthetic','Primary')", [primary.id]);
       }
       const gameId = `as-coach-${role}`;
@@ -309,6 +390,9 @@ if (process.argv.includes("--http-child")) {
       equal(accepted.data.reporterTeamId, role === "primary" ? "away" : "home", `${role} coaching report retains actual coaching team`);
       const audit = (await pool.query("SELECT details FROM audit_logs WHERE user_id=$1 AND action='Game Report Submitted' ORDER BY timestamp DESC LIMIT 1", [actors[role].id])).rows[0].details as string;
       equal(audit.includes("commissioner override:"), false, `${role} normal coaching submission has no invented override reason`);
+      const pendingMessages = (await pool.query("SELECT user_id,body FROM coach_messages WHERE metadata->>'gameId'=$1 AND title='Report awaiting confirmation'", [gameId])).rows;
+      equal(pendingMessages.map(row => row.user_id), [role === "primary" ? actors.involved.id : actors.away.id], `${role} normal coaching report notifies only the opponent`);
+      equal(pendingMessages.every(row => row.body.includes("the other coach submitted a score")), true, `${role} normal coaching report keeps truthful coach wording`);
     }
     console.log(`[reported-result-test] PASS ${checks} assertions: real HTTP, shared validation, and no-write rejection snapshots`);
   } finally {
