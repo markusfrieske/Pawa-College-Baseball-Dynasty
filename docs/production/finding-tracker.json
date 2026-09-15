@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-09-14",
+  "updated": "2026-09-15",
   "branch": "codex/pawa-quality-overhaul",
   "auditedCommit": "8a1e113070c1e809da83cc66fc7eb84ffb9bec21",
   "schedule": "PRODUCTION_SCHEDULE.md",
@@ -541,16 +541,19 @@
       "acceptance": "Reporting requirements match policy and validators before entry begins, with linked field-level failures.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": "e66da49fcce3399126a7e7d69fd20315a649ce5e",
+      "implementationCommit": "107a4ee102080ca6f259ddc9e96b6745e7091704",
       "evidence": [
         "W02_BATCH_02.md",
         "audits/W02_BATCH_02_AUDIT.md",
         "W02_BATCH_03.md",
         "audits/W02_BATCH_03_AUDIT.md",
-        "../../scripts/verify-report-errors.ts"
+        "../../scripts/verify-report-errors.ts",
+        "W02_BATCH_04.md",
+        "audits/W02_BATCH_04_AUDIT.md",
+        "../../scripts/verify-report-override.ts"
       ],
       "verifiedBy": null,
-      "notes": "W02 batch03 implements persistent structured issues, known-section links and accurate full-report form guidance. Full-page interaction, commissioner score-only/on-behalf override role flow and exact-field focus remain open."
+      "notes": "W02 batch04 adds server-derived reporting role and retained on-behalf commissioner reason, with actual permission and audit tests. Score-only UI, notification awareness and full-page role/error/retry journeys remain open."
     },
     {
       "id": "UX-02",
@@ -580,16 +583,19 @@
       "acceptance": "Routine feedback is nonblocking and accessible; errors persist with retained inputs and useful retry.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": "e66da49fcce3399126a7e7d69fd20315a649ce5e",
+      "implementationCommit": "107a4ee102080ca6f259ddc9e96b6745e7091704",
       "evidence": [
         "W02_BATCH_02.md",
         "audits/W02_BATCH_02_AUDIT.md",
         "W02_BATCH_03.md",
         "audits/W02_BATCH_03_AUDIT.md",
-        "../../scripts/verify-report-errors.ts"
+        "../../scripts/verify-report-errors.ts",
+        "W02_BATCH_04.md",
+        "audits/W02_BATCH_04_AUDIT.md",
+        "../../scripts/verify-report-override.ts"
       ],
       "verifiedBy": null,
-      "notes": "W02 batch03 implements persistent structured issues, known-section links and accurate full-report form guidance. Full-page interaction, commissioner score-only/on-behalf override role flow and exact-field focus remain open."
+      "notes": "W02 batch04 adds server-derived reporting role and retained on-behalf commissioner reason, with actual permission and audit tests. Score-only UI, notification awareness and full-page role/error/retry journeys remain open."
     },
     {
       "id": "UX-04",
@@ -825,6 +831,21 @@
         "../../tests/unit/reportCorrections.test.ts"
       ],
       "verifiedBy": "Independent JD/Gibs: 117 unit tests including 11 correction regressions passed; parent callback integration source-reviewed. Full-page browser and immutable server history remain separate gates."
+    },
+    {
+      "id": "W02-NOTIFY-01",
+      "priority": "P2",
+      "status": "planned",
+      "title": "On-behalf reports do not notify all appropriate participating coaches",
+      "owner": "JD Player Experience Lead + Gilfoyle technical integrity",
+      "target": "W02 next role-aware reporting slice",
+      "acceptance": "For commissioner submissions with no coach team or an unrelated team, participating coaches receive the appropriate pending-report notice without duplicate recipients or invented reporter-team ownership. Verify synthetic notification records for both cases.",
+      "source": "audits/W02_BATCH_04_AUDIT.md",
+      "implementationCommit": null,
+      "evidence": [
+        "W02_BATCH_04.md"
+      ],
+      "verifiedBy": null
     }
   ]
 }
