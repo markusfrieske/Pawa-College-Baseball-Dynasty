@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 31 findings remain planned. Latest evidence: [W03 batch 01](W03_BATCH_01.md) and its [independent audit](audits/W03_BATCH_01_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 31 findings remain planned. Latest evidence: [W03 batch 02](W03_BATCH_02.md) and its [independent audit](audits/W03_BATCH_02_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -51,7 +51,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 
 ## Milestone audit follow-ups
 
-[W03 batch 01](W03_BATCH_01.md) moves TI-05 to implementing: concurrent commissioner edits use a draft version, terminal guards and an atomic edit audit. Confirm/dispute stale snapshots, postcommit correction persistence and immutable accepted receipts remain open; next implement those transition guards under the [revision contract](REPORT_REVISION_CONTRACT.md).
+[W03 batch 01](W03_BATCH_01.md) moves TI-05 to implementing: concurrent commissioner edits use a draft version, terminal guards and an atomic edit audit. [W03 batch 02](W03_BATCH_02.md) adds verified reviewed-state transitions, atomic finalization decisions and PATCH correction provenance. Immutable accepted receipts, initial creation and retry/recovery remain open under the [revision contract](REPORT_REVISION_CONTRACT.md).
 
 [W02 batch 02](W02_BATCH_02.md) verifies UX-12. [W02 batch 03](W02_BATCH_03.md) moves UX-01/UX-03 to implementing and verifies bounded W02-OCR-01. Structured feedback, correction continuity and [on-behalf commissioner reasons](W02_BATCH_04.md) are implemented. [W02 batch 05](W02_BATCH_05.md) implements score-only entry and verifies W02-NOTIFY-01. UX-07 now implements explicit unknown-stat preservation; broader partial displays, recap completeness and the full-page journey remain open.
 
