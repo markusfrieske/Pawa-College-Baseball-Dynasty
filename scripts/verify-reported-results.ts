@@ -153,18 +153,18 @@ if (process.argv.includes("--http-child")) {
     equal(edited.data.editVersion, 2, "Successful edit returns the incremented version");
     for (const scores of [[1, 1], [-1, 0], [1.5, 0], [31, 0], [1, undefined]]) {
       const before = await snapshot();
-      equal((await invoke(endpoint("submit") + "/dispute", "POST", { reason: "Synthetic correction", correctedHomeScore: scores[0], correctedAwayScore: scores[1] })).response.status, 422, "Invalid corrected score rejected before dispute write");
+      equal((await invoke(endpoint("submit") + "/dispute", "POST", { expectedEditVersion: 2, reason: "Synthetic correction", correctedHomeScore: scores[0], correctedAwayScore: scores[1] })).response.status, 422, "Invalid corrected score rejected before dispute write");
       equal(await snapshot(), before, "Invalid dispute changes no persistent state");
     }
-    equal((await invoke(endpoint("submit") + "/dispute", "POST", { reason: "Synthetic correction", correctedHomeScore: 2, correctedAwayScore: 0 })).response.status, 200, "Valid correction proposal recorded");
+    equal((await invoke(endpoint("submit") + "/dispute", "POST", { expectedEditVersion: 2, reason: "Synthetic correction", correctedHomeScore: 2, correctedAwayScore: 0 })).response.status, 200, "Valid correction proposal recorded");
     let before = await snapshot();
-    equal((await invoke(endpoint("submit") + "/finalize", "POST", { useCorrectedScore: true })).response.status, 422, "Correction inconsistent with innings/batting cannot finalize");
+    equal((await invoke(endpoint("submit") + "/finalize", "POST", { useCorrectedScore: true, expectedEditVersion: 3 })).response.status, 422, "Correction inconsistent with innings/batting cannot finalize");
     equal(await snapshot(), before, "Inconsistent correction changes no persistent state");
     const invalidBox = valid().homeBoxData; invalidBox.batting[0].playerId = "away-0";
     await pool.query("UPDATE game_reports SET status='pending',home_box_data=$1 WHERE game_id='submit'", [JSON.stringify(invalidBox)]);
     for (const suffix of ["/confirm", "/finalize"]) {
       before = await snapshot();
-      equal((await invoke(endpoint("submit") + suffix, "POST", {})).response.status, 422, `Persisted foreign player blocked at ${suffix}`);
+      equal((await invoke(endpoint("submit") + suffix, "POST", { expectedEditVersion: 3 })).response.status, 422, `Persisted foreign player blocked at ${suffix}`);
       equal(await snapshot(), before, "Invalid persisted report performs no finalization writes");
     }
     before = await snapshot();
@@ -173,11 +173,11 @@ if (process.argv.includes("--http-child")) {
     equal(await snapshot(), before, "Direct service rejection changes no persistent state");
     await pool.query("UPDATE games SET is_complete=true WHERE id='submit'");
     before = await snapshot();
-    equal((await invoke(endpoint("submit") + "/confirm", "POST", {})).response.status, 422, "Already-complete confirmation branch also revalidates");
+    equal((await invoke(endpoint("submit") + "/confirm", "POST", { expectedEditVersion: 3 })).response.status, 422, "Already-complete confirmation branch also revalidates");
     equal(await snapshot(), before, "Invalid already-complete report stays unconfirmed");
     await newGame("valid-finalize");
     equal((await invoke(endpoint("valid-finalize"), "POST", valid())).response.status, 200, "Separate valid finalization report accepted");
-    equal((await invoke(endpoint("valid-finalize") + "/confirm", "POST", {})).response.status, 200, "Valid full report reaches finalization");
+    equal((await invoke(endpoint("valid-finalize") + "/confirm", "POST", { expectedEditVersion: 1 })).response.status, 200, "Valid full report reaches finalization");
     equal((await pool.query("SELECT is_complete,home_score,away_score FROM games WHERE id='valid-finalize'")).rows[0], { is_complete: true, home_score: 1, away_score: 0 }, "Official game stores validated scores");
     const stats = (await pool.query("SELECT player_id,games,ab,r,h,ip_outs FROM player_season_stats ORDER BY player_id")).rows;
     equal(stats.length, 18, "Exactly one season row per participating player, including two-way players");
@@ -188,7 +188,7 @@ if (process.argv.includes("--http-child")) {
     await newGame("score-only");
     equal((await invoke(endpoint("score-only"), "POST", { homeScore: 1, awayScore: 0, overrideReason: "Synthetic score-only exception" })).response.status, 200, "Existing commissioner score-only submission preserved");
     const beforeScoreOnlyStats = (await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows;
-    equal((await invoke(endpoint("score-only") + "/finalize", "POST", {})).response.status, 200, "Commissioner score-only result still finalizes");
+    equal((await invoke(endpoint("score-only") + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 200, "Commissioner score-only result still finalizes");
     equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeScoreOnlyStats, "Score-only finalization adds no fabricated player lines");
 
     // Summary-only legacy reports contain real observations even without
@@ -196,7 +196,7 @@ if (process.argv.includes("--http-child")) {
     await newGame("known-summaries");
     equal((await invoke(endpoint("known-summaries"), "POST", { homeScore: 2, awayScore: 1,
       homeHits: 3, awayHits: 1, homeErrors: 0, awayErrors: 2, overrideReason: "Synthetic known team summaries" })).response.status, 200, "Commissioner report accepts known team totals without player data");
-    equal((await invoke(endpoint("known-summaries") + "/finalize", "POST", {})).response.status, 200, "Known team summaries finalize successfully");
+    equal((await invoke(endpoint("known-summaries") + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 200, "Known team summaries finalize successfully");
     const knownSummaryBox = JSON.parse((await pool.query("SELECT box_score FROM games WHERE id='known-summaries'")).rows[0].box_score);
     equal([knownSummaryBox.home.totals.r, knownSummaryBox.home.totals.h, knownSummaryBox.home.errors,
       knownSummaryBox.away.totals.r, knownSummaryBox.away.totals.h, knownSummaryBox.away.errors], [2, 3, 0, 1, 1, 2], "Finalization preserves supplied runs, hits and errors instead of discarding the box");
@@ -222,7 +222,7 @@ if (process.argv.includes("--http-child")) {
     await newGame("mixed-summaries");
     equal((await invoke(endpoint("mixed-summaries"), "POST", { homeScore: 2, awayScore: 1,
       homeHits: 3, awayHits: null, homeErrors: null, awayErrors: 2, overrideReason: "Synthetic partially known team summaries" })).response.status, 200, "Commissioner can retain a mix of known and unknown team summaries");
-    equal((await invoke(endpoint("mixed-summaries") + "/finalize", "POST", {})).response.status, 200, "Mixed known and unknown summaries finalize");
+    equal((await invoke(endpoint("mixed-summaries") + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 200, "Mixed known and unknown summaries finalize");
     const mixedSummaryBox = JSON.parse((await pool.query("SELECT box_score FROM games WHERE id='mixed-summaries'")).rows[0].box_score);
     equal([mixedSummaryBox.home.totals, mixedSummaryBox.home.errors], [{ r: 2, h: 3 }, null], "Finalized home summary preserves known hits and unknown errors without inventing other counters");
     equal([mixedSummaryBox.away.totals, mixedSummaryBox.away.errors], [{ r: 1, h: null }, 2], "Finalized away summary preserves unknown hits and known errors without inventing other counters");
@@ -292,6 +292,200 @@ if (process.argv.includes("--http-child")) {
     equal((await invoke(endpoint("edit-disputed"), "POST", valid())).response.status, 200, "Disputed edit fixture submitted");
     await pool.query("UPDATE game_reports SET status='disputed' WHERE game_id='edit-disputed'");
     equal((await invoke(endpoint("edit-disputed"), "PATCH", versionPayload(1))).response.status, 200, "Disputed unfinalized report remains editable with current version");
+
+
+    // Transition tokens describe both the report data and the decision state.
+    // Invalid/stale requests must not touch any persistent table.
+    await newGame("transition-version");
+    equal((await invoke(endpoint("transition-version"), "POST", valid())).response.status, 200, "Transition token fixture submitted");
+    for (const suffix of ["/confirm", "/dispute", "/finalize"]) {
+      for (const version of [undefined, null, 0, -1, 1.5, "1", true, {}, [], 2147483648]) {
+        const beforeInvalidToken = await snapshot();
+        const rejected = await invoke(endpoint("transition-version") + suffix, "POST", { expectedEditVersion: version, reason: "Synthetic dispute" });
+        equal(rejected.response.status, 422, suffix + " rejects missing or malformed decision token");
+        equal(rejected.data.validationErrors?.some((issue: any) => issue.field === "expectedEditVersion"), true, suffix + " identifies the invalid version field");
+        equal(await snapshot(), beforeInvalidToken, suffix + " invalid token preserves all tables");
+      }
+    }
+    equal((await invoke(endpoint("transition-version"), "PATCH", versionPayload(1))).response.status, 200, "Edit advances transition fixture token");
+    for (const suffix of ["/confirm", "/dispute", "/finalize"]) {
+      const beforeStaleTransition = await snapshot();
+      equal((await invoke(endpoint("transition-version") + suffix, "POST", { expectedEditVersion: 1, reason: "Stale synthetic dispute" })).response.status, 409, suffix + " rejects a previously edited snapshot");
+      equal(await snapshot(), beforeStaleTransition, suffix + " stale token preserves all tables");
+    }
+    equal((await invoke(endpoint("transition-version") + "/dispute", "POST", { expectedEditVersion: 2, reason: "Review this observed result" })).response.status, 200, "Current version may be disputed");
+    const disputedVersion = (await pool.query("SELECT id,status,edit_version,disputed_by_user_id FROM game_reports WHERE game_id='transition-version'")).rows[0];
+    equal({ status: disputedVersion.status, version: disputedVersion.edit_version, actor: disputedVersion.disputed_by_user_id },
+      { status: "disputed", version: 3, actor: registration.data.id }, "Dispute atomically advances decision token and records actor");
+    const disputeAudit = (await pool.query("SELECT user_id,details FROM audit_logs WHERE action='Game Report Disputed' ORDER BY timestamp DESC LIMIT 1")).rows[0];
+    equal(disputeAudit.user_id, registration.data.id, "Dispute audit identifies authenticated actor");
+    const disputeEvidence = JSON.parse(disputeAudit.details);
+    equal([disputeEvidence.gameId, disputeEvidence.reportId, disputeEvidence.previousEditVersion, disputeEvidence.editVersion],
+      ["transition-version", disputedVersion.id, 2, 3], "Dispute audit identifies exactly the accepted report transition");
+    for (const [method, suffix, payload] of [
+      ["PATCH", "", versionPayload(2)],
+      ["POST", "/confirm", { expectedEditVersion: 2 }],
+      ["POST", "/finalize", { expectedEditVersion: 2 }],
+      ["POST", "/dispute", { expectedEditVersion: 2, reason: "Duplicate dispute" }],
+    ] as const) {
+      const beforeDisputedStale = await snapshot();
+      equal((await invoke(endpoint("transition-version") + suffix, method, payload)).response.status, 409, "Dispute invalidates stale " + method + suffix + " decision");
+      equal(await snapshot(), beforeDisputedStale, "Stale post-dispute decision preserves all tables");
+    }
+    equal((await invoke(endpoint("transition-version") + "/finalize", "POST", { expectedEditVersion: 3 })).response.status, 200, "Commissioner may resolve current disputed version");
+    equal((await pool.query("SELECT status,edit_version,confirmed_by_user_id FROM game_reports WHERE game_id='transition-version'")).rows[0],
+      { status: "confirmed", edit_version: 4, confirmed_by_user_id: registration.data.id }, "Finalization and confirmation accept one new decision version");
+
+
+    const reportedResolutionAudit = (await pool.query("SELECT details FROM audit_logs WHERE action='Game Report Force-Finalized' AND details::jsonb->>'gameId'='transition-version'")).rows;
+    equal(reportedResolutionAudit.length, 1, "Reported-score resolution has exactly one acceptance audit");
+    const reportedResolution = JSON.parse(reportedResolutionAudit[0].details);
+    equal([reportedResolution.previousHomeScore, reportedResolution.previousAwayScore, reportedResolution.homeScore, reportedResolution.awayScore, reportedResolution.resolution],
+      [1, 0, 1, 0, "reported"], "Default resolution audit preserves original and accepted reported scores");
+    await newGame("corrected-resolution");
+    const submittedCorrection = await invoke(endpoint("corrected-resolution"), "POST", { homeScore: 2, awayScore: 1, overrideReason: "Synthetic score-only correction review" });
+    equal(submittedCorrection.response.status, 200, "Score-only correction fixture submitted");
+    equal((await invoke(endpoint("corrected-resolution") + "/dispute", "POST", { expectedEditVersion: 1, reason: "Observed home total was three", correctedHomeScore: 3, correctedAwayScore: 1 })).response.status, 200, "Corrected-score proposal advances review version");
+    equal((await invoke(endpoint("corrected-resolution") + "/finalize", "POST", { expectedEditVersion: 2, useCorrectedScore: true })).response.status, 200, "Commissioner accepts corrected score-only result");
+    equal((await pool.query("SELECT home_score,away_score,status,edit_version FROM game_reports WHERE game_id='corrected-resolution'")).rows[0],
+      { home_score: 3, away_score: 1, status: "confirmed", edit_version: 3 }, "Accepted correction and report confirmation commit together");
+    equal((await pool.query("SELECT home_score,away_score,is_complete FROM games WHERE id='corrected-resolution'")).rows[0],
+      { home_score: 3, away_score: 1, is_complete: true }, "Official result matches the accepted correction");
+    const correctedResolutionAudits = (await pool.query("SELECT user_id,details FROM audit_logs WHERE action='Game Report Force-Finalized' AND details::jsonb->>'gameId'='corrected-resolution'")).rows;
+    equal(correctedResolutionAudits.length, 1, "Corrected-score resolution has exactly one acceptance audit");
+    equal(correctedResolutionAudits[0].user_id, registration.data.id, "Corrected-score acceptance audit binds authenticated commissioner");
+    const correctedResolution = JSON.parse(correctedResolutionAudits[0].details);
+    equal(correctedResolution, { gameId: "corrected-resolution", reportId: submittedCorrection.data.id, previousEditVersion: 2, editVersion: 3,
+      homeScore: 3, awayScore: 1, previousHomeScore: 2, previousAwayScore: 1, resolution: "corrected" },
+      "Atomic acceptance audit retains original scores, corrected scores, resolution choice and accepted versions");
+
+    for (const state of ["complete", "receipt", "confirmed", "rejected"]) {
+      const gameId = "transition-locked-" + state;
+      await newGame(gameId);
+      equal((await invoke(endpoint(gameId), "POST", valid())).response.status, 200, "Closed transition fixture submitted");
+      if (state === "complete") await pool.query("UPDATE games SET is_complete=true WHERE id=$1", [gameId]);
+      else if (state === "receipt") await pool.query("INSERT INTO game_finalizations (game_id,finalizer) VALUES ($1,'synthetic-receipt')", [gameId]);
+      else await pool.query("UPDATE game_reports SET status=$1 WHERE game_id=$2", [state, gameId]);
+      for (const suffix of ["/confirm", "/dispute", "/finalize"]) {
+        const beforeClosedTransition = await snapshot();
+        equal((await invoke(endpoint(gameId) + suffix, "POST", { expectedEditVersion: 1, reason: "Synthetic closed-state dispute" })).response.status, 409, state + " rejects " + suffix);
+        equal(await snapshot(), beforeClosedTransition, state + " " + suffix + " preserves all tables");
+      }
+    }
+
+    // Hold the real game row lock, queue both HTTP requests, then release it.
+    // Waiting for each database lock makes the losing request read the old
+    // report before the winner commits, reproducing the former TOCTOU window.
+    const queuedRace = async (gameId: string, first: () => ReturnType<typeof invoke>, second: () => ReturnType<typeof invoke>) => {
+      const blocker = await pool!.connect();
+      let requests: Array<ReturnType<typeof invoke>> = [];
+      try {
+        await blocker.query("BEGIN");
+        await blocker.query("SELECT id FROM games WHERE id=$1 FOR UPDATE", [gameId]);
+        const waitForBlockedRequests = async (count: number) => {
+          const deadline = Date.now() + 8000;
+          while (Date.now() < deadline) {
+            const blocked = await pool!.query("SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname=$1 AND wait_event_type='Lock' AND query ILIKE '%FOR UPDATE%'", [name]);
+            if (blocked.rows[0].count >= count) return;
+            await new Promise(done => setTimeout(done, 25));
+          }
+          throw new Error("Expected " + count + " report operations queued on the game lock");
+        };
+        requests.push(first()); await waitForBlockedRequests(1);
+        requests.push(second()); await waitForBlockedRequests(2);
+        await blocker.query("COMMIT");
+        return await Promise.all(requests);
+      } finally {
+        await blocker.query("ROLLBACK"); blocker.release();
+        await Promise.allSettled(requests);
+      }
+    };
+    for (const [first, second] of [
+      ["edit", "confirm"], ["confirm", "edit"],
+      ["dispute", "confirm"], ["confirm", "dispute"],
+      ["edit", "finalize"], ["finalize", "edit"],
+      ["confirm", "confirm"],
+    ]) {
+      const gameId = "race-" + first + "-" + second;
+      await newGame(gameId);
+      equal((await invoke(endpoint(gameId), "POST", valid())).response.status, 200, "Queued race fixture submitted");
+      const submitDecision = (action: string) => action === "edit"
+        ? invoke(endpoint(gameId), "PATCH", { ...versionPayload(1), homeErrors: 2 })
+        : invoke(endpoint(gameId) + "/" + action, "POST", { expectedEditVersion: 1, reason: "Queued fixture dispute" });
+      const race = await queuedRace(gameId, () => submitDecision(first), () => submitDecision(second));
+      equal(race.map(result => result.response.status), [200, 409], first + " wins its queued race with " + second + "; stale loser conflicts");
+      const storedRace = (await pool.query("SELECT status,edit_version,home_errors FROM game_reports WHERE game_id=$1", [gameId])).rows[0];
+      const finalizes = ["confirm", "finalize"].includes(first);
+      equal(storedRace, { status: finalizes ? "confirmed" : first === "dispute" ? "disputed" : "pending", edit_version: 2, home_errors: first === "edit" ? 2 : 0 }, "Only winning " + first + " mutation is persisted");
+      equal((await pool.query("SELECT is_complete FROM games WHERE id=$1", [gameId])).rows[0].is_complete, finalizes, "Official completion matches the winning decision");
+      equal(Number((await pool.query("SELECT count(*) FROM game_finalizations WHERE game_id=$1", [gameId])).rows[0].count), finalizes ? 1 : 0, "Race writes only the permitted finalization receipt");
+      const raceAudits = (await pool.query("SELECT action,user_id,details FROM audit_logs WHERE action IN ('Game Report Edited','Game Report Confirmed','Game Report Force-Finalized','Game Report Disputed')")).rows
+        .filter(row => JSON.parse(row.details).gameId === gameId);
+      equal(raceAudits.length, 1, "Queued race writes exactly one mutation audit");
+      equal(raceAudits[0].user_id, registration.data.id, "Winning race audit binds authenticated actor");
+      const evidence = JSON.parse(raceAudits[0].details);
+      equal([evidence.previousEditVersion, evidence.editVersion], [1, 2], "Winning race audit binds accepted version transition");
+    }
+
+    // Failure injection is confined to triggers in this owned random database.
+    // An unavailable audit/correction store must roll back all core state.
+    for (const suffix of ["confirm", "finalize", "dispute"]) {
+      const gameId = "rollback-" + suffix;
+      await newGame(gameId);
+      equal((await invoke(endpoint(gameId), "POST", valid())).response.status, 200, "Atomic transition fixture submitted");
+      await pool.query("CREATE FUNCTION reject_fixture_transition_audit() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN IF NEW.action IN ('Game Report Confirmed','Game Report Force-Finalized','Game Report Disputed') THEN RAISE EXCEPTION 'synthetic transition audit failure'; END IF; RETURN NEW; END $fixture$");
+      await pool.query("CREATE TRIGGER reject_fixture_transition_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION reject_fixture_transition_audit()");
+      try {
+        const beforeAtomicFailure = await snapshot();
+        equal((await invoke(endpoint(gameId) + "/" + suffix, "POST", { expectedEditVersion: 1, reason: "Rollback this dispute" })).response.status, 500, suffix + " audit failure rejects operation");
+        equal(await snapshot(), beforeAtomicFailure, suffix + " audit failure rolls back report, official stats, standings, receipt and all other tables");
+      } finally {
+        await pool.query("DROP TRIGGER reject_fixture_transition_audit ON audit_logs");
+        await pool.query("DROP FUNCTION reject_fixture_transition_audit()");
+      }
+      equal((await invoke(endpoint(gameId) + "/" + suffix, "POST", { expectedEditVersion: 1, reason: "Retry after transient audit failure" })).response.status, 200, suffix + " accepts the same token after rollback");
+    }
+    await newGame("correction-atomic");
+    equal((await invoke(endpoint("correction-atomic"), "POST", valid())).response.status, 200, "Correction transaction fixture submitted");
+    const correctionEdit = { ...versionPayload(1), homeErrors: 2, corrections: [{ fieldKey: "home.errors", fieldLabel: "Home errors", ocrValue: "0", correctedValue: "2" }] };
+    await pool.query("CREATE FUNCTION reject_fixture_correction() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN RAISE EXCEPTION 'synthetic correction failure'; END $fixture$");
+    await pool.query("CREATE TRIGGER reject_fixture_correction BEFORE INSERT ON game_report_corrections FOR EACH ROW EXECUTE FUNCTION reject_fixture_correction()");
+    try {
+      const beforeCorrectionFailure = await snapshot();
+      equal((await invoke(endpoint("correction-atomic"), "PATCH", correctionEdit)).response.status, 500, "Correction insertion failure rejects edit");
+      equal(await snapshot(), beforeCorrectionFailure, "Correction failure rolls back body, version, audit and correction rows together");
+    } finally {
+      await pool.query("DROP TRIGGER reject_fixture_correction ON game_report_corrections");
+      await pool.query("DROP FUNCTION reject_fixture_correction()");
+    }
+    equal((await invoke(endpoint("correction-atomic"), "PATCH", correctionEdit)).response.status, 200, "Correction retry succeeds with unchanged token after rollback");
+    equal((await pool.query("SELECT home_errors,edit_version FROM game_reports WHERE game_id='correction-atomic'")).rows[0], { home_errors: 2, edit_version: 2 }, "Correction commit advances report exactly once");
+    equal((await pool.query("SELECT field_key,ocr_value,corrected_value,corrected_by_user_id FROM game_report_corrections WHERE game_id='correction-atomic'")).rows,
+      [{ field_key: "home.errors", ocr_value: "0", corrected_value: "2", corrected_by_user_id: registration.data.id }], "Committed correction retains values and actor exactly once");
+
+
+    // A nonessential activity-feed write must not turn a committed decision
+    // into a failed HTTP response that invites a conflicting retry.
+    await pool.query("CREATE FUNCTION reject_fixture_report_event() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN IF NEW.event_type = 'GAME_REPORT' THEN RAISE EXCEPTION 'synthetic secondary event failure'; END IF; RETURN NEW; END $fixture$");
+    await pool.query("CREATE TRIGGER reject_fixture_report_event BEFORE INSERT ON league_events FOR EACH ROW EXECUTE FUNCTION reject_fixture_report_event()");
+    try {
+      for (const suffix of ["confirm", "dispute", "finalize"]) {
+        const gameId = "secondary-event-" + suffix;
+        await newGame(gameId);
+        // Submission itself also emits GAME_REPORT, so install a pending
+        // fixture directly without disabling the fault under test.
+        const source = (await pool.query("SELECT * FROM game_reports WHERE game_id='edit-disputed'")).rows[0];
+        await pool.query("INSERT INTO game_reports (id,game_id,league_id,reporter_user_id,reporter_team_id,home_score,away_score,home_hits,away_hits,home_errors,away_errors,inning_scores,home_box_data,away_box_data,status,edit_version) VALUES ($1,$2,'report-league',$3,$4,1,0,1,0,0,0,$5,$6,$7,'pending',1)",
+          [randomUUID(), gameId, registration.data.id, source.reporter_team_id, JSON.stringify(valid().inningScores), JSON.stringify(valid().homeBoxData), JSON.stringify(valid().awayBoxData)]);
+        equal((await invoke(endpoint(gameId) + "/" + suffix, "POST", { expectedEditVersion: 1, reason: "Synthetic feed failure" })).response.status, 200, suffix + " returns success after nonessential report-event failure");
+        equal((await pool.query("SELECT status,edit_version FROM game_reports WHERE game_id=$1", [gameId])).rows[0],
+          { status: suffix === "dispute" ? "disputed" : "confirmed", edit_version: 2 }, suffix + " decision remains committed despite feed failure");
+        equal(Number((await pool.query("SELECT count(*) FROM game_finalizations WHERE game_id=$1", [gameId])).rows[0].count), suffix === "dispute" ? 0 : 1, suffix + " retains exactly the appropriate finalization receipt");
+      }
+    } finally {
+      await pool.query("DROP TRIGGER reject_fixture_report_event ON league_events");
+      await pool.query("DROP FUNCTION reject_fixture_report_event()");
+    }
 
     // Commissioner metadata and on-behalf reporting use real sessions, not client role hints.
     // Keep this matrix after the original finalization assertions so extra pending reports
@@ -415,7 +609,7 @@ if (process.argv.includes("--http-child")) {
       equal(notices.map(row => row.user_id), [actors.involved.id, actors.away.id].sort(), `${role} score-only report notifies both affected coaches`);
       const beforeStats = (await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows;
       const finalizationPath = role === "primary" ? "/confirm" : "/finalize";
-      equal((await invoke(endpoint(gameId) + finalizationPath, "POST", {})).response.status, 200, `${role} score-only result finalizes through the real ${finalizationPath} route`);
+      equal((await invoke(endpoint(gameId) + finalizationPath, "POST", { expectedEditVersion: submitted.data.editVersion })).response.status, 200, `${role} score-only result finalizes through the real ${finalizationPath} route`);
       equal((await pool.query("SELECT is_complete,home_score,away_score,box_score FROM games WHERE id=$1", [gameId])).rows[0], { is_complete: true, home_score: 2, away_score: 1, box_score: null }, `${role} finalized score-only game stores scores without a fabricated box score`);
       equal((await pool.query("SELECT home_hits,away_hits,home_errors,away_errors,inning_scores,home_box_data,away_box_data FROM game_reports WHERE game_id=$1", [gameId])).rows[0], reportBeforeFinalization, `${role} finalization preserves unknown report summaries`);
       equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeStats, `${role} explicit score-only finalization fabricates no player statistics`);
@@ -462,6 +656,36 @@ if (process.argv.includes("--http-child")) {
       const pendingMessages = (await pool.query("SELECT user_id,body FROM coach_messages WHERE metadata->>'gameId'=$1 AND title='Report awaiting confirmation'", [gameId])).rows;
       equal(pendingMessages.map(row => row.user_id), [role === "primary" ? actors.involved.id : actors.away.id], `${role} normal coaching report notifies only the opponent`);
       equal(pendingMessages.every(row => row.body.includes("the other coach submitted a score")), true, `${role} normal coaching report keeps truthful coach wording`);
+    }
+
+    // CPU opponents use the same atomic acceptance path. Report submission
+    // may survive a later auto-confirmation failure, but cannot look confirmed.
+    cookie = primary.cookie;
+    await pool.query("UPDATE teams SET is_cpu=true WHERE id='home'");
+    try {
+      await newGame("cpu-auto-success");
+      equal((await invoke(endpoint("cpu-auto-success"), "POST", valid())).response.status, 200, "CPU opponent submission auto-confirms successfully");
+      equal((await pool.query("SELECT status,edit_version FROM game_reports WHERE game_id='cpu-auto-success'")).rows[0], { status: "confirmed", edit_version: 2 }, "CPU auto-confirm accepts exactly one report transition");
+      equal(Number((await pool.query("SELECT count(*) FROM game_finalizations WHERE game_id='cpu-auto-success'")).rows[0].count), 1, "CPU auto-confirm creates one receipt");
+      await newGame("cpu-auto-failure");
+      const beforeCpuStats = (await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows;
+      await pool.query("CREATE FUNCTION reject_fixture_cpu_audit() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN IF NEW.action = 'Game Report Confirmed' THEN RAISE EXCEPTION 'synthetic CPU confirmation audit failure'; END IF; RETURN NEW; END $fixture$");
+      await pool.query("CREATE TRIGGER reject_fixture_cpu_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION reject_fixture_cpu_audit()");
+      try {
+        equal((await invoke(endpoint("cpu-auto-failure"), "POST", valid())).response.status, 500, "CPU auto-confirm audit failure reports failure");
+        equal((await pool.query("SELECT status,edit_version FROM game_reports WHERE game_id='cpu-auto-failure'")).rows[0], { status: "pending", edit_version: 1 }, "Failed CPU confirmation preserves submitted report as pending");
+        equal((await pool.query("SELECT is_complete,home_score,away_score FROM games WHERE id='cpu-auto-failure'")).rows[0], { is_complete: false, home_score: null, away_score: null }, "Failed CPU confirmation leaves official game unplayed");
+        equal(Number((await pool.query("SELECT count(*) FROM game_finalizations WHERE game_id='cpu-auto-failure'")).rows[0].count), 0, "Failed CPU confirmation creates no receipt");
+        equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeCpuStats, "Failed CPU confirmation adds no official player stats");
+        const cpuSubmissionAudit = (await pool.query("SELECT details FROM audit_logs WHERE action='Game Report Submitted' AND details LIKE '%cpu-auto-failure%' ORDER BY timestamp DESC LIMIT 1")).rows[0]?.details;
+        equal(typeof cpuSubmissionAudit === "string" && cpuSubmissionAudit.includes("automatic confirmation requested"), true, "CPU submission audit describes requested rather than completed confirmation");
+      } finally {
+        await pool.query("DROP TRIGGER reject_fixture_cpu_audit ON audit_logs");
+        await pool.query("DROP FUNCTION reject_fixture_cpu_audit()");
+      }
+      equal((await invoke(endpoint("cpu-auto-failure") + "/confirm", "POST", { expectedEditVersion: 1 })).response.status, 200, "Pending CPU submission can be recovered after audit failure");
+    } finally {
+      await pool.query("UPDATE teams SET is_cpu=false WHERE id='home'");
     }
     console.log(`[reported-result-test] PASS ${checks} assertions: real HTTP, shared validation, and no-write rejection snapshots`);
   } finally {

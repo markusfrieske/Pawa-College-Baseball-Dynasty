@@ -1,17 +1,18 @@
+import { reportCorrectionRows } from "./report-corrections";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db";
-import { games, gameReports, gameFinalizations, auditLogs, type InsertGameReport } from "../../shared/schema";
+import { games, gameReports, gameFinalizations, auditLogs, gameReportCorrections, type InsertGameReport } from "../../shared/schema";
 
 export class ReportEditConflict extends Error {}
 
 type EditableFields = Pick<InsertGameReport, "homeScore" | "awayScore" | "homeHits" | "awayHits" | "homeErrors" | "awayErrors" | "inningScores" | "homeBoxData" | "awayBoxData">;
 
 /** Serializes commissioner body edits with each other and completed finalizations.
- * Confirm/dispute must separately bind the snapshot they reviewed; this is not that contract.
+ * Required correction provenance shares the edit and audit transaction.
  */
 export async function editGameReport(input: {
   gameId: string; leagueId: string; reportId: string; userId: string;
-  expectedEditVersion: number; changes: EditableFields;
+  expectedEditVersion: number; changes: EditableFields; corrections?: unknown;
 }) {
   return db.transaction(async tx => {
     // Same lock order as finalization: game first, then report.
@@ -33,6 +34,8 @@ export async function editGameReport(input: {
       leagueId: input.leagueId, userId: input.userId, action: "Game Report Edited",
       details: JSON.stringify({ gameId: input.gameId, reportId: report.id, previousEditVersion: report.editVersion, editVersion: updated.editVersion, awayScore: updated.awayScore, homeScore: updated.homeScore }),
     });
+    const corrections = reportCorrectionRows(input.corrections, { gameReportId: report.id, gameId: input.gameId, leagueId: input.leagueId, userId: input.userId });
+    if (corrections.length) await tx.insert(gameReportCorrections).values(corrections);
     return updated;
   });
 }

@@ -1,3 +1,5 @@
+import { disputeGameReport, ReportTransitionConflict } from "../lib/report-transition";
+import { reportCorrectionRows } from "../lib/report-corrections";
 import { editGameReport, ReportEditConflict } from "../lib/edit-game-report";
 import { isReportEditVersion, reportOverrideReasonError, type ReportRole } from "../../shared/reporting";
 /**
@@ -21,7 +23,7 @@ import { isReportEditVersion, reportOverrideReasonError, type ReportRole } from 
 import type { Express } from "express";
 import { storage } from "../storage";
 import { validateBoxScore } from "../lib/validateBoxScore";
-import { validateReportedResult, assertReportedResult, ReportValidationError } from "../lib/validateReportedResult";
+import { validateReportedResult, ReportValidationError } from "../lib/validateReportedResult";
 import { requireAuth, hasCommissionerAccess, gameScoreSchema, requireLeagueMember } from "../route-helpers";
 import * as coachMsg from "../lib/coachMessages";
 import { reportPendingRecipientIds } from "../lib/report-notification-recipients";
@@ -56,33 +58,14 @@ function gameIdToAdvisoryKey(gameId: string): number {
 // Shape of a single coach correction logged during OCR review. `ocrValue`/`correctedValue`
 // are stored as strings (already stringified client-side) so the audit trail can compare
 // heterogeneous field types (numbers, strings, booleans) uniformly.
-interface CorrectionInput {
-  fieldKey?: unknown;
-  fieldLabel?: unknown;
-  ocrValue?: unknown;
-  correctedValue?: unknown;
+async function persistCorrections(raw: unknown, ctx: { gameReportId: string; gameId: string; leagueId: string; userId: string }): Promise<void> {
+  const rows = reportCorrectionRows(raw, ctx);
+  if (rows.length) await storage.batchCreateGameReportCorrections(rows);
 }
 
-async function persistCorrections(
-  rawCorrections: unknown,
-  ctx: { gameReportId: string; gameId: string; leagueId: string; userId: string }
-): Promise<void> {
-  if (!Array.isArray(rawCorrections) || rawCorrections.length === 0) return;
-  const rows = (rawCorrections as CorrectionInput[])
-    .filter(c => typeof c.fieldKey === "string" && c.fieldKey.length > 0)
-    .map(c => ({
-      gameReportId: ctx.gameReportId,
-      gameId: ctx.gameId,
-      leagueId: ctx.leagueId,
-      fieldKey: c.fieldKey as string,
-      fieldLabel: typeof c.fieldLabel === "string" ? c.fieldLabel : null,
-      ocrValue: c.ocrValue == null ? null : String(c.ocrValue),
-      correctedValue: c.correctedValue == null ? null : String(c.correctedValue),
-      correctedByUserId: ctx.userId,
-    }));
-  if (rows.length > 0) {
-    await storage.batchCreateGameReportCorrections(rows);
-  }
+function requireReviewedVersion(value: unknown): number {
+  if (!isReportEditVersion(value)) throw new ReportValidationError([{ id: "report-version-required", field: "expectedEditVersion", severity: "error", message: "Reload the report to obtain a valid review version before making a decision." }]);
+  return value;
 }
 
 export function registerGameRoutes(app: Express): void {
@@ -144,6 +127,7 @@ export function registerGameRoutes(app: Express): void {
               id: r.id,
               gameId: r.gameId,
               status: r.status,
+              editVersion: r.editVersion,
               reporterUserId: r.reporterUserId,
               reporterTeamId: r.reporterTeamId,
               homeScore: r.homeScore,
@@ -587,8 +571,8 @@ export function registerGameRoutes(app: Express): void {
           inningScores: inningScores ?? null,
           homeBoxData: homeBoxData ?? null,
           awayBoxData: awayBoxData ?? null,
-          status: autoConfirm ? "confirmed" : "pending",
-          confirmedByUserId: autoConfirm ? req.session.userId! : null,
+          status: "pending",
+          confirmedByUserId: null,
           disputedByUserId: null,
           disputeReason: null,
         });
@@ -603,7 +587,7 @@ export function registerGameRoutes(app: Express): void {
         leagueId,
         userId: req.session.userId,
         action: "Game Report Submitted",
-        details: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (auto-confirmed vs CPU)" : ""}; Game ${game.id}; report ${report.id}${isCommissionerForReport && !isInvolvedCoach ? `; commissioner override: ${overrideReason}` : ""}`,
+        details: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (CPU opponent; automatic confirmation requested)" : ""}; Game ${game.id}; report ${report.id}${isCommissionerForReport && !isInvolvedCoach ? `; commissioner override: ${overrideReason}` : ""}`,
       });
 
       await persistCorrections(req.body.corrections, {
@@ -615,7 +599,8 @@ export function registerGameRoutes(app: Express): void {
 
       if (autoConfirm) {
         await finalizeReportedGame(report, game, leagueId);
-        return res.json({ ...report, autoConfirmed: true });
+        invalidateLeague(leagueId);
+        return res.json({ ...await storage.getGameReport(game.id), autoConfirmed: true });
       }
 
       // Notify submitter that their report is pending confirmation
@@ -698,7 +683,7 @@ export function registerGameRoutes(app: Express): void {
       if (validationErrors.length > 0) {
         return res.status(422).json({ message: validationErrors[0].message, validationErrors: validationIssues });
       }
-      const updated = await editGameReport({ gameId, leagueId, reportId: existing.id, userId: req.session.userId!, expectedEditVersion, changes: {
+      const updated = await editGameReport({ gameId, leagueId, reportId: existing.id, userId: req.session.userId!, expectedEditVersion, corrections: req.body.corrections, changes: {
         homeScore, awayScore,
         homeHits: homeHits ?? 0, awayHits: awayHits ?? 0,
         homeErrors: homeErrors ?? 0, awayErrors: awayErrors ?? 0,
@@ -706,12 +691,7 @@ export function registerGameRoutes(app: Express): void {
         homeBoxData: homeBoxData ?? null,
         awayBoxData: awayBoxData ?? null,
       } });
-      await persistCorrections(req.body.corrections, {
-        gameReportId: existing.id,
-        gameId,
-        leagueId,
-        userId: req.session.userId!,
-      });
+      invalidateLeague(leagueId);
       res.json(updated);
     } catch (error) {
       if (error instanceof ReportEditConflict) return res.status(409).json({ message: error.message });
@@ -794,7 +774,7 @@ export function registerGameRoutes(app: Express): void {
 
       const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
-      if (report.status !== "pending") return res.status(400).json({ message: "Report is not pending" });
+      if (report.status !== "pending") return res.status(409).json({ message: "Report is not pending. Reload its current state." });
 
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
@@ -820,65 +800,52 @@ export function registerGameRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can confirm this report" });
       }
 
+      const expectedEditVersion = requireReviewedVersion(req.body?.expectedEditVersion);
+
       const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
       const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
       const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
-      const confirmerLabel = isCommissioner ? "Commissioner" : "Opposing coach";
 
-      await assertReportedResult(report, game, leagueId);
-      if (game.isComplete) {
-        await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
-        await storage.createAuditLog({
-          leagueId,
-          userId: req.session.userId,
-          action: "Game Report Confirmed",
-          details: `${confirmerLabel} confirmed already-finalized report: ${report.awayScore}-${report.homeScore}`,
-        });
-        return res.json({ message: "Report confirmed (game was already finalized)" });
-      }
-
-      await finalizeReportedGame(report, game, leagueId);
-      await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
-
-      await storage.createAuditLog({
-        leagueId,
-        userId: req.session.userId,
-        action: "Game Report Confirmed",
-        details: `${confirmerLabel} confirmed reported score: ${report.awayScore}-${report.homeScore}`,
-      });
-
-      await storage.createLeagueEvent({
-        leagueId,
-        teamId: reporterTeamId ?? null,
-        teamName: null,
-        teamAbbreviation: null,
-        teamPrimaryColor: null,
-        eventType: "GAME_REPORT",
-        description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: reported score confirmed (${report.awayScore}-${report.homeScore}) and finalized.`,
-        season: game.season,
-        week: game.week,
-      });
-
-      // Inbox: notify both coaches the report is finalized
-      const allCoachesForNotify = await storage.getCoachesByLeague(leagueId);
-      for (const involvedTeamId of [game.homeTeamId, game.awayTeamId].filter(Boolean)) {
-        const ic = allCoachesForNotify.find(c => c.teamId === involvedTeamId && c.userId);
-        if (ic?.userId) {
-          void coachMsg.notifyReportFinalized({
-            leagueId,
-            userId: ic.userId,
-            homeTeamName: homeTeamForNotify?.name ?? "Home",
-            awayTeamName: awayTeamForNotify?.name ?? "Away",
-            homeScore: report.homeScore,
-            awayScore: report.awayScore,
-            gameId,
-          });
-        }
-      }
+      await finalizeReportedGame(report, game, leagueId, { expectedEditVersion, userId: req.session.userId!, action: "Game Report Confirmed" });
 
       invalidateLeague(leagueId);
+      // The official decision is committed. Ancillary feed/inbox failures must not report a failed decision.
+      try {
+        await storage.createLeagueEvent({
+          leagueId,
+          teamId: reporterTeamId ?? null,
+          teamName: null,
+          teamAbbreviation: null,
+          teamPrimaryColor: null,
+          eventType: "GAME_REPORT",
+          description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: reported score confirmed (${report.awayScore}-${report.homeScore}) and finalized.`,
+          season: game.season,
+          week: game.week,
+        });
+
+        // Inbox: notify both coaches the report is finalized
+        const allCoachesForNotify = await storage.getCoachesByLeague(leagueId);
+        for (const involvedTeamId of [game.homeTeamId, game.awayTeamId].filter(Boolean)) {
+          const ic = allCoachesForNotify.find(c => c.teamId === involvedTeamId && c.userId);
+          if (ic?.userId) {
+            void coachMsg.notifyReportFinalized({
+              leagueId,
+              userId: ic.userId,
+              homeTeamName: homeTeamForNotify?.name ?? "Home",
+              awayTeamName: awayTeamForNotify?.name ?? "Away",
+              homeScore: report.homeScore,
+              awayScore: report.awayScore,
+              gameId,
+            });
+          }
+        }
+
+      } catch (error) {
+        console.error("Report confirm secondary notification failed:", error);
+      }
       res.json({ message: "Report confirmed and game finalized" });
     } catch (error) {
+      if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to confirm game report:", error);
       res.status(500).json({ message: "Failed to confirm game report" });
@@ -899,7 +866,7 @@ export function registerGameRoutes(app: Express): void {
 
       const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
-      if (report.status !== "pending") return res.status(400).json({ message: "Report is not pending" });
+      if (report.status !== "pending") return res.status(409).json({ message: "Report is not pending. Reload its current state." });
 
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
@@ -928,6 +895,8 @@ export function registerGameRoutes(app: Express): void {
         return res.status(400).json({ message: "You cannot dispute your own report" });
       }
 
+      const expectedEditVersion = requireReviewedVersion(req.body?.expectedEditVersion);
+
       const { correctedHomeScore, correctedAwayScore } = req.body as {
         correctedHomeScore?: unknown;
         correctedAwayScore?: unknown;
@@ -938,43 +907,37 @@ export function registerGameRoutes(app: Express): void {
         if (issues.some(issue => issue.severity === "error")) throw new ReportValidationError(issues);
       }
 
-      await storage.updateGameReport(report.id, {
-        status: "disputed",
-        disputedByUserId: req.session.userId,
-        disputeReason: req.body.reason || "Score disputed by opposing coach",
-        disputeCorrectedHomeScore: hasCorrectedScore ? correctedHomeScore as number : null,
-        disputeCorrectedAwayScore: hasCorrectedScore ? correctedAwayScore as number : null,
+      await disputeGameReport({ gameId, leagueId, reportId: report.id, expectedEditVersion, snapshot: report, allowedStatuses: ["pending"],
+        userId: req.session.userId!, reason: typeof req.body.reason === "string" && req.body.reason.trim() ? req.body.reason : "Score disputed by opposing coach",
+        correctedHomeScore: hasCorrectedScore ? correctedHomeScore as number : null,
+        correctedAwayScore: hasCorrectedScore ? correctedAwayScore as number : null,
       });
+      invalidateLeague(leagueId);
 
-      const disputeDetails = hasCorrectedScore
-        ? `${req.body.reason || "Score disputed by opposing coach"} (proposed correction: ${correctedAwayScore}-${correctedHomeScore})`
-        : req.body.reason || "Score disputed by opposing coach";
+      // The official decision is committed. Ancillary feed/inbox failures must not report a failed decision.
+      try {
+        const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
+        const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
+        const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
 
-      await storage.createAuditLog({
-        leagueId,
-        userId: req.session.userId,
-        action: "Game Report Disputed",
-        details: disputeDetails,
-      });
+        await storage.createLeagueEvent({
+          leagueId,
+          teamId: reporterTeamId ?? null,
+          teamName: null,
+          teamAbbreviation: null,
+          teamPrimaryColor: null,
+          eventType: "GAME_REPORT",
+          description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: reported score disputed. Awaiting commissioner review.`,
+          season: game.season,
+          week: game.week,
+        });
 
-      const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
-      const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
-      const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
-
-      await storage.createLeagueEvent({
-        leagueId,
-        teamId: reporterTeamId ?? null,
-        teamName: null,
-        teamAbbreviation: null,
-        teamPrimaryColor: null,
-        eventType: "GAME_REPORT",
-        description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: reported score disputed. Awaiting commissioner review.`,
-        season: game.season,
-        week: game.week,
-      });
-
+      } catch (error) {
+        console.error("Report dispute secondary notification failed:", error);
+      }
       res.json({ message: "Report disputed. Commissioner will review." });
     } catch (error) {
+      if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to dispute game report:", error);
       res.status(500).json({ message: "Failed to dispute game report" });
@@ -1003,7 +966,9 @@ export function registerGameRoutes(app: Express): void {
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
-      if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
+
+
+      const expectedEditVersion = requireReviewedVersion(req.body?.expectedEditVersion);
 
       // Commissioner may opt to apply the disputing coach's proposed corrected score
       // instead of the originally reported one when resolving a dispute.
@@ -1014,41 +979,33 @@ export function registerGameRoutes(app: Express): void {
         ? { ...report, homeScore: report.disputeCorrectedHomeScore!, awayScore: report.disputeCorrectedAwayScore! }
         : report;
 
-      await finalizeReportedGame(reportToFinalize, game, leagueId);
-      await storage.updateGameReport(report.id, {
-        status: "confirmed",
-        confirmedByUserId: req.session.userId,
-        ...(useCorrectedScore ? { homeScore: reportToFinalize.homeScore, awayScore: reportToFinalize.awayScore } : {}),
-      });
-
-      await storage.createAuditLog({
-        leagueId,
-        userId: req.session.userId,
-        action: "Game Report Force-Finalized",
-        details: useCorrectedScore
-          ? `Commissioner finalized with corrected score: ${reportToFinalize.awayScore}-${reportToFinalize.homeScore} (originally reported ${report.awayScore}-${report.homeScore})`
-          : `Commissioner finalized: ${report.awayScore}-${report.homeScore}`,
-      });
-
-      const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
-      const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
-      const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
-
-      await storage.createLeagueEvent({
-        leagueId,
-        teamId: null,
-        teamName: null,
-        teamAbbreviation: null,
-        teamPrimaryColor: null,
-        eventType: "GAME_REPORT",
-        description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: commissioner finalized the official score (${reportToFinalize.awayScore}-${reportToFinalize.homeScore}).`,
-        season: game.season,
-        week: game.week,
-      });
+      await finalizeReportedGame(reportToFinalize, game, leagueId, { expectedEditVersion, userId: req.session.userId!, action: "Game Report Force-Finalized", snapshot: report, resolution: useCorrectedScore ? "corrected" : "reported" });
 
       invalidateLeague(leagueId);
+      // The official decision is committed. Ancillary feed/inbox failures must not report a failed decision.
+      try {
+        const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
+        const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
+        const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
+
+        await storage.createLeagueEvent({
+          leagueId,
+          teamId: null,
+          teamName: null,
+          teamAbbreviation: null,
+          teamPrimaryColor: null,
+          eventType: "GAME_REPORT",
+          description: `${awayTeamForNotify?.name || "Away"} @ ${homeTeamForNotify?.name || "Home"}: commissioner finalized the official score (${reportToFinalize.awayScore}-${reportToFinalize.homeScore}).`,
+          season: game.season,
+          week: game.week,
+        });
+
+      } catch (error) {
+        console.error("Report finalize secondary notification failed:", error);
+      }
       res.json({ message: "Game finalized by commissioner" });
     } catch (error) {
+      if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to finalize game report:", error);
       res.status(500).json({ message: "Failed to finalize game report" });

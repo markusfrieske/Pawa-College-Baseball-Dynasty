@@ -18,6 +18,7 @@ export default defineConfig({
     "reportCorrections.test.ts",
     "reportErrors.test.ts",
     "reportingPolicy.test.ts",
+    "reportTransition.test.ts",
     "reportNotificationRecipients.test.ts",
     "recruitingUtils.test.ts",
     "phaseHelpers.test.ts",

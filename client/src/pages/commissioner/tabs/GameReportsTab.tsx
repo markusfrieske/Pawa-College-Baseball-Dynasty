@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { captureReviewedReport } from "@/lib/reportTransition";
+import { isReportEditVersion } from "@shared/reporting";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check, ChevronDown, ChevronUp, History } from "lucide-react";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
@@ -103,6 +105,7 @@ interface ScheduleGame {
 }
 
 interface GameReport {
+  editVersion: number;
   id: string;
   gameId: string;
   leagueId: string;
@@ -157,8 +160,9 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
   );
 
   const finalizeMutation = useMutation({
-    mutationFn: async ({ gameId, useCorrectedScore }: { gameId: string; useCorrectedScore?: boolean }) => {
-      return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, { useCorrectedScore });
+    mutationFn: async ({ report, useCorrectedScore }: { report: GameReport; useCorrectedScore?: boolean }) => {
+      const { gameId, expectedEditVersion } = captureReviewedReport(report);
+      return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, { expectedEditVersion, useCorrectedScore });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -306,11 +310,12 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
           </div>
           {(isPending || isDisputed) && (
             <div className="flex flex-col gap-2 items-end">
+              {!isReportEditVersion(report.editVersion) && <p role="alert" className="text-xs text-yellow-300">Reload to review the latest report before finalizing.</p>}
               <RetroButton
                 size="sm"
                 variant="primary"
-                onClick={() => finalizeMutation.mutate({ gameId: report.gameId })}
-                disabled={finalizeMutation.isPending}
+                onClick={() => finalizeMutation.mutate({ report })}
+                disabled={finalizeMutation.isPending || !isReportEditVersion(report.editVersion)}
                 data-testid={`button-finalize-${report.id}`}
               >
                 <Check className="w-3 h-3 mr-1" /> Finalize As Reported
@@ -319,8 +324,8 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
                 <RetroButton
                   size="sm"
                   variant="outline"
-                  onClick={() => finalizeMutation.mutate({ gameId: report.gameId, useCorrectedScore: true })}
-                  disabled={finalizeMutation.isPending}
+                  onClick={() => finalizeMutation.mutate({ report, useCorrectedScore: true })}
+                  disabled={finalizeMutation.isPending || !isReportEditVersion(report.editVersion)}
                   data-testid={`button-finalize-corrected-${report.id}`}
                   className="border-yellow-600 text-yellow-300 hover:bg-yellow-900/20"
                 >

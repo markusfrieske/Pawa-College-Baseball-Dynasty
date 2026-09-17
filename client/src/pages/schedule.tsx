@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { captureReviewedReport, type ReviewedReport } from "@/lib/reportTransition";
+import { isReportEditVersion } from "@shared/reporting";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { ArtworkBackground } from "@/components/artwork-background";
 import { artBackgrounds } from "@/lib/art-assets";
@@ -42,6 +44,7 @@ interface GameWithTeams extends Game {
 }
 
 interface GameReport {
+  editVersion: number;
   id: string;
   gameId: string;
   reporterUserId: string;
@@ -301,7 +304,7 @@ export default function SchedulePage() {
   const [recapGameId, setRecapGameId] = useState<string | null>(null);
   const [reviewReportGame, setReviewReportGame] = useState<GameWithTeams | null>(null);
   const [showMyTeam, setShowMyTeam] = useState(true);
-  const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
+  const [disputeReport, setDisputeReport] = useState<ReviewedReport | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
   const [disputeCorrectedAway, setDisputeCorrectedAway] = useState("");
   const [disputeCorrectedHome, setDisputeCorrectedHome] = useState("");
@@ -315,8 +318,9 @@ export default function SchedulePage() {
   });
 
   const confirmReportMutation = useMutation({
-    mutationFn: async (gameId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/confirm`, {});
+    mutationFn: async (report: GameReport) => {
+      const { gameId, expectedEditVersion } = captureReviewedReport(report);
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/confirm`, { expectedEditVersion });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
@@ -328,17 +332,35 @@ export default function SchedulePage() {
   });
 
   const disputeReportMutation = useMutation({
-    mutationFn: async ({ gameId, reason, correctedHomeScore, correctedAwayScore }: { gameId: string; reason: string; correctedHomeScore?: number; correctedAwayScore?: number }) => {
-      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/dispute`, { reason, correctedHomeScore, correctedAwayScore });
+    mutationFn: async ({ gameId, expectedEditVersion, reason, correctedHomeScore, correctedAwayScore }: { gameId: string; expectedEditVersion: number; reason: string; correctedHomeScore?: number; correctedAwayScore?: number }) => {
+      if (!isReportEditVersion(expectedEditVersion)) throw new Error("Reload and review this report before disputing it.");
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/dispute`, { expectedEditVersion, reason, correctedHomeScore, correctedAwayScore });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      setDisputeReport(null);
+      setDisputeReason("");
+      setDisputeCorrectedAway("");
+      setDisputeCorrectedHome("");
       toast({ title: "Report Disputed", description: "Commissioner will review the discrepancy." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
+
+  const openDispute = (report: GameReport) => {
+    try {
+      // A background query cannot retarget an open dispute draft.
+      setDisputeReport(captureReviewedReport(report));
+      disputeReportMutation.reset();
+      setDisputeReason("");
+      setDisputeCorrectedAway("");
+      setDisputeCorrectedHome("");
+    } catch (error) {
+      toast({ title: "Reload report", description: (error as Error).message, variant: "destructive" });
+    }
+  };
 
   const filteredGames = useMemo(() => {
     const all = showMyTeam && data?.userTeamId
@@ -399,8 +421,8 @@ export default function SchedulePage() {
     onViewBoxScore: (game: GameWithTeams) => setBoxScoreGame(game),
     onViewRecap: (gameId: string) => setRecapGameId(gameId),
     onMatchupPreview: (gameId: string) => setMatchupPreviewGameId(gameId),
-    onConfirm: (gameId: string) => confirmReportMutation.mutate(gameId),
-    onDispute: (gameId: string) => { setDisputeGameId(gameId); setDisputeReason(""); },
+    onConfirm: (report: GameReport) => confirmReportMutation.mutate(report),
+    onDispute: openDispute,
     onReviewReport: (game: GameWithTeams) => setReviewReportGame(game),
     isConfirming: confirmReportMutation.isPending,
     isDisputing: disputeReportMutation.isPending,
@@ -622,13 +644,13 @@ export default function SchedulePage() {
         userTeamId={data?.userTeamId ?? null}
         isCommissioner={data?.isCommissioner ?? false}
         onClose={() => setReviewReportGame(null)}
-        onConfirm={(gameId) => confirmReportMutation.mutate(gameId)}
-        onDispute={(gameId) => { setDisputeGameId(gameId); setDisputeReason(""); }}
+        onConfirm={(report) => confirmReportMutation.mutate(report)}
+        onDispute={openDispute}
         isConfirming={confirmReportMutation.isPending}
         isDisputing={disputeReportMutation.isPending}
       />
 
-      <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) { setDisputeGameId(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); } }}>
+      <Dialog open={!!disputeReport} onOpenChange={open => { if (!open && !disputeReportMutation.isPending) { setDisputeReport(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); } }}>
         <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-md" data-testid="dialog-dispute-reason">
           <DialogHeader>
             <DialogTitle className="text-gold text-sm">Dispute Reported Score</DialogTitle>
@@ -637,6 +659,10 @@ export default function SchedulePage() {
             <p className="text-sm text-muted-foreground">
               Explain why the reported score is incorrect. The commissioner will review and resolve the dispute.
             </p>
+            {disputeReport && <p className="text-sm text-foreground">Reported score (away/home): {disputeReport.awayScore}/{disputeReport.homeScore}</p>}
+            {disputeReportMutation.isError && (
+              <p role="alert" className="text-sm text-red-300">{parseErrorMessage(disputeReportMutation.error)} Your draft is retained. If the report changed, cancel and reload the schedule to review it again.</p>
+            )}
             <textarea
               value={disputeReason}
               onChange={e => setDisputeReason(e.target.value)}
@@ -673,26 +699,24 @@ export default function SchedulePage() {
               </div>
             </div>
             <div className="flex gap-3 justify-end">
-              <RetroButton variant="outline" size="sm" onClick={() => { setDisputeGameId(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); }} data-testid="button-cancel-dispute">
+              <RetroButton variant="outline" size="sm" disabled={disputeReportMutation.isPending} onClick={() => { setDisputeReport(null); setDisputeCorrectedAway(""); setDisputeCorrectedHome(""); }} data-testid="button-cancel-dispute">
                 Cancel
               </RetroButton>
               <RetroButton
                 variant="primary"
                 size="sm"
-                disabled={!disputeReason.trim() || disputeReportMutation.isPending}
+                disabled={!disputeReport || !disputeReason.trim() || disputeReportMutation.isPending}
                 onClick={() => {
-                  if (disputeGameId && disputeReason.trim()) {
+                  if (disputeReport && disputeReason.trim()) {
                     const correctedAwayScore = disputeCorrectedAway.trim() !== "" ? Number(disputeCorrectedAway) : undefined;
                     const correctedHomeScore = disputeCorrectedHome.trim() !== "" ? Number(disputeCorrectedHome) : undefined;
                     disputeReportMutation.mutate({
-                      gameId: disputeGameId,
+                      gameId: disputeReport.gameId,
+                      expectedEditVersion: disputeReport.expectedEditVersion,
                       reason: disputeReason.trim(),
                       correctedAwayScore: Number.isFinite(correctedAwayScore) ? correctedAwayScore : undefined,
                       correctedHomeScore: Number.isFinite(correctedHomeScore) ? correctedHomeScore : undefined,
                     });
-                    setDisputeGameId(null);
-                    setDisputeCorrectedAway("");
-                    setDisputeCorrectedHome("");
                   }
                 }}
                 data-testid="button-submit-dispute"
@@ -717,8 +741,8 @@ type GameCallbacks = {
   onViewBoxScore: (game: GameWithTeams) => void;
   onViewRecap: (gameId: string) => void;
   onMatchupPreview: (gameId: string) => void;
-  onConfirm: (gameId: string) => void;
-  onDispute: (gameId: string) => void;
+  onConfirm: (report: GameReport) => void;
+  onDispute: (report: GameReport) => void;
   onReviewReport: (game: GameWithTeams) => void;
   isConfirming: boolean;
   isDisputing: boolean;
@@ -798,8 +822,8 @@ function PendingReportModal({
   userTeamId: string | null;
   isCommissioner: boolean;
   onClose: () => void;
-  onConfirm: (gameId: string) => void;
-  onDispute: (gameId: string) => void;
+  onConfirm: (report: GameReport) => void;
+  onDispute: (report: GameReport) => void;
   isConfirming: boolean;
   isDisputing: boolean;
 }) {
@@ -990,6 +1014,8 @@ function PendingReportModal({
               </div>
             )}
 
+            {report.status === "pending" && !isReportEditVersion(report.editVersion) && <p role="alert" className="text-sm text-yellow-300">Reload the schedule to review the latest report before taking action.</p>}
+
             {report.status === "pending" && (isOpposingCoach || isCommissioner) && (
               <div className="border-t border-border/50 pt-4 flex items-center gap-3 flex-wrap">
                 <p className="text-xs text-muted-foreground flex-1 min-w-0">
@@ -999,8 +1025,8 @@ function PendingReportModal({
                   <RetroButton
                     size="sm"
                     variant="primary"
-                    onClick={() => { onConfirm(game!.id); onClose(); }}
-                    disabled={isConfirming}
+                    onClick={() => { onConfirm(report); onClose(); }}
+                    disabled={isConfirming || !isReportEditVersion(report.editVersion)}
                     data-testid="button-modal-confirm-report"
                   >
                     <CheckCircle className="w-3 h-3 mr-1" /> Confirm
@@ -1008,8 +1034,8 @@ function PendingReportModal({
                   <RetroButton
                     size="sm"
                     variant="outline"
-                    onClick={() => { onClose(); onDispute(game!.id); }}
-                    disabled={isDisputing}
+                    onClick={() => { onClose(); onDispute(report); }}
+                    disabled={isDisputing || !isReportEditVersion(report.editVersion)}
                     className="border-red-600 text-red-400 hover:bg-red-900/20"
                     data-testid="button-modal-dispute-report"
                   >
@@ -1433,10 +1459,10 @@ function CompactGameRow({
             )}
             {report.status === "pending" && userIsOpposingTeam && (
               <>
-                <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+                <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(report)} disabled={callbacks.isConfirming || !isReportEditVersion(report.editVersion)} data-testid={`button-confirm-report-${game.id}`}>
                   <CheckCircle className="w-3 h-3 mr-1" /> Confirm
                 </RetroButton>
-                <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+                <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(report)} disabled={callbacks.isDisputing || !isReportEditVersion(report.editVersion)} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
                   <XCircle className="w-3 h-3 mr-1" /> Dispute
                 </RetroButton>
               </>
@@ -1716,10 +1742,10 @@ function StandaloneGameRow({
             )}
             {report.status === "pending" && userIsOpposingTeam && (
               <>
-                <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+                <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(report)} disabled={callbacks.isConfirming || !isReportEditVersion(report.editVersion)} data-testid={`button-confirm-report-${game.id}`}>
                   <CheckCircle className="w-3 h-3 mr-1" /> Confirm
                 </RetroButton>
-                <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+                <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(report)} disabled={callbacks.isDisputing || !isReportEditVersion(report.editVersion)} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
                   <XCircle className="w-3 h-3 mr-1" /> Dispute
                 </RetroButton>
               </>

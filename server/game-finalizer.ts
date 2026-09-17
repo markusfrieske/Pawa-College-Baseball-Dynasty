@@ -1,3 +1,4 @@
+import { lockReviewedReport, ReportTransitionConflict, type ReviewedReport } from "./lib/report-transition";
 /**
  * Centralised game finalisation service.
  *
@@ -29,6 +30,8 @@ import type { Game, GameReport, Team, InsertPlayerSeasonStats, Coach } from "@sh
 import {
   games as gamesTable,
   gameFinalizations,
+  gameReports,
+  auditLogs,
   standings,
   playerSeasonStats,
   leagueEvents,
@@ -80,7 +83,14 @@ type CoachSnapshot = {
   perks?: Record<string, boolean> | null;
 };
 
+export interface ReportAcceptance extends ReviewedReport {
+  userId: string; action: "Game Report Confirmed" | "Game Report Force-Finalized";
+  previousHomeScore: number; previousAwayScore: number; resolution: "reported" | "corrected";
+}
+
 export interface FinalizeGameOptions {
+  /** Required reviewed state for reported results, committed with official effects. */
+  reportAcceptance?: ReportAcceptance;
   /** Skip standings update (default false). Set true for postseason SR/CWS games. */
   skipStandings?: boolean;
   /** Skip player season-stats accumulation (default false). Requires box data. */
@@ -528,7 +538,7 @@ export async function awardRecruitSignXp(
  * Coach XP is awarded here (previously missing from the reported-game path).
  * Cache invalidation is left to the caller (games.ts confirm/finalize routes).
  */
-export async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string): Promise<void> {
+export async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string, decision?: { expectedEditVersion: number; userId: string; action: ReportAcceptance["action"]; snapshot?: GameReport; resolution?: "reported" | "corrected" }): Promise<void> {
   await assertReportedResult(report, game, leagueId);
   const { homeScore, awayScore } = report;
   const homeBoxData = report.homeBoxData as Record<string, unknown> | null;
@@ -559,6 +569,10 @@ export async function finalizeReportedGame(report: GameReport, game: Game, leagu
     eventDescriptionSuffix: "(Reported)",
     skipCacheInvalidation: true,  // caller (games.ts) calls invalidateLeague after
     finalizer: "reported-game",
+    reportAcceptance: { gameId: game.id, leagueId, reportId: report.id, expectedEditVersion: decision?.expectedEditVersion ?? report.editVersion,
+      snapshot: decision?.snapshot ?? report, allowedStatuses: decision?.action === "Game Report Force-Finalized" ? ["pending", "disputed"] : ["pending"],
+      userId: decision?.userId ?? report.reporterUserId, action: decision?.action ?? "Game Report Confirmed",
+      previousHomeScore: (decision?.snapshot ?? report).homeScore, previousAwayScore: (decision?.snapshot ?? report).awayScore, resolution: decision?.resolution ?? "reported" },
   });
 }
 
@@ -1193,6 +1207,14 @@ export async function finalizeGameAtomic(
     // ── 1. Lock game row (serialises concurrent finalization calls) ───────
     await tx.execute(sql`SELECT id FROM games WHERE id = ${game.id} FOR UPDATE`);
 
+    if (opts.reportAcceptance) {
+      const accepted = await lockReviewedReport(tx, opts.reportAcceptance);
+      // Finalization preparation uses these game fields; reject a changed schedule snapshot.
+      for (const key of ["homeTeamId", "awayTeamId", "season", "week", "isConference", "gameType"] as const) {
+        if (accepted.game[key] !== game[key]) throw new ReportTransitionConflict("Game details changed since review. Reload the game before finalizing.");
+      }
+    }
+
     // ── 2. Idempotency check ───────────────────────────────────────────────
     const existingSentinel = await tx.select()
       .from(gameFinalizations)
@@ -1304,7 +1326,18 @@ export async function finalizeGameAtomic(
       });
     }
 
-    // ── Transaction commits here ───────────────────────────────────────────
+    // Required report acceptance commits with the official result effects below.
+    if (opts.reportAcceptance) {
+      const accepted = opts.reportAcceptance;
+      await tx.update(gameReports).set({ status: "confirmed", confirmedByUserId: accepted.userId,
+        homeScore, awayScore, editVersion: accepted.expectedEditVersion + 1, updatedAt: new Date(),
+      }).where(eq(gameReports.id, accepted.reportId));
+      await tx.insert(auditLogs).values({ leagueId, userId: accepted.userId, action: accepted.action,
+        details: JSON.stringify({ gameId: game.id, reportId: accepted.reportId, previousEditVersion: accepted.expectedEditVersion,
+          editVersion: accepted.expectedEditVersion + 1, homeScore, awayScore, previousHomeScore: accepted.previousHomeScore, previousAwayScore: accepted.previousAwayScore, resolution: accepted.resolution }),
+      });
+    }
+
   });
 
   if (alreadyFinalized) return { alreadyFinalized: true };
