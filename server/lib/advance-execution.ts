@@ -1,3 +1,5 @@
+import { createRecruitStageStore } from "./recruit-stage-store";
+import { runRecruitStageProgression } from "./recruit-stage-progression";
 import type { PoolClient } from "pg";
 import { pool } from "../db";
 
@@ -40,7 +42,7 @@ export async function withOwnedAdvanceLock<T>(leagueId: string, token: string, a
   } finally { client.release(); }
 }
 
-const stageNames = new Set(["initializing", "cpu_recruiting", "storylines", "recruit_stages", "reset_actions", "game_simulation", "phase_transition"]);
+const stageNames = new Set(["initializing", "cpu_recruiting", "storylines", "recruit_stages", "offseason_recruit_stages", "reset_actions", "game_simulation", "phase_transition"]);
 
 /** Metadata and explicitly migrated stages only; other gameplay effects remain outside this fence. */
 export function createAdvanceExecution(identity: AdvanceExecutionIdentity) {
@@ -75,6 +77,20 @@ export function createAdvanceExecution(identity: AdvanceExecutionIdentity) {
     },
     complete: () => mutate("status='complete'"),
     fail: (message: string) => mutate("status='failed',error_message=$4", [message]),
+    progressRecruitStages: (week: number, stage: "recruit_stages" | "offseason_recruit_stages" = "recruit_stages") => withOperation(async client => {
+      const source = await client.query(
+        "SELECT l.current_phase,l.current_week,l.current_season,a.from_phase,a.from_week,a.from_season,a.checkpoints FROM leagues l JOIN league_advances a ON a.league_id=l.id WHERE l.id=$1 AND a.id=$2 FOR UPDATE OF l", [leagueId,operationId]);
+      const state = source.rows[0];
+      if (!state || state.current_phase !== state.from_phase || state.current_week !== state.from_week || state.current_season !== state.from_season) throw new AdvanceExecutionLost();
+      const initial = stage === "recruit_stages" && week === state.from_week + 1;
+      const offseason = stage === "offseason_recruit_stages" && week === state.from_week && /^offseason_recruiting_[1-4]$/.test(state.from_phase);
+      if (!initial && !offseason) throw new AdvanceExecutionLost();
+      if (state.checkpoints?.[stage]?.pct === 100) return;
+      await runRecruitStageProgression(leagueId, week, await createRecruitStageStore(client,leagueId), true);
+      const checkpoint = await client.query(
+        "UPDATE league_advances SET checkpoints=checkpoints || jsonb_build_object($2::text,jsonb_build_object('pct',100,'at',clock_timestamp())),updated_at=clock_timestamp() WHERE id=$1", [operationId,stage]);
+      if (checkpoint.rowCount !== 1) throw new AdvanceExecutionLost();
+    }),
     resetWeeklyActions: () => withOperation(async client => {
       // Lock the source state before touching coaches. The execution may not
       // apply an old week's reset to a league whose phase/week/season changed.

@@ -15,7 +15,7 @@ export class AdvanceOperationBusy extends Error {
   constructor(message = "An advance operation is still active or its failure has not been recorded. Retry after its lease expires.") { super(message); }
 }
 
-const stages = new Set(["initializing", "cpu_recruiting", "storylines", "recruit_stages", "reset_actions", "game_simulation", "phase_transition"]);
+const stages = new Set(["initializing", "cpu_recruiting", "storylines", "recruit_stages", "offseason_recruit_stages", "reset_actions", "game_simulation", "phase_transition"]);
 function completedStages(row: UnfinishedAdvance): Set<string> {
   const value = row.checkpoints;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new AdvanceRecoveryRequired(row.id);

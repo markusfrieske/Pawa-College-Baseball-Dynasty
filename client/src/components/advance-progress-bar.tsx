@@ -18,6 +18,7 @@ const STAGES: { key: string; label: string; pct: number }[] = [
 ];
 
 function stageIndex(key: string): number {
+  if (key === "offseason_recruit_stages") key = "recruit_stages";
   return STAGES.findIndex((s) => s.key === key);
 }
 

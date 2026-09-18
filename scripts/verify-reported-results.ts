@@ -12,6 +12,7 @@ import { verifyPostseasonAwards } from "./verify-postseason-awards";
 import { verifyPostseasonBracket } from "./verify-postseason-bracket";
 import { verifyPostseasonAdvance } from "./verify-postseason-advance";
 import { verifyAdvanceRecovery } from "./verify-advance-recovery";
+import { verifyAdvanceRecruits } from "./verify-advance-recruits";
 import { verifyAdvanceReset } from "./verify-advance-reset";
 
 const connection = process.env.PAWA_TEST_DATABASE_URL;
@@ -1071,6 +1072,7 @@ if (process.argv.includes("--http-child")) {
     });
 
     await verifyAdvanceReset({ pool, primaryId: primary.id, equal, invoke, snapshot });
+    await verifyAdvanceRecruits({ pool, primaryId: primary.id, equal, invoke, snapshot });
 
     const savedHistory = await invoke("/api/leagues/report-league/save-states", "POST", { label: "Synthetic reported-history restore boundary" });
     equal(savedHistory.response.status, 200, "League save capture remains available with accepted report history");

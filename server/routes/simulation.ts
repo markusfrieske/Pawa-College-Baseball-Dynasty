@@ -4970,6 +4970,7 @@ export async function advanceLeagueStep(
     onProgress?: (stage: string, pct: number) => Promise<void>;
     /** Owned normal-advance stage: effects and reset_actions checkpoint commit together. */
     resetWeeklyActions?: () => Promise<void>;
+    progressRecruitStages?: (week: number, stage: "recruit_stages" | "offseason_recruit_stages") => Promise<void>;
   } = {}
 ): Promise<AdvanceStepResult> {
   const { mode = "interactive", savedRecruitingClassId, completedStages } = opts;
@@ -5085,9 +5086,10 @@ export async function advanceLeagueStep(
   // ── Recruit stage progression ───────────────────────────────────────────
   if (!stageAlreadyDone("recruit_stages", completedStages)) {
     console.time("[advance-perf] recruit-stages");
-    await updateRecruitStages(leagueId, nextWeek);
+    if (opts.progressRecruitStages) await opts.progressRecruitStages(nextWeek, "recruit_stages");
+    else await updateRecruitStages(leagueId, nextWeek);
     console.timeEnd("[advance-perf] recruit-stages");
-    await setAdvanceProgress(leagueId, "recruit_stages", 100);
+    if (!opts.progressRecruitStages) await setAdvanceProgress(leagueId, "recruit_stages", 100);
   }
 
   // ── Reset weekly actions ────────────────────────────────────────────────
@@ -5736,7 +5738,13 @@ export async function advanceLeagueStep(
 
   if (["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
     await Promise.all([runCpuRecruiting(leagueId, league.currentWeek, league.currentSeason), runCpuTransferPortalRecruiting(leagueId)]);
-    await updateRecruitStages(leagueId, league.currentWeek);
+    if (!stageAlreadyDone("offseason_recruit_stages", completedStages)) {
+      if (opts.progressRecruitStages) await opts.progressRecruitStages(league.currentWeek, "offseason_recruit_stages");
+      else {
+        await updateRecruitStages(leagueId, league.currentWeek);
+        await setAdvanceProgress(leagueId, "offseason_recruit_stages", 100);
+      }
+    }
     const phaseIndex = offseasonPhaseList.indexOf(league.currentPhase);
     const nextPhase = offseasonPhaseList[phaseIndex + 1];
     const offRecLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase, currentWeek: nextWeek });
@@ -7986,6 +7994,7 @@ export function registerSimulationRoutes(app: Express): void {
         savedRecruitingClassId: req.body?.savedRecruitingClassId,
         completedStages: priorCompletedStages.size > 0 ? priorCompletedStages : undefined,
         onProgress: executionProgress.update,
+        progressRecruitStages: (week, stage) => executionProgress!.commitStage(stage, 100, () => ownedExecution.progressRecruitStages(week, stage)),
         resetWeeklyActions: () => executionProgress!.commitStage("reset_actions", 100, ownedExecution.resetWeeklyActions),
       });
 

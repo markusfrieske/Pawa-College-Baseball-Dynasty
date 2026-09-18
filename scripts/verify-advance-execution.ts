@@ -1,4 +1,4 @@
-/** Real PostgreSQL metadata and weekly-reset fencing. Other gameplay stages remain open. */
+/** Real PostgreSQL metadata, weekly-reset and recruit-progression transaction fencing. */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -219,7 +219,150 @@ try {
   const staleReset = await seed("stale-reset");
   await pool.query("UPDATE league_advance_locks SET locked_by='successor-owner' WHERE league_id='stale-reset'");
   await lost(staleReset.resetWeeklyActions,"Stale owner cannot enter gameplay reset");
-  console.log(`Advance execution metadata and weekly reset: ${checks} assertions passed; other gameplay stages remain open.`);
+  // Recruit effects and their checkpoint must be one transaction, including the
+  // same-team running NIL balance and both sides of a decommitment notification.
+  const recruitSnapshot = async (id: string) => ({
+    execution: await snapshot(id),
+    recruits: (await pool.query("SELECT * FROM recruits WHERE league_id=$1 ORDER BY id", [id])).rows,
+    teams: (await pool.query("SELECT * FROM teams WHERE league_id=$1 ORDER BY id", [id])).rows,
+    interests: (await pool.query("SELECT i.* FROM recruiting_interests i JOIN recruits r ON r.id=i.recruit_id WHERE r.league_id=$1 ORDER BY i.id", [id])).rows,
+    events: (await pool.query("SELECT * FROM league_events WHERE league_id=$1 ORDER BY id", [id])).rows,
+  });
+  const seedRecruitTeam = async (id: string, team = id + "-team") => {
+    await pool.query("UPDATE leagues SET season_length='standard' WHERE id=$1",[id]);
+    await pool.query(`INSERT INTO teams(id,league_id,name,mascot,abbreviation,city,state,prestige,college_life,
+      nil_budget,nil_recruiting_alloc,nil_spent,nil_recruiting_spent)
+      VALUES($1::text,$2,$1::text,'Owls','OWL','Fixture','IA',9,9,1000,550,100,50)`, [team,id]);
+    return team;
+  };
+  const seedRecruit = async (league: string, id: string, team: string, interest = 90, stage = "verbal", cost = 200) => {
+    await pool.query(`INSERT INTO recruits(id,league_id,first_name,last_name,position,home_state,hometown,
+      class_rank,position_rank,stage,nil_cost) VALUES($1::text,$2,'Recruit',$1::text,'SS','IA','Fixture',1,1,$3,$4)`, [id,league,stage,cost]);
+    await pool.query("INSERT INTO recruiting_interests(id,recruit_id,team_id,interest_level,has_offer) VALUES($1,$2,$3,$4,true)", [id+"-interest",id,team,interest]);
+  };
+  const recruitExecution = await seed("atomic-recruits");
+  const recruitTeam = await seedRecruitTeam("atomic-recruits");
+  for (const suffix of ["a","b","c"]) await seedRecruit("atomic-recruits","atomic-recruits-"+suffix,recruitTeam);
+  const beforeRecruitStage = await recruitSnapshot("atomic-recruits");
+  await lost(() => recruitExecution.progressRecruitStages(1),"Primary recruit stage refuses a week other than source week plus one");
+  check(await recruitSnapshot("atomic-recruits"),beforeRecruitStage,"Wrong-week progression preserves all recruit state");
+  for (const suppress of [false,true]) {
+    await pool.query(`CREATE FUNCTION reject_recruit_checkpoint() RETURNS trigger LANGUAGE plpgsql AS $fixture$
+      BEGIN IF NEW.league_id='atomic-recruits' AND NEW.checkpoints->'recruit_stages'->>'pct'='100' THEN
+        ${suppress ? "RETURN NULL;" : "RAISE EXCEPTION 'synthetic recruit checkpoint failure';"}
+      END IF; RETURN NEW; END $fixture$`);
+    await pool.query("CREATE TRIGGER reject_recruit_checkpoint BEFORE UPDATE ON league_advances FOR EACH ROW EXECUTE FUNCTION reject_recruit_checkpoint()");
+    try {
+      if (suppress) await lost(() => recruitExecution.progressRecruitStages(2),"Suppressed recruit checkpoint refuses completion");
+      else { await assert.rejects(() => recruitExecution.progressRecruitStages(2),/synthetic recruit checkpoint failure/); checks++; }
+      check(await recruitSnapshot("atomic-recruits"),beforeRecruitStage,"Failed checkpoint rolls back buzz, signatures, NIL and stage evidence");
+    } finally {
+      await pool.query("DROP TRIGGER reject_recruit_checkpoint ON league_advances");
+      await pool.query("DROP FUNCTION reject_recruit_checkpoint()");
+    }
+  }
+  for (const table of ["recruits","teams"] as const) {
+    await pool.query(`CREATE FUNCTION reject_recruit_effect() RETURNS trigger LANGUAGE plpgsql AS $fixture$
+      BEGIN IF NEW.league_id='atomic-recruits' THEN RAISE EXCEPTION 'synthetic ${table} effect failure'; END IF; RETURN NEW; END $fixture$`);
+    await pool.query(`CREATE TRIGGER reject_recruit_effect AFTER UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION reject_recruit_effect()`);
+    try {
+      await assert.rejects(() => recruitExecution.progressRecruitStages(2),new RegExp(`synthetic ${table} effect failure`)); checks++;
+      check(await recruitSnapshot("atomic-recruits"),beforeRecruitStage,`${table} write failure rolls back every preceding effect and checkpoint`);
+    } finally {
+      await pool.query(`DROP TRIGGER reject_recruit_effect ON ${table}`);
+      await pool.query("DROP FUNCTION reject_recruit_effect()");
+    }
+  }
+  await recruitExecution.progressRecruitStages(2);
+  const committedRecruits = await recruitSnapshot("atomic-recruits");
+  check(committedRecruits.recruits.filter(r=>r.signed_team_id===recruitTeam).map(r=>r.id),["atomic-recruits-a","atomic-recruits-b"],"Stable ID order allocates the two affordable signing slots");
+  check(committedRecruits.recruits.filter(r=>!r.signed_team_id).map(r=>r.stage),["verbal"],"Third recruit cannot spend beyond the remaining recruiting allocation");
+  check([committedRecruits.teams[0].nil_spent,committedRecruits.teams[0].nil_recruiting_spent],[500,450],"Same-team NIL writes accumulate both costs without lost updates");
+  check(committedRecruits.interests.map(i=>i.interest_level),[92,92,92],"Eligible program buzz applied exactly once to every unsigned recruit");
+  check(committedRecruits.execution.operations[0].checkpoints.recruit_stages.pct,100,"Recruit checkpoint commits with its effects");
+  await pool.query("UPDATE recruiting_interests SET interest_level=13,notes='later coach activity' WHERE id='atomic-recruits-c-interest'");
+  await pool.query("UPDATE teams SET nil_spent=nil_spent+25,nil_recruiting_spent=nil_recruiting_spent+7 WHERE id=$1",[recruitTeam]);
+  const laterRecruitActivity = await recruitSnapshot("atomic-recruits");
+  await recruitExecution.progressRecruitStages(2);
+  check(await recruitSnapshot("atomic-recruits"),laterRecruitActivity,"Completed recruit stage replay preserves later interests, NIL and checkpoint timestamp");
+
+  for (const changed of ["current_phase","current_week","current_season","owner"] as const) {
+    const id = "recruits-wrong-"+changed, execution = await seed(id);
+    const team = await seedRecruitTeam(id); await seedRecruit(id,id+"-r",team);
+    if (changed === "owner") await pool.query("UPDATE league_advance_locks SET locked_by='successor-owner' WHERE league_id=$1",[id]);
+    else await pool.query(`UPDATE leagues SET ${changed}=$2 WHERE id=$1`,[id,changed==="current_phase"?"offseason_recruiting_1":2]);
+    const before = await recruitSnapshot(id);
+    await lost(() => execution.progressRecruitStages(2),"Recruit stage rejects changed "+changed);
+    check(await recruitSnapshot(id),before,"Rejected source or owner cannot mutate recruit state");
+  }
+  const emptyRecruit = await seed("empty-recruits");
+  await emptyRecruit.progressRecruitStages(2);
+  check((await snapshot("empty-recruits")).operations[0].checkpoints.recruit_stages.pct,100,"Zero-recruit progression still records completed evidence");
+  await lost(() => emptyRecruit.progressRecruitStages(1,"offseason_recruit_stages"),"Offseason-only second pass refuses a regular-season source");
+
+  for (const phase of ["offseason_recruiting_1","offseason_recruiting_2","offseason_recruiting_3","offseason_recruiting_4"]) {
+    const id = "second-pass-"+phase, execution = await seed(id);
+    // Synthetic operation source is initialized before any gameplay write.
+    await pool.query("UPDATE leagues SET current_phase=$2,current_week=6 WHERE id=$1",[id,phase]);
+    await pool.query("UPDATE league_advances SET from_phase=$2,from_week=6 WHERE league_id=$1",[id,phase]);
+    const team = await seedRecruitTeam(id); await seedRecruit(id,id+"-r",team,40,"open");
+    await execution.progressRecruitStages(7);
+    const afterPrimary = await recruitSnapshot(id);
+    await lost(() => execution.progressRecruitStages(7,"offseason_recruit_stages"),"Offseason second pass requires source currentWeek, not nextWeek");
+    check(await recruitSnapshot(id),afterPrimary,"Wrong second-pass week cannot add buzz or evidence");
+    await execution.progressRecruitStages(6,"offseason_recruit_stages");
+    const afterSecond = await recruitSnapshot(id);
+    check(afterSecond.interests[0].interest_level,44,"Existing two-pass offseason buzz runs once per distinct stage in "+phase);
+    check(afterSecond.recruits[0].stage,"top5","Stage progression retains the canonical interest and week thresholds");
+    check([afterSecond.execution.operations[0].checkpoints.recruit_stages.pct,afterSecond.execution.operations[0].checkpoints.offseason_recruit_stages.pct],[100,100],"Primary and second-pass completion have separate evidence");
+    await execution.progressRecruitStages(6,"offseason_recruit_stages");
+    check(await recruitSnapshot(id),afterSecond,"Offseason second-pass retry cannot duplicate buzz");
+  }
+
+  const scopedRecruit = await seed("scoped-recruits");
+  await seed("outside-recruits");
+  const scopedTeam = await seedRecruitTeam("scoped-recruits");
+  const outsideTeam = await seedRecruitTeam("outside-recruits");
+  await seedRecruit("scoped-recruits","scoped-recruit",scopedTeam,40,"open");
+  await seedRecruit("outside-recruits","outside-recruit",outsideTeam,90,"verbal");
+  await pool.query("INSERT INTO recruiting_interests(id,recruit_id,team_id,interest_level,has_offer) VALUES('bad-foreign-team','scoped-recruit',$1,99,true),('bad-foreign-recruit','outside-recruit',$2,99,true)",[outsideTeam,scopedTeam]);
+  const outsideBefore = await recruitSnapshot("outside-recruits");
+  await scopedRecruit.progressRecruitStages(2);
+  const scopedAfter = await recruitSnapshot("scoped-recruits");
+  check(scopedAfter.recruits.map(r=>[r.stage,r.signed_team_id]),[["top5",null]],"Foreign team interest cannot cause a local recruit signing");
+  check(scopedAfter.interests.map(i=>[i.id,i.interest_level]),[["bad-foreign-team",99],["scoped-recruit-interest",42]],"Only same-league interests receive buzz");
+  check(await recruitSnapshot("outside-recruits"),outsideBefore,"Foreign recruit, linked malformed interest and foreign NIL remain unchanged");
+
+  const decommit = await seed("atomic-decommit");
+  const leaderTeam = await seedRecruitTeam("atomic-decommit","decommit-leader");
+  const rivalTeam = await seedRecruitTeam("atomic-decommit","decommit-rival");
+  await seedRecruit("atomic-decommit","decommit-recruit",leaderTeam,50,"verbal",100);
+  await pool.query("INSERT INTO recruiting_interests(id,recruit_id,team_id,interest_level,has_offer) VALUES('decommit-rival-interest','decommit-recruit',$1,45,true)",[rivalTeam]);
+  const beforeDecommit = await recruitSnapshot("atomic-decommit");
+  await pool.query(`CREATE FUNCTION reject_decommit_event() RETURNS trigger LANGUAGE plpgsql AS $fixture$
+    BEGIN IF NEW.league_id='atomic-decommit' AND NEW.metadata->>'alertType'='gain'
+      THEN RAISE EXCEPTION 'synthetic rival event failure'; END IF; RETURN NEW; END $fixture$`);
+  await pool.query("CREATE TRIGGER reject_decommit_event AFTER INSERT ON league_events FOR EACH ROW EXECUTE FUNCTION reject_decommit_event()");
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0;
+    try {
+      await assert.rejects(() => decommit.progressRecruitStages(2),/synthetic rival event failure/); checks++;
+      check(await recruitSnapshot("atomic-decommit"),beforeDecommit,"Second event failure rolls back decommit, buzz, first event and checkpoint together");
+    } finally {
+      await pool.query("DROP TRIGGER reject_decommit_event ON league_events");
+      await pool.query("DROP FUNCTION reject_decommit_event()");
+    }
+    await decommit.progressRecruitStages(2);
+    const afterDecommit = await recruitSnapshot("atomic-decommit");
+    check(afterDecommit.recruits[0].stage,"top3","Deterministic eligible decommit changes verbal recruit to top three");
+    check(afterDecommit.events.map(e=>e.metadata.alertType).sort(),["gain","lost"],"Decommit creates both rival and leader notifications");
+    check(afterDecommit.events.map(e=>[e.event_type,e.week,e.season]),[["DECOMMIT",2,1],["DECOMMIT",2,1]],"Decommit event provenance uses the requested week and current season");
+    check(afterDecommit.interests.map(i=>i.interest_level).sort((a,b)=>a-b),[47,52],"Decommit transaction includes program buzz");
+    await decommit.progressRecruitStages(2);
+    check(await recruitSnapshot("atomic-decommit"),afterDecommit,"Completed decommit replay cannot duplicate events or buzz");
+  } finally { Math.random = originalRandom; }
+  console.log(`Advance execution metadata, weekly reset and recruit progression: ${checks} assertions passed; other gameplay stages remain open.`);
 } finally {
   if (testPool) await testPool.end();
   if (created) await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
