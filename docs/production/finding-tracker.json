@@ -167,7 +167,7 @@
       "acceptance": "Failure of a required game prevents clock advancement; retry finishes missing work once without false news.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": 3,
-      "implementationCommit": "fa60861fc0a692d44c820136de37df89d72b7b5c",
+      "implementationCommit": "dd159daf3129873abafccc9944ff29b5efee121d",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
@@ -177,10 +177,13 @@
         "W03_BATCH_06.md",
         "audits/W03_BATCH_06_AUDIT.md",
         "../../scripts/verify-postseason-advance.ts",
-        "../../scripts/verify-postseason-bracket.ts"
+        "../../scripts/verify-postseason-bracket.ts",
+        "W03_BATCH_07.md",
+        "audits/W03_BATCH_07_AUDIT.md",
+        "../../scripts/verify-advance-recovery.ts"
       ],
       "verifiedBy": null,
-      "notes": "Batch04/05 required finalization and milestone errors propagate. Batch06 verifies the actual full-season SR advance under required checkpoint failure and partial award failure, then fresh-process retry. Checkpoint writes now await persistence in order; completion update failures propagate; failed status attempts are awaited before lease release. Stale operation source-state identity, crash after phase flip, failure-status persistence/unique-conflict fallback, standard mode and lease takeover remain open."
+      "notes": "Batch06 orders required checkpoints and verifies actual SR fault/restart. Batch07 validates operation source identity, copies checkpoint evidence via atomic/CAS handoff, preserves failure errors and retains ownership when failed status cannot persist. Real post-phaseflip hardkill and terminalwrite faults now produce persistent recovery-required refusal across normal/force/clear/quick entry points; exact-source resume is tested. Automatic changed-state reconciliation, quicksim durable step tracking, side-effect atomicity, standard mode and live superseded-worker fencing remain open."
     },
     {
       "id": "TI-09",
@@ -194,7 +197,7 @@
       "acceptance": "Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "fa60861fc0a692d44c820136de37df89d72b7b5c",
+      "implementationCommit": "dd159daf3129873abafccc9944ff29b5efee121d",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
@@ -204,10 +207,13 @@
         "W03_BATCH_06.md",
         "audits/W03_BATCH_06_AUDIT.md",
         "../../scripts/verify-postseason-advance.ts",
-        "../../scripts/verify-postseason-bracket.ts"
+        "../../scripts/verify-postseason-bracket.ts",
+        "W03_BATCH_07.md",
+        "audits/W03_BATCH_07_AUDIT.md",
+        "../../scripts/verify-advance-recovery.ts"
       ],
       "verifiedBy": null,
-      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open. Batch06 adds actual full-season SR partial-award failure/restart evidence, preserving the first receipt and finishing all eight once; this does not close remaining achievement writers or other crash points."
+      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open. Batch06 adds actual full-season SR partial-award failure/restart evidence, preserving the first receipt and finishing all eight once; this does not close remaining achievement writers or other crash points. Batch07 real phaseflip hardkill preserves all eight committed coach awards across blocked retries; exact-source resume retains validated progress. This does not certify all award writers or live lease takeover."
     },
     {
       "id": "TI-10",
@@ -257,7 +263,7 @@
       "acceptance": "Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "66e0aee22e022379cffbe1809635661ca64d807d",
+      "implementationCommit": "dd159daf3129873abafccc9944ff29b5efee121d",
       "evidence": [
         "DB_SPIKE.md",
         "W01_BATCH_01.md",
@@ -270,10 +276,13 @@
         "W01_BATCH_04.md",
         "audits/W01_BATCH_04_AUDIT.md",
         "W03_BATCH_05.md",
-        "audits/W03_BATCH_05_AUDIT.md"
+        "audits/W03_BATCH_05_AUDIT.md",
+        "W03_BATCH_07.md",
+        "audits/W03_BATCH_07_AUDIT.md",
+        "../../scripts/verify-advance-recovery.ts"
       ],
       "verifiedBy": null,
-      "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery. Batch 04 verifies actual entry-point startup on an empty bootstrapped fixture and preserves guest saves; asynchronous backfills, historical upgrades and recovery remain unverified."
+      "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery. Batch 04 verifies actual entry-point startup on an empty bootstrapped fixture and preserves guest saves; asynchronous backfills, historical upgrades and recovery remain unverified. Batch07 also blocks current/target advance-operation evidence from unsupported restoration, including game-free interrupted leagues. Capture/reinsert inventory and mature-league restore remain incomplete."
     },
     {
       "id": "TI-13",
