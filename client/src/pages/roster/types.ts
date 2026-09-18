@@ -11,13 +11,11 @@ export interface LeagueTeam {
   abbreviation: string;
   primaryColor: string;
   secondaryColor: string;
-  coach?: { firstName: string; lastName: string } | null;
+  coach?: { firstName: string; lastName: string; userId: string | null } | null;
 }
 
-export interface LeagueQueryData {
+export interface LeagueQueryData extends Pick<League, "commissionerId" | "coCommissionerIds" | "currentPhase" | "currentWeek" | "currentSeason" | "progressionEnabled"> {
   teams: LeagueTeam[];
-  league?: League;
-  progressionEnabled?: boolean;
 }
 
 export interface PitcherSlot {

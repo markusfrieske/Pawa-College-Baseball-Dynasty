@@ -67,6 +67,7 @@ export default function RosterPage() {
     refetch,
     leagueData,
     isCommissioner,
+    isOwnTeam,
     canViewDevelopment,
     updatePlayerMutation,
     saveRosterMutation,
@@ -99,8 +100,8 @@ export default function RosterPage() {
   const assignedBattingCount = positionPlayersAll.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).length;
   const requiredRotationRoles = ["FRI", "SAT", "SUN", "MID"];
   const assignedRotationCount = requiredRotationRoles.filter(role => allPitchersAll.some(p => p.pitchingRole === role)).length;
-  const battingIncomplete = !viewingTeamId && positionPlayersAll.length >= 9 && assignedBattingCount < 9;
-  const pitchingIncomplete = !viewingTeamId && allPitchersAll.length >= 4 && assignedRotationCount < 4;
+  const battingIncomplete = isOwnTeam && positionPlayersAll.length >= 9 && assignedBattingCount < 9;
+  const pitchingIncomplete = isOwnTeam && allPitchersAll.length >= 4 && assignedRotationCount < 4;
   const isLineupIncomplete = battingIncomplete || pitchingIncomplete;
 
   if (isLoading) {
@@ -154,12 +155,12 @@ export default function RosterPage() {
                   </select>
                 </div>
               )}
-              {!viewingTeamId && data?.players && (
+              {isOwnTeam && data?.players && (
                 <RetroButton
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setSaveFileName(`${data.team?.name || "My Team"} - Season ${leagueData?.league?.currentSeason ?? 1}`);
+                    setSaveFileName(`${data.team?.name || "My Team"} - Season ${leagueData?.currentSeason ?? 1}`);
                     setShowSaveDialog(true);
                   }}
                   data-testid="button-save-roster-file"
@@ -231,7 +232,7 @@ export default function RosterPage() {
         </RetroCard>
 
         {/* Captain Slots — only for own team, list view */}
-        {!viewingTeamId && viewMode === "list" && data?.players && (() => {
+        {isOwnTeam && viewMode === "list" && data?.players && (() => {
           const pitcherCaptain = data.players.find(p => p.captainRole === "pitcher_captain");
           const fielderCaptain = data.players.find(p => p.captainRole === "fielder_captain");
           return (
@@ -283,7 +284,7 @@ export default function RosterPage() {
             teamPrimaryColor={data?.team?.primaryColor}
           />
         ) : viewMode === "depth" ? (
-          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.league?.currentWeek ?? 1} />
+          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={isOwnTeam} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.currentWeek ?? 1} />
         ) : (
           <PositionSection
             title={positionFilter === "all" ? "Program roster" : positionOptions.find(o => o.value === positionFilter)?.label || "Players"}
@@ -291,7 +292,7 @@ export default function RosterPage() {
             onSelectPlayer={setSelectedPlayer}
             teamPrimaryColor={data?.team?.primaryColor}
             progressionEnabled={leagueData?.progressionEnabled}
-            isOwnTeam={!viewingTeamId}
+            isOwnTeam={isOwnTeam}
             onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
           />
         )}
@@ -321,7 +322,7 @@ export default function RosterPage() {
             setSelectedPlayer(null);
           }}
           teamPrimaryColor={data?.team?.primaryColor}
-          canDeclareDraft={canPlayerDeclareDraft(selectedPlayer)}
+          canDeclareDraft={(isOwnTeam || isCommissioner) && selectedPlayer.teamId === data?.team?.id && canPlayerDeclareDraft(selectedPlayer)}
           onDeclareDraft={() => declareDraftMutation.mutate(selectedPlayer.id)}
           isDeclaringDraft={declareDraftMutation.isPending}
           leagueId={id}

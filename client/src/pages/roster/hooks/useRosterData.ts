@@ -13,7 +13,7 @@ const DEVELOPMENT_PHASES = new Set([
 ]);
 
 export function canPlayerDeclareDraft(player: Player): boolean {
-  // Must be: RS (redshirt) + high skill (4+ stars OR 700+ overall) + not already declared
+  // Match the existing server rule: RS + 4+ stars OR 500+ overall, not already declared.
   const isRedshirt = player.eligibility === "RS";
   const isHighSkill = player.starRating >= 4 || player.overall >= 500;
   const notDeclared = !player.declaredForDraft;
@@ -50,27 +50,33 @@ export function useRosterData(
     queryKey: ["/api/auth/me"],
   });
 
-  const isCommissioner = Boolean(authData?.id && leagueData?.league?.commissionerId === authData.id);
+  const isCommissioner = Boolean(authData?.id && leagueData && (
+    leagueData.commissionerId === authData.id ||
+    (Array.isArray(leagueData.coCommissionerIds) && leagueData.coCommissionerIds.includes(authData.id))
+  ));
+  const isOwnTeam = Boolean(authData?.id && data?.team?.id &&
+    leagueData?.teams.some(team => team.id === data.team.id && team.coach?.userId === authData.id));
 
   const hasAnyProgressionData = (data?.players || []).some(
     p => p.progressionDeltas != null && (p.progressionDeltas as any).overall != null
   );
   const canViewDevelopment =
-    !viewingTeamId &&
+    isOwnTeam &&
     !!leagueData?.progressionEnabled &&
-    (DEVELOPMENT_PHASES.has(leagueData?.league?.currentPhase ?? "") || hasAnyProgressionData);
+    (DEVELOPMENT_PHASES.has(leagueData?.currentPhase ?? "") || hasAnyProgressionData);
 
   const updatePlayerMutation = useMutation({
     mutationFn: async (updates: Partial<Player> & { id: string }) => {
-      return apiRequest("PATCH", `/api/leagues/${leagueId}/players/${updates.id}`, updates);
+      const { id, ...patch } = updates;
+      return apiRequest("PATCH", `/api/leagues/${leagueId}/players/${id}`, patch);
     },
     onSuccess: () => {
       toast({ title: "Player updated", description: "Player data has been saved." });
       queryClient.invalidateQueries({ queryKey: [rosterUrl] });
       onPlayerUpdated?.();
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update player", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Player not saved", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -80,7 +86,7 @@ export function useRosterData(
       const players = data?.players || [];
       return apiRequest("POST", `/api/saved-rosters`, {
         name,
-        basedOn: team ? `${team.name} (Season ${leagueData?.league?.currentSeason ?? 1})` : "NCAA 2026",
+        basedOn: team ? `${team.name} (Season ${leagueData?.currentSeason ?? 1})` : "NCAA 2026",
         rosterData: players,
       });
     },
@@ -131,6 +137,7 @@ export function useRosterData(
     leagueData,
     authData,
     isCommissioner,
+    isOwnTeam,
     canViewDevelopment,
     updatePlayerMutation,
     saveRosterMutation,

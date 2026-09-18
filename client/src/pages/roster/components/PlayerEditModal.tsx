@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { Edit } from "lucide-react";
 import type { Player } from "@shared/schema";
-import { isPitcher, isCatcher } from "@shared/positions";
+import { isPitcher, isCatcher, PITCHER_POSITIONS } from "@shared/positions";
 
 interface PlayerEditModalProps {
   player: Player;
@@ -14,427 +14,152 @@ interface PlayerEditModalProps {
   isSaving: boolean;
 }
 
-const positionsList = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF"];
+const positionsList: string[] = [...PITCHER_POSITIONS, "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "OF", "DH"];
 const eligibilityList = ["FR", "SO", "JR", "SR"];
-const skinToneOptions = ["light", "medium", "tan", "olive", "dark", "deep"];
-const hairColorOptions = ["black", "brown", "blonde", "red", "gray", "white"];
-const hairStyleOptions = ["short", "medium", "long", "fade", "buzz", "bald"];
-const headwearOptions = ["cap", "helmet", "batting_helmet", "catchers_mask", "none"];
+const ratingLabels = {
+  hitForAvg: "Contact", power: "Power", speed: "Speed", arm: "Arm", fielding: "Fielding",
+  errorResistance: "Error resistance", clutch: "Clutch", vsLHP: "vs LHP", grit: "Grit",
+  stealing: "Stealing", running: "Running", throwing: "Throwing", recovery: "Recovery",
+  catcherAbility: "Catcher", velocity: "Velocity", control: "Control", stamina: "Stamina",
+  wRISP: "W/RISP", vsLefty: "vs Lefty", poise: "Poise", heater: "Heater", agile: "Agile",
+} as const;
+type RatingField = keyof typeof ratingLabels;
+const textFields = ["firstName", "lastName", "hometown", "homeState", "position", "eligibility"] as const;
+type FormField = typeof textFields[number] | RatingField | "jerseyNumber" | "abilities";
+type EditForm = Record<FormField, string>;
+
+function initialForm(player: Player): EditForm {
+  const fields = [...textFields, "jerseyNumber", ...Object.keys(ratingLabels)] as Exclude<FormField, "abilities">[];
+  return {
+    ...Object.fromEntries(fields.map(field => [field, player[field] == null ? "" : String(player[field])])),
+    abilities: (player.abilities ?? []).join(", "),
+  } as EditForm;
+}
 
 export function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEditModalProps) {
-  const [formData, setFormData] = useState({
-    firstName: player.firstName,
-    lastName: player.lastName,
-    position: player.position,
-    eligibility: player.eligibility,
-    jerseyNumber: player.jerseyNumber,
-    hometown: player.hometown,
-    homeState: player.homeState,
-    batHand: player.batHand,
-    throwHand: player.throwHand,
-    skinTone: player.skinTone || "light",
-    hairColor: player.hairColor || "brown",
-    hairStyle: player.hairStyle || "short",
-    headwear: player.headwear || "cap",
-    overall: player.overall,
-    starRating: player.starRating,
-    hitForAvg: player.hitForAvg || 50,
-    power: player.power || 50,
-    speed: player.speed || 50,
-    arm: player.arm || 50,
-    fielding: player.fielding || 50,
-    errorResistance: player.errorResistance || 50,
-    clutch: player.clutch || 50,
-    vsLHP: player.vsLHP || 50,
-    grit: player.grit || 50,
-    stealing: player.stealing || 50,
-    running: player.running || 50,
-    throwing: player.throwing || 50,
-    recovery: player.recovery || 50,
-    catcherAbility: player.catcherAbility || 50,
-    velocity: player.velocity || 50,
-    control: player.control || 50,
-    stamina: player.stamina || 50,
-    wRISP: player.wRISP || 50,
-    vsLefty: player.vsLefty || 50,
-    poise: player.poise || 50,
-    heater: player.heater || 50,
-    agile: player.agile || 50,
-    abilities: player.abilities || [],
-  });
-
+  // Keep a stable edit baseline: a failed request or background refetch must not erase the draft.
+  const [baseline] = useState(() => initialForm(player));
+  const [formData, setFormData] = useState<EditForm>(() => initialForm(player));
+  const [errors, setErrors] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"info" | "attrs" | "common" | "abilities">("info");
   const isPlayerPitcher = isPitcher(formData.position);
-  const isPlayerCatcher = isCatcher(formData.position);
+  const setField = (field: FormField, value: string) => setFormData(current => ({ ...current, [field]: value }));
 
   const handleSubmit = () => {
-    onSave(formData);
+    const updates: Record<string, string | number | string[]> = {};
+    const issues: string[] = [];
+    const limits = { firstName: 50, lastName: 50, hometown: 80, homeState: 30, position: 10 };
+    for (const field of textFields) {
+      if (formData[field] === baseline[field]) continue;
+      const value = formData[field];
+      if ((field === "firstName" || field === "lastName") && !value.trim()) {
+        issues.push(`${field === "firstName" ? "First" : "Last"} name is required.`);
+      } else if (field === "eligibility" && !eligibilityList.includes(value)) {
+        issues.push("Choose FR, SO, JR, or SR for a new eligibility value.");
+      } else if (field === "position" && !positionsList.includes(value)) {
+        issues.push("Choose a supported position.");
+      } else if (field !== "eligibility" && value.length > limits[field]) {
+        issues.push(`${field} is too long (maximum ${limits[field]} characters).`);
+      } else {
+        updates[field] = value;
+      }
+    }
+    for (const field of ["jerseyNumber", ...Object.keys(ratingLabels)] as ("jerseyNumber" | RatingField)[]) {
+      // Empty legacy values stay empty unless the coach explicitly supplies a rating.
+      if (formData[field] === baseline[field]) continue;
+      const value = Number(formData[field]);
+      const max = field === "jerseyNumber" ? 99 : 100;
+      if (!formData[field].trim() || !Number.isInteger(value) || value < 0 || value > max) {
+        issues.push(`${field === "jerseyNumber" ? "Jersey number" : ratingLabels[field]} must be a whole number from 0 to ${max}.`);
+      } else if (baseline[field] === "" || value !== Number(baseline[field])) {
+        updates[field] = value;
+      }
+    }
+    if (formData.abilities !== baseline.abilities) {
+      const abilities = formData.abilities.split(",").map(value => value.trim()).filter(Boolean);
+      if (JSON.stringify(abilities) !== JSON.stringify(player.abilities ?? [])) updates.abilities = abilities;
+    }
+    if (issues.length) { setErrors(issues); return; }
+    if (!Object.keys(updates).length) { setErrors(["No changes to save."]); return; }
+    setErrors([]);
+    onSave(updates as Partial<Player>);
   };
 
+  const ratingInputs = (fields: RatingField[]) => (
+    <div className="grid grid-cols-2 gap-3">
+      {fields.map(field => (
+        <RetroInput key={field} label={ratingLabels[field]} type="number" min={0} max={100} step={1}
+          value={formData[field]} placeholder="Not set" onChange={event => setField(field, event.target.value)}
+          data-testid={`input-${field}`} />
+      ))}
+    </div>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={value => { if (!value && !isSaving) onClose(); }}>
       <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-gold text-sm flex items-center gap-2">
-            <Edit className="w-4 h-4" />
-            Edit Player
-          </DialogTitle>
+          <DialogTitle className="text-gold text-sm flex items-center gap-2"><Edit className="w-4 h-4" /> Edit Player</DialogTitle>
+          <DialogDescription>Only changed fields are saved. Overall and stars are calculated from player attributes.</DialogDescription>
         </DialogHeader>
-
-        <div className="flex gap-1 mb-4 border-b border-border pb-2">
-          {(["info", "attrs", "common", "abilities"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 text-xs rounded ${
-                activeTab === tab ? 'bg-gold text-background' : 'text-muted-foreground hover:text-foreground'
-              }`}
-              data-testid={`tab-${tab}`}
-            >
+        <div className="grid grid-cols-4 gap-1 mb-4 border-b border-border pb-2" aria-label="Edit player sections">
+          {(["info", "attrs", "common", "abilities"] as const).map(tab => (
+            <button key={tab} type="button" onClick={() => setActiveTab(tab)} aria-pressed={activeTab === tab}
+              className={`min-h-11 min-w-0 px-1 py-1 text-xs rounded ${activeTab === tab ? "bg-gold text-background" : "text-muted-foreground hover:text-foreground"}`}
+              data-testid={`tab-${tab}`}>
               {tab === "info" ? "Info" : tab === "attrs" ? "Attributes" : tab === "common" ? "Common" : "Abilities"}
             </button>
           ))}
         </div>
-
-        <div className="space-y-4">
-          {activeTab === "info" && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">First Name</label>
-                  <RetroInput
-                    value={formData.firstName}
-                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                    data-testid="input-first-name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Last Name</label>
-                  <RetroInput
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                    data-testid="input-last-name"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Position</label>
-                  <select
-                    value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
-                    data-testid="select-position"
-                  >
-                    {positionsList.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Year</label>
-                  <select
-                    value={formData.eligibility}
-                    onChange={(e) => setFormData({ ...formData, eligibility: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
-                    data-testid="select-eligibility"
-                  >
-                    {eligibilityList.map(e => <option key={e} value={e}>{e}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Jersey #</label>
-                  <RetroInput
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={formData.jerseyNumber}
-                    onChange={(e) => setFormData({ ...formData, jerseyNumber: parseInt(e.target.value) || 0 })}
-                    data-testid="input-jersey"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Hometown</label>
-                  <RetroInput
-                    value={formData.hometown}
-                    onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
-                    data-testid="input-hometown"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">State</label>
-                  <RetroInput
-                    value={formData.homeState}
-                    onChange={(e) => setFormData({ ...formData, homeState: e.target.value })}
-                    data-testid="input-state"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Bats</label>
-                  <select
-                    value={formData.batHand}
-                    onChange={(e) => setFormData({ ...formData, batHand: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
-                    data-testid="select-bats"
-                  >
-                    <option value="R">Right</option>
-                    <option value="L">Left</option>
-                    <option value="S">Switch</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Throws</label>
-                  <select
-                    value={formData.throwHand}
-                    onChange={(e) => setFormData({ ...formData, throwHand: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
-                    data-testid="select-throws"
-                  >
-                    <option value="R">Right</option>
-                    <option value="L">Left</option>
-                  </select>
-                </div>
-              </div>
-              <h4 className="text-gold text-xs border-b border-border pb-1">Appearance</h4>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Skin Tone</label>
-                  <select
-                    value={formData.skinTone}
-                    onChange={(e) => setFormData({ ...formData, skinTone: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
-                    data-testid="select-skin"
-                  >
-                    {skinToneOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Hair Color</label>
-                  <select
-                    value={formData.hairColor}
-                    onChange={(e) => setFormData({ ...formData, hairColor: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
-                    data-testid="select-hair-color"
-                  >
-                    {hairColorOptions.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Hair Style</label>
-                  <select
-                    value={formData.hairStyle}
-                    onChange={(e) => setFormData({ ...formData, hairStyle: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
-                    data-testid="select-hair-style"
-                  >
-                    {hairStyleOptions.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Headwear</label>
-                  <select
-                    value={formData.headwear}
-                    onChange={(e) => setFormData({ ...formData, headwear: e.target.value })}
-                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
-                    data-testid="select-headwear"
-                  >
-                    {headwearOptions.map(h => <option key={h} value={h}>{h.replace("_", " ")}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Overall (1-999)</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={999}
-                    value={formData.overall}
-                    onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 1 })}
-                    data-testid="input-overall"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Star Rating (1-5)</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={formData.starRating}
-                    onChange={(e) => setFormData({ ...formData, starRating: parseInt(e.target.value) || 1 })}
-                    data-testid="input-star-rating"
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          {activeTab === "attrs" && (
-            <>
-              {isPlayerPitcher ? (
-                <>
-                  <h4 className="text-gold text-xs border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Velocity</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.velocity} onChange={(e) => setFormData({ ...formData, velocity: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Control</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.control} onChange={(e) => setFormData({ ...formData, control: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Stamina</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.stamina} onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })} />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h4 className="text-gold text-xs border-b border-border pb-1">Fielder Attributes (1-99)</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Contact</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.hitForAvg} onChange={(e) => setFormData({ ...formData, hitForAvg: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Power</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.power} onChange={(e) => setFormData({ ...formData, power: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Speed</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.speed} onChange={(e) => setFormData({ ...formData, speed: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Arm</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.arm} onChange={(e) => setFormData({ ...formData, arm: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Fielding</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.fielding} onChange={(e) => setFormData({ ...formData, fielding: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Error Resist</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.errorResistance} onChange={(e) => setFormData({ ...formData, errorResistance: parseInt(e.target.value) || 50 })} />
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {activeTab === "common" && (
-            <>
-              {isPlayerPitcher ? (
-                <>
-                  <h4 className="text-gold text-xs border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-muted-foreground">W/RISP</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.wRISP} onChange={(e) => setFormData({ ...formData, wRISP: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">vs Lefty</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.vsLefty} onChange={(e) => setFormData({ ...formData, vsLefty: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Poise</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.poise} onChange={(e) => setFormData({ ...formData, poise: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Grit</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.grit} onChange={(e) => setFormData({ ...formData, grit: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Heater</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.heater} onChange={(e) => setFormData({ ...formData, heater: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Agile</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.agile} onChange={(e) => setFormData({ ...formData, agile: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Recovery</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.recovery} onChange={(e) => setFormData({ ...formData, recovery: parseInt(e.target.value) || 50 })} />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h4 className="text-gold text-xs border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs text-muted-foreground">Clutch</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.clutch} onChange={(e) => setFormData({ ...formData, clutch: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">vs LHP</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.vsLHP} onChange={(e) => setFormData({ ...formData, vsLHP: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Grit</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.grit} onChange={(e) => setFormData({ ...formData, grit: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Stealing</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.stealing} onChange={(e) => setFormData({ ...formData, stealing: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Running</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.running} onChange={(e) => setFormData({ ...formData, running: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Throwing</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.throwing} onChange={(e) => setFormData({ ...formData, throwing: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Recovery</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.recovery} onChange={(e) => setFormData({ ...formData, recovery: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    {isPlayerCatcher && (
-                      <div>
-                        <label className="text-xs text-muted-foreground">Catcher</label>
-                        <RetroInput type="number" min={1} max={99} value={formData.catcherAbility} onChange={(e) => setFormData({ ...formData, catcherAbility: parseInt(e.target.value) || 50 })} />
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {activeTab === "abilities" && (
-            <>
-              <h4 className="text-gold text-xs border-b border-border pb-1">Special Abilities</h4>
-              <div className="text-xs text-muted-foreground mb-2">
-                Enter ability IDs separated by commas (e.g., explosive_fb, quick_hands)
-              </div>
-              <RetroInput
-                value={(formData.abilities || []).join(", ")}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  abilities: e.target.value.split(",").map(a => a.trim()).filter(a => a)
-                })}
-                placeholder="explosive_fb, monster_stuff"
-                data-testid="input-abilities"
-              />
-              <div className="text-xs text-muted-foreground mt-2">
-                Current: {(formData.abilities || []).length} abilities
-              </div>
-            </>
-          )}
-
+        <fieldset disabled={isSaving} className="space-y-4 min-w-0">
+          {activeTab === "info" && <>
+            <div className="grid grid-cols-2 gap-3">
+              <RetroInput label="First Name" value={formData.firstName} maxLength={50} onChange={e => setField("firstName", e.target.value)} data-testid="input-first-name" />
+              <RetroInput label="Last Name" value={formData.lastName} maxLength={50} onChange={e => setField("lastName", e.target.value)} data-testid="input-last-name" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <label className="space-y-2 text-xs text-muted-foreground">Position
+                <select value={formData.position} onChange={e => setField("position", e.target.value)} className="w-full min-h-11 bg-card border border-border rounded px-2 text-sm" data-testid="select-position">
+                  {!positionsList.includes(player.position) && <option value={player.position}>{player.position} (current)</option>}
+                  {positionsList.map(position => <option key={position} value={position}>{position}</option>)}
+                </select>
+              </label>
+              <label className="space-y-2 text-xs text-muted-foreground">Year
+                <select value={formData.eligibility} onChange={e => setField("eligibility", e.target.value)} className="w-full min-h-11 bg-card border border-border rounded px-2 text-sm" data-testid="select-eligibility">
+                  {!eligibilityList.includes(player.eligibility) && <option value={player.eligibility}>{player.eligibility} (current)</option>}
+                  {eligibilityList.map(year => <option key={year} value={year}>{year}</option>)}
+                </select>
+              </label>
+              <RetroInput label="Jersey #" type="number" min={0} max={99} step={1} value={formData.jerseyNumber} onChange={e => setField("jerseyNumber", e.target.value)} data-testid="input-jersey" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <RetroInput label="Hometown" maxLength={80} value={formData.hometown} onChange={e => setField("hometown", e.target.value)} data-testid="input-hometown" />
+              <RetroInput label="State" maxLength={30} value={formData.homeState} onChange={e => setField("homeState", e.target.value)} data-testid="input-state" />
+            </div>
+            <div className="rounded border border-border p-3 text-xs text-muted-foreground space-y-2" data-testid="player-readonly-details">
+              <p>Bats / throws: {player.batHand} / {player.throwHand} · Overall: {player.overall} · Stars: {player.starRating}</p>
+              <p>Appearance: {[player.skinTone, player.hairColor, player.hairStyle, player.headwear].filter(Boolean).join(" · ") || "Not set"}</p>
+              <p>Handedness and appearance are read-only in this editor.</p>
+            </div>
+          </>}
+          {activeTab === "attrs" && <>
+            <h4 className="text-gold text-xs border-b border-border pb-1">{isPlayerPitcher ? "Pitcher" : "Fielder"} attributes (0–100)</h4>
+            {ratingInputs(isPlayerPitcher ? ["velocity", "control", "stamina"] : ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance"])}
+          </>}
+          {activeTab === "common" && <>
+            <h4 className="text-gold text-xs border-b border-border pb-1">Common abilities (0–100)</h4>
+            {ratingInputs(isPlayerPitcher ? ["wRISP", "vsLefty", "poise", "grit", "heater", "agile", "recovery"] : ["clutch", "vsLHP", "grit", "stealing", "running", "throwing", "recovery", ...(isCatcher(formData.position) ? ["catcherAbility" as const] : [])])}
+          </>}
+          {activeTab === "abilities" && <>
+            <RetroInput label="Special ability IDs, separated by commas" value={formData.abilities} onChange={e => setField("abilities", e.target.value)} placeholder="explosive_fb, quick_hands" data-testid="input-abilities" />
+            <p className="text-xs text-muted-foreground">Clear this field to remove all special abilities.</p>
+          </>}
+          {errors.length > 0 && <div role="alert" className="text-sm text-destructive" data-testid="player-edit-errors">{errors.map(message => <p key={message}>{message}</p>)}</div>}
           <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <RetroButton variant="outline" onClick={onClose} data-testid="button-cancel-edit">
-              Cancel
-            </RetroButton>
-            <RetroButton onClick={handleSubmit} disabled={isSaving} data-testid="button-save-player">
-              {isSaving ? "Saving..." : "Save Changes"}
-            </RetroButton>
+            <RetroButton variant="outline" onClick={onClose} data-testid="button-cancel-edit">Cancel</RetroButton>
+            <RetroButton onClick={handleSubmit} disabled={isSaving} data-testid="button-save-player">{isSaving ? "Saving..." : "Save Changes"}</RetroButton>
           </div>
-        </div>
+        </fieldset>
       </DialogContent>
     </Dialog>
   );
