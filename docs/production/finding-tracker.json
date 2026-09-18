@@ -167,16 +167,20 @@
       "acceptance": "Failure of a required game prevents clock advancement; retry finishes missing work once without false news.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": 3,
-      "implementationCommit": "66e0aee22e022379cffbe1809635661ca64d807d",
+      "implementationCommit": "fa60861fc0a692d44c820136de37df89d72b7b5c",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
         "../../scripts/verify-reported-results.ts",
         "W03_BATCH_05.md",
-        "audits/W03_BATCH_05_AUDIT.md"
+        "audits/W03_BATCH_05_AUDIT.md",
+        "W03_BATCH_06.md",
+        "audits/W03_BATCH_06_AUDIT.md",
+        "../../scripts/verify-postseason-advance.ts",
+        "../../scripts/verify-postseason-bracket.ts"
       ],
       "verifiedBy": null,
-      "notes": "W03 batch 04 propagates required regular/exhibition/conference finalization failures and removes premature exhibition completion. Independently source-reviewed only: actual advance/checkpoint crash, lease and resume tests remain open. Batch05 required postseason awards propagate before phase completion; fixture reuse/source integration reviewed, but actual route/checkpoint recovery remains the next gate."
+      "notes": "Batch04/05 required finalization and milestone errors propagate. Batch06 verifies the actual full-season SR advance under required checkpoint failure and partial award failure, then fresh-process retry. Checkpoint writes now await persistence in order; completion update failures propagate; failed status attempts are awaited before lease release. Stale operation source-state identity, crash after phase flip, failure-status persistence/unique-conflict fallback, standard mode and lease takeover remain open."
     },
     {
       "id": "TI-09",
@@ -190,16 +194,20 @@
       "acceptance": "Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "66e0aee22e022379cffbe1809635661ca64d807d",
+      "implementationCommit": "fa60861fc0a692d44c820136de37df89d72b7b5c",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
         "../../scripts/verify-reported-results.ts",
         "W03_BATCH_05.md",
-        "audits/W03_BATCH_05_AUDIT.md"
+        "audits/W03_BATCH_05_AUDIT.md",
+        "W03_BATCH_06.md",
+        "audits/W03_BATCH_06_AUDIT.md",
+        "../../scripts/verify-postseason-advance.ts",
+        "../../scripts/verify-postseason-bracket.ts"
       ],
       "verifiedBy": null,
-      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open."
+      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open. Batch06 adds actual full-season SR partial-award failure/restart evidence, preserving the first receipt and finishing all eight once; this does not close remaining achievement writers or other crash points."
     },
     {
       "id": "TI-10",
@@ -478,13 +486,17 @@
       "acceptance": "Chosen postseason preset, strength-of-schedule treatment and tiebreaks are transparent, reproducible and tested.",
       "source": "../audits/2026-09-14/systems-baseball.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
+      "implementationCommit": "fa60861fc0a692d44c820136de37df89d72b7b5c",
       "evidence": [
         "W03_BATCH_05.md",
-        "audits/W03_BATCH_05_AUDIT.md"
+        "audits/W03_BATCH_05_AUDIT.md",
+        "W03_BATCH_06.md",
+        "audits/W03_BATCH_06_AUDIT.md",
+        "../../scripts/verify-postseason-advance.ts",
+        "../../scripts/verify-postseason-bracket.ts"
       ],
       "verifiedBy": null,
-      "notes": "Additional P1 source finding in batch05 audit: full-season Super Regional Game2 reverses home assignment but wins count by home/away, so a high seed winning G1+G2 can be recorded1-1. Repair identity-based series counting and verify reversed-home/winner fixtures during W05 advance integration, before release. Also test full-season CWS reinitialization and reported-mode postseason acceptance; receipt durability alone does not certify winner truth."
+      "notes": "Batch06 repairs and independently tests the additional P1 full-season Super Regional reversed-home winner-count defect: both sweeps, split series, participant identity, malformed inputs and terminal-history conflict containment. Full selection-policy acceptance remains planned. Legacy terminal contradictions need audited reconciliation, not silent winner replacement. Full-season CWS progressed-state initialization and complete reported postseason journeys remain recovery/integration gates."
     },
     {
       "id": "SYS-12",
