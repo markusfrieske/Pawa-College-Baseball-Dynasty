@@ -102,17 +102,20 @@
       "acceptance": "Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "1c7b244ab4e64c0395e8c292180f3039b1033c71",
+      "implementationCommit": "f1df9046d8198d70e2dbe6f586351155b461e37c",
       "evidence": [
         "W03_BATCH_01.md",
         "audits/W03_BATCH_01_AUDIT.md",
         "REPORT_REVISION_CONTRACT.md",
         "../../scripts/verify-reported-results.ts",
         "W03_BATCH_02.md",
-        "audits/W03_BATCH_02_AUDIT.md"
+        "audits/W03_BATCH_02_AUDIT.md",
+        "W03_BATCH_03.md",
+        "audits/W03_BATCH_03_AUDIT.md",
+        "../../scripts/verify-report-history-ui.ts"
       ],
       "verifiedBy": null,
-      "notes": "W03 batch 02 verifies reviewed-state confirm/dispute/finalize guards, atomic acceptance/audit and PATCH correction provenance with deterministic races and fault rollback. Immutable accepted content/receipt identity, initial creation, authority/roster snapshots and durable retry/recovery remain open. Full authenticated browser journeys remain unverified."
+      "notes": "W03 batch 03 verifies retained report-state snapshots, accepted receipt identity, exact authorized acceptance retries, atomic initial submission and history access. Real HTTP gate654; component47; unit129. Stable authority/roster/evidence snapshots, durable cross-game effects and mature recovery remain open; report-bearing restore is explicitly blocked to prevent ledger loss."
     },
     {
       "id": "TI-06",
@@ -127,8 +130,12 @@
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "evidence": [
+        "W03_BATCH_03.md",
+        "audits/W03_BATCH_03_AUDIT.md"
+      ],
+      "verifiedBy": null,
+      "notes": "W03 batch 03 blocks restore for current/target report-bearing leagues before deletion because snapshot format omits revisions/receipts. This is bounded loss prevention; W04 complete restore and recovery acceptance remain planned."
     },
     {
       "id": "TI-07",
