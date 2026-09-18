@@ -9,6 +9,8 @@ import { reassignReportRosterPlayer } from "../client/src/lib/report-roster-iden
 import { buildScoreOnlyReport } from "../shared/reporting";
 import { checkMigrationVersion, runMigrations } from "../server/lib/runMigrations";
 import { verifyPostseasonAwards } from "./verify-postseason-awards";
+import { verifyPostseasonBracket } from "./verify-postseason-bracket";
+import { verifyPostseasonAdvance } from "./verify-postseason-advance";
 
 const connection = process.env.PAWA_TEST_DATABASE_URL;
 assert(connection, "PAWA_TEST_DATABASE_URL required; refusing DATABASE_URL fallback");
@@ -30,6 +32,7 @@ if (process.argv.includes("--http-child")) {
   const { storage } = await import("../server/storage");
   const { finalizeReportedGame, finalizeGameAtomic, flushCoachXp } = await import("../server/game-finalizer");
   const { awardPostseasonCoachMilestone } = await import("../server/lib/postseason-coach-awards");
+  const { advanceFSSRBracket } = await import("../server/services/postseason/superRegionals");
   const { publicErrorHandler } = await import("../server/lib/httpErrors");
   const app = express(); app.use(express.json());
   const server = createServer(app);
@@ -37,6 +40,11 @@ if (process.argv.includes("--http-child")) {
   app.use(publicErrorHandler);
   const effectsAccum = new Map();
   process.on("message", async (message: any) => {
+    if (message?.kind === "postseason-bracket") {
+      try { process.send?.({ kind: "bracket-result", ...(await advanceFSSRBracket(message.leagueId, 1)), error: null }); }
+      catch (error) { process.send?.({ kind: "bracket-result", error: error instanceof Error ? error.constructor.name : "UnknownError" }); }
+      return;
+    }
     if (message?.kind === "postseason-award") {
       const results = await Promise.all(message.requests.map(async (request: any) => {
         try { return { ...(await awardPostseasonCoachMilestone(request)), error: null }; }
@@ -1025,6 +1033,10 @@ if (process.argv.includes("--http-child")) {
     const awardCall = async (requests: unknown[]) => (await waitForMessage("postseason-result", () => child!.send({ kind: "postseason-award", requests }))).results;
     await verifyPostseasonAwards({ pool, primaryId: primary.id, awayId: actors.away.id, equal, snapshot, invoke, awardCall,
       effectsCall, restart: async () => { await stopHttp(); await startHttp(); } });
+    await verifyPostseasonBracket({ pool, primaryId: primary.id, equal, snapshot,
+      advance: leagueId => waitForMessage("bracket-result", () => child!.send({ kind: "postseason-bracket", leagueId })) });
+    await verifyPostseasonAdvance({ pool, primaryId: primary.id, equal, snapshot, invoke,
+      restart: async () => { await stopHttp(); await startHttp(); } });
 
     const savedHistory = await invoke("/api/leagues/report-league/save-states", "POST", { label: "Synthetic reported-history restore boundary" });
     equal(savedHistory.response.status, 200, "League save capture remains available with accepted report history");

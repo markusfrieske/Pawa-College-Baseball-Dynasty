@@ -1,7 +1,7 @@
 /**
  * Advance preflight service.
  *
- * In reported-game mode, checks whether all current-week human-vs-human games
+ * In reported-game mode, checks whether all current-slot human-vs-human games
  * have been finalized (accepted report).  Returns a structured blocker list so
  * the advance route can return 409 with per-game detail and the commissioner UI
  * can surface direct links to blocking games.
@@ -17,6 +17,9 @@
  */
 
 import { storage } from "../storage";
+import { db } from "../db";
+import { gameFinalizations } from "@shared/schema";
+import { inArray } from "drizzle-orm";
 
 export type GameBlockerStatus =
   | "unreported"
@@ -48,7 +51,8 @@ export interface AdvancePreflightResult {
  * Run advance preflight for a league.
  *
  * Simulated mode always returns canAdvance=true.
- * Reported mode scans current-week regular-phase games with two human teams.
+ * Reported mode scans current-week games, or the current postseason phase
+ * regardless of week (postseason generators use week zero).
  *
  * Status determination order:
  *   1. invalid_or_orphaned — game row is missing required team references, or
@@ -69,20 +73,21 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
   const teams = await storage.getTeamsByLeague(leagueId);
   const humanTeamIds = new Set(teams.filter(t => !t.isCpu).map(t => t.id));
   const teamNameById = new Map(teams.map(t => [t.id, t.name]));
+  const teamIds = new Set(teams.map(t => t.id));
 
   const seasonGames = await storage.getGamesByLeagueSeason(leagueId, league.currentSeason);
 
-  // Include all non-exhibition phase games in the current week that involve
-  // two human teams.  Spring training games are simulated even in reported
-  // mode; every other phase (regular, conference_champs, super_regionals,
-  // cws) can be played as eBaseball Power Pros matches and requires a report
-  // before the week/stage can advance.
+  // Postseason generators use week zero while the league week keeps advancing.
+  // Match those fixtures by current phase; retain week selection outside the
+  // postseason. Preserve the human-vs-human policy and surface orphaned fixtures
+  // before their missing identities can exclude them from that policy.
   const EXHIBITION_PHASES = new Set(["spring_training"]);
+  const postseason = ["conference_championship", "super_regionals", "cws"].includes(league.currentPhase);
   const currentWeekHumanGames = seasonGames.filter(g =>
-    g.week === league.currentWeek &&
+    (postseason ? g.phase === league.currentPhase : g.week === league.currentWeek) &&
     !EXHIBITION_PHASES.has(g.phase ?? "") &&
-    g.homeTeamId != null && humanTeamIds.has(g.homeTeamId) &&
-    g.awayTeamId != null && humanTeamIds.has(g.awayTeamId),
+    ((!g.homeTeamId || !g.awayTeamId || !teamIds.has(g.homeTeamId) || !teamIds.has(g.awayTeamId) || g.homeTeamId === g.awayTeamId)
+      || (humanTeamIds.has(g.homeTeamId) && humanTeamIds.has(g.awayTeamId))),
   );
 
   if (currentWeekHumanGames.length === 0) {
@@ -91,6 +96,9 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
 
   const gameReports = await storage.getGameReportsByLeague(leagueId);
   const reportsByGameId = new Map(gameReports.map(r => [r.gameId, r]));
+  const receipts = postseason ? await db.select().from(gameFinalizations)
+    .where(inArray(gameFinalizations.gameId, currentWeekHumanGames.map(g => g.id))) : [];
+  const receiptsByGameId = new Map(receipts.map(r => [r.gameId, r]));
 
   const blockers: GameBlocker[] = [];
 
@@ -100,7 +108,7 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
     //   - It is missing either team reference (should never happen for regular games), or
     //   - An attached report's season/week fields don't match the game's own values
     //     (indicates the report was created for a different game slot and reused).
-    if (!game.homeTeamId || !game.awayTeamId) {
+    if (!game.homeTeamId || !game.awayTeamId || !teamIds.has(game.homeTeamId) || !teamIds.has(game.awayTeamId) || game.homeTeamId === game.awayTeamId) {
       blockers.push({
         gameId: game.id,
         week: game.week,
@@ -129,6 +137,13 @@ export async function getAdvancePreflight(leagueId: string): Promise<AdvancePref
     } else if (report.status !== "confirmed") {
       // Unknown or unexpected status — fail closed rather than silently passing.
       status = "invalid_or_orphaned";
+    } else if (postseason) {
+      const receipt = receiptsByGameId.get(game.id);
+      // A confirmed label alone cannot authorize the postseason simulator to
+      // invent a score or advance a result with no accepted-report receipt.
+      if (!game.isComplete || !Number.isSafeInteger(game.homeScore) || !Number.isSafeInteger(game.awayScore)
+        || game.homeScore! < 0 || game.awayScore! < 0 || game.homeScore === game.awayScore
+        || receipt?.reportId !== report.id || !receipt.reportRevisionId) status = "invalid_or_orphaned";
     }
     // report.status === "confirmed" → finalized, not a blocker
 

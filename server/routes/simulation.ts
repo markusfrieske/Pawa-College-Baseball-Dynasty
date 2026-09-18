@@ -27,6 +27,7 @@ import { captureLeagueSaveState } from "../lib/leagueSaveState";
 import { getAdvancePreflight } from "../lib/advancePreflight";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { evaluatePlayerPromises, processOffseasonDepartures, finalizeDeparturesInternal } from "../offseason-helpers";
+import { SuperRegionalReconciliationRequired } from "../services/postseason/superRegionals";
 import { awardPostseasonCoachMilestone, PostseasonAwardConflict, PostseasonAwardReconciliationRequired } from "../lib/postseason-coach-awards";
 import {
   generateGameNewsArticles,
@@ -406,11 +407,11 @@ const advanceProgress = new Map<string, { stage: string; pct: number; updatedAt:
 // Per-league checkpoint writers registered by the advance route so that
 // setAdvanceProgress calls inside advanceLeagueStep persist to league_advances.
 // This provides per-substep checkpointing without modifying the advance engine.
-const advanceCheckpointWriters = new Map<string, (step: string, pct: number) => void>();
+const advanceCheckpointWriters = new Map<string, (step: string, pct: number) => Promise<void>>();
 
-function setAdvanceProgress(leagueId: string, stage: string, pct: number) {
+async function setAdvanceProgress(leagueId: string, stage: string, pct: number) {
   advanceProgress.set(leagueId, { stage, pct, updatedAt: Date.now() });
-  advanceCheckpointWriters.get(leagueId)?.(stage, pct);
+  await advanceCheckpointWriters.get(leagueId)?.(stage, pct);
 }
 
 function clearAdvanceProgress(leagueId: string) {
@@ -5072,7 +5073,7 @@ export async function advanceLeagueStep(
     console.time("[advance-perf] cpu-recruiting");
     await runCpuRecruiting(leagueId, currentWeek, league.currentSeason, false, deadlineForcedTeamIds);
     console.timeEnd("[advance-perf] cpu-recruiting");
-    setAdvanceProgress(leagueId, "cpu_recruiting", 100);
+    await setAdvanceProgress(leagueId, "cpu_recruiting", 100);
   }
 
   // ── Storyline events ────────────────────────────────────────────────────
@@ -5089,7 +5090,7 @@ export async function advanceLeagueStep(
       }
       await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "standard", maxWeeks, league.currentPhase);
     } catch (err) { console.error("[storylines] Failed to generate/resolve storyline events:", err); }
-    setAdvanceProgress(leagueId, "storylines", 100);
+    await setAdvanceProgress(leagueId, "storylines", 100);
   }
 
   // ── Recruit stage progression ───────────────────────────────────────────
@@ -5097,7 +5098,7 @@ export async function advanceLeagueStep(
     console.time("[advance-perf] recruit-stages");
     await updateRecruitStages(leagueId, nextWeek);
     console.timeEnd("[advance-perf] recruit-stages");
-    setAdvanceProgress(leagueId, "recruit_stages", 100);
+    await setAdvanceProgress(leagueId, "recruit_stages", 100);
   }
 
   // ── Reset weekly actions ────────────────────────────────────────────────
@@ -5106,7 +5107,7 @@ export async function advanceLeagueStep(
   const coaches = await storage.getCoachesByLeague(leagueId);
   if (!stageAlreadyDone("reset_actions", completedStages)) {
     await Promise.all(coaches.map(coach => storage.updateCoach(coach.id, { scoutActionsUsed: 0, recruitActionsUsed: 0, isReady: false })));
-    setAdvanceProgress(leagueId, "reset_actions", 100);
+    await setAdvanceProgress(leagueId, "reset_actions", 100);
   }
 
   // ── Game simulation setup ───────────────────────────────────────────────
@@ -5127,7 +5128,7 @@ export async function advanceLeagueStep(
   const leagueTeamsForSim = await storage.getTeamsByLeague(leagueId);
   const priorCompletedGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
 
-  setAdvanceProgress(leagueId, "game_simulation", 10);
+  await setAdvanceProgress(leagueId, "game_simulation", 10);
   console.time("[advance-perf] game-sim");
 
   // ── Day-sequential simulation ────────────────────────────────────────────
@@ -5337,7 +5338,7 @@ export async function advanceLeagueStep(
   // commits its game result and required effects to the DB.  This is the correct point
   // to write a pct=100 checkpoint — any crash after this line has persisted all
   // game-sim side-effects, so a resume can safely skip this stage.
-  setAdvanceProgress(leagueId, "game_simulation", 100);
+  await setAdvanceProgress(leagueId, "game_simulation", 100);
 
   const advanceWallMs = Date.now() - advanceWallStart;
   if (advanceWallMs > 10_000) {
@@ -5487,7 +5488,7 @@ export async function advanceLeagueStep(
       // Phase flip first, checkpoint AFTER — ensures stageAlreadyDone only skips when
       // the DB flip was actually committed (prevents stuck-league on crash between the two).
       const ccUpdatedLeague = await storage.updateLeague(league.id, { currentPhase: Phase.SuperRegionals, currentWeek: nextWeek });
-      setAdvanceProgress(leagueId, "phase_transition", 100);
+      await setAdvanceProgress(leagueId, "phase_transition", 100);
       await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
       sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] conf-champ hook:", e));
       return { data: { ...ccUpdatedLeague, userTeamGame } };
@@ -5548,7 +5549,7 @@ export async function advanceLeagueStep(
         } catch (e) { console.error("SR-skip departure processing error:", e); }
         // Checkpoint written AFTER all critical post-flip work so the outer stageAlreadyDone
         // gate only fires when everything (updateLeague + departures) has been committed.
-        setAdvanceProgress(leagueId, "phase_transition", 100);
+        await setAdvanceProgress(leagueId, "phase_transition", 100);
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-skipped hook:", e));
         return { data: { ...srSkipLeague, userTeamGame } };
       }
@@ -5568,7 +5569,7 @@ export async function advanceLeagueStep(
           }
         }
         const srFSLeague = await storage.updateLeague(league.id, { currentPhase: Phase.CWS, currentWeek: nextWeek });
-        setAdvanceProgress(leagueId, "phase_transition", 100);
+        await setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Super Regionals Complete", details: `${allWinnersFS.length} teams advance to the College World Series!` });
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-complete hook:", e));
         return { data: { ...srFSLeague, userTeamGame } };
@@ -5598,7 +5599,7 @@ export async function advanceLeagueStep(
           }
         }
         const srStdLeague = await storage.updateLeague(league.id, { currentPhase: Phase.CWS, currentWeek: nextWeek });
-        setAdvanceProgress(leagueId, "phase_transition", 100);
+        await setAdvanceProgress(leagueId, "phase_transition", 100);
         await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] sr-complete hook:", e));
         return { data: { ...srStdLeague, userTeamGame } };
@@ -5685,7 +5686,7 @@ export async function advanceLeagueStep(
         } catch (e) { console.error("Auto-process departures error:", e); }
         // Checkpoint written AFTER all critical post-flip work so the outer stageAlreadyDone
         // gate only fires when everything (updateLeague + departures) has been committed.
-        setAdvanceProgress(leagueId, "phase_transition", 100);
+        await setAdvanceProgress(leagueId, "phase_transition", 100);
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] cws-champion hook:", e));
         return { data: { ...cwsChampLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp, userTeamGame } };
       }
@@ -5745,7 +5746,7 @@ export async function advanceLeagueStep(
     const phaseIndex = offseasonPhaseList.indexOf(league.currentPhase);
     const nextPhase = offseasonPhaseList[phaseIndex + 1];
     const offRecLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase, currentWeek: nextWeek });
-    setAdvanceProgress(leagueId, "phase_transition", 100);
+    await setAdvanceProgress(leagueId, "phase_transition", 100);
     await storage.createAuditLog({ leagueId, userId: actorUserId, action: `Offseason Recruiting Week ${phaseIndex}`, details: `Offseason recruiting week ${phaseIndex} complete. CPU teams continue recruiting.` });
     sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] offseason-recruiting hook:", e));
     return { data: offRecLeague as Record<string, unknown> };
@@ -5758,7 +5759,7 @@ export async function advanceLeagueStep(
     const allTeamsSD = await storage.getTeamsByLeague(leagueId);
     await Promise.all(allTeamsSD.map(team => storage.updateTeam(team.id, { walkonReady: !!(team.isCpu || team.isAutoPilot) })));
     const sdLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonWalkons, lastWalkonAuction: null });
-    setAdvanceProgress(leagueId, "phase_transition", 100);
+    await setAdvanceProgress(leagueId, "phase_transition", 100);
     await storage.createAuditLog({ leagueId: league.id, userId: actorUserId, action: "Walk-On Phase Started", details: `Signing day complete. ${signingResult.recruitsAdded} recruits joined rosters. Teams can now make cuts and sign walk-ons.` });
     try { await storage.createLeagueEvent({ leagueId: league.id, eventType: "PHASE_CHANGE", description: `Signing Day complete — ${signingResult.recruitsAdded} recruits joined rosters league-wide`, season: league.currentSeason, week: league.currentWeek }); } catch (e) { console.error("League event error:", e); }
     return { data: sdLeague as Record<string, unknown> };
@@ -5800,7 +5801,7 @@ export async function advanceLeagueStep(
       walkonResult.newRecruits = validatedAdvanceClass!.recruitCount;
     }
     const woLeague = await storage.updateLeague(league.id, { currentWeek: 1, currentSeason: league.currentSeason + 1, currentPhase: Phase.Preseason });
-    setAdvanceProgress(leagueId, "phase_transition", 100);
+    await setAdvanceProgress(leagueId, "phase_transition", 100);
     // Visit count sanity check (fire-and-forget)
     (async () => { try { const newSeason = league.currentSeason + 1; const teamsForCheck = await storage.getTeamsByLeague(leagueId); const violations: string[] = []; for (const t of teamsForCheck) { const vc = await storage.getSeasonVisitCount(t.id, leagueId, newSeason); if (vc.total > 0) violations.push(`${t.name}(${vc.campusVisits}cv+${vc.hcVisits}hcv)`); } if (violations.length > 0) console.warn(`[visit-count-sanity] WARN league=${leagueId} season=${newSeason} — ${violations.length} team(s) already have visit rows: ${violations.join(", ")}`); } catch (sanityErr) { console.warn("[visit-count-sanity] check failed:", sanityErr); } })();
     try {
@@ -5817,7 +5818,7 @@ export async function advanceLeagueStep(
   // Legacy "offseason" phase — backward compat
   if (league.currentPhase === "offseason") {
     const offLegacyLeague = await storage.updateLeague(league.id, { currentPhase: Phase.OffseasonDepartures, currentClassVintage: null });
-    setAdvanceProgress(leagueId, "phase_transition", 100);
+    await setAdvanceProgress(leagueId, "phase_transition", 100);
     return { data: offLegacyLeague as Record<string, unknown> };
   }
 
@@ -5827,7 +5828,7 @@ export async function advanceLeagueStep(
     await generateConferenceChampionships(leagueId, league.currentSeason);
     try { await storage.resetPitcherRestForLeague(leagueId); console.log(`[pitcher-rest] Reset pitcher rest for all players in league ${leagueId} (advancing to week ${nextWeek}, conference_championship)`); } catch (restErr) { console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr); }
     const eosLeague = await storage.updateLeague(league.id, { currentPhase: Phase.ConferenceChampionship, currentWeek: nextWeek });
-    setAdvanceProgress(leagueId, "phase_transition", 100);
+    await setAdvanceProgress(leagueId, "phase_transition", 100);
     await storage.createAuditLog({ leagueId, userId: actorUserId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });
     try { await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season complete — Conference Championships begin (Season ${league.currentSeason})`, season: league.currentSeason, week: nextWeek }); } catch (e) { console.error("League event error:", e); }
     sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] end-of-regular-season hook:", e));
@@ -5846,7 +5847,7 @@ export async function advanceLeagueStep(
   try { await storage.resetPitcherRestForLeague(leagueId); console.log(`[pitcher-rest] Reset pitcher rest for all players in league ${leagueId} (advancing to week ${nextWeek})`); } catch (restErr) { console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr); }
   const newPhaseWeek = (newPhase === Phase.RegularSeason && (league.currentPhase === Phase.Preseason || league.currentPhase === Phase.SpringTraining)) ? 1 : nextWeek;
   const updatedLeague = await storage.updateLeague(league.id, { currentWeek: newPhaseWeek, currentPhase: newPhase, phaseDeadline: null });
-  setAdvanceProgress(leagueId, "phase_transition", 100);
+  await setAdvanceProgress(leagueId, "phase_transition", 100);
   await storage.createAuditLog({ leagueId: league.id, userId: actorUserId, action: "Week Advanced", details: `Advanced to Week ${nextWeek}` });
   sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase).catch(e => console.error("[digest] advance hook:", e));
   finalizeAdvanceDigestSafe({ leagueId, windowStart: digestWindowStart, season: league.currentSeason, weeks: [currentWeek], phase: league.currentPhase, prevPowerRankings: digestPrevPowerRankings });
@@ -7747,6 +7748,7 @@ export function registerSimulationRoutes(app: Express): void {
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     let advOpId: string | null = null;
     let advanceLockToken: string | null = null;
+    let checkpointWriter: ((step: string, pct: number) => Promise<void>) | undefined;
     // Tracks whether the catch block has already set the op to 'failed' so the
     // success path does not overwrite it with 'complete' on an unexpected error
     // that somehow exits the catch block and falls through to res.json().
@@ -8017,23 +8019,24 @@ export function registerSimulationRoutes(app: Express): void {
         console.error("[pre-advance-save] Failed to create save state (non-fatal):", saveErr);
       }
 
-      setAdvanceProgress(leagueId, "initializing", 5);
-
       // Register per-substep checkpoint writer.
       // Every setAdvanceProgress() call inside advanceLeagueStep will invoke this,
       // persisting the stage name and completion % to league_advances.checkpoints so
       // crash recovery tooling can identify exactly where an interrupted advance stopped.
       if (advOpId) {
         const opId = advOpId;
-        advanceCheckpointWriters.set(leagueId, (step: string, pct: number) => {
-          pool.query(
+        checkpointWriter = async (step: string, pct: number) => {
+          const persisted = await pool.query(
             `UPDATE league_advances
                 SET checkpoints = checkpoints || $2::jsonb, updated_at = now()
               WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
             [opId, JSON.stringify({ [step]: { pct, at: new Date().toISOString() } }), advanceLockToken],
-          ).catch(e => console.error(`[league-advances] Checkpoint write failed (${step}):`, e));
-        });
+          );
+          if (persisted.rowCount !== 1) throw new Error("Advance checkpoint ownership was lost.");
+        };
+        advanceCheckpointWriters.set(leagueId, checkpointWriter);
       }
+      await setAdvanceProgress(leagueId, "initializing", 5);
 
       // ── Delegate all business logic to the unified advance engine ──────────
       // Pass priorCompletedStages so the engine can skip substeps that already
@@ -8065,11 +8068,12 @@ export function registerSimulationRoutes(app: Express): void {
       if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
       clearAdvanceProgress(leagueId);
       if (advOpId && !advOpFailed) {
-        await pool.query(
+        const completed = await pool.query(
           `UPDATE league_advances SET status = 'complete', updated_at = now()
             WHERE id = $1 AND locked_by = $2 AND status = 'running'`,
           [advOpId, advanceLockToken],
-        ).catch(e => console.error("[league-advances] Failed to mark complete:", e));
+        );
+        if (completed.rowCount !== 1) throw new Error("Advance completion ownership was lost.");
       }
       await releaseAdvanceLock(leagueId, advanceLockToken);
 
@@ -8077,36 +8081,39 @@ export function registerSimulationRoutes(app: Express): void {
     } catch (e: any) {
       if (e instanceof AdvancePreconditionError) {
         if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-        if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
-        // Set flag synchronously BEFORE the async DB update so the finish handler
-        // (which fires when res.status().json() is sent) never overwrites 'failed' with 'complete'.
+        // Record failure before releasing ownership to a subsequent attempt.
         advOpFailed = true;
         if (advOpId) {
-          pool.query(
+          await pool.query(
             `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now()
               WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
             [advOpId, e?.message || "AdvancePreconditionError", advanceLockToken],
           ).catch(() => {});
         }
+        if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
         if (!res.headersSent) return res.status(e.statusCode).json(e.body);
         return;
       }
       console.error("Failed to advance week:", e);
       if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-      if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
       advOpFailed = true;
       if (advOpId) {
-        pool.query(
+        await pool.query(
           `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now()
             WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
           [advOpId, e?.message || String(e), advanceLockToken],
         ).catch(() => {});
       }
+      if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
       if (!res.headersSent) {
-        if (e instanceof PostseasonAwardReconciliationRequired || e instanceof PostseasonAwardConflict) {
+        if (e instanceof PostseasonAwardReconciliationRequired || e instanceof PostseasonAwardConflict || e instanceof SuperRegionalReconciliationRequired) {
           return res.status(409).json({ message: e.message });
         }
         res.status(500).json({ message: "Failed to advance week" });
+      }
+    } finally {
+      if (checkpointWriter && advanceCheckpointWriters.get(req.params.id as string) === checkpointWriter) {
+        clearAdvanceProgress(req.params.id as string);
       }
     }
   });
@@ -8155,7 +8162,7 @@ export function registerSimulationRoutes(app: Express): void {
       res.json(finalLeague);
     } catch (error) {
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
-      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict) return res.status(409).json({ message: error.message });
+      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to offseason:", error);
       res.status(500).json({ message: "Failed to sim to offseason" });
     }
@@ -8194,7 +8201,7 @@ export function registerSimulationRoutes(app: Express): void {
       res.json({ ...finalLeague, seasonTransition: (finalLeague as any).seasonTransition });
     } catch (error) {
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
-      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict) return res.status(409).json({ message: error.message });
+      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to signing day:", error);
       res.status(500).json({ message: "Failed to sim to signing day" });
     }
@@ -8221,7 +8228,7 @@ export function registerSimulationRoutes(app: Express): void {
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
-      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict) return res.status(409).json({ message: error.message });
+      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim full season:", error);
       res.status(500).json({ message: "Failed to simulate full season" });
     }
@@ -8260,7 +8267,7 @@ export function registerSimulationRoutes(app: Express): void {
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
-      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict) return res.status(409).json({ message: error.message });
+      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to postseason:", error);
       res.status(500).json({ message: "Failed to sim to postseason" });
     }
@@ -8290,7 +8297,7 @@ export function registerSimulationRoutes(app: Express): void {
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
-      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict) return res.status(409).json({ message: error.message });
+      if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to CWS:", error);
       res.status(500).json({ message: "Failed to sim to CWS" });
     }

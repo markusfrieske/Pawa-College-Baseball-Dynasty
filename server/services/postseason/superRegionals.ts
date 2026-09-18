@@ -8,6 +8,36 @@
  * Simulation is done by the caller (advance-week handler in simulation.ts).
  */
 import { storage } from "../../storage";
+import type { Game, PostseasonSeries } from "@shared/schema";
+
+export class SuperRegionalReconciliationRequired extends Error {}
+
+function observeSeries(series: PostseasonSeries, games: Game[]) {
+  const homeId = series.homeTeamId;
+  const awayId = series.awayTeamId;
+  const fail = () => { throw new SuperRegionalReconciliationRequired(`Super Regional ${series.bracketSlot} needs reconciliation: its games or recorded outcome are inconsistent. Existing results are unchanged.`); };
+  if (!homeId || !awayId || homeId === awayId || series.bestOf !== 3) fail();
+  const sorted = [...games].sort((a, b) => (a.bracketSide ?? "").localeCompare(b.bracketSide ?? ""));
+  let homeWins = 0, awayWins = 0;
+  let pending = false;
+  for (const [index, game] of sorted.entries()) {
+    const num = index + 1;
+    if (num > 3 || game.bracketSide !== `G${num}` || pending || homeWins >= 2 || awayWins >= 2) fail();
+    if (game.homeTeamId !== (num === 2 ? awayId : homeId) || game.awayTeamId !== (num === 2 ? homeId : awayId)) fail();
+    if (!game.isComplete) { pending = true; continue; }
+    const hs = game.homeScore, as = game.awayScore;
+    if (hs === null || as === null || !Number.isSafeInteger(hs) || !Number.isSafeInteger(as) || hs < 0 || as < 0 || hs === as) fail();
+    const winnerId = hs! > as! ? game.homeTeamId : game.awayTeamId;
+    if (winnerId === homeId) homeWins++; else awayWins++;
+  }
+  const winnerId = homeWins === 2 ? homeId : awayWins === 2 ? awayId : null;
+  // Completed legacy outcomes may already have CWS games/awards downstream.
+  // Never silently rewrite that history when recomputation contradicts it.
+  if (series.seriesStatus === "complete" || series.isComplete || series.winnerId) {
+    if (!winnerId || series.seriesStatus !== "complete" || !series.isComplete || series.winnerId !== winnerId || series.homeWins !== homeWins || series.awayWins !== awayWins) fail();
+  }
+  return { series, homeId: homeId!, awayId: awayId!, homeWins, awayWins, winnerId, pending, nextGameNum: sorted.length + 1 };
+}
 
 function getSRPairs(
   entries: { nationalSeed: number; teamId: string }[]
@@ -109,33 +139,36 @@ export async function advanceFSSRBracket(
 ): Promise<{ done: boolean; winners: string[] }> {
   const allGames = await storage.getGamesByLeague(leagueId);
   const srGames = allGames.filter(
-    (g: any) => g.phase === "super_regionals" && g.season === season && g.bracketType === "bof3"
+    g => g.phase === "super_regionals" && g.season === season
   );
   const allSeries = await storage.getPostseasonSeriesByLeague(leagueId, season, "super_regionals");
 
-  if (allSeries.length === 0) return { done: false, winners: [] };
+  if (allSeries.length === 0 && srGames.length === 0) return { done: false, winners: [] };
+
+  // Validate the whole bracket before changing any series. Missing/duplicate
+  // slots and foreign games must not produce a partial or false set of winners.
+  const teamIds = new Set<string>();
+  const leagueTeamIds = new Set((await storage.getTeamsByLeague(leagueId)).map(t => t.id));
+  const indices = new Set<number>();
+  const plans = allSeries.map(series => {
+    const index = series.round;
+    if (!index || index < 1 || index > 8 || series.bracketSlot !== `SR${index}` || indices.has(index)
+      || !series.homeTeamId || !series.awayTeamId || teamIds.has(series.homeTeamId) || teamIds.has(series.awayTeamId)
+      || !leagueTeamIds.has(series.homeTeamId) || !leagueTeamIds.has(series.awayTeamId)) {
+      throw new SuperRegionalReconciliationRequired("Super Regional bracket slots or participants need reconciliation before advancing.");
+    }
+    indices.add(index); teamIds.add(series.homeTeamId); teamIds.add(series.awayTeamId);
+    return observeSeries(series, srGames.filter(g => g.bracketRound === index));
+  });
+  if (plans.length !== 8 || srGames.some(g => g.bracketType !== "bof3" || !g.bracketRound || !indices.has(g.bracketRound))) {
+    throw new SuperRegionalReconciliationRequired("The full-season Super Regional bracket must contain eight valid series before advancing.");
+  }
 
   const winners: string[] = [];
   let anyPending = false;
 
-  for (const series of allSeries) {
-    const seriesIndex = series.round ?? parseInt((series.bracketSlot ?? "SR1").replace("SR", ""));
-    const seriesGames = srGames
-      .filter((g: any) => g.bracketRound === seriesIndex)
-      .sort((a: any, b: any) => (a.bracketSide ?? "G1").localeCompare(b.bracketSide ?? "G1"));
-
-    // Count wins from completed games
-    let homeWins = 0;
-    let awayWins = 0;
-    for (const g of seriesGames) {
-      if (!g.isComplete) continue;
-      if ((g.homeScore ?? 0) > (g.awayScore ?? 0)) homeWins++;
-      else awayWins++;
-    }
-
-    const homeId = series.homeTeamId ?? "";
-    const awayId = series.awayTeamId ?? "";
-    const winnerId = homeWins >= 2 ? homeId : awayWins >= 2 ? awayId : undefined;
+  for (const { series, homeId, awayId, homeWins, awayWins, winnerId, pending, nextGameNum } of plans) {
+    const seriesIndex = series.round!;
 
     if (winnerId) {
       if (series.seriesStatus !== "complete") {
@@ -161,11 +194,7 @@ export async function advanceFSSRBracket(
     }
 
     // Should we create the next game?
-    const completedCount = seriesGames.filter((g: any) => g.isComplete).length;
-    const hasIncomplete = seriesGames.some((g: any) => !g.isComplete);
-    if (hasIncomplete) continue; // still waiting for current game
-
-    const nextGameNum = completedCount + 1;
+    if (pending) continue; // still waiting for current game
     if (nextGameNum > 3) continue; // shouldn't happen
 
     // Check if next game already exists (idempotent)
