@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 31 findings remain planned. Latest evidence: [W03 batch 03](W03_BATCH_03.md) and its [independent audit](audits/W03_BATCH_03_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-08, TI-09, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 29 findings remain planned. Latest evidence: [W03 batch 04](W03_BATCH_04.md) and its [independent audit](audits/W03_BATCH_04_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -13,8 +13,8 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | [TI-05](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Edit/confirm/dispute races, duplicate requests and interrupted commits accept exactly one revision. | implementing |
 | [TI-06](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Mature-state restore preserves all intended tables, FK relationships, evidence and finalization identity. | planned |
 | [TI-07](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Concurrent snapshots are wholly before or after a transaction; restore coordinates every relevant writer. | planned |
-| [TI-08](../audits/2026-09-14/technical-integrity.md) | W05 · 2026-10-16 | Gilfoyle Roblox Technical Director | Failure of a required game prevents clock advancement; retry finishes missing work once without false news. | planned |
-| [TI-09](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects. | planned |
+| [TI-08](../audits/2026-09-14/technical-integrity.md) | W05 · 2026-10-16 | Gilfoyle Roblox Technical Director | Failure of a required game prevents clock advancement; retry finishes missing work once without false news. | implementing |
+| [TI-09](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects. | implementing |
 | [TI-10](../audits/2026-09-14/technical-integrity.md) | W03 · 2026-10-02 | Gilfoyle Roblox Technical Director | Approved evidence manifests and OCR revisions cannot be silently replaced/deleted; amendments remain auditable. | planned |
 | [TI-11](../audits/2026-09-14/technical-integrity.md) | W13 · 2026-12-11 | Gibs QA & Player Research Lead | Executable 14-coach end-to-end rehearsal proves promised workflow and fails certification on missing prerequisites. | planned |
 | [TI-12](../audits/2026-09-14/technical-integrity.md) | W04 · 2026-10-09 | Gilfoyle Roblox Technical Director | Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated. | implementing |
@@ -51,7 +51,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 
 ## Milestone audit follow-ups
 
-[W03 batch 01](W03_BATCH_01.md) moves TI-05 to implementing: concurrent commissioner edits use a draft version, terminal guards and an atomic edit audit. [W03 batch 02](W03_BATCH_02.md) adds verified reviewed-state transitions, atomic finalization decisions and PATCH correction provenance. [W03 batch 03](W03_BATCH_03.md) adds retained snapshots, accepted receipt identity, exact authorized acceptance retries and atomic submission. Authority/evidence snapshots, cross-game effects and complete recovery remain open under the [revision contract](REPORT_REVISION_CONTRACT.md); report-bearing restore is explicitly blocked until history-safe restoration is implemented.
+[W03 batch 01](W03_BATCH_01.md) moves TI-05 to implementing: concurrent commissioner edits use a draft version, terminal guards and an atomic edit audit. [W03 batch 02](W03_BATCH_02.md) adds verified reviewed-state transitions, atomic finalization decisions and PATCH correction provenance. [W03 batch 03](W03_BATCH_03.md) adds retained snapshots, accepted receipt identity, exact authorized acceptance retries and atomic submission. Authority/evidence snapshots, cross-game effects and complete recovery remain open under the [revision contract](REPORT_REVISION_CONTRACT.md); report-bearing or played-state restore is explicitly blocked until history-safe restoration is implemented. [W03 batch 04](W03_BATCH_04.md) moves TI-08/TI-09 to implementing with durable per-game coach contributions, participating-finalizer serialization and source-reviewed propagation of required advance failures. Actual advance/checkpoint recovery, postseason awards, external writers and chronological rest remain open.
 
 [W02 batch 02](W02_BATCH_02.md) verifies UX-12. [W02 batch 03](W02_BATCH_03.md) moves UX-01/UX-03 to implementing and verifies bounded W02-OCR-01. Structured feedback, correction continuity and [on-behalf commissioner reasons](W02_BATCH_04.md) are implemented. [W02 batch 05](W02_BATCH_05.md) implements score-only entry and verifies W02-NOTIFY-01. UX-07 now implements explicit unknown-stat preservation; broader partial displays, recap completeness and the full-page journey remain open.
 

@@ -132,10 +132,12 @@
       "implementationCommit": null,
       "evidence": [
         "W03_BATCH_03.md",
-        "audits/W03_BATCH_03_AUDIT.md"
+        "audits/W03_BATCH_03_AUDIT.md",
+        "W03_BATCH_04.md",
+        "audits/W03_BATCH_04_AUDIT.md"
       ],
       "verifiedBy": null,
-      "notes": "W03 batch 03 blocks restore for current/target report-bearing leagues before deletion because snapshot format omits revisions/receipts. This is bounded loss prevention; W04 complete restore and recovery acceptance remain planned."
+      "notes": "W03 batch 03 blocks restore for current/target report-bearing leagues before deletion because snapshot format omits revisions/receipts. This is bounded loss prevention; W04 complete restore and recovery acceptance remain planned. W03 batch 04 extends temporary restore refusal to completed games and receipt/effect-bearing current or target snapshots. Full history-safe capture/restore remains planned; containment is not recovery certification."
     },
     {
       "id": "TI-07",
@@ -156,7 +158,7 @@
     {
       "id": "TI-08",
       "title": "P1: advance swallows failed finalizations, marks the stage done, and moves on",
-      "status": "planned",
+      "status": "implementing",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 5,
       "targetStart": "2026-10-12",
@@ -165,14 +167,19 @@
       "acceptance": "Failure of a required game prevents clock advancement; retry finishes missing work once without false news.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": 3,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "6640dd570eac949777af7a28e02c2813c4006fb3",
+      "evidence": [
+        "W03_BATCH_04.md",
+        "audits/W03_BATCH_04_AUDIT.md",
+        "../../scripts/verify-reported-results.ts"
+      ],
+      "verifiedBy": null,
+      "notes": "W03 batch 04 propagates required regular/exhibition/conference finalization failures and removes premature exhibition completion. Independently source-reviewed only: actual advance/checkpoint crash, lease and resume tests remain open."
     },
     {
       "id": "TI-09",
       "title": "P1: batched coach XP is lost on crashes, and postseason XP can miss the flush",
-      "status": "planned",
+      "status": "implementing",
       "owner": "Gilfoyle Roblox Technical Director",
       "targetWeek": 3,
       "targetStart": "2026-09-28",
@@ -181,9 +188,14 @@
       "acceptance": "Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "6640dd570eac949777af7a28e02c2813c4006fb3",
+      "evidence": [
+        "W03_BATCH_04.md",
+        "audits/W03_BATCH_04_AUDIT.md",
+        "../../scripts/verify-reported-results.ts"
+      ],
+      "verifiedBy": null,
+      "notes": "W03 batch 04 persists atomic per-game coach contributions before receipt commit, including legacy accumulator callers, and serializes participating finalizers. Postseason milestone awards, external coach writers and complete advance restart recovery remain open."
     },
     {
       "id": "TI-10",
