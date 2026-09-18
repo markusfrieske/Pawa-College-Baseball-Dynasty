@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PAWA — Art direction lab</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700;800&family=Bitter:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&family=Sora:wght@600;700&family=Space+Grotesk:wght@500;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="art-lab">
+  <header class="lab-header">
+    <div><span class="eyebrow">PAWA / CREATIVE DEVELOPMENT / 01</span><h1>A world worth coaching.</h1><p>Four directions. One baseball game. Shape the identity before we rebuild the screens.</p></div>
+    <span class="proposal">DESIGN STUDY<br><b>For Frisk · September 17, 2026</b></span>
+  </header>
+  <div class="directions" role="group" aria-label="Overall art direction">
+    <button type="button" data-direction="A" aria-pressed="true"><span class="direction-colors a"></span><small>01A / RECOMMENDED BASE</small><strong>Varsity Club</strong><span>Emerald, brass, athletic confidence.</span></button>
+    <button type="button" data-direction="B" aria-pressed="false"><span class="direction-colors b"></span><small>01B / UNDER THE LIGHTS</small><strong>Night Broadcast</strong><span>Sharp, technical, big-game atmosphere.</span></button>
+    <button type="button" data-direction="C" aria-pressed="false"><span class="direction-colors c"></span><small>01C / A PROGRAM WITH HISTORY</small><strong>Campus Chronicle</strong><span>Warm paper, varsity ink, editorial art.</span></button>
+    <button type="button" data-direction="D" aria-pressed="false"><span class="direction-colors d"></span><small>01D / PERSONALITY FIRST</small><strong>Rally Arcade</strong><span>Playful characters, bold color, energy.</span></button>
+  </div>
+  <div class="study-toolbar"><p id="direction-description">Premium college baseball, with expressive players and clear coaching decisions.</p><label>Mode <select id="mode"><option value="companion">Power Pros companion</option><option value="solo">Solo dynasty</option></select></label></div>
+  <p class="preview-help">Switch concept screens below. This selector is for comparing designs; production navigation will use one shared five-destination model. Direction buttons apply a complete starting recipe.</p>
+  <section id="game-preview" class="game-preview theme-A shell-A density-D" aria-label="Interactive concept screen with fictional sample data">
+    <header class="game-top"><div class="pawa-brand">PAWA<span>COLLEGE BASEBALL DYNASTY</span></div><div class="season-label">CEDAR VALLEY<span>SEASON 2027 · WEEK 04</span></div><span class="sample-label">CONCEPT / SAMPLE DATA</span></header>
+    <nav class="game-nav" aria-label="Concept screens">
+      <button type="button" data-screen="today" aria-current="page">Today</button>
+      <button type="button" data-screen="roster">Team</button>
+      <button type="button" data-screen="player">Player</button>
+      <button type="button" data-screen="recruiting">Recruiting</button>
+      <button type="button" data-screen="game">Game center</button>
+      <button type="button" data-screen="report">Report review</button>
+    </nav>
+    <div id="screen-content"></div>
+    <footer class="game-footer"><span id="preview-caption">Varsity Club · Matchday brief · Adaptive density</span><span>FICTIONAL DATA · NO GAME WRITES</span></footer>
+  </section>
+  <section class="decision-section" aria-labelledby="decision-title">
+    <div class="section-heading"><div><span class="eyebrow">MAKE IT YOUR GAME</span><h2 id="decision-title">Four choices for every key decision.</h2></div><a href="DECISIONS.md">Read the creative review ↗</a></div>
+    <p class="section-intro">Choose a category, then an option. Type, palette, portraits, environment, shell, profile and density update the concept above. Player-profile options demonstrate framing and composition, not four finished interaction flows. Team marks and icons have visual swatches; motion and audio are described production choices.</p>
+    <nav id="decision-tabs" class="decision-tabs" aria-label="Art decisions"></nav>
+    <div id="option-grid" class="option-grid" role="group" aria-label="Four decision options"></div>
+    <div class="recipe"><div><span class="eyebrow">YOUR CURRENT RECIPE</span><p id="recipe-text"></p><span id="choice-status" role="status" aria-live="polite">Proposed starting recipe. Nothing is approved yet.</span></div><button type="button" id="copy-recipe">Copy choices</button></div>
+  </section>
+  <section class="art-studies" aria-labelledby="art-title">
+    <div class="section-heading"><div><span class="eyebrow">THE SAME CHARACTER. FOUR RENDERING METHODS.</span><h2 id="art-title">Character and world studies.</h2></div></div>
+    <figure><img src="assets/portrait-studies.png" alt="Four portraits of the same fictional adult baseball player: A sculpted 3D, B cel illustration, C graphic cut-paper, D semi-real painted." loading="lazy"><figcaption>02 / Portraits — A Sculpted · B Cel · C Graphic · D Painted. Recommended: B, with a reusable character kit and stable player identity.</figcaption></figure>
+    <figure><img src="assets/environment-studies.png" alt="Four treatments of a college ballpark: A warm painted-place direction, B cinematic floodlights, C graphic athletic poster, D miniature campus." loading="lazy"><figcaption>03 / Environments — A Painted places · B Cinematic stills · C Athletic posters · D Miniature campus. A currently reads closer to a realistic still; a chosen painterly direction needs another art pass.</figcaption></figure>
+  </section>
+  <footer class="lab-footer"><strong>Art + creative + player-experience review</strong><p>One clear next action. Memorable athletes. Honest report states. Quiet surfaces for serious baseball decisions.</p><p>Concept screens, original generated art studies, and fictional data. Motion/audio are described options, not finished assets. Fonts load from Google Fonts; fallbacks remain readable offline. No existing game screen has been replaced.</p></footer>
+</main>
+<script src="board.js"></script>
+</body>
+</html>

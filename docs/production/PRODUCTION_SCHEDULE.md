@@ -16,6 +16,10 @@ Before proceeding from one milestone to the next, obtain an independent, critica
 
 Checkpoint verified work and evidence in Git, push to the authorized branch, and report concrete progress, tests, audit findings, blockers and the next step in the existing task each hourly continuation. Unknown essential Power Pros rules remain explicit inputs; continue independent work while awaiting them. This authorization does not include merging, deploying, production-data operations, purchases or messages to other people. Pause the continuation once all authorized milestones and final audits are verified and present the release candidate to Frisk.
 
+## Art-direction decision pending
+
+Frisk requested four choices for each major art decision on September 17. The [art-direction lab](../art-direction/2026-09-17/README.md) supplies four visual directions, six screen concepts and 48 choices across 12 categories, reviewed by art, creative and player-experience specialists. This is a proposal awaiting Frisk's selection. Preserve existing player identity and reporting truth; do not treat generated studies or the recommended recipe as approved production assets. Continue backend integrity work independently, then build the selected Today/Player/Report slice before a broad visual rollout.
+
 ## Capacity and estimation assumptions
 
 - Thirteen production weeks and one contingency week. Week 1 begins September 14. The target release-review window is December 14–18, conditional on all release gates passing.
