@@ -18,7 +18,7 @@ Checkpoint verified work and evidence in Git, push to the authorized branch, and
 
 ## Art-direction decision pending
 
-Frisk requested four choices for each major art decision on September 17. The [art-direction lab](../art-direction/2026-09-17/README.md) supplies four visual directions, six screen concepts and 48 choices across 12 categories, reviewed by art, creative and player-experience specialists. This is a proposal awaiting Frisk's selection. Preserve existing player identity and reporting truth; do not treat generated studies or the recommended recipe as approved production assets. Continue backend integrity work independently, then build the selected Today/Player/Report slice before a broad visual rollout.
+Frisk requested four choices for each major art decision on September 17. The [art-direction lab](../art-direction/2026-09-17/README.md) supplies four visual directions, six screen concepts and 48 choices across 12 categories, reviewed by art, creative and player-experience specialists. Frisk has supplied a [proposed mix](../art-direction/2026-09-17/DECISIONS.md#frisks-proposed-selection--approval-pending): **01A · 02B · 03D · 04B · 05A · 06A · 07A · 08A · 09B · 10C · 11A · 12B**. Approval remains explicitly pending. Preserve existing player identity and reporting truth; do not treat generated studies or either recipe as approved production assets. Continue backend integrity work independently, and review the proposed Today/Player/Report concept slice before an approved production visual rollout.
 
 ## Capacity and estimation assumptions
 

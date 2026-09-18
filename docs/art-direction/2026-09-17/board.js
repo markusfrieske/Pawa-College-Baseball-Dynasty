@@ -1,8 +1,9 @@
 /* Standalone design proposal. All state and sample interactions stay in this page. */
-const choices = {
-  direction: "A", portrait: "B", environment: "A", type: "A", palette: "A", shell: "A",
-  profile: "A", marks: "A", icons: "A", density: "D", motion: "A", audio: "A"
-};
+const friskProposal = Object.freeze({
+  direction: "A", portrait: "B", environment: "D", type: "B", palette: "A", shell: "A",
+  profile: "A", marks: "A", icons: "B", density: "C", motion: "A", audio: "B"
+});
+const choices = { ...friskProposal };
 const definitions = [
   ["direction", "01", "Direction", [
     ["Varsity Club", "Athletic broadcast composition with emerald, brass and warm baseball places.", "Best continuity. Needs expressive characters to avoid a generic sports menu."],
@@ -87,7 +88,7 @@ const presets = {
   D:{direction:"D",portrait:"A",environment:"D",type:"B",palette:"D",shell:"B",profile:"D",density:"B"}
 };
 const notes = {
-  A:"Varsity Club: expressive cel players, athletic hierarchy and forest/brass continuity. Recommended starting point.",
+  A:"Varsity Club: expressive players and forest/brass continuity. Frisk's proposed mix pairs cel portraits with miniature campus art, friendly console type and expert density. Approval pending.",
   B:"Night Broadcast: prioritize comparison, crisp matchups and technical confidence. Tradeoff: less warmth.",
   C:"Campus Chronicle: prioritize program history and editorial character. Tradeoff: less cinematic urgency.",
   D:"Rally Arcade: prioritize character attachment and playful approachability. Tradeoff: more asset work and noise risk."
@@ -141,6 +142,7 @@ function cropArt(){
 function renderScreen(){
   preview.className="game-preview theme-"+choices.palette+" shell-"+choices.shell+" density-"+choices.density+" profile-"+choices.profile;
   preview.style.setProperty("--display",fonts[idx(choices.type)]);
+  preview.style.setProperty("--stats",choices.type==="B"?'Inter, Arial, sans-serif':'"IBM Plex Mono", monospace');
   content.innerHTML=renderers[currentScreen]();
   preview.querySelectorAll(".portrait").forEach(el=>el.style.backgroundPosition=positions[idx(choices.portrait)]);
   preview.querySelectorAll(".venue").forEach(el=>el.style.backgroundPosition=positions[idx(choices.environment)]);
@@ -184,6 +186,10 @@ document.getElementById("art-lab").addEventListener("click",event=>{
   if(target.dataset.demo){let message=content.querySelector(".screen-message");if(!message){message=document.createElement("p");message.className="screen-message";message.setAttribute("role","status");content.append(message);}message.textContent=target.dataset.demo;}
 });
 document.getElementById("mode").addEventListener("change",event=>{mode=event.target.value;renderScreen();});
+document.getElementById("restore-proposal").addEventListener("click",()=>{
+  Object.assign(choices,friskProposal);renderScreen();renderOptions();
+  document.getElementById("choice-status").textContent="Frisk's saved proposal restored. Approval pending.";
+});
 document.getElementById("copy-recipe").addEventListener("click",async()=>{
   const text="Frisk's proposed PAWA art direction (not yet approved):\n"+definitions.map(d=>d[1]+choices[d[0]]+" — "+d[2]+": "+nameFor(d[0])).join("\n");
   try{await navigator.clipboard.writeText(text);document.getElementById("choice-status").textContent="Choices copied. Paste them into the conversation when ready.";}

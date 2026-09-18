@@ -2,7 +2,32 @@
 
 Prepared for Frisk, September 17, 2026. This document accompanies the interactive concept board. It proposes a visual identity for a text baseball sim and Power Pros league companion; it does not change production screens or select a final direction on Frisk's behalf.
 
-## Recommendation
+## Frisk's proposed selection — approval pending
+
+Received September 17, 2026. These are Frisk's exact proposed choices, explicitly **not yet approved**. They are the concept board's initial recipe; the original studio presets remain available for comparison.
+
+| Code | Decision | Proposed choice |
+| --- | --- | --- |
+| 01A | Direction | Varsity Club |
+| 02B | Characters | Cel illustration |
+| 03D | World art | Miniature campus |
+| 04B | Typography | Friendly console |
+| 05A | Color + surfaces | Forest & brass |
+| 06A | Screen composition | Matchday brief |
+| 07A | Player presentation | Sports profile |
+| 08A | Team identity | Athletic monograms |
+| 09B | Functional icons | Solid silhouette |
+| 10C | Information density | Expert |
+| 11A | Motion | Broadcast |
+| 12B | Sound | Clubhouse |
+
+Creative interpretation: a warm collegiate clubhouse with expressive cel players and a miniature campus world. Use Sora headings, Inter interface text and tabular Inter statistics. Keep the matchday brief's next action prominent while giving comparison screens expert density. Preserve readable type, keyboard focus and phone touch targets; compact spacing must not hide reporting status or missing statistics.
+
+The next visual review should check shared palette and lighting across cel players and miniature environments, solid icons at small sizes, and dense Team/Report screens on desktop and phone. Broadcast motion must support reduced motion; Clubhouse sound should be opt-in with persistent mute. Motion and sound are still descriptions, not implemented assets.
+
+This records a proposal, not production rollout approval. Review a Today/Player/Report concept slice in this mix before committing to the production visual migration.
+
+## Original studio recommendation (comparison only)
 
 Start with **Varsity Club**, expressive **cel portraits**, painted baseball places, and a readable athletic interface. Give characters personality and give league data clear hierarchy. Use one expressive image per screen, with solid surfaces behind decisions and tables.
 
