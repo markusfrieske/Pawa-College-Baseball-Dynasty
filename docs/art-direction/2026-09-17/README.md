@@ -1,5 +1,7 @@
 # PAWA art direction lab
 
+**Latest:** Frisk authorized the polished concept pass. Open the [Today / Player / Report Review slice](slice.html), or read its [review, captures and remaining production work](SLICE_REVIEW.md). The chosen mix is implemented in this standalone slice; production migration remains pending review.
+
 Prepared for Frisk. Status: **Frisk's proposed mix received; approval pending**, not an approved production design.
 
 The board now opens with **01A · 02B · 03D · 04B · 05A · 06A · 07A · 08A · 09B · 10C · 11A · 12B**: Varsity Club, cel illustration, miniature campus, friendly console typography, forest/brass, matchday brief, sports profile, athletic monograms, solid silhouette icons, expert density, broadcast motion and Clubhouse sound. [The canonical proposal](DECISIONS.md#frisks-proposed-selection--approval-pending) records every choice. Use **Restore Frisk's proposal** after exploring alternatives.

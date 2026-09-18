@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PAWA — Varsity Club concept slice</title>
+  <link href="slice.css" rel="stylesheet">
+  <script src="slice.js" defer></script>
+</head>
+<body>
+  <div class="review-bar"><span><b>PAWA / DESIGN REVIEW 02</b> Fictional data · Concept only</span><a href="index.html">Back to art choices ↗</a></div>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="slice.html" aria-label="PAWA concept home">PAWA<span>COLLEGE BASEBALL DYNASTY</span></a>
+      <div class="club"><span class="monogram">CV</span><div><b>Cedar Valley</b><small>THE EVERGREENS</small></div></div>
+      <span class="nav-label">CONCEPT SCREENS</span>
+      <nav aria-label="Concept screens">
+        <button data-screen="today" aria-current="page"><span data-icon="home"></span>Today<span class="nav-count">02</span></button>
+        <button data-screen="player"><span data-icon="player"></span>Player profile</button>
+        <button data-screen="report"><span data-icon="report"></span>Report review<span class="nav-count">01</span></button>
+      </nav>
+      <div class="sidebar-foot"><span class="tiny">THE VARSITY CLUB COLLECTION</span><p>A program.<br>A place.<br>Your story.</p><span class="tiny">01A / 02B / 03D / 04B</span></div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar"><div><span class="tiny">CEDAR VALLEY / SEASON 2027</span><b>Regular season <span>· Week 04</span></b></div><label class="mode-label">Play mode<select id="mode"><option value="companion">Power Pros companion</option><option value="solo">Solo dynasty</option></select></label></header>
+      <main id="screen" tabindex="-1"></main>
+      <footer><span>VARSITY CLUB · EXPERT DENSITY</span><span>Design slice · No game writes · Clubhouse audio planned</span></footer>
+    </div>
+  </div>
+  <dialog id="review-dialog" aria-labelledby="dialog-title">
+    <form id="review-form">
+      <span class="eyebrow">REPORT CV–HB / VERSION 2 / CONCEPT</span><h2 id="dialog-title"></h2>
+      <p id="dialog-description"></p><div id="dialog-fields"></div>
+      <p class="dialog-note">This previews the review flow. The sample stays submitted and no league result changes.</p>
+      <div class="button-row"><button type="button" class="secondary" id="close-dialog">Cancel</button><button class="primary" id="review-submit">Preview decision</button></div>
+    </form>
+  </dialog>
+  <div id="notice" role="status" aria-live="polite"></div>
+</body>
+</html>

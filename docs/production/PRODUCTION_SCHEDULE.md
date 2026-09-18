@@ -18,6 +18,8 @@ Checkpoint verified work and evidence in Git, push to the authorized branch, and
 
 ## Art-direction decision pending
 
+Concept milestone update: Frisk authorized proceeding with the selected mix. The standalone [Today / Player / Report Review slice](../art-direction/2026-09-17/slice.html) is built, with [independent critique, fixes and verification](../art-direction/2026-09-17/SLICE_REVIEW.md). Review the slice before production migration; character-kit production, final marks, audio and full application states remain open.
+
 Frisk requested four choices for each major art decision on September 17. The [art-direction lab](../art-direction/2026-09-17/README.md) supplies four visual directions, six screen concepts and 48 choices across 12 categories, reviewed by art, creative and player-experience specialists. Frisk has supplied a [proposed mix](../art-direction/2026-09-17/DECISIONS.md#frisks-proposed-selection--approval-pending): **01A · 02B · 03D · 04B · 05A · 06A · 07A · 08A · 09B · 10C · 11A · 12B**. Approval remains explicitly pending. Preserve existing player identity and reporting truth; do not treat generated studies or either recipe as approved production assets. Continue backend integrity work independently, and review the proposed Today/Player/Report concept slice before an approved production visual rollout.
 
 ## Capacity and estimation assumptions

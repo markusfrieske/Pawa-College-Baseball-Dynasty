@@ -4,6 +4,8 @@ Prepared for Frisk, September 17, 2026. This document accompanies the interactiv
 
 ## Frisk's proposed selection — approval pending
 
+Update: Frisk subsequently authorized moving forward with the polished concept pass. The [three-screen slice](slice.html) and [review record](SLICE_REVIEW.md) apply this exact recipe. Production visual migration is not yet approved by that concept-development instruction.
+
 Received September 17, 2026. These are Frisk's exact proposed choices, explicitly **not yet approved**. They are the concept board's initial recipe; the original studio presets remain available for comparison.
 
 | Code | Decision | Proposed choice |
