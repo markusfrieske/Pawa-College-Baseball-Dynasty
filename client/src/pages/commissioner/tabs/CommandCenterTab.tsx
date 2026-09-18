@@ -189,6 +189,8 @@ export function CommandCenterTab({
     recentOps: Array<{ id: string; status: string; from_phase: string; from_week: number; from_season: number; lease_expires_at: string; created_at: string }>;
     hasActiveLock: boolean;
     activeLockSince: string | null;
+    recoveryRequired: boolean;
+    recoveryMessage?: string;
   }>({
     queryKey: ["/api/leagues", leagueId, "advance", "status"],
     queryFn: async () => {
@@ -216,7 +218,7 @@ export function CommandCenterTab({
   const stuckRunningOps = (advanceStatus?.recentOps ?? []).filter(
     op => op.status === "running" && new Date(op.lease_expires_at) < new Date()
   );
-  const hasStuckOp = stuckRunningOps.length > 0 || advanceStatus?.hasActiveLock;
+  const hasStuckOp = stuckRunningOps.length > 0 || advanceStatus?.recoveryRequired;
 
   // ── Reported-mode advance blockers (per-game deep links) ──────────────────
   // Only fetched when the league is in reported-game mode and the commissioner
@@ -475,9 +477,9 @@ export function CommandCenterTab({
           <div className="flex items-start gap-3 mb-3">
             <ShieldAlert className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-orange-400">STUCK ADVANCE DETECTED</p>
+              <p className="text-xs font-semibold text-orange-400">{advanceStatus?.recoveryRequired ? "ADVANCE RECOVERY REQUIRED" : "STUCK ADVANCE DETECTED"}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {advanceStatus?.hasActiveLock
+                {advanceStatus?.recoveryRequired ? advanceStatus.recoveryMessage : advanceStatus?.hasActiveLock
                   ? "An advance lock is active — the server may have crashed mid-advance."
                   : `${stuckRunningOps.length} advance operation(s) have expired leases.`}
               </p>
@@ -492,7 +494,7 @@ export function CommandCenterTab({
             size="sm"
             variant="destructive"
             onClick={() => clearStuckMutation.mutate()}
-            disabled={clearStuckMutation.isPending}
+            disabled={clearStuckMutation.isPending || advanceStatus?.recoveryRequired}
             className="w-full min-h-[44px]"
             data-testid="button-clear-stuck-advance"
           >
@@ -502,7 +504,7 @@ export function CommandCenterTab({
           {clearStuckMutation.isSuccess && (
             <p className="text-xs text-green-400 mt-2 flex items-center gap-1">
               <CheckCircle className="w-3.5 h-3.5" />
-              Lock cleared — advance is unblocked.
+              Expired lock cleared. Retry advance to resume its recorded work.
             </p>
           )}
         </RetroCard>

@@ -11,6 +11,7 @@ import { checkMigrationVersion, runMigrations } from "../server/lib/runMigration
 import { verifyPostseasonAwards } from "./verify-postseason-awards";
 import { verifyPostseasonBracket } from "./verify-postseason-bracket";
 import { verifyPostseasonAdvance } from "./verify-postseason-advance";
+import { verifyAdvanceRecovery } from "./verify-advance-recovery";
 
 const connection = process.env.PAWA_TEST_DATABASE_URL;
 assert(connection, "PAWA_TEST_DATABASE_URL required; refusing DATABASE_URL fallback");
@@ -33,6 +34,7 @@ if (process.argv.includes("--http-child")) {
   const { finalizeReportedGame, finalizeGameAtomic, flushCoachXp } = await import("../server/game-finalizer");
   const { awardPostseasonCoachMilestone } = await import("../server/lib/postseason-coach-awards");
   const { advanceFSSRBracket } = await import("../server/services/postseason/superRegionals");
+  const { beginAdvanceOperation, inspectAdvanceRecovery } = await import("../server/lib/advance-recovery");
   const { publicErrorHandler } = await import("../server/lib/httpErrors");
   const app = express(); app.use(express.json());
   const server = createServer(app);
@@ -40,6 +42,15 @@ if (process.argv.includes("--http-child")) {
   app.use(publicErrorHandler);
   const effectsAccum = new Map();
   process.on("message", async (message: any) => {
+    if (message?.kind === "advance-handoff") {
+      try {
+        const league = await storage.getLeague(message.leagueId); assert(league);
+        const resume = await inspectAdvanceRecovery(league);
+        await beginAdvanceOperation(league, message.operationId, "synthetic-handoff-owner", resume);
+        process.send?.({ kind: "handoff-result", error: null });
+      } catch (error) { process.send?.({ kind: "handoff-result", error: error instanceof Error ? error.constructor.name : "UnknownError" }); }
+      return;
+    }
     if (message?.kind === "postseason-bracket") {
       try { process.send?.({ kind: "bracket-result", ...(await advanceFSSRBracket(message.leagueId, 1)), error: null }); }
       catch (error) { process.send?.({ kind: "bracket-result", error: error instanceof Error ? error.constructor.name : "UnknownError" }); }
@@ -1037,6 +1048,17 @@ if (process.argv.includes("--http-child")) {
       advance: leagueId => waitForMessage("bracket-result", () => child!.send({ kind: "postseason-bracket", leagueId })) });
     await verifyPostseasonAdvance({ pool, primaryId: primary.id, equal, snapshot, invoke,
       restart: async () => { await stopHttp(); await startHttp(); } });
+    await verifyAdvanceRecovery({ pool, primaryId: primary.id, equal, snapshot, invoke,
+      restart: async () => { await stopHttp(); await startHttp(); }, start: startHttp,
+      hardStop: async () => {
+        if (!child || child.exitCode !== null || child.signalCode !== null) return;
+        await new Promise<void>((done, reject) => {
+          const timer = setTimeout(() => reject(new Error("Owned HTTP hard-stop timeout")), 10000);
+          child!.once("exit", () => { clearTimeout(timer); done(); }); child!.kill("SIGKILL");
+        });
+      },
+      handoff: (leagueId, operationId) => waitForMessage("handoff-result", () => child!.send({ kind: "advance-handoff", leagueId, operationId })),
+    });
 
     const savedHistory = await invoke("/api/leagues/report-league/save-states", "POST", { label: "Synthetic reported-history restore boundary" });
     equal(savedHistory.response.status, 200, "League save capture remains available with accepted report history");
@@ -1072,7 +1094,7 @@ if (process.argv.includes("--http-child")) {
     const beforeReceiptOnlyRestore = await snapshot();
     equal((await invoke(`/api/leagues/effects-restore-league/save-states/${simulatedSave.data.id}/restore`, "POST", {})).response.status, 409, "Receipt-only current state still blocks destructive restore when completion flags are inconsistent");
     equal(await snapshot(), beforeReceiptOnlyRestore, "Receipt-only restore rejection preserves all data and backups");
-    for (const evidenceField of ["gameFinalizations", "gameCoachEffects", "postseasonCoachAwards", "postseasonAwardLegacySeasons"]) {
+    for (const evidenceField of ["gameFinalizations", "gameCoachEffects", "postseasonCoachAwards", "postseasonAwardLegacySeasons", "leagueAdvances"]) {
       await pool.query("UPDATE league_save_states SET snapshot_data=jsonb_set(jsonb_set(snapshot_data,'{games}','[]'::jsonb),$1::text[],$2::jsonb) WHERE id=$3", [[evidenceField], JSON.stringify([{ game_id: "historical-result" }]), targetOnlySave.data.id]);
       const beforeTargetReceiptRestore = await snapshot();
       equal((await invoke(`/api/leagues/other-report-league/save-states/${targetOnlySave.data.id}/restore`, "POST", {})).response.status, 409, evidenceField + " target evidence blocks restore without a complete recovery protocol");

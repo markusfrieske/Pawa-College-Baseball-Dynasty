@@ -27,6 +27,7 @@ import { captureLeagueSaveState } from "../lib/leagueSaveState";
 import { getAdvancePreflight } from "../lib/advancePreflight";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { evaluatePlayerPromises, processOffseasonDepartures, finalizeDeparturesInternal } from "../offseason-helpers";
+import { beginAdvanceOperation, inspectAdvanceRecovery, AdvanceRecoveryRequired, AdvanceOperationBusy } from "../lib/advance-recovery";
 import { SuperRegionalReconciliationRequired } from "../services/postseason/superRegionals";
 import { awardPostseasonCoachMilestone, PostseasonAwardConflict, PostseasonAwardReconciliationRequired } from "../lib/postseason-coach-awards";
 import {
@@ -5128,7 +5129,7 @@ export async function advanceLeagueStep(
   const leagueTeamsForSim = await storage.getTeamsByLeague(leagueId);
   const priorCompletedGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
 
-  await setAdvanceProgress(leagueId, "game_simulation", 10);
+  if (!stageAlreadyDone("game_simulation", completedStages)) await setAdvanceProgress(leagueId, "game_simulation", 10);
   console.time("[advance-perf] game-sim");
 
   // ── Day-sequential simulation ────────────────────────────────────────────
@@ -5885,12 +5886,18 @@ async function simulateUntilWithLease(
   predicate: (league: Record<string, unknown>) => boolean,
   options: { maxIterations?: number } = {},
 ): Promise<{ league: Record<string, unknown>; steps: number }> {
-  return withLeagueAdvanceLease(leagueId, async ({ assertOwned }) =>
-    simulateUntil(leagueId, actorUserId, predicate, {
-      ...options,
-      assertLease: assertOwned,
-    }),
-  );
+  const check = async () => {
+    const league = await storage.getLeague(leagueId);
+    if (!league) throw new Error("League not found");
+    if (await inspectAdvanceRecovery(league)) throw new AdvanceOperationBusy("Resume the interrupted advance one week at a time before using quick simulation.");
+  };
+  await check();
+  return withLeagueAdvanceLease(leagueId, async ({ assertOwned }) => {
+    await check();
+    return simulateUntil(leagueId, actorUserId, predicate, {
+      ...options, assertLease: assertOwned,
+    });
+  });
 }
 
 export function registerSimulationRoutes(app: Express): void {
@@ -7544,6 +7551,8 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can force-advance" });
       }
 
+      await inspectAdvanceRecovery(league);
+
       // In reported-game mode the same advance gate applies even for force-advance:
       // unreported games must be resolved before phase can move forward.
       // Fail-CLOSED: if preflight cannot be computed, refuse to advance rather than
@@ -7627,6 +7636,8 @@ export function registerSimulationRoutes(app: Express): void {
       req.url = `/api/leagues/${league.id}/advance`;
       return res.redirect(307, `/api/leagues/${league.id}/advance`);
     } catch (error) {
+      if (error instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:error.message,recoveryRequired:true,operationId:error.operationId });
+      if (error instanceof AdvanceOperationBusy) return res.status(409).json({ message:error.message });
       console.error("Failed to force-advance:", error);
       return res.status(500).json({ message: "Failed to force-advance" });
     }
@@ -7662,6 +7673,7 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Commissioner only" });
       }
       const leagueId = league.id;
+      await inspectAdvanceRecovery(league);
 
       // Safety check: reject if there is a RECENT (non-expired) lock — the advance
       // may still be actively running.  Only locks older than 15 minutes (the lease
@@ -7686,14 +7698,9 @@ export function registerSimulationRoutes(app: Express): void {
         [leagueId],
       );
 
-      // Mark any expired running ops as failed
-      const opUpd = await pool.query(
-        `UPDATE league_advances
-            SET status = 'failed', error_message = 'Cleared by commissioner (stuck recovery)', updated_at = now()
-          WHERE league_id = $1 AND status = 'running' AND lease_expires_at < now()
-          RETURNING id`,
-        [leagueId],
-      );
+      // Preserve the unfinished operation and checkpoints. Only normal advance
+      // can retire a matching expired operation while taking over its work.
+      const opUpd = { rowCount: 0 };
 
       await storage.createAuditLog({
         leagueId,
@@ -7705,8 +7712,11 @@ export function registerSimulationRoutes(app: Express): void {
       return res.json({
         locksCleared: lockDel.rowCount ?? 0,
         staleOpsMarkedFailed: opUpd.rowCount ?? 0,
+        message: "Expired lock cleared. Retry advance to resume its recorded work; operation history was preserved.",
       });
     } catch (e: any) {
+      if (e instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:e.message,recoveryRequired:true,operationId:e.operationId });
+      if (e instanceof AdvanceOperationBusy) return res.status(409).json({ message:e.message });
       console.error("[clear-stuck] error:", e);
       return res.status(500).json({ message: "Failed to clear stuck advance", detail: e?.message || String(e) });
     }
@@ -7735,8 +7745,14 @@ export function registerSimulationRoutes(app: Express): void {
         `SELECT locked_at FROM league_advance_locks WHERE league_id = $1`,
         [req.params.id],
       );
+      let recovery: { recoveryRequired: boolean; recoveryMessage?: string; operationId?: string } = { recoveryRequired: false };
+      try { await inspectAdvanceRecovery(league); }
+      catch (error) {
+        if (error instanceof AdvanceRecoveryRequired) recovery = { recoveryRequired: true, recoveryMessage: error.message, operationId: error.operationId };
+        else if (!(error instanceof AdvanceOperationBusy)) throw error;
+      }
       return res.json({
-        recentOps: rows,
+        ...recovery, recentOps: rows,
         hasActiveLock: lockRows.length > 0,
         activeLockSince: lockRows[0]?.locked_at ?? null,
       });
@@ -7764,6 +7780,7 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can advance the league" });
       }
 
+      await inspectAdvanceRecovery(league);
       const leagueId = league.id;
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
@@ -7897,74 +7914,31 @@ export function registerSimulationRoutes(app: Express): void {
         }
       }
 
-      // ── Stale-op recovery: detect crashed/abandoned advances ──────────────────
-      // If a prior 'running' op for this league has an expired lease, it was left
-      // behind by a server crash or forced kill mid-advance.  Extract its persisted
-      // checkpoints so the resumed advance can skip stages that already completed.
-      // Then mark the stale op 'failed' (with a "recovered" note) before inserting
-      // the new op so the DB doesn't have two concurrent 'running' rows.
-      let priorCompletedStages = new Set<string>();
-      try {
-        const staleOp = await pool.query<{ id: string; checkpoints: Record<string, { pct: number }> }>(
-          `SELECT id, checkpoints FROM league_advances
-            WHERE league_id = $1
-              AND status    = 'running'
-              AND lease_expires_at < now()
-            ORDER BY created_at DESC
-            LIMIT 1`,
-          [leagueId],
-        );
-        if ((staleOp.rowCount ?? 0) > 0) {
-          const row = staleOp.rows[0];
-          const checkpointObj: Record<string, { pct: number }> = row.checkpoints ?? {};
-          // A completed stage is any checkpoint entry where pct === 100.
-          priorCompletedStages = new Set(
-            Object.entries(checkpointObj)
-              .filter(([, v]) => v.pct >= 100)
-              .map(([k]) => k)
-          );
-          console.warn(
-            `[league-advances] Stale op ${row.id} recovered for league ${leagueId}. ` +
-            `Completed stages from prior run: [${[...priorCompletedStages].join(", ")}].`
-          );
-          await pool.query(
-            `UPDATE league_advances
-                SET status = 'failed',
-                    error_message = 'Recovered by subsequent advance attempt',
-                    updated_at = now()
-              WHERE id = $1`,
-            [row.id],
-          );
-        }
-      } catch (staleErr) {
-        // Non-fatal — proceed without resume data if stale-op query fails.
-        console.error("[league-advances] Stale-op recovery query failed (non-fatal):", staleErr);
+      // Re-read under the acquired lease. Never apply a queued request or a
+      // prior operation's checkpoints to a different phase/week/season.
+      const liveLeague = await storage.getLeague(leagueId);
+      if (!liveLeague || liveLeague.currentPhase !== league.currentPhase || liveLeague.currentWeek !== currentWeek || liveLeague.currentSeason !== league.currentSeason) {
+        throw new AdvanceOperationBusy("League state changed while waiting. Refresh before advancing again.");
       }
-
+      const resume = await inspectAdvanceRecovery(liveLeague);
+      const priorCompletedStages = resume?.stages ?? new Set<string>();
       // ── Durable operation tracking ─────────────────────────────────────────────
       // Insert a league_advances row so a crashed-server scenario is visible to the
       // commissioner via GET /advance/status.  This is FATAL — if we can't persist
       // the op record, we cannot guarantee exactly-one semantics, so we refuse to proceed.
       advOpId = randomUUID();
       try {
-        await pool.query(
-          `INSERT INTO league_advances
-             (id, league_id, status, from_phase, from_week, from_season, locked_by, lease_expires_at)
-           VALUES ($1, $2, 'running', $3, $4, $5, $6, now() + interval '15 minutes')`,
-          [advOpId, leagueId, league.currentPhase, currentWeek, league.currentSeason, advanceLockToken],
-        );
+        await beginAdvanceOperation(liveLeague, advOpId, advanceLockToken, resume);
       } catch (opInsertErr: any) {
-        // A 23505 unique violation means a 'running' or 'complete' row already exists
-        // for this (league_id, from_phase, from_week, from_season) — this is the
-        // unique constraint from 0045.  It should never happen in normal flow
-        // (the idempotency gate above guards against it), but if a concurrent caller
-        // slipped past the gate, treat it as idempotent success and return the
-        // current league state rather than 500.
+        // A uniqueness conflict is not evidence of completion. Verify a real
+        // completed operation with this exact source before returning success.
         if (opInsertErr?.code === "23505") {
-          console.warn(`[league-advances] Unique conflict on insert (league=${leagueId}) — treating as idempotent success`);
+          const complete = await pool.query(
+            "SELECT id FROM league_advances WHERE league_id=$1 AND status='complete' AND from_phase=$2 AND from_week=$3 AND from_season=$4",
+            [leagueId, league.currentPhase, currentWeek, league.currentSeason]);
           await releaseAdvanceLock(leagueId, advanceLockToken);
-          const freshLeague = await storage.getLeague(leagueId);
-          return res.json({ idempotent: true, data: freshLeague });
+          if (!complete.rowCount) return res.status(409).json({ message: "An unfinished advance already exists. Refresh its status before retrying." });
+          return res.json({ idempotent: true, data: await storage.getLeague(leagueId) });
         }
         console.error("[league-advances] FATAL: Failed to insert op record:", opInsertErr);
         await releaseAdvanceLock(leagueId, advanceLockToken);
@@ -8079,37 +8053,26 @@ export function registerSimulationRoutes(app: Express): void {
 
       res.json(data);
     } catch (e: any) {
-      if (e instanceof AdvancePreconditionError) {
-        if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-        // Record failure before releasing ownership to a subsequent attempt.
-        advOpFailed = true;
-        if (advOpId) {
-          await pool.query(
-            `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now()
-              WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
-            [advOpId, e?.message || "AdvancePreconditionError", advanceLockToken],
-          ).catch(() => {});
-        }
-        if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
-        if (!res.headersSent) return res.status(e.statusCode).json(e.body);
-        return;
-      }
-      console.error("Failed to advance week:", e);
       if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
       advOpFailed = true;
+      let recorded = !advOpId;
       if (advOpId) {
-        await pool.query(
-          `UPDATE league_advances SET status = 'failed', error_message = $2, updated_at = now()
-            WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
-          [advOpId, e?.message || String(e), advanceLockToken],
-        ).catch(() => {});
+        try {
+          const failure = await pool.query(
+            `UPDATE league_advances SET status='failed',error_message=$2,updated_at=now()
+              WHERE id=$1 AND locked_by=$3 AND status='running'`,
+            [advOpId,e?.message || String(e),advanceLockToken]);
+          recorded = failure.rowCount === 1;
+        } catch (failureError) { console.error("[league-advances] Failed to persist failure; retaining lease:", failureError); }
       }
-      if (advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
+      if (recorded && advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
       if (!res.headersSent) {
-        if (e instanceof PostseasonAwardReconciliationRequired || e instanceof PostseasonAwardConflict || e instanceof SuperRegionalReconciliationRequired) {
-          return res.status(409).json({ message: e.message });
-        }
-        res.status(500).json({ message: "Failed to advance week" });
+        if (e instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:e.message,recoveryRequired:true,operationId:e.operationId });
+        if (e instanceof AdvanceOperationBusy) return res.status(409).json({ message:e.message });
+        if (e instanceof AdvancePreconditionError) return res.status(e.statusCode).json(e.body);
+        if (e instanceof PostseasonAwardReconciliationRequired || e instanceof PostseasonAwardConflict || e instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message:e.message });
+        console.error("Failed to advance week:", e);
+        res.status(500).json({ message:"Failed to advance week" });
       }
     } finally {
       if (checkpointWriter && advanceCheckpointWriters.get(req.params.id as string) === checkpointWriter) {
@@ -8161,6 +8124,8 @@ export function registerSimulationRoutes(app: Express): void {
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Offseason", details: `Fast-forwarded ${steps} steps to ${finalLeague.currentPhase}.` });
       res.json(finalLeague);
     } catch (error) {
+      if (error instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:error.message,recoveryRequired:true,operationId:error.operationId });
+      if (error instanceof AdvanceOperationBusy) return res.status(409).json({ message:error.message });
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to offseason:", error);
@@ -8200,6 +8165,8 @@ export function registerSimulationRoutes(app: Express): void {
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Signing Day", details: `Fast-forwarded ${steps} steps to preseason season ${finalLeague.currentSeason}.` });
       res.json({ ...finalLeague, seasonTransition: (finalLeague as any).seasonTransition });
     } catch (error) {
+      if (error instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:error.message,recoveryRequired:true,operationId:error.operationId });
+      if (error instanceof AdvanceOperationBusy) return res.status(409).json({ message:error.message });
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to signing day:", error);
@@ -8227,6 +8194,8 @@ export function registerSimulationRoutes(app: Express): void {
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim Full Season", details: `Simulated ${steps} advances. Now season ${finalLeague.currentSeason}, phase ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
+      if (error instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:error.message,recoveryRequired:true,operationId:error.operationId });
+      if (error instanceof AdvanceOperationBusy) return res.status(409).json({ message:error.message });
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim full season:", error);
@@ -8266,6 +8235,8 @@ export function registerSimulationRoutes(app: Express): void {
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to Postseason", details: `Simulated ${steps} advances to ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
+      if (error instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:error.message,recoveryRequired:true,operationId:error.operationId });
+      if (error instanceof AdvanceOperationBusy) return res.status(409).json({ message:error.message });
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to postseason:", error);
@@ -8296,6 +8267,8 @@ export function registerSimulationRoutes(app: Express): void {
       await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Sim to CWS", details: `Simulated ${steps} advances to ${finalLeague.currentPhase}.` });
       res.json({ ...finalLeague, simSummary: {} });
     } catch (error) {
+      if (error instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:error.message,recoveryRequired:true,operationId:error.operationId });
+      if (error instanceof AdvanceOperationBusy) return res.status(409).json({ message:error.message });
       if (error instanceof AdvanceLeaseBusyError) return res.status(409).json({ message: "Another league operation is already in progress." });
       if (error instanceof PostseasonAwardReconciliationRequired || error instanceof PostseasonAwardConflict || error instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message: error.message });
       console.error("Failed to sim to CWS:", error);
