@@ -8,7 +8,6 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
-import { VolumeControl } from "@/components/volume-control";
 import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanner } from "@/components/atmosphere-provider";
 import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { VarsityShell } from "@/components/varsity-shell";
@@ -255,9 +254,6 @@ function App() {
             <SigningDayBurst />
             <AtmosphereRouter />
             <MusicRouter />
-            <div className="fixed bottom-20 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
-              <VolumeControl />
-            </div>
             <OfflineBanner />
             <Toaster />
             <div className="mobile-content-safe">

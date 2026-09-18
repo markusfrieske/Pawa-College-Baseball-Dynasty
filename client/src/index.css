@@ -557,9 +557,9 @@
     to   { opacity: 1; transform: translateX(0);     }
   }
 
-  /* ── Mobile content wrapper — clears mobile-nav + home indicator ── */
+  /* Safe area only: navigation now lives in the top game bar. */
   .mobile-content-safe {
-    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   @media (min-width: 768px) {
     .mobile-content-safe {
@@ -1167,3 +1167,8 @@ html[data-mood="offseason"] nav {
 @media (prefers-reduced-motion: reduce) {
   :root .varsity-motion-surface[data-state] { animation: none; transition: none; }
 }
+
+/* Game presentation: retain wheel/touch/keyboard scrolling without browser rails. */
+* { scrollbar-width: none !important; }
+*::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
+[data-pawa-scrollbar] { width: 0 !important; height: 0 !important; padding: 0 !important; border: 0 !important; opacity: 0 !important; pointer-events: none; }

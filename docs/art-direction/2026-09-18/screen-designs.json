@@ -1,0 +1,1462 @@
+{
+  "screens": [
+    {
+      "id": "title",
+      "title": "Title screen",
+      "group": "Start & setup",
+      "routes": [
+        "/"
+      ],
+      "purpose": "Make returning to a dynasty feel like entering a sports game.",
+      "layout": "Full-bleed miniature campus at dusk; PAWA wordmark upper left; a single vertical play menu at left; small account and audio controls top right.",
+      "primaryAction": "Continue most recent dynasty; New dynasty and Join league are secondary.",
+      "data": "Last played dynasty, season/week, mode and cloud/session status without a dashboard of statistics.",
+      "art": "Approved campus art, restrained stadium light and a brass selected-menu marker.",
+      "narrow": "Crop campus around diamond; retain vertical play menu and top menu button, never a bottom tab bar.",
+      "input": "Pointer or keyboard menu selection; proposed D-pad menu and confirm/cancel; no hover-only options.",
+      "states": "Signed out, returning account, guest, no dynasty, unavailable server; distinguish unavailable from empty.",
+      "acceptance": "Continue targets the actual last accessible dynasty; all entry actions remain visible at 1280×800 and 390px.",
+      "priority": "P1"
+    },
+    {
+      "id": "login",
+      "title": "Sign in",
+      "group": "Start & setup",
+      "routes": [
+        "/login"
+      ],
+      "purpose": "Resume an account with minimal friction.",
+      "layout": "A quiet club entrance backdrop and one centered credentials panel; back to title at top; recovery/help contextual.",
+      "primaryAction": "Sign in.",
+      "data": "Field labels, validation, pending state and intended return destination; never reveal credentials in diagnostics.",
+      "art": "Cropped campus entrance with low contrast behind form; same Sora/Inter as game.",
+      "narrow": "One-column form with inset top close/back; keyboard opening never covers submit.",
+      "input": "Normal text entry and password-manager semantics; intended controller invokes platform keyboard only after future integration.",
+      "states": "Invalid credentials, disconnected, pending request and successful redirect; suppress duplicate submission.",
+      "acceptance": "Labels stay visible when populated; submit errors preserve inputs safely and return focus to the failing field.",
+      "priority": "P1"
+    },
+    {
+      "id": "register",
+      "title": "Create account",
+      "group": "Start & setup",
+      "routes": [
+        "/register"
+      ],
+      "purpose": "Create a durable coach identity before joining or saving a dynasty.",
+      "layout": "One identity form on a muted clubhouse backdrop; explain save ownership adjacent to creation action.",
+      "primaryAction": "Create account.",
+      "data": "Only actual required account fields and clear password requirements; preserve destination from invite.",
+      "art": "Clubhouse signage and monogram without an invented avatar customization step.",
+      "narrow": "Stack fields in a single panel; top back action stays available.",
+      "input": "Keyboard field order and submit; planned controller text-entry flow shares same validation.",
+      "states": "Duplicate identity, invalid input, network failure, guest conversion where supported; no promise of Steam authentication.",
+      "acceptance": "Retry never creates duplicate accounts and successful creation preserves the requested destination.",
+      "priority": "P1"
+    },
+    {
+      "id": "guest",
+      "title": "Guest entry",
+      "group": "Start & setup",
+      "routes": [
+        "/guest"
+      ],
+      "purpose": "Explain temporary identity and its real persistence limits before play.",
+      "layout": "Compact two-choice entry panel with a concise consequence statement, not a full-screen legal wall.",
+      "primaryAction": "Continue as guest after reading the existing warning.",
+      "data": "Guest-session limitations and account alternative; only describe guarantees backed by authentication behavior.",
+      "art": "Small club-pass illustration and simple solid identity icon.",
+      "narrow": "Centered readable panel; two full-width actions with no footer navigation.",
+      "input": "Focus first on explanation, then account alternative and continue; Escape returns to title.",
+      "states": "Creating session, failure, sanitized internal redirect; warning cannot vanish while request is pending.",
+      "acceptance": "Continue communicates the actual guest limitation and preserves safe redirect behavior.",
+      "priority": "P1"
+    },
+    {
+      "id": "dashboard",
+      "title": "Dynasty selection",
+      "group": "Start & setup",
+      "routes": [
+        "/dashboard"
+      ],
+      "purpose": "Choose a saved world and understand its state at a glance.",
+      "layout": "A game library: three large dynasty tiles per desktop row; selected tile expands a right detail area; roster/class libraries occupy an explicit Tools section.",
+      "primaryAction": "Continue selected dynasty.",
+      "data": "League name, team, current phase/week, mode, last activity and membership; owned files in separate library view.",
+      "art": "Campus postcard per dynasty with athletic monogram; art never replaces league identity.",
+      "narrow": "One featured dynasty and a paged library; top section chooser for Dynasties / Files.",
+      "input": "Arrow navigation proposed within tiles; Enter opens; deletion remains a distinct explicit command.",
+      "states": "No dynasties, unavailable memberships, guest, loading, file preview and deletion confirmation.",
+      "acceptance": "No destructive icon masquerades as Play; mode and destination are legible before opening.",
+      "priority": "P1"
+    },
+    {
+      "id": "create",
+      "title": "New dynasty",
+      "group": "Start & setup",
+      "routes": [
+        "/league/create"
+      ],
+      "purpose": "Configure a coherent text simulation or Power Pros companion without an intimidating form.",
+      "layout": "A four-step coach desk: mode, competition, roster/class sources, review. Keep a readable configuration summary at right.",
+      "primaryAction": "Create the reviewed dynasty.",
+      "data": "Existing season length, conferences, team count, difficulty and source selections; clearly distinguish simulated games from reported games.",
+      "art": "Small miniature diamond responding visually to selected program, not to unimplemented gameplay settings.",
+      "narrow": "Step counter at top and one current step; review opens as a full panel.",
+      "input": "Keyboard step sequence; proposed bumpers switch completed steps; do not advance past validation failures.",
+      "states": "Unavailable sources, incompatible settings, pending generation, duplicate submit and role restrictions.",
+      "acceptance": "Review reproduces exact submitted configuration; no mode-dependent field silently survives incompatibly.",
+      "priority": "P1"
+    },
+    {
+      "id": "team-selection",
+      "title": "Competition selection",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/team-selection"
+      ],
+      "purpose": "Select the participating schools and understand competition structure.",
+      "layout": "Conference rail at left, athletic monogram school grid center, selected-field counter and rules summary right.",
+      "primaryAction": "Confirm selected teams.",
+      "data": "Team totals, conference membership, prestige and existing full-season requirements; selection capacity continuously visible.",
+      "art": "Team monograms in consistent badge containers; no reliance on missing logos.",
+      "narrow": "Conference selector then paged team grid; selected count remains in top toolbar.",
+      "input": "Keyboard toggles with named selected state; intended controller grid navigation and dedicated review action.",
+      "states": "No available schools, full-season constraints, saved selection, rejected configuration and unauthorized access.",
+      "acceptance": "Selection is preserved across conferences and review identifies every selected school.",
+      "priority": "P1"
+    },
+    {
+      "id": "coach-setup",
+      "title": "Coach and school setup",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/setup"
+      ],
+      "purpose": "Establish who the player is and which program they coach.",
+      "layout": "School selection list beside a coach media-day profile preview; second step edits coach identity, appearance and existing skill allocation.",
+      "primaryAction": "Confirm coach and program.",
+      "data": "School prestige/facilities, claimed status, archetype and actual skill budget with consequences.",
+      "art": "Cel coach portrait and athletic monogram; restrained campus miniature behind selected school.",
+      "narrow": "School choice and coach editor become sequential full panels with persistent summary.",
+      "input": "Keyboard accessible sliders/selects; proposed controller changes selection, never silently spends skill points.",
+      "states": "School already claimed, invalid name/allocation, unassigned coach, save error and existing coach.",
+      "acceptance": "Cannot confirm a claimed team or overspent skill budget; appearance preview reflects saved values.",
+      "priority": "P1"
+    },
+    {
+      "id": "dynasty-lobby",
+      "title": "Dynasty lobby",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/dynasty-setup"
+      ],
+      "purpose": "Show exactly what must be complete before a league can start.",
+      "layout": "Clubhouse gathering scene above three compact readiness rows: coaches, recruiting class and schedule; coach seats beneath.",
+      "primaryAction": "Start dynasty for authorized commissioner; join/claim seat for eligible coach.",
+      "data": "Assignments, human/CPU distinction, source readiness, invite controls and explicit blockers.",
+      "art": "Cel coach silhouettes in assigned seats with school monograms; avoid implying users are online unless presence says so.",
+      "narrow": "Readiness checklist first; expandable coach list; top invite action only for permitted role.",
+      "input": "Focus moves from blocker to corrective action; future controller navigates seats and readiness items.",
+      "states": "Waiting for coaches, missing class/schedule, generation pending, unauthorized start and stale setup.",
+      "acceptance": "Start remains unavailable with explanation when prerequisites fail; invited coaches cannot see commissioner-only mutations.",
+      "priority": "P1"
+    },
+    {
+      "id": "creation-progress",
+      "title": "Creating dynasty",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/creating"
+      ],
+      "purpose": "Make a long setup operation understandable without fabricated progress.",
+      "layout": "One stadium construction vignette and a vertical list of actual completed/current setup stages; summary panel replaces animation on failure.",
+      "primaryAction": "Enter dynasty when ready; retry only when supported and safe.",
+      "data": "Real operation stage, elapsed time and recoverable error explanation; no invented percentages or ETA.",
+      "art": "Subtle campus lights turn on by verified milestones; reduced-motion static equivalent.",
+      "narrow": "Single centered stage list; stage text wraps without clipping.",
+      "input": "Focus success action only after completion; Escape must not imply cancellation of server work.",
+      "states": "Pending, stalled, failed, already complete and navigation away/back.",
+      "acceptance": "Refresh reattaches to actual operation state; completion is based on server evidence, not animation timing.",
+      "priority": "P1"
+    },
+    {
+      "id": "invite",
+      "title": "League invitation",
+      "group": "Start & setup",
+      "routes": [
+        "/invite/:code"
+      ],
+      "purpose": "Let a coach verify a league before joining it.",
+      "layout": "Invitation card with league monogram, commissioner-provided identity and membership context; account status in upper corner.",
+      "primaryAction": "Accept invite or sign in to continue.",
+      "data": "League name, available role/seat where known and validity; avoid displaying hidden league data.",
+      "art": "Paper club invitation using forest and brass; no celebratory success before acceptance.",
+      "narrow": "Centered card with clear top back and in-panel actions.",
+      "input": "Keyboard confirmation and preserved focus; proposed controller confirm/cancel.",
+      "states": "Invalid, expired/revoked or exhausted invitation, existing member, signed out and joining error.",
+      "acceptance": "Every invalid invitation has an honest reason when safe and a usable return path; double clicks cannot duplicate membership.",
+      "priority": "P1"
+    },
+    {
+      "id": "hub",
+      "title": "Matchday brief",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Answer what happened, what needs attention and what the coach can do next.",
+      "layout": "Viewport-oriented clubhouse desk: next game and primary action center; compact objective list left; latest meaningful result and readiness right. Deep league information moves into named detail tabs.",
+      "primaryAction": "Resolve highest-priority coach task, then mark ready when allowed.",
+      "data": "Mode, season/week/phase, lineup readiness, remaining actions/NIL, next opponent and server-backed blockers.",
+      "art": "Miniature home diamond hero kept shallow enough that useful decisions are above the fold.",
+      "narrow": "One Matchday / League top switch; next action first, selected detail full-screen; no duplicate footer menu.",
+      "input": "Keyboard landmarks and explicit focus; proposed controller cycles three zones then selects rows.",
+      "states": "No team, commissioner-only view, offseason, waiting on peers, reported games pending, offline and interrupted advance.",
+      "acceptance": "Current mode changes the verb: prepare/report/review versus simulate/advance; unknown results never appear final.",
+      "priority": "P0"
+    },
+    {
+      "id": "roster",
+      "title": "Roster command",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/roster"
+      ],
+      "purpose": "Evaluate the full roster and make lineup decisions without scanning repeated mini-tables.",
+      "layout": "One continuous 44–52px-row manifest with pinned player identity; tabs Roster / Depth / Development. A 32% right inspector shows selected athlete, role, attributes and allowed actions. Position chips filter this one table.",
+      "primaryAction": "Inspect player; switch to Set lineup for arrangement.",
+      "data": "Number, portrait/name, position, year, handedness, labeled overall, captain/status; optional hitting/pitching metrics via column presets. Hometown moves to inspector.",
+      "art": "Cel portrait large enough to establish identity in inspector; field diagram only in Depth; no campus banner above every table.",
+      "narrow": "At 1280×800 retain list plus inspector; below 900px use full-width manifest and a full-screen player panel with Back to roster preserving selection.",
+      "input": "Up/down moves selected row; Enter opens detail; intended controller left/right changes zones. Depth offers select-player/select-slot instead of requiring drag.",
+      "states": "Empty position, no matching filters, opponent read-only roster, development permission, incomplete lineup, saving and invalid role assignment.",
+      "acceptance": "Whole roster is one table; no one-player position cards; filtering and returning from profile preserve context; no hidden offscreen columns are required.",
+      "priority": "P0"
+    },
+    {
+      "id": "team",
+      "title": "Team scouting dossier",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/team/:teamId"
+      ],
+      "purpose": "Understand another team's current strength and upcoming challenge.",
+      "layout": "Team crest masthead, record and identity strip; Summary / Schedule / Roster / Coaches / School / History tabs in a fixed workspace.",
+      "primaryAction": "Scout roster or prepare the next matchup.",
+      "data": "Actual team record, schedule, roster, coaches, facilities and history; opponent information obeys existing visibility.",
+      "art": "Monogram plus miniature campus crop and small coach portrait.",
+      "narrow": "Selected tab consumes canvas; team selector in top toolbar rather than stacked cards.",
+      "input": "Keyboard tabs with active state; proposed controller tabs and named list/inspector zones.",
+      "states": "Missing team, future opponent, own team action permissions and absent historical data.",
+      "acceptance": "Opponent view never grants roster editing; summary numbers match underlying roster and schedule.",
+      "priority": "P1"
+    },
+    {
+      "id": "program",
+      "title": "Program profile",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/team/:teamId/profile"
+      ],
+      "purpose": "Tell the long-term story and identity of a school.",
+      "layout": "Editorial program cover with monogram and a shallow campus scene; record ribbon; legacy timeline and factual facilities/identity panels.",
+      "primaryAction": "Explore program history or open current team.",
+      "data": "Prestige/facilities, titles, recruiting history and school context already available; separate current season from career totals.",
+      "art": "Miniature campus is the hero; brass trophy silhouettes and photographic-style cel framing.",
+      "narrow": "Cover shrinks; chapters open one at a time with top chapter selector.",
+      "input": "Keyboard timeline selection; proposed controller chapter movement with Back to team.",
+      "states": "New program, no titles, missing school data and read-only opponent.",
+      "acceptance": "No invented historical achievement fills empty space; every statistic labels its time range.",
+      "priority": "P2"
+    },
+    {
+      "id": "coach",
+      "title": "Coach profile",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/coach",
+        "/league/:id/coach/:coachId",
+        "/coach/:coachId"
+      ],
+      "purpose": "Show a coach's identity, career and authorized development choices.",
+      "layout": "Cel coach profile at left; Career / Attributes / Skills / Strategy / Settings become chapter panels at right with a persistent season context.",
+      "primaryAction": "Inspect career; improve/edit only one's own authorized coach.",
+      "data": "Career record, badges, season history, recruiting grades, personality, perk trees, coaching strategy and notification settings where actually permitted.",
+      "art": "Media-day coach portrait, club credential and understated badge shapes.",
+      "narrow": "Portrait collapses to top identity strip; full-width active chapter.",
+      "input": "Keyboard chapter navigation; perk selection previews effect before any spend; proposed controller navigates tree with explicit node labels.",
+      "states": "Own versus other coach, unassigned, route without league context, unavailable career data and failed preference save.",
+      "acceptance": "Public coach routes never expose private preferences or edit controls; spent/available points are unambiguous.",
+      "priority": "P1"
+    },
+    {
+      "id": "identity",
+      "title": "Program identity",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/identity"
+      ],
+      "purpose": "Choose a coherent baseball philosophy with readable tradeoffs.",
+      "layout": "Four playbook panels: offense, pitching, recruiting pitch, culture; selected choice at left and actual effect details at right.",
+      "primaryAction": "Save an eligible identity change.",
+      "data": "Current identity, candidate descriptions, real gameplay effects/costs/locks; do not invent hidden modifiers.",
+      "art": "Monogram and solid baseball silhouettes; faint chalk diagram outside text area.",
+      "narrow": "One category at a time with a four-item top selector and saved-state summary.",
+      "input": "Keyboard radio groups; proposed controller selection followed by explicit Apply.",
+      "states": "Read-only observer, phase lock, unchanged draft, unsaved changes and rejected save.",
+      "acceptance": "Selecting a card previews; only Apply changes state; restrictions include actionable explanation.",
+      "priority": "P1"
+    },
+    {
+      "id": "rivalries",
+      "title": "Coaching rivalries",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/rivalries"
+      ],
+      "purpose": "Give recurring matchups personality while keeping records credible.",
+      "layout": "Mine / League selector; large selected matchup card center; rivalry list left; head-to-head chronology right.",
+      "primaryAction": "Open next matchup or inspect rivalry history.",
+      "data": "Existing rivalry intensity/context, coach names, series record and factual moments.",
+      "art": "Opposing monograms and cel coach busts; understated versus composition rather than combat imagery.",
+      "narrow": "List opens a full rivalry panel; back preserves filter and selection.",
+      "input": "Keyboard list selection; proposed controller focus on matchup and chronology.",
+      "states": "No rivalry yet, mine unavailable without team, missing opponent data and read-only history.",
+      "acceptance": "No procedural insult or rivalry cause is fabricated; each record links to available game evidence.",
+      "priority": "P2"
+    },
+    {
+      "id": "recruiting",
+      "title": "Recruiting desk",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/recruiting"
+      ],
+      "purpose": "Compare targets and spend scarce attention with confidence.",
+      "layout": "A two-row situation strip replaces the overflowing Command Center carousel. Below: dense searchable board 65%, selected-recruit inspector 35%; filters stay in a top command row.",
+      "primaryAction": "Take an allowed recruiting action on selected prospect.",
+      "data": "Interest/stage, stars and scouted attributes, offer/NIL, visits, competition, team needs and remaining actions. Unknown scouting stays explicitly unknown.",
+      "art": "Cel selected recruit and quiet campus postcard in inspector; solid status icons with text; restrained rivalry accents.",
+      "narrow": "Situation strip becomes two columns; board keeps identity, position, interest and action status; inspector opens as full panel.",
+      "input": "Keyboard sortable table and focusable filters; intended controller row selection, inspector switch and action menu; no hover-only tooltips.",
+      "states": "No targets, budget/action exhausted, phase lock, signed recruit, failed mutation, CPU/read-only coach and out-of-date board.",
+      "acceptance": "All six command summaries fit without horizontal clipping; costs and resulting balance shown before spend; no duplicate actions from animation or retries.",
+      "priority": "P0"
+    },
+    {
+      "id": "recruit-profile",
+      "title": "Recruit scouting profile",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/recruit/:recruitId"
+      ],
+      "purpose": "Make an athlete feel like a person while exposing enough data for expert recruiting.",
+      "layout": "Half-body cel portrait left; identity and fit summary center; Info / Attributes / Common / Pitches / Priorities / Abilities panel; relationship and offers at right.",
+      "primaryAction": "Scout, recruit or review offer when authorized.",
+      "data": "Scouting certainty, attributes/abilities, pitches only for pitchers, priorities, current competition and action cost.",
+      "art": "Media-day framing and school-neutral scouting card; never use portrait styling to signal hidden gem/bust status.",
+      "narrow": "Portrait becomes compact header; data tabs full width; action bar belongs to panel top, not global footer.",
+      "input": "Keyboard tab navigation and named action buttons; proposed controller stat groups rather than every tiny cell.",
+      "states": "Unscouted, partial scouting, committed, signed, orphan/missing recruit and phase or role lock.",
+      "acceptance": "Hidden ratings remain hidden in all tabs and exported views; back returns to same recruiting filters.",
+      "priority": "P1"
+    },
+    {
+      "id": "portal",
+      "title": "Transfer portal",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/transfer-portal"
+      ],
+      "purpose": "Evaluate transfers as immediate roster choices with eligibility and cost context.",
+      "layout": "Portal manifest with position/year filters and availability badge; selected transfer dossier; commitment/interest action panel.",
+      "primaryAction": "Pursue or make permitted transfer offer.",
+      "data": "Origin school, eligibility, attributes visible to coach, offer status, NIL impact and available roster slots.",
+      "art": "Cel athlete with small origin monogram and neutral portal badge; no generic recruiting-star celebration.",
+      "narrow": "Manifest to full detail panel; key year/position/status stay visible.",
+      "input": "Keyboard selection and explicit offer confirmation; proposed controller uses same list/inspector pattern.",
+      "states": "Closed portal, no entrants, ineligible targets, own-team departures, filled roster and failed offer.",
+      "acceptance": "Roster and budget consequences are visible before committing; stage-closed state cannot look like an empty search.",
+      "priority": "P1"
+    },
+    {
+      "id": "commits",
+      "title": "Committed class",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/commits"
+      ],
+      "purpose": "Show how a class fits the program and where it ranks.",
+      "layout": "Current class ribbon and a compact position-needs matrix; team-class table with selected team detail; past rankings via season selector.",
+      "primaryAction": "Review own class or view a committed athlete.",
+      "data": "Committed versus signed status, class count, ranks/grades from actual data, position mix and past class history.",
+      "art": "Cel recruit tiles with consistent monogram frame; no card-back gimmick for already known information.",
+      "narrow": "Own class first; switch teams in top picker; ranks remain a separate clear view.",
+      "input": "Keyboard class and season selection; proposed controller athlete carousel with explicit count and buttons.",
+      "states": "No commits, teams without commits, pending signing and missing past class.",
+      "acceptance": "A verbal commitment never appears as a completed roster arrival; rank and season are clearly labeled.",
+      "priority": "P1"
+    },
+    {
+      "id": "arrival",
+      "title": "Signing day and arrival ceremony",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/signing-day-reveal"
+      ],
+      "purpose": "Celebrate actual arrivals and leave a useful class record.",
+      "layout": "Proposed only: Clubhouse Arrival staged on miniature home diamond; nameplate slide; media-day half-body athlete; final arrival sports profile. My class / All teams / All recruits remain accessible.",
+      "primaryAction": "Choose a spotlight player, play or skip reveal, then inspect the arrival card.",
+      "data": "Actual signed status, player identity, position/year and authorized scouting/attributes; preserve class roster even after skipping.",
+      "art": "Frisk's unapproved R01A R02D R03A R04A R05B R06A R07A R08C R09A R10B recipe: warm welcome, clubhouse signature, program scrapbook, choose spotlight, coach's cut.",
+      "narrow": "Landscape stage scales around portrait and nameplate; portrait view prioritizes card; skip/replay in top controls.",
+      "input": "Skip and sound accessible before motion; keyboard Enter reveal/Escape skip; controller behavior proposed only.",
+      "states": "Already viewed, no signed class, reduced motion, muted sound, missing portrait and locked/unavailable reveal.",
+      "acceptance": "No new recipe ships without approval; skipping never mutates signings; scrapbook/export must exclude hidden/private data.",
+      "priority": "P2 — approval dependency"
+    },
+    {
+      "id": "leaving",
+      "title": "League departures overview",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/players-leaving"
+      ],
+      "purpose": "Understand which programs are losing players and where future roster needs arise.",
+      "layout": "League departure ledger with team selector and Graduation / Draft / Portal category filters; selected program shows departing athletes and source status. Any returning-roster projection is a later addition requiring verified data.",
+      "primaryAction": "Inspect departing player or open the team's permitted departure workflow.",
+      "data": "Existing team-by-team graduates, draft declarations, transfers and total leaving. Keep source-declared departures distinct from any future forecast.",
+      "art": "Cel portrait and academic/diamond silhouettes; continuity timeline restrained.",
+      "narrow": "Grouped list first; player detail replaces it; persistent projected roster count.",
+      "input": "Keyboard list and group navigation; proposed controller selects groups then athletes.",
+      "states": "No departures, incomplete current-season data, missing player, pending versus final source status and read-only opponent.",
+      "acceptance": "Category totals reconcile with actual departure rows; no assumed returners or speculative draft result is presented as confirmed.",
+      "priority": "P1"
+    },
+    {
+      "id": "departures",
+      "title": "Departure decisions",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/departures"
+      ],
+      "purpose": "Resolve exits and retention choices with clear roster consequences.",
+      "layout": "My team / Roster preview / League tabs; decision queue left, selected player and consequences center, remaining budget/roster summary right.",
+      "primaryAction": "Make a permitted retention decision or finalize reviewed departures.",
+      "data": "Graduation, draft and portal categories, relevant retention cost, finalized state and projected next roster.",
+      "art": "Cel athlete and understated farewell program card; no celebratory animation on loss.",
+      "narrow": "One decision at a time with queue count; roster preview becomes full-screen mode.",
+      "input": "Keyboard decision review; explicit confirmation for finalization; proposed controller never confirms destructive action on initial press.",
+      "states": "Pending decision, impossible retention, finalized/read-only, stale roster projection and failed finalization.",
+      "acceptance": "Final confirmation names affected players and irreversible effects; back/cancel cannot submit; official totals refresh after success.",
+      "priority": "P1"
+    },
+    {
+      "id": "walkons",
+      "title": "Cuts and walk-on bids",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/walkons"
+      ],
+      "purpose": "Fill real roster gaps while making the cost of cuts and bids visible.",
+      "layout": "Roster capacity strip at top; My roster / Available walk-ons / Results views; selected athlete panel and bid summary.",
+      "primaryAction": "Place eligible bid or review a cut.",
+      "data": "Current/projected roster count, bid commitments, budget, role needs and signed/outbid results.",
+      "art": "Cel player portraits with practice-field backdrop; distinct neutral bid versus signed states.",
+      "narrow": "Single list view and full detail panel; capacity always remains in top strip.",
+      "input": "Keyboard numeric bid entry, named increase/decrease controls; proposed controller has discrete bid steps and explicit cut confirmation.",
+      "states": "Auction open/closed, no funds/space, simultaneous outbid, won player, cut pending and network failure.",
+      "acceptance": "Cut confirmation identifies player; displayed available funds reflect pending obligations under actual rules; results never imply all bids won.",
+      "priority": "P1"
+    },
+    {
+      "id": "schedule",
+      "title": "Season schedule",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/schedule"
+      ],
+      "purpose": "Find the next game and distinguish played, reported, disputed and final results.",
+      "layout": "Week ribbon above a fixture list; selected matchup details at right; team/conference filters in command row; exhibitions remain explicitly labeled.",
+      "primaryAction": "Prepare next game; Report, Review or View result according to actual mode/state.",
+      "data": "Week/date, teams, home/away, score/status, submission owner, confirmation/dispute state and available action.",
+      "art": "Athletic monograms and a restrained scoreboard header; no repeated campus heroes.",
+      "narrow": "Week controls and fixture list; selected matchup expands into full panel.",
+      "input": "Keyboard week previous/next and fixture selection; proposed controller bumpers change week and confirm opens details.",
+      "states": "Future, simulated final, report pending, disputed, rejected, stale submission, postponed/absent data and spectator.",
+      "acceptance": "A pending report is visually distinct from official score; no simulation button appears for companion-only workflow.",
+      "priority": "P0"
+    },
+    {
+      "id": "prep",
+      "title": "Game preparation",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/games/:gameId/prep"
+      ],
+      "purpose": "Translate roster information into a clear pregame decision.",
+      "layout": "Broadcast matchup header; probable pitchers and key comparisons center; own lineup and scouting notes in adjacent panels; Prep / Lineup / Matchup chapters.",
+      "primaryAction": "Review lineup or open the next legal match action.",
+      "data": "Matchup meter and keys based on existing calculations, pitcher/lineup details, head-to-head and team identity.",
+      "art": "Small miniature ballpark under scoreboard, cel starter portraits and clear away/home labels.",
+      "narrow": "Two-sided comparison becomes paired metric rows; lineup has its own full panel.",
+      "input": "Keyboard chapter navigation and select-slot lineup alternative; controller field navigation proposed.",
+      "states": "Unscheduled game, missing roster/lineup, own versus observer, locked lineup and companion mode.",
+      "acceptance": "Advice is labeled analysis rather than certainty; companion does not pretend to send a lineup into Power Pros.",
+      "priority": "P1"
+    },
+    {
+      "id": "report",
+      "title": "Report a Power Pros game",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/report-game/:gameId"
+      ],
+      "purpose": "Record a real played result accurately and make review errors easy to fix.",
+      "layout": "Three-step scorer desk: evidence/input, review, submit; scoreboard remains fixed at top; batting and pitching panels switch by team.",
+      "primaryAction": "Submit reviewed report or save/edit permitted draft.",
+      "data": "Official game identity, score, innings and actual supported batting/pitching fields; OCR uncertainty and validation shown adjacent to cell.",
+      "art": "Scorebook typography using Inter tabular numerals; school badges and paper-like inset on forest.",
+      "narrow": "One team/stat group at a time; summary always reachable by top Review command; no giant horizontally clipped grid.",
+      "input": "Keyboard cell navigation, input labels and error focus; controller text entry and grid editing require later dedicated validation.",
+      "states": "Wrong participant, unsupported mode, OCR incomplete, contradictory totals, stale edit, pending approval and server rejection.",
+      "acceptance": "OCR never auto-confirms; review lists all blockers; submit success reflects server response and preserves source/provenance labels.",
+      "priority": "P0"
+    },
+    {
+      "id": "play-unavailable",
+      "title": "Play-by-play unavailable",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/game/:gameId/play-by-play"
+      ],
+      "purpose": "Explain the unavailable feature honestly and return to useful game information.",
+      "layout": "Deliberate unavailable panel within game shell with matchup context and a clear result/schedule destination.",
+      "primaryAction": "Open schedule or supported game result.",
+      "data": "Only current game identity/status and factual availability explanation.",
+      "art": "Quiet scoreboard illustration; no fake playback timeline or Play button.",
+      "narrow": "Compact full panel and top Back.",
+      "input": "Keyboard primary action; proposed controller back/confirm.",
+      "states": "Legacy links, missing game and unsupported play-by-play.",
+      "acceptance": "No fabricated pitch sequence or dead-end spinner; route remains explicitly unavailable until evidence supports a real feature.",
+      "priority": "P1"
+    },
+    {
+      "id": "postseason",
+      "title": "Postseason hub",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/postseason"
+      ],
+      "purpose": "Make the tournament path and next obligation instantly clear.",
+      "layout": "Round selector above bracket scene; selected game inspector and qualification summary; conference/national stages get explicit stage headings.",
+      "primaryAction": "Open next eligible postseason matchup.",
+      "data": "Seeds, series state, advancement, next game, official/pending status and bracket source.",
+      "art": "Brass tournament lines over dark forest with restrained trophy silhouette.",
+      "narrow": "Round-by-round fixture list replaces a squeezed full bracket; previous/next round buttons maintain path.",
+      "input": "Keyboard selects game then round; proposed controller uses bracket neighbors with list alternative.",
+      "states": "Before qualification, incomplete bracket, live series, disputed report, eliminated team and champion.",
+      "acceptance": "Bracket does not advance on unconfirmed scores; every small node has a readable list equivalent.",
+      "priority": "P1"
+    },
+    {
+      "id": "championship",
+      "title": "Championship presentation",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/championship/:season"
+      ],
+      "purpose": "Celebrate verified achievement and connect it to the season record.",
+      "layout": "Champion monogram and cel team composition; short optional entrance; recap chapters for bracket, final rankings and awards.",
+      "primaryAction": "View season recap or continue to offseason.",
+      "data": "Champion, season, final series scores, awards and rankings from completed data; no placeholder winner.",
+      "art": "Miniature diamond confetti kept subtle, brass trophy centerpiece, snapshot-ready composition.",
+      "narrow": "Hero scales without clipping title; chapters open full-width; skip at top.",
+      "input": "Skip/replay keyboard controls and reduced motion; proposed controller chapter selection.",
+      "states": "Season unfinished, championship missing, viewed before, muted sound and missing awards.",
+      "acceptance": "Celebration appears only for confirmed champion; skipping never advances league or bypasses offseason decisions.",
+      "priority": "P2"
+    },
+    {
+      "id": "stats",
+      "title": "Statistics desk",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/stats"
+      ],
+      "purpose": "Compare baseball performance efficiently with honest data coverage.",
+      "layout": "One dense sortable leaderboard with batting/pitching and team/player presets; selected athlete inspector; season/scope filters anchored top.",
+      "primaryAction": "Sort or inspect a player/stat line.",
+      "data": "Existing statistical columns, qualifying sample and actual season/source coverage; report missing companion stats explicitly.",
+      "art": "Cel leader portrait in inspector; clean scorebook typography dominates.",
+      "narrow": "Essential columns fit; metric presets and detail panel replace horizontal travel.",
+      "input": "Keyboard sort controls and row navigation; proposed controller metric-group cycling.",
+      "states": "No recorded stats, partial reported box scores, zero denominators, unqualified player and unavailable source.",
+      "acceptance": "Unknown/missing is not zero; rate stats carry sample context; all columns are reachable without native horizontal rails.",
+      "priority": "P1"
+    },
+    {
+      "id": "records",
+      "title": "Record book",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/record-book"
+      ],
+      "purpose": "Make achievements searchable and credible across seasons.",
+      "layout": "Library chapter rail for supported records, coach legacy, recruiting history and Hall of Fame; selected record detail with source season.",
+      "primaryAction": "Inspect a record holder or season.",
+      "data": "Record value, category, holder, team, season and existing qualification rules; ties and empty categories explicit.",
+      "art": "Brass record plaques used for leaders only; dense ledger for full list.",
+      "narrow": "Chapter selector top; one ledger then full record detail; no decorative trophy walls pushing data down.",
+      "input": "Keyboard chapter/search/row selection; proposed controller page navigation.",
+      "states": "No completed seasons, tied records, missing archived player and read-only historical values.",
+      "acceptance": "Historical versus current records never mix without labeling; Hall of Fame eligibility remains actual game rule.",
+      "priority": "P2"
+    },
+    {
+      "id": "archive",
+      "title": "Season archive",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/archive"
+      ],
+      "purpose": "Revisit an entire season without confusing it with the live league.",
+      "layout": "Season spine at left; Overview / Recruiting / Departed / Games / Teams chapters; selected season always in masthead.",
+      "primaryAction": "Open archived team or game.",
+      "data": "Champion, rankings, leaders, class, departures and official archived fixtures with available completeness.",
+      "art": "Season cover postcard and monogram with subtle aged brass; no low-contrast faded text.",
+      "narrow": "Season chooser top and one active chapter.",
+      "input": "Keyboard season selection and chapters; intended controller bumpers change season after explicit focus.",
+      "states": "No snapshots, partially archived season, missing linked entities and legacy data.",
+      "acceptance": "Every panel labels archived season; no live mutation action appears inside historical views.",
+      "priority": "P2"
+    },
+    {
+      "id": "archive-team",
+      "title": "Archived team",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/archive/team/:teamId"
+      ],
+      "purpose": "Inspect a historical team as it existed in the selected season.",
+      "layout": "Archive masthead with team crest and explicit year; compact historic roster and selected player panel; season results adjacent.",
+      "primaryAction": "Inspect archived roster or return to season.",
+      "data": "Snapshot roster, record, results and honors actually retained; current team link clearly marked as live.",
+      "art": "Program yearbook framing and era/season label; use portrait fallback for unavailable archival art.",
+      "narrow": "Historic roster/detail pattern matches current roster but retains archive color cue and label.",
+      "input": "Keyboard rows and back; proposed controller matching roster navigation.",
+      "states": "No snapshot, missing historical attributes, retired player and season ambiguity.",
+      "acceptance": "No current attributes silently fill historical gaps; route must preserve selected season context from archive.",
+      "priority": "P2"
+    },
+    {
+      "id": "digests",
+      "title": "League news digest",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/digests"
+      ],
+      "purpose": "Explain the meaningful changes since the last advance.",
+      "layout": "Issue list left; selected weekly digest center with editorial hierarchy; action-needed section separated from achievements.",
+      "primaryAction": "Read latest issue and open a linked game/player/task.",
+      "data": "Completed games, performances, standings movement, commitments, battles, pending reports, readiness and commissioner events when present.",
+      "art": "Campus newspaper treatment with Sora headlines, cel featured athlete and small monograms.",
+      "narrow": "Issue selector top and a readable article; categories collapse when irrelevant.",
+      "input": "Keyboard issue list and article landmarks; proposed controller article paging with action links.",
+      "states": "No digest, partial issue, current versus past week and unread state.",
+      "acceptance": "Generated narrative cannot claim a final result for a pending report; links preserve relevant league context.",
+      "priority": "P2"
+    },
+    {
+      "id": "ticker",
+      "title": "League ticker",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/ticker"
+      ],
+      "purpose": "Provide a quick factual stream of league activity.",
+      "layout": "Static chronological activity board with category filters and an expanded selected event; new entries badge replaces forced scrolling.",
+      "primaryAction": "Inspect event details.",
+      "data": "Event timestamp/week, category, actors and current related record; retain any factual provenance available.",
+      "art": "Small solid category icons and team monograms; no perpetual marquee animation.",
+      "narrow": "Compact vertical event rows; details open full panel.",
+      "input": "Keyboard list selection and explicit Load newer; proposed controller paging.",
+      "states": "Empty stream, disconnected/stale, historical events and events without destination.",
+      "acceptance": "New arrivals do not move focus or scroll the reader away; no marquee required to read information.",
+      "priority": "P2"
+    },
+    {
+      "id": "inbox",
+      "title": "Coach inbox",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/inbox"
+      ],
+      "purpose": "Turn messages into decisions instead of notification clutter.",
+      "layout": "Category rail, message list, reading pane; unread count and archive control in toolbar; consequence/action inside message.",
+      "primaryAction": "Resolve selected actionable message or mark/read/archive.",
+      "data": "Actual message categories, sender/context, timestamp, unread/archive state and valid destination.",
+      "art": "Club stationery with small cel sender portrait where available; urgent accent reserved for real deadline.",
+      "narrow": "List and reader become two full panels; top Back retains unread/filter context.",
+      "input": "Keyboard list navigation and explicit archive; proposed controller list/reader zone swap.",
+      "states": "Empty category, archived view, already completed linked action, stale message and offline.",
+      "acceptance": "Archiving does not perform linked action; unread is not confused with unresolved; no private inbox on public coach routes.",
+      "priority": "P1"
+    },
+    {
+      "id": "storylines",
+      "title": "Storyline hub",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/storylines"
+      ],
+      "purpose": "Make narrative choices and their status legible without hiding rules.",
+      "layout": "Vote / Arcs / Intel / Command chapters; featured active story center, decision panel and factual consequence history right.",
+      "primaryAction": "Cast eligible vote or resolve permitted story decision.",
+      "data": "Actual vote deadlines/state, active arcs, unlocked intel and commissioner command permissions.",
+      "art": "Cel cast portrait, miniature campus vignette and warm restrained editorial copy.",
+      "narrow": "One story at a time with chapter selector; choices fully visible before confirming.",
+      "input": "Keyboard radio choices followed by Vote; intended controller chooses then confirms; no timed input requirement.",
+      "states": "No stories, already voted, expired vote, hidden intel, commissioner-only command and failed request.",
+      "acceptance": "Outcome copy distinguishes projected effects from resolved effects; observers cannot infer private intel through hidden UI.",
+      "priority": "P1"
+    },
+    {
+      "id": "commissioner",
+      "title": "Commissioner office",
+      "group": "Administration & tools",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Operate a shared league with clear boundaries and consequences.",
+      "layout": "Dedicated office workspace: left section rail; actionable state summary center; preflight/recovery details right. Ten sections cover existing controls without a long wrapping tab row.",
+      "primaryAction": "Resolve blockers and explicitly advance when server preflight permits.",
+      "data": "Command center, actions, settings, audit, invites, reported results, NIL, schedule health, league editor and save states according to role/mode.",
+      "art": "Small league monogram; restrained operational design, not a decorative game hero.",
+      "narrow": "Full-height section drawer from top; current section occupies canvas; no bottom menu.",
+      "input": "Keyboard section navigation and guarded confirmation; intended controller can inspect, with complex editing explicitly requiring text input.",
+      "states": "Non-commissioner denial, read-only inspection, preflight fail, pending reports, recovery required, stale operation and permitted save states.",
+      "acceptance": "Advance describes actual mode, pending reports and recovery state; client progress never asserts completion without server confirmation.",
+      "priority": "P0"
+    },
+    {
+      "id": "edit-rosters",
+      "title": "Commissioner roster editor",
+      "group": "Administration & tools",
+      "routes": [
+        "/league/:id/edit-rosters"
+      ],
+      "purpose": "Make controlled league roster corrections with visible scope.",
+      "layout": "Team selector left, editable compact roster table center, selected player's field editor right; visible draft/change summary.",
+      "primaryAction": "Save authorized player correction.",
+      "data": "Existing editable fields, previous/new values, team and player identity; sensitive attributes retain role restrictions.",
+      "art": "Cel appearance preview only in inspector; no decorative banner consuming grid space.",
+      "narrow": "Team picker and single player editor replace a spreadsheet wider than viewport.",
+      "input": "Keyboard cell-to-editor flow; proposed controller selects records, text entry remains explicit.",
+      "states": "Access denied, phase restriction, invalid value, save pending and stale player.",
+      "acceptance": "Wrong-team edits cannot be mistaken for own roster changes; review identifies changed fields before commit where workflow supports it.",
+      "priority": "P1"
+    },
+    {
+      "id": "edit-recruits",
+      "title": "Commissioner recruit editor",
+      "group": "Administration & tools",
+      "routes": [
+        "/league/:id/edit-recruits"
+      ],
+      "purpose": "Correct a recruiting class without exposing hidden evaluation data to coaches.",
+      "layout": "Class filter and searchable recruit manifest; selected recruit's editable fields in inspector; hidden traits visually marked commissioner-only.",
+      "primaryAction": "Save permitted recruit correction.",
+      "data": "Actual class fields including hidden gem/bust traits for authorized editors, identity and affected league/class.",
+      "art": "Neutral prospect cel portrait; hidden trait controls are textual and do not alter public portrait appearance.",
+      "narrow": "Select recruit, edit category full-screen, back preserves search.",
+      "input": "Keyboard category forms with validation; proposed controller selects record and category.",
+      "states": "Access denied, invalid attributes, class unavailable, stale edit and save error.",
+      "acceptance": "Privileged traits never leak through public exports/previews; save result lists exactly which recruit changed.",
+      "priority": "P1"
+    },
+    {
+      "id": "roster-library",
+      "title": "Roster file studio",
+      "group": "Administration & tools",
+      "routes": [
+        "/manage-rosters"
+      ],
+      "purpose": "Prepare reusable roster files without confusing files with live leagues.",
+      "layout": "Library/source selector, team/player manifest and selected field editor; clear File workspace badge; Save as distinct from live editing.",
+      "primaryAction": "Save custom roster file.",
+      "data": "Source name, team/player counts, editable player attributes/appearance and dirty state.",
+      "art": "Cel player preview and compact school badge; tooling keeps Varsity Club typography.",
+      "narrow": "Team then player selection with full editor panels and top Save command.",
+      "input": "Keyboard field editing, explicit Save as; proposed controller browsing only until text-entry validation.",
+      "states": "Unsaved changes, duplicate name, invalid data, source loading and failed save.",
+      "acceptance": "Saving a file does not imply a live league changed; leaving a dirty file prompts recoverable choice.",
+      "priority": "P2"
+    },
+    {
+      "id": "roster-viewer",
+      "title": "Roster browser and comparison",
+      "group": "Administration & tools",
+      "routes": [
+        "/roster-viewer"
+      ],
+      "purpose": "Browse source rosters and compare players before choosing a dynasty file.",
+      "layout": "Conference/team navigation rail, player manifest, selected player inspector; compare mode pairs two profiles on identical stat axes.",
+      "primaryAction": "Inspect or compare players; save a custom copy only when editing is available.",
+      "data": "Source/file identity, team roster, ratings/appearance and editable dirty state where supported.",
+      "art": "Consistent cel profiles; two-player comparison uses equal portrait and stat scale.",
+      "narrow": "Conference/team picker then manifest; comparison switches aligned metric groups rather than compressing both profiles.",
+      "input": "Keyboard selection and Compare command; intended controller mark first/second player and switch stat group.",
+      "states": "No source, missing team, read-only source, unsaved changes, compare incomplete and failed save.",
+      "acceptance": "Comparison labels source and each player; custom copy never silently overwrites the original.",
+      "priority": "P2"
+    },
+    {
+      "id": "class-library",
+      "title": "Recruiting class studio",
+      "group": "Administration & tools",
+      "routes": [
+        "/manage-recruiting"
+      ],
+      "purpose": "Create and manage reusable classes with deliberate load/share actions.",
+      "layout": "Class library rail; selected class manifest; recruit editor; separate top commands Save, Share and Load into league.",
+      "primaryAction": "Save class or review an authorized load into league.",
+      "data": "Class name/count, recruit fields/appearance, dirty state and selected destination league.",
+      "art": "Cel prospect preview on a clean file-card inset; no signing ceremony in authoring.",
+      "narrow": "Library to class to recruit as clear top-level drill-down; Save remains top command.",
+      "input": "Keyboard edit forms and explicit destination selection; intended controller browsing with text-input dependency.",
+      "states": "No class, invalid fields, deletion confirmation, unsaved edits and unauthorized/incompatible destination.",
+      "acceptance": "Loading names destination and replacement effects; share/export respects class visibility; saving alone changes no league.",
+      "priority": "P2"
+    },
+    {
+      "id": "import-class",
+      "title": "Shared class import",
+      "group": "Administration & tools",
+      "routes": [
+        "/import-class/:token"
+      ],
+      "purpose": "Inspect a shared class before creating a local library copy or permitted import.",
+      "layout": "Read-only class cover and searchable preview; destination/action summary in side panel.",
+      "primaryAction": "Import reviewed class using existing supported workflow.",
+      "data": "Class name, count, visible recruits, source metadata and validity; explain actual import destination.",
+      "art": "Small prospect contact sheet with file identity prominent.",
+      "narrow": "Preview and import summary become sequential panels; no hidden submit below giant list.",
+      "input": "Keyboard preview and explicit Import; proposed controller list and confirmation.",
+      "states": "Invalid/revoked link, unavailable data, signed-out user, already imported if detectable and failed import.",
+      "acceptance": "Preview is not a live league mutation; successful state names exactly where the class was imported.",
+      "priority": "P2"
+    },
+    {
+      "id": "class-share",
+      "title": "Shared class showcase",
+      "group": "Administration & tools",
+      "routes": [
+        "/class-share/:token"
+      ],
+      "purpose": "Present a shareable class clearly without leaking private league data.",
+      "layout": "A public class yearbook cover with compact recruit grid/list and selected profile; visible link to supported import action.",
+      "primaryAction": "Explore shared class or open import.",
+      "data": "Only data authorized by share token; class identity, recruit count and disclosed profile fields.",
+      "art": "Cel contact-sheet portraits and athletic file monogram; tasteful share-ready composition.",
+      "narrow": "List/detail pattern with top navigation; no authenticated league footer.",
+      "input": "Keyboard row/grid selection; proposed controller browsing; sharing through explicit supported controls.",
+      "states": "Invalid/revoked link, missing artwork, partial disclosure and no authenticated account.",
+      "acceptance": "Private scouting, account details and unrelated league data are absent from DOM/export as well as visual surface.",
+      "priority": "P2"
+    },
+    {
+      "id": "war-room",
+      "title": "Retired War Room link",
+      "group": "System & recovery",
+      "routes": [
+        "/league/:id/war-room"
+      ],
+      "purpose": "Keep old links useful without reviving a duplicate hub.",
+      "layout": "Immediate replace-navigation to current league hub; compact loading fallback only if navigation has not completed.",
+      "primaryAction": "Continue to Matchday brief.",
+      "data": "Preserve league ID and valid return context; no stale parallel dashboard.",
+      "art": "Reuse hub loading identity only.",
+      "narrow": "Same current shell destination; no separate mobile presentation.",
+      "input": "Focus current hub heading after redirect; browser Back must not loop.",
+      "states": "Missing league ID or inaccessible league follows normal not-found/access state.",
+      "acceptance": "Route remains a redirect; no redesign work or new interactions in retired war-room.tsx.",
+      "priority": "P1"
+    },
+    {
+      "id": "not-found",
+      "title": "Page not found",
+      "group": "System & recovery",
+      "routes": [],
+      "purpose": "Recover from an invalid URL without losing the player.",
+      "layout": "Simple game-shell recovery panel with safe current-league return when known and dynasty library alternative.",
+      "primaryAction": "Return to accessible hub or dynasty selection.",
+      "data": "Requested destination can be described safely; no raw stack trace or sensitive route tokens.",
+      "art": "Unlit stadium sign and solid route icon; concise friendly copy.",
+      "narrow": "Centered panel with readable actions and top menu.",
+      "input": "Keyboard focus heading then recovery action; intended controller confirm/back.",
+      "states": "Unknown route, deleted resource, inaccessible league and stale deep link.",
+      "acceptance": "No endless reload or fabricated success; destination is accessible and does not expose another league.",
+      "priority": "P1"
+    }
+  ],
+  "overlays": [
+    {
+      "id": "league-standings",
+      "title": "League detail — Standings",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Compare the pennant race.",
+      "layout": "One conference-selectable ledger with rank, team, record and existing tiebreak context; selected team summary at right.",
+      "primaryAction": "Open selected team.",
+      "data": "Record, games back and existing supported tie/qualification information; pending reported games excluded from official totals.",
+      "art": "Conference monograms; no decorative hero.",
+      "narrow": "Conference selector plus essential columns and row inspector.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No games, tied records, incomplete reported results.",
+      "acceptance": "Table totals reconcile with confirmed schedule results; tiebreak unknowns are not invented.",
+      "priority": "P1"
+    },
+    {
+      "id": "league-teams",
+      "title": "League detail — Teams and comparison",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Find and compare programs.",
+      "layout": "Dense monogram directory with selected school inspector; comparison opens two equal-width dossiers.",
+      "primaryAction": "Compare two teams.",
+      "data": "Existing roster strength, facilities/prestige, coach and team record.",
+      "art": "Matching monogram sizes and paired cel coaches.",
+      "narrow": "Directory to profile; comparison by metric groups.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Missing team, no coach, incomplete comparison selection.",
+      "acceptance": "Exactly two labeled teams and matching metric periods; no unsupported composite score.",
+      "priority": "P1"
+    },
+    {
+      "id": "league-rankings",
+      "title": "League detail — Rankings",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Explain current rankings and movement.",
+      "layout": "Ranked ledger with last/current movement, selected program context and week label.",
+      "primaryAction": "Inspect ranked program.",
+      "data": "Existing rank, prior rank and calculated data where exposed.",
+      "art": "Small monograms; gold reserved for top achievement.",
+      "narrow": "Essential rank/team/movement list.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Preseason, new entrant, no previous ranking.",
+      "acceptance": "Movement reflects matching published snapshots; absent prior ranking is labeled new.",
+      "priority": "P1"
+    },
+    {
+      "id": "league-prospects",
+      "title": "League detail — Prospects",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Browse the available prospect landscape.",
+      "layout": "Prospect manifest with existing combined/group view controls and selected athlete dossier.",
+      "primaryAction": "Open recruit profile.",
+      "data": "Only authorized prospect ratings, position and identity; scouting uncertainty retained.",
+      "art": "Cel selected prospect.",
+      "narrow": "List/detail drill-down.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No prospects, unscouted, class unavailable.",
+      "acceptance": "Private traits never appear in summary or sort labels.",
+      "priority": "P1"
+    },
+    {
+      "id": "league-awards",
+      "title": "League detail — Awards",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Celebrate actual award recipients.",
+      "layout": "A compact award cabinet: league and conference awards, All-American/All-Freshman and postseason panels with recipient lists.",
+      "primaryAction": "Inspect award recipient.",
+      "data": "Actual MVP, pitcher/freshman awards, conference and CWS honors where available.",
+      "art": "One featured recipient portrait; remaining awards use consistent brass silhouettes.",
+      "narrow": "Award-group selector and recipient list.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Not awarded yet, no eligible recipient, missing historic player.",
+      "acceptance": "Unresolved awards remain pending, not blank winner cards or fabricated recipients.",
+      "priority": "P1"
+    },
+    {
+      "id": "league-history",
+      "title": "League detail — History",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Track league progress across years.",
+      "layout": "Season timeline with championship and major factual milestones; deep history opens Archive.",
+      "primaryAction": "Open season archive.",
+      "data": "Existing completed seasons and recorded outcomes.",
+      "art": "Yearbook cover thumbnails.",
+      "narrow": "Paged season list.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "First season, incomplete archive.",
+      "acceptance": "Every historical value labels season; current phase does not overwrite archived meaning.",
+      "priority": "P1"
+    },
+    {
+      "id": "league-edits",
+      "title": "League detail — Edits",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Make authorized corrections visible.",
+      "layout": "Compact chronological ledger of actual edits with actor/time and affected entity.",
+      "primaryAction": "Inspect changed record.",
+      "data": "Existing edit provenance and authorized before/after detail.",
+      "art": "Solid edit glyph, neutral ledger.",
+      "narrow": "Event list to detail.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No edits, missing linked entity, restricted detail.",
+      "acceptance": "Viewing logs never exposes hidden scouting or grants edit rights.",
+      "priority": "P1"
+    },
+    {
+      "id": "roster-depth",
+      "title": "Roster — Field, lineup and pitching",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/roster"
+      ],
+      "purpose": "Arrange the team without drag-only interaction.",
+      "layout": "Depth view uses a clean top-down diamond and selectable position slots; Lineup is nine numbered rows; Pitching shows actual rotation/role slots. Bench manifest and selected player inspector remain adjacent.",
+      "primaryAction": "Select player then assign to legal slot.",
+      "data": "Position eligibility, batting order, FRI/SAT/SUN/MID and other supported pitching roles; incomplete/duplicate assignments clearly flagged.",
+      "art": "Flat miniature diamond, small cel tokens and readable position labels.",
+      "narrow": "Choose Field / Lineup / Pitching at top; select slot opens eligible player list full-screen.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Read-only opposing team, invalid position, incomplete lineup, saving and conflict.",
+      "acceptance": "Mouse, keyboard and touch can assign without drag; role coverage and duplicate-player constraints match server rules.",
+      "priority": "P1"
+    },
+    {
+      "id": "roster-development",
+      "title": "Roster — Development",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/roster"
+      ],
+      "purpose": "Explain player progression rather than merely showing changed numbers.",
+      "layout": "Compact before/after change ledger and selected athlete report; offseason summary first, individual detail second.",
+      "primaryAction": "Inspect player development.",
+      "data": "Actual attribute deltas and existing reasons/season; show undisclosed data as unavailable.",
+      "art": "Cel portrait with restrained upward/downward markers; never color-only.",
+      "narrow": "Player list then report, one metric group at a time.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Development unavailable by role, no offseason report, unchanged player.",
+      "acceptance": "Deltas use the same source and season; projections never present as achieved growth.",
+      "priority": "P1"
+    },
+    {
+      "id": "player-profile",
+      "title": "Player profile and authorized edit",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/roster"
+      ],
+      "purpose": "Inspect an athlete and act without losing roster context.",
+      "layout": "Large sports profile inspector/modal with cel portrait, identity and metric chapters; Edit, captain or draft actions only when authorized.",
+      "primaryAction": "Inspect attributes or choose a permitted player action.",
+      "data": "Info, attributes, common fields, abilities, pitches when applicable, captain/draft status and actual eligibility.",
+      "art": "Consistent sports profile; no tiny portrait floating in an oversized table cell.",
+      "narrow": "Full-screen profile with top Back; roster selection retained.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Missing portrait, own/opponent player, invalid action phase, save error.",
+      "acceptance": "Closing restores selected row/focus; opponent profile has no mutation controls; edits revalidate permissions server-side.",
+      "priority": "P1"
+    },
+    {
+      "id": "recruit-compare",
+      "title": "Recruit comparison and action preview",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/recruiting"
+      ],
+      "purpose": "Make scarce recruiting resources comparable.",
+      "layout": "Two or three prospects aligned by same attribute rows; separate action confirmation shows cost, remaining balance and limitations.",
+      "primaryAction": "Choose target or confirm a specific action.",
+      "data": "Known traits, scouting certainty, interest, stage, roster fit and exact supported costs.",
+      "art": "Equal cel portraits with no implied premium on hidden traits.",
+      "narrow": "Select comparison metric group; show one athlete plus pinned comparator values.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Partial scouting, signed target, exhausted actions/NIL, stale data.",
+      "acceptance": "Unknown remains unknown in comparisons; confirmation is bound to the selected target and action, not a stale row.",
+      "priority": "P1"
+    },
+    {
+      "id": "recruit-filters",
+      "title": "Recruiting filters, visits and action history",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/recruiting"
+      ],
+      "purpose": "Find targets and understand why their state changed.",
+      "layout": "Filter drawer from top/side with clear active-filter count; visit planner and action log as separate inspector modes, not overflowing carousel tiles.",
+      "primaryAction": "Apply filters or select a permitted visit/action.",
+      "data": "Existing search, position, stars/status and scouting filters; visit capacity and timestamped action history.",
+      "art": "Solid filter/visit glyphs and restrained status chips.",
+      "narrow": "Full-screen filter or planner panel with top Apply/Reset.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No matches, all slots full, phase lock, empty action history.",
+      "acceptance": "Reset visibly clears filters; closing a filter panel cannot spend an action; visit limits use server state.",
+      "priority": "P1"
+    },
+    {
+      "id": "score-review",
+      "title": "Pending report review and dispute",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/schedule"
+      ],
+      "purpose": "Verify a submitted Power Pros score before making it official.",
+      "layout": "Matchup scoreboard over Away / Home batting and pitching chapters; review status, submitter and validation summary beside explicit review decisions.",
+      "primaryAction": "Confirm report or open dispute reason as permitted.",
+      "data": "Submitted score, innings, supported stat lines, evidence/uncertainty and approval state.",
+      "art": "Neutral scorebook; brass only for selected tab, not unconfirmed winner.",
+      "narrow": "One team/stat group; review summary always accessible via top tab.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Own submission, opposing reviewer, commissioner override permissions, stale report, duplicate action and unresolved dispute.",
+      "acceptance": "Confirmation binds to current report version; disputed/pending status remains distinct from final result.",
+      "priority": "P1"
+    },
+    {
+      "id": "box-score",
+      "title": "Box score and game recap",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/schedule"
+      ],
+      "purpose": "Explain a finished game without faking unavailable play data.",
+      "layout": "Scoreboard, line score and Away / Home stat panels; Recap separate tab with actual provenance.",
+      "primaryAction": "Inspect performance or return to selected fixture.",
+      "data": "Confirmed score and supported box score/recap fields; imported missing fields shown unavailable.",
+      "art": "School monograms, cel featured athlete if supported by real performance.",
+      "narrow": "Stat presets and full-width selected team; no clipped horizontal rails.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Simulated versus reported result, partial imported stats, recap unavailable.",
+      "acceptance": "No fabricated pitch-by-pitch sequence; unavailable stats are not populated with zeros to complete layout.",
+      "priority": "P1"
+    },
+    {
+      "id": "departure-dialogs",
+      "title": "Retention, declaration and finalization",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/departures"
+      ],
+      "purpose": "Make irreversible roster decisions deliberate.",
+      "layout": "Centered consequence sheet naming athlete(s), decision, eligible cost and projected roster impact; neutral cancel first.",
+      "primaryAction": "Confirm the explicitly reviewed decision.",
+      "data": "Current retention/declaration rules and actual affected players; distinction between forecast and finalized change.",
+      "art": "Player portrait beside clear textual consequence, not a celebratory cutscene.",
+      "narrow": "Readable full-screen decision panel with top close and explicit action.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Stale eligibility, insufficient budget, already finalized, rejected request.",
+      "acceptance": "No automatic confirmation on opening; double activation does not duplicate action; rejection preserves decision context.",
+      "priority": "P1"
+    },
+    {
+      "id": "walkon-results",
+      "title": "Walk-on auction results",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/walkons"
+      ],
+      "purpose": "Explain who joined and why other bids did not succeed.",
+      "layout": "Signed and Outbid sections with player rows, bid outcomes and updated roster capacity; each result links to profile.",
+      "primaryAction": "Inspect signed player or return to roster.",
+      "data": "Actual auction outcomes and available cost/result details; no invented winning rival bid.",
+      "art": "Signed arrivals use sports-profile framing; outbid rows neutral.",
+      "narrow": "Two top sections and selected result detail.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No bids, partial results, no wins, missing player.",
+      "acceptance": "No celebratory modal claims a player joined without confirmed roster state.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-command",
+      "title": "Commissioner — Command center",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Prioritize league operations.",
+      "layout": "Readiness ledger, missing reports and actionable preflight blockers; no decorative KPI wall.",
+      "primaryAction": "Resolve highest-priority blocker.",
+      "data": "Actual human/CPU coaches, ready state, report state and advance operation status.",
+      "art": "Small coach portraits and monograms.",
+      "narrow": "Blocker queue with full detail.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Waiting, inactive coach, stale presence and recovery required.",
+      "acceptance": "Presence is not readiness; blocked advance cannot appear available through another tab.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-actions",
+      "title": "Commissioner — Actions and recovery",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Execute deliberate league mutations.",
+      "layout": "Action catalog grouped by normal progression, correction and recovery; selected action opens consequence/preflight panel.",
+      "primaryAction": "Run one reviewed permitted operation.",
+      "data": "Mode, phase/week, operation identity/status, impacted entities and server preflight.",
+      "art": "Solid action icons; warning accent only for material consequences.",
+      "narrow": "Action list to full review panel.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Unauthorized, running operation, interrupted checkpoint, invalid phase, failed preflight.",
+      "acceptance": "Never describe force/retry as safe without real server support; preserve audit trail and confirmed outcome.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-settings",
+      "title": "Commissioner — Settings",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Configure league behavior with clear current values.",
+      "layout": "Category list and focused settings form; saved configuration summary and dirty-state review.",
+      "primaryAction": "Save permitted changes.",
+      "data": "Actual configurable mode/rules/deadlines and role transfer controls where available; immutable settings labeled.",
+      "art": "Minimal office stationery.",
+      "narrow": "One category at a time; save top command.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Role change, phase locks, invalid input, unsaved draft and stale settings.",
+      "acceptance": "UI explains which changes take effect now versus future periods only when backed by actual behavior.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-audit",
+      "title": "Commissioner — Audit",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Make changes and disputed operations traceable.",
+      "layout": "Filterable event ledger with selected evidence pane; identifiers copyable without exposing secrets.",
+      "primaryAction": "Inspect event or affected record.",
+      "data": "Actor, time, operation/category and authorized evidence fields; preserve server ordering.",
+      "art": "High-contrast text ledger.",
+      "narrow": "Event list and evidence panel.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No events, missing actor, restricted evidence.",
+      "acceptance": "Log never shows credentials or fabricated before/after values; local previews are labeled synthetic.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-invites",
+      "title": "Commissioner — Invitations",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Manage who can join the league.",
+      "layout": "Invitation list with active/revoked status and explicit create/copy/revoke commands; coach assignment separate.",
+      "primaryAction": "Create or manage authorized invitation.",
+      "data": "Existing code validity, usage and role/seat controls only.",
+      "art": "Club invitation icon.",
+      "narrow": "List and selected invite actions.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Permission lost, expired/revoked token, unavailable link and copy failure.",
+      "acceptance": "Invitation tokens are never included in unrelated exports or visual diagnostics; revocation requires explicit action.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-reports",
+      "title": "Commissioner — Reported results",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Resolve companion result exceptions.",
+      "layout": "Queue of pending/disputed reports with selected scorebook evidence and decision panel.",
+      "primaryAction": "Review or resolve report under actual policy.",
+      "data": "Game, submitter, current revision/status and validation/dispute details.",
+      "art": "Neutral scoreboard.",
+      "narrow": "Queue then full report review.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Simulation mode hides irrelevant queue; unresolved/stale/rejected report.",
+      "acceptance": "Only current authorized report can be acted on; resolution never silently changes unrelated games.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-nil",
+      "title": "Commissioner — NIL",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Inspect and correct financial state without obscuring obligations.",
+      "layout": "Team budget ledger with selected team's allocation/spend detail and guarded edit controls.",
+      "primaryAction": "Inspect balance or apply authorized adjustment.",
+      "data": "Actual allocation, spent/recruiting obligations and available amount; label any incomplete ledger.",
+      "art": "Brass currency glyph with tabular numbers.",
+      "narrow": "Team list then budget detail.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Read-only observer, invalid amount, concurrent spending and correction failure.",
+      "acceptance": "Labels distinguish budget from uncommitted funds; no fabricated ledger reconstruction.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-schedule",
+      "title": "Commissioner — Schedule health",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Locate competition structure problems before progression.",
+      "layout": "Overview / Teams / Weeks / Human views; diagnostics grouped by severity with direct fixture links.",
+      "primaryAction": "Inspect a failing check or permitted repair.",
+      "data": "Existing balance, coverage, week and human-matchup metrics.",
+      "art": "Calendar and diamond silhouettes.",
+      "narrow": "View selector then diagnostic list.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "No schedule, incomplete setup, warnings versus blockers.",
+      "acceptance": "Each diagnostic explains actual evidence and scope; UI does not invent a Power Pros scheduling rule.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-editor",
+      "title": "Commissioner — League editor",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Correct league structure while keeping scope explicit.",
+      "layout": "Schools / Players / Changelog form a record list plus focused inspector; player identity, attributes and appearance are separated; reversals in changelog use explicit reason and consequence review.",
+      "primaryAction": "Save authorized entity correction.",
+      "data": "Actual editable league entities, IDs/names and validation constraints.",
+      "art": "Small monogram preview.",
+      "narrow": "Entity list then form.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Permissions, missing entity, invalid edits, dirty state.",
+      "acceptance": "Do not add unsupported bulk edit; correction identifies exact league and entity before save.",
+      "priority": "P1"
+    },
+    {
+      "id": "commission-saves",
+      "title": "Commissioner — Save states",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ],
+      "purpose": "Inspect recovery points with honest restore consequences.",
+      "layout": "Snapshot list with created time, phase/week and scope; restore preview names changes and affected league.",
+      "primaryAction": "Create or restore only when actually supported and authorized.",
+      "data": "Existing snapshot metadata and actual recovery restrictions.",
+      "art": "Archive-box icon and timestamp ledger.",
+      "narrow": "Snapshot list then full restore review.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Unavailable role/mode, absent snapshots, incompatible version, running operation and restore failure.",
+      "acceptance": "Never label a snapshot a backup guarantee without verified coverage; restore remains guarded and audited.",
+      "priority": "P1"
+    },
+    {
+      "id": "advance-progress",
+      "title": "Advance progress and failure",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Explain a league transition without blocking safe navigation unnecessarily.",
+      "layout": "Compact stage status panel with actual checkpoint and operation status; interrupted state expands recovery guidance.",
+      "primaryAction": "Wait for confirmed completion or open authorized recovery.",
+      "data": "Real phase/week, completed stage and failure state; no time-based fake completion.",
+      "art": "Minimal broadcast progress treatment; static reduced-motion variant.",
+      "narrow": "Top status panel with expandable detail.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Already running, stale client, ownership lost, partial interruption and successful completion.",
+      "acceptance": "Client cannot claim complete solely because animation reaches end; retry does not imply all stages are exactly-once.",
+      "priority": "P1"
+    },
+    {
+      "id": "season-recap",
+      "title": "Season recap and program scrapbook",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Preserve a season's actual achievements.",
+      "layout": "Yearbook cover and chapters for final record, awards, departures and arrivals; existing recap remains supported while proposed scrapbook export is dependency-gated.",
+      "primaryAction": "Review season or open historical record.",
+      "data": "Confirmed season results and authorized class/roster information only.",
+      "art": "Approved Varsity Club yearbook treatment; arrival scrapbook remains proposed.",
+      "narrow": "One chapter and clear top season label.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "First season, incomplete season, missing source, export unavailable.",
+      "acceptance": "Shared keepsakes exclude private scouting/account data; export is not claimed implemented until file/share QA passes.",
+      "priority": "P1"
+    },
+    {
+      "id": "system-shell",
+      "title": "Game menu, audio and system states",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ],
+      "purpose": "Provide reliable navigation and recovery without mobile website chrome.",
+      "layout": "Desktop left command rail and top league/season/status band; narrower view uses a top Menu opening a grouped full-screen command panel. Audio/preferences live inside named top controls.",
+      "primaryAction": "Navigate to a named game area or resume current screen.",
+      "data": "Current location, network/save status, audio/motion settings supported by the game; future input help explicitly staged.",
+      "art": "Forest surfaces, brass focus and solid silhouettes with text labels.",
+      "narrow": "No bottom navigation at any breakpoint; one current workspace with a top menu.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Keyboard Escape closes menu and restores focus; controller menu/focus maps require real later implementation.",
+      "acceptance": "Offline, query error, route loading, app error, no access and missing resource.",
+      "priority": "P1"
+    },
+    {
+      "id": "file-dialogs",
+      "title": "File save, share, overwrite and unsaved changes",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/manage-recruiting"
+      ],
+      "purpose": "Protect authored roster/class work.",
+      "layout": "Small file action panel naming source and destination; replace/delete consequences separated from ordinary Save.",
+      "primaryAction": "Save file or resolve unsaved draft explicitly.",
+      "data": "File name, type, destination and changed/saved state; share visibility as actually implemented.",
+      "art": "Club file-card typography.",
+      "narrow": "Full readable panel without nested scrollbars.",
+      "input": "Keyboard focus remains visible; Escape returns to the invoking control; intended controller behavior must be implemented and tested before support is claimed.",
+      "states": "Invalid name, duplicate file, unsaved changes, missing permission, expired share and failed save.",
+      "acceptance": "Cancel leaves draft intact; Save as cannot silently replace another file or load it into a league.",
+      "priority": "P1"
+    }
+  ],
+  "coverageNotes": [
+    "Design proposal dated 2026-09-18, grounded in client/src/App.tsx route declarations and current page components. It is not a claim that these redesigns or controller support are implemented.",
+    "50 screen entries cover all 51 explicit App.tsx route paths. The catch-all NotFound screen has routes:[] because App.tsx has no explicit catch-all path string. Three coach profile paths share one screen specification.",
+    "War Room is a redirect and play-by-play intentionally unavailable; neither should be revived by a visual redesign. Unrouted legacy files are not separate live screens.",
+    "30 tab/overlay specifications supplement route coverage. Existing tab names and role/mode conditions remain preserved unless a later implementation explicitly migrates them.",
+    "Approved base direction: Varsity Club; cel illustration; miniature campus; Sora/Inter friendly-console typography; forest/brass; matchday brief; sports profiles; athletic monograms; solid silhouettes; expert density; restrained broadcast motion; clubhouse sound.",
+    "Frisk's arrival R01A R02D R03A R04A R05B R06A R07A R08C R09A R10B recipe remains proposed, not approved. No ceremony, sharing or scrapbook feature is considered shipped by this document.",
+    "No footer navigation. Desktop uses left command rail/top HUD. Narrow screens use top Menu and one focused panel, preserving a game workspace rather than stacking a long mobile dashboard.",
+    "Native scrollbar rails are removed visually without disabling content scrolling. Required content needs named column/page controls, edge cues, keyboard focus and preserved touch/wheel behavior. CSS overflow:hidden is not an acceptable blanket solution.",
+    "Desktop and future Steam/handheld are design targets, not certified platform support. Packaging, controller mapping, platform authentication, cloud saves, offline expectations and Steam Deck verification remain independent dependencies.",
+    "All screen input descriptions are acceptance targets. Existing keyboard semantics must remain functional; proposed controller actions are not advertised as implemented.",
+    "Existing API permissions are authoritative. Roster commissioner-role response shape requires real authenticated API QA; synthetic preview role fixtures cannot establish correct permissions.",
+    "Power Pros companion screens must distinguish externally played/reported/pending/disputed/confirmed results. No design implies direct Power Pros synchronization or invents league rules.",
+    "Each implementation must verify loading, empty, stale/offline, error, own/opponent and role-denied states with real response shapes using synthetic data, as well as visual desktop/narrow inspection.",
+    "Priority P0: shell and roster/recruiting/hub/schedule/report/commissioner core loop. P1: remaining operational flow. P2: history, richer presentation and tools after core usability, with arrival gated on approval."
+  ]
+}

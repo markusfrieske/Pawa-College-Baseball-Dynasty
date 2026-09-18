@@ -1,4 +1,5 @@
 import { RetroCard } from "@/components/ui/retro-card";
+import { Table } from "@/components/ui/table";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PositionBadge } from "@/components/ui/position-badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,7 +30,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
   if (players.length === 0) return null;
 
   return (
-    <RetroCard className="mb-4">
+    <RetroCard className="mb-4 p-0 sm:p-0 overflow-hidden" data-testid="roster-manifest">
       <div className="px-4 py-2 bg-card/80 border-b border-border">
         <h3 className="text-gold text-xs uppercase tracking-wider">
           {title} ({players.length})
@@ -96,7 +97,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
               </div>
               <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-1">
                 <div className="flex items-center gap-0.5">
-                  <span className="font-bold text-gold text-sm">{player.overall}</span>
+                  <span className="font-bold text-gold text-sm"><span className="text-[10px] font-medium text-muted-foreground mr-1">OVR</span>{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
                     <span className={`flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
                       {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
@@ -113,8 +114,8 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
       </div>
 
       {/* Desktop table layout */}
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full text-sm table-fixed">
+      <div className="hidden sm:block">
+        <Table className="w-full text-sm table-fixed" aria-label="Program roster">
           <colgroup>
             <col className="w-10" />
             <col />
@@ -132,9 +133,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
               <th className="text-center py-3 px-2">Pos</th>
               <th className="text-center py-3 px-2">Year</th>
               <th className="text-center py-3 px-2">B/T</th>
-              <th className="text-center py-3 px-2">
-                <Star className="w-3 h-3 inline text-gold" />
-              </th>
+              <th className="text-center py-3 px-2" title="PAWA overall rating">OVR</th>
               {progressionEnabled && (
                 <th className="text-center py-3 px-2">POT</th>
               )}
@@ -149,14 +148,14 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                 style={player.starRating >= 5 ? { borderLeft: "3px solid rgba(196,163,90,0.7)", background: "rgba(196,163,90,0.04)" } : undefined}
                 data-testid={`row-player-desktop-${player.id}`}
               >
-                <td className="py-3 px-2 text-muted-foreground font-mono">
+                <td className="py-1 px-2 text-muted-foreground font-mono">
                   {player.jerseyNumber}
                 </td>
-                <td className="py-3 px-2">
+                <td className="py-1 px-2">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onSelectPlayer(player)}
-                      className="font-medium text-left hover:text-gold transition-colors cursor-pointer flex items-center gap-2"
+                      className="font-medium min-w-0 min-h-11 text-left hover:text-gold transition-colors cursor-pointer flex items-center gap-2"
                       data-testid={`link-player-${player.id}`}
                     >
                       <PlayerPortrait
@@ -172,7 +171,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                         className="w-8 h-8 flex-shrink-0"
                         jerseyColor={teamPrimaryColor}
                       />
-                      {player.firstName} {player.lastName}
+                      <span className="min-w-0 break-words">{player.firstName} {player.lastName}</span>
                     </button>
                     {player.captainRole && (
                       <span className="inline-flex items-center gap-0.5 text-xs font-semibold px-1.5 py-0.5 rounded border border-gold/50 text-gold bg-gold/10 shrink-0" data-testid={`badge-captain-desktop-${player.id}`}>
@@ -184,7 +183,8 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                         <TooltipTrigger asChild>
                           <button
                             onClick={(e) => { e.stopPropagation(); onSetCaptain(player.id); }}
-                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground/50 hover:text-gold transition-all"
+                            className="min-h-11 min-w-11 p-1 rounded text-muted-foreground hover:text-gold focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                            aria-label={`Name ${player.firstName} ${player.lastName} as captain`}
                             data-testid={`button-set-captain-${player.id}`}
                           >
                             <Shield className="w-3 h-3" />
@@ -195,13 +195,13 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                     )}
                   </div>
                 </td>
-                <td className="text-center py-3 px-2">
+                <td className="text-center py-1 px-2">
                   <PositionBadge position={player.position} size="sm" />
                 </td>
-                <td className="text-center py-3 px-2 text-muted-foreground">
+                <td className="text-center py-1 px-2 text-muted-foreground">
                   {player.eligibility}
                 </td>
-                <td className="text-center py-3 px-2">
+                <td className="text-center py-1 px-2">
                   {isPitcher(player.position) ? (
                     <div className="flex items-center gap-1 justify-center flex-wrap">
                       <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
@@ -218,7 +218,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                     </div>
                   )}
                 </td>
-                <td className="text-center py-3 px-2">
+                <td className="text-center py-1 px-2">
                   <span className="font-bold text-gold">{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
                     <span className={`inline-flex items-center ml-1 text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
@@ -228,7 +228,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                   )}
                 </td>
                 {progressionEnabled && (
-                  <td className="text-center py-3 px-2">
+                  <td className="text-center py-1 px-2">
                     {player.potential != null ? (() => {
                       const grade = getPotentialGrade(player.potential);
                       const zone = getProgressionZone(player.potential);
@@ -237,13 +237,13 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                     })() : <span className="text-muted-foreground">—</span>}
                   </td>
                 )}
-                <td className="py-3 px-2 text-muted-foreground hidden lg:table-cell">
+                <td className="py-1 px-2 text-muted-foreground hidden lg:table-cell">
                   {player.hometown}, {player.homeState}
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       </div>
     </RetroCard>
   );

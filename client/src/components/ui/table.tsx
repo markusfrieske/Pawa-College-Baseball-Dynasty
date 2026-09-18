@@ -5,15 +5,39 @@ import { cn } from "@/lib/utils"
 const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto scrollbar-gold">
+>(({ className, ...props }, ref) => {
+  const viewport = React.useRef<HTMLDivElement>(null);
+  const id = React.useId();
+  const [edges, setEdges] = React.useState({ left: false, right: false });
+  const measure = React.useCallback(() => {
+    const el = viewport.current;
+    if (el) setEdges({ left: el.scrollLeft > 1, right: el.scrollLeft + el.clientWidth < el.scrollWidth - 1 });
+  }, []);
+  React.useEffect(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    if (el.firstElementChild) observer.observe(el.firstElementChild);
+    measure();
+    return () => observer.disconnect();
+  }, [measure]);
+  const move = (direction: number) => viewport.current?.scrollBy({ left: direction * Math.max(160, viewport.current.clientWidth * 0.7), behavior: "auto" });
+  return <div className="min-w-0 w-full">
+    {(edges.left || edges.right) && <div className="flex items-center justify-end gap-2 py-1 text-xs text-muted-foreground" data-testid="table-column-controls">
+      <span>More columns</span>
+      <button type="button" className="min-h-11 min-w-11 rounded border border-border disabled:opacity-30" aria-label="Previous table columns" aria-controls={id} disabled={!edges.left} onClick={() => move(-1)}>←</button>
+      <button type="button" className="min-h-11 min-w-11 rounded border border-border disabled:opacity-30" aria-label="Next table columns" aria-controls={id} disabled={!edges.right} onClick={() => move(1)}>→</button>
+    </div>}
+  <div ref={viewport} id={id} onScroll={measure} tabIndex={edges.left || edges.right ? 0 : undefined} role={edges.left || edges.right ? "region" : undefined} aria-label={edges.left || edges.right ? "Scrollable table columns" : undefined} className="relative w-full overflow-auto scrollbar-hide focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm tabular-nums", className)}
       {...props}
     />
   </div>
-))
+  </div>
+})
 Table.displayName = "Table"
 
 const TableHeader = React.forwardRef<

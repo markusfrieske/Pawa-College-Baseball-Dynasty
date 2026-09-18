@@ -3,11 +3,23 @@
 .varsity-sidebar { display: none; }
 .varsity-skip { position: fixed; top: 12px; left: 12px; z-index: 200; padding: 12px 16px; border-radius: 6px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); transform: translateY(-160%); }
 .varsity-skip:focus { transform: translateY(0); }
-/* Reuse the existing bottom navigation through the tablet breakpoint. */
-@media (min-width: 768px) and (max-width: 1279px) {
-  .varsity-shell { padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); }
-  .varsity-shell [data-testid="mobile-nav"] { display: block; }
-}
+.varsity-gamebar { position: sticky; top: 0; z-index: 40; min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 6px 16px; background: hsl(var(--sidebar)); border-bottom: 1px solid hsl(var(--border)); }
+.varsity-gamebar-identity { min-width: 0; flex: 1; }
+.varsity-gamebar-identity strong, .varsity-gamebar-identity span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.varsity-gamebar-identity strong { font: 600 13px var(--font-display); }
+.varsity-gamebar-identity span { margin-top: 4px; font-size: 10px; color: hsl(var(--muted-foreground)); }
+.varsity-menu-button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border: 1px solid hsl(var(--border)); border-radius: 6px; font-size: 12px; font-weight: 600; color: hsl(var(--primary)); flex-shrink: 0; }
+.varsity-menu-button:focus-visible, .varsity-game-menu a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.varsity-game-menu { width: min(360px, calc(100vw - 24px)); overflow-y: auto; }
+.varsity-game-menu nav { margin-top: 20px; }
+.varsity-game-menu section { margin-bottom: 20px; }
+.varsity-game-menu h2 { padding: 0 12px; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: hsl(var(--muted-foreground)); }
+.varsity-game-menu a { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
+.varsity-game-menu a:hover { background: hsl(var(--secondary)); }
+.varsity-game-menu a[aria-current="page"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.varsity-unread { margin-left: auto; font-size: 11px; font-variant-numeric: tabular-nums; }
+.varsity-main header.sticky { top: 64px; }
+@media (max-width: 420px) { .varsity-gamebar { padding-inline: 8px; gap: 8px; } .varsity-menu-button { padding-inline: 8px; font-size: 11px; } }
 @media (min-width: 1280px) {
   .varsity-shell { padding-left: 216px; }
   .varsity-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 40; display: flex; flex-direction: column; width: 216px; padding: 28px 16px 20px; overflow-y: auto; border-right: 1px solid hsl(var(--border)); background: hsl(var(--sidebar)); color: hsl(var(--foreground)); }

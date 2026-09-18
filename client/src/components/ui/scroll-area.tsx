@@ -12,7 +12,7 @@ const ScrollArea = React.forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+    <ScrollAreaPrimitive.Viewport tabIndex={0} aria-label="Scrollable content" className="h-full w-full rounded-[inherit] focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
@@ -28,6 +28,7 @@ const ScrollBar = React.forwardRef<
   <ScrollAreaPrimitive.ScrollAreaScrollbar
     ref={ref}
     orientation={orientation}
+    data-pawa-scrollbar="true"
     className={cn(
       "flex touch-none select-none transition-colors",
       orientation === "vertical" &&

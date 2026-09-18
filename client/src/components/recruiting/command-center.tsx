@@ -70,7 +70,7 @@ function CcCard({
 
   return (
     <div
-      className={`flex-1 min-w-[160px] max-w-[220px] rounded border bg-black/25 px-3 py-2.5 shrink-0 ${borderCls[accent]}`}
+      className={`min-w-0 rounded border bg-black/25 px-3 py-2.5 ${borderCls[accent]}`}
     >
       <div className="flex items-center gap-1.5 mb-2">
         <span className={`shrink-0 ${headerCls[accent]}`}>{icon}</span>
@@ -230,7 +230,7 @@ export function RecruitingCommandCenter({
 
       {!collapsed && (
         <div className="px-4 pb-3 border-t border-border/40">
-          <div className="flex gap-3 overflow-x-auto py-3 pb-1 scrollbar-thin">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3 py-3 pb-1" data-testid="recruiting-command-grid">
 
             {/* Hot Battles */}
             <CcCard

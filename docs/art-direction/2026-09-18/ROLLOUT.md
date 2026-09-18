@@ -48,6 +48,8 @@ The fixture uses the actual built React pages with synthetic GET responses; it r
 
 ## Preview and next milestone
 
+**Later September 18 correction:** Frisk rejected the bottom navigation and visible scrollbar rails. The [game screen review](GAME_SCREEN_REVIEW.md) supersedes those initial shell choices, records the compact unified roster and recruiting-grid repairs, and links the complete screen proposal. Current regression evidence is 169 UI checks plus 183 presentation assertions. The arrival recipe is selected but remains unapproved; the next proposed visual pass is roster/recruiting/game-workspace refinement.
+
 After building, `node scripts/preview-varsity.mjs` serves the fictional game at `http://127.0.0.1:49745/league/varsity-demo` (override with `PAWA_PREVIEW_PORT`). The existing art preview serves `http://127.0.0.1:49744/reveal.html`. These are local review servers, not deployed services.
 
 Next: Frisk selects a reveal recipe; implement that ceremony against persisted joining facts with replay/completion separated and disclosure enforced. Then run an authenticated multi-role/phase visual pass on the existing release test environment, refine unique environment/portrait art and finish Clubhouse audio. Continue the existing integrity schedule independently; do not introduce a competing backend backlog.

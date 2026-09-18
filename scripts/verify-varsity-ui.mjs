@@ -45,6 +45,8 @@ try {
         check(await page.getByTestId('button-primary-phase-cta').getAttribute('disabled') === null, 'Next action available');
       }
       if (name === 'roster') {
+        check(await page.getByTestId('roster-manifest').count() === 1, 'Roster uses one comparison surface');
+        check(await page.getByTestId('roster-manifest').locator('thead').count() === 1, 'Roster has one column header');
         await page.getByTestId(width === 390 ? 'card-player-mobile-p0' : 'link-player-p0').click();
         const dialog = page.getByRole('dialog');
         check(await dialog.isVisible(), 'Player profile opens');
@@ -56,6 +58,12 @@ try {
         await page.screenshot({ path: path.join(screens, 'profile-' + width + '.png') });
         await page.keyboard.press('Escape'); await page.evaluate(() => scrollTo(0, 0));
       }
+      if (name === 'recruiting' && width >= 768) {
+        const grid = page.getByTestId('recruiting-command-grid');
+        check(await grid.evaluate(e=>e.scrollWidth<=e.clientWidth), 'Recruiting summaries reflow without horizontal scrolling');
+      }
+      check(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarWidth==='none'), 'Browser scrollbar chrome hidden');
+      check(await page.getByTestId('mobile-nav').count()===0, 'Footer navigation removed');
       if (name === 'report') {
         await page.getByRole('radio', { name: 'Score only (commissioner)', exact: true }).click();
         check(await page.getByText(/Innings, hits, errors and player stats remain unknown/).count() > 0, 'Score-only preserves unknown statistics');
@@ -71,7 +79,14 @@ try {
     await responsive.setViewportSize({ width, height: 900 });
     await responsive.goto(origin + '/league/varsity-demo');
     await responsive.getByTestId('matchday-brief').waitFor();
-    check(await responsive.locator(width < 1280 ? '[data-testid="mobile-nav"]' : '.varsity-sidebar').isVisible(), 'Navigation available at ' + width);
+    check(await responsive.getByTestId('game-menu-trigger').isVisible(), 'Top game navigation available at ' + width);
+    check(await responsive.getByTestId('mobile-nav').count() === 0, 'No footer menu at ' + width);
+    await responsive.getByTestId('game-menu-trigger').click();
+    const menu = responsive.getByTestId('game-menu');
+    for (const destination of ['Coach profile','Settings','League ticker','Standings','News','Commissioner']) check(await menu.getByRole('link', {name:destination,exact:true}).count() === 1, destination + ' preserved at ' + width);
+    await responsive.keyboard.press('Escape');
+    await expect.poll(() => responsive.getByTestId('game-menu-trigger').evaluate(e=>e===document.activeElement)).toBe(true);
+    check(await responsive.getByTestId('game-menu-trigger').evaluate(e=>e===document.activeElement), 'Escape restores menu trigger focus at '+width);
     check(await responsive.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No overflow at ' + width);
   }
   await responsive.route('**/api/leagues/varsity-demo', async route => {
@@ -83,6 +98,44 @@ try {
   await responsive.getByTestId('matchday-brief').waitFor();
   check(await responsive.getByTestId('matchday-brief').getByRole('button', { name: 'League operations' }).isVisible(), 'Offseason commissioner without team has action');
   await responsive.close();
+  const edgeCases = await browser.newPage();
+  await edgeCases.route('**/api/leagues/varsity-demo/roster*', async route => {
+    const response = await route.fetch(); const data = await response.json();
+    data.players[0].firstName = 'Alexanderthegreat'; data.players[0].lastName = 'Montgomery-Washington';
+    await route.fulfill({ json: data });
+  });
+  for (const width of [640, 768, 900]) {
+    await edgeCases.setViewportSize({ width, height: 800 });
+    await edgeCases.goto(origin + '/league/varsity-demo/roster');
+    await edgeCases.getByTestId('link-player-p0').waitFor();
+    check(await edgeCases.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Long roster names fit page at ' + width);
+    const manifest = edgeCases.getByTestId('roster-manifest');
+    const scroll = manifest.getByRole('region', {name:'Scrollable table columns'});
+    if (await scroll.count()) {
+      await manifest.getByRole('button', {name:'Next table columns'}).click();
+      check(await scroll.evaluate(e => e.scrollLeft > 0), 'Roster overflow has working column controls at ' + width);
+    }
+  }
+  for (const coCommissioner of [false, true]) {
+    await edgeCases.route('**/api/leagues/varsity-demo', async route => {
+      const response = await route.fetch(); const data = await response.json();
+      data.commissionerId = 'other'; data.coCommissionerIds = coCommissioner ? ['demo'] : [];
+      await route.fulfill({json:data});
+    });
+    await edgeCases.goto(origin + '/league/varsity-demo');
+    await edgeCases.getByTestId('matchday-brief').waitFor();
+    await edgeCases.getByTestId('game-menu-trigger').click();
+    const menu = edgeCases.getByTestId('game-menu');
+    check(await menu.getByRole('link', {name:'Commissioner', exact:true}).count() === (coCommissioner ? 1 : 0), 'Menu respects commissioner role ' + coCommissioner);
+    await edgeCases.keyboard.press('Escape');
+    await edgeCases.unroute('**/api/leagues/varsity-demo');
+  }
+  await edgeCases.goto(origin + '/league/varsity-demo/coach?tab=settings');
+  await edgeCases.getByTestId('game-menu-trigger').click();
+  const settingsMenu = edgeCases.getByTestId('game-menu');
+  check(await settingsMenu.getByRole('link', {name:'Settings',exact:true}).getAttribute('aria-current') === 'page', 'Settings is current destination');
+  check(await settingsMenu.getByRole('link', {name:'Coach profile',exact:true}).getAttribute('aria-current') === null, 'Coach profile is not also current');
+  await edgeCases.close();
   const rejected = await fetch(origin + '/api/leagues/varsity-demo/ready', { method: 'POST' });
   check(rejected.status === 405, 'Visual fixture cannot write league data');
 

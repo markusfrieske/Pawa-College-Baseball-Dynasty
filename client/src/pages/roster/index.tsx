@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { Player } from "@shared/schema";
 import { isInfielder, isOutfielder, isPitcher } from "@shared/positions";
-import { positionOptions, eligibilityOptions, groupPlayersByCategory } from "./lib/helpers";
+import { positionOptions, eligibilityOptions } from "./lib/helpers";
 import { useRosterData, canPlayerDeclareDraft } from "./hooks/useRosterData";
 import { RosterSkeleton } from "./components/RosterSkeleton";
 import { PositionSection } from "./components/PositionSection";
@@ -92,7 +92,6 @@ export default function RosterPage() {
     return true;
   }) || [];
 
-  const grouped = groupPlayersByCategory(filteredPlayers);
   const allSorted = [...filteredPlayers].sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
 
   const positionPlayersAll = (data?.players || []).filter(p => !isPitcher(p.position));
@@ -285,94 +284,9 @@ export default function RosterPage() {
           />
         ) : viewMode === "depth" ? (
           <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.league?.currentWeek ?? 1} />
-        ) : positionFilter === "all" ? (
-          <>
-            <PositionSection
-              title="Pitchers"
-              players={grouped.pitchers}
-              onSelectPlayer={setSelectedPlayer}
-              teamPrimaryColor={data?.team?.primaryColor}
-              progressionEnabled={leagueData?.progressionEnabled}
-              isOwnTeam={!viewingTeamId}
-              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-            />
-            <PositionSection
-              title="Catchers"
-              players={grouped.catchers}
-              onSelectPlayer={setSelectedPlayer}
-              teamPrimaryColor={data?.team?.primaryColor}
-              progressionEnabled={leagueData?.progressionEnabled}
-              isOwnTeam={!viewingTeamId}
-              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-            />
-            {grouped.firstBase.length > 0 && (
-              <PositionSection
-                title="First Base"
-                players={grouped.firstBase}
-                onSelectPlayer={setSelectedPlayer}
-                teamPrimaryColor={data?.team?.primaryColor}
-                progressionEnabled={leagueData?.progressionEnabled}
-                isOwnTeam={!viewingTeamId}
-                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-              />
-            )}
-            {grouped.secondBase.length > 0 && (
-              <PositionSection
-                title="Second Base"
-                players={grouped.secondBase}
-                onSelectPlayer={setSelectedPlayer}
-                teamPrimaryColor={data?.team?.primaryColor}
-                progressionEnabled={leagueData?.progressionEnabled}
-                isOwnTeam={!viewingTeamId}
-                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-              />
-            )}
-            {grouped.thirdBase.length > 0 && (
-              <PositionSection
-                title="Third Base"
-                players={grouped.thirdBase}
-                onSelectPlayer={setSelectedPlayer}
-                teamPrimaryColor={data?.team?.primaryColor}
-                progressionEnabled={leagueData?.progressionEnabled}
-                isOwnTeam={!viewingTeamId}
-                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-              />
-            )}
-            {grouped.shortstops.length > 0 && (
-              <PositionSection
-                title="Shortstops"
-                players={grouped.shortstops}
-                onSelectPlayer={setSelectedPlayer}
-                teamPrimaryColor={data?.team?.primaryColor}
-                progressionEnabled={leagueData?.progressionEnabled}
-                isOwnTeam={!viewingTeamId}
-                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-              />
-            )}
-            {grouped.otherInfielders.length > 0 && (
-              <PositionSection
-                title="Infielders"
-                players={grouped.otherInfielders}
-                onSelectPlayer={setSelectedPlayer}
-                teamPrimaryColor={data?.team?.primaryColor}
-                progressionEnabled={leagueData?.progressionEnabled}
-                isOwnTeam={!viewingTeamId}
-                onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-              />
-            )}
-            <PositionSection
-              title="Outfielders"
-              players={grouped.outfielders}
-              onSelectPlayer={setSelectedPlayer}
-              teamPrimaryColor={data?.team?.primaryColor}
-              progressionEnabled={leagueData?.progressionEnabled}
-              isOwnTeam={!viewingTeamId}
-              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
-            />
-          </>
         ) : (
           <PositionSection
-            title={positionOptions.find(o => o.value === positionFilter)?.label || "Players"}
+            title={positionFilter === "all" ? "Program roster" : positionOptions.find(o => o.value === positionFilter)?.label || "Players"}
             players={allSorted}
             onSelectPlayer={setSelectedPlayer}
             teamPrimaryColor={data?.team?.primaryColor}

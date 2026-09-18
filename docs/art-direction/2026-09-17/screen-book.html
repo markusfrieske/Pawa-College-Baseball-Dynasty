@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PAWA — The game screen playbook</title><link rel="stylesheet" href="screen-book.css"><script src="screen-book.js" defer></script></head>
+<body>
+<header class="review-header"><a href="slice.html">PAWA / VARSITY CLUB</a><span>SCREEN DIRECTION · REVIEW 04</span><a href="http://127.0.0.1:49745/league/varsity-demo/roster">Open current game ↗</a></header>
+<div class="review-intro"><div><p class="eyebrow">A CLUBHOUSE WORTH COMING BACK TO</p><h1>The game screen playbook.</h1><p>One identity. A purpose-built workspace for every coaching decision.</p></div><div class="review-status"><b>DESIGN PROPOSAL</b><span>Illustrative layouts · Fictional athletes</span><span>Controller and Steam support are future work.</span></div></div>
+<div class="review-layout">
+<aside class="screen-index"><label for="screen-search">Find a screen</label><input id="screen-search" type="search" placeholder="Roster, reporting, setup…"><p id="coverage" class="muted"></p><nav id="screen-list" aria-label="Screen proposals"></nav></aside>
+<main>
+<div class="screen-heading"><div><p id="screen-group" class="eyebrow"></p><h2 id="screen-title" tabindex="-1">Program roster</h2></div><div class="view-options" aria-label="Preview width"><button id="wide-view" aria-pressed="true">Wide</button><button id="narrow-view" aria-pressed="false">Compact</button></div></div>
+<p id="screen-purpose" class="purpose"></p>
+<div id="game-frame" class="game-frame"><div class="game-bar"><span class="game-wordmark">PAWA</span><span>CEDAR VALLEY <i>/</i> SEASON 02</span><span class="game-mode">FICTIONAL DESIGN PREVIEW</span></div><div id="workspace"></div></div>
+<p id="mockup-note" class="mockup-note"></p>
+<section class="screen-spec" aria-label="Design and interaction specification"><div class="spec-head"><h3>How this screen should work</h3><span id="priority"></span></div><div id="spec-grid"></div><details><summary>Routes and acceptance criteria</summary><div id="screen-acceptance"></div></details></section>
+<section class="principles"><h3>The game-wide rules</h3><ol><li><b>Navigation belongs in the game frame.</b> Top game menu, persistent wide-screen rail, full-height compact menu. No bottom website tabs.</li><li><b>Density serves decisions.</b> One table header, compact rows, named metrics, relevant column presets. Details live in the inspector.</li><li><b>Art establishes place.</b> Miniature environments in welcome and phase moments; stable cel faces where people matter. Keep decision surfaces quiet.</li><li><b>Scrolling stays usable.</b> Wheel, touch and keyboard still work. Dense tables offer explicit column controls; no native scrollbar rails.</li><li><b>Truth is visible.</b> Unknown statistics, pending approval, private scouting and failed saves remain distinct states.</li></ol></section>
+</main></div>
+<dialog id="profile-dialog"><button id="close-profile" class="profile-close">Back to roster</button><div id="profile-content"></div></dialog>
+<p id="load-error" role="alert"></p>
+</body></html>
