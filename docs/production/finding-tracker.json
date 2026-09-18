@@ -167,14 +167,16 @@
       "acceptance": "Failure of a required game prevents clock advancement; retry finishes missing work once without false news.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": 3,
-      "implementationCommit": "6640dd570eac949777af7a28e02c2813c4006fb3",
+      "implementationCommit": "66e0aee22e022379cffbe1809635661ca64d807d",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
-        "../../scripts/verify-reported-results.ts"
+        "../../scripts/verify-reported-results.ts",
+        "W03_BATCH_05.md",
+        "audits/W03_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": null,
-      "notes": "W03 batch 04 propagates required regular/exhibition/conference finalization failures and removes premature exhibition completion. Independently source-reviewed only: actual advance/checkpoint crash, lease and resume tests remain open."
+      "notes": "W03 batch 04 propagates required regular/exhibition/conference finalization failures and removes premature exhibition completion. Independently source-reviewed only: actual advance/checkpoint crash, lease and resume tests remain open. Batch05 required postseason awards propagate before phase completion; fixture reuse/source integration reviewed, but actual route/checkpoint recovery remains the next gate."
     },
     {
       "id": "TI-09",
@@ -188,14 +190,16 @@
       "acceptance": "Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "6640dd570eac949777af7a28e02c2813c4006fb3",
+      "implementationCommit": "66e0aee22e022379cffbe1809635661ca64d807d",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
-        "../../scripts/verify-reported-results.ts"
+        "../../scripts/verify-reported-results.ts",
+        "W03_BATCH_05.md",
+        "audits/W03_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": null,
-      "notes": "W03 batch 04 persists atomic per-game coach contributions before receipt commit, including legacy accumulator callers, and serializes participating finalizers. Postseason milestone awards, external coach writers and complete advance restart recovery remain open."
+      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open."
     },
     {
       "id": "TI-10",
@@ -245,7 +249,7 @@
       "acceptance": "Empty bootstrap, upgrade, concurrent/interrupted migration and backup restore pass with readiness correctly gated.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "fe77dde7157eb50deb77293dc7142a7008e5be5f",
+      "implementationCommit": "66e0aee22e022379cffbe1809635661ca64d807d",
       "evidence": [
         "DB_SPIKE.md",
         "W01_BATCH_01.md",
@@ -256,7 +260,9 @@
         "audits/W01_BATCH_03_AUDIT.md",
         "../../scripts/verify-auth-sessions.ts",
         "W01_BATCH_04.md",
-        "audits/W01_BATCH_04_AUDIT.md"
+        "audits/W01_BATCH_04_AUDIT.md",
+        "W03_BATCH_05.md",
+        "audits/W03_BATCH_05_AUDIT.md"
       ],
       "verifiedBy": null,
       "notes": "W01 bootstrap slice verified: valid0032SQL, whole-file transactions, fresh20migrations, repeat/data preservation, orphan rollback/retry, HTTP readiness and independent QA. Full TI-12 remains open for W04 immutable baseline, historical upgrades, concurrency/checksums, awaited startup transformations and recovery. Batch 04 verifies actual entry-point startup on an empty bootstrapped fixture and preserves guest saves; asynchronous backfills, historical upgrades and recovery remain unverified."
@@ -473,8 +479,12 @@
       "source": "../audits/2026-09-14/systems-baseball.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "evidence": [
+        "W03_BATCH_05.md",
+        "audits/W03_BATCH_05_AUDIT.md"
+      ],
+      "verifiedBy": null,
+      "notes": "Additional P1 source finding in batch05 audit: full-season Super Regional Game2 reverses home assignment but wins count by home/away, so a high seed winning G1+G2 can be recorded1-1. Repair identity-based series counting and verify reversed-home/winner fixtures during W05 advance integration, before release. Also test full-season CWS reinitialization and reported-mode postseason acceptance; receipt durability alone does not certify winner truth."
     },
     {
       "id": "SYS-12",
