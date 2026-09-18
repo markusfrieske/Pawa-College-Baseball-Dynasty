@@ -8,6 +8,7 @@ import pg from "pg";
 import { reassignReportRosterPlayer } from "../client/src/lib/report-roster-identity";
 import { buildScoreOnlyReport } from "../shared/reporting";
 import { checkMigrationVersion, runMigrations } from "../server/lib/runMigrations";
+import { verifyPostseasonAwards } from "./verify-postseason-awards";
 
 const connection = process.env.PAWA_TEST_DATABASE_URL;
 assert(connection, "PAWA_TEST_DATABASE_URL required; refusing DATABASE_URL fallback");
@@ -28,6 +29,7 @@ if (process.argv.includes("--http-child")) {
   const { registerRoutes } = await import("../server/routes");
   const { storage } = await import("../server/storage");
   const { finalizeReportedGame, finalizeGameAtomic, flushCoachXp } = await import("../server/game-finalizer");
+  const { awardPostseasonCoachMilestone } = await import("../server/lib/postseason-coach-awards");
   const { publicErrorHandler } = await import("../server/lib/httpErrors");
   const app = express(); app.use(express.json());
   const server = createServer(app);
@@ -35,6 +37,14 @@ if (process.argv.includes("--http-child")) {
   app.use(publicErrorHandler);
   const effectsAccum = new Map();
   process.on("message", async (message: any) => {
+    if (message?.kind === "postseason-award") {
+      const results = await Promise.all(message.requests.map(async (request: any) => {
+        try { return { ...(await awardPostseasonCoachMilestone(request)), error: null }; }
+        catch (error) { return { error: error instanceof Error ? error.constructor.name : "UnknownError" }; }
+      }));
+      process.send?.({ kind: "postseason-result", results });
+      return;
+    }
     if (message?.kind === "effects-finalize" || message?.kind === "effects-flush") {
       try {
         if (message.kind === "effects-flush") await flushCoachXp(effectsAccum);
@@ -238,6 +248,13 @@ if (process.argv.includes("--http-child")) {
     // Exercise the real upgrade from the original required summary columns,
     // with existing reports present, rather than relying only on a fresh schema.
     const reportDataBeforeUpgrade = (await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows;
+    await pool.query("INSERT INTO leagues (id,name,commissioner_id,current_phase,is_test_data) VALUES ('legacy-award-league','Legacy postseason fixture',$1,'offseason_training',true)", [registration.data.id]);
+    await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state) VALUES ('legacy-award-team','legacy-award-league','Legacy','Owls','LEG','Test','IA')");
+    await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name,xp,conf_championships) VALUES ('legacy-award-coach',$1,'legacy-award-team','legacy-award-league','Legacy','Coach',350,1)", [registration.data.id]);
+    await pool.query("UPDATE teams SET coach_id='legacy-award-coach' WHERE id='legacy-award-team'");
+    const legacyCoachBefore = (await pool.query("SELECT * FROM coaches WHERE id='legacy-award-coach'")).rows;
+    await pool.query("DROP TABLE postseason_coach_awards");
+    await pool.query("DROP TABLE postseason_award_legacy_seasons");
     await pool.query("DROP TABLE game_coach_effects");
     await pool.query("DROP TABLE game_report_revisions CASCADE");
     for (const column of ["report_revision_id", "report_id", "requested_edit_version", "accepted_by_user_id", "report_action", "report_resolution"]) {
@@ -247,11 +264,14 @@ if (process.argv.includes("--http-child")) {
       await pool.query(`ALTER TABLE game_reports ALTER COLUMN ${column} SET NOT NULL`);
     }
     await pool.query("ALTER TABLE game_reports DROP COLUMN edit_version");
-    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version','0052_report_history','0053_game_coach_effects')");
+    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version','0052_report_history','0053_game_coach_effects','0054_postseason_coach_awards')");
     equal(await checkMigrationVersion(pool), false, "Schema readiness fails before the required unknown-summary migration");
     const upgraded = await runMigrations(pool);
-    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version", "0052_report_history", "0053_game_coach_effects"], "Populated database upgrades all missing report migrations in order");
-    equal(upgraded.version, "0053_game_coach_effects", "Coach-effects migration is the recorded schema head");
+    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version", "0052_report_history", "0053_game_coach_effects", "0054_postseason_coach_awards"], "Populated database upgrades all missing report migrations in order");
+    equal(upgraded.version, "0054_postseason_coach_awards", "Postseason migration is the recorded schema head");
+    equal((await pool.query("SELECT * FROM postseason_coach_awards")).rows, [], "Upgrade invents no historical postseason receipts");
+    equal((await pool.query("SELECT league_id,season FROM postseason_award_legacy_seasons ORDER BY league_id")).rows, [{ league_id: "legacy-award-league", season: 1 }], "Upgrade fences observed legacy postseason without fencing a normal regular season");
+    equal((await pool.query("SELECT * FROM coaches WHERE id='legacy-award-coach'")).rows, legacyCoachBefore, "Upgrade preserves existing legacy counters and XP exactly");
     equal((await pool.query("SELECT * FROM game_coach_effects")).rows, [], "Migration does not invent coach-effect attribution for legacy finalizations");
     equal(await checkMigrationVersion(pool), true, "Schema readiness succeeds after the required migration is recorded");
     equal((await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows, reportDataBeforeUpgrade, "Report upgrades preserve all existing report data intact");
@@ -1002,6 +1022,10 @@ if (process.argv.includes("--http-child")) {
       { player_id: "effects-player-away", games: 2, ab: 6, h: 2, r: 2, rbi: 2 }, { player_id: "effects-player-home", games: 2, ab: 8, h: 4, r: 4, rbi: 4 },
     ], "Concurrent same-player projections retain both contributions to every checked batting counter");
 
+    const awardCall = async (requests: unknown[]) => (await waitForMessage("postseason-result", () => child!.send({ kind: "postseason-award", requests }))).results;
+    await verifyPostseasonAwards({ pool, primaryId: primary.id, awayId: actors.away.id, equal, snapshot, invoke, awardCall,
+      effectsCall, restart: async () => { await stopHttp(); await startHttp(); } });
+
     const savedHistory = await invoke("/api/leagues/report-league/save-states", "POST", { label: "Synthetic reported-history restore boundary" });
     equal(savedHistory.response.status, 200, "League save capture remains available with accepted report history");
     const beforeUnsafeRestore = await snapshot();
@@ -1036,7 +1060,7 @@ if (process.argv.includes("--http-child")) {
     const beforeReceiptOnlyRestore = await snapshot();
     equal((await invoke(`/api/leagues/effects-restore-league/save-states/${simulatedSave.data.id}/restore`, "POST", {})).response.status, 409, "Receipt-only current state still blocks destructive restore when completion flags are inconsistent");
     equal(await snapshot(), beforeReceiptOnlyRestore, "Receipt-only restore rejection preserves all data and backups");
-    for (const evidenceField of ["gameFinalizations", "gameCoachEffects"]) {
+    for (const evidenceField of ["gameFinalizations", "gameCoachEffects", "postseasonCoachAwards", "postseasonAwardLegacySeasons"]) {
       await pool.query("UPDATE league_save_states SET snapshot_data=jsonb_set(jsonb_set(snapshot_data,'{games}','[]'::jsonb),$1::text[],$2::jsonb) WHERE id=$3", [[evidenceField], JSON.stringify([{ game_id: "historical-result" }]), targetOnlySave.data.id]);
       const beforeTargetReceiptRestore = await snapshot();
       equal((await invoke(`/api/leagues/other-report-league/save-states/${targetOnlySave.data.id}/restore`, "POST", {})).response.status, 409, evidenceField + " target evidence blocks restore without a complete recovery protocol");
@@ -1057,6 +1081,8 @@ if (process.argv.includes("--http-child")) {
     equal((await invoke(deleteEndpoint + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 200, "Owned deletion fixture has a real accepted revision and receipt");
     equal(Number((await pool.query("SELECT count(*) FROM game_report_revisions WHERE game_id='delete-history-game'")).rows[0].count), 2, "Owned deletion fixture contains both initial and accepted history");
     equal(Number((await pool.query("SELECT count(*) FROM game_coach_effects WHERE game_id='delete-history-game'")).rows[0].count), 2, "Owned deletion fixture includes real durable effects for both coaches");
+    equal((await awardCall([{ leagueId: "history-delete-league", season: 1, teamId: "delete-home", milestone: "conf_champ", sourceKey: "synthetic-deletion" }]))[0].error, null, "Owned deletion includes an actual postseason contribution");
+    await pool.query("INSERT INTO postseason_award_legacy_seasons (league_id,season,reason) VALUES ('history-delete-league',0,'Synthetic deletion fence')");
     const ownedDeletion = await invoke("/api/leagues/history-delete-league", "DELETE");
     if (ownedDeletion.response.status !== 200) console.error(childErrors);
     equal(ownedDeletion.response.status, 200, "Explicit commissioner league deletion remains compatible with immutable-history cascade rules");

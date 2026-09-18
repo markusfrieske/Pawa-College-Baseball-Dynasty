@@ -40,7 +40,7 @@ const MIGRATIONS_DIR = (() => {
  * The last migration file key that must be present before /health/ready returns 200.
  * Update this whenever a new migration file is added.
  */
-export const EXPECTED_MIGRATION = "0053_game_coach_effects";
+export const EXPECTED_MIGRATION = "0054_postseason_coach_awards";
 
 export async function runMigrations(pool: Pool): Promise<{ applied: string[]; version: string | null }> {
   const client = await pool.connect();

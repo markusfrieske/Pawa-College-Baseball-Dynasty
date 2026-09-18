@@ -2487,6 +2487,33 @@ export const gameCoachEffects = pgTable("game_coach_effects", {
 }, table => [uniqueIndex("game_coach_effects_game_coach_idx").on(table.gameId, table.coachId)]);
 
 
+// Stable team/season milestone identities preserve the original coach attribution.
+export const postseasonCoachAwards = pgTable("postseason_coach_awards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  season: integer("season").notNull(),
+  teamId: varchar("team_id").notNull(),
+  milestone: text("milestone").notNull(),
+  sourceKey: text("source_key").notNull(),
+  coachId: varchar("coach_id"),
+  disposition: text("disposition").notNull(),
+  milestoneDelta: integer("milestone_delta").notNull(),
+  xpDelta: integer("xp_delta").notNull(),
+  skillPointsDelta: integer("skill_points_delta").notNull(),
+  beforeState: jsonb("before_state").$type<Record<string, unknown>>().notNull(),
+  afterState: jsonb("after_state").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, table => [uniqueIndex("postseason_coach_awards_identity_idx").on(table.leagueId, table.season, table.teamId, table.milestone)]);
+
+// Old partial awards cannot be reconstructed from aggregate coach counters.
+export const postseasonAwardLegacySeasons = pgTable("postseason_award_legacy_seasons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id, { onDelete: "cascade" }),
+  season: integer("season").notNull(),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, table => [uniqueIndex("postseason_award_legacy_seasons_identity_idx").on(table.leagueId, table.season)]);
+
 // ─── League Advances — durable advance-operation tracking ─────────────────────
 //
 // One row per advance attempt (running → complete | failed).

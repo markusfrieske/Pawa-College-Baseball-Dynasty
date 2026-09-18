@@ -451,49 +451,6 @@ export async function flushCoachXp(
 }
 
 /**
- * Award XP for a postseason milestone. Call this wherever confChampionships /
- * cwsAppearances / nationalChampionships are incremented on a coach.
- *
- * Applies gm_playoff_poise (+150 per milestone) and gm_legendary
- * (+300 for CWS, +1 free SP for conf champ) perks automatically.
- */
-export async function awardPostseasonXp(
-  coachId: string,
-  milestone: "conf_champ" | "cws_appearance" | "cws_win",
-): Promise<void> {
-  try {
-    const coach = await storage.getCoach(coachId);
-    if (!coach) return;
-
-    const baseXp: Record<string, number> = {
-      conf_champ: XP_AWARDS.CONF_CHAMP,
-      cws_appearance: XP_AWARDS.CWS_APPEARANCE,
-      cws_win: XP_AWARDS.CWS_WIN,
-    };
-
-    const postseasonBonus = hasPerk(coach, "gm_playoff_poise") ? XP_AWARDS.PLAYOFF_POISE_BONUS : 0;
-    const legendaryCwsBonus =
-      (milestone === "cws_appearance" || milestone === "cws_win") && hasPerk(coach, "gm_legendary")
-        ? XP_AWARDS.LEGENDARY_CWS_BONUS
-        : 0;
-    const legendarySpBonus = milestone === "conf_champ" && hasPerk(coach, "gm_legendary") ? 1 : 0;
-
-    const totalXp = (baseXp[milestone] ?? 0) + postseasonBonus + legendaryCwsBonus;
-    const newXp = coach.xp + totalXp;
-    const newLevel = Math.floor(newXp / 1000) + 1;
-    const levelSpGained = Math.max(0, newLevel - coach.level);
-
-    await storage.updateCoach(coach.id, {
-      xp: newXp,
-      level: newLevel,
-      skillPoints: coach.skillPoints + levelSpGained + legendarySpBonus,
-    });
-  } catch (e) {
-    console.error(`[awardPostseasonXp] ${milestone} coachId=${coachId}:`, e);
-  }
-}
-
-/**
  * Award XP for signing a recruit. Uses star-based XP scale.
  * Call after a human coach signs a recruit.
  */
