@@ -1,7 +1,24 @@
-/* ── Self-hosted fonts ── */
+/* Varsity Club: approved Sora display / Inter interface. Vite fingerprints these local assets. */
+@font-face {
+  font-family: "Sora";
+  src: url("./assets/fonts/Sora.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/fonts/Inter.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* Legacy family aliases preserve inline callers while using the approved local faces. */
 @font-face {
   font-family: "Press Start 2P";
-  src: url("/fonts/press-start-2p-latin-400-normal.woff2") format("woff2");
+  src: url("./assets/fonts/Sora.ttf") format("truetype");
   font-style: normal;
   font-weight: 400;
   font-display: swap;
@@ -9,7 +26,7 @@
 
 @font-face {
   font-family: "Inter Variable";
-  src: url("/fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  src: url("./assets/fonts/Inter.ttf") format("truetype");
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
@@ -17,7 +34,7 @@
 
 @font-face {
   font-family: "Barlow Semi Condensed";
-  src: url("/fonts/barlow-semi-condensed-latin-600-normal.woff2") format("woff2");
+  src: url("./assets/fonts/Sora.ttf") format("truetype");
   font-style: normal;
   font-weight: 600;
   font-display: swap;
@@ -25,7 +42,7 @@
 
 @font-face {
   font-family: "Barlow Semi Condensed";
-  src: url("/fonts/barlow-semi-condensed-latin-700-normal.woff2") format("woff2");
+  src: url("./assets/fonts/Sora.ttf") format("truetype");
   font-style: normal;
   font-weight: 700;
   font-display: swap;
@@ -33,7 +50,7 @@
 
 @font-face {
   font-family: "Barlow Semi Condensed";
-  src: url("/fonts/barlow-semi-condensed-latin-800-normal.woff2") format("woff2");
+  src: url("./assets/fonts/Sora.ttf") format("truetype");
   font-style: normal;
   font-weight: 800;
   font-display: swap;
@@ -41,7 +58,7 @@
 
 @font-face {
   font-family: "IBM Plex Mono";
-  src: url("/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+  src: url("./assets/fonts/Inter.ttf") format("truetype");
   font-style: normal;
   font-weight: 500;
   font-display: swap;
@@ -49,7 +66,7 @@
 
 @font-face {
   font-family: "IBM Plex Mono";
-  src: url("/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2");
+  src: url("./assets/fonts/Inter.ttf") format("truetype");
   font-style: normal;
   font-weight: 600;
   font-display: swap;
@@ -59,53 +76,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Dark forest green theme for College Baseball Dynasty */
+/* Varsity Club forest, ivory and brass; both theme states share the approved palette. */
 :root {
-  --button-outline: rgba(255,255,255, .10);
+  --button-outline: hsl(153 19% 40%);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 120 25% 10%;
-  --foreground: 0 0% 95%;
-  --border: 120 20% 18%;
-  --card: 120 22% 14%;
-  --card-foreground: 0 0% 95%;
-  --card-border: 120 20% 20%;
-  --sidebar: 120 25% 12%;
-  --sidebar-foreground: 0 0% 90%;
-  --sidebar-border: 120 20% 18%;
-  --sidebar-primary: 43 56% 55%;
-  --sidebar-primary-foreground: 120 25% 8%;
-  --sidebar-accent: 120 18% 20%;
-  --sidebar-accent-foreground: 0 0% 88%;
-  --sidebar-ring: 43 56% 55%;
-  --popover: 120 22% 16%;
-  --popover-foreground: 0 0% 90%;
-  --popover-border: 120 20% 22%;
-  --primary: 43 56% 55%;
-  --primary-foreground: 120 25% 8%;
-  --secondary: 120 18% 22%;
-  --secondary-foreground: 0 0% 88%;
-  --muted: 120 15% 20%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 120 15% 18%;
-  --accent-foreground: 0 0% 88%;
+  --background: 156 42% 7%;
+  --foreground: 50 33% 93%;
+  --border: 157 21% 26%;
+  --card: 158 39% 12%;
+  --card-foreground: 50 33% 93%;
+  --card-border: 157 21% 26%;
+  --sidebar: 158 37% 10%;
+  --sidebar-foreground: 50 33% 93%;
+  --sidebar-border: 157 21% 26%;
+  --sidebar-primary: 41 65% 70%;
+  --sidebar-primary-foreground: 144 28% 12%;
+  --sidebar-accent: 153 28% 18%;
+  --sidebar-accent-foreground: 50 33% 93%;
+  --sidebar-ring: 41 65% 70%;
+  --popover: 157 37% 13%;
+  --popover-foreground: 50 33% 93%;
+  --popover-border: 153 19% 40%;
+  --primary: 41 65% 70%;
+  --primary-foreground: 144 28% 12%;
+  --secondary: 153 30% 18%;
+  --secondary-foreground: 50 33% 93%;
+  --muted: 154 24% 18%;
+  --muted-foreground: 145 12% 71%;
+  --accent: 152 26% 20%;
+  --accent-foreground: 50 33% 93%;
   --destructive: 0 72% 45%;
   --destructive-foreground: 0 0% 98%;
-  --input: 120 18% 25%;
-  --ring: 43 56% 55%;
-  --chart-1: 43 56% 55%;
-  --chart-2: 120 50% 40%;
-  --chart-3: 180 60% 45%;
-  --chart-4: 0 72% 50%;
-  --chart-5: 280 65% 55%;
-  --font-ui: "Inter Variable", Inter, "Segoe UI", Arial, sans-serif;
-  --font-display: "Barlow Semi Condensed", "Arial Narrow", "Segoe UI", sans-serif;
-  --font-data: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
-  --font-sans: "Inter Variable", Inter, "Segoe UI", Arial, sans-serif;
+  --input: 151 16% 40%;
+  --ring: 41 65% 76%;
+  --chart-1: 41 65% 70%;
+  --chart-2: 149 38% 65%;
+  --chart-3: 201 44% 69%;
+  --chart-4: 8 70% 67%;
+  --chart-5: 274 40% 73%;
+  --font-ui: Inter, "Segoe UI", Arial, sans-serif;
+  --font-display: Sora, "Segoe UI", Arial, sans-serif;
+  --font-data: Inter, "Segoe UI", Arial, sans-serif;
+  --font-sans: Inter, "Segoe UI", Arial, sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  --font-mono: Inter, "Segoe UI", Arial, sans-serif;
   --radius: .5rem;
 
   /* ── Fixed shadow tokens (real visible drop shadows) ── */
@@ -119,8 +136,8 @@
   --shadow-2xl: 0px 24px 48px -8px hsl(120 25% 5% / 0.55);
 
   /* ── Glow tokens ── */
-  --glow-gold: 0 0 8px rgba(196,163,90,0.45), 0 0 20px rgba(196,163,90,0.18);
-  --glow-gold-sm: 0 0 5px rgba(196,163,90,0.50), 0 0 12px rgba(196,163,90,0.22);
+  --glow-gold: 0 2px 12px rgba(228,196,130,0.12);
+  --glow-gold-sm: 0 1px 6px rgba(228,196,130,0.12);
   --glow-blue: 0 0 8px rgba(59,130,246,0.45), 0 0 20px rgba(59,130,246,0.18);
   --glow-red:  0 0 8px rgba(239,68,68,0.45),  0 0 20px rgba(239,68,68,0.18);
 
@@ -160,45 +177,45 @@
 }
 
 .dark {
-  --button-outline: rgba(255,255,255, .10);
+  --button-outline: hsl(153 19% 40%);
   --badge-outline: rgba(255,255,255, .05);
   --opaque-button-border-intensity: 9;
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
-  --background: 120 25% 10%;
-  --foreground: 0 0% 95%;
-  --border: 120 20% 18%;
-  --card: 120 22% 14%;
-  --card-foreground: 0 0% 95%;
-  --card-border: 120 20% 20%;
-  --sidebar: 120 25% 12%;
-  --sidebar-foreground: 0 0% 90%;
-  --sidebar-border: 120 20% 18%;
-  --sidebar-primary: 43 56% 55%;
-  --sidebar-primary-foreground: 120 25% 8%;
-  --sidebar-accent: 120 18% 20%;
-  --sidebar-accent-foreground: 0 0% 88%;
-  --sidebar-ring: 43 56% 55%;
-  --popover: 120 22% 16%;
-  --popover-foreground: 0 0% 90%;
-  --popover-border: 120 20% 22%;
-  --primary: 43 56% 55%;
-  --primary-foreground: 120 25% 8%;
-  --secondary: 120 18% 22%;
-  --secondary-foreground: 0 0% 88%;
-  --muted: 120 15% 20%;
-  --muted-foreground: 0 0% 60%;
-  --accent: 120 15% 18%;
-  --accent-foreground: 0 0% 88%;
+  --background: 156 42% 7%;
+  --foreground: 50 33% 93%;
+  --border: 157 21% 26%;
+  --card: 158 39% 12%;
+  --card-foreground: 50 33% 93%;
+  --card-border: 157 21% 26%;
+  --sidebar: 158 37% 10%;
+  --sidebar-foreground: 50 33% 93%;
+  --sidebar-border: 157 21% 26%;
+  --sidebar-primary: 41 65% 70%;
+  --sidebar-primary-foreground: 144 28% 12%;
+  --sidebar-accent: 153 28% 18%;
+  --sidebar-accent-foreground: 50 33% 93%;
+  --sidebar-ring: 41 65% 70%;
+  --popover: 157 37% 13%;
+  --popover-foreground: 50 33% 93%;
+  --popover-border: 153 19% 40%;
+  --primary: 41 65% 70%;
+  --primary-foreground: 144 28% 12%;
+  --secondary: 153 30% 18%;
+  --secondary-foreground: 50 33% 93%;
+  --muted: 154 24% 18%;
+  --muted-foreground: 145 12% 71%;
+  --accent: 152 26% 20%;
+  --accent-foreground: 50 33% 93%;
   --destructive: 0 72% 45%;
   --destructive-foreground: 0 0% 98%;
-  --input: 120 18% 25%;
-  --ring: 43 56% 55%;
-  --chart-1: 43 56% 55%;
-  --chart-2: 120 50% 40%;
-  --chart-3: 180 60% 45%;
-  --chart-4: 0 72% 50%;
-  --chart-5: 280 65% 55%;
+  --input: 151 16% 40%;
+  --ring: 41 65% 76%;
+  --chart-1: 41 65% 70%;
+  --chart-2: 149 38% 65%;
+  --chart-3: 201 44% 69%;
+  --chart-4: 8 70% 67%;
+  --chart-5: 274 40% 73%;
 
   /* Fixed shadow tokens for dark mode */
   --shadow-2xs: 0px 1px 2px 0px hsl(120 25% 5% / 0.20);
@@ -238,6 +255,7 @@
   }
 
   html {
+    color-scheme: dark;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
   }
@@ -246,6 +264,24 @@
     @apply font-sans antialiased bg-background text-foreground;
     font-size: 1rem;
     line-height: 1.5;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.035em;
+  }
+
+  button, a, input, select, textarea {
+    touch-action: manipulation;
+  }
+
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+
+  table, .font-data, .font-mono {
+    font-variant-numeric: tabular-nums;
   }
 
   .tabular-nums,
@@ -257,20 +293,63 @@
 }
 
 @layer components {
+  .varsity-button {
+    min-height: 44px;
+  }
+
+  .varsity-tabs-list {
+    min-height: 52px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .varsity-tab {
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+
+  .varsity-monogram {
+    border-radius: 0.35rem 0.35rem 0.65rem 0.65rem;
+    box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.12);
+    font-family: var(--font-display);
+    letter-spacing: -0.055em;
+  }
+
+  .varsity-mobile-nav [aria-current="page"] {
+    background: hsl(var(--primary) / 0.12);
+    box-shadow: inset 0 3px 0 hsl(var(--primary));
+  }
+
+  @media (pointer: coarse) {
+    button, [role="button"], [role="tab"], input:not([type="checkbox"]):not([type="radio"]), select {
+      min-height: 44px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .varsity-button, .varsity-tab {
+      transition: none;
+    }
+    .varsity-button .varsity-button-shimmer {
+      animation: none;
+      display: none;
+    }
+  }
+
   /* ── Semantic typography tokens ── */
 
-  /* Page / hero titles — sports display face */
+  /* Page / hero titles — friendly console hierarchy */
   .type-display {
     @apply font-display text-[2rem] leading-[2.375rem] font-extrabold tracking-tight;
   }
   .type-page-title {
-    @apply font-display text-2xl leading-[1.875rem] font-bold tracking-normal;
+    @apply font-display text-2xl leading-[1.875rem] font-bold tracking-tight;
   }
   .type-hero-title {
     @apply font-display text-[1.375rem] leading-7 font-bold tracking-[0.01em];
   }
   .type-section-title {
-    @apply font-display text-base leading-[1.375rem] font-bold tracking-[0.02em];
+    @apply font-display text-base leading-[1.375rem] font-semibold tracking-tight;
   }
 
   /* UI copy — Inter */
@@ -299,7 +378,7 @@
     @apply font-sans text-xs leading-4 font-semibold tracking-normal;
   }
 
-  /* Data / numeric — IBM Plex Mono */
+  /* Data / numeric — tabular Inter */
   .type-stat-xl {
     @apply font-data text-[1.75rem] leading-8 font-semibold tracking-tight tabular-nums;
   }
@@ -1082,4 +1161,9 @@ html[data-mood="offseason"] nav {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Shared overlays must also respect the selected broadcast-motion accessibility rule. */
+@media (prefers-reduced-motion: reduce) {
+  :root .varsity-motion-surface[data-state] { animation: none; transition: none; }
 }

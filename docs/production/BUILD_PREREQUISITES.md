@@ -1,5 +1,7 @@
 # Complete-media build prerequisite
 
+**September 18 update:** The Varsity Club migration removed the 22 legacy compile-time asset imports and bundles the selected campus, local Sora/Inter fonts and native identity assets. The full client/server build now passes in this checkout. The historical restore count below is no longer a compile prerequisite. Runtime legacy music, service-worker/favicon and other public-file completeness still need the authenticated release/media audit. See [rollout evidence](../art-direction/2026-09-18/ROLLOUT.md). Do not bulk-restore the obsolete 82 MB set to repeat this build.
+
 September 14, 2026 inventory for the next W01 build/browser milestone. This is a read-only source and GitHub tree-metadata inventory, not a completed download or build. The source-only CommandCenter checkout lacks required tracked media. Use a suitable build device and preserve single-writer ownership; any device handoff must use the Cross-Device Command Queue and link this document and the exact starting commit.
 
 ## Required tracked inputs

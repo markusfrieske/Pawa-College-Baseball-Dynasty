@@ -1,5 +1,7 @@
 # Pawa art direction: decision board
 
+**September 18 production update: Frisk explicitly authorized “implement the design across the game.” The selected Varsity Club recipe is now approved for implementation. See [production rollout and evidence](../2026-09-18/ROLLOUT.md). The new [arrival cinema choices](reveal.html) are a separate proposal awaiting selection.**
+
 Prepared for Frisk, September 17, 2026. This document accompanies the interactive concept board. It proposes a visual identity for a text baseball sim and Power Pros league companion; it does not change production screens or select a final direction on Frisk's behalf.
 
 ## Frisk's proposed selection — approval pending
@@ -27,7 +29,7 @@ Creative interpretation: a warm collegiate clubhouse with expressive cel players
 
 The next visual review should check shared palette and lighting across cel players and miniature environments, solid icons at small sizes, and dense Team/Report screens on desktop and phone. Broadcast motion must support reduced motion; Clubhouse sound should be opt-in with persistent mute. Motion and sound are still descriptions, not implemented assets.
 
-This records a proposal, not production rollout approval. Review a Today/Player/Report concept slice in this mix before committing to the production visual migration.
+The original proposal and concept-approval history below is retained for context; the September 18 implementation authorization above supersedes the earlier production hold.
 
 ## Original studio recommendation (comparison only)
 

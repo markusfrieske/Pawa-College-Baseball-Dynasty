@@ -41,9 +41,9 @@ function getSfxVolume(): number {
 
 function isMuted(): boolean {
   try {
-    return localStorage.getItem("cbd_music_muted") === "true";
+    return localStorage.getItem("cbd_music_muted") !== "false";
   } catch {}
-  return false;
+  return true;
 }
 
 function playTone(
@@ -53,8 +53,9 @@ function playTone(
   volumeMult: number = 0.3,
   startTime: number = 0
 ): void {
+  if (!isSfxEnabled() || isMuted()) return;
   const ctx = getCtx();
-  if (!ctx || !isSfxEnabled() || isMuted()) return;
+  if (!ctx) return;
 
   const vol = getSfxVolume() * volumeMult;
   if (vol <= 0) return;
@@ -78,7 +79,7 @@ export function playChime(): void {
 }
 
 export function playClick(): void {
-  playTone(660, 0.06, "square", 0.12, 0);
+  playTone(440, 0.045, "triangle", 0.1, 0);
 }
 
 export function playSuccess(): void {

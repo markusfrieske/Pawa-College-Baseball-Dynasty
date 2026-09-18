@@ -209,13 +209,13 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
         </span>
       </div>
 
-      <div className="px-3 py-3 flex items-center gap-3">
+      <div className="px-3 py-3 flex flex-wrap items-center gap-3">
         {isUserGame && myTeam && opponent ? (
           <>
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <TeamBadge abbreviation={myTeam.abbreviation} primaryColor={myTeam.primaryColor} secondaryColor={myTeam.secondaryColor} name={myTeam.name} size="md" />
               <div className="min-w-0">
-                <p className="text-sm font-medium truncate leading-tight">{myTeam.name}</p>
+                <p className="text-sm font-medium break-words leading-tight">{myTeam.name}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   {userIsHome
                     ? <Home className="w-2.5 h-2.5 text-gold" />
@@ -225,7 +225,7 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
               </div>
             </div>
 
-            <div className="text-center flex-shrink-0 w-16">
+            <div className="text-center flex-shrink-0 w-8">
               {game.isComplete ? (
                 <div className={`font-display text-sm font-bold leading-none ${userWon ? "text-green-400" : "text-red-400"}`} data-testid="text-next-game-score">
                   {userScore} – {oppScore}
@@ -242,7 +242,7 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
 
             <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
               <div className="min-w-0 text-right">
-                <p className="text-sm font-medium truncate leading-tight" data-testid="text-opponent-name">{opponent.name}</p>
+                <p className="text-sm font-medium break-words leading-tight" data-testid="text-opponent-name">{opponent.name}</p>
                 <div className="flex items-center gap-1.5 justify-end mt-0.5 flex-wrap">
                   {opponentTeamData?.standings && (
                     <span className="text-xs text-muted-foreground">
@@ -300,7 +300,7 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
         )}
 
         {!game.isComplete && (
-          <div className="flex-shrink-0 ml-1 flex flex-col gap-1.5 items-end">
+          <div className="w-full border-t border-border pt-3 flex gap-3 items-center justify-end">
             {isHvH ? (
               <Link href={`/league/${leagueId}/report-game/${game.id}`}>
                 <RetroButton variant="outline" size="sm" data-testid="button-next-game-report">
@@ -318,7 +318,7 @@ export function WeeklyOpponentCard({ leagueId, league, myTeam }: { leagueId: str
             )}
             <button
               onClick={() => setPreviewGameId(game.id)}
-              className="text-xs text-muted-foreground hover:text-gold transition-colors underline underline-offset-2"
+              className="min-h-11 px-3 text-xs text-muted-foreground hover:text-gold transition-colors underline underline-offset-2"
               data-testid="button-next-game-preview"
             >
               Preview
@@ -459,7 +459,11 @@ export function PrimaryPhaseCTA({
     href = `/league/${leagueId}/commissioner`;
   }
 
-  if (!label) return null;
+  if (!label) {
+    label = "View Roster";
+    icon = <Users className="w-4 h-4" />;
+    href = `/league/${leagueId}/roster`;
+  }
 
   const button = (
     <RetroButton
@@ -477,7 +481,10 @@ export function PrimaryPhaseCTA({
   );
 
   return (
-    <div className="mb-4" data-testid="section-primary-cta">
+    <div className="rounded-xl border border-primary/30 bg-secondary p-5" data-testid="section-primary-cta">
+      <p className="text-xs uppercase tracking-widest text-primary mb-2">On your desk</p>
+      <h3 className="font-display text-xl font-semibold mb-2">Your next move</h3>
+      <p className="text-sm text-muted-foreground mb-4">{label === "Report Score" ? "Bring your Power Pros result into the league for review." : "Open the next coaching task for this phase."}</p>
       {href ? <Link href={href}>{button}</Link> : button}
     </div>
   );

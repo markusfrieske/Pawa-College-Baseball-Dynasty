@@ -482,8 +482,10 @@ export default function CommissionerPage() {
         mobileSrc={artBackgrounds.commissioner.mobile}
         focalPoint="center center"
         overlayStrength="heavy"
-        className="h-32 sm:h-44"
-      />
+        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
+      >
+        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">League operations</p><p className="mt-1 text-sm text-foreground/80">Review league activity and manage the next advance.</p></div>
+      </ArtworkBackground>
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6">

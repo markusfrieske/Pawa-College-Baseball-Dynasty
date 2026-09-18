@@ -1,0 +1,31 @@
+.varsity-shell { min-width: 0; }
+.varsity-main { min-width: 0; }
+.varsity-sidebar { display: none; }
+.varsity-skip { position: fixed; top: 12px; left: 12px; z-index: 200; padding: 12px 16px; border-radius: 6px; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); transform: translateY(-160%); }
+.varsity-skip:focus { transform: translateY(0); }
+/* Reuse the existing bottom navigation through the tablet breakpoint. */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .varsity-shell { padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px)); }
+  .varsity-shell [data-testid="mobile-nav"] { display: block; }
+}
+@media (min-width: 1280px) {
+  .varsity-shell { padding-left: 216px; }
+  .varsity-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 40; display: flex; flex-direction: column; width: 216px; padding: 28px 16px 20px; overflow-y: auto; border-right: 1px solid hsl(var(--border)); background: hsl(var(--sidebar)); color: hsl(var(--foreground)); }
+  .varsity-brand { display: block; padding: 0 8px; font: italic 800 35px/1 var(--font-display); letter-spacing: -.075em; color: hsl(var(--foreground)); }
+  .varsity-brand span { display: block; margin-top: 8px; font: 600 8px/1.5 var(--font-ui); letter-spacing: .07em; }
+  .varsity-club { display: flex; gap: 10px; align-items: center; padding: 28px 4px 22px; }
+  .varsity-club-copy { min-width: 0; overflow-wrap: anywhere; }
+  .varsity-club strong { display: block; font-size: 13px; line-height: 1.45; }
+  .varsity-club-copy span { display: block; margin-top: 5px; font-size: 11px; line-height: 1.5; color: hsl(var(--muted-foreground)); }
+  .varsity-nav-label { margin: 0 12px 10px; font-size: 10px; letter-spacing: .12em; color: hsl(var(--muted-foreground)); }
+  .varsity-sidebar nav { display: flex; flex-direction: column; gap: 5px; }
+  .varsity-sidebar nav a { display: flex; align-items: center; gap: 11px; min-height: 44px; padding: 10px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); transition: background-color .15s, color .15s; }
+  .varsity-sidebar nav a:hover { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
+  .varsity-sidebar nav a[aria-current="page"] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  .varsity-sidebar a:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+  .varsity-sidebar-foot { margin-top: auto; padding: 30px 12px 0; }
+  .varsity-sidebar-foot > span { font-size: 9px; letter-spacing: .1em; color: hsl(var(--muted-foreground)); }
+  .varsity-sidebar-foot p { margin: 12px 0 18px; font: 500 23px/1.5 var(--font-display); letter-spacing: -.035em; color: hsl(var(--muted-foreground)); }
+  .varsity-sidebar-foot a { display: inline-flex; align-items: center; min-height: 44px; font-size: 12px; color: hsl(var(--primary)); }
+}
+@media (prefers-reduced-motion: reduce) { .varsity-sidebar nav a { transition: none; } }

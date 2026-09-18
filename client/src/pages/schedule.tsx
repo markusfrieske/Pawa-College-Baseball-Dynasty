@@ -539,8 +539,10 @@ export default function SchedulePage() {
         mobileSrc={artBackgrounds.scheduleDay.mobile}
         focalPoint="center bottom"
         overlayStrength="heavy"
-        className="h-28 sm:h-40"
-      />
+        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
+      >
+        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">The season ahead</p><p className="mt-1 text-sm text-foreground/80">Plan matchups and keep your league moving.</p></div>
+      </ArtworkBackground>
 
       <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
         {exhibitionGames.length > 0 && activeKey === "spring_training" && (

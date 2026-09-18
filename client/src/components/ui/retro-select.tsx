@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { forwardRef, type SelectHTMLAttributes } from "react";
+import { forwardRef, useId, type SelectHTMLAttributes } from "react";
 import { ChevronDown } from "lucide-react";
 
 interface RetroSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
@@ -9,22 +9,24 @@ interface RetroSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export const RetroSelect = forwardRef<HTMLSelectElement, RetroSelectProps>(
   ({ className, label, id, options, ...props }, ref) => {
+    const generatedId = useId();
+    const fieldId = id || generatedId;
     return (
       <div className="space-y-2">
         {label && (
-          <label htmlFor={id} className="block text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+          <label htmlFor={fieldId} className="block text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
             {label}
           </label>
         )}
         <div className="relative">
           <select
             ref={ref}
-            id={id}
+            id={fieldId}
             className={cn(
-              "w-full min-h-10 bg-input border-2 border-border text-foreground px-4 py-2.5 font-sans text-sm",
+              "w-full min-h-11 rounded-md bg-background border border-input text-foreground pl-4 pr-10 py-2.5 font-sans text-sm",
               "appearance-none cursor-pointer focus:outline-none focus:border-gold",
               "transition-[border-color,box-shadow] duration-150",
-              "focus:[box-shadow:var(--glow-gold-sm)]",
+              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               className
             )}
             {...props}

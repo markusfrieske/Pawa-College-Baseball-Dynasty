@@ -45,3 +45,8 @@ Final focused verification confirmed keyboard focus stays on the changed categor
 Art was generated with the built-in image tool. [PROMPTS.md](PROMPTS.md) preserves the prompts and refinement notes. Font specimen/source links are in [DECISIONS.md](DECISIONS.md); prototype fonts load from Google Fonts, and production fonts should be self-hosted with their licenses.
 
 Next, review the proposed mix in a polished Today/Player/Report concept slice, followed by a reusable 24-character sheet at roster/profile sizes and desktop/phone/focus/contrast checks. Production visual migration remains pending approval. Keep unfinished decisions explicit; backend integrity work can continue independently.
+
+
+## September 18 production rollout and cinematic review
+
+Frisk approved implementing the selected direction in the game. See [production changes and verification](../2026-09-18/ROLLOUT.md). Compare four playable joining ceremonies and forty design choices in the [Arrival Cinema Lab](reveal.html); the new ceremony remains a proposal.

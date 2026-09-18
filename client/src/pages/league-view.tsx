@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -424,7 +425,7 @@ export default function LeagueViewPage() {
         return (
           <div
             className="relative overflow-hidden border-b"
-            style={{ height: "clamp(240px, 24vw, 380px)", borderColor: "rgba(202,168,84,0.22)", background: "#102414" }}
+            style={{ height: "clamp(152px, 15vw, 216px)", borderColor: "rgba(202,168,84,0.22)", background: "#102414" }}
             data-testid="hub-hero"
           >
             {/* Desktop image */}
@@ -451,7 +452,7 @@ export default function LeagueViewPage() {
               className="absolute inset-0 pointer-events-none"
               aria-hidden="true"
               style={{
-                background: "linear-gradient(to bottom, rgba(8,18,10,0.04), rgba(8,18,10,0.18)), linear-gradient(to top, rgba(8,18,10,0.55), rgba(8,18,10,0))",
+                background: "linear-gradient(90deg, rgba(10,30,25,0.92), rgba(10,30,25,0.45) 58%, rgba(10,30,25,0.08)), linear-gradient(0deg, rgba(10,30,25,0.6), transparent)",
               }}
             />
             {/* Text panel — bottom-left, sits in the gradient fade zone */}
@@ -469,7 +470,7 @@ export default function LeagueViewPage() {
                     </p>
                   )}
                   <h2
-                    className="text-gold text-sm sm:text-base leading-snug truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
+                    className="text-foreground font-display text-xl sm:text-3xl leading-snug truncate drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]"
                     data-testid="text-hub-season"
                   >
                     Season {league.currentSeason} · Week {league.currentWeek}
@@ -503,6 +504,31 @@ export default function LeagueViewPage() {
 
       <main className="container mx-auto px-4 py-4 pb-20 md:pb-6">
 
+        <section aria-label="Matchday brief" className="mb-5" data-testid="matchday-brief">
+          <div className="flex items-center justify-between mb-3 gap-3"><h2 className="font-display text-lg font-semibold">{["regular_season", "preseason", "spring_training", "conference_championship", "super_regionals", "cws"].includes(league.currentPhase) ? "Your matchday brief" : "Your coaching brief"}</h2><span className="text-xs text-muted-foreground">{phaseLabels[league.currentPhase]}</span></div>
+          <div className="grid gap-4 lg:grid-cols-2 items-start">
+            {!myTeam && <RetroCard className="p-4"><h3 className="font-display font-semibold mb-2">{phaseLabels[league.currentPhase]}</h3><p className="text-sm text-muted-foreground mb-3">Follow the league and review the next steps for this phase.</p><Link href={isCommissioner ? `/league/${id}/commissioner` : `/league/${id}/schedule`}><RetroButton>{isCommissioner ? "League operations" : "Open schedule"}</RetroButton></Link></RetroCard>}
+            <PrimaryPhaseCTA
+              leagueId={id!}
+              league={league}
+              myTeam={myTeam ?? undefined}
+              currentUserId={currentUser?.id}
+              isCommissioner={isCommissioner}
+              lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
+            />
+            <WeeklyOpponentCard leagueId={id!} league={league} myTeam={myTeam ?? undefined} />
+          </div>
+        </section>
+        <details className="group mb-4 rounded-xl border border-border bg-card/60 px-4"><summary className="cursor-pointer min-h-11 py-3 font-display text-sm font-semibold">Explore your program</summary>
+        <NavDock
+          leagueId={id!}
+          userTeam={myTeam ?? undefined}
+          isCommissioner={isCommissioner}
+          storylinePendingVotes={storylinePendingVotes}
+          showLineupBanner={showLineupBanner}
+        />
+        </details>
+
         {/* Digest strip — full width, collapsed chip row */}
         <SinceLastAdvanceWidget leagueId={league.id} />
 
@@ -526,7 +552,8 @@ export default function LeagueViewPage() {
             </Link>
             <button
               onClick={dismissLineupBanner}
-              className="text-yellow-400/60 hover:text-yellow-300 transition-colors"
+              aria-label="Dismiss lineup reminder"
+              className="min-w-11 min-h-11 inline-flex items-center justify-center text-yellow-400/60 hover:text-yellow-300 transition-colors"
               data-testid="button-dismiss-lineup-banner"
             >
               <X className="w-4 h-4" />
@@ -560,14 +587,7 @@ export default function LeagueViewPage() {
               pendingVoteCount={storylinePendingVotes}
             />
 
-            <PrimaryPhaseCTA
-              leagueId={id!}
-              league={league}
-              myTeam={myTeam ?? undefined}
-              currentUserId={currentUser?.id}
-              isCommissioner={isCommissioner}
-              lineupIncomplete={ownBattingIncomplete || ownPitchingIncomplete}
-            />
+
 
             <NeedsAttentionPanel
               leagueId={id!}
@@ -623,7 +643,7 @@ export default function LeagueViewPage() {
           <div className="lg:col-span-5 space-y-4">
             <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
 
-            <WeeklyOpponentCard leagueId={id!} league={league} myTeam={myTeam ?? undefined} />
+
 
             {overview && (
               <>
@@ -666,6 +686,7 @@ export default function LeagueViewPage() {
           </div>
         </div>
 
+        <details className="group mb-5 rounded-xl border border-border bg-card/60 p-4"><summary className="cursor-pointer min-h-11 flex items-center font-display font-semibold text-sm">League stories & scouting pulse <ChevronDown className="ml-auto h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true"/></summary>
         {/* ─── LEAGUE NEWSROOM ──────────────────────────────────────── */}
         <div className="mt-4">
           <NewsroomPanel
@@ -678,13 +699,7 @@ export default function LeagueViewPage() {
         </div>
 
         {/* ─── NAVIGATION DOCK — immediately below newsroom ────────── */}
-        <NavDock
-          leagueId={id!}
-          userTeam={myTeam ?? undefined}
-          isCommissioner={isCommissioner}
-          storylinePendingVotes={storylinePendingVotes}
-          showLineupBanner={showLineupBanner}
-        />
+
 
         {/* ─── STATS / RANKINGS / PROSPECTS ROW ───────────────────── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
@@ -692,6 +707,8 @@ export default function LeagueViewPage() {
           <PowerRankingsWidget leagueId={id!} />
           <TopProspectsWidget leagueId={id!} />
         </div>
+
+        </details>
 
         {/* ─── DETAIL TABS (deep-dive views) ───────────────────────── */}
         <Tabs value={homeTab} onValueChange={setHomeTab} className="space-y-4">

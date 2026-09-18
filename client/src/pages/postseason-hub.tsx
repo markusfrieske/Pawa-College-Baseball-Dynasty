@@ -1028,8 +1028,10 @@ export default function PostseasonHubPage() {
         mobileSrc={artBackgrounds.postseason.mobile}
         focalPoint="center top"
         overlayStrength="heavy"
-        className="h-36 sm:h-52"
-      />
+        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
+      >
+        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">The championship path</p><p className="mt-1 text-sm text-foreground/80">Every round is part of your program’s story.</p></div>
+      </ArtworkBackground>
 
       {isLoading && (
         <div className="p-4 space-y-4">

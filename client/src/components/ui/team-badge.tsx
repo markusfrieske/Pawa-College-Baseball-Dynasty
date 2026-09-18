@@ -42,7 +42,7 @@ export function TeamBadge({
     lg: "w-16 h-16",
   };
 
-  // Truncate to fit the circle at each size
+  // Compact athletic lettermarks; the complete team name stays available to assistive technology.
   const displayAbbr = size === "xs"
     ? (abbreviation?.slice(0, 2) ?? "")
     : size === "sm"
@@ -52,16 +52,18 @@ export function TeamBadge({
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-sans font-bold border-2 shrink-0 overflow-hidden",
+        "varsity-monogram flex items-center justify-center font-extrabold border-2 shrink-0 overflow-hidden",
         sizes[size],
         className,
       )}
       style={{
         backgroundColor: primaryColor,
         borderColor: secondaryColor || primaryColor,
-        color: isLightColor(primaryColor) ? "#1a2b1a" : "#ffffff",
+        color: isLightColor(primaryColor) ? "#10231c" : "#ffffff",
       }}
       aria-label={name ?? abbreviation}
+      role="img"
+      title={name ?? abbreviation}
       data-testid="team-badge-letter"
     >
       <span className={cn("leading-none text-center", abbrFontSize(displayAbbr?.length ?? 0, size))}>
@@ -72,10 +74,15 @@ export function TeamBadge({
 }
 
 function isLightColor(color: string): boolean {
-  const hex = color.replace("#", "");
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-  return brightness > 128;
+  const value = color.replace("#", "");
+  const hex = value.length === 3 ? [...value].map(c => c + c).join("") : value;
+  if (!/^[\da-f]{6}$/i.test(hex)) return false;
+  const channels = [0, 2, 4].map(offset => {
+    const channel = parseInt(hex.slice(offset, offset + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance = channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  // Choose the stronger of white and the approved dark-forest ink.
+  const forestLuminance = 0.014;
+  return (luminance + 0.05) / (forestLuminance + 0.05) > 1.05 / (luminance + 0.05);
 }

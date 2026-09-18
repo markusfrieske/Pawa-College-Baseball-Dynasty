@@ -1,173 +1,46 @@
-import warRoomDesktop from "@assets/War_Room_Dekstop_1783727749986.png";
-import warRoomMobile from "@assets/War_Room_Mobile_1783727756882.png";
-import recruitingDesktop from "@assets/Recruiting_Desktop_1783727759422.png";
-import recruitingMobile from "@assets/Recruiting_Mobile_1783727762233.png";
-import recruitProfileField from "@assets/Recruit_Profile_page_1783727765031.png";
-import opponentPreviewDay from "@assets/Opponent_Preview_1783727767428.png";
-import opponentPreviewNight from "@assets/Opponent_Preview_Night_1783727769652.png";
-import reportingDesktop from "@assets/Game_Reporting_Desktop_1783727771864.png";
-import reportingMobile from "@assets/Game_Reporting_Mobile_1783727774568.png";
-import commissionerCenter from "@assets/Commissioner_Command_Center_1783727776490.png";
-import statsArchive from "@assets/Stats_Record_Book_and_History_1783727778819.png";
-import postseasonChampionship from "@assets/Postseason_championship_1783727780827.png";
-import offseasonPlanningRoom from "@assets/Pffseason_and_recruiting_class_creator_1783727783289.png";
+import campus from '@/assets/art/varsity-campus.png';
 
-import storyDormRoom from "@assets/Dorm_Room_1783727785289.png";
-import storyClassroom from "@assets/Classroom_1783727787423.png";
-import storyRestaurant from "@assets/Restaraunt_1783727822213.png";
-import storyBeach from "@assets/Beach_1783727824561.png";
-import storyTrainingField from "@assets/Training_1783727833771.png";
-import storyInjury from "@assets/Injury_1783727840047.png";
-import storyPositionChange from "@assets/Position_Change_1783727847021.png";
-import storyLeavesPool from "@assets/Player_leaves_recruit_pool_1783727852320.png";
-
+// One continuous approved campus plate establishes place across the game.
+// Context is supplied by live page copy, never baked into the artwork.
+const campusScene = (focalPoint = 'center 60%') => ({ desktop: campus, mobile: campus,
+  alt: 'Miniature college campus and baseball field at golden hour', focalPoint });
 export const artBackgrounds = {
-  leagueWarRoom: {
-    desktop: warRoomDesktop,
-    mobile: warRoomMobile,
-    alt: "Coach war room with baseball planning board and laptop",
-    focalPoint: "center center",
-  },
-  recruiting: {
-    desktop: recruitingDesktop,
-    mobile: recruitingMobile,
-    alt: "Recruiting classroom with baseball diagrams on chalkboard",
-    focalPoint: "center top",
-  },
-  recruitProfile: {
-    desktop: recruitProfileField,
-    mobile: recruitProfileField,
-    alt: "Baseball training field at sunset",
-    focalPoint: "center center",
-  },
-  scheduleDay: {
-    desktop: opponentPreviewDay,
-    mobile: opponentPreviewDay,
-    alt: "College baseball field during the day",
-    focalPoint: "center bottom",
-  },
-  scheduleNight: {
-    desktop: opponentPreviewNight,
-    mobile: opponentPreviewNight,
-    alt: "College baseball stadium lit up at night",
-    focalPoint: "center bottom",
-  },
-  reporting: {
-    desktop: reportingDesktop,
-    mobile: reportingMobile,
-    alt: "Scorekeeper desk with laptop and baseball scoresheets",
-    focalPoint: "center center",
-  },
-  commissioner: {
-    desktop: commissionerCenter,
-    mobile: commissionerCenter,
-    alt: "Commissioner command center with bracket whiteboard and pennants",
-    focalPoint: "center center",
-  },
-  stats: {
-    desktop: statsArchive,
-    mobile: statsArchive,
-    alt: "Baseball trophy room and records archive",
-    focalPoint: "left center",
-  },
-  postseason: {
-    desktop: postseasonChampionship,
-    mobile: postseasonChampionship,
-    alt: "Championship trophy on baseball field at sunset",
-    focalPoint: "center center",
-  },
-  offseason: {
-    desktop: offseasonPlanningRoom,
-    mobile: offseasonPlanningRoom,
-    alt: "Baseball team meeting room with whiteboard and conference table",
-    focalPoint: "center center",
-  },
+  leagueWarRoom: campusScene(), recruiting: campusScene('25% 50%'),
+  recruitProfile: campusScene('75% 65%'), scheduleDay: campusScene('75% 65%'),
+  scheduleNight: campusScene('75% 65%'), reporting: campusScene('75% 75%'),
+  commissioner: campusScene('20% 60%'), stats: campusScene('20% 70%'),
+  postseason: campusScene('75% 65%'), offseason: campusScene('20% 55%'),
 };
-
-// ─── League Hub Seasonal Banners ────────────────────────────────────────────
-
-export type LeagueHubBannerKey =
-  | "springTraining"
-  | "regularSeason"
-  | "conferenceChampionship"
-  | "superRegionals"
-  | "collegeWorldSeries"
-  | "offseason";
-
-export const LEAGUE_HUB_BANNERS: Record<
-  LeagueHubBannerKey,
-  { src: string; alt: string; desktopPosition: string; mobilePosition: string }
-> = {
-  springTraining: {
-    src: "/images/league-hub-banners/league-hub-banner-spring-training-v1.png",
-    alt: "Spring training coach office overlooking a baseball stadium",
-    desktopPosition: "center 48%",
-    mobilePosition: "center 50%",
-  },
-  regularSeason: {
-    src: "/images/league-hub-banners/league-hub-banner-week-1-5-friday-night-v1.png",
-    alt: "Friday night college baseball stadium under the lights",
-    desktopPosition: "center 48%",
-    mobilePosition: "center 50%",
-  },
-  conferenceChampionship: {
-    src: "/images/league-hub-banners/league-hub-banner-conference-championship-trophy-room-v1.png",
-    alt: "Conference championship trophy room",
-    desktopPosition: "42% 50%",
-    mobilePosition: "45% 50%",
-  },
-  superRegionals: {
-    src: "/images/league-hub-banners/league-hub-banner-super-regionals-press-conference-v1.png",
-    alt: "Super Regionals press conference podium with camera flashes",
-    desktopPosition: "center 50%",
-    mobilePosition: "48% 50%",
-  },
-  collegeWorldSeries: {
-    src: "/images/league-hub-banners/league-hub-banner-college-world-series-omaha-aerial-v1.png",
-    alt: "College World Series championship stadium aerial",
-    desktopPosition: "center 48%",
-    mobilePosition: "center 50%",
-  },
-  offseason: {
-    src: "/images/league-hub-banners/league-hub-banner-offseason-board-room-v1.png",
-    alt: "Offseason baseball operations board room with depth charts",
-    desktopPosition: "center 50%",
-    mobilePosition: "center 50%",
-  },
-} as const;
-
-export function getLeagueHubBannerKey(phase: string, week: number): LeagueHubBannerKey {
+export type LeagueHubBannerKey = 'springTraining' | 'regularSeason' | 'conferenceChampionship' | 'superRegionals' | 'collegeWorldSeries' | 'offseason';
+const banner = { src: campus, alt: artBackgrounds.leagueWarRoom.alt, desktopPosition: 'center 57%', mobilePosition: '65% 60%' };
+export const LEAGUE_HUB_BANNERS: Record<LeagueHubBannerKey, typeof banner> = {
+  springTraining: banner, regularSeason: banner, conferenceChampionship: banner,
+  superRegionals: banner, collegeWorldSeries: banner, offseason: banner,
+};
+export function getLeagueHubBannerKey(phase: string, _week: number): LeagueHubBannerKey {
   const p = phase.toLowerCase();
-
-  if (p === "cws") return "collegeWorldSeries";
-  if (p === "super_regionals") return "superRegionals";
-  if (p === "conference_championship") return "conferenceChampionship";
-  if (p === "regular_season") return "regularSeason";
-  if (p === "preseason" || p === "spring_training") return "springTraining";
-  if (p.startsWith("offseason") || p === "dynasty_setup") return "offseason";
-
-  return "springTraining";
+  if (p === 'cws') return 'collegeWorldSeries';
+  if (p === 'super_regionals') return 'superRegionals';
+  if (p === 'conference_championship') return 'conferenceChampionship';
+  if (p === 'regular_season') return 'regularSeason';
+  if (p.startsWith('offseason') || p === 'dynasty_setup') return 'offseason';
+  return 'springTraining';
 }
 
+// Quiet editorial emblems for story categories. These identify the category,
+// not a fictional depiction of the event or an unearned award.
+const emblem = (paths: string) => 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><rect width="640" height="360" fill="#17392f"/><path d="M0 330L460 0h180v360H0Z" fill="#214b3e"/><circle cx="320" cy="180" r="100" fill="#102c25" stroke="#c5ab71" stroke-width="2"/><g transform="translate(272 132)" fill="none" stroke="#e8ddbf" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${paths}</g></svg>`);
+const home = emblem('<path d="M12 44L48 14l36 30M22 39v43h52V39M40 82V58h16v24"/>');
+const book = emblem('<path d="M48 24Q29 12 12 22v55q20-10 36 0 16-10 36 0V22Q66 12 48 24v53"/>');
+const people = emblem('<circle cx="34" cy="30" r="12"/><circle cx="68" cy="36" r="10"/><path d="M10 78V65q0-18 24-18t24 18v13M61 54q23 0 23 20v4"/>');
+const field = emblem('<path d="M48 12L86 50 48 88 10 50ZM48 50L66 68 48 86 30 68Z"/><circle cx="48" cy="66" r="3"/>');
+const health = emblem('<path d="M36 16h24v20h20v24H60v20H36V60H16V36h20Z"/>');
+const travel = emblem('<path d="M14 75h68M24 68V35h48v33M38 35V23h20v12M38 46v11M58 46v11"/>');
+const change = emblem('<path d="M16 30h62L65 17M78 30L65 43M80 66H18l13-13M18 66l13 13"/>');
 export const storylineArt: Record<string, string> = {
-  personal: storyDormRoom,
-  work_ethic: storyDormRoom,
-  academics: storyClassroom,
-  eligibility: storyClassroom,
-  family: storyRestaurant,
-  mentor: storyRestaurant,
-  showcase: storyBeach,
-  travel_ball: storyBeach,
-  scouting: storyTrainingField,
-  rating_reveal: storyTrainingField,
-  injury: storyInjury,
-  recovery: storyInjury,
-  position_change: storyPositionChange,
-  exit: storyLeavesPool,
-  leaves_pool: storyLeavesPool,
-  default: storyTrainingField,
+  personal: home, work_ethic: home, academics: book, eligibility: book,
+  family: people, mentor: people, showcase: field, travel_ball: travel,
+  scouting: field, rating_reveal: field, injury: health, recovery: health,
+  position_change: change, exit: travel, leaves_pool: travel, default: field,
 };
-
-export function getStorylineArt(type: string): string {
-  return storylineArt[type] ?? storylineArt.default;
-}
+export function getStorylineArt(type: string): string { return storylineArt[type] ?? storylineArt.default; }

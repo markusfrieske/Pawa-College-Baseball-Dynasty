@@ -136,8 +136,10 @@ export default function StatsPage() {
         mobileSrc={artBackgrounds.stats.mobile}
         focalPoint="center center"
         overlayStrength="heavy"
-        className="h-28 sm:h-40"
-      />
+        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
+      >
+        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">The record room</p><p className="mt-1 text-sm text-foreground/80">Follow the performances that define your program.</p></div>
+      </ArtworkBackground>
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center gap-3">
           <Link href={`/league/${leagueId}`}>

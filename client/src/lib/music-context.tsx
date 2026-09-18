@@ -89,8 +89,8 @@ function getStoredVolume(): number {
 }
 
 function getStoredMuted(): boolean {
-  try { return localStorage.getItem(STORAGE_KEY_MUTED) === "true"; } catch {}
-  return false;
+  try { return localStorage.getItem(STORAGE_KEY_MUTED) !== "false"; } catch {}
+  return true;
 }
 
 // Returns a promise that resolves as soon as the audio element fires

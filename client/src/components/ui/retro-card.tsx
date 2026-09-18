@@ -14,33 +14,22 @@ interface RetroCardProps {
 export function RetroCard({ children, className, variant = "default", style, "data-testid": testId, onClick, id }: RetroCardProps) {
   const variants = {
     default: "bg-card border-card-border",
-    highlighted: "bg-card border-gold",
-    bordered: "bg-transparent border-gold",
-    cinematic: "border-gold/60",
+    highlighted: "bg-card border-primary/70",
+    bordered: "bg-transparent border-primary/60",
+    cinematic: "bg-card border-primary/40",
   };
 
-  const glowStyles: Record<string, React.CSSProperties> = {
-    default: {
-      background: "radial-gradient(ellipse at 50% 0%, hsl(120 22% 17%) 0%, hsl(120 22% 14%) 60%)",
-      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04), inset 0 -1px 0 rgba(0,0,0,0.15), 0 2px 4px rgba(0,0,0,0.25)",
-    },
-    highlighted: {
-      background: "radial-gradient(ellipse at 50% 0%, hsl(120 22% 17%) 0%, hsl(120 22% 14%) 60%)",
-      boxShadow: "var(--glow-gold), inset 0 1px 0 rgba(255,255,255,0.04)",
-    },
-    bordered: {},
+  const surfaceStyles: Partial<Record<typeof variant, React.CSSProperties>> = {
     cinematic: {
-      background: "linear-gradient(135deg, hsl(120 22% 16%) 0%, hsl(120 18% 12%) 100%)",
-      borderTop: "1px solid rgba(196,163,90,0.6)",
-      boxShadow: "inset 0 2px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), 0 4px 12px rgba(0,0,0,0.35)",
+      background: "linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--card)))",
     },
   };
 
   return (
     <div
       id={id}
-      className={cn("border-2 p-4", variants[variant], className)}
-      style={{ ...glowStyles[variant], ...style }}
+      className={cn("rounded-lg border p-4 sm:p-5", variants[variant], className)}
+      style={{ ...surfaceStyles[variant], ...style }}
       data-testid={testId}
       onClick={onClick}
     >
@@ -56,7 +45,7 @@ interface RetroCardHeaderProps {
 
 export function RetroCardHeader({ children, className }: RetroCardHeaderProps) {
   return (
-    <div className={cn("font-display font-bold text-gold text-base tracking-[0.02em] mb-3", className)}>
+    <div className={cn("font-display font-semibold text-foreground text-base tracking-tight mb-4", className)}>
       {children}
     </div>
   );

@@ -11,7 +11,7 @@ import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
 import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanner } from "@/components/atmosphere-provider";
 import { AtmosphereRouter } from "@/components/atmosphere-router";
-import { MobileNav } from "@/components/mobile-nav";
+import { VarsityShell } from "@/components/varsity-shell";
 import { OfflineBanner } from "@/components/offline-banner";
 import { useToast } from "@/hooks/use-toast";
 import { usePresence } from "@/hooks/use-presence";
@@ -260,10 +260,9 @@ function App() {
             </div>
             <OfflineBanner />
             <Toaster />
-            <MobileNav />
             <div className="mobile-content-safe">
               <ErrorBoundary>
-                <Router />
+                <VarsityShell><Router /></VarsityShell>
               </ErrorBoundary>
             </div>
           </MusicProvider>

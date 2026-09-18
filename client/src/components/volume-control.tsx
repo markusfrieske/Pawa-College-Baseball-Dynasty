@@ -37,9 +37,11 @@ export function VolumeControl() {
             e.preventDefault();
             toggleMute();
           }}
-          className="flex items-center justify-center w-9 h-9 rounded-md text-[#c8aa6e] hover-elevate active-elevate-2 transition-colors"
+          className="flex items-center justify-center w-11 h-11 rounded-md text-[#c8aa6e] hover-elevate active-elevate-2 transition-colors"
           data-testid="button-mute-toggle"
-          title={muted ? "Unmute" : "Mute"}
+          title={muted ? "Enable sound" : "Mute sound"}
+          aria-label={muted ? "Enable sound" : "Mute sound"}
+          aria-pressed={!muted}
         >
           <VolumeIcon className="w-5 h-5 pointer-events-none" />
         </button>
@@ -48,9 +50,11 @@ export function VolumeControl() {
             e.preventDefault();
             setShowSlider((v) => !v);
           }}
-          className="flex items-center justify-center w-5 h-9 rounded-md text-[#c8aa6e]/60 hover-elevate active-elevate-2 transition-colors"
+          className="flex items-center justify-center w-11 h-11 rounded-md text-[#c8aa6e]/60 hover-elevate active-elevate-2 transition-colors"
           data-testid="button-volume-expand"
           title="Volume slider"
+          aria-label="Volume settings"
+          aria-expanded={showSlider}
         >
           <SliderChevron className="w-3.5 h-3.5 pointer-events-none" />
         </button>
@@ -68,6 +72,7 @@ export function VolumeControl() {
         </span>
         <input
           type="range"
+          aria-label="Sound volume"
           min={0}
           max={1}
           step={0.05}

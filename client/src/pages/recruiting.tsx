@@ -810,8 +810,10 @@ export default function RecruitingPage() {
         mobileSrc={artBackgrounds.recruiting.mobile}
         focalPoint="center center"
         overlayStrength="heavy"
-        className="h-28 sm:h-40"
-      />
+        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
+      >
+        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">Recruiting desk</p><p className="mt-1 text-sm text-foreground/80">Find your next cornerstone. Scout, compare, and build relationships.</p></div>
+      </ArtworkBackground>
 
       {isMobile ? (
         <>
@@ -2055,7 +2057,7 @@ export default function RecruitingPage() {
               </div>
             )}
             <div className="text-center">
-              <h3 className="font-['Press_Start_2P'] text-sm text-[#c8aa6e]" data-testid="action-result-title">
+              <h3 className="font-display text-sm text-[#c8aa6e]" data-testid="action-result-title">
                 {actionResultModal?.title}
               </h3>
               <p className="mt-2 text-sm text-gray-300" data-testid="action-result-description">
@@ -2078,7 +2080,7 @@ export default function RecruitingPage() {
       <Dialog open={showAutoPilotLog} onOpenChange={(open) => { if (!open) dismissAutoPilotLogMutation.mutate(); }}>
         <DialogContent className="max-w-lg border-2 border-[#1a3a1a] bg-[#0d1f0d] max-h-[80vh] overflow-y-auto" data-testid="auto-pilot-log-modal">
           <DialogHeader>
-            <DialogTitle className="font-['Press_Start_2P'] text-[#c8aa6e] text-sm flex items-center gap-2">
+            <DialogTitle className="font-display text-[#c8aa6e] text-sm flex items-center gap-2">
               <Zap className="w-4 h-4" />
               CPU Activity Report
             </DialogTitle>

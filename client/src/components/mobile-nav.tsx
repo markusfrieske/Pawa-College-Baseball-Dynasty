@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { VarsityIcon } from "./ui/varsity-icon";
 import { useLocation, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Home, Users, Target, Calendar, Menu, BarChart3, Newspaper,
+  BarChart3, Newspaper,
   BookOpen, Sparkles, UserCircle, Settings, ShieldCheck, Trophy, Rss,
   Inbox,
 } from "lucide-react";
@@ -55,10 +56,10 @@ export function MobileNav() {
     !!currentUser && !!league && (currentUser.id === league.commissionerId || coCommIds.includes(currentUser.id));
 
   const primaryTabs = [
-    { href: leagueBase, icon: Home, label: "Hub", testId: "mobile-nav-hub", exact: true, alsoActive: undefined },
-    { href: `${leagueBase}/recruiting`, icon: Target, label: "Recruit", testId: "mobile-nav-recruiting", exact: false, alsoActive: undefined },
-    { href: `${leagueBase}/schedule`, icon: Calendar, label: "Games", testId: "mobile-nav-games", exact: false, alsoActive: undefined },
-    { href: `${leagueBase}/roster`, icon: Users, label: "Roster", testId: "mobile-nav-roster", exact: false, alsoActive: undefined },
+    { href: leagueBase, label: "Hub", testId: "mobile-nav-hub", exact: true, alsoActive: undefined },
+    { href: `${leagueBase}/recruiting`, label: "Recruit", testId: "mobile-nav-recruiting", exact: false, alsoActive: undefined },
+    { href: `${leagueBase}/schedule`, label: "Games", testId: "mobile-nav-games", exact: false, alsoActive: undefined },
+    { href: `${leagueBase}/roster`, label: "Roster", testId: "mobile-nav-roster", exact: false, alsoActive: undefined },
   ] as const;
 
   const moreItems = [
@@ -88,24 +89,26 @@ export function MobileNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[100] md:hidden bg-card border-t border-border"
+        className="varsity-mobile-nav fixed bottom-0 left-0 right-0 z-40 md:hidden bg-sidebar border-t border-border shadow-lg"
+        aria-label="League navigation"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         data-testid="mobile-nav"
       >
         <div className="grid grid-cols-5 h-16">
-          {primaryTabs.map(({ href, icon: Icon, label, testId, exact, alsoActive }) => {
+          {primaryTabs.map(({ href, label, testId, exact, alsoActive }) => {
             const isActive = exact ? location === href : (location.startsWith(href) || (!!alsoActive && location === alsoActive));
             return (
               <Link
                 key={href}
                 href={href}
                 aria-label={label}
-                className={`flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors active:bg-white/5 min-h-[44px] ${
+                aria-current={isActive ? "page" : undefined}
+                className={`flex flex-col items-center justify-center gap-1.5 w-full h-full transition-colors active:bg-white/5 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                   isActive ? "text-gold" : "text-muted-foreground hover:text-foreground"
                 }`}
                 data-testid={testId}
               >
-                <Icon className="w-5 h-5" />
+                <VarsityIcon name={label} />
                 <span className="text-xs leading-none font-medium">{label}</span>
               </Link>
             );
@@ -114,14 +117,17 @@ export function MobileNav() {
           <button
             type="button"
             aria-label="More"
+            aria-expanded={moreOpen}
+            aria-haspopup="dialog"
+            aria-current={isMoreActive ? "page" : undefined}
             onClick={() => setMoreOpen(true)}
-            className={`relative flex flex-col items-center justify-center gap-0.5 w-full h-full transition-colors active:bg-white/5 min-h-[44px] ${
+            className={`relative flex flex-col items-center justify-center gap-1.5 w-full h-full transition-colors active:bg-white/5 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
               isMoreActive ? "text-gold" : "text-muted-foreground hover:text-foreground"
             }`}
             data-testid="mobile-nav-more"
           >
             <span className="relative">
-              <Menu className="w-5 h-5" />
+              <VarsityIcon name="More" />
               {unreadInbox > 0 && (
                 <span
                   className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-gold text-xs font-bold text-black leading-none"
@@ -140,7 +146,7 @@ export function MobileNav() {
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto" style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }} data-testid="sheet-more-menu">
           <SheetHeader>
-            <SheetTitle className="text-xs font-semibold text-gold">More</SheetTitle>
+            <SheetTitle className="font-display text-lg font-semibold text-foreground">Your clubhouse</SheetTitle>
             <SheetDescription className="sr-only">Additional navigation links</SheetDescription>
           </SheetHeader>
           <div className="mt-4 space-y-1">

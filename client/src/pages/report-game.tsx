@@ -870,8 +870,10 @@ function ReportGameInner() {
         mobileSrc={artBackgrounds.reporting.mobile}
         focalPoint="center center"
         overlayStrength="heavy"
-        className="h-24 sm:h-36"
-      />
+        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
+      >
+        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">Bring the game back here</p><p className="mt-1 text-sm text-foreground/80">{phase === "submitted" ? "Your report status and next steps are below." : isEditMode ? "Review and correct the recorded Power Pros result." : "Record your Power Pros result, review it, then submit."}</p></div>
+      </ArtworkBackground>
 
       <main className="container mx-auto px-4 py-5 max-w-lg space-y-4 pb-20 md:pb-8">
 
