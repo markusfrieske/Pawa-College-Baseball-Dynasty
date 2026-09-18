@@ -27,13 +27,31 @@ if (process.argv.includes("--http-child")) {
   const { createServer } = await import("node:http");
   const { registerRoutes } = await import("../server/routes");
   const { storage } = await import("../server/storage");
-  const { finalizeReportedGame, finalizeGameAtomic } = await import("../server/game-finalizer");
+  const { finalizeReportedGame, finalizeGameAtomic, flushCoachXp } = await import("../server/game-finalizer");
   const { publicErrorHandler } = await import("../server/lib/httpErrors");
   const app = express(); app.use(express.json());
   const server = createServer(app);
   await registerRoutes(server, app);
   app.use(publicErrorHandler);
+  const effectsAccum = new Map();
   process.on("message", async (message: any) => {
+    if (message?.kind === "effects-finalize" || message?.kind === "effects-flush") {
+      try {
+        if (message.kind === "effects-flush") await flushCoachXp(effectsAccum);
+        else await Promise.all(message.games.map(async (request: any) => {
+          const game = await storage.getGame(request.gameId); assert(game);
+          await finalizeGameAtomic(game, request.homeScore ?? 2, request.awayScore ?? 1, request.box ?? null, game.leagueId, {
+            skipPlayerStats: !request.box, skipPitcherRest: true, finalizer: "synthetic-coach-effects",
+            ...(request.accumulate ? { coachXpAccum: effectsAccum } : {}),
+            ...(request.skipCoachXp ? { skipCoachXp: true } : {}),
+          });
+        }));
+        process.send?.({ kind: "effects-result", error: null, accumulator: [...effectsAccum] });
+      } catch (error) {
+        process.send?.({ kind: "effects-result", error: error instanceof Error ? error.constructor.name : "UnknownError", accumulator: [...effectsAccum] });
+      }
+      return;
+    }
     if (!["direct-finalize", "generic-finalize"].includes(message?.kind)) return;
     try {
       const game = await storage.getGame(message.gameId);
@@ -60,7 +78,7 @@ if (process.argv.includes("--http-child")) {
   let origin = "", cookie = "", checks = 0;
   let childErrors = "";
   const sessionSecret = randomUUID() + randomUUID();
-  const equal = (actual: unknown, expected: unknown, label: string) => { assert.deepEqual(actual, expected, label); checks++; };
+  const equal = (actual: unknown, expected: unknown, label: string) => { try { assert.deepEqual(actual, expected, label); checks++; } catch (error) { console.error(childErrors); throw error; } };
   const invoke = async (route: string, method = "GET", body?: unknown) => {
     const response = await fetch(origin + route, { method, signal: AbortSignal.timeout(15000),
       headers: { "X-Forwarded-Proto": "https", Cookie: cookie, "Content-Type": "application/json" },
@@ -220,6 +238,7 @@ if (process.argv.includes("--http-child")) {
     // Exercise the real upgrade from the original required summary columns,
     // with existing reports present, rather than relying only on a fresh schema.
     const reportDataBeforeUpgrade = (await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows;
+    await pool.query("DROP TABLE game_coach_effects");
     await pool.query("DROP TABLE game_report_revisions CASCADE");
     for (const column of ["report_revision_id", "report_id", "requested_edit_version", "accepted_by_user_id", "report_action", "report_resolution"]) {
       await pool.query(`ALTER TABLE game_finalizations DROP COLUMN ${column}`);
@@ -228,11 +247,12 @@ if (process.argv.includes("--http-child")) {
       await pool.query(`ALTER TABLE game_reports ALTER COLUMN ${column} SET NOT NULL`);
     }
     await pool.query("ALTER TABLE game_reports DROP COLUMN edit_version");
-    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version','0052_report_history')");
+    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version','0052_report_history','0053_game_coach_effects')");
     equal(await checkMigrationVersion(pool), false, "Schema readiness fails before the required unknown-summary migration");
     const upgraded = await runMigrations(pool);
-    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version", "0052_report_history"], "Populated database upgrades all missing report migrations in order");
-    equal(upgraded.version, "0052_report_history", "Report-history migration is the recorded schema head");
+    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version", "0052_report_history", "0053_game_coach_effects"], "Populated database upgrades all missing report migrations in order");
+    equal(upgraded.version, "0053_game_coach_effects", "Coach-effects migration is the recorded schema head");
+    equal((await pool.query("SELECT * FROM game_coach_effects")).rows, [], "Migration does not invent coach-effect attribution for legacy finalizations");
     equal(await checkMigrationVersion(pool), true, "Schema readiness succeeds after the required migration is recorded");
     equal((await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows, reportDataBeforeUpgrade, "Report upgrades preserve all existing report data intact");
     equal((await pool.query("SELECT DISTINCT edit_version FROM game_reports")).rows, [{ edit_version: 1 }], "Edit-version migration backfills existing reports to version one");
@@ -860,6 +880,128 @@ if (process.argv.includes("--http-child")) {
       await pool.query("UPDATE teams SET is_cpu=false WHERE id='home'");
     }
     cookie = primary.cookie;
+    // Atomic simulation and reported acceptance must persist coach effects with
+    // their result receipt, including callers that still pass a batch map.
+    for (const [side, coachId] of [["home", "coach-effects-a"], ["away", "coach-effects-b"]]) {
+      const actorId = "effects-user-" + side;
+      await pool.query("INSERT INTO users (id,email,password) VALUES ($1,$2,'synthetic-disabled')", [actorId, actorId + "@example.test"]);
+      await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ($1,'report-league',$2,'Owls','EFF','Test','IA',false)", ["effects-" + side, "Effects " + side]);
+      await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ($1,$2,$3,'report-league','Effects',$4)", [coachId, actorId, "effects-" + side, side]);
+      await pool.query("UPDATE teams SET coach_id=$1 WHERE id=$2", [coachId, "effects-" + side]);
+    }
+    await pool.query("UPDATE coaches SET xp=2980,level=1,skill_points=2,perks='{\"gm_tactician\":true}' WHERE id='coach-effects-a'");
+    const effectsGame = async (id: string, reversed = false, exhibition = false) => pool!.query(
+      "INSERT INTO games (id,league_id,season,week,home_team_id,away_team_id,phase,is_conference,game_type) VALUES ($1,'report-league',1,1,$2,$3,'regular',true,$4)",
+      [id, reversed ? "effects-away" : "effects-home", reversed ? "effects-home" : "effects-away", exhibition ? "exhibition" : "regular"]);
+    const effectsCall = (games: Array<{ gameId: string; accumulate?: boolean; skipCoachXp?: boolean; homeScore?: number; awayScore?: number; box?: unknown }>) => waitForMessage("effects-result", () => child!.send({ kind: "effects-finalize", games }));
+    const effectCoaches = async () => (await pool!.query("SELECT id,xp,level,skill_points,career_wins,career_losses,conf_wins,conf_losses FROM coaches WHERE id IN ('coach-effects-a','coach-effects-b') ORDER BY id")).rows;
+    await effectsGame("effects-accumulator");
+    const accumulatorResult = await effectsCall([{ gameId: "effects-accumulator", accumulate: true }]);
+    equal(accumulatorResult.error, null, "Atomic result succeeds while the caller supplies a batch accumulator");
+    equal(accumulatorResult.accumulator, [], "Atomic result leaves no unpersisted or duplicate coach deltas in the batch map");
+    equal(await effectCoaches(), [
+      { id: "coach-effects-a", xp: 3110, level: 4, skill_points: 5, career_wins: 1, career_losses: 0, conf_wins: 1, conf_losses: 0 },
+      { id: "coach-effects-b", xp: 20, level: 1, skill_points: 0, career_wins: 0, career_losses: 1, conf_wins: 0, conf_losses: 1 },
+    ], "Coach XP, conference tactician bonuses and every crossed skill-point level persist before any flush");
+    const firstEffects = (await pool.query("SELECT coach_id,xp_delta,wins_delta,losses_delta,conf_wins_delta,conf_losses_delta,skill_points_delta,before_state,after_state FROM game_coach_effects WHERE game_id='effects-accumulator' ORDER BY coach_id")).rows;
+    equal(firstEffects.map(row => [row.coach_id, row.xp_delta, row.wins_delta, row.losses_delta, row.conf_wins_delta, row.conf_losses_delta, row.skill_points_delta]), [
+      ["coach-effects-a", 130, 1, 0, 1, 0, 3], ["coach-effects-b", 20, 0, 1, 0, 1, 0],
+    ], "One durable effect per coach records actual awarded deltas including perk and skill gains");
+    equal(firstEffects.map(row => [row.before_state.xp, row.after_state.xp, row.before_state.level, row.after_state.level]), [[2980, 3110, 1, 4], [0, 20, 1, 1]], "Durable effects retain the actual before/after coaching observations");
+    const beforeEmptyFlush = await snapshot();
+    equal((await waitForMessage("effects-result", () => child!.send({ kind: "effects-flush" }))).error, null, "Compatibility batch flush remains safe after atomic finalization");
+    equal(await snapshot(), beforeEmptyFlush, "Flushing the atomic caller's accumulator cannot award the same effects twice");
+    await stopHttp(); await startHttp();
+    equal(await snapshot(), beforeEmptyFlush, "Coach effects and receipts survive loss of the accepting process without a flush");
+    equal((await effectsCall([{ gameId: "effects-accumulator", accumulate: true }])).error, null, "Atomic same-game replay succeeds after process restart");
+    equal(await snapshot(), beforeEmptyFlush, "Restarted result replay performs no writes to coaches, standings, rivalry or effects");
+
+    for (const id of ["effects-concurrent-a", "effects-concurrent-b"]) await effectsGame(id);
+    equal((await effectsCall([{ gameId: "effects-concurrent-a", accumulate: true }, { gameId: "effects-concurrent-b" }])).error, null, "Concurrent games for the same coaches both commit");
+    equal((await effectCoaches()).map(row => [row.xp, row.career_wins, row.career_losses]), [[3370, 3, 0], [60, 0, 3]], "Different-game concurrent wins and XP accumulate without a lost update");
+    await effectsGame("effects-reversed-a"); await effectsGame("effects-reversed-b", true);
+    equal((await effectsCall([{ gameId: "effects-reversed-a" }, { gameId: "effects-reversed-b", accumulate: true }])).error, null, "Opposite home/away ordering completes concurrently without deadlock");
+    equal((await effectCoaches()).map(row => [row.xp, row.career_wins, row.career_losses, row.conf_wins, row.conf_losses]), [[3520, 4, 1, 4, 1], [160, 1, 4, 1, 4]], "Reversed-home games retain both win and loss effects for each coach");
+    equal((await pool.query("SELECT team_id,wins,losses,conference_wins,conference_losses,runs_scored,runs_allowed FROM standings WHERE team_id IN ('effects-home','effects-away') ORDER BY team_id")).rows, [
+      { team_id: "effects-away", wins: 1, losses: 4, conference_wins: 1, conference_losses: 4, runs_scored: 6, runs_allowed: 9 },
+      { team_id: "effects-home", wins: 4, losses: 1, conference_wins: 4, conference_losses: 1, runs_scored: 9, runs_allowed: 6 },
+    ], "Cross-game transaction serialization preserves complete team standings");
+    equal((await pool.query("SELECT games_played,coach_a_wins,coach_b_wins,coach_a_runs_scored,coach_b_runs_scored FROM coach_rivalries WHERE coach_a_id='coach-effects-a' AND coach_b_id='coach-effects-b'")).rows, [
+      { games_played: 5, coach_a_wins: 4, coach_b_wins: 1, coach_a_runs_scored: 9, coach_b_runs_scored: 6 },
+    ], "Concurrent and accumulator results retain one coherent human-coach rivalry record");
+    equal(Number((await pool.query("SELECT count(*) FROM game_coach_effects WHERE coach_id IN ('coach-effects-a','coach-effects-b')")).rows[0].count), 10, "Five games produce exactly ten durable coach effects");
+
+    await effectsGame("effects-rivalry-record");
+    equal((await effectsCall([{ gameId: "effects-rivalry-record", homeScore: 8, awayScore: 1 }])).error, null, "A later result commits updated rivalry observations");
+    equal((await pool.query("SELECT games_played,coach_a_runs_scored,coach_b_runs_scored,last_meeting_coach_a_score,last_meeting_coach_b_score,biggest_win_margin,biggest_win_coach_id,last_meeting_winner_id FROM coach_rivalries WHERE coach_a_id='coach-effects-a' AND coach_b_id='coach-effects-b'")).rows[0], {
+      games_played: 6, coach_a_runs_scored: 17, coach_b_runs_scored: 7, last_meeting_coach_a_score: 8, last_meeting_coach_b_score: 1,
+      biggest_win_margin: 7, biggest_win_coach_id: "coach-effects-a", last_meeting_winner_id: "coach-effects-a",
+    }, "Rivalry history accumulates runs and refreshes the last meeting and biggest victory");
+    await effectsGame("effects-rivalry-rollback");
+    await pool.query("CREATE FUNCTION reject_fixture_rivalry() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN IF NEW.coach_a_id='coach-effects-a' THEN RAISE EXCEPTION 'synthetic rivalry update failure'; END IF; RETURN NEW; END $fixture$");
+    await pool.query("CREATE TRIGGER reject_fixture_rivalry BEFORE UPDATE ON coach_rivalries FOR EACH ROW EXECUTE FUNCTION reject_fixture_rivalry()");
+    try {
+      const beforeRivalryFailure = await snapshot();
+      equal(typeof (await effectsCall([{ gameId: "effects-rivalry-rollback", accumulate: true }])).error, "string", "Rivalry persistence failure rejects completion");
+      equal(await snapshot(), beforeRivalryFailure, "Rivalry failure rolls back coaching effects, receipt, standings, game and all related projections");
+    } finally {
+      await pool.query("DROP TRIGGER reject_fixture_rivalry ON coach_rivalries");
+      await pool.query("DROP FUNCTION reject_fixture_rivalry()");
+    }
+
+    for (const mode of ["skip", "exhibition"]) {
+      const gameId = "effects-" + mode; await effectsGame(gameId, false, mode === "exhibition");
+      const beforeSkippedCoaches = await effectCoaches();
+      const beforeSkippedRivalry = (await pool.query("SELECT * FROM coach_rivalries WHERE coach_a_id='coach-effects-a'")).rows;
+      equal((await effectsCall([{ gameId, accumulate: true, skipCoachXp: mode === "skip" }])).error, null, mode + " result still commits its game receipt");
+      equal(await effectCoaches(), beforeSkippedCoaches, mode + " result awards no coaching progression");
+      equal((await pool.query("SELECT * FROM coach_rivalries WHERE coach_a_id='coach-effects-a'")).rows, beforeSkippedRivalry, mode + " result changes no coach rivalry");
+      equal(Number((await pool.query("SELECT count(*) FROM game_coach_effects WHERE game_id=$1", [gameId])).rows[0].count), 0, mode + " result creates no invented coach-effect rows");
+      equal(Number((await pool.query("SELECT count(*) FROM game_finalizations WHERE game_id=$1", [gameId])).rows[0].count), 1, mode + " result retains exactly one finalization receipt");
+    }
+    await effectsGame("effects-rollback"); await effectsGame("effects-report-rollback");
+    const effectsReportEndpoint = endpoint("effects-report-rollback");
+    equal((await invoke(effectsReportEndpoint, "POST", scoreOnlyPayload())).response.status, 200, "Reported companion fixture creates a real score-only submission for effect rollback");
+    await pool.query("CREATE FUNCTION reject_fixture_coach_effect() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN IF NEW.game_id IN ('effects-rollback','effects-report-rollback') THEN RAISE EXCEPTION 'synthetic coach-effect insertion failure'; END IF; RETURN NEW; END $fixture$");
+    await pool.query("CREATE TRIGGER reject_fixture_coach_effect BEFORE INSERT ON game_coach_effects FOR EACH ROW EXECUTE FUNCTION reject_fixture_coach_effect()");
+    try {
+      const beforeEffectFailure = await snapshot();
+      const effectFailure = await effectsCall([{ gameId: "effects-rollback", accumulate: true }]);
+      equal(typeof effectFailure.error, "string", "An effect ledger failure rejects atomic simulation completion");
+      equal(effectFailure.accumulator, [], "Failed effect persistence leaves no deferred batch progression");
+      equal(await snapshot(), beforeEffectFailure, "Effect insert failure rolls back game, receipt, coaching, standings, rivalry and every dependent table");
+      equal((await invoke(effectsReportEndpoint + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 500, "Reported acceptance fails when its coaching effects cannot commit");
+      equal(await snapshot(), beforeEffectFailure, "Reported effect failure rolls back accepted revision, decision audit, receipt and all official effects");
+    } finally {
+      await pool.query("DROP TRIGGER reject_fixture_coach_effect ON game_coach_effects");
+      await pool.query("DROP FUNCTION reject_fixture_coach_effect()");
+    }
+    equal((await effectsCall([{ gameId: "effects-rollback", accumulate: true }])).error, null, "Simulation can recover by retry after effect storage recovers");
+    const recoveredEffectsReport = await invoke(effectsReportEndpoint + "/finalize", "POST", { expectedEditVersion: 1 });
+    if (recoveredEffectsReport.response.status !== 200) console.error(childErrors);
+    equal(recoveredEffectsReport.response.status, 200, "Reported acceptance can recover with its original reviewed version after effect rollback");
+    equal(Number((await pool.query("SELECT count(*) FROM game_coach_effects WHERE game_id IN ('effects-rollback','effects-report-rollback')")).rows[0].count), 4, "Recovered simulation and reported acceptance each award exactly one effect per coach");
+
+    // First-ever projection rows exercise both insertion and additive updates
+    // under concurrent finalizations; existing standings cannot mask insert races.
+    for (const side of ["home", "away"]) await pool.query("INSERT INTO players (id,team_id,first_name,last_name,position,home_state,hometown,jersey_number) VALUES ($1,$2,'Effects','Stats','CF','IA','Test',80)", ["effects-player-" + side, "effects-" + side]);
+    for (const id of ["effects-stats-a", "effects-stats-b"]) {
+      await effectsGame(id); await pool.query("UPDATE games SET season=42 WHERE id=$1", [id]);
+    }
+    equal(Number((await pool.query("SELECT count(*) FROM standings WHERE league_id='report-league' AND season=42")).rows[0].count), 0, "Concurrent projection fixture starts with no standings rows");
+    equal(Number((await pool.query("SELECT count(*) FROM player_season_stats WHERE league_id='report-league' AND season=42")).rows[0].count), 0, "Concurrent projection fixture starts with no season-stat rows");
+    const statBox = {
+      home: { batting: [{ playerId: "effects-player-home", name: "Effects Stats", position: "CF", ab: 4, h: 2, r: 2, rbi: 2 }], pitching: [] },
+      away: { batting: [{ playerId: "effects-player-away", name: "Effects Stats", position: "CF", ab: 3, h: 1, r: 1, rbi: 1 }], pitching: [] },
+    };
+    equal((await effectsCall([{ gameId: "effects-stats-a", box: statBox }, { gameId: "effects-stats-b", box: statBox }])).error, null, "Concurrent atomic games safely insert their first standings and same-player season-stat rows");
+    equal((await pool.query("SELECT team_id,wins,losses,runs_scored,runs_allowed FROM standings WHERE league_id='report-league' AND season=42 ORDER BY team_id")).rows, [
+      { team_id: "effects-away", wins: 0, losses: 2, runs_scored: 2, runs_allowed: 4 }, { team_id: "effects-home", wins: 2, losses: 0, runs_scored: 4, runs_allowed: 2 },
+    ], "Concurrent first-season standings retain both games without duplicate rows");
+    equal((await pool.query("SELECT player_id,games,ab,h,r,rbi FROM player_season_stats WHERE league_id='report-league' AND season=42 ORDER BY player_id")).rows, [
+      { player_id: "effects-player-away", games: 2, ab: 6, h: 2, r: 2, rbi: 2 }, { player_id: "effects-player-home", games: 2, ab: 8, h: 4, r: 4, rbi: 4 },
+    ], "Concurrent same-player projections retain both contributions to every checked batting counter");
+
     const savedHistory = await invoke("/api/leagues/report-league/save-states", "POST", { label: "Synthetic reported-history restore boundary" });
     equal(savedHistory.response.status, 200, "League save capture remains available with accepted report history");
     const beforeUnsafeRestore = await snapshot();
@@ -875,14 +1017,46 @@ if (process.argv.includes("--http-child")) {
     equal((await invoke(`/api/leagues/other-report-league/save-states/${targetOnlySave.data.id}/restore`, "POST", {})).response.status, 409, "A historical snapshot containing reports is blocked even when the current league has no reports");
     equal(await snapshot(), beforeTargetOnlyRestore, "Target-only history restore guard preserves every table and creates no backup or restore audit");
 
+    await pool.query("INSERT INTO leagues (id,name,commissioner_id,game_mode,current_phase,is_test_data) VALUES ('effects-restore-league','Simulated restore fixture',$1,'simulated','regular_season',true)", [primary.id]);
+    for (const side of ["home", "away"]) await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ($1,'effects-restore-league',$2,'Owls','RST','Test','IA',false)", ["restore-" + side, "Restore " + side]);
+    const simulatedSave = await invoke("/api/leagues/effects-restore-league/save-states", "POST", { label: "Synthetic pre-simulation snapshot" });
+    equal(simulatedSave.response.status, 200, "Simulated league captures a pre-result save with no reports");
+    await pool.query("INSERT INTO games (id,league_id,season,week,home_team_id,away_team_id,phase) VALUES ('effects-restore-game','effects-restore-league',1,1,'restore-home','restore-away','regular')");
+    equal((await effectsCall([{ gameId: "effects-restore-game" }])).error, null, "Simulated restore fixture finalizes through the real atomic service");
+    equal(Number((await pool.query("SELECT count(*) FROM game_reports WHERE league_id='effects-restore-league'")).rows[0].count), 0, "Simulated restore guard fixture contains no reports");
+    const beforeSimulatedRestore = await snapshot();
+    equal((await invoke(`/api/leagues/effects-restore-league/save-states/${simulatedSave.data.id}/restore`, "POST", {})).response.status, 409, "Restore refuses to erase current simulated finalization receipts even without report history");
+    equal(await snapshot(), beforeSimulatedRestore, "Blocked simulated restore preserves every row and creates no pre-restore backup");
+    await pool.query("UPDATE league_save_states SET snapshot_data=jsonb_set(jsonb_set(snapshot_data,'{gameReports}','[]'::jsonb),'{games}',$1::jsonb) WHERE id=$2", [JSON.stringify([{ id: "historic-simulated-game", is_complete: true }]), targetOnlySave.data.id]);
+    const beforeTargetSimulatedRestore = await snapshot();
+    equal((await invoke(`/api/leagues/other-report-league/save-states/${targetOnlySave.data.id}/restore`, "POST", {})).response.status, 409, "Restore refuses a target containing completed simulated games without reconstructible receipts");
+    equal(await snapshot(), beforeTargetSimulatedRestore, "Target-only simulated restore rejection writes no league or backup state");
+
+    await pool.query("UPDATE games SET is_complete=false WHERE id='effects-restore-game'");
+    const beforeReceiptOnlyRestore = await snapshot();
+    equal((await invoke(`/api/leagues/effects-restore-league/save-states/${simulatedSave.data.id}/restore`, "POST", {})).response.status, 409, "Receipt-only current state still blocks destructive restore when completion flags are inconsistent");
+    equal(await snapshot(), beforeReceiptOnlyRestore, "Receipt-only restore rejection preserves all data and backups");
+    for (const evidenceField of ["gameFinalizations", "gameCoachEffects"]) {
+      await pool.query("UPDATE league_save_states SET snapshot_data=jsonb_set(jsonb_set(snapshot_data,'{games}','[]'::jsonb),$1::text[],$2::jsonb) WHERE id=$3", [[evidenceField], JSON.stringify([{ game_id: "historical-result" }]), targetOnlySave.data.id]);
+      const beforeTargetReceiptRestore = await snapshot();
+      equal((await invoke(`/api/leagues/other-report-league/save-states/${targetOnlySave.data.id}/restore`, "POST", {})).response.status, 409, evidenceField + " target evidence blocks restore without a complete recovery protocol");
+      equal(await snapshot(), beforeTargetReceiptRestore, evidenceField + " target restore rejection preserves all current rows");
+      await pool.query("UPDATE league_save_states SET snapshot_data=snapshot_data - $1 WHERE id=$2", [evidenceField, targetOnlySave.data.id]);
+    }
+
     const beforeOwnedLeague = await snapshot();
     await pool.query("INSERT INTO leagues (id,name,commissioner_id,game_mode,current_phase,is_test_data) VALUES ('history-delete-league','Owned deletion fixture',$1,'reported','regular_season',true)", [primary.id]);
     for (const side of ["home", "away"]) await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ($1,'history-delete-league',$2,'Owls','DEL','Test','IA',false)", ["delete-" + side, "Delete " + side]);
+    for (const [side, actorId] of [["home", primary.id], ["away", actors.away.id]]) {
+      await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ($1,$2,$3,'history-delete-league','Delete',$4)", ["delete-coach-" + side, actorId, "delete-" + side, side]);
+      await pool.query("UPDATE teams SET coach_id=$1 WHERE id=$2", ["delete-coach-" + side, "delete-" + side]);
+    }
     await pool.query("INSERT INTO games (id,league_id,season,week,home_team_id,away_team_id,phase) VALUES ('delete-history-game','history-delete-league',1,1,'delete-home','delete-away','regular')");
     const deleteEndpoint = "/api/leagues/history-delete-league/games/delete-history-game/report";
     equal((await invoke(deleteEndpoint, "POST", scoreOnlyPayload())).response.status, 200, "Owned deletion fixture records an initial immutable report");
     equal((await invoke(deleteEndpoint + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 200, "Owned deletion fixture has a real accepted revision and receipt");
     equal(Number((await pool.query("SELECT count(*) FROM game_report_revisions WHERE game_id='delete-history-game'")).rows[0].count), 2, "Owned deletion fixture contains both initial and accepted history");
+    equal(Number((await pool.query("SELECT count(*) FROM game_coach_effects WHERE game_id='delete-history-game'")).rows[0].count), 2, "Owned deletion fixture includes real durable effects for both coaches");
     const ownedDeletion = await invoke("/api/leagues/history-delete-league", "DELETE");
     if (ownedDeletion.response.status !== 200) console.error(childErrors);
     equal(ownedDeletion.response.status, 200, "Explicit commissioner league deletion remains compatible with immutable-history cascade rules");

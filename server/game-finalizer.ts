@@ -1,28 +1,17 @@
-import { appendReportRevision, findAcceptanceReceipt } from "./lib/report-history";
-import { lockReviewedReport, ReportTransitionConflict, type ReviewedReport } from "./lib/report-transition";
 /**
- * Centralised game finalisation service.
+ * Centralised game finalisation services.
  *
- * Every path that completes a game — quick-score, reported game confirm,
- * play-by-play, advance-week, bulk-sim, postseason — should route through
- * finalizeGame() so that each side-effect fires exactly once in the correct
- * order:
+ * Production result callers use finalizeGameAtomic: the receipt, game,
+ * standings, player stats, pitcher rest, coach contributions, rivalry and
+ * required result event commit together. Atomic calls never defer coach XP
+ * to an in-memory batch accumulator.
  *
- *   1. Persist score + box score
- *   2. Update standings
- *   3. Accumulate player season stats (home + away in parallel)
- *   4. Update pitcher rest tracking
- *   5. Award coach XP / wins / losses / legacy score
- *   6. Create GAME_RESULT league event
- *   7. Mark game isComplete = true  (deferred so stats are confirmed first)
- *   8. Invalidate league cache
- *
- * Batch callers (advance-week, bulk-sim) pass a shared `coachXpAccum` map so
- * coach deltas accumulate across all games in a week, then flush once with
- * flushCoachXp(). This preserves a single updateCoach() DB write per coach per
- * batch regardless of how many games they played.
+ * Legacy finalizeGame/batchFinalizeGames and flushCoachXp remain exported for
+ * compatibility/tests. They do not supply the atomic durability contract.
  */
 
+import { appendReportRevision, findAcceptanceReceipt } from "./lib/report-history";
+import { lockReviewedReport, ReportTransitionConflict, type ReviewedReport } from "./lib/report-transition";
 import { storage } from "./storage";
 import { assertReportedResult } from "./lib/validateReportedResult";
 import { db } from "./db";
@@ -31,6 +20,7 @@ import type { Game, GameReport, GameFinalization, Team, InsertPlayerSeasonStats,
 import {
   games as gamesTable,
   gameFinalizations,
+  gameCoachEffects,
   gameReports,
   auditLogs,
   standings,
@@ -101,9 +91,9 @@ export interface FinalizeGameOptions {
   /** Skip coach XP / wins / losses award (default false). */
   skipCoachXp?: boolean;
   /**
-   * When provided, coach XP deltas are accumulated into this map instead of
-   * being written to the DB immediately. Call flushCoachXp() once after the
-   * full batch to persist. Used by advance-week / bulk-sim.
+   * Legacy non-atomic helpers only: collect deltas for flushCoachXp().
+   * finalizeGameAtomic always persists coach effects in its transaction and
+   * deliberately does not mutate this map.
    */
   coachXpAccum?: Map<string, CoachXpDelta>;
   /** Skip GAME_RESULT league event creation (default false). */
@@ -1044,8 +1034,7 @@ async function updatePitcherRestInTx(
 }
 
 /**
- * Writes coach XP + rivalry inside a transaction (single-game path only).
- * Batch callers use `coachXpAccum` and call `flushCoachXp()` instead.
+ * Writes durable coach contributions and required rivalry state in the result transaction.
  */
 async function writeCoachXpAndRivalryInTx(
   tx: DrizzleTx,
@@ -1054,13 +1043,18 @@ async function writeCoachXpAndRivalryInTx(
   homeWon: boolean,
   homeScore: number,
   awayScore: number,
-  game: Pick<Game, "isConference" | "season" | "week" | "gameType">,
+  game: Pick<Game, "id" | "isConference" | "season" | "week" | "gameType">,
   leagueId: string,
 ): Promise<void> {
+  const coachIds = [...new Set([homeTeam?.coachId, awayTeam?.coachId].filter((id): id is string => !!id))].sort();
+  if (coachIds.length) await tx.execute(sql`SELECT id FROM coaches WHERE id IN (${sql.join(coachIds.map(id => sql`${id}`), sql`, `)}) ORDER BY id FOR UPDATE`);
+  const observed = (coach: Coach) => ({ xp: coach.xp, level: coach.level, skillPoints: coach.skillPoints,
+    careerWins: coach.careerWins, careerLosses: coach.careerLosses, confWins: coach.confWins, confLosses: coach.confLosses,
+    legacyScore: coach.legacyScore, perks: coach.perks });
   const writeXp = async (coachId: string | null | undefined, won: boolean): Promise<void> => {
     if (!coachId) return;
     const [coach] = await tx.select().from(coaches).where(eq(coaches.id, coachId));
-    if (!coach) return;
+    if (!coach || coach.leagueId !== leagueId) throw new Error("Assigned coach is not available in this league");
     const isConf = !!(game.isConference && won);
     const perkBonus = won && hasPerk(coach, "gm_tactician")
       ? XP_AWARDS.TACTICIAN_WIN_BONUS + (isConf ? XP_AWARDS.TACTICIAN_CONF_BONUS : 0)
@@ -1069,16 +1063,21 @@ async function writeCoachXpAndRivalryInTx(
     const newLevel  = Math.floor(newXp / 1000) + 1;
     const newWins   = coach.careerWins   + (won ? 1 : 0);
     const newLosses = coach.careerLosses + (won ? 0 : 1);
-    await tx.update(coaches).set({
+    const [updated] = await tx.update(coaches).set({
       xp:          newXp,
       level:       newLevel,
-      skillPoints: coach.skillPoints + (newLevel > coach.level ? 1 : 0),
+      skillPoints: coach.skillPoints + Math.max(0, newLevel - coach.level),
       careerWins:  newWins,
       careerLosses: newLosses,
       confWins:    coach.confWins    + (isConf ? 1 : 0),
       confLosses:  coach.confLosses  + ((game.isConference && !won) ? 1 : 0),
       legacyScore: computeLegacyScore({ ...coach, careerWins: newWins }),
-    }).where(eq(coaches.id, coachId));
+    }).where(eq(coaches.id, coachId)).returning();
+    await tx.insert(gameCoachEffects).values({ gameId: game.id, leagueId, coachId,
+      xpDelta: updated.xp - coach.xp, winsDelta: updated.careerWins - coach.careerWins, lossesDelta: updated.careerLosses - coach.careerLosses,
+      confWinsDelta: updated.confWins - coach.confWins, confLossesDelta: updated.confLosses - coach.confLosses,
+      skillPointsDelta: updated.skillPoints - coach.skillPoints, beforeState: observed(coach), afterState: observed(updated),
+    });
   };
 
   await writeXp(homeTeam?.coachId, homeWon);
@@ -1086,7 +1085,6 @@ async function writeCoachXpAndRivalryInTx(
 
   // Rivalry update: HvH games only (both coaches must have a userId).
   if (homeTeam?.coachId && awayTeam?.coachId) {
-    try {
       const [hCoach] = await tx.select({ id: coaches.id, userId: coaches.userId })
         .from(coaches).where(eq(coaches.id, homeTeam.coachId));
       const [aCoach] = await tx.select({ id: coaches.id, userId: coaches.userId })
@@ -1132,18 +1130,19 @@ async function writeCoachXpAndRivalryInTx(
             gamesPlayed:        isPostseason ? existing.gamesPlayed        : existing.gamesPlayed + 1,
             coachAWins:         isPostseason ? existing.coachAWins         : existing.coachAWins  + (aWon ? 1 : 0),
             coachBWins:         isPostseason ? existing.coachBWins         : existing.coachBWins  + (aWon ? 0 : 1),
+            coachARunsScored: isPostseason ? existing.coachARunsScored : existing.coachARunsScored + aRuns,
+            coachBRunsScored: isPostseason ? existing.coachBRunsScored : existing.coachBRunsScored + bRuns,
             postseasonGames:    isPostseason ? existing.postseasonGames + 1 : existing.postseasonGames,
             coachAPostseasonWins: isPostseason && aWon  ? existing.coachAPostseasonWins + 1 : existing.coachAPostseasonWins,
             coachBPostseasonWins: isPostseason && !aWon ? existing.coachBPostseasonWins + 1 : existing.coachBPostseasonWins,
             currentStreakWinnerId: winnerId, currentStreakLength: newStreak,
             lastMeetingSeason: game.season, lastMeetingWeek: game.week,
-            lastMeetingWinnerId: winnerId, updatedAt: new Date(),
+            lastMeetingWinnerId: winnerId, lastMeetingCoachAScore: aRuns, lastMeetingCoachBScore: bRuns,
+            biggestWinMargin: margin > (existing.biggestWinMargin ?? 0) ? margin : existing.biggestWinMargin,
+            biggestWinCoachId: margin > (existing.biggestWinMargin ?? 0) ? winnerId : existing.biggestWinCoachId, updatedAt: new Date(),
           }).where(eq(coachRivalries.id, existing.id));
         }
       }
-    } catch (e) {
-      console.error("[finalizeGameAtomic] rivalry update error:", e);
-    }
   }
 }
 
@@ -1156,8 +1155,8 @@ async function writeCoachXpAndRivalryInTx(
  * transaction rolls back and the caller can retry.
  *
  * Cache invalidation and recap generation run OUTSIDE the transaction (they are
- * non-transactional best-effort post-commit effects). `coachXpAccum` updates
- * also run after commit so that in-memory map mutations do not survive a rollback.
+ * non-transactional best-effort post-commit effects). Coach contributions are durable
+ * inside the transaction, including calls carrying a legacy accumulator option.
  *
  * Usage:
  *   const { alreadyFinalized } = await finalizeGameAtomic(
@@ -1188,7 +1187,6 @@ export async function finalizeGameAtomic(
     skipPlayerStats = false,
     skipPitcherRest = false,
     skipCoachXp = false,
-    coachXpAccum,
     skipLeagueEvent = false,
     skipCacheInvalidation = false,
     isManualReport = false,
@@ -1203,15 +1201,17 @@ export async function finalizeGameAtomic(
 
   let alreadyFinalized = false;
   let receipt: GameFinalization | null = null;
-  // Collect coach deltas for the batch-accumulator path; populated inside the
-  // transaction ONLY after we know it will commit (i.e., after the sentinel check
-  // succeeds). The actual map.set() runs OUTSIDE the transaction so the mutation
-  // is not visible if the transaction rolls back.
-  let pendingCoachDeltas: Array<{ coachId: string; won: boolean }> | null = null;
-
   await db.transaction(async (tx) => {
+    // Restore takes an exclusive league lock before deleting games. Acquire the shared side first.
+    const leagueLock = await tx.execute(sql`SELECT id FROM leagues WHERE id = ${leagueId} FOR KEY SHARE`);
+    if (!leagueLock.rows.length) throw new Error("League is no longer available");
     // ── 1. Lock game row (serialises concurrent finalization calls) ───────
     await tx.execute(sql`SELECT id FROM games WHERE id = ${game.id} FOR UPDATE`);
+    const [storedGame] = await tx.select().from(gamesTable).where(eq(gamesTable.id, game.id));
+    if (!storedGame || storedGame.leagueId !== leagueId) throw new Error("Game is not available in this league");
+    for (const key of ["homeTeamId", "awayTeamId", "season", "week", "isConference", "gameType"] as const) {
+      if (storedGame[key] !== game[key]) throw new ReportTransitionConflict("Game details changed before finalization. Reload the current game.");
+    }
 
     // Replays are matched before the pending-status guard, under the game lock.
     if (opts.reportAcceptance) {
@@ -1231,6 +1231,12 @@ export async function finalizeGameAtomic(
       const [activeReport] = await tx.select({ id: gameReports.id }).from(gameReports).where(eq(gameReports.gameId, game.id));
       if (activeReport) throw new ReportTransitionConflict("This game has a report. Accept its reviewed report before applying a simulated result.");
     }
+
+    if (storedGame.isComplete) throw new ReportTransitionConflict("This completed game has no matching acceptance receipt. Reconcile its existing result before retrying.");
+
+    // Serialize projection updates across participating finalizers in this league.
+    // This prevents lost read/modify/write totals; it does not impose historical game chronology.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(1885435745, hashtext(${leagueId}))`);
 
     // The sentinel and its accepted-revision reference commit with all result effects.
     [receipt] = await tx.insert(gameFinalizations).values({ gameId: game.id, finalizer }).returning();
@@ -1288,24 +1294,13 @@ export async function finalizeGameAtomic(
     }
 
     // ── 8. Coach XP ─────────────────────────────────────────────────────────
-    // Batch callers (advance-week) pass `coachXpAccum`; their XP is flushed
-    // once per batch in `flushCoachXp()`. We record the pending deltas here so
-    // the map mutation happens OUTSIDE the transaction.
+    // Actual current coach assignments and all effects persist before the receipt commits.
+    // The supplied legacy accumulator is never populated by this atomic path.
     if (!skipCoachXp) {
-      const teams = providedTeams
-        ?? await tx.select().from(teamsTable).where(eq(teamsTable.leagueId, leagueId));
-      const homeTeam = teams.find((t: any) => t.id === game.homeTeamId);
-      const awayTeam = teams.find((t: any) => t.id === game.awayTeamId);
-
-      if (coachXpAccum) {
-        // Record for post-tx accumulation (does not write to DB).
-        pendingCoachDeltas = [];
-        if (homeTeam?.coachId) pendingCoachDeltas.push({ coachId: homeTeam.coachId, won: homeWon });
-        if (awayTeam?.coachId) pendingCoachDeltas.push({ coachId: awayTeam.coachId, won: !homeWon });
-      } else {
-        // Single-game path: write XP + rivalry directly inside the transaction.
-        await writeCoachXpAndRivalryInTx(tx, homeTeam, awayTeam, homeWon, homeScore, awayScore, game, leagueId);
-      }
+      const teams = await tx.select().from(teamsTable).where(eq(teamsTable.leagueId, leagueId));
+      const homeTeam = teams.find(t => t.id === game.homeTeamId);
+      const awayTeam = teams.find(t => t.id === game.awayTeamId);
+      await writeCoachXpAndRivalryInTx(tx, homeTeam, awayTeam, homeWon, homeScore, awayScore, game, leagueId);
     }
 
     // ── 9. League event ────────────────────────────────────────────────────
@@ -1350,25 +1345,6 @@ export async function finalizeGameAtomic(
   });
 
   if (alreadyFinalized) return { alreadyFinalized: true, receipt };
-
-  // ── Post-commit: coachXpAccum batch accumulation ─────────────────────────
-  // Running OUTSIDE the transaction ensures the map is not mutated if the
-  // transaction rolls back (in-memory mutations are not rolled back by Drizzle).
-  // TypeScript cannot track mutations to a let variable captured inside an async
-  // callback (it narrows the variable to its initial type 'null'). Use 'as' to
-  // restore the declared union type after the await resolves.
-  const capturedCoachDeltas = pendingCoachDeltas as Array<{ coachId: string; won: boolean }> | null;
-  if (coachXpAccum && capturedCoachDeltas) {
-    for (const { coachId, won } of capturedCoachDeltas) {
-      const acc = coachXpAccum.get(coachId) ?? { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
-      acc.xp     += won ? WIN_XP : LOSS_XP;
-      acc.wins   += won ? 1 : 0;
-      acc.losses += won ? 0 : 1;
-      acc.confWins   += isConf && won  ? 1 : 0;
-      acc.confLosses += isConf && !won ? 1 : 0;
-      coachXpAccum.set(coachId, acc);
-    }
-  }
 
   // ── Post-commit: cache invalidation + recap (non-transactional) ───────────
   if (!skipCacheInvalidation) {

@@ -8,6 +8,8 @@ import { appendReportRevision } from "./report-history";
 /** Initial content and required provenance share the same game eligibility boundary as acceptance. */
 export async function createGameReportAtomic(input: { game: Game; data: InsertGameReport; userId: string; corrections: unknown; auditDetail: string }) {
   return db.transaction(async tx => {
+    const leagueLock = await tx.execute(sql`SELECT id FROM leagues WHERE id = ${input.data.leagueId} FOR KEY SHARE`);
+    if (!leagueLock.rows.length) throw new ReportTransitionConflict("League is no longer available for reporting.");
     await tx.execute(sql`SELECT id FROM games WHERE id = ${input.game.id} FOR UPDATE`);
     const [game] = await tx.select().from(games).where(eq(games.id, input.game.id));
     const [receipt] = await tx.select().from(gameFinalizations).where(eq(gameFinalizations.gameId, input.game.id));

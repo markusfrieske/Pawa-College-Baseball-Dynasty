@@ -1928,6 +1928,9 @@ export class DatabaseStorage implements IStorage {
 
       await tx.delete(playerPromises).where(eq(playerPromises.leagueId, id));
 
+      // Rivalries reference coaches and must be removed before their parent rows.
+      await tx.delete(coachRivalries).where(eq(coachRivalries.leagueId, id));
+
       if (teamIds.length > 0) {
         await tx.delete(transferPortalInterests).where(inArray(transferPortalInterests.teamId, teamIds));
         await tx.delete(playerHistory).where(inArray(playerHistory.teamId, teamIds));
@@ -1962,7 +1965,6 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(gameReportCorrections).where(eq(gameReportCorrections.leagueId, id));
       await tx.delete(gameReportImages).where(eq(gameReportImages.leagueId, id));
       await tx.delete(gameReports).where(eq(gameReports.leagueId, id));
-      await tx.delete(coachRivalries).where(eq(coachRivalries.leagueId, id));
       await tx.delete(gameRecaps).where(eq(gameRecaps.leagueId, id));
       await tx.delete(leagueEvents).where(eq(leagueEvents.leagueId, id));
       await tx.delete(games).where(eq(games.leagueId, id));

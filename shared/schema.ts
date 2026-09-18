@@ -2469,6 +2469,24 @@ export const gameFinalizations = pgTable("game_finalizations", {
 
 export type GameFinalization = typeof gameFinalizations.$inferSelect;
 
+// Actual per-game coach contributions. Legacy receipts have no invented effects.
+export const gameCoachEffects = pgTable("game_coach_effects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull().references(() => gameFinalizations.gameId, { onDelete: "cascade" }),
+  coachId: varchar("coach_id").notNull(),
+  leagueId: varchar("league_id").notNull(),
+  xpDelta: integer("xp_delta").notNull(),
+  winsDelta: integer("wins_delta").notNull(),
+  lossesDelta: integer("losses_delta").notNull(),
+  confWinsDelta: integer("conf_wins_delta").notNull(),
+  confLossesDelta: integer("conf_losses_delta").notNull(),
+  skillPointsDelta: integer("skill_points_delta").notNull(),
+  beforeState: jsonb("before_state").$type<Record<string, unknown>>().notNull(),
+  afterState: jsonb("after_state").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, table => [uniqueIndex("game_coach_effects_game_coach_idx").on(table.gameId, table.coachId)]);
+
+
 // ─── League Advances — durable advance-operation tracking ─────────────────────
 //
 // One row per advance attempt (running → complete | failed).

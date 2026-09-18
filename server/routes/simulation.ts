@@ -71,7 +71,7 @@ import {
   updateStandingsForGame,
   computeLegacyScore,
 } from "../game-engine";
-import { finalizeGame, finalizeGameAtomic, flushCoachXp, batchFinalizeGames, type CoachXpDelta } from "../game-finalizer";
+import { finalizeGameAtomic, flushCoachXp, type CoachXpDelta } from "../game-finalizer";
 import {
   requireAuth,
   hasCommissionerAccess,
@@ -5251,7 +5251,10 @@ export async function advanceLeagueStep(
             skipCacheInvalidation: true,
             finalizer: "advance-week",
           });
-        } catch (e) { console.error("[advance-week] finalizeGameAtomic error:", e); }
+        } catch (e) {
+          console.error("[advance-week] finalizeGameAtomic error:", e);
+          throw e;
+        }
       }
       results.push(...dayResults);
     }
@@ -5283,7 +5286,8 @@ export async function advanceLeagueStep(
     if (pendingExhibGames.length > 0) {
       await Promise.all(pendingExhibGames.map(async (game) => {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, "exhibition", undefined, undefined, game.week);
-        await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
+        // Leave the game incomplete until its result and required effects commit
+        // together below. A failed finalization must remain eligible for retry.
         exhibitionGameResults.push({ game, result });
       }));
       console.log(`[exhibition] Simulated ${pendingExhibGames.length} exhibition games for league ${leagueId}`);
@@ -5315,17 +5319,22 @@ export async function advanceLeagueStep(
     }
   }
 
-  // Exhibition finalization (stats + XP only — rest handled per-game above)
+  // Exhibition results and their required effects commit together. Keep writes
+  // sequential so a failure cannot release the advance lease with sibling
+  // finalizers still running. Completed games remain safe to skip on retry.
   console.time("[advance-perf] standings-and-stats");
-  await Promise.all(exhibitionGameResults.map(async ({ game, result }) => {
+  for (const { game, result } of exhibitionGameResults) {
     try {
       const box = JSON.parse(result.boxScore);
       await finalizeGameAtomic(game, result.homeScore, result.awayScore, box, leagueId, { coachXpAccum, leagueTeams: leagueTeamsForSim, skipLeagueEvent: true, skipCacheInvalidation: true, finalizer: "advance-exhibition" });
-    } catch (e) { console.error("[advance-week] exhibition finalizer error:", e); }
-  }));
+    } catch (e) {
+      console.error("[advance-week] exhibition finalizer error:", e);
+      throw e;
+    }
+  }
   console.timeEnd("[advance-perf] standings-and-stats");
-  // Mark game simulation + persistence as complete AFTER batchFinalizeGames commits
-  // all game results, standings, and stats to the DB.  This is the correct point
+  // Mark game simulation + persistence as complete AFTER every atomic finalizer
+  // commits its game result and required effects to the DB.  This is the correct point
   // to write a pct=100 checkpoint — any crash after this line has persisted all
   // game-sim side-effects, so a resume can safely skip this stage.
   setAdvanceProgress(leagueId, "game_simulation", 100);
@@ -5410,7 +5419,10 @@ export async function advanceLeagueStep(
             skipStandings: league.dynastyPreset === "full_season",
             finalizer: "advance-conf-champ",
           });
-        } catch (e) { console.error("[advance-conf-champ] finalizeGameAtomic error:", e); }
+        } catch (e) {
+          console.error("[advance-conf-champ] finalizeGameAtomic error:", e);
+          throw e;
+        }
       }
       console.timeEnd("[advance-perf] conf-champ-games");
 
