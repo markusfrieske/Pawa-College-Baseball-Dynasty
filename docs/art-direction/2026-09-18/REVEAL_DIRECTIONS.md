@@ -2,6 +2,27 @@
 
 Prepared for Frisk, September 18, 2026. **Creative options for selection; no reveal direction approved yet.** Frisk has authorized the selected Varsity Club visual system across the game. This new arrival ceremony is a separate creative decision within that system.
 
+## Frisk's proposed recipe — pending approval
+
+Received September 18, 2026. These are Frisk's proposed selections, explicitly **not yet approved**. Preserve this mixed recipe for the next creative review; the original all-A recommendation below remains a reference, not Frisk's selection. This record does not authorize production integration of the ceremony.
+
+| Code | Facet | Proposed choice |
+| --- | --- | --- |
+| R01A | Reveal story | Clubhouse Arrival |
+| R02D | Staging + world art | Miniature home diamond |
+| R03A | Animation language | Nameplate slide |
+| R04A | Final card | Arrival sports profile |
+| R05B | Player portrayal | Media-day half-body |
+| R06A | Typography + copy | Warm welcome |
+| R07A | Sound | Clubhouse signature |
+| R08C | Sharing + keepsakes | Program scrapbook |
+| R09A | Full-class reveal | Choose the spotlight |
+| R10B | Pacing + access | Coach's cut |
+
+Proposed synthesis: a personal welcome framed by the miniature home diamond, with the recognizable athlete in a media-day half-body pose. A short nameplate slide resolves into the arrival sports profile in approximately 1.5 seconds. The diamond establishes place in the opening composition; the short pacing does not require a separate campus fly-through or locker sequence. Clubhouse sound remains opt-in. The class overview lets the coach choose individual spotlights, and each confirmed arrival has a program scrapbook entry. Reduced motion goes directly to the completed profile.
+
+The existing preview demonstrates the four overall directions; it does not yet render this exact mixed recipe. Sound, half-body poses and scrapbook persistence remain proposed production work. Any implementation must satisfy the truth, replay, disclosure and accessibility gates below.
+
 ## Creative verdict
 
 Make joining feel like a player finding a home in the program. The emotional payoff is a recognizable athlete wearing your colors, a useful reason to care about them, and a permanent memory you can revisit. A longer glow effect around a rating will not deliver that.
@@ -158,4 +179,4 @@ Source reviewed: [signing-day page](../../../client/src/pages/signing-day-reveal
 4. **Exports:** both aspect ratios, maximum names, private/public data boundaries, old-season replay and transferred players. Download a real file and inspect it; a working preview alone is not export evidence.
 5. **Game-dev review:** independently ask whether the player has a clear identity, understands what actually changed, can find the next useful baseball action, and still wants to watch the fifth arrival. Source correctness, runtime proof and human enjoyment are separate acceptance records.
 
-The decision requested from Frisk is the preferred direction and any mixed facet codes. Production integration of the already selected game-wide UI can proceed independently while this ceremony remains under creative review.
+Frisk's mixed proposal is recorded above and remains pending approval. Production integration of the already selected game-wide UI can proceed independently while this ceremony remains under creative review.
