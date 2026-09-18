@@ -77,6 +77,8 @@ See the [production schedule](PRODUCTION_SCHEDULE.md), [finding tracker](FINDING
 
 ## Report history gate
 
+Run npm run test:advance-execution with the explicit loopback test URL and a create-database role to verify execution-bound checkpoint/progress ownership, atomic metadata renewal, stale-owner refusal and delayed-write expiry rollback. It bootstraps and removes its own random database. This gate covers metadata ownership, not gameplay-stage transactional fencing; see [W03 batch 08](W03_BATCH_08.md).
+
 Run `npm run test:report-history` to exercise the actual history panel with synthetic HTTP data in an installed browser. The expanded `test:reported-results` verifies migration 0052, snapshot/receipt identity, exact authorized acceptance retry after process restart, atomic submission, restore refusal and scoped deletion. Restore currently refuses report-bearing or played leagues/snapshots, including receipt/effect evidence, to prevent silent history loss; this guard remains until W04 recovery is complete. See [W03 batch 03](W03_BATCH_03.md).
 
 

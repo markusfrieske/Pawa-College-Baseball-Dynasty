@@ -167,7 +167,7 @@
       "acceptance": "Failure of a required game prevents clock advancement; retry finishes missing work once without false news.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": 3,
-      "implementationCommit": "dd159daf3129873abafccc9944ff29b5efee121d",
+      "implementationCommit": "ab4066f302f88d24c28abda420c0d2910dc67a92",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
@@ -180,10 +180,13 @@
         "../../scripts/verify-postseason-bracket.ts",
         "W03_BATCH_07.md",
         "audits/W03_BATCH_07_AUDIT.md",
-        "../../scripts/verify-advance-recovery.ts"
+        "../../scripts/verify-advance-recovery.ts",
+        "W03_BATCH_08.md",
+        "audits/W03_BATCH_08_AUDIT.md",
+        "../../scripts/verify-advance-execution.ts"
       ],
       "verifiedBy": null,
-      "notes": "Batch06 orders required checkpoints and verifies actual SR fault/restart. Batch07 validates operation source identity, copies checkpoint evidence via atomic/CAS handoff, preserves failure errors and retains ownership when failed status cannot persist. Real post-phaseflip hardkill and terminalwrite faults now produce persistent recovery-required refusal across normal/force/clear/quick entry points; exact-source resume is tested. Automatic changed-state reconciliation, quicksim durable step tracking, side-effect atomicity, standard mode and live superseded-worker fencing remain open."
+      "notes": "Batch06 orders required checkpoints and verifies actual SR fault/restart. Batch07 validates operation source identity, copies checkpoint evidence via atomic/CAS handoff, preserves failure errors and retains ownership when failed status cannot persist. Real post-phaseflip hardkill and terminalwrite faults now produce persistent recovery-required refusal across normal/force/clear/quick entry points; exact-source resume is tested. Automatic changed-state reconciliation, quicksim durable step tracking, side-effect atomicity, standard mode and live superseded-worker fencing remain open. Batch08 binds checkpoint callbacks to immutable execution identity and fences operation metadata/handoff/heartbeat with live lease transactions and original-deadline checks. Independent evidence: 47 PostgreSQL metadata assertions and 129 unit tests; implementation HTTP regression 1078 assertions. Gameplay effects within stages and actual live gameplay-worker takeover remain open; no broader finding closure."
     },
     {
       "id": "TI-09",
@@ -197,7 +200,7 @@
       "acceptance": "Game and postseason coach records/XP survive crashes and replay with exactly-once durable effects.",
       "source": "../audits/2026-09-14/technical-integrity.md",
       "mitigationWeek": null,
-      "implementationCommit": "dd159daf3129873abafccc9944ff29b5efee121d",
+      "implementationCommit": "ab4066f302f88d24c28abda420c0d2910dc67a92",
       "evidence": [
         "W03_BATCH_04.md",
         "audits/W03_BATCH_04_AUDIT.md",
@@ -210,10 +213,13 @@
         "../../scripts/verify-postseason-bracket.ts",
         "W03_BATCH_07.md",
         "audits/W03_BATCH_07_AUDIT.md",
-        "../../scripts/verify-advance-recovery.ts"
+        "../../scripts/verify-advance-recovery.ts",
+        "W03_BATCH_08.md",
+        "audits/W03_BATCH_08_AUDIT.md",
+        "../../scripts/verify-advance-execution.ts"
       ],
       "verifiedBy": null,
-      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open. Batch06 adds actual full-season SR partial-award failure/restart evidence, preserving the first receipt and finishing all eight once; this does not close remaining achievement writers or other crash points. Batch07 real phaseflip hardkill preserves all eight committed coach awards across blocked retries; exact-source resume retains validated progress. This does not certify all award writers or live lease takeover."
+      "notes": "Batch04 persists atomic per-game coach effects. Batch05 independently verifies durable postseason counter/legacy/XP/skill-point receipts, replay, concurrency and rollback (771-assertion suite). Legacy ambiguity is fenced, not repaired. Full advance/restart journeys, All-American achievement writes and external coach writer coordination remain open. Batch06 adds actual full-season SR partial-award failure/restart evidence, preserving the first receipt and finishing all eight once; this does not close remaining achievement writers or other crash points. Batch07 real phaseflip hardkill preserves all eight committed coach awards across blocked retries; exact-source resume retains validated progress. This does not certify all award writers or live lease takeover. Batch08 binds checkpoint callbacks to immutable execution identity and fences operation metadata/handoff/heartbeat with live lease transactions and original-deadline checks. Independent evidence: 47 PostgreSQL metadata assertions and 129 unit tests; implementation HTTP regression 1078 assertions. Gameplay effects within stages and actual live gameplay-worker takeover remain open; no broader finding closure."
     },
     {
       "id": "TI-10",

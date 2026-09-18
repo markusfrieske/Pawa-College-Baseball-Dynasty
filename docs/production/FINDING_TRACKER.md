@@ -2,7 +2,7 @@
 
 [Production schedule](PRODUCTION_SCHEDULE.md) · [Machine-readable tracker](finding-tracker.json)
 
-Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-08, TI-09, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 29 findings remain planned. Latest evidence: [W03 batch 07](W03_BATCH_07.md) and its [independent audit](audits/W03_BATCH_07_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
+Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-03, TI-05, TI-08, TI-09, TI-12, UX-01, UX-03 and UX-07 implementing; TI-13 in review; 29 findings remain planned. Latest evidence: [W03 batch 08](W03_BATCH_08.md) and its [independent audit](audits/W03_BATCH_08_AUDIT.md). A target week is not closure evidence. Keep this view synchronized with the JSON tracker.
 
 | ID | Target | Owner | Closure requirement | Status |
 | --- | --- | --- | --- | --- |
@@ -65,3 +65,5 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | W01-WEB-01 | P2 | Gilfoyle + Gibs | Honest missing-resource errors; 86 static HTTP assertions passed. | verified |
 | W02-OCR-01 | P2 | JD + Gilfoyle | Shared row correction path; 11 regressions plus independent integration source review passed. | verified |
 | W02-NOTIFY-01 | P2 | JD + Gilfoyle | Actual participant inbox rows verified within 229 HTTP/database assertions; deduplication pure tests passed. | verified |
+
+[W03 batch 08](W03_BATCH_08.md) fences execution-owned checkpoint/status/heartbeat/handoff metadata and stale progress cleanup. Independent metadata and unit gates pass; whole gameplay-stage effects and live gameplay-worker takeover remain open. TI-08/TI-09 stay implementing.
