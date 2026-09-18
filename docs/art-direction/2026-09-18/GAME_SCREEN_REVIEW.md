@@ -22,6 +22,8 @@ The proposed persistent roster inspector, full screen-specific compositions, con
 
 ## Independent audit and resolutions
 
+Later follow-up: [W12 batch 01](../../production/W12_BATCH_01.md) verifies and repairs the roster authority/DTO prerequisite below, including the previously hidden editor's strict payload contract. Its 170 real browser/API/database checks are separate from this initial visual fixture. The full proposed inspector remains unimplemented.
+
 The read-only game-shell UX reviewer inspected the existing game and proposed changes independently of implementation. The inventory agent separately mapped the routed and nested experiences.
 
 | Finding | Severity / reproduction | Acceptance and disposition |

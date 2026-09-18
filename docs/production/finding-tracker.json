@@ -942,6 +942,23 @@
         "../../tests/unit/reportNotificationRecipients.test.ts"
       ],
       "verifiedBy": "Independent JD/Gibs: 229 HTTP/PostgreSQL assertions include exact persisted participant inbox rows; recipient deduplication in pure tests. Best-effort delivery is not an atomic outbox or human delivery guarantee."
+    },
+    {
+      "id": "W12-ROSTER-01",
+      "priority": "P1",
+      "status": "verified",
+      "title": "Roster league context and commissioner edit contract",
+      "owner": "JD player experience + Gilfoyle technical integrity",
+      "target": "Early W12 prerequisite",
+      "acceptance": "Actual flat league DTO supplies phase/week/season, owner and commissioner controls match server policy, changed-field edits save without replacing untouched zero/null/legacy values; failed-response drafts can retry.",
+      "source": "audits/W12_BATCH_01_AUDIT.md",
+      "implementationCommit": "7a25cee",
+      "evidence": [
+        "W12_BATCH_01.md",
+        "audits/W12_BATCH_01_AUDIT.md",
+        "../../scripts/verify-roster-context.ts"
+      ],
+      "verifiedBy": "Parent: 170 built UI/real HTTP/PostgreSQL checks. Independent game-shell UX source and coverage review; not an independent execution rerun."
     }
   ]
 }

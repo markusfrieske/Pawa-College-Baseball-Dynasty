@@ -65,6 +65,7 @@ Production has started: TI-01 and UX-12 verified; TI-02 and TI-04 mitigated; TI-
 | W01-WEB-01 | P2 | Gilfoyle + Gibs | Honest missing-resource errors; 86 static HTTP assertions passed. | verified |
 | W02-OCR-01 | P2 | JD + Gilfoyle | Shared row correction path; 11 regressions plus independent integration source review passed. | verified |
 | W02-NOTIFY-01 | P2 | JD + Gilfoyle | Actual participant inbox rows verified within 229 HTTP/database assertions; deduplication pure tests passed. | verified |
+| W12-ROSTER-01 | P1 | JD + Gilfoyle | Flat roster context, role controls and strict changed-field edits; 170 real UI/HTTP/database checks, independent source/coverage review. [Evidence](W12_BATCH_01.md). Original UX-06 remains open. | verified |
 
 [W03 batch 08](W03_BATCH_08.md) fences execution-owned checkpoint/status/heartbeat/handoff metadata and stale progress cleanup. Independent metadata and unit gates pass; whole gameplay-stage effects and live gameplay-worker takeover remain open. TI-08/TI-09 stay implementing.
 
