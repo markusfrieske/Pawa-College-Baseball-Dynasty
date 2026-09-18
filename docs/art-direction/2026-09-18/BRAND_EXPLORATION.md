@@ -1,10 +1,14 @@
 # Independent name and logo exploration
 
-September 18, 2026. Requested by Frisk. **Unapproved creative proposals; no production rename.** Scheduled development remains paused.
+September 18, 2026. Requested by Frisk. **Selected direction: Class of Nine (N02), campus gateway (L04), and L02 italic serif lettering.** Scheduled development remains paused.
 
 [Interactive name/logo comparison](../2026-09-17/brand-lab.html). Four names can be compared across four original SVG logo styles. Selecting a name only changes the local preview; it does not approve or persist a branding decision.
 
-## Naming shortlist
+## Selected direction
+
+Frisk selected **Class of Nine + L04 campus gateway + L02 lettering** on September 18. [Focused combined preview](../2026-09-17/class-of-nine.html). The actual L02 preview uses `Georgia, serif`, italic, weight 800, with tight letter spacing. Preserve that appearance rather than the original L04 uppercase sans-serif. This supersedes the Pennant Foundry / L01 recommendation below, which is retained as exploration history. Forest, brass and cream remain the palette. Name/symbol/lettering are selected; descriptor, tagline, final outlined assets and commercial clearance are not newly approved by this choice.
+
+## Original naming shortlist
 
 | Code | Name | Positioning | Tradeoff |
 | --- | --- | --- | --- |
@@ -40,4 +44,4 @@ U.S. naming concerns are primarily trademark concerns: the [Copyright Office](ht
 
 ## Next manual step
 
-Frisk selects a name and logo direction (for example N01 + L01), or requests another naming round. Then refine the actual wordmark, small-size icon and title/store presentation, with a focused availability/rights review before adoption. No repository/package/save identifiers should change from this proposal alone.
+The selected combination is recorded and previewed. Next, refine the actual wordmark, small-size icon and title/store presentation, with a focused availability/rights review before adoption. No repository/package/save identifiers should change from this proposal alone.
