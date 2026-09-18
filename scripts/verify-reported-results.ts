@@ -35,6 +35,7 @@ if (process.argv.includes("--http-child")) {
   const { awardPostseasonCoachMilestone } = await import("../server/lib/postseason-coach-awards");
   const { advanceFSSRBracket } = await import("../server/services/postseason/superRegionals");
   const { beginAdvanceOperation, inspectAdvanceRecovery } = await import("../server/lib/advance-recovery");
+  const { acquireAdvanceLock, getAdvanceLockToken, releaseAdvanceLock } = await import("../server/route-helpers");
   const { publicErrorHandler } = await import("../server/lib/httpErrors");
   const app = express(); app.use(express.json());
   const server = createServer(app);
@@ -43,12 +44,20 @@ if (process.argv.includes("--http-child")) {
   const effectsAccum = new Map();
   process.on("message", async (message: any) => {
     if (message?.kind === "advance-handoff") {
+      let owner: string | undefined;
       try {
         const league = await storage.getLeague(message.leagueId); assert(league);
         const resume = await inspectAdvanceRecovery(league);
-        await beginAdvanceOperation(league, message.operationId, "synthetic-handoff-owner", resume);
+        assert(await acquireAdvanceLock(league.id));
+        owner = getAdvanceLockToken(league.id); assert(owner);
+        await beginAdvanceOperation(league, message.operationId, owner, resume);
+        await releaseAdvanceLock(league.id, owner);
+        owner = undefined;
         process.send?.({ kind: "handoff-result", error: null });
-      } catch (error) { process.send?.({ kind: "handoff-result", error: error instanceof Error ? error.constructor.name : "UnknownError" }); }
+      } catch (error) {
+        if (owner) await releaseAdvanceLock(message.leagueId, owner);
+        process.send?.({ kind: "handoff-result", error: error instanceof Error ? error.constructor.name : "UnknownError" });
+      }
       return;
     }
     if (message?.kind === "postseason-bracket") {

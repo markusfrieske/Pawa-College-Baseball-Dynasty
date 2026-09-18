@@ -28,6 +28,8 @@ import { getAdvancePreflight } from "../lib/advancePreflight";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { evaluatePlayerPromises, processOffseasonDepartures, finalizeDeparturesInternal } from "../offseason-helpers";
 import { beginAdvanceOperation, inspectAdvanceRecovery, AdvanceRecoveryRequired, AdvanceOperationBusy } from "../lib/advance-recovery";
+import { createAdvanceExecution, AdvanceExecutionLost } from "../lib/advance-execution";
+import { createAdvanceProgress, getAdvanceProgress } from "../lib/advance-progress";
 import { SuperRegionalReconciliationRequired } from "../services/postseason/superRegionals";
 import { awardPostseasonCoachMilestone, PostseasonAwardConflict, PostseasonAwardReconciliationRequired } from "../lib/postseason-coach-awards";
 import {
@@ -400,26 +402,6 @@ function computeOfferGain(recruit: any, team: any, coach: any) {
 function assertInterestGainSane(actionType: string, interestGain: number, baseGain: number) {
   simAssertInterestGainSane(actionType, interestGain, baseGain);
 }
-
-// ============ ADVANCE PROGRESS STORE ============
-// In-memory map: leagueId -> { stage, pct, updatedAt }
-const advanceProgress = new Map<string, { stage: string; pct: number; updatedAt: number }>();
-
-// Per-league checkpoint writers registered by the advance route so that
-// setAdvanceProgress calls inside advanceLeagueStep persist to league_advances.
-// This provides per-substep checkpointing without modifying the advance engine.
-const advanceCheckpointWriters = new Map<string, (step: string, pct: number) => Promise<void>>();
-
-async function setAdvanceProgress(leagueId: string, stage: string, pct: number) {
-  advanceProgress.set(leagueId, { stage, pct, updatedAt: Date.now() });
-  await advanceCheckpointWriters.get(leagueId)?.(stage, pct);
-}
-
-function clearAdvanceProgress(leagueId: string) {
-  advanceProgress.delete(leagueId);
-  advanceCheckpointWriters.delete(leagueId);
-}
-
 
 // ── Game simulation helpers (module scope) ──────────────────────────────────
 
@@ -4984,9 +4966,12 @@ export async function advanceLeagueStep(
     savedRecruitingClassId?: string;
     /** Stage names (matching setAdvanceProgress keys) that completed in a prior crashed run. */
     completedStages?: Set<string>;
+    /** Bound to this execution; never resolved from a per-league writer registry. */
+    onProgress?: (stage: string, pct: number) => Promise<void>;
   } = {}
 ): Promise<AdvanceStepResult> {
   const { mode = "interactive", savedRecruitingClassId, completedStages } = opts;
+  const setAdvanceProgress = async (_leagueId: string, stage: string, pct: number) => { await opts.onProgress?.(stage, pct); };
   const fast = mode === "fast";
 
   const league = await storage.getLeague(leagueId);
@@ -7497,13 +7482,12 @@ export function registerSimulationRoutes(app: Express): void {
   });
 
   app.get("/api/leagues/:id/advance-progress", requireAuth, async (req, res) => {
-    const entry = advanceProgress.get(req.params.id as string);
+    const entry = getAdvanceProgress(req.params.id as string);
     if (!entry) {
       return res.json({ active: false, stage: "idle", pct: 0 });
     }
     // Auto-expire stale entries (>60s) so clients don't hang
     if (Date.now() - entry.updatedAt > 60_000) {
-      advanceProgress.delete(req.params.id as string);
       return res.json({ active: false, stage: "idle", pct: 0 });
     }
     return res.json({ active: true, stage: entry.stage, pct: entry.pct });
@@ -7716,7 +7700,7 @@ export function registerSimulationRoutes(app: Express): void {
       });
     } catch (e: any) {
       if (e instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:e.message,recoveryRequired:true,operationId:e.operationId });
-      if (e instanceof AdvanceOperationBusy) return res.status(409).json({ message:e.message });
+      if (e instanceof AdvanceOperationBusy || e instanceof AdvanceExecutionLost) return res.status(409).json({ message:e.message });
       console.error("[clear-stuck] error:", e);
       return res.status(500).json({ message: "Failed to clear stuck advance", detail: e?.message || String(e) });
     }
@@ -7764,7 +7748,8 @@ export function registerSimulationRoutes(app: Express): void {
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     let advOpId: string | null = null;
     let advanceLockToken: string | null = null;
-    let checkpointWriter: ((step: string, pct: number) => Promise<void>) | undefined;
+    let execution: ReturnType<typeof createAdvanceExecution> | undefined;
+    let executionProgress: ReturnType<typeof createAdvanceProgress> | undefined;
     // Tracks whether the catch block has already set the op to 'failed' so the
     // success path does not overwrite it with 'complete' on an unexpected error
     // that somehow exits the catch block and falls through to res.json().
@@ -7945,37 +7930,18 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(500).json({ message: "Failed to create advance operation record. Please try again." });
       }
 
-      // Start a heartbeat that renews the lease every 30 seconds so a slow advance
-      // cannot be incorrectly declared abandoned by the clear-stuck endpoint, while
-      // also allowing relatively fast abandoned-op detection (lease = 15 min window).
+      // Bind metadata and progress to immutable operation identity. Renewal is atomic.
+      execution = createAdvanceExecution({ leagueId, operationId: advOpId, token: advanceLockToken });
+      const ownedExecution = execution;
       let lockLostDuringAdvance = false;
+      let heartbeatInFlight = false;
       heartbeatTimer = setInterval(() => {
-        if (!advOpId) return;
-        pool.query(
-          `UPDATE league_advances
-              SET lease_expires_at = now() + interval '15 minutes', updated_at = now()
-            WHERE id = $1 AND locked_by = $2 AND status = 'running'`,
-          [advOpId, advanceLockToken],
-        ).catch(e => console.error("[league-advances] Heartbeat renewal failed:", e));
-        // Require the owner token so a stale heartbeat cannot renew a new owner's lock.
-        // If rowCount = 0 the lock row was taken by a different process; abort this operation.
-        const hbToken = advanceLockToken;
-        if (!hbToken) {
-          console.error("[league-advances] Heartbeat: owner token missing from registry — lock may have been lost");
+        if (heartbeatInFlight || lockLostDuringAdvance) return;
+        heartbeatInFlight = true;
+        ownedExecution.heartbeat().catch(error => {
           lockLostDuringAdvance = true;
-          return;
-        }
-        pool.query(
-          `UPDATE league_advance_locks
-              SET locked_at = now(), lease_expires_at = now() + interval '15 minutes'
-            WHERE league_id = $1 AND locked_by = $2 AND lease_expires_at >= now()`,
-          [leagueId, hbToken],
-        ).then(r => {
-          if ((r.rowCount ?? 0) === 0) {
-            console.error("[league-advances] Heartbeat: 0 rows updated — lock ownership lost to another process");
-            lockLostDuringAdvance = true;
-          }
-        }).catch(e => console.error("[league-advances] Lock heartbeat refresh failed:", e));
+          console.error("[league-advances] Execution heartbeat failed:", error);
+        }).finally(() => { heartbeatInFlight = false; });
       }, 30_000);
 
       // Invalidate server cache immediately so data doesn't serve stale content after advance
@@ -7993,24 +7959,11 @@ export function registerSimulationRoutes(app: Express): void {
         console.error("[pre-advance-save] Failed to create save state (non-fatal):", saveErr);
       }
 
-      // Register per-substep checkpoint writer.
-      // Every setAdvanceProgress() call inside advanceLeagueStep will invoke this,
-      // persisting the stage name and completion % to league_advances.checkpoints so
-      // crash recovery tooling can identify exactly where an interrupted advance stopped.
-      if (advOpId) {
-        const opId = advOpId;
-        checkpointWriter = async (step: string, pct: number) => {
-          const persisted = await pool.query(
-            `UPDATE league_advances
-                SET checkpoints = checkpoints || $2::jsonb, updated_at = now()
-              WHERE id = $1 AND locked_by = $3 AND status = 'running'`,
-            [opId, JSON.stringify({ [step]: { pct, at: new Date().toISOString() } }), advanceLockToken],
-          );
-          if (persisted.rowCount !== 1) throw new Error("Advance checkpoint ownership was lost.");
-        };
-        advanceCheckpointWriters.set(leagueId, checkpointWriter);
-      }
-      await setAdvanceProgress(leagueId, "initializing", 5);
+      executionProgress = createAdvanceProgress(leagueId, async (stage, pct) => {
+        if (lockLostDuringAdvance) throw new AdvanceExecutionLost();
+        await ownedExecution.checkpoint(stage, pct);
+      });
+      await executionProgress.update("initializing", 5);
 
       // ── Delegate all business logic to the unified advance engine ──────────
       // Pass priorCompletedStages so the engine can skip substeps that already
@@ -8022,6 +7975,7 @@ export function registerSimulationRoutes(app: Express): void {
       const { data } = await advanceLeagueStep(leagueId, req.session.userId!, {
         savedRecruitingClassId: req.body?.savedRecruitingClassId,
         completedStages: priorCompletedStages.size > 0 ? priorCompletedStages : undefined,
+        onProgress: executionProgress.update,
       });
 
       if (!(await renewAdvanceLock(leagueId, mutationLeaseToken))) {
@@ -8040,15 +7994,8 @@ export function registerSimulationRoutes(app: Express): void {
       // This must be awaited — a concurrent caller may acquire the lock the
       // instant releaseAdvanceLock() returns.
       if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
-      clearAdvanceProgress(leagueId);
-      if (advOpId && !advOpFailed) {
-        const completed = await pool.query(
-          `UPDATE league_advances SET status = 'complete', updated_at = now()
-            WHERE id = $1 AND locked_by = $2 AND status = 'running'`,
-          [advOpId, advanceLockToken],
-        );
-        if (completed.rowCount !== 1) throw new Error("Advance completion ownership was lost.");
-      }
+      if (advOpId && !advOpFailed) await ownedExecution.complete();
+      executionProgress.clear();
       await releaseAdvanceLock(leagueId, advanceLockToken);
 
       res.json(data);
@@ -8058,26 +8005,23 @@ export function registerSimulationRoutes(app: Express): void {
       let recorded = !advOpId;
       if (advOpId) {
         try {
-          const failure = await pool.query(
-            `UPDATE league_advances SET status='failed',error_message=$2,updated_at=now()
-              WHERE id=$1 AND locked_by=$3 AND status='running'`,
-            [advOpId,e?.message || String(e),advanceLockToken]);
-          recorded = failure.rowCount === 1;
+          if (execution) {
+            await execution.fail(e?.message || String(e));
+            recorded = true;
+          }
         } catch (failureError) { console.error("[league-advances] Failed to persist failure; retaining lease:", failureError); }
       }
       if (recorded && advanceLockToken) await releaseAdvanceLock(req.params.id as string, advanceLockToken);
       if (!res.headersSent) {
         if (e instanceof AdvanceRecoveryRequired) return res.status(409).json({ message:e.message,recoveryRequired:true,operationId:e.operationId });
-        if (e instanceof AdvanceOperationBusy) return res.status(409).json({ message:e.message });
+        if (e instanceof AdvanceOperationBusy || e instanceof AdvanceExecutionLost) return res.status(409).json({ message:e.message });
         if (e instanceof AdvancePreconditionError) return res.status(e.statusCode).json(e.body);
         if (e instanceof PostseasonAwardReconciliationRequired || e instanceof PostseasonAwardConflict || e instanceof SuperRegionalReconciliationRequired) return res.status(409).json({ message:e.message });
         console.error("Failed to advance week:", e);
         res.status(500).json({ message:"Failed to advance week" });
       }
     } finally {
-      if (checkpointWriter && advanceCheckpointWriters.get(req.params.id as string) === checkpointWriter) {
-        clearAdvanceProgress(req.params.id as string);
-      }
+      executionProgress?.clear();
     }
   });
 

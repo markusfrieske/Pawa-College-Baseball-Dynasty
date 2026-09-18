@@ -1,4 +1,5 @@
 import { pool } from "../db";
+import { withOwnedAdvanceLock } from "./advance-execution";
 
 type SourceState = { id: string; currentPhase: string; currentWeek: number; currentSeason: number };
 type UnfinishedAdvance = {
@@ -73,9 +74,7 @@ export async function inspectAdvanceRecovery(league: SourceState) {
 /** Retire and inherit in one commit, so another interruption loses no evidence. */
 export async function beginAdvanceOperation(league: SourceState, id: string, owner: string,
   resume: Awaited<ReturnType<typeof inspectAdvanceRecovery>>) {
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
+  await withOwnedAdvanceLock(league.id, owner, async client => {
     if (resume) {
       const retired = await client.query(
         `UPDATE league_advances SET status='failed',
@@ -89,7 +88,5 @@ export async function beginAdvanceOperation(league: SourceState, id: string, own
       `INSERT INTO league_advances(id,league_id,status,from_phase,from_week,from_season,checkpoints,locked_by,lease_expires_at)
        VALUES($1,$2,'running',$3,$4,$5,$6::jsonb,$7,now()+interval '15 minutes')`,
       [id,league.id,league.currentPhase,league.currentWeek,league.currentSeason,JSON.stringify(resume?.checkpoints ?? {}),owner]);
-    await client.query("COMMIT");
-  } catch (error) { await client.query("ROLLBACK"); throw error; }
-  finally { client.release(); }
+  });
 }
