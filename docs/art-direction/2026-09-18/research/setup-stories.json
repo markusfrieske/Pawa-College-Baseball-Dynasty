@@ -1,0 +1,724 @@
+{
+  "sources": [
+    {
+      "id": "setup-ootp-creation",
+      "title": "OOTP official wiki — Creating Games",
+      "url": "https://wiki.ootpdevelopments.com/index.php?title=OOTP_Baseball:Creating_Games",
+      "observed": "The official manual separates standard, custom, historical, advanced and quick-start creation paths. It describes a wizard for custom setup and identifies advanced mode as a separate route.",
+      "adaptation": "PAWA inference: make the mode decision explicit, then expose only the settings relevant to that mode; end on a review sheet.",
+      "avoid": "Do not import OOTP's MLB modes, historical database or automatic management systems into PAWA.",
+      "evidenceType": "Official manual text opened 2026-09-18; documented workflow, not a hands-on test."
+    },
+    {
+      "id": "setup-fm26-ui",
+      "title": "Football Manager 26 — Reimagined User Interface",
+      "url": "https://www.footballmanager.com/fm26/features/fm26s-reimagined-user-interface",
+      "observed": "FM describes a Portal combining home and inbox, task/unread filters, an action panel, grouped top navigation, and bookmarks. Tiles open more detailed cards. The article says readability and platform-specific screens shaped the redesign.",
+      "adaptation": "PAWA inference: separate actionable messages from unread messages; reveal secondary detail on demand; give the game menu named destination groups.",
+      "avoid": "Do not copy the universal tile system. PAWA needs distinct page composition rather than the same cards everywhere.",
+      "evidenceType": "Official developer feature text opened 2026-09-18; claims describe design intent, not proof of usability."
+    },
+    {
+      "id": "setup-ootp-history",
+      "title": "OOTP official wiki — History Index",
+      "url": "https://wiki.ootpdevelopments.com/index.php?title=OOTP_Baseball:Screens_and_Menus/Game_Menu/History_Index",
+      "observed": "The history index begins with seasons and finalists, emphasizes the champion, and links years to team history. Separate destinations cover players, teams, managers, leaderboards, awards and accomplishments.",
+      "adaptation": "PAWA inference: use stable year/category coordinates and evidence links so archive exploration cannot be confused with the live league.",
+      "avoid": "Do not copy the full nested link hierarchy or assume historical information exists when PAWA snapshots lack it.",
+      "evidenceType": "Official manual text opened 2026-09-18; information architecture evidence, not a current in-game screenshot audit."
+    },
+    {
+      "id": "setup-2k25-mynba",
+      "title": "NBA 2K25 — MyNBA and MyGM Courtside Report",
+      "url": "https://nba.2k.com/2k25/courtside-report/mynba/",
+      "observed": "2K describes fewer, more consequential MyGM conversations; historical news presentation changes from newspaper to web formats and social feeds. The report also describes simplifying staff management.",
+      "adaptation": "PAWA inference: make weekly news an editorial issue, live activity a compact stream, and narrative decisions a focused scene. Different content deserves different reading rhythm.",
+      "avoid": "Do not add walkable offices, invented NPC conversations, era simulation or unsupported role-playing effects.",
+      "evidenceType": "Official developer report opened 2026-09-18; documented content and presentation patterns, not hands-on validation."
+    },
+    {
+      "id": "setup-ea-cfb26",
+      "title": "EA College Football 26 — Dynasty and Team Builder Deep Dive",
+      "url": "https://www.ea.com/games/ea-sports-college-football/college-football-26/news/cfb26-campus-huddle-dynasty-deep-dive",
+      "observed": "EA describes choosing an existing coach or creating one. Its Trophy Room records achievements with season, team, score or individual recipient context; selecting a trophy exposes more information.",
+      "adaptation": "PAWA inference: coach setup should foreground identity and supported tradeoffs; awards should present recipients with the actual season and achievement evidence.",
+      "avoid": "Do not borrow licensed marks, imply PAWA has EA's coach progression, or turn every statistical record into a trophy.",
+      "evidenceType": "Official developer article and accompanying image descriptions opened 2026-09-18; no game session or video playthrough."
+    }
+  ],
+  "screens": [
+    {
+      "id": "title",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "season-door",
+      "composition": "One campus vista fills the frame; a narrow vertical play menu sits in intentional empty sky/dugout space. Last accessible dynasty is a single subtitle under Continue.",
+      "primaryDecision": "Resume a specific dynasty or begin another journey.",
+      "keep": [
+        "Actual last accessible save",
+        "Mode and season under Continue",
+        "Visible New and Join alternatives"
+      ],
+      "remove": [
+        "Statistics dashboard",
+        "Equal-weight promotional tiles"
+      ],
+      "interaction": "Arrow keys and pointer choose menu items; Continue names its target before navigation.",
+      "compact": "Keep the vertical menu over a quiet solid-backed crop; account control stays at top.",
+      "difference": "An atmospheric entry with four destinations, not a working league dashboard.",
+      "unapprovedDependencies": [
+        "Final campus key art; no animated environment or controller support implied."
+      ]
+    },
+    {
+      "id": "login",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "entry-form",
+      "composition": "A single compact credential sheet floats over a muted entrance crop. Show the intended league destination above the form.",
+      "primaryDecision": "Sign in and return to the intended destination.",
+      "keep": [
+        "Required labeled fields",
+        "Inline error and pending state",
+        "Preserved safe return destination"
+      ],
+      "remove": [
+        "League navigation",
+        "Account marketing and duplicate sign-in controls"
+      ],
+      "interaction": "Submit once; retain non-secret identity input on failure; route only after confirmed success.",
+      "compact": "Full-width form, visible Back, keyboard-safe spacing; no side panels.",
+      "difference": "A short authentication task rather than a game menu.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "register",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "identity-form",
+      "composition": "One linear registration sheet uses three visual bands: account identity, credentials, and creation consequence. Invite context remains a small header.",
+      "primaryDecision": "Create the account required to own the requested session.",
+      "keep": [
+        "Actual required fields",
+        "Password requirements near password",
+        "Invite destination context"
+      ],
+      "remove": [
+        "Coach appearance editor",
+        "Unimplemented provider sign-in promises"
+      ],
+      "interaction": "Validate beside fields; preserve valid entries after rejection; creation is a single named action.",
+      "compact": "One column with text labels; errors precede the submit action.",
+      "difference": "Account creation stays distinct from coach customization.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "guest",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "entry-consequence",
+      "composition": "A short guest pass contains the real persistence limitation followed by two stacked choices. Avoid a second onboarding funnel.",
+      "primaryDecision": "Enter as a guest with known limits or create an account.",
+      "keep": [
+        "Actual session limitations",
+        "Account alternative",
+        "Safe destination"
+      ],
+      "remove": [
+        "Legal-looking wall of copy",
+        "False permanent-save reassurance"
+      ],
+      "interaction": "The guest action begins one session request; warning remains visible while pending.",
+      "compact": "Two full-width labeled buttons below the consequence sentence.",
+      "difference": "A deliberate temporary-access fork; not another form.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "dashboard",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "save-library",
+      "composition": "One full-width list of dynasty spines: name, team mark, mode, current phase and last activity. The last played entry is taller; each entry owns its Continue action. Tools live behind a labeled library command.",
+      "primaryDecision": "Choose which world to resume.",
+      "keep": [
+        "Membership and accessibility",
+        "Phase/week and mode",
+        "Named Continue target"
+      ],
+      "remove": [
+        "Permanent right inspector",
+        "KPI cards copied from the active league"
+      ],
+      "interaction": "Choose a save directly; a contextual menu handles details/deletion separately from Continue.",
+      "compact": "Vertical save spines retain name, phase and primary action; no carousel.",
+      "difference": "A library of worlds with no need to open a generic inspector first.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "create",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "setup-wizard",
+      "composition": "A full-width step sequence shows Mode, Competition, Sources and Review. One task owns the center at a time; completed decisions become a collapsible summary ribbon.",
+      "primaryDecision": "Create the exact reviewed simulation or companion world.",
+      "keep": [
+        "Explicit simulated versus reported mode",
+        "Existing configurable rules and sources",
+        "Final configuration review"
+      ],
+      "remove": [
+        "Always-visible settings wall",
+        "Permanent summary side panel"
+      ],
+      "interaction": "Back preserves selections; choosing a mode reveals relevant supported fields; Create occurs only on the review step.",
+      "compact": "Single step with top Back/step label and readable next action, never four squeezed columns.",
+      "difference": "A narrowing decision sequence rather than a configurable dashboard.",
+      "unapprovedDependencies": [
+        "Step draft persistence across reload requires implementation; do not promise it."
+      ]
+    },
+    {
+      "id": "team-selection",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "competition-board",
+      "composition": "Conference headings divide a full-width school ballot. Each row shows monogram, name, selected state and relevant eligibility. A top count explains required versus chosen teams.",
+      "primaryDecision": "Confirm a valid competition field.",
+      "keep": [
+        "Selection total and constraints",
+        "Conference membership",
+        "Explicit selected state"
+      ],
+      "remove": [
+        "Unbounded logo carousel",
+        "Selected-school biography inspector"
+      ],
+      "interaction": "Toggle eligible schools; constraint feedback names the blocking rule; confirmation reviews totals.",
+      "compact": "Conference selector plus checked rows; selected count remains above the list.",
+      "difference": "A multi-select competition ballot, not scouting or team comparison.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "coach-setup",
+      "referenceIds": [
+        "setup-ea-cfb26"
+      ],
+      "layoutFamily": "media-day-creation",
+      "composition": "A large cel coach and selected school mark form a media-day backdrop; one focused foreground form progresses from school to identity to existing skill allocation.",
+      "primaryDecision": "Commit to the coach and school combination.",
+      "keep": [
+        "Claimed-school availability",
+        "Existing identity and skill budget",
+        "Final named coach-school pairing"
+      ],
+      "remove": [
+        "League statistics unrelated to selection",
+        "Cosmetic controls that imply unsupported bonuses"
+      ],
+      "interaction": "Preview permitted identity changes; claim/save only after confirming current availability and valid allocation.",
+      "compact": "Portrait becomes a compact header; each form stage uses full width.",
+      "difference": "Identity gets a character-creation moment rather than an admin record editor.",
+      "unapprovedDependencies": [
+        "Production cel customization kit; no new archetypes, perks or appearance mechanics."
+      ]
+    },
+    {
+      "id": "dynasty-lobby",
+      "referenceIds": [
+        "setup-ootp-creation",
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "clubhouse-rollcall",
+      "composition": "A prominent league masthead leads into school/coach seat rows. A separate readiness strip summarizes class, schedule and assignments. The commissioner Start action follows its exact blockers.",
+      "primaryDecision": "Claim an available school or resolve the blocker preventing league start.",
+      "keep": [
+        "Human versus CPU labels",
+        "Current seat assignments",
+        "Server-backed readiness blockers"
+      ],
+      "remove": [
+        "Decorative scene above all useful content",
+        "Online presence treated as readiness"
+      ],
+      "interaction": "Selecting an open seat opens only its claim flow; start is role-aware and rechecks prerequisites.",
+      "compact": "Rollcall becomes stacked seat rows; readiness appears before the final start control.",
+      "difference": "A social readiness room with named occupants, not a general operations console.",
+      "unapprovedDependencies": [
+        "Any presence display needs actual freshness data; no chat or synchronized avatar lobby."
+      ]
+    },
+    {
+      "id": "creation-progress",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "operation-receipt",
+      "composition": "A slim vertical stage timeline sits beside the reviewed creation name. Completed/current/failed stages have explicit text; the final successful state replaces progress with Enter dynasty.",
+      "primaryDecision": "Wait, enter the confirmed world, or follow the supported recovery path.",
+      "keep": [
+        "Actual stage and status",
+        "Reviewed configuration identity",
+        "Failure explanation"
+      ],
+      "remove": [
+        "Invented percentage or ETA",
+        "Campus construction implying real facility progression"
+      ],
+      "interaction": "Revisit the same operation identity after navigation; show retry only when supported.",
+      "compact": "One stage stack and one status action; details expand downward.",
+      "difference": "A receipt for one operation, not a loading dashboard.",
+      "unapprovedDependencies": [
+        "Resumption/retry only if creation API supports it; no new recovery guarantee."
+      ]
+    },
+    {
+      "id": "invite",
+      "referenceIds": [
+        "setup-ootp-creation"
+      ],
+      "layoutFamily": "club-invitation",
+      "composition": "A single invitation letter names the league, intended role if known, and current account. Acceptance and account switching are distinct actions below the identity check.",
+      "primaryDecision": "Join this league as the displayed account.",
+      "keep": [
+        "League identity",
+        "Actual validity and membership state",
+        "Role/seat only when supplied"
+      ],
+      "remove": [
+        "Public roster browsing before access",
+        "Raw token displayed as decorative code"
+      ],
+      "interaction": "Accept once; preserve invitation context across sign-in; an existing member gets Open league.",
+      "compact": "One readable letter with actions below; no league navigation until authorized.",
+      "difference": "A membership decision, not a miniature league home.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "stats",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "leaderboard",
+      "composition": "A full-width statistical ledger gets a two-line control header: season/scope, then batting/pitching and metric preset. The leading row has restrained emphasis; player details open only on demand.",
+      "primaryDecision": "Which performance ranks highest under this scope and qualification?",
+      "keep": [
+        "Season and source coverage",
+        "Sortable supported metrics",
+        "Qualification sample and unknown values"
+      ],
+      "remove": [
+        "Always-open portrait inspector",
+        "Decorative KPI totals repeating table columns"
+      ],
+      "interaction": "Sorting changes the named order; choose a row for a full profile and return to the same sort/position.",
+      "compact": "Keep rank, athlete, selected metric and sample in view; switch metric groups instead of shrinking every column.",
+      "difference": "A comparison instrument that devotes nearly all width to aligned evidence.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "records",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "record-almanac",
+      "composition": "A category index opens a typeset record page: value and holder first, then tied holders, team/year and source link. Single-season and career scope sit above the record list.",
+      "primaryDecision": "Which achievement and holder should I inspect?",
+      "keep": [
+        "Record scope and category",
+        "Ties and qualification",
+        "Source season and holder"
+      ],
+      "remove": [
+        "Trophy cards for every number",
+        "Selected-player workspace framing"
+      ],
+      "interaction": "Open a record category, select the record, follow its archived evidence; Back retains category.",
+      "compact": "Category selector opens one record page with tied holders stacked.",
+      "difference": "An achievement reference book, distinct from sorting current-season statistics.",
+      "unapprovedDependencies": [
+        "Do not infer all-time records from incomplete archives."
+      ]
+    },
+    {
+      "id": "archive",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "season-almanac",
+      "composition": "A visible year index leads to a season contents page. The selected year is stamped across the masthead; chapters open full-width historical tables or spreads.",
+      "primaryDecision": "Which completed season and chapter do I want to revisit?",
+      "keep": [
+        "Immutable season label",
+        "Snapshot completeness",
+        "Links to archived teams and fixtures"
+      ],
+      "remove": [
+        "Live action buttons",
+        "All chapters simultaneously in dashboard cards"
+      ],
+      "interaction": "Year first, chapter second; preserve both in navigation and clearly mark any link back to live data.",
+      "compact": "Year chooser and chapter list replace a permanent rail; one chapter owns the screen.",
+      "difference": "A historical container organized by year, not the live league page tinted sepia.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "archive-team",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "team-yearbook",
+      "composition": "A single team-season masthead leads into a historical roster register with chapter switches for recorded results and honors. The year remains beside the team name everywhere.",
+      "primaryDecision": "Inspect this team as it existed in that year.",
+      "keep": [
+        "Snapshot roster",
+        "Recorded results and honors",
+        "Explicit missing historical fields"
+      ],
+      "remove": [
+        "Current roster silently filling snapshot gaps",
+        "Editable player controls"
+      ],
+      "interaction": "Historical players open a read-only snapshot view; Live team is a separately labeled exit.",
+      "compact": "One register section at a time; each detail keeps team and year at top.",
+      "difference": "A frozen team volume rather than a live profile with an archive badge.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "digests",
+      "referenceIds": [
+        "setup-2k25-mynba"
+      ],
+      "layoutFamily": "weekly-frontpage",
+      "composition": "One issue uses an editorial lead headline, compact result rail and two supporting columns of factual briefs. Required decisions appear in a clearly labeled box, not inside celebratory copy. Issue navigation is a top date chooser.",
+      "primaryDecision": "What materially changed this week, and what needs my attention?",
+      "keep": [
+        "Issue week and completeness",
+        "Links to recorded source events",
+        "Action-required distinction"
+      ],
+      "remove": [
+        "Permanent issue-list sidebar",
+        "Equal cards for every headline"
+      ],
+      "interaction": "Read the issue in priority order; open a source or task without marking it resolved merely by reading.",
+      "compact": "One-column newspaper order: lead, decisions, results, supporting briefs.",
+      "difference": "A curated weekly edition, unlike the raw ticker or personal inbox.",
+      "unapprovedDependencies": [
+        "Editorial prioritization must use available events; no fabricated quotes or generated facts."
+      ]
+    },
+    {
+      "id": "ticker",
+      "referenceIds": [
+        "setup-2k25-mynba",
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "activity-wire",
+      "composition": "A stationary chronological wire groups compact events by date/week. Category chips sit above the stream; new events collect behind a count button rather than moving existing rows.",
+      "primaryDecision": "Which recent event deserves inspection?",
+      "keep": [
+        "Timestamp or week",
+        "Event category and provenance",
+        "Stale/disconnected status"
+      ],
+      "remove": [
+        "Auto-scrolling marquee",
+        "Expanded permanent right inspector"
+      ],
+      "interaction": "Open event inline or follow its linked record; manually reveal newer items and retain reading position.",
+      "compact": "Single event column with filters in a named sheet; no sideways ticker.",
+      "difference": "A low-friction activity log rather than another editorial homepage.",
+      "unapprovedDependencies": [
+        "New-event count requires supported polling/event updates; do not imply live sockets."
+      ]
+    },
+    {
+      "id": "inbox",
+      "referenceIds": [
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "decision-inbox",
+      "composition": "A narrow message queue shares the page with one full reading sheet. Two top filters independently distinguish unread from unresolved; any valid action lives at the end of the actual message.",
+      "primaryDecision": "Read or act on the selected coach message.",
+      "keep": [
+        "Sender/context and time",
+        "Separate read and resolved meaning",
+        "Actual archive/action capability"
+      ],
+      "remove": [
+        "Third category sidebar",
+        "Urgency badges without deadlines"
+      ],
+      "interaction": "Select message, read context, then follow its action. Archive remains a separate command and never resolves the underlying task.",
+      "compact": "Queue and reader become two screens; Back restores selection and filters.",
+      "difference": "A personal correspondence workflow; the only deliberate list-reader split in this group.",
+      "unapprovedDependencies": [
+        "Unresolved filter requires reliable task-state linkage; otherwise keep supported categories."
+      ]
+    },
+    {
+      "id": "storylines",
+      "referenceIds": [
+        "setup-2k25-mynba"
+      ],
+      "layoutFamily": "story-scene",
+      "composition": "One active arc opens as a story spread with a scene headline, factual context, participants and a small consequence timeline. Eligible choices/votes sit beneath the context. Intel and commissioner tools are separate chapters.",
+      "primaryDecision": "Choose a supported story action or vote with its known consequences.",
+      "keep": [
+        "Actual deadline and vote state",
+        "Unlocked information only",
+        "Recorded consequence history"
+      ],
+      "remove": [
+        "Simultaneous Vote/Intel/Command dashboard",
+        "Invented dialogue or implied hidden rewards"
+      ],
+      "interaction": "Read context before selecting a choice; confirmation names the option; expired/completed decisions become read-only history.",
+      "compact": "Context then choices then history; no side panel holding required information.",
+      "difference": "A focused narrative decision, not a news list with a vote widget.",
+      "unapprovedDependencies": [
+        "New dialogue, branching outcomes or artwork require separate design approval; use existing story content."
+      ]
+    },
+    {
+      "id": "war-room",
+      "referenceIds": [
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "route-redirect",
+      "composition": "There is no new designed destination. Replace the retired route with its accessible league hub; only a brief fallback names the current destination.",
+      "primaryDecision": "Continue to the current Matchday brief.",
+      "keep": [
+        "Valid league context",
+        "Normal access checks",
+        "Safe fallback link"
+      ],
+      "remove": [
+        "Revived duplicate hub",
+        "Loading scene or new War Room branding"
+      ],
+      "interaction": "Replace navigation history so Back does not loop; failed access uses the normal recovery state.",
+      "compact": "Same redirect; no separate phone design.",
+      "difference": "A compatibility route deliberately receives no new screen.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "not-found",
+      "referenceIds": [
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "recovery",
+      "composition": "One calm recovery page names the problem in plain language, offers an accessible hub when known, and always offers Dynasty selection. A small neutral diamond illustration is optional.",
+      "primaryDecision": "Choose a safe known destination.",
+      "keep": [
+        "Accessible return destination",
+        "Distinct missing versus unavailable wording",
+        "Account context when relevant"
+      ],
+      "remove": [
+        "Raw route tokens or stack traces",
+        "Fake retry for permanently missing content"
+      ],
+      "interaction": "Use one destination action; retry appears only for recoverable loading/network errors, not arbitrary 404s.",
+      "compact": "Short text and two full-width actions; no decorative scrolling page.",
+      "difference": "Recovery is a plain decision surface, not a disabled version of the normal dashboard.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "league-standings",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "pennant-table",
+      "composition": "Conference groups form one aligned standings ledger. The user team has a subtle row marker; any supported qualification boundary is labeled in the table itself.",
+      "primaryDecision": "Where does the program stand in the official race?",
+      "keep": [
+        "Official record and games back where supported",
+        "Conference context",
+        "Known tiebreak explanation"
+      ],
+      "remove": [
+        "Permanent team summary sidebar",
+        "Invented playoff probability cards"
+      ],
+      "interaction": "Choose conference, inspect a team, return to the same standings position.",
+      "compact": "Team, W-L and supported rank/GB remain primary; additional columns use metric presets.",
+      "difference": "A race table aligned by teams, unlike individual stat leaders or ranking opinions.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "league-teams",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "program-atlas",
+      "composition": "A conference-organized directory of compact school nameplates fills the page. Selecting Compare opens a new two-program sheet with equal columns and matched metric periods.",
+      "primaryDecision": "Find a program or compare two named programs.",
+      "keep": [
+        "Conference and school identity",
+        "Existing comparable metrics",
+        "Clear two-team selection"
+      ],
+      "remove": [
+        "Always-visible single-team inspector",
+        "Composite power score invented for visual impact"
+      ],
+      "interaction": "Choose first and second program explicitly; compare is a separate route/state, with Swap and Clear.",
+      "compact": "Directory stays a list; comparison shows labeled A/B values per metric group.",
+      "difference": "A navigable program directory that changes composition only when comparison is requested.",
+      "unapprovedDependencies": [
+        "Comparison state and return behavior need implementation; no new composite metric."
+      ]
+    },
+    {
+      "id": "league-rankings",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "poll-release",
+      "composition": "A dated ranking release leads with week and source, followed by current rank, prior rank and movement in one full-width ordered list. New entrants use text, not a false delta.",
+      "primaryDecision": "How did this published ranking change?",
+      "keep": [
+        "Published week/snapshot",
+        "Actual previous rank",
+        "New/unranked distinction"
+      ],
+      "remove": [
+        "Standings record presented as ranking authority",
+        "Unexplained decorative trend graphs"
+      ],
+      "interaction": "Switch published week only where snapshots exist; open the ranked program for context.",
+      "compact": "Rank, team and movement form one readable line with a secondary record line.",
+      "difference": "A published ordered snapshot rather than the competition standings table.",
+      "unapprovedDependencies": [
+        "Historical ranking selection requires retained snapshots; absent methodology stays unexplained, not invented."
+      ]
+    },
+    {
+      "id": "league-awards",
+      "referenceIds": [
+        "setup-ea-cfb26"
+      ],
+      "layoutFamily": "honors-cabinet",
+      "composition": "Award categories form restrained cabinet headings. One selected honor gets recipient portrait, award name and season; other recipients remain a compact roll of honor below.",
+      "primaryDecision": "Inspect the actual recipient and achievement.",
+      "keep": [
+        "Award category and season",
+        "Confirmed recipient",
+        "Pending and unavailable outcomes"
+      ],
+      "remove": [
+        "Empty winner silhouettes suggesting certainty",
+        "Trophies with no factual context"
+      ],
+      "interaction": "Select category or recipient; open the actual player/season evidence. Do not trigger celebration for unawarded honors.",
+      "compact": "Award selector plus one featured recipient and roll of honor.",
+      "difference": "An achievement ceremony surface distinct from record lookup or raw leaders.",
+      "unapprovedDependencies": [
+        "Original award silhouette/portrait assets; avoid EA trophies and licensed designs."
+      ]
+    },
+    {
+      "id": "league-history",
+      "referenceIds": [
+        "setup-ootp-history"
+      ],
+      "layoutFamily": "season-index",
+      "composition": "A chronological season ledger shows year, champion and the few retained major outcomes. The main interaction is selecting a year; rich reading happens in Archive.",
+      "primaryDecision": "Which season should I open?",
+      "keep": [
+        "Completed season identity",
+        "Recorded champion/outcome",
+        "Archive completeness indicator"
+      ],
+      "remove": [
+        "Second full archive implementation",
+        "Mini charts without consistent historical data"
+      ],
+      "interaction": "Select a year to open its archive, not a separate competing history dashboard.",
+      "compact": "Stacked season rows with champion and Open year.",
+      "difference": "A concise index into Archive; it is not an additional archival content system.",
+      "unapprovedDependencies": []
+    },
+    {
+      "id": "league-edits",
+      "referenceIds": [
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "change-journal",
+      "composition": "Date groups contain factual edit entries with actor, affected record and correction summary. Opening an entry reveals authorized before/after values directly below it.",
+      "primaryDecision": "What changed, and which record is affected?",
+      "keep": [
+        "Actor/time when retained",
+        "Affected entity",
+        "Authorized provenance"
+      ],
+      "remove": [
+        "Generic league KPI header",
+        "Audit data exposed as social news"
+      ],
+      "interaction": "Expand one event inline or open its record; unavailable/restricted detail is labeled.",
+      "compact": "One event column; before and after stack with explicit labels.",
+      "difference": "A correction journal with precise provenance, separate from the public activity wire.",
+      "unapprovedDependencies": [
+        "Do not reconstruct missing before/after values or expose private scouting through logs."
+      ]
+    },
+    {
+      "id": "season-recap",
+      "referenceIds": [
+        "setup-ootp-history",
+        "setup-ea-cfb26"
+      ],
+      "layoutFamily": "season-annual",
+      "composition": "A season cover names the final record and completed year. A deliberate reading sequence follows: results, actual honors, departing players and arrivals. Each chapter ends with its archive evidence link.",
+      "primaryDecision": "Review what the completed season meant and continue when ready.",
+      "keep": [
+        "Confirmed season/year",
+        "Actual achievements and roster events",
+        "Archive source links"
+      ],
+      "remove": [
+        "Permanent navigation inspector",
+        "Mandatory unskippable reveal sequence"
+      ],
+      "interaction": "Next/previous chapter and contents list remain available; Exit returns without advancing league state.",
+      "compact": "One chapter per view with a persistent year label and clear contents control.",
+      "difference": "An end-of-season reading experience, while Archive remains the searchable reference.",
+      "unapprovedDependencies": [
+        "Scrapbook export, new generated narration and share layouts remain unapproved dependencies."
+      ]
+    },
+    {
+      "id": "system-shell",
+      "referenceIds": [
+        "setup-fm26-ui"
+      ],
+      "layoutFamily": "command-menu",
+      "composition": "The shell supplies a small league/season/status band, then yields most space to each page's own composition. A top Menu opens grouped text destinations over the paused interface; preferences are a separate sheet.",
+      "primaryDecision": "Navigate to a named area or resume the current task.",
+      "keep": [
+        "Current league/season/location",
+        "Visible keyboard focus and return",
+        "Supported network/save/preferences status"
+      ],
+      "remove": [
+        "Global workspace plus mandatory sidebar on every screen",
+        "Bottom tab bar or unexplained icon-only destinations"
+      ],
+      "interaction": "Open menu, choose group/destination, or Escape back to the exact invoking control; never discard dirty input silently.",
+      "compact": "A top Menu opens a full-screen named destination list; no bottom navigation.",
+      "difference": "The shell is a navigation layer, not the composition template for every screen.",
+      "unapprovedDependencies": [
+        "Controller mapping, bookmarks, audio assets and persistent preference behavior require their own implementation/approval."
+      ]
+    }
+  ]
+}

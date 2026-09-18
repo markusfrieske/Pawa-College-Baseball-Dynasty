@@ -1,0 +1,572 @@
+{
+  "sources": [
+    {
+      "id": "fm23-recruitment",
+      "title": "Football Manager 2023 — Recruitment Revamp (30 September 2022)",
+      "url": "https://www.footballmanager.com/features/recruitment-revamp",
+      "observed": "The official article describes role-based squad planning, future-season options, recruitment criteria and explicit scouting-completion states. The site's current FM26 chrome does not change the article's FM23 subject.",
+      "adaptation": "PAWA inference: separate role assignment, candidate search and knowledge evaluation into different working views.",
+      "avoid": "Do not import soccer positions, staff automation or multi-year planning mechanics that PAWA has not implemented.",
+      "evidenceType": "Official developer feature article opened and read; documented workflow, not hands-on usability evidence."
+    },
+    {
+      "id": "ootp19-lineups",
+      "title": "Out of the Park Baseball 19 — Lineups manual",
+      "url": "https://manuals.ootpdevelopments.com/index.php?man=ootp19&page=lineups",
+      "observed": "The manual separates the available-player list, batting order and positional depth chart. It documents distinct lineup scenarios and filtering/view controls.",
+      "adaptation": "PAWA inference: batting order and field assignments need different spatial treatments; browsing ratings need not always show the lineup.",
+      "avoid": "Do not copy OOTP's many nested panes, professional roster assumptions or unsupported platoon/DH scenarios.",
+      "evidenceType": "Official versioned manual opened and read; historical workflow reference, not a claim about current OOTP."
+    },
+    {
+      "id": "ea-cfb25-dynasty",
+      "title": "EA SPORTS College Football 25 — Dynasty Deep Dive",
+      "url": "https://www.ea.com/security/news/college-football-25-dynasty-deep-dive",
+      "observed": "The developer article documents a recruit board with actionable status, a separate position-needs view, progressive scouting disclosure, staged recruiting and a school-strengths view. It describes finite weekly recruiting resources and coach abilities with prerequisites.",
+      "adaptation": "PAWA inference: expose the specific scarce resource beside the next action and make uncertainty, need and phase visible without repeating every detail.",
+      "avoid": "Do not transplant football scholarship counts, stages, attribute ranges, recruiting hours, coach rules or transfer guarantees into PAWA.",
+      "evidenceType": "Official producer/game-designer deep dive opened and read; documented interface/workflow. No game execution or independent enjoyment test."
+    },
+    {
+      "id": "fm23-timeline",
+      "title": "Football Manager 2023 — Dynamic Manager Timeline (30 September 2022)",
+      "url": "https://www.footballmanager.com/features/dynamic-manager-timeline",
+      "observed": "The official article describes chronological career moments with extra emphasis on major achievements and includes setbacks rather than only trophies.",
+      "adaptation": "PAWA inference: program, coach and rivalry history should use factual chronology; a completed class can become a keepsake rather than another management dashboard.",
+      "avoid": "Do not invent event significance scores, unsupported sharing or historical events that PAWA never stored.",
+      "evidenceType": "Official developer feature article opened and read; narrative-structure reference, not proof of PAWA archive completeness."
+    },
+    {
+      "id": "team-cfb26-clarity",
+      "title": "College Football 26 — Dynasty & Team Builder Deep Dive",
+      "url": "https://www.ea.com/games/ea-sports-college-football/college-football-26/news/cfb26-campus-huddle-dynasty-deep-dive",
+      "observed": "EA describes team needs pinned above the prospect list, consistent attribute ordering for comparisons, board trend indicators and favorites. The article explains why these reduce switching between views.",
+      "adaptation": "PAWA inference: place positional need beside the target board, keep comparable scouting attributes aligned, and expose a concise next-action state using only known information.",
+      "avoid": "Do not import football positions, recruiting-hour costs, abilities or success probabilities into PAWA. A cleaner interface does not authorize new rules.",
+      "evidenceType": "Official developer article opened September 18, 2026; described interaction and image captions, not hands-on validation."
+    }
+  ],
+  "screens": [
+    {
+      "id": "hub",
+      "referenceIds": [
+        "ea-cfb25-dynasty"
+      ],
+      "layoutFamily": "morning-brief",
+      "composition": "One broad next-game placard fills the left half; the right half is a short ranked to-do list. A thin latest-result strip sits beneath. League detail opens separately, not under eight dashboard modules.",
+      "primaryDecision": "What must I do before this week can progress?",
+      "keep": [
+        "Next real game and mode-correct action",
+        "Actual blockers and readiness",
+        "One meaningful recent outcome"
+      ],
+      "remove": [
+        "Permanent standings/rankings/data-card wall",
+        "Repeated budget summaries already visible in recruiting"
+      ],
+      "interaction": "Select a task to enter its working screen; complete it and return to the same brief. Mark ready stays separate from advancing league.",
+      "compact": "At narrower widths, next game then task list; at most one recent-outcome row. No persistent inspector.",
+      "difference": "An agenda composition, not a table or profile screen.",
+      "unapprovedDependencies": "Task prioritization must use existing phase/blocker data; no invented urgency or autonomous advance."
+    },
+    {
+      "id": "roster",
+      "referenceIds": [
+        "ootp19-lineups"
+      ],
+      "layoutFamily": "roster-manifest",
+      "composition": "Full-width manifest with a generous identity column and just six default fields: name, position, year, B/T, OVR, status. A slim position filter sits above. A player profile opens only on demand; no mandatory right inspector.",
+      "primaryDecision": "Who can fill the role I need?",
+      "keep": [
+        "One continuous roster list",
+        "Labeled OVR separate from stars",
+        "Position/year filters and meaningful status"
+      ],
+      "remove": [
+        "One card/table per position",
+        "Permanent hometown/portrait inspector stealing comparison width"
+      ],
+      "interaction": "Choose Ratings, Batting or Pitching column preset; select row to open profile; return restores row and sort. Depth is a deliberate view change.",
+      "compact": "Name plus position/year/OVR in the list; remaining metric preset replaces columns rather than extends offscreen.",
+      "difference": "Maximum comparable rows and no decorative hero; visual priority is aligned numbers.",
+      "unapprovedDependencies": "Column presets use only available data. Roster role response shape needs authenticated QA; no new edit permissions."
+    },
+    {
+      "id": "team",
+      "referenceIds": [
+        "ootp19-lineups",
+        "fm23-recruitment"
+      ],
+      "layoutFamily": "diamond-board",
+      "composition": "A schematic defensive diamond presents the team's actual positional shape. A compact rotation strip sits beneath, with record and next fixture in a narrow masthead. Roster and Schedule open dedicated views.",
+      "primaryDecision": "Where is this team strong or exposed?",
+      "keep": [
+        "Actual positional players",
+        "Pitching roles",
+        "Record and next opponent"
+      ],
+      "remove": [
+        "Full program-history wall on current-team overview",
+        "Three generic summary cards plus inspection rail"
+      ],
+      "interaction": "Select a position to see its current options; selecting an athlete opens their read-only profile unless authorized. Formation diagram is navigational, not a claim about projected starters.",
+      "compact": "At compact size use named position slots in diamond order and a separate rotation tab; never shrink athlete labels to dots.",
+      "difference": "Spatial current-team overview; the program screen instead owns institutional history.",
+      "unapprovedDependencies": "Must use actual assigned roles; missing assignments say unassigned. Any generated strength assessment needs a verified model."
+    },
+    {
+      "id": "program",
+      "referenceIds": [
+        "fm23-timeline"
+      ],
+      "layoutFamily": "legacy-timeline",
+      "composition": "Editorial yearbook cover at left: campus miniature, school crest, founding identity. A broad season timeline occupies the main canvas; selecting a season replaces it with that year's documented record. Facilities appears as a short factual caption.",
+      "primaryDecision": "What story has this program earned?",
+      "keep": [
+        "Season-labeled record",
+        "Confirmed honors and alumni",
+        "Factual school identity"
+      ],
+      "remove": [
+        "Live roster editing controls",
+        "Permanent scouting-style inspector and action-cost widgets"
+      ],
+      "interaction": "Move through seasons or jump to honors; open archived evidence from a specific moment. Return retains the selected year.",
+      "compact": "Compact cover masthead then vertical chronology; no squeezed horizontal timeline.",
+      "difference": "A historical publication with breathing room, not another roster-management screen.",
+      "unapprovedDependencies": "Needs stored season/event provenance. Do not invent campus history, achievements or export support."
+    },
+    {
+      "id": "coach",
+      "referenceIds": [
+        "ea-cfb25-dynasty",
+        "fm23-timeline"
+      ],
+      "layoutFamily": "coach-passport",
+      "composition": "Cel coach portrait and name anchor a vertical credential on the left. Career is a chronological record; Skills switches the main canvas to the actual perk structure. Settings is a quiet form, not a profile card collage.",
+      "primaryDecision": "What defines this coach, and which eligible improvement matters next?",
+      "keep": [
+        "Career context",
+        "Actual skill prerequisites and remaining points",
+        "Own-versus-other profile permissions"
+      ],
+      "remove": [
+        "Every badge repeated as a separate large card",
+        "Private settings displayed in public career views"
+      ],
+      "interaction": "Switch Career, Attributes, Skills, Strategy and Settings; selecting a perk previews actual cost/effect before eligible purchase.",
+      "compact": "Identity collapses to a slim header; one active chapter fills the display. Skills has a readable list equivalent.",
+      "difference": "A person-centered passport that changes working surface by chapter; it is not a scouting board.",
+      "unapprovedDependencies": "No new archetypes, respec rules or XP mechanics. Controller tree navigation remains future implementation."
+    },
+    {
+      "id": "identity",
+      "referenceIds": [
+        "ea-cfb25-dynasty"
+      ],
+      "layoutFamily": "identity-playbook",
+      "composition": "Four labeled playbook dividers frame a single choice surface. The current selection and one candidate are shown as parallel text/diagram columns, with the actual consequence sentence directly between them.",
+      "primaryDecision": "Which existing philosophy should this program adopt?",
+      "keep": [
+        "Current versus proposed choice",
+        "Actual benefits and limits",
+        "Explicit apply/cancel state"
+      ],
+      "remove": [
+        "Four simultaneously expanded feature-card grids",
+        "Invented numerical fit scores"
+      ],
+      "interaction": "Choose offense, pitching, pitch or culture; preview one alternative; Apply only if allowed. Selecting a preview never saves.",
+      "compact": "One divider selector and two vertically paired descriptions; chosen state stays in the header.",
+      "difference": "A side-by-side choice workbench with no list of people or persistent inspector.",
+      "unapprovedDependencies": "All tradeoffs and phase restrictions must come from existing rules; changes are not approved by this research."
+    },
+    {
+      "id": "rivalries",
+      "referenceIds": [
+        "fm23-timeline"
+      ],
+      "layoutFamily": "rivalry-matchup",
+      "composition": "A large opposing-monogram composition carries the series record. Under it, a chronological sequence of verified meetings uses score and season as the visual rhythm. A compact selector changes the rival.",
+      "primaryDecision": "Which contest gives this rivalry its meaning?",
+      "keep": [
+        "Head-to-head evidence",
+        "Correct season and coach identities",
+        "Next actual meeting"
+      ],
+      "remove": [
+        "Generic league-stat tiles",
+        "Manufactured feud copy or rivalry heat without data"
+      ],
+      "interaction": "Select a meeting for its supported result; choose next matchup to prepare. History and next-game actions are visibly distinct.",
+      "compact": "Stack the two crests around the record; vertical match history below.",
+      "difference": "A matchup story, not a general program profile.",
+      "unapprovedDependencies": "No invented rivalry causes or intensity changes; missing historical meetings remain unavailable."
+    },
+    {
+      "id": "recruiting",
+      "referenceIds": [
+        "ea-cfb25-dynasty",
+        "fm23-recruitment",
+        "team-cfb26-clarity"
+      ],
+      "layoutFamily": "recruiting-ledger",
+      "composition": "One wide target ledger is the default: prospect, role, known quality, interest/stage, current commitment and next permitted action. A compact resource meter and needs shortcut sit in the command row. Selecting an action expands a shallow row tray, not a permanent profile column.",
+      "primaryDecision": "Where should the next recruiting action go?",
+      "keep": [
+        "Comparable target status",
+        "Exact available actions/NIL",
+        "Scouting uncertainty and roster need"
+      ],
+      "remove": [
+        "Six equal-size Command Center cards",
+        "Full recruit biography beside every routine board action"
+      ],
+      "interaction": "Sort/filter targets, expand a single action tray, review cost and act. Open dossier only for a deeper evaluation. Do not introduce batch spending.",
+      "compact": "Essential four-column board and named metric preset; an expanded tray uses the full row width. Top controls stay readable.",
+      "difference": "A resource-allocation ledger rather than a player-card gallery or three-panel dashboard.",
+      "unapprovedDependencies": "No borrowed football recruiting hours or caps. Any priority sort must be factual/user-controlled; private ratings stay hidden."
+    },
+    {
+      "id": "recruit-profile",
+      "referenceIds": [
+        "fm23-recruitment",
+        "ea-cfb25-dynasty",
+        "team-cfb26-clarity"
+      ],
+      "layoutFamily": "scouting-dossier",
+      "composition": "A media-day portrait and identity occupy one third; a structured scouting sheet uses the rest. Known traits, unknown traits and expressed priorities are visibly distinct. A compact competition ladder sits below the relevant recruiting chapter.",
+      "primaryDecision": "Do I know enough to pursue this athlete?",
+      "keep": [
+        "Known versus unknown evidence",
+        "Player priorities and team fit facts",
+        "Role-appropriate attribute groups"
+      ],
+      "remove": [
+        "All attributes, biography and competition visible at once",
+        "Gem/bust styling that reveals private data"
+      ],
+      "interaction": "Switch Scouting, Priorities and Recruitment chapters using the existing data sections; each explains its knowledge boundary. Primary action changes with eligibility.",
+      "compact": "Portrait becomes an identity strip; one sheet chapter at a time, with no nested tiny tabs.",
+      "difference": "A readable dossier for one person, deliberately slower and more reflective than the target ledger.",
+      "unapprovedDependencies": "Do not invent scouting confidence ranges or reports. Warm copy cannot imply facts not stored."
+    },
+    {
+      "id": "portal",
+      "referenceIds": [
+        "ea-cfb25-dynasty",
+        "fm23-recruitment"
+      ],
+      "layoutFamily": "portal-shortlist",
+      "composition": "A position-needs strip heads a compact transfer candidate list. Each row foregrounds remaining eligibility, origin, known ability and availability. Comparing a candidate opens current-option versus candidate, not a general recruiting biography.",
+      "primaryDecision": "Does this transfer solve an immediate roster vacancy?",
+      "keep": [
+        "Eligibility and origin",
+        "Actual roster space/cost",
+        "Available transfer status"
+      ],
+      "remove": [
+        "High-school star-rating emphasis as default",
+        "Repeated long recruiting-stage panels"
+      ],
+      "interaction": "Choose needed role, shortlist/inspect an eligible candidate, then review permitted offer. Existing roster option remains the comparison baseline.",
+      "compact": "Need selector, candidate list, then full-width comparison; no always-open inspector.",
+      "difference": "Immediate roster replacement workflow, visibly different from high-school relationship building.",
+      "unapprovedDependencies": "No transfer guarantees, forecasts or NIL obligations beyond actual PAWA rules; unknown prior stats remain unknown."
+    },
+    {
+      "id": "commits",
+      "referenceIds": [
+        "ea-cfb25-dynasty",
+        "fm23-timeline"
+      ],
+      "layoutFamily": "class-gallery",
+      "composition": "A uniform cel contact sheet groups the class by actual position, with a compact count/needs ribbon above. Signed versus verbal status is printed on each athlete tile. Rankings is a separate comparison view.",
+      "primaryDecision": "Who is joining, and which needs remain?",
+      "keep": [
+        "Athlete identity",
+        "Verbal versus signed distinction",
+        "Position coverage and actual class ranking"
+      ],
+      "remove": [
+        "Recruiting spend action trays",
+        "Another full-width dense board for a completed class"
+      ],
+      "interaction": "Select athlete for profile; choose season/team explicitly; switch to Rankings without losing class selection.",
+      "compact": "Two-column contact sheet with stable card proportions; count and status remain text, never hidden icons.",
+      "difference": "A class portrait collection; density is lower because the job is recognition and review.",
+      "unapprovedDependencies": "No arrival celebration for verbal-only commitments. Do not infer roster additions from presentation state."
+    },
+    {
+      "id": "arrival",
+      "referenceIds": [
+        "fm23-timeline"
+      ],
+      "layoutFamily": "arrival-stage",
+      "composition": "Proposed single-athlete stage on miniature home diamond: nameplate movement resolves into arrival sports profile. A class contact strip only appears after the spotlight. The stage is not surrounded by management widgets.",
+      "primaryDecision": "Whose arrival should I spotlight, and when do I return to the class?",
+      "keep": [
+        "Confirmed signing identity",
+        "Skip/replay/mute",
+        "Final profile and class return"
+      ],
+      "remove": [
+        "Permanent stat dashboard behind ceremony",
+        "Automatic repeated long reveal for every athlete"
+      ],
+      "interaction": "Choose spotlight, play or skip, inspect final card, return to class. Reduced motion goes directly to readable arrival profile.",
+      "compact": "Full canvas portrait/nameplate composition; controls remain at top and readable before motion.",
+      "difference": "A ceremony with a clear beginning/end, unlike the static commits gallery.",
+      "unapprovedDependencies": "Frisk's A D A A B A A C A B recipe remains unapproved. Assets, sound, scrapbook/export and timing require approval and implementation."
+    },
+    {
+      "id": "leaving",
+      "referenceIds": [
+        "fm23-recruitment"
+      ],
+      "layoutFamily": "departure-register",
+      "composition": "A league-wide register uses teams as compact rows and Graduation / Draft / Portal as count columns. Selecting a count expands the named athletes directly below that team. It is primarily a read-only overview.",
+      "primaryDecision": "Which programs are losing which players?",
+      "keep": [
+        "Actual departure categories",
+        "Team/category totals",
+        "Source status of each departure"
+      ],
+      "remove": [
+        "One large player card per departure",
+        "Speculative returning-roster forecasts presented as facts"
+      ],
+      "interaction": "Filter category or team, expand exact count, inspect athlete; open own departure workflow only when eligible.",
+      "compact": "Team name plus three labeled counts; expansion lists names/reasons; no hidden horizontal table travel.",
+      "difference": "An institutional count-and-drill register, not a personal decision queue.",
+      "unapprovedDependencies": "Actual endpoint data is authoritative; any forecast/continuity view needs separately verified data."
+    },
+    {
+      "id": "departures",
+      "referenceIds": [
+        "ea-cfb25-dynasty",
+        "fm23-recruitment"
+      ],
+      "layoutFamily": "decision-comparison",
+      "composition": "A short pending-player queue sits above a large consequence comparison: retain if permitted versus depart. Current and resulting roster count/budget use aligned labels. Finalized players move to a separate receipt view.",
+      "primaryDecision": "Is this eligible retention choice worth its actual cost?",
+      "keep": [
+        "Specific player and reason",
+        "Available legal choices",
+        "Roster/budget consequences"
+      ],
+      "remove": [
+        "League-wide departure browser beside every decision",
+        "Celebratory or alarmist framing that biases the choice"
+      ],
+      "interaction": "Inspect one case; choose a legal option; review irreversible scope before finalization. Queue selection never performs mutation.",
+      "compact": "One case per full panel with a numbered queue indicator; paired consequences stack without shrinking type.",
+      "difference": "A deliberate decision workspace, not a table with tiny destructive buttons.",
+      "unapprovedDependencies": "Probabilities only if server supplies them; no invented retention guarantee, costs or projection."
+    },
+    {
+      "id": "walkons",
+      "referenceIds": [
+        "ootp19-lineups",
+        "ea-cfb25-dynasty"
+      ],
+      "layoutFamily": "auction-board",
+      "composition": "Available athletes occupy a lean bid ledger, while a narrow permanent capacity/budget strip shows the real constraint. Cuts are a separate roster action sheet, never a column of tempting red buttons beside bids.",
+      "primaryDecision": "Which legal bid best fills a real vacancy?",
+      "keep": [
+        "Actual capacity and budget",
+        "Bid amount/status",
+        "Role-specific athlete comparison"
+      ],
+      "remove": [
+        "Full profile cards for every bidder",
+        "Cuts mixed into routine bid selection"
+      ],
+      "interaction": "Select candidate, inspect relevant traits, enter bid, review available resources and submit; inspect results separately.",
+      "compact": "Bid list with named amount controls; selection opens one full-width bid tray. Capacity persists above.",
+      "difference": "A transaction board organized around offer amounts and limited space, not a recruiting relationship tracker.",
+      "unapprovedDependencies": "No automatic bidding, market forecasts or assumed winning price; pending-obligation handling must match real rules."
+    },
+    {
+      "id": "roster-depth",
+      "referenceIds": [
+        "ootp19-lineups",
+        "fm23-recruitment"
+      ],
+      "layoutFamily": "diamond-board",
+      "composition": "Field view is a large readable diamond with actual player slots. Batting view is a nine-row order on a lineup card. Pitching view is named rotation roles and bullpen. Each has a small eligible bench drawer only when assigning.",
+      "primaryDecision": "Who belongs in this exact field, batting or pitching slot?",
+      "keep": [
+        "Actual assigned slots",
+        "Eligible alternatives",
+        "Incomplete/duplicate warnings"
+      ],
+      "remove": [
+        "Full roster spreadsheet always above field",
+        "Tiny drag-only portraits"
+      ],
+      "interaction": "Select slot then eligible player; swap through explicit selectable actions. Drag may supplement but cannot replace this path.",
+      "compact": "Choose Field/Order/Pitching first; field uses labeled slots or accessible list, never unreadable miniatures.",
+      "difference": "Three baseball-specific spatial surfaces, not one table with a different heading.",
+      "unapprovedDependencies": "No unsupported platoon/DH scenarios; companion changes do not claim to synchronize into Power Pros."
+    },
+    {
+      "id": "roster-development",
+      "referenceIds": [
+        "fm23-recruitment"
+      ],
+      "layoutFamily": "development-ledger",
+      "composition": "A full-width change ledger compares each player's recorded before and after values, grouped by metric preset. Selecting a row reveals a narrow explanation beneath it; top summary names the actual offseason.",
+      "primaryDecision": "What changed, and which player needs attention?",
+      "keep": [
+        "Recorded deltas",
+        "Named season/source",
+        "Player context and permission limits"
+      ],
+      "remove": [
+        "Speculative future growth meters",
+        "Radar charts with mismatched scales"
+      ],
+      "interaction": "Sort actual change or select athlete; switch hitting/pitching/common metric sets. Unknown history is labeled missing.",
+      "compact": "Player/change list first; one metric group per view; expanded explanation inline.",
+      "difference": "A before-and-after evidence sheet, not a roster browser or training minigame.",
+      "unapprovedDependencies": "No new development prediction, training investment or potential model. Existing permissions remain authoritative."
+    },
+    {
+      "id": "player-profile",
+      "referenceIds": [
+        "ootp19-lineups"
+      ],
+      "layoutFamily": "scouting-dossier",
+      "composition": "A sports profile uses a large cel portrait, number and role on the left; exact roster attributes and supported season stats on the right. The action menu is small, separate and role-gated.",
+      "primaryDecision": "What can this rostered athlete do, and what am I allowed to change?",
+      "keep": [
+        "Identity and actual role",
+        "Labeled attributes versus recorded performance",
+        "Authorized captain/edit/draft actions"
+      ],
+      "remove": [
+        "Every possible mutation as a large primary button",
+        "Public profile controls that expose commissioner fields"
+      ],
+      "interaction": "Navigate profile chapters; open a deliberate edit/action sheet only when permitted; closing restores the invoking roster row.",
+      "compact": "Single full-screen profile, identity at top and one data chapter.",
+      "difference": "A rostered-athlete card with known state; recruit dossier instead foregrounds uncertainty and relationship.",
+      "unapprovedDependencies": "Public/own/opponent permissions require real response QA; no new mutable fields or export support."
+    },
+    {
+      "id": "recruit-compare",
+      "referenceIds": [
+        "fm23-recruitment",
+        "ea-cfb25-dynasty",
+        "team-cfb26-clarity"
+      ],
+      "layoutFamily": "comparison-matrix",
+      "composition": "Two or three athletes become columns in one aligned comparison matrix. Identity is a shallow header; traits, uncertainty, position fit and cost use identical row definitions. No separate cards with unequal content lengths.",
+      "primaryDecision": "Which candidate is the better use of this specific resource?",
+      "keep": [
+        "Identical metric ordering",
+        "Unknown-versus-known distinction",
+        "Exact eligible action cost"
+      ],
+      "remove": [
+        "Decorative oversized portraits",
+        "Composite winner score without an approved formula"
+      ],
+      "interaction": "Pin candidates, select metric preset and review differences; action opens a target-specific confirmation after comparison.",
+      "compact": "Two athletes and one metric group; a third requires explicit switch, not compressed type.",
+      "difference": "The only view designed around simultaneous side-by-side attribute evidence.",
+      "unapprovedDependencies": "No invented fit grade or knowledge ranges; hidden traits remain inaccessible even through sorting/export."
+    },
+    {
+      "id": "recruit-filters",
+      "referenceIds": [
+        "ea-cfb25-dynasty",
+        "team-cfb26-clarity"
+      ],
+      "layoutFamily": "filter-console",
+      "composition": "Filtering is a compact labeled search form with live result count and active-filter chips. Visits uses an actual week/slot planner in its own mode. Action history is a plain chronological log. These are three tools, not one shared card grid.",
+      "primaryDecision": "Which targets match my criteria, or which actual visit slot can I use?",
+      "keep": [
+        "Current filter state/count",
+        "Real visit capacity",
+        "Timestamped action evidence"
+      ],
+      "remove": [
+        "Generic recap tiles inside filter panel",
+        "Mutations triggered by closing a search drawer"
+      ],
+      "interaction": "Apply/reset filters explicitly; choose Visits to allocate a supported slot; choose History to inspect factual actions.",
+      "compact": "Full-width labeled form or week list; never a microscopic calendar.",
+      "difference": "Purpose changes determine form, planner or log; no permanent inspector for these utility tools.",
+      "unapprovedDependencies": "Result count/visit timing must come from existing data; no invented scheduling constraints or controller support."
+    },
+    {
+      "id": "walkon-results",
+      "referenceIds": [
+        "fm23-timeline"
+      ],
+      "layoutFamily": "results-receipt",
+      "composition": "A signed/outbid receipt lists confirmed outcomes with spend and roster impact where available. One featured signed athlete can appear above the list, but failures retain the same factual row treatment.",
+      "primaryDecision": "What actually happened to my bids?",
+      "keep": [
+        "Confirmed winners and outbid rows",
+        "Actual cost/capacity change",
+        "Link to rostered athlete"
+      ],
+      "remove": [
+        "Automatic triumph language when no bid succeeded",
+        "Speculative rival winning amounts"
+      ],
+      "interaction": "Select outcome for supported detail, then return to roster/bidding according to phase. No action repeats bidding.",
+      "compact": "Two explicit result groups and a full-width receipt; no carousel hiding losses.",
+      "difference": "A transaction outcome receipt, visibly calmer than bidding and shorter than a ceremony.",
+      "unapprovedDependencies": "Do not calculate unknown rival bids; spotlight is cosmetic and cannot create a signing or approved arrival ceremony."
+    },
+    {
+      "id": "departure-dialogs",
+      "referenceIds": [
+        "ea-cfb25-dynasty"
+      ],
+      "layoutFamily": "decision-comparison",
+      "composition": "A compact consequence sheet names the exact player(s), action and irreversible boundary. Before/after budget and roster state are aligned only where verified; Cancel and Confirm remain distinct.",
+      "primaryDecision": "Am I confirming the exact departure or retention action I intend?",
+      "keep": [
+        "Affected players",
+        "Actual cost and irreversible scope",
+        "Server-backed eligibility"
+      ],
+      "remove": [
+        "Generic 'Are you sure?' with no consequence",
+        "Default-focused destructive confirmation"
+      ],
+      "interaction": "Open from one decision, review current state, confirm explicitly; stale state rejection returns to the case instead of retrying blindly.",
+      "compact": "One readable consequence panel with top close; actions remain in content rather than global footer navigation.",
+      "difference": "A final transaction boundary, not another browseable profile.",
+      "unapprovedDependencies": "Needs actual consequence data and mutation revalidation; no predicted outcome masquerading as certainty."
+    },
+    {
+      "id": "league-prospects",
+      "referenceIds": [
+        "fm23-recruitment",
+        "ea-cfb25-dynasty"
+      ],
+      "layoutFamily": "recruiting-ledger",
+      "composition": "A league-wide discovery ledger prioritizes player identity, role, class rank when real, authorized known quality and availability. Team-specific spending controls are absent. A small view selector changes the existing combined/group scope.",
+      "primaryDecision": "Which prospect should I investigate next?",
+      "keep": [
+        "Searchable league prospect pool",
+        "Existing combined/group views",
+        "Knowledge and visibility limits"
+      ],
+      "remove": [
+        "Own-team resource meter on a league discovery screen",
+        "Persistent full biography rail"
+      ],
+      "interaction": "Search/sort within authorized visible data, open a recruit dossier, then return to the same pool and selection. Recruiting actions belong to the player's authorized context.",
+      "compact": "Essential identity/position/status rows and metric presets; no huge prospect tiles or horizontally hidden fields.",
+      "difference": "Discovery across the league, contrasted with the own-board resource-allocation task; identical data does not justify identical controls.",
+      "unapprovedDependencies": "No new recommendation algorithm, hidden-rating sort or public scouting disclosure."
+    }
+  ]
+}

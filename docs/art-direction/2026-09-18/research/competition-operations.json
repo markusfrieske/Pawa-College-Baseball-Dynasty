@@ -1,0 +1,733 @@
+{
+  "sources": [
+    {
+      "id": "ops-ootp65",
+      "title": "OOTP 6.5 official screenshot gallery — schedule, box score and roster",
+      "url": "https://www.ootpdevelopments.com/ootp65/screenshots.php",
+      "observed": "Historical gallery captions describe a daily schedule with probable starters, links to completed box scores/game logs, and player names linking to profiles. This is documentation of workflow; no current-edition or hands-on usability claim.",
+      "adaptation": "PAWA inference: keep fixture identity continuous across preparation, reporting and inspection; make performance rows lead to the actual player.",
+      "avoid": "Do not copy legacy desktop density or imply that an external Power Pros game supplies a game log.",
+      "evidenceType": "Official historical screenshot-gallery captions; opened 2026-09-18; visual geometry not independently measured."
+    },
+    {
+      "id": "ops-ootp12",
+      "title": "OOTP 12 official manual — Commissioner Portal",
+      "url": "https://manuals.ootpdevelopments.com/index.php?man=ootp12&page=commissioner_portal_main",
+      "observed": "The manual separates commissioner actions, reports and tools. Team export checks include current-date status. Its automator can stop for missing exports and produces an operation-status log.",
+      "adaptation": "PAWA inference: make readiness and blockers actionable, distinguish them from presence, and show server operation outcomes alongside recovery restrictions.",
+      "avoid": "Do not transfer FTP mechanics, automatic file exchange, or one-click advance guarantees into PAWA.",
+      "evidenceType": "Official historical manual workflow description; opened 2026-09-18; no runtime evaluation."
+    },
+    {
+      "id": "ops-show24",
+      "title": "MLB The Show 24 official manual — More Ways to Play",
+      "url": "https://manuals.theshow.com/en-us/24/ps4/more-ways-to-play/4.html",
+      "observed": "The manual treats Postseason as a bracket-oriented mode and Custom Leagues as configurable season competition with friends. It does not document PAWA-style external-result approvals.",
+      "adaptation": "PAWA inference: let tournament structure dominate postseason; reserve celebratory framing for a verified championship.",
+      "avoid": "Do not import MLB bracket rules, assume feature parity, or call pending companion reports official.",
+      "evidenceType": "Official edition-specific manual; opened 2026-09-18; workflow reference only."
+    },
+    {
+      "id": "ops-2k11",
+      "title": "NBA 2K11 official PC manual — Main Menu, printed page 13",
+      "url": "https://steamcdn-a.akamaihd.net/steam/apps/65950/manuals/NBA2K11_PC_onlinemanual_v1.pdf",
+      "observed": "The publisher manual, distributed on Steam CDN, distinguishes roster-management tools, sharing created content, and saving/loading files. Its historical online features are not evidence of present service availability.",
+      "adaptation": "PAWA inference: explicitly separate reusable roster/class files, public previews and mutations of an active league.",
+      "avoid": "Do not imply 2K compatibility, current 2K service support, automatic console upload, or a new marketplace.",
+      "evidenceType": "Primary publisher PDF; page 13 text read on 2026-09-18; menu semantics, not a contemporary visual reference."
+    },
+    {
+      "id": "ops-fm26",
+      "title": "Football Manager 26 — Reimagined User Interface",
+      "url": "https://www.footballmanager.com/fm26/features/fm26s-reimagined-user-interface",
+      "observed": "The developer describes overview-to-detail interaction, task/message filters, an action panel, upcoming fixtures and a two-week calendar. It explicitly discusses readable type, contrast and platform-specific adaptation.",
+      "adaptation": "PAWA inference: surface the decision and its context first, use compact drill-down deliberately, and retain meaningful screen-specific structures.",
+      "avoid": "Do not turn every PAWA screen into tiles or treat developer marketing as proof of usability.",
+      "evidenceType": "Official developer feature explanation; opened 2026-09-18; no hands-on or comparative usability test."
+    }
+  ],
+  "screens": [
+    {
+      "id": "schedule",
+      "referenceIds": [
+        "ops-ootp65",
+        "ops-fm26"
+      ],
+      "layoutFamily": "series-calendar",
+      "composition": "A horizontal week band above grouped home/away series; fixtures occupy most of the canvas. Selecting one expands its state-specific action inline, with a compact opponent strip.",
+      "primaryDecision": "Which fixture needs my next action?",
+      "keep": [
+        "Week and home/away context",
+        "Explicit pending, disputed and accepted labels",
+        "Prepare / Report / Review / Result according to permission"
+      ],
+      "remove": [
+        "Repeated feature-card grids",
+        "A large scoreboard that hides the next fixture"
+      ],
+      "interaction": "Move week, filter team, then select a game; return preserves week and selection. Pending scores never receive a final-result treatment.",
+      "compact": "Use chronological day groups, not a compressed month grid; status text stays next to score.",
+      "difference": "Time and series grouping are the organizing structure; it must not resemble the commissioner blocker queue.",
+      "unapprovedDependencies": [
+        "Explicit date/day grouping requires verified schedule fields; do not manufacture dates from week numbers."
+      ]
+    },
+    {
+      "id": "prep",
+      "referenceIds": [
+        "ops-ootp65",
+        "ops-fm26"
+      ],
+      "layoutFamily": "matchup-workbench",
+      "composition": "Away and home occupy opposing halves; central matchup metrics align on shared rows. The selected starter and own batting order sit below their team, not in generic KPI cards.",
+      "primaryDecision": "What lineup or availability issue should I resolve before this game?",
+      "keep": [
+        "Away/home labels",
+        "Actual pitcher and lineup availability",
+        "Analysis distinguished from known facts"
+      ],
+      "remove": [
+        "Unsupported win-certainty meters",
+        "Decorative stadium occupying the decision area"
+      ],
+      "interaction": "Open a player from a matchup row or move to the existing lineup workflow. Companion mode explains that preparation does not send changes into Power Pros.",
+      "compact": "Render paired metric rows above one full-width lineup chapter; never squeeze two roster tables.",
+      "difference": "This is a pregame comparison surface, while report is an entry workspace and box-score is a completed record.",
+      "unapprovedDependencies": [
+        "Any new matchup calculation, export packet or lineup-writing control needs separate approval and backend evidence."
+      ]
+    },
+    {
+      "id": "report",
+      "referenceIds": [
+        "ops-ootp65"
+      ],
+      "layoutFamily": "scorer-workbench",
+      "composition": "Persistent matchup and report-state strip; a wide entry sheet with team/stat selectors; a collapsible source-image lane and adjacent field-level errors; final review is a distinct summary stage.",
+      "primaryDecision": "Is the played result accurate enough to submit for review?",
+      "keep": [
+        "Exact game/player identity",
+        "Unknown values remain unknown",
+        "OCR uncertainty and server validation beside the affected field"
+      ],
+      "remove": [
+        "OCR success presented as approval",
+        "Notebook decoration that reduces entry width"
+      ],
+      "interaction": "Keyboard entry follows baseball columns; error selection focuses its cell. Submit shows pending review only after server confirmation; stale revision preserves the local draft for reconciliation.",
+      "compact": "One team and stat group per view; source preview toggles without losing entry position; review stays reachable at top.",
+      "difference": "The scorebook is editable and evidence-linked; its layout must differ visibly from both a read-only result and an approval decision.",
+      "unapprovedDependencies": [
+        "Durable cross-device draft saving and new OCR capabilities are not approved by this layout."
+      ]
+    },
+    {
+      "id": "play-unavailable",
+      "referenceIds": [
+        "ops-ootp65"
+      ],
+      "layoutFamily": "availability-return",
+      "composition": "One compact unavailable notice beside the actual matchup identity; underneath, supported destinations only.",
+      "primaryDecision": "Where can I continue with this game?",
+      "keep": [
+        "Honest unavailability explanation",
+        "Game context when accessible",
+        "Return to schedule or accepted result"
+      ],
+      "remove": [
+        "Fake replay timeline",
+        "Disabled stadium-sized Play button"
+      ],
+      "interaction": "Focus the supported return action; a missing/inaccessible game falls back to schedule without inventing identity.",
+      "compact": "Single panel with normal back control.",
+      "difference": "A short dead-end recovery surface; no dashboard, ceremony or simulated broadcast shell.",
+      "unapprovedDependencies": [
+        "Playable pitch-by-pitch sessions remain a separate engineering gate."
+      ]
+    },
+    {
+      "id": "postseason",
+      "referenceIds": [
+        "ops-show24"
+      ],
+      "layoutFamily": "tournament-bracket",
+      "composition": "Round columns dominate the canvas, with explicit stage titles and series state inside each node. A selected matchup opens detail below the bracket rather than replacing it with cards.",
+      "primaryDecision": "What is the next eligible matchup, and how does it affect the path?",
+      "keep": [
+        "Existing seeds and bracket source",
+        "Accepted results determine advancement",
+        "Pending/disputed nodes stay unresolved"
+      ],
+      "remove": [
+        "Decorative winner lines before acceptance",
+        "Generic schedule list as the only desktop tournament view"
+      ],
+      "interaction": "Select a node to review game or series details; retain the visible parent and next round. No unsupported manual reseeding control.",
+      "compact": "Round selector with ordered matchups and explicit previous/next path labels.",
+      "difference": "Topology, not chronology or numeric tables, is the primary reading order.",
+      "unapprovedDependencies": [
+        "Do not invent elimination formats, tie rules, bracket repair or qualification guarantees."
+      ]
+    },
+    {
+      "id": "championship",
+      "referenceIds": [
+        "ops-show24"
+      ],
+      "layoutFamily": "championship-presentation",
+      "composition": "One verified champion identity and season headline, a restrained trophy composition, then a factual final-series strip and entry into the season record.",
+      "primaryDecision": "Celebrate this verified season or inspect its record?",
+      "keep": [
+        "Confirmed champion and season",
+        "Actual final-series results",
+        "Skip/reduced-motion access"
+      ],
+      "remove": [
+        "Pending winner celebration",
+        "Invented MVP or confetti-covered statistics"
+      ],
+      "interaction": "Skip ends presentation only; view record does not advance the league. Missing champion yields an unfinished-season state.",
+      "compact": "Single portrait composition with legible score strip and visible skip/back.",
+      "difference": "This is intentionally the emotional peak; administrative pages must not reuse its hero composition.",
+      "unapprovedDependencies": [
+        "New trophies, team art, audio and ceremony animation require art/implementation approval."
+      ]
+    },
+    {
+      "id": "commissioner",
+      "referenceIds": [
+        "ops-ootp12",
+        "ops-fm26"
+      ],
+      "layoutFamily": "operations-queue",
+      "composition": "An ordered queue of current blockers occupies the main area; phase/week and active operation anchor the header. Reports, records and settings are secondary destinations grouped by task.",
+      "primaryDecision": "What prevents the league from progressing safely?",
+      "keep": [
+        "Actual readiness and report state",
+        "Current operation identity/status",
+        "Role-aware access"
+      ],
+      "remove": [
+        "Decorative administrative KPIs",
+        "Equal-weight grid of every dangerous action"
+      ],
+      "interaction": "Selecting a blocker opens its exact record; pending acceptance and absent reports have different actions. Advance remains governed by server preflight.",
+      "compact": "A task list first; selection becomes a full detail route/panel with back restoring queue position.",
+      "difference": "A work queue organized by obligation, unlike the team hub and the permanent audit ledger.",
+      "unapprovedDependencies": [
+        "New priority scoring, presence telemetry or force-advance behavior is not implied."
+      ]
+    },
+    {
+      "id": "edit-rosters",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "roster-correction-grid",
+      "composition": "League/team context fixed above a dense player grid; a selected row opens a focused category editor. Changes appear in a review band before the permitted save.",
+      "primaryDecision": "Which exact live player field am I correcting?",
+      "keep": [
+        "League and team scope",
+        "Player identity and authorization",
+        "Validation and dirty-state preservation"
+      ],
+      "remove": [
+        "Hero athlete card before the editable fields",
+        "Silent bulk replacement controls"
+      ],
+      "interaction": "Search team/player, edit one category, then review changed values where existing APIs support it; rejected saves retain inputs.",
+      "compact": "Select player first, then a full-width category form; search state survives Back.",
+      "difference": "Live-league correction with narrow scope; reusable file authoring belongs in roster-library.",
+      "unapprovedDependencies": [
+        "New bulk edits, undo guarantees and before/after persistence require dedicated validation."
+      ]
+    },
+    {
+      "id": "edit-recruits",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "class-correction-table",
+      "composition": "Class identity and filters above a prospect table; selected recruit expands attribute groups, with commissioner-only fields in a clearly marked permission region.",
+      "primaryDecision": "Which class record needs an authorized correction?",
+      "keep": [
+        "Class and recruit identity",
+        "Public/private field distinction",
+        "Save error with retained values"
+      ],
+      "remove": [
+        "Public-looking gem/bust badges in the list",
+        "Portrait-first card browsing for repeated edits"
+      ],
+      "interaction": "Filter then open a record; hidden traits stay out of public preview/share surfaces. Saving confirms the named recruit.",
+      "compact": "List to one category form, with commissioner-only notice attached to the relevant fields.",
+      "difference": "This editor prioritizes class visibility and privilege boundaries; roster correction prioritizes existing team membership.",
+      "unapprovedDependencies": [
+        "No new reveal rules, hidden scouting exports or unsupported class-wide edits."
+      ]
+    },
+    {
+      "id": "roster-library",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "roster-file-studio",
+      "composition": "Named file workspace with a team tree on the left, roster grid center, selected field controls below; Save and Save as are file commands in the header.",
+      "primaryDecision": "Which reusable roster file am I creating or saving?",
+      "keep": [
+        "Source file identity",
+        "Unsaved-work indication",
+        "Team/player contents"
+      ],
+      "remove": [
+        "Live-league controls inside file editing",
+        "Ambiguous Save that could overwrite an unknown destination"
+      ],
+      "interaction": "Choose source, edit, then save to a named library destination. Leave prompts preserve the draft on Cancel.",
+      "compact": "Team picker to player grid to editor; file identity and dirty state remain visible.",
+      "difference": "File scope governs the whole workspace; no phase, readiness or accepted-result chrome.",
+      "unapprovedDependencies": [
+        "New formats, binary Power Pros export and cloud conflict merging remain unapproved."
+      ]
+    },
+    {
+      "id": "roster-viewer",
+      "referenceIds": [
+        "ops-ootp65",
+        "ops-2k11"
+      ],
+      "layoutFamily": "roster-comparison-table",
+      "composition": "A broad roster table supports browsing; Compare pins two named players into aligned metric columns with their source files retained above each column.",
+      "primaryDecision": "Which player or source roster best fits my intended use?",
+      "keep": [
+        "Both player identities",
+        "Source and rating scale labels",
+        "Read-only versus editable distinction"
+      ],
+      "remove": [
+        "Unequal-size comparison cards",
+        "Radar art that hides actual metric values"
+      ],
+      "interaction": "Select two records explicitly; metric groups switch together. Open player details without losing the comparison pair.",
+      "compact": "A shared metric label followed by A and B values on each row; no two shrinking profile pages.",
+      "difference": "Inspection and comparison rather than authoring; the viewer should not inherit the studio edit controls by default.",
+      "unapprovedDependencies": [
+        "Cross-edition rating conversion and automatic roster recommendations are not approved."
+      ]
+    },
+    {
+      "id": "class-library",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "class-file-studio",
+      "composition": "Library shelf of named classes leads to one class manifest. Recruit attributes use a table/editor workspace; Save, Share and Load into league are visibly separate command paths.",
+      "primaryDecision": "Save this reusable class or deliberately load it into a named league?",
+      "keep": [
+        "Class name and count",
+        "Dirty state",
+        "Explicit destination for league loading"
+      ],
+      "remove": [
+        "Signing-day ceremony in authoring",
+        "One generic Publish command for three different outcomes"
+      ],
+      "interaction": "Edit within the file; each outbound action states its actual destination and current visibility. Canceling Load returns to the unchanged draft.",
+      "compact": "Class list then recruit editor; Load opens its own destination review, not a tiny nested modal.",
+      "difference": "Class authoring is about reusable content and visibility; the live recruit editor is about a specific league correction.",
+      "unapprovedDependencies": [
+        "New sharing permissions, marketplace metadata or non-destructive merge require approval."
+      ]
+    },
+    {
+      "id": "import-class",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "import-receipt-preview",
+      "composition": "A read-only manifest sits beside a concise source-to-destination transfer summary; outcome wording names library import versus league load as actually supported.",
+      "primaryDecision": "Do I want this shared file in the stated destination?",
+      "keep": [
+        "Class identity/count",
+        "Visible source and destination",
+        "Invalid or revoked-link state"
+      ],
+      "remove": [
+        "Unreviewed one-click league replacement",
+        "Editable controls implying the source can be changed"
+      ],
+      "interaction": "Preview recruits, then perform the supported import; success names what was created. Unauthorized destinations never appear available.",
+      "compact": "Transfer summary above a collapsible manifest; review and commit remain distinct.",
+      "difference": "A directional transfer review, not another library or recruitment page.",
+      "unapprovedDependencies": [
+        "Duplicate detection, provenance signing and compatibility conversions need separate implementation."
+      ]
+    },
+    {
+      "id": "class-share",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "public-class-showcase",
+      "composition": "A compact class cover introduces a browsable prospect contact sheet; selected profile is read-only and a clear import link ends the visit.",
+      "primaryDecision": "Is this shared class worth exploring or importing?",
+      "keep": [
+        "Public class identity",
+        "Only token-authorized fields",
+        "Revoked/unavailable states"
+      ],
+      "remove": [
+        "Private scouting or account metadata",
+        "Authenticated league-navigation clutter"
+      ],
+      "interaction": "Browse profiles without mutation; open the supported import workflow as an explicit next step.",
+      "compact": "List with optional small portraits; profile opens full width and returns to the same place.",
+      "difference": "Public discovery rather than file editing: imagery can lead, but no live-league controls or hidden traits.",
+      "unapprovedDependencies": [
+        "New ratings, download counters, public author identity and sharing modes require approval."
+      ]
+    },
+    {
+      "id": "score-review",
+      "referenceIds": [
+        "ops-ootp65",
+        "ops-ootp12"
+      ],
+      "layoutFamily": "report-decision-sheet",
+      "composition": "A pending/disputed banner above submitted score and evidence; reviewed revision and submitter remain beside a compact confirm/dispute decision area. Team stat chapters occupy the main sheet.",
+      "primaryDecision": "Can I accept this exact report revision?",
+      "keep": [
+        "Current submitted revision and status",
+        "Unknown versus supplied values",
+        "Authorized confirmation/dispute controls"
+      ],
+      "remove": [
+        "Final-result celebration before acceptance",
+        "A single optimistic green check for OCR, validity and approval"
+      ],
+      "interaction": "Inspect evidence, choose confirm or provide dispute reason, then wait for server result. A changed revision requires deliberate rereview rather than silently accepting refreshed data.",
+      "compact": "Summary first, one stat chapter next, decision area reachable without losing review position.",
+      "difference": "This is a decision about another submission, not entry and not a final box score.",
+      "unapprovedDependencies": [
+        "New automatic arbitration or evidence authentication is not implied."
+      ]
+    },
+    {
+      "id": "box-score",
+      "referenceIds": [
+        "ops-ootp65"
+      ],
+      "layoutFamily": "result-scorebook",
+      "composition": "Final-state scoreboard over a full-width line score; paired team batting/pitching tables underneath; recap is a secondary chapter with provenance.",
+      "primaryDecision": "What happened, and which supported performance explains it?",
+      "keep": [
+        "Accepted score and source",
+        "Missing statistics labeled unavailable",
+        "Player identity links"
+      ],
+      "remove": [
+        "Invented pitch sequences for reported games",
+        "Zeros substituted to complete an empty table"
+      ],
+      "interaction": "Read result, switch team/stat group, then open a player or available recap; return restores the fixture.",
+      "compact": "Selected team table with curated column groups; unavailable data gets a concise explicit state.",
+      "difference": "A permanent read-only record; no evidence-upload controls or approval buttons.",
+      "unapprovedDependencies": [
+        "New derived advanced metrics and factual recap claims require suitable supplied data."
+      ]
+    },
+    {
+      "id": "commission-command",
+      "referenceIds": [
+        "ops-ootp12"
+      ],
+      "layoutFamily": "readiness-matrix",
+      "composition": "Rows are teams/coaches; columns distinguish readiness, required report state and relevant blocker. The current advance operation sits directly above the matrix.",
+      "primaryDecision": "Whose unresolved obligation needs attention?",
+      "keep": [
+        "Readiness separate from presence",
+        "Actual game/report references",
+        "Unknown or stale states"
+      ],
+      "remove": [
+        "A count-only readiness donut",
+        "Profile cards that hide missing obligations"
+      ],
+      "interaction": "Open the exact missing report or permitted team detail from a row; no automatic message send.",
+      "compact": "Team rows become labeled status stacks; selecting one reveals obligations.",
+      "difference": "A cross-team readiness matrix inside the office, not a generic task-card collection.",
+      "unapprovedDependencies": [
+        "Presence tracking and new reminders require explicit scope."
+      ]
+    },
+    {
+      "id": "commission-actions",
+      "referenceIds": [
+        "ops-ootp12"
+      ],
+      "layoutFamily": "operation-runbook",
+      "composition": "A short list groups routine progression, correction and recovery. The chosen action replaces the list with preflight evidence, affected scope and a single execution control.",
+      "primaryDecision": "Is this specific operation currently permitted and understood?",
+      "keep": [
+        "Live phase/week",
+        "Server preflight",
+        "Operation status and outcome"
+      ],
+      "remove": [
+        "Dangerous shortcut toolbar",
+        "All mutations visible as equally inviting buttons"
+      ],
+      "interaction": "Review one action, execute once, then inspect its actual operation state. Failed/blocked actions explain the server reason.",
+      "compact": "List to a full-screen operation review; back preserves selection without executing.",
+      "difference": "Procedural action review, unlike settings forms and historical audit browsing.",
+      "unapprovedDependencies": [
+        "New force, rollback or exactly-once retry guarantees remain unapproved."
+      ]
+    },
+    {
+      "id": "commission-settings",
+      "referenceIds": [
+        "ops-ootp12",
+        "ops-fm26"
+      ],
+      "layoutFamily": "settings-categories",
+      "composition": "Category navigation leads to a single settings form; current saved values and draft changes are visually separated, with phase-locked fields explained in place.",
+      "primaryDecision": "Which supported league setting should change?",
+      "keep": [
+        "Saved versus unsaved values",
+        "Mode/phase restrictions",
+        "Role and scope context"
+      ],
+      "remove": [
+        "Settings mixed with immediate destructive actions",
+        "Sliders for unsupported or immutable rules"
+      ],
+      "interaction": "Edit category, review valid differences, save; failed validation retains the draft and identifies the field.",
+      "compact": "Category picker and one form, without a long accordion of everything.",
+      "difference": "Persistent configuration rather than executing a one-time operation.",
+      "unapprovedDependencies": [
+        "New rules, effective-date scheduling and role-transfer behavior require approval."
+      ]
+    },
+    {
+      "id": "commission-audit",
+      "referenceIds": [
+        "ops-ootp12"
+      ],
+      "layoutFamily": "event-ledger",
+      "composition": "Dense time-ordered rows with actor, operation and target; selecting a row opens a read-only evidence drawer. Filters reduce the ledger without changing its ordering.",
+      "primaryDecision": "Who changed this record, and what evidence is available?",
+      "keep": [
+        "Server event ordering",
+        "Actor and target identity",
+        "Restricted/missing evidence states"
+      ],
+      "remove": [
+        "Decorative activity timeline cards",
+        "Fabricated before/after comparisons"
+      ],
+      "interaction": "Filter by available fields, inspect record, copy nonsecret identifier. UI never turns absence of evidence into a success claim.",
+      "compact": "Rows show time/action first; event detail opens full width.",
+      "difference": "Forensic reading and traceability; unlike a current blocker queue it includes completed history.",
+      "unapprovedDependencies": [
+        "New diff reconstruction, export formats or audit retention promises are unapproved."
+      ]
+    },
+    {
+      "id": "commission-invites",
+      "referenceIds": [
+        "ops-ootp12"
+      ],
+      "layoutFamily": "access-register",
+      "composition": "Compact invitation register with validity and permitted usage fields; selection exposes Copy or Revoke separately, with seat/coach assignment in its own area.",
+      "primaryDecision": "Which invitation should remain usable?",
+      "keep": [
+        "Actual token validity",
+        "Role-aware controls",
+        "Copy/revoke feedback"
+      ],
+      "remove": [
+        "Tokens exposed in summary thumbnails",
+        "Revoke adjacent to ordinary row selection"
+      ],
+      "interaction": "Create or copy only through explicit actions; revoke names the selected invitation. No tokens in unrelated visual exports.",
+      "compact": "Named invitation list then actions; the token is deliberately revealed only where needed.",
+      "difference": "An access-management register, not marketing invitations or readiness tracking.",
+      "unapprovedDependencies": [
+        "New invite expiry, seat limits or roles need backend support and approval."
+      ]
+    },
+    {
+      "id": "commission-reports",
+      "referenceIds": [
+        "ops-ootp12",
+        "ops-ootp65"
+      ],
+      "layoutFamily": "report-exception-queue",
+      "composition": "Pending/disputed queue on the left; selected report evidence occupies the main area; decision controls bind to its displayed version. Accepted history is a separate filter/view.",
+      "primaryDecision": "Which report exception should I resolve now?",
+      "keep": [
+        "Exact game and revision",
+        "Dispute/validation details",
+        "Authority and submission provenance"
+      ],
+      "remove": [
+        "Accepted and disputed scores styled identically",
+        "Bulk acceptance without full authorized review"
+      ],
+      "interaction": "Select exception, inspect source and changed fields when available, then take the existing permitted action. Stale data blocks decision.",
+      "compact": "Queue to full decision sheet; return keeps filters and position.",
+      "difference": "League-wide triage leading into one report decision, distinct from a participant reviewing a single game.",
+      "unapprovedDependencies": [
+        "New dispute rules, batch decisions and automated conflict resolution require approval."
+      ]
+    },
+    {
+      "id": "commission-nil",
+      "referenceIds": [
+        "ops-ootp12"
+      ],
+      "layoutFamily": "budget-ledger",
+      "composition": "Team rows align budget, recorded spending/obligations and available amount; selected team opens the existing allocation details and separately gated adjustment form.",
+      "primaryDecision": "What money is actually available, and does a correction need to be made?",
+      "keep": [
+        "Budget distinct from spendable amount",
+        "Known obligations and gaps",
+        "Authorized adjustment context"
+      ],
+      "remove": [
+        "Pie charts hiding accounting terms",
+        "Invented transaction history from current totals"
+      ],
+      "interaction": "Select team to inspect known accounting values; an edit names its precise field and scope, with server rejection preserved.",
+      "compact": "Labeled financial rows per team, then detail; keep numbers aligned.",
+      "difference": "An accounting inspection surface rather than a leaderboard or general editor.",
+      "unapprovedDependencies": [
+        "Ledger reconstruction, currency conversion and new NIL policies remain unapproved."
+      ]
+    },
+    {
+      "id": "commission-schedule",
+      "referenceIds": [
+        "ops-ootp65",
+        "ops-ootp12"
+      ],
+      "layoutFamily": "schedule-diagnostics-matrix",
+      "composition": "Week/team matrix provides coverage context; a ranked diagnostic list below links to exact affected fixtures. Warnings and blocking findings have separate text labels.",
+      "primaryDecision": "Which proven schedule problem must be inspected before advance?",
+      "keep": [
+        "Actual diagnostic evidence",
+        "Fixture links",
+        "Scope of each check"
+      ],
+      "remove": [
+        "An unsupported overall health percentage",
+        "Assumed Power Pros scheduling requirements"
+      ],
+      "interaction": "Choose a check to highlight affected rows/fixtures; repair appears only if already permitted.",
+      "compact": "Diagnostic list first; chosen check shows its team/week slice rather than the entire matrix.",
+      "difference": "A structural inspection view, while the schedule is a coach’s chronology of games.",
+      "unapprovedDependencies": [
+        "New diagnostics, automatic repairs and calendar assumptions require specification."
+      ]
+    },
+    {
+      "id": "commission-editor",
+      "referenceIds": [
+        "ops-2k11",
+        "ops-ootp12"
+      ],
+      "layoutFamily": "entity-inspector",
+      "composition": "Entity-type selector above a searchable record list; one selected entity fills a categorized editor. Existing change history is adjacent but read-only until an authorized reversal is explicitly chosen.",
+      "primaryDecision": "Which named league entity and field should be corrected?",
+      "keep": [
+        "Stable entity identity",
+        "Actual editable fields",
+        "Validation and dirty state"
+      ],
+      "remove": [
+        "An all-fields megaform",
+        "Reversal portrayed as a harmless navigation action"
+      ],
+      "interaction": "Select entity, edit category, review exact target and save. Preserve failed input and avoid implying bulk scope.",
+      "compact": "Record list to full form; breadcrumb retains entity and category.",
+      "difference": "Structural administration across entity types; dedicated roster/class editors optimize repeated player work.",
+      "unapprovedDependencies": [
+        "Unsupported bulk mutation, reversible-history guarantees and new appearance controls need approval."
+      ]
+    },
+    {
+      "id": "commission-saves",
+      "referenceIds": [
+        "ops-ootp12",
+        "ops-2k11"
+      ],
+      "layoutFamily": "recovery-timeline",
+      "composition": "Timestamped snapshot rows align season/phase/week and known scope; selection opens a comparison of documented coverage and actual restore restrictions, followed by guarded action.",
+      "primaryDecision": "Is this recovery point compatible and actually restorable?",
+      "keep": [
+        "Snapshot identity and coverage",
+        "Current restore restrictions",
+        "Affected league and confirmed outcome"
+      ],
+      "remove": [
+        "Thumbnail implying a complete backup",
+        "Green Restore button where restoration is blocked"
+      ],
+      "interaction": "Inspect scope first; disabled restoration explains the real restriction. A request in flight is not a restored league.",
+      "compact": "Snapshot list to a full consequence review; avoid nested confirm dialogs.",
+      "difference": "Recovery evidence and compatibility, not a file marketplace or ordinary Save as.",
+      "unapprovedDependencies": [
+        "Complete restore, consistent snapshot coverage and revision-safe recovery remain engineering gates; no new promise."
+      ]
+    },
+    {
+      "id": "advance-progress",
+      "referenceIds": [
+        "ops-ootp12"
+      ],
+      "layoutFamily": "operation-status-strip",
+      "composition": "Compact operation header with phase/week, server status and last known checkpoint; expand into a chronological status log only when useful or interrupted.",
+      "primaryDecision": "Is advance complete, still running, or in need of authorized recovery?",
+      "keep": [
+        "Actual operation identity",
+        "Unknown/interrupted state",
+        "Server-confirmed completion"
+      ],
+      "remove": [
+        "Elapsed-time progress masquerading as completion",
+        "Celebration before all required work finishes"
+      ],
+      "interaction": "Allow safe navigation; return can inspect current operation. Recovery links carry the existing operation identity and do not imply safe automatic retry.",
+      "compact": "Status strip expands to one readable log panel.",
+      "difference": "A live process explanation, not a loading movie or a permanent audit ledger.",
+      "unapprovedDependencies": [
+        "New cancellation, resumption guarantees and lease telemetry require verified endpoints."
+      ]
+    },
+    {
+      "id": "file-dialogs",
+      "referenceIds": [
+        "ops-2k11"
+      ],
+      "layoutFamily": "file-command-sheet",
+      "composition": "A small operation-specific sheet names source, destination and visibility; only fields needed for Save, Save as, Share or replacement appear.",
+      "primaryDecision": "What will this file action change, and where?",
+      "keep": [
+        "Named destination",
+        "Unsaved draft preserved on Cancel",
+        "Separate replacement/share consequences"
+      ],
+      "remove": [
+        "One generic confirmation sentence",
+        "Nested dialogs over an already narrow editor"
+      ],
+      "interaction": "Each action has a precise verb; cancel returns to unchanged draft. Server outcome updates saved state only after success.",
+      "compact": "Full readable sheet with persistent filename/context; no nested scrolling.",
+      "difference": "Small bounded file operation, unlike full import review or authoring workspaces.",
+      "unapprovedDependencies": [
+        "New overwrite detection, recovery storage and share permission modes are unapproved."
+      ]
+    }
+  ]
+}
