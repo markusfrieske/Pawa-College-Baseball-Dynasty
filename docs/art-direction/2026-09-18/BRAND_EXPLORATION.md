@@ -8,6 +8,8 @@ September 18, 2026. Requested by Frisk. **Selected direction: Class of Nine (N02
 
 Frisk selected **Class of Nine + L04 campus gateway + L02 lettering** on September 18. [Focused combined preview](../2026-09-17/class-of-nine.html). The actual L02 preview uses `Georgia, serif`, italic, weight 800, with tight letter spacing. Preserve that appearance rather than the original L04 uppercase sans-serif. This supersedes the Pennant Foundry / L01 recommendation below, which is retained as exploration history. Forest, brass and cream remain the palette. Name/symbol/lettering are selected; descriptor, tagline, final outlined assets and commercial clearance are not newly approved by this choice.
 
+Follow-up: Frisk selected the [B pennant gateway refinement](C9_GATE_OPTIONS.md#selected-b-refinement), with C9 inside the home plate and balanced geometry. This replaces the plain L04 symbol in the current identity preview.
+
 ## Original naming shortlist
 
 | Code | Name | Positioning | Tradeoff |
