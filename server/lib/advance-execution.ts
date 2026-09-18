@@ -42,7 +42,7 @@ export async function withOwnedAdvanceLock<T>(leagueId: string, token: string, a
 
 const stageNames = new Set(["initializing", "cpu_recruiting", "storylines", "recruit_stages", "reset_actions", "game_simulation", "phase_transition"]);
 
-/** Metadata fence only: this does not make the intervening gameplay effects transactional. */
+/** Metadata and explicitly migrated stages only; other gameplay effects remain outside this fence. */
 export function createAdvanceExecution(identity: AdvanceExecutionIdentity) {
   const { leagueId, operationId, token } = Object.freeze({ ...identity });
   const withOperation = async (action: (client: PoolClient) => Promise<void>) => withOwnedAdvanceLock(leagueId, token, async client => {
@@ -75,6 +75,27 @@ export function createAdvanceExecution(identity: AdvanceExecutionIdentity) {
     },
     complete: () => mutate("status='complete'"),
     fail: (message: string) => mutate("status='failed',error_message=$4", [message]),
+    resetWeeklyActions: () => withOperation(async client => {
+      // Lock the source state before touching coaches. The execution may not
+      // apply an old week's reset to a league whose phase/week/season changed.
+      const source = await client.query(
+        `SELECT l.current_phase,l.current_week,l.current_season,a.from_phase,a.from_week,a.from_season,a.checkpoints
+         FROM leagues l JOIN league_advances a ON a.league_id=l.id
+         WHERE l.id=$1 AND a.id=$2 FOR UPDATE OF l`, [leagueId,operationId]);
+      const state = source.rows[0];
+      if (!state || state.current_phase !== state.from_phase || state.current_week !== state.from_week || state.current_season !== state.from_season) {
+        throw new AdvanceExecutionLost();
+      }
+      if (state.checkpoints?.reset_actions?.pct === 100) return;
+      await client.query(
+        "UPDATE coaches SET scout_actions_used=0,recruit_actions_used=0,is_ready=false WHERE league_id=$1",
+        [leagueId]);
+      const checkpoint = await client.query(
+        `UPDATE league_advances SET checkpoints=checkpoints || jsonb_build_object('reset_actions',
+           jsonb_build_object('pct',100,'at',clock_timestamp())),updated_at=clock_timestamp() WHERE id=$1`,
+        [operationId]);
+      if (checkpoint.rowCount !== 1) throw new AdvanceExecutionLost();
+    }),
     heartbeat: () => withOperation(async client => {
       const renewed = await client.query(
         `UPDATE league_advances SET lease_expires_at=clock_timestamp()+interval '15 minutes',updated_at=clock_timestamp()

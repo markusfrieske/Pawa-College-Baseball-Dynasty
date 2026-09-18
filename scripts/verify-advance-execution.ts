@@ -1,4 +1,4 @@
-/** Real PostgreSQL metadata fencing. Does not certify in-flight gameplay effects. */
+/** Real PostgreSQL metadata and weekly-reset fencing. Other gameplay stages remain open. */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -158,7 +158,68 @@ try {
   unblock(); await lateWrite; late.clear();
   check(getAdvanceProgress("late-ui"),freshBefore,"Late committed callback cannot overwrite new UI");
   fresh.clear();
-  console.log(`Advance execution metadata: ${checks} assertions passed; gameplay-stage fencing remains outside this test.`);
+
+  const reset = await seed("atomic-reset"), foreignReset = await seed("foreign-reset");
+  for (const [id,league] of [["reset-a","atomic-reset"],["reset-b","atomic-reset"],["foreign-coach","foreign-reset"]]) {
+    await pool.query("INSERT INTO coaches(id,league_id,first_name,last_name,scout_actions_used,recruit_actions_used,is_ready,xp) VALUES($1,$2,'Stage','Fixture',3,4,true,137)", [id,league]);
+  }
+  const coachState = async () => (await pool.query("SELECT id,league_id,scout_actions_used,recruit_actions_used,is_ready,xp FROM coaches ORDER BY id")).rows;
+  const beforeReset = { coaches: await coachState(), operation: await snapshot("atomic-reset") };
+  await pool.query(`CREATE FUNCTION reject_reset_checkpoint() RETURNS trigger LANGUAGE plpgsql AS $fixture$
+    BEGIN
+      IF NEW.league_id='atomic-reset' AND NEW.checkpoints->'reset_actions'->>'pct'='100'
+        THEN RAISE EXCEPTION 'synthetic reset checkpoint failure'; END IF;
+      RETURN NEW;
+    END $fixture$`);
+  await pool.query("CREATE TRIGGER reject_reset_checkpoint BEFORE UPDATE ON league_advances FOR EACH ROW EXECUTE FUNCTION reject_reset_checkpoint()");
+  try {
+    await assert.rejects(reset.resetWeeklyActions,/synthetic reset checkpoint failure/); checks++;
+    check({coaches:await coachState(),operation:await snapshot("atomic-reset")},beforeReset,"Checkpoint failure rolls back all coach resets and evidence");
+  } finally {
+    await pool.query("DROP TRIGGER reject_reset_checkpoint ON league_advances");
+    await pool.query("DROP FUNCTION reject_reset_checkpoint()");
+  }
+  await pool.query(`CREATE FUNCTION suppress_reset_checkpoint() RETURNS trigger LANGUAGE plpgsql AS $fixture$
+    BEGIN
+      IF NEW.league_id='atomic-reset' AND NEW.checkpoints->'reset_actions'->>'pct'='100' THEN RETURN NULL; END IF;
+      RETURN NEW;
+    END $fixture$`);
+  await pool.query("CREATE TRIGGER suppress_reset_checkpoint BEFORE UPDATE ON league_advances FOR EACH ROW EXECUTE FUNCTION suppress_reset_checkpoint()");
+  try {
+    await lost(reset.resetWeeklyActions,"Suppressed checkpoint cannot report a committed reset");
+    check({coaches:await coachState(),operation:await snapshot("atomic-reset")},beforeReset,"Zero-row checkpoint rolls back every coach effect");
+  } finally {
+    await pool.query("DROP TRIGGER suppress_reset_checkpoint ON league_advances");
+    await pool.query("DROP FUNCTION suppress_reset_checkpoint()");
+  }
+  await pool.query(`CREATE FUNCTION reject_reset_coach() RETURNS trigger LANGUAGE plpgsql AS $fixture$
+    BEGIN IF NEW.id='reset-b' THEN RAISE EXCEPTION 'synthetic coach reset failure'; END IF; RETURN NEW; END $fixture$`);
+  await pool.query("CREATE TRIGGER reject_reset_coach AFTER UPDATE ON coaches FOR EACH ROW EXECUTE FUNCTION reject_reset_coach()");
+  try {
+    await assert.rejects(reset.resetWeeklyActions,/synthetic coach reset failure/); checks++;
+    check({coaches:await coachState(),operation:await snapshot("atomic-reset")},beforeReset,"Coach write failure rolls back the entire reset stage");
+  } finally {
+    await pool.query("DROP TRIGGER reject_reset_coach ON coaches");
+    await pool.query("DROP FUNCTION reject_reset_coach()");
+  }
+  await reset.resetWeeklyActions();
+  check((await coachState()).filter(row=>row.league_id==="atomic-reset").map(row=>[row.scout_actions_used,row.recruit_actions_used,row.is_ready,row.xp]),[[0,0,false,137],[0,0,false,137]],"Reset changes exactly its three fields for every league coach");
+  check((await coachState()).find(row=>row.id==="foreign-coach"),beforeReset.coaches.find(row=>row.id==="foreign-coach"),"Foreign league untouched");
+  check((await snapshot("atomic-reset")).operations[0].checkpoints.reset_actions.pct,100,"Reset evidence commits with effects");
+  await pool.query("UPDATE coaches SET scout_actions_used=1,recruit_actions_used=2 WHERE id='reset-a'");
+  const afterNewActions = await coachState();
+  await reset.resetWeeklyActions();
+  check(await coachState(),afterNewActions,"Completed reset replay does not erase later coach activity");
+  await pool.query("UPDATE leagues SET current_week=2 WHERE id='foreign-reset'");
+  await lost(foreignReset.resetWeeklyActions,"Changed-source reset refuses to touch coaches");
+  check(await coachState(),afterNewActions,"Changed-source refusal preserves all coach fields");
+  const emptyReset = await seed("empty-reset");
+  await emptyReset.resetWeeklyActions();
+  check((await snapshot("empty-reset")).operations[0].checkpoints.reset_actions.pct,100,"Zero-coach stage records a valid completed reset");
+  const staleReset = await seed("stale-reset");
+  await pool.query("UPDATE league_advance_locks SET locked_by='successor-owner' WHERE league_id='stale-reset'");
+  await lost(staleReset.resetWeeklyActions,"Stale owner cannot enter gameplay reset");
+  console.log(`Advance execution metadata and weekly reset: ${checks} assertions passed; other gameplay stages remain open.`);
 } finally {
   if (testPool) await testPool.end();
   if (created) await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);

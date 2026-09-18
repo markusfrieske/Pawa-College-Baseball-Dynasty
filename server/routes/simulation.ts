@@ -4968,11 +4968,14 @@ export async function advanceLeagueStep(
     completedStages?: Set<string>;
     /** Bound to this execution; never resolved from a per-league writer registry. */
     onProgress?: (stage: string, pct: number) => Promise<void>;
+    /** Owned normal-advance stage: effects and reset_actions checkpoint commit together. */
+    resetWeeklyActions?: () => Promise<void>;
   } = {}
 ): Promise<AdvanceStepResult> {
   const { mode = "interactive", savedRecruitingClassId, completedStages } = opts;
   const setAdvanceProgress = async (_leagueId: string, stage: string, pct: number) => { await opts.onProgress?.(stage, pct); };
   const fast = mode === "fast";
+  const inheritedReset = completedStages?.has("reset_actions") === true;
 
   const league = await storage.getLeague(leagueId);
   if (!league) throw new Error("League not found");
@@ -4998,7 +5001,7 @@ export async function advanceLeagueStep(
 
   // ── Deadline auto-ready (interactive only) ──────────────────────────────
   const deadlineForcedTeamIds = new Set<string>();
-  if (!fast && league.phaseDeadline && new Date(league.phaseDeadline) <= new Date()) {
+  if (!fast && !inheritedReset && league.phaseDeadline && new Date(league.phaseDeadline) <= new Date()) {
     const allLeagueCoaches = await storage.getCoachesByLeague(leagueId);
     const allLeagueTeams = await storage.getTeamsByLeague(leagueId);
     const humanTeamIds = new Set(allLeagueTeams.filter(t => !t.isCpu && !t.isAutoPilot).map(t => t.id));
@@ -5024,7 +5027,7 @@ export async function advanceLeagueStep(
   }
 
   // ── Human readiness gate (interactive, preseason/spring/regular only) ───
-  if (!fast) {
+  if (!fast && !inheritedReset) {
     const readinessGatedPhases = ["preseason", "spring_training", "regular_season"];
     if (readinessGatedPhases.includes(league.currentPhase)) {
       const deadlinePassed = league.phaseDeadline && new Date(league.phaseDeadline) <= new Date();
@@ -5088,12 +5091,17 @@ export async function advanceLeagueStep(
   }
 
   // ── Reset weekly actions ────────────────────────────────────────────────
-  // Note: reset_actions is intentionally NOT skipped on resume — clearing
-  // scoutActionsUsed/recruitActionsUsed/isReady is idempotent and safe to re-apply.
+  // A validated inherited reset proves the readiness gate already passed.
+  // Do not reset again: coaches may have taken new actions since the committed stage.
   const coaches = await storage.getCoachesByLeague(leagueId);
   if (!stageAlreadyDone("reset_actions", completedStages)) {
-    await Promise.all(coaches.map(coach => storage.updateCoach(coach.id, { scoutActionsUsed: 0, recruitActionsUsed: 0, isReady: false })));
-    await setAdvanceProgress(leagueId, "reset_actions", 100);
+    if (opts.resetWeeklyActions) {
+      await opts.resetWeeklyActions();
+    } else {
+      // Fast-forward has no durable operation yet; preserve its existing behavior.
+      await Promise.all(coaches.map(coach => storage.updateCoach(coach.id, { scoutActionsUsed: 0, recruitActionsUsed: 0, isReady: false })));
+      await setAdvanceProgress(leagueId, "reset_actions", 100);
+    }
   }
 
   // ── Game simulation setup ───────────────────────────────────────────────
@@ -7535,7 +7543,9 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only the commissioner can force-advance" });
       }
 
-      await inspectAdvanceRecovery(league);
+      if (await inspectAdvanceRecovery(league)) {
+        throw new AdvanceOperationBusy("An interrupted advance must resume through normal Advance. Force advance cannot rewrite its readiness or recruiting state.");
+      }
 
       // In reported-game mode the same advance gate applies even for force-advance:
       // unreported games must be resolved before phase can move forward.
@@ -7976,6 +7986,7 @@ export function registerSimulationRoutes(app: Express): void {
         savedRecruitingClassId: req.body?.savedRecruitingClassId,
         completedStages: priorCompletedStages.size > 0 ? priorCompletedStages : undefined,
         onProgress: executionProgress.update,
+        resetWeeklyActions: () => executionProgress!.commitStage("reset_actions", 100, ownedExecution.resetWeeklyActions),
       });
 
       if (!(await renewAdvanceLock(leagueId, mutationLeaseToken))) {
