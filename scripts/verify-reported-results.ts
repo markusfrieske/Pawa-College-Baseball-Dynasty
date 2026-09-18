@@ -27,22 +27,23 @@ if (process.argv.includes("--http-child")) {
   const { createServer } = await import("node:http");
   const { registerRoutes } = await import("../server/routes");
   const { storage } = await import("../server/storage");
-  const { finalizeReportedGame } = await import("../server/game-finalizer");
+  const { finalizeReportedGame, finalizeGameAtomic } = await import("../server/game-finalizer");
   const { publicErrorHandler } = await import("../server/lib/httpErrors");
   const app = express(); app.use(express.json());
   const server = createServer(app);
   await registerRoutes(server, app);
   app.use(publicErrorHandler);
   process.on("message", async (message: any) => {
-    if (message?.kind !== "direct-finalize") return;
+    if (!["direct-finalize", "generic-finalize"].includes(message?.kind)) return;
     try {
       const game = await storage.getGame(message.gameId);
       const report = await storage.getGameReport(message.gameId);
       assert(game && report);
-      await finalizeReportedGame(report, game, game.leagueId);
+      if (message.kind === "generic-finalize") await finalizeGameAtomic(game, 2, 1, null, game.leagueId, { skipPlayerStats: true, skipPitcherRest: true, finalizer: "synthetic-generic" });
+      else await finalizeReportedGame(report, game, game.leagueId);
       process.send?.({ kind: "direct-result", error: null });
     } catch (error) {
-      process.send?.({ kind: "direct-result", error: error instanceof Error ? error.name : "UnknownError" });
+      process.send?.({ kind: "direct-result", error: error instanceof Error ? error.constructor.name : "UnknownError" });
     }
   });
   process.on("disconnect", () => process.exit(0));
@@ -57,6 +58,8 @@ if (process.argv.includes("--http-child")) {
   const url = new URL(connection); url.pathname = `/${name}`;
   let created = false, child: ChildProcess | undefined, pool: pg.Pool | undefined;
   let origin = "", cookie = "", checks = 0;
+  let childErrors = "";
+  const sessionSecret = randomUUID() + randomUUID();
   const equal = (actual: unknown, expected: unknown, label: string) => { assert.deepEqual(actual, expected, label); checks++; };
   const invoke = async (route: string, method = "GET", body?: unknown) => {
     const response = await fetch(origin + route, { method, signal: AbortSignal.timeout(15000),
@@ -89,8 +92,20 @@ if (process.argv.includes("--http-child")) {
       boot.once("exit", code => { clearTimeout(timer); done(code); });
     });
     equal(bootstrapExit, 0, "Owned report DB bootstrap");
-    child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(import.meta.url), "--http-child"], { cwd: root, windowsHide: true, stdio: ["ignore", "ignore", "ignore", "ipc"], env: { ...process.env, PAWA_TEST_DATABASE_URL: url.toString(), SESSION_SECRET: randomUUID() + randomUUID() } });
-    const ready = await waitForMessage("ready", () => {}); origin = `http://127.0.0.1:${ready.port}`;
+    const startHttp = async () => {
+      childErrors = "";
+      child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(import.meta.url), "--http-child"], { cwd: root, windowsHide: true, stdio: ["ignore", "ignore", "pipe", "ipc"], env: { ...process.env, PAWA_TEST_DATABASE_URL: url.toString(), SESSION_SECRET: sessionSecret } });
+      child.stderr!.on("data", data => { childErrors = (childErrors + data.toString()).slice(-12000); });
+      const ready = await waitForMessage("ready", () => {}); origin = `http://127.0.0.1:${ready.port}`;
+    };
+    const stopHttp = async () => {
+      if (!child || child.exitCode !== null || child.signalCode !== null) return;
+      await new Promise<void>((done, reject) => {
+        const timer = setTimeout(() => reject(new Error("Owned HTTP child restart timeout")), 10000);
+        child!.once("exit", () => { clearTimeout(timer); done(); }); child!.kill();
+      });
+    };
+    await startHttp();
     const registration = await invoke("/api/auth/register", "POST", { email: "reports@example.test", password: "synthetic-reports-password" });
     equal(registration.response.status, 200, "Real commissioner registration");
     cookie = registration.response.headers.get("set-cookie")!.split(";")[0];
@@ -205,19 +220,30 @@ if (process.argv.includes("--http-child")) {
     // Exercise the real upgrade from the original required summary columns,
     // with existing reports present, rather than relying only on a fresh schema.
     const reportDataBeforeUpgrade = (await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows;
+    await pool.query("DROP TABLE game_report_revisions CASCADE");
+    for (const column of ["report_revision_id", "report_id", "requested_edit_version", "accepted_by_user_id", "report_action", "report_resolution"]) {
+      await pool.query(`ALTER TABLE game_finalizations DROP COLUMN ${column}`);
+    }
     for (const column of ["home_hits", "away_hits", "home_errors", "away_errors"]) {
       await pool.query(`ALTER TABLE game_reports ALTER COLUMN ${column} SET NOT NULL`);
     }
     await pool.query("ALTER TABLE game_reports DROP COLUMN edit_version");
-    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version')");
+    await pool.query("DELETE FROM db_schema_migrations WHERE migration_key IN ('0050_report_unknown_summaries','0051_report_edit_version','0052_report_history')");
     equal(await checkMigrationVersion(pool), false, "Schema readiness fails before the required unknown-summary migration");
     const upgraded = await runMigrations(pool);
-    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version"], "Populated database upgrades both missing report migrations in order");
-    equal(upgraded.version, "0051_report_edit_version", "Edit-version migration is the recorded schema head");
+    equal(upgraded.applied, ["0050_report_unknown_summaries", "0051_report_edit_version", "0052_report_history"], "Populated database upgrades all missing report migrations in order");
+    equal(upgraded.version, "0052_report_history", "Report-history migration is the recorded schema head");
     equal(await checkMigrationVersion(pool), true, "Schema readiness succeeds after the required migration is recorded");
     equal((await pool.query("SELECT to_jsonb(r) - 'edit_version' AS data FROM game_reports r ORDER BY id")).rows, reportDataBeforeUpgrade, "Report upgrades preserve all existing report data intact");
     equal((await pool.query("SELECT DISTINCT edit_version FROM game_reports")).rows, [{ edit_version: 1 }], "Edit-version migration backfills existing reports to version one");
     equal((await pool.query("SELECT column_name,is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='game_reports' AND column_name IN ('home_hits','away_hits','home_errors','away_errors') ORDER BY column_name")).rows.map(row => row.is_nullable), ["YES", "YES", "YES", "YES"], "All four report summary columns allow explicit unknown values after upgrade");
+    const legacyHistory = (await pool.query("SELECT report_id,edit_version,event,actor_user_id,snapshot FROM game_report_revisions ORDER BY report_id")).rows;
+    equal(legacyHistory.length, reportDataBeforeUpgrade.length, "Migration records exactly one observed snapshot per legacy report, without inventing lost revisions");
+    equal(legacyHistory.every(row => row.event === "legacy-observed" && row.actor_user_id === null && row.edit_version === 1), true, "Legacy baseline marks observation explicitly and does not infer a historical actor");
+    equal(legacyHistory.every(row => row.snapshot.id === row.report_id && row.snapshot.editVersion === 1), true, "Legacy baseline binds the current report and version");
+    equal(legacyHistory.every(row => row.snapshot.legacyTimestampTimezone === "unspecified" && !row.snapshot.createdAt.endsWith("Z")), true, "Legacy timestamps retain unknown timezone instead of inventing UTC provenance");
+    equal((await pool.query("SELECT report_revision_id,report_id,requested_edit_version,accepted_by_user_id,report_action,report_resolution FROM game_finalizations")).rows.every(row => Object.values(row).every(value => value === null)), true, "Existing receipts retain unknown acceptance identity instead of being falsely attributed to a baseline");
+    equal((await runMigrations(pool)).applied, [], "History migration is safely skipped on subsequent startup");
 
     await newGame("mixed-summaries");
     equal((await invoke(endpoint("mixed-summaries"), "POST", { homeScore: 2, awayScore: 1,
@@ -358,6 +384,10 @@ if (process.argv.includes("--http-child")) {
     equal(correctedResolution, { gameId: "corrected-resolution", reportId: submittedCorrection.data.id, previousEditVersion: 2, editVersion: 3,
       homeScore: 3, awayScore: 1, previousHomeScore: 2, previousAwayScore: 1, resolution: "corrected" },
       "Atomic acceptance audit retains original scores, corrected scores, resolution choice and accepted versions");
+    const correctedHistory = (await pool.query("SELECT id,event,snapshot FROM game_report_revisions WHERE game_id='corrected-resolution' ORDER BY edit_version")).rows;
+    equal(correctedHistory.map(row => [row.snapshot.homeScore, row.snapshot.awayScore]), [[2, 1], [2, 1], [3, 1]], "Corrected acceptance retains submitted, disputed and accepted score observations separately");
+    equal(correctedHistory[1].snapshot.disputeCorrectedHomeScore, 3, "Dispute revision preserves the proposed correction without rewriting original score observations");
+    equal((await pool.query("SELECT report_revision_id,report_resolution FROM game_finalizations WHERE game_id='corrected-resolution'")).rows[0], { report_revision_id: correctedHistory[2].id, report_resolution: "corrected" }, "Corrected official result points to the exact accepted corrected snapshot");
 
     for (const state of ["complete", "receipt", "confirmed", "rejected"]) {
       const gameId = "transition-locked-" + state;
@@ -400,6 +430,17 @@ if (process.argv.includes("--http-child")) {
         await Promise.allSettled(requests);
       }
     };
+    for (const first of ["submit", "quick-score"]) {
+      const gameId = "race-create-" + first;
+      await newGame(gameId);
+      const create = () => invoke(endpoint(gameId), "POST", valid());
+      const quickScore = () => invoke(`/api/leagues/report-league/games/${gameId}`, "PATCH", { homeScore: 2, awayScore: 1 });
+      const race = await queuedRace(gameId, first === "submit" ? create : quickScore, first === "submit" ? quickScore : create);
+      equal(race.map(result => result.response.status), [200, 409], first + " wins against competing initial submission/finalization through the common game lock");
+      equal((await pool.query("SELECT is_complete FROM games WHERE id=$1", [gameId])).rows[0].is_complete, first === "quick-score", "Creation race completion belongs only to the winning operation");
+      equal(Number((await pool.query("SELECT count(*) FROM game_reports WHERE game_id=$1", [gameId])).rows[0].count), first === "submit" ? 1 : 0, "Creation race cannot leave a pending report attached after quick-score completion");
+      equal(Number((await pool.query("SELECT count(*) FROM game_report_revisions WHERE game_id=$1", [gameId])).rows[0].count), first === "submit" ? 1 : 0, "Creation race writes history only for the committed report");
+    }
     for (const [first, second] of [
       ["edit", "confirm"], ["confirm", "edit"],
       ["dispute", "confirm"], ["confirm", "dispute"],
@@ -413,7 +454,11 @@ if (process.argv.includes("--http-child")) {
         ? invoke(endpoint(gameId), "PATCH", { ...versionPayload(1), homeErrors: 2 })
         : invoke(endpoint(gameId) + "/" + action, "POST", { expectedEditVersion: 1, reason: "Queued fixture dispute" });
       const race = await queuedRace(gameId, () => submitDecision(first), () => submitDecision(second));
-      equal(race.map(result => result.response.status), [200, 409], first + " wins its queued race with " + second + "; stale loser conflicts");
+      equal(race.map(result => result.response.status), first === second ? [200, 200] : [200, 409], first + " wins its queued race with " + second + "; identical acceptance replays while other stale decisions conflict");
+      if (first === second) {
+        equal(race.map(result => result.data.alreadyFinalized), [false, true], "Duplicate queued confirmation identifies exactly one durable replay");
+        equal(race[1].data.receipt, race[0].data.receipt, "Concurrent duplicate confirmation returns the identical accepted-result receipt");
+      }
       const storedRace = (await pool.query("SELECT status,edit_version,home_errors FROM game_reports WHERE game_id=$1", [gameId])).rows[0];
       const finalizes = ["confirm", "finalize"].includes(first);
       equal(storedRace, { status: finalizes ? "confirmed" : first === "dispute" ? "disputed" : "pending", edit_version: 2, home_errors: first === "edit" ? 2 : 0 }, "Only winning " + first + " mutation is persisted");
@@ -462,6 +507,107 @@ if (process.argv.includes("--http-child")) {
     equal((await pool.query("SELECT home_errors,edit_version FROM game_reports WHERE game_id='correction-atomic'")).rows[0], { home_errors: 2, edit_version: 2 }, "Correction commit advances report exactly once");
     equal((await pool.query("SELECT field_key,ocr_value,corrected_value,corrected_by_user_id FROM game_report_corrections WHERE game_id='correction-atomic'")).rows,
       [{ field_key: "home.errors", ocr_value: "0", corrected_value: "2", corrected_by_user_id: registration.data.id }], "Committed correction retains values and actor exactly once");
+    const beforeGenericOverwrite = await snapshot();
+    const genericOverwrite = await waitForMessage("direct-result", () => child!.send({ kind: "generic-finalize", gameId: "correction-atomic" }));
+    equal(genericOverwrite.error, "ReportTransitionConflict", "Generic simulator finalization refuses a game reserved for report review");
+    equal(await snapshot(), beforeGenericOverwrite, "Generic finalization cannot bypass pending report history or write official effects");
+
+    // Initial body, submitted audit, corrections and immutable revision share
+    // the creation transaction. Inject each failure independently, before CPU
+    // auto-acceptance or best-effort presentation effects can run.
+    for (const failure of ["audit", "correction", "revision"]) {
+      const gameId = "submission-rollback-" + failure;
+      await newGame(gameId);
+      const table = failure === "audit" ? "audit_logs" : failure === "correction" ? "game_report_corrections" : "game_report_revisions";
+      await pool.query("CREATE FUNCTION reject_fixture_submission() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN RAISE EXCEPTION 'synthetic initial report persistence failure'; END $fixture$");
+      await pool.query(`CREATE TRIGGER reject_fixture_submission BEFORE INSERT ON ${table} FOR EACH ROW EXECUTE FUNCTION reject_fixture_submission()`);
+      const payload = { ...valid(), corrections: [{ fieldKey: "home.errors", fieldLabel: "Home errors", ocrValue: "2", correctedValue: "0" }] };
+      try {
+        const beforeSubmissionFailure = await snapshot();
+        equal((await invoke(endpoint(gameId), "POST", payload)).response.status, 500, "Initial " + failure + " failure rejects submission");
+        equal(await snapshot(), beforeSubmissionFailure, "Initial " + failure + " failure rolls back report, history, audit, corrections and all dependent state");
+      } finally {
+        await pool.query(`DROP TRIGGER reject_fixture_submission ON ${table}`);
+        await pool.query("DROP FUNCTION reject_fixture_submission()");
+      }
+      equal((await invoke(endpoint(gameId), "POST", payload)).response.status, 200, "Initial submission can retry after " + failure + " rollback");
+      equal(Number((await pool.query("SELECT count(*) FROM game_report_revisions WHERE game_id=$1", [gameId])).rows[0].count), 1, "Retry stores exactly one initial revision after " + failure + " rollback");
+    }
+
+    for (const action of ["edit", "dispute", "confirm", "finalize"]) {
+      const gameId = "revision-rollback-" + action;
+      await newGame(gameId);
+      equal((await invoke(endpoint(gameId), "POST", valid())).response.status, 200, "History rollback fixture created for " + action);
+      await pool.query("CREATE FUNCTION reject_fixture_revision() RETURNS trigger LANGUAGE plpgsql AS $fixture$ BEGIN RAISE EXCEPTION 'synthetic revision failure'; END $fixture$");
+      await pool.query("CREATE TRIGGER reject_fixture_revision BEFORE INSERT ON game_report_revisions FOR EACH ROW EXECUTE FUNCTION reject_fixture_revision()");
+      const mutate = () => action === "edit" ? invoke(endpoint(gameId), "PATCH", versionPayload(1)) : invoke(endpoint(gameId) + "/" + action, "POST", { expectedEditVersion: 1, reason: "Synthetic rejected revision" });
+      try {
+        const beforeRevisionFailure = await snapshot();
+        equal((await mutate()).response.status, 500, action + " cannot commit without an immutable revision");
+        equal(await snapshot(), beforeRevisionFailure, action + " revision failure rolls back the whole transaction including receipt, stats and audit");
+      } finally {
+        await pool.query("DROP TRIGGER reject_fixture_revision ON game_report_revisions");
+        await pool.query("DROP FUNCTION reject_fixture_revision()");
+      }
+      equal((await mutate()).response.status, 200, action + " retries successfully with the unchanged version after rollback");
+    }
+
+    await newGame("history-lifecycle");
+    const originalHistoryReport = await invoke(endpoint("history-lifecycle"), "POST", valid());
+    equal(originalHistoryReport.response.status, 200, "Revision lifecycle begins with an actual submitted report");
+    const initialRevision = (await pool.query("SELECT * FROM game_report_revisions WHERE game_id='history-lifecycle'")).rows[0];
+    equal([initialRevision.event, initialRevision.edit_version, initialRevision.actor_user_id], ["submitted", 1, registration.data.id], "Initial revision records actual submission event, version and actor");
+    equal(initialRevision.snapshot.homeBoxData, valid().homeBoxData, "Initial immutable snapshot preserves every submitted batting and pitching field");
+    const historyEdit = { ...versionPayload(1), homeErrors: 2, corrections: [{ fieldKey: "home.errors", fieldLabel: "Home errors", ocrValue: "0", correctedValue: "2" }] };
+    equal((await invoke(endpoint("history-lifecycle"), "PATCH", historyEdit)).response.status, 200, "Lifecycle edit accepted");
+    equal((await pool.query("SELECT * FROM game_report_revisions WHERE id=$1", [initialRevision.id])).rows[0], initialRevision, "Editing preserves the entire original revision byte-for-byte as decoded by PostgreSQL");
+    equal((await invoke(endpoint("history-lifecycle") + "/dispute", "POST", { expectedEditVersion: 2, reason: "Please review the recorded errors" })).response.status, 200, "Lifecycle dispute accepted");
+    const acceptedHistory = await invoke(endpoint("history-lifecycle") + "/finalize", "POST", { expectedEditVersion: 3 });
+    equal(acceptedHistory.response.status, 200, "Lifecycle acceptance succeeds");
+    equal(acceptedHistory.data.alreadyFinalized, false, "First successful acceptance is not labeled a replay");
+    const historyRows = (await pool.query("SELECT * FROM game_report_revisions WHERE game_id='history-lifecycle' ORDER BY edit_version")).rows;
+    equal(historyRows.map(row => [row.edit_version, row.event, row.snapshot.status]), [[1, "submitted", "pending"], [2, "edited", "pending"], [3, "disputed", "disputed"], [4, "force-finalized", "confirmed"]], "Revision ledger retains all four observed lifecycle states in order");
+    equal(historyRows.map(row => row.snapshot.homeErrors), [0, 2, 2, 2], "Historical score observations survive subsequent edits and decisions");
+    equal(historyRows.every(row => row.actor_user_id === registration.data.id && row.snapshot.editVersion === row.edit_version), true, "Each lifecycle snapshot binds the authenticated actor and stored version");
+    equal(historyRows[1].corrections.some((row: any) => row.fieldKey === "home.errors" && row.ocrValue === "0" && row.correctedValue === "2"), true, "Edited revision captures its correction provenance");
+    const acceptedReceipt = (await pool.query("SELECT * FROM game_finalizations WHERE game_id='history-lifecycle'")).rows[0];
+    equal([acceptedReceipt.report_revision_id, acceptedReceipt.report_id, acceptedReceipt.requested_edit_version, acceptedReceipt.accepted_by_user_id, acceptedReceipt.report_action, acceptedReceipt.report_resolution], [historyRows[3].id, originalHistoryReport.data.id, 3, registration.data.id, "Game Report Force-Finalized", "reported"], "Official receipt identifies exactly the accepted revision, actor, request version, action and resolution");
+    equal(acceptedHistory.data.receipt.reportRevisionId, historyRows[3].id, "Acceptance HTTP response exposes the persisted revision identity");
+    const historyResponse = await invoke(endpoint("history-lifecycle") + "/history");
+    equal(historyResponse.response.status, 200, "Commissioner can read immutable report history");
+    equal(historyResponse.data.revisions.map((row: any) => row.id), historyRows.map(row => row.id), "History endpoint returns the complete ordered revision sequence");
+    equal(historyResponse.data.receipt, acceptedHistory.data.receipt, "History and acceptance responses expose the same durable receipt");
+    equal(historyResponse.response.headers.get("cache-control"), "private, no-store", "History with actor and correction provenance cannot enter a shared cache");
+    for (const mutation of ["UPDATE game_report_revisions SET snapshot='{}'::jsonb WHERE id=$1", "DELETE FROM game_report_revisions WHERE id=$1"]) {
+      const beforeTampering = await snapshot();
+      let rejected = false;
+      try { await pool.query(mutation, [historyRows[3].id]); } catch { rejected = true; }
+      equal(rejected, true, "Active report revision rejects direct " + mutation.split(" ")[0]);
+      equal(await snapshot(), beforeTampering, "Rejected historical tampering preserves history, receipt and all live state");
+    }
+    const deletion = await pool.connect();
+    try {
+      await deletion.query("BEGIN");
+      await deletion.query("DELETE FROM game_report_corrections WHERE game_report_id=$1", [originalHistoryReport.data.id]);
+      await deletion.query("DELETE FROM game_reports WHERE id=$1", [originalHistoryReport.data.id]);
+      equal(Number((await deletion.query("SELECT count(*) FROM game_report_revisions WHERE game_id='history-lifecycle'")).rows[0].count), 0, "Explicit parent report deletion can cascade owned history");
+      equal(Number((await deletion.query("SELECT count(*) FROM game_finalizations WHERE game_id='history-lifecycle'")).rows[0].count), 0, "Explicit parent report deletion does not leave a dangling acceptance receipt");
+    } finally { await deletion.query("ROLLBACK"); deletion.release(); }
+
+    // Replay survives loss of the accepting HTTP process. Full-table snapshots
+    // include statistics, standings, audit, corrections and notification rows.
+    await stopHttp(); await startHttp();
+    const beforeReplay = await snapshot();
+    const replay = await invoke(endpoint("history-lifecycle") + "/finalize", "POST", { expectedEditVersion: 3 });
+    equal(replay.response.status, 200, "Exact acceptance retry succeeds after a fresh HTTP process starts");
+    equal(replay.data.alreadyFinalized, true, "Restarted acceptance identifies the persisted replay");
+    equal(replay.data.receipt, acceptedHistory.data.receipt, "Restarted acceptance returns exactly the original receipt");
+    equal(await snapshot(), beforeReplay, "Restarted acceptance replay performs zero persistent writes including secondary notifications");
+    for (const [suffix, body] of [["finalize", { expectedEditVersion: 4 }], ["confirm", { expectedEditVersion: 3 }], ["finalize", { expectedEditVersion: 3, useCorrectedScore: true }]] as const) {
+      const beforeConflict = await snapshot();
+      equal((await invoke(endpoint("history-lifecycle") + "/" + suffix, "POST", body)).response.status, 409, "Different acceptance version, action or resolution conflicts with the committed receipt");
+      equal(await snapshot(), beforeConflict, "A different acceptance identity cannot mutate an already accepted result");
+    }
 
 
     // A nonessential activity-feed write must not turn a committed decision
@@ -503,6 +649,26 @@ if (process.argv.includes("--http-child")) {
     for (const [role, teamId] of [["involved", "home"], ["away", "away"], ["unrelated", "unrelated-team"]]) {
       await pool.query("INSERT INTO coaches (id,user_id,team_id,league_id,first_name,last_name) VALUES ($1,$2,$3,'report-league','Synthetic',$4)", [`coach-${role}`, actors[role].id, teamId, role]);
     }
+    for (const [role, status] of [["primary", 200], ["co", 200], ["involved", 200], ["away", 200], ["unrelated", 403], ["outsider", 403]] as const) {
+      cookie = actors[role].cookie;
+      const historyRead = await invoke(endpoint("history-lifecycle") + "/history");
+      equal(historyRead.response.status, status, role + " history access follows involved-coach or commissioner authority");
+      if (status === 200) equal(historyRead.data.receipt, acceptedHistory.data.receipt, role + " sees the same durable accepted-result receipt");
+      else equal([historyRead.data.revisions, historyRead.data.receipt], [undefined, undefined], role + " rejection exposes neither historical identities nor acceptance receipt");
+    }
+    cookie = "";
+    equal((await invoke(endpoint("history-lifecycle") + "/history")).response.status, 401, "Anonymous caller cannot read report history");
+    cookie = actors.co.cookie;
+    let beforeDifferentActor = await snapshot();
+    equal((await invoke(endpoint("history-lifecycle") + "/finalize", "POST", { expectedEditVersion: 3 })).response.status, 409, "A different authorized commissioner cannot replay another actor's acceptance identity");
+    equal(await snapshot(), beforeDifferentActor, "Different-actor receipt conflict changes no state");
+    await pool.query("UPDATE leagues SET co_commissioner_ids='[]' WHERE id='report-league'");
+    beforeDifferentActor = await snapshot();
+    const revokedReceipt = await invoke(endpoint("history-lifecycle") + "/finalize", "POST", { expectedEditVersion: 3 });
+    equal(revokedReceipt.response.status, 403, "Revoked commissioner cannot retrieve acceptance by retrying an old decision");
+    equal(revokedReceipt.data.receipt, undefined, "Authorization failure discloses no accepted receipt");
+    equal(await snapshot(), beforeDifferentActor, "Revoked acceptance retry performs no writes");
+    await pool.query("UPDATE leagues SET co_commissioner_ids=$1 WHERE id='report-league'", [JSON.stringify([actors.co.id])]);
     await newGame("role-matrix");
     for (const [role, expected] of [
       ["primary", { isCommissioner: true, isInvolvedCoach: false, requiresOverrideReason: true }],
@@ -525,6 +691,9 @@ if (process.argv.includes("--http-child")) {
     const crossLeagueGame = await invoke("/api/leagues/other-report-league/games/role-matrix");
     equal(crossLeagueGame.response.status, 404, "Commissioner cannot read a game through the wrong league route");
     equal(crossLeagueGame.data.reporting, undefined, "Wrong-league game response exposes no reporting metadata");
+    const crossLeagueHistory = await invoke("/api/leagues/other-report-league/games/history-lifecycle/report/history");
+    equal(crossLeagueHistory.response.status, 404, "History rejects cross-league game identifiers even for a commissioner of both leagues");
+    equal([crossLeagueHistory.data.revisions, crossLeagueHistory.data.receipt], [undefined, undefined], "Cross-league history rejection reveals no private evidence");
 
     const invalidReasons: Array<[string, (data: any) => void]> = [
       ["missing", d => delete d.overrideReason],
@@ -613,6 +782,9 @@ if (process.argv.includes("--http-child")) {
       equal((await pool.query("SELECT is_complete,home_score,away_score,box_score FROM games WHERE id=$1", [gameId])).rows[0], { is_complete: true, home_score: 2, away_score: 1, box_score: null }, `${role} finalized score-only game stores scores without a fabricated box score`);
       equal((await pool.query("SELECT home_hits,away_hits,home_errors,away_errors,inning_scores,home_box_data,away_box_data FROM game_reports WHERE game_id=$1", [gameId])).rows[0], reportBeforeFinalization, `${role} finalization preserves unknown report summaries`);
       equal((await pool.query("SELECT * FROM player_season_stats ORDER BY player_id")).rows, beforeStats, `${role} explicit score-only finalization fabricates no player statistics`);
+      const unknownHistory = (await pool.query("SELECT event,snapshot FROM game_report_revisions WHERE game_id=$1 ORDER BY edit_version", [gameId])).rows;
+      equal(unknownHistory.length, 2, role + " score-only history retains submitted and accepted snapshots");
+      equal(unknownHistory.every(row => ["homeHits", "awayHits", "homeErrors", "awayErrors", "inningScores", "homeBoxData", "awayBoxData"].every(field => row.snapshot[field] === null)), true, role + " immutable history preserves unknown observations instead of synthesizing zero statistics");
       if (role === "primary") {
         const confirmedMessages = async () => (await pool!.query("SELECT user_id,body FROM coach_messages WHERE metadata->>'gameId'=$1 AND title='Report confirmed' ORDER BY user_id", [gameId])).rows;
         let messages = await confirmedMessages();
@@ -687,6 +859,34 @@ if (process.argv.includes("--http-child")) {
     } finally {
       await pool.query("UPDATE teams SET is_cpu=false WHERE id='home'");
     }
+    cookie = primary.cookie;
+    const savedHistory = await invoke("/api/leagues/report-league/save-states", "POST", { label: "Synthetic reported-history restore boundary" });
+    equal(savedHistory.response.status, 200, "League save capture remains available with accepted report history");
+    const beforeUnsafeRestore = await snapshot();
+    const unsafeRestore = await invoke(`/api/leagues/report-league/save-states/${savedHistory.data.id}/restore`, "POST", {});
+    equal(unsafeRestore.response.status, 409, "Restore refuses a snapshot that cannot preserve report history and acceptance identity");
+    equal(/history/i.test(unsafeRestore.data.message), true, "Blocked restore gives the history-preservation reason");
+    equal(await snapshot(), beforeUnsafeRestore, "Blocked restore preserves all current rows, history, receipts and save state without making a pre-restore backup");
+    const targetOnlySave = await invoke("/api/leagues/other-report-league/save-states", "POST", { label: "Synthetic historical reports only" });
+    equal(targetOnlySave.response.status, 200, "Empty-current-league restore fixture captures an actual save");
+    await pool.query("UPDATE league_save_states SET snapshot_data=jsonb_set(snapshot_data,'{gameReports}',$1::jsonb) WHERE id=$2", [JSON.stringify([{ id: "historical-report-observation" }]), targetOnlySave.data.id]);
+    equal(Number((await pool.query("SELECT count(*) FROM game_reports WHERE league_id='other-report-league'")).rows[0].count), 0, "Target-only restore fixture has no current reports to trigger the current-state guard");
+    const beforeTargetOnlyRestore = await snapshot();
+    equal((await invoke(`/api/leagues/other-report-league/save-states/${targetOnlySave.data.id}/restore`, "POST", {})).response.status, 409, "A historical snapshot containing reports is blocked even when the current league has no reports");
+    equal(await snapshot(), beforeTargetOnlyRestore, "Target-only history restore guard preserves every table and creates no backup or restore audit");
+
+    const beforeOwnedLeague = await snapshot();
+    await pool.query("INSERT INTO leagues (id,name,commissioner_id,game_mode,current_phase,is_test_data) VALUES ('history-delete-league','Owned deletion fixture',$1,'reported','regular_season',true)", [primary.id]);
+    for (const side of ["home", "away"]) await pool.query("INSERT INTO teams (id,league_id,name,mascot,abbreviation,city,state,is_cpu) VALUES ($1,'history-delete-league',$2,'Owls','DEL','Test','IA',false)", ["delete-" + side, "Delete " + side]);
+    await pool.query("INSERT INTO games (id,league_id,season,week,home_team_id,away_team_id,phase) VALUES ('delete-history-game','history-delete-league',1,1,'delete-home','delete-away','regular')");
+    const deleteEndpoint = "/api/leagues/history-delete-league/games/delete-history-game/report";
+    equal((await invoke(deleteEndpoint, "POST", scoreOnlyPayload())).response.status, 200, "Owned deletion fixture records an initial immutable report");
+    equal((await invoke(deleteEndpoint + "/finalize", "POST", { expectedEditVersion: 1 })).response.status, 200, "Owned deletion fixture has a real accepted revision and receipt");
+    equal(Number((await pool.query("SELECT count(*) FROM game_report_revisions WHERE game_id='delete-history-game'")).rows[0].count), 2, "Owned deletion fixture contains both initial and accepted history");
+    const ownedDeletion = await invoke("/api/leagues/history-delete-league", "DELETE");
+    if (ownedDeletion.response.status !== 200) console.error(childErrors);
+    equal(ownedDeletion.response.status, 200, "Explicit commissioner league deletion remains compatible with immutable-history cascade rules");
+    equal(await snapshot(), beforeOwnedLeague, "Deleting the owned league removes its history and receipt while preserving every unrelated league row");
     console.log(`[reported-result-test] PASS ${checks} assertions: real HTTP, shared validation, and no-write rejection snapshots`);
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) await new Promise<void>((done, reject) => {

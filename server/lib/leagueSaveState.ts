@@ -1,6 +1,15 @@
 import { pool } from "../db";
 import { invalidateLeague } from "../cache";
 
+export class ReportHistoryRestoreBlocked extends Error {}
+
+async function assertHistorySafeRestore(client: any, leagueId: string, snapshot: Record<string, any>): Promise<void> {
+  const { rows } = await client.query("SELECT EXISTS (SELECT 1 FROM game_reports WHERE league_id = $1) AS present", [leagueId]);
+  if (rows[0].present || (Array.isArray(snapshot.gameReports) && snapshot.gameReports.length > 0)) {
+    throw new ReportHistoryRestoreBlocked("Restore is temporarily unavailable for leagues with game reports until history-safe recovery is supported. Your current reports and results are unchanged.");
+  }
+}
+
 const SNAPSHOT_VERSION = 1;
 const MAX_SAVE_STATES_PER_LEAGUE = 10;
 
@@ -383,6 +392,7 @@ export async function restoreLeagueSaveState(
   if (!targetRows.length) throw new Error("Save state not found");
   const targetState = targetRows[0];
   const snapshot = targetState.snapshot_data as Record<string, any>;
+  await assertHistorySafeRestore(pool, leagueId, snapshot);
 
   // 2. Create a pre-restore auto-backup BEFORE touching any league data.
   //    This happens outside the restore transaction so it's committed even if restore fails.
@@ -409,6 +419,8 @@ export async function restoreLeagueSaveState(
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    await client.query("SELECT id FROM leagues WHERE id = $1 FOR UPDATE", [leagueId]);
+    await assertHistorySafeRestore(client, leagueId, snapshot);
 
     // 3a. Delete all save states for this league so the leagues FK is clear
     await client.query(

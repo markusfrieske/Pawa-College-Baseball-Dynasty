@@ -1,3 +1,4 @@
+import { appendReportRevision } from "./report-history";
 import { reportCorrectionRows } from "./report-corrections";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db";
@@ -36,6 +37,7 @@ export async function editGameReport(input: {
     });
     const corrections = reportCorrectionRows(input.corrections, { gameReportId: report.id, gameId: input.gameId, leagueId: input.leagueId, userId: input.userId });
     if (corrections.length) await tx.insert(gameReportCorrections).values(corrections);
+    await appendReportRevision(tx, updated, { actorUserId: input.userId, event: "edited", corrections });
     return updated;
   });
 }

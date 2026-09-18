@@ -1,3 +1,4 @@
+import { ReportHistory } from "@/components/report-history";
 import { useState } from "react";
 import { captureReviewedReport } from "@/lib/reportTransition";
 import { isReportEditVersion } from "@shared/reporting";
@@ -307,6 +308,7 @@ export function GameReportsTab({ leagueId }: GameReportsTabProps) {
             </p>
             <GameScreenshotGallery leagueId={leagueId} gameId={report.gameId} />
             <OcrCorrectionsPanel leagueId={leagueId} gameId={report.gameId} />
+            <ReportHistory leagueId={leagueId} gameId={report.gameId} />
           </div>
           {(isPending || isDisputed) && (
             <div className="flex flex-col gap-2 items-end">

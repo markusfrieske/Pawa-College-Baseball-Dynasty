@@ -1,3 +1,4 @@
+import { appendReportRevision } from "./report-history";
 import { eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { games, gameReports, gameFinalizations, auditLogs, type GameReport } from "../../shared/schema";
@@ -43,6 +44,7 @@ export async function disputeGameReport(input: ReviewedReport & {
       details: JSON.stringify({ gameId: input.gameId, reportId: report.id, previousEditVersion: report.editVersion, editVersion: updated.editVersion,
         homeScore: report.homeScore, awayScore: report.awayScore, reason: input.reason, correctedHomeScore: input.correctedHomeScore, correctedAwayScore: input.correctedAwayScore }),
     });
+    await appendReportRevision(tx, updated, { actorUserId: input.userId, event: "disputed" });
     return updated;
   });
 }

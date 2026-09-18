@@ -710,6 +710,7 @@ function ReportGameInner() {
   const updateMutation = useMutation({
     mutationFn: async (payload: SubmissionPayload) => apiRequest("PATCH", `/api/leagues/${id}/games/${gameId}/report`, payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "games", gameId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       toast({ title: "Report Updated", description: "The submitted report has been corrected." });
       setLocation(`/league/${id}/schedule`);

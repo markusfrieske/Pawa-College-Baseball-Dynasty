@@ -1758,6 +1758,21 @@ export const insertGameReportSchema = createInsertSchema(gameReports).omit({ id:
 export type InsertGameReport = z.infer<typeof insertGameReportSchema>;
 export type GameReport = typeof gameReports.$inferSelect;
 
+// Append-only observed report snapshots. Explicit report/league deletion cascades history.
+export const gameReportRevisions = pgTable("game_report_revisions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportId: varchar("report_id").notNull().references(() => gameReports.id, { onDelete: "cascade" }),
+  gameId: varchar("game_id").notNull(),
+  leagueId: varchar("league_id").notNull(),
+  editVersion: integer("edit_version").notNull(),
+  actorUserId: varchar("actor_user_id"),
+  event: text("event").notNull(),
+  snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
+  corrections: jsonb("corrections").$type<unknown[]>().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, table => [uniqueIndex("game_report_revisions_report_version_idx").on(table.reportId, table.editVersion)]);
+export type GameReportRevision = typeof gameReportRevisions.$inferSelect;
+
 // Screenshot categories for the OCR-assisted box score import flow.
 export const SCREENSHOT_CATEGORIES = [
   "final_score",
@@ -2444,6 +2459,12 @@ export const gameFinalizations = pgTable("game_finalizations", {
   gameId: varchar("game_id").primaryKey().references(() => games.id, { onDelete: "cascade" }),
   finalizedAt: timestamp("finalized_at").notNull().defaultNow(),
   finalizer: text("finalizer").notNull().default("unknown"),
+  reportRevisionId: varchar("report_revision_id").references(() => gameReportRevisions.id, { onDelete: "cascade" }),
+  reportId: varchar("report_id"),
+  requestedEditVersion: integer("requested_edit_version"),
+  acceptedByUserId: varchar("accepted_by_user_id"),
+  reportAction: text("report_action"),
+  reportResolution: text("report_resolution"),
 });
 
 export type GameFinalization = typeof gameFinalizations.$inferSelect;

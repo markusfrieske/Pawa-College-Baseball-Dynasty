@@ -1,3 +1,4 @@
+import { ReportHistoryRestoreBlocked } from "../lib/leagueSaveState";
 import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
@@ -99,6 +100,7 @@ export function registerSaveStateRoutes(app: Express) {
           await releaseAdvanceLock(league.id);
         }
       } catch (err: any) {
+        if (err instanceof ReportHistoryRestoreBlocked) return res.status(409).json({ message: err.message });
         console.error("[save-states] restore error:", err);
         const msg = err?.message === "Save state not found" ? err.message : "Failed to restore save state";
         return res.status(err?.message === "Save state not found" ? 404 : 500).json({ message: msg });

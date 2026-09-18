@@ -1,3 +1,4 @@
+import { appendReportRevision, findAcceptanceReceipt } from "./lib/report-history";
 import { lockReviewedReport, ReportTransitionConflict, type ReviewedReport } from "./lib/report-transition";
 /**
  * Centralised game finalisation service.
@@ -26,7 +27,7 @@ import { storage } from "./storage";
 import { assertReportedResult } from "./lib/validateReportedResult";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
-import type { Game, GameReport, Team, InsertPlayerSeasonStats, Coach } from "@shared/schema";
+import type { Game, GameReport, GameFinalization, Team, InsertPlayerSeasonStats, Coach } from "@shared/schema";
 import {
   games as gamesTable,
   gameFinalizations,
@@ -538,7 +539,11 @@ export async function awardRecruitSignXp(
  * Coach XP is awarded here (previously missing from the reported-game path).
  * Cache invalidation is left to the caller (games.ts confirm/finalize routes).
  */
-export async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string, decision?: { expectedEditVersion: number; userId: string; action: ReportAcceptance["action"]; snapshot?: GameReport; resolution?: "reported" | "corrected" }): Promise<void> {
+export async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string, decision?: { expectedEditVersion: number; userId: string; action: ReportAcceptance["action"]; snapshot?: GameReport; resolution?: "reported" | "corrected" }): Promise<{ alreadyFinalized: boolean; receipt: GameFinalization | null }> {
+  if (decision) {
+    const receipt = await findAcceptanceReceipt(db, { gameId: game.id, reportId: report.id, expectedEditVersion: decision.expectedEditVersion, userId: decision.userId, action: decision.action, resolution: decision.resolution ?? "reported" });
+    if (receipt) return { alreadyFinalized: true, receipt };
+  }
   await assertReportedResult(report, game, leagueId);
   const { homeScore, awayScore } = report;
   const homeBoxData = report.homeBoxData as Record<string, unknown> | null;
@@ -563,7 +568,7 @@ export async function finalizeReportedGame(report: GameReport, game: Game, leagu
 
   // Use atomic wrapper so concurrent confirm/force-finalize calls can't
   // double-apply standings, stats, or XP.
-  await finalizeGameAtomic(game, homeScore, awayScore, boxScore, leagueId, {
+  return finalizeGameAtomic(game, homeScore, awayScore, boxScore, leagueId, {
     isManualReport: true,
     reportedByUserId: report.reporterUserId,
     eventDescriptionSuffix: "(Reported)",
@@ -1167,7 +1172,7 @@ export async function finalizeGameAtomic(
   rawBoxScore: { home: any; away: any; innings?: any[] } | null,
   leagueId: string,
   opts: FinalizeGameOptions & { finalizer?: string } = {},
-): Promise<{ alreadyFinalized: boolean }> {
+): Promise<{ alreadyFinalized: boolean; receipt: GameFinalization | null }> {
   // ── Exhibition games must never pollute standings, player stats, or coach XP ──
   // gameType 'exhibition' is used by Spring Training games. We still persist the
   // score and create a league event so the box score is viewable, but all
@@ -1197,6 +1202,7 @@ export async function finalizeGameAtomic(
   const isConf  = game.isConference ?? false;
 
   let alreadyFinalized = false;
+  let receipt: GameFinalization | null = null;
   // Collect coach deltas for the batch-accumulator path; populated inside the
   // transaction ONLY after we know it will commit (i.e., after the sentinel check
   // succeeds). The actual map.set() runs OUTSIDE the transaction so the mutation
@@ -1207,26 +1213,27 @@ export async function finalizeGameAtomic(
     // ── 1. Lock game row (serialises concurrent finalization calls) ───────
     await tx.execute(sql`SELECT id FROM games WHERE id = ${game.id} FOR UPDATE`);
 
+    // Replays are matched before the pending-status guard, under the game lock.
     if (opts.reportAcceptance) {
+      const prior = await findAcceptanceReceipt(tx, { ...opts.reportAcceptance, resolution: opts.reportAcceptance.resolution ?? "reported" });
+      if (prior) { alreadyFinalized = true; receipt = prior; return; }
       const accepted = await lockReviewedReport(tx, opts.reportAcceptance);
-      // Finalization preparation uses these game fields; reject a changed schedule snapshot.
       for (const key of ["homeTeamId", "awayTeamId", "season", "week", "isConference", "gameType"] as const) {
         if (accepted.game[key] !== game[key]) throw new ReportTransitionConflict("Game details changed since review. Reload the game before finalizing.");
       }
+    } else {
+      if (finalizer === "quick-score") {
+        const [pendingReport] = await tx.select({ id: gameReports.id }).from(gameReports).where(eq(gameReports.gameId, game.id));
+        if (pendingReport) throw new ReportTransitionConflict("This game has a report. Review its current report before finalizing.");
+      }
+      const [existingSentinel] = await tx.select().from(gameFinalizations).where(eq(gameFinalizations.gameId, game.id));
+      if (existingSentinel) { alreadyFinalized = true; receipt = existingSentinel; return; }
+      const [activeReport] = await tx.select({ id: gameReports.id }).from(gameReports).where(eq(gameReports.gameId, game.id));
+      if (activeReport) throw new ReportTransitionConflict("This game has a report. Accept its reviewed report before applying a simulated result.");
     }
 
-    // ── 2. Idempotency check ───────────────────────────────────────────────
-    const existingSentinel = await tx.select()
-      .from(gameFinalizations)
-      .where(eq(gameFinalizations.gameId, game.id))
-      .limit(1);
-    if (existingSentinel.length > 0) {
-      alreadyFinalized = true;
-      return; // no writes — transaction commits trivially
-    }
-
-    // ── 3. Claim sentinel ──────────────────────────────────────────────────
-    await tx.insert(gameFinalizations).values({ gameId: game.id, finalizer });
+    // The sentinel and its accepted-revision reference commit with all result effects.
+    [receipt] = await tx.insert(gameFinalizations).values({ gameId: game.id, finalizer }).returning();
 
     // ── 4. Update game (scores + isComplete + optional fields) ────────────
     const gameSet: Record<string, unknown> = { homeScore, awayScore, isComplete: true };
@@ -1329,9 +1336,11 @@ export async function finalizeGameAtomic(
     // Required report acceptance commits with the official result effects below.
     if (opts.reportAcceptance) {
       const accepted = opts.reportAcceptance;
-      await tx.update(gameReports).set({ status: "confirmed", confirmedByUserId: accepted.userId,
+      const [acceptedReport] = await tx.update(gameReports).set({ status: "confirmed", confirmedByUserId: accepted.userId,
         homeScore, awayScore, editVersion: accepted.expectedEditVersion + 1, updatedAt: new Date(),
-      }).where(eq(gameReports.id, accepted.reportId));
+      }).where(eq(gameReports.id, accepted.reportId)).returning();
+      const revision = await appendReportRevision(tx, acceptedReport, { actorUserId: accepted.userId, event: accepted.action === "Game Report Confirmed" ? "confirmed" : "force-finalized" });
+      [receipt] = await tx.update(gameFinalizations).set({ reportRevisionId: revision.id, reportId: accepted.reportId, requestedEditVersion: accepted.expectedEditVersion, acceptedByUserId: accepted.userId, reportAction: accepted.action, reportResolution: accepted.resolution ?? "reported" }).where(eq(gameFinalizations.gameId, game.id)).returning();
       await tx.insert(auditLogs).values({ leagueId, userId: accepted.userId, action: accepted.action,
         details: JSON.stringify({ gameId: game.id, reportId: accepted.reportId, previousEditVersion: accepted.expectedEditVersion,
           editVersion: accepted.expectedEditVersion + 1, homeScore, awayScore, previousHomeScore: accepted.previousHomeScore, previousAwayScore: accepted.previousAwayScore, resolution: accepted.resolution }),
@@ -1340,7 +1349,7 @@ export async function finalizeGameAtomic(
 
   });
 
-  if (alreadyFinalized) return { alreadyFinalized: true };
+  if (alreadyFinalized) return { alreadyFinalized: true, receipt };
 
   // ── Post-commit: coachXpAccum batch accumulation ─────────────────────────
   // Running OUTSIDE the transaction ensures the map is not mutated if the
@@ -1369,5 +1378,5 @@ export async function finalizeGameAtomic(
     console.error("[finalizeGameAtomic] recap generation error:", e),
   );
 
-  return { alreadyFinalized: false };
+  return { alreadyFinalized: false, receipt };
 }

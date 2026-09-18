@@ -1,3 +1,4 @@
+import { ReportHistory } from "@/components/report-history";
 import { useState, useMemo } from "react";
 import { captureReviewedReport, type ReviewedReport } from "@/lib/reportTransition";
 import { isReportEditVersion } from "@shared/reporting";
@@ -1965,6 +1966,7 @@ function BoxScoreModal({ game, leagueId, onClose }: { game: GameWithTeams | null
           </div>
         )}
 
+        <ReportHistory leagueId={leagueId} gameId={game.id} />
         <GameScreenshotGallery leagueId={leagueId} gameId={game.id} />
       </DialogContent>
     </Dialog>

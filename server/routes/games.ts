@@ -1,5 +1,7 @@
+import { createGameReportAtomic } from "../lib/create-game-report";
+import { findAcceptanceReceipt } from "../lib/report-history";
+import { eq, asc } from "drizzle-orm";
 import { disputeGameReport, ReportTransitionConflict } from "../lib/report-transition";
-import { reportCorrectionRows } from "../lib/report-corrections";
 import { editGameReport, ReportEditConflict } from "../lib/edit-game-report";
 import { isReportEditVersion, reportOverrideReasonError, type ReportRole } from "../../shared/reporting";
 /**
@@ -29,8 +31,8 @@ import * as coachMsg from "../lib/coachMessages";
 import { reportPendingRecipientIds } from "../lib/report-notification-recipients";
 import { cacheGet, cacheSet, leagueCacheKey, invalidateLeague } from "../cache";
 import { finalizeGameAtomic, finalizeReportedGame } from "../game-finalizer";
-import { pool } from "../db";
-import { SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
+import { db } from "../db";
+import { gameReportRevisions, gameFinalizations, SCREENSHOT_CATEGORIES, type ScreenshotCategory } from "@shared/schema";
 import { extractBoxScoreFromScreenshot } from "../ocrGameReport";
 import { ObjectStorageService, ObjectNotFoundError, InvalidImageError } from "../replit_integrations/object_storage/objectStorage";
 import {
@@ -41,27 +43,6 @@ import {
 } from "@shared/pitcherRest";
 
 const objectStorageService = new ObjectStorageService();
-
-/**
- * Derives a stable 31-bit integer from a game ID string for use with
- * PostgreSQL's two-argument pg_advisory_lock(int, int). The namespace (0x1382)
- * ensures no accidental collision with advisory locks from other subsystems.
- */
-function gameIdToAdvisoryKey(gameId: string): number {
-  let h = 5381;
-  for (let i = 0; i < gameId.length; i++) {
-    h = (Math.imul(h, 33) ^ gameId.charCodeAt(i)) >>> 0;
-  }
-  return (h & 0x7fffffff) || 1; // ensure positive non-zero
-}
-
-// Shape of a single coach correction logged during OCR review. `ocrValue`/`correctedValue`
-// are stored as strings (already stringified client-side) so the audit trail can compare
-// heterogeneous field types (numbers, strings, booleans) uniformly.
-async function persistCorrections(raw: unknown, ctx: { gameReportId: string; gameId: string; leagueId: string; userId: string }): Promise<void> {
-  const rows = reportCorrectionRows(raw, ctx);
-  if (rows.length) await storage.batchCreateGameReportCorrections(rows);
-}
 
 function requireReviewedVersion(value: unknown): number {
   if (!isReportEditVersion(value)) throw new ReportValidationError([{ id: "report-version-required", field: "expectedEditVersion", severity: "error", message: "Reload the report to obtain a valid review version before making a decision." }]);
@@ -337,6 +318,7 @@ export function registerGameRoutes(app: Express): void {
       const updatedGame = await storage.getGame(patchGameId);
       res.json(updatedGame);
     } catch (error) {
+      if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       console.error("Failed to update game:", error);
       res.status(500).json({ message: "Failed to update game" });
     }
@@ -384,7 +366,7 @@ export function registerGameRoutes(app: Express): void {
   // NOTE: This is the ONLY handler for GET /api/leagues/:id/games/:gameId/report.
   // The duplicate commissioner-only GET that previously existed at a later line
   // was removed — it was dead code (Express stops at the first match).
-  app.get("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
+  app.get(["/api/leagues/:id/games/:gameId/report", "/api/leagues/:id/games/:gameId/report/history"], requireAuth, async (req, res) => {
     try {
       const fetchLeagueId = req.params.id as string;
       const fetchGameId = req.params.gameId as string;
@@ -413,6 +395,17 @@ export function registerGameRoutes(app: Express): void {
         }
       }
 
+      if (req.path.endsWith("/history")) {
+        const result = await db.transaction(async tx => {
+          const revisions = await tx.select().from(gameReportRevisions).where(eq(gameReportRevisions.gameId, fetchGameId)).orderBy(asc(gameReportRevisions.editVersion));
+          const [receipt] = await tx.select().from(gameFinalizations).where(eq(gameFinalizations.gameId, fetchGameId));
+          return { revisions, receipt: receipt ?? null };
+        }, { isolationLevel: "repeatable read", accessMode: "read only" });
+        res.set("Cache-Control", "private, no-store");
+        const coaches = await storage.getCoachesByLeague(fetchLeagueId);
+        const actorNames = Object.fromEntries(coaches.filter(coach => coach.userId).map(coach => [coach.userId!, `${coach.firstName} ${coach.lastName}`.trim()]));
+        return res.json({ ...result, actorNames });
+      }
       const report = await storage.getGameReport(fetchGameId);
       res.json(report || null);
     } catch (error) {
@@ -535,67 +528,17 @@ export function registerGameRoutes(app: Express): void {
         : null;
       const autoConfirm = isInvolvedCoach && !!(opposingTeam?.isCpu);
 
-      // ── Advisory lock: serialise concurrent report submissions for this game ─
-      // Holds a session-level pg_advisory_lock on a dedicated client for the
-      // duration of the existence re-check + createGameReport to prevent a
-      // TOCTOU race where two concurrent callers both see "no existing report"
-      // and then both attempt to insert one.
-      const lockKey = gameIdToAdvisoryKey(game.id);
-      const lockClient = await pool.connect();
-      let lockHeld = false;
-      let report: Awaited<ReturnType<typeof storage.createGameReport>>;
-      try {
-        await lockClient.query("SELECT pg_advisory_lock(0x1382, $1)", [lockKey]);
-        lockHeld = true;
-
-        // Re-check for an existing report inside the lock
-        const raceCheck = await lockClient.query<{ id: string }>(
-          "SELECT id FROM game_reports WHERE game_id = $1 LIMIT 1",
-          [game.id],
-        );
-        if (raceCheck.rows.length > 0) {
-          return res.status(409).json({ message: "A concurrent report for this game was already submitted" });
-        }
-
-        report = await storage.createGameReport({
-          gameId: game.id,
-          leagueId,
-          reporterUserId: req.session.userId!,
-          reporterTeamId:
-            coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId)
-              ? coach.teamId
-              : null,
-          homeScore, awayScore,
-          homeHits: reportHomeHits, awayHits: reportAwayHits,
+      const report = await createGameReportAtomic({ game, userId: req.session.userId!, corrections: req.body.corrections,
+        auditDetail: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (CPU opponent; automatic confirmation requested)" : ""}${isCommissionerForReport && !isInvolvedCoach ? `; commissioner override: ${overrideReason}` : ""}`,
+        data: { gameId: game.id, leagueId, reporterUserId: req.session.userId!,
+          reporterTeamId: coach?.teamId && [game.homeTeamId, game.awayTeamId].includes(coach.teamId) ? coach.teamId : null,
+          homeScore, awayScore, homeHits: reportHomeHits, awayHits: reportAwayHits,
           homeErrors: reportHomeErrors, awayErrors: reportAwayErrors,
-          inningScores: inningScores ?? null,
-          homeBoxData: homeBoxData ?? null,
-          awayBoxData: awayBoxData ?? null,
-          status: "pending",
-          confirmedByUserId: null,
-          disputedByUserId: null,
-          disputeReason: null,
-        });
-      } finally {
-        if (lockHeld) {
-          await lockClient.query("SELECT pg_advisory_unlock(0x1382, $1)", [lockKey]).catch(() => {});
-        }
-        lockClient.release();
-      }
-
-      await storage.createAuditLog({
-        leagueId,
-        userId: req.session.userId,
-        action: "Game Report Submitted",
-        details: `Reported: ${awayScore}-${homeScore}${autoConfirm ? " (CPU opponent; automatic confirmation requested)" : ""}; Game ${game.id}; report ${report.id}${isCommissionerForReport && !isInvolvedCoach ? `; commissioner override: ${overrideReason}` : ""}`,
+          inningScores: inningScores ?? null, homeBoxData: homeBoxData ?? null, awayBoxData: awayBoxData ?? null,
+          status: "pending", confirmedByUserId: null, disputedByUserId: null, disputeReason: null,
+        },
       });
-
-      await persistCorrections(req.body.corrections, {
-        gameReportId: report.id,
-        gameId: game.id,
-        leagueId,
-        userId: req.session.userId!,
-      });
+      invalidateLeague(leagueId);
 
       if (autoConfirm) {
         await finalizeReportedGame(report, game, leagueId);
@@ -603,33 +546,38 @@ export function registerGameRoutes(app: Express): void {
         return res.json({ ...await storage.getGameReport(game.id), autoConfirmed: true });
       }
 
-      // Notify submitter that their report is pending confirmation
-      if (req.session.userId) {
-        await coachMsg.notifyReportSubmitted({
-          leagueId,
-          userId: req.session.userId,
-          homeTeamName: homeTeam?.name ?? "Home",
-          awayTeamName: awayTeam?.name ?? "Away",
-          homeScore,
-          awayScore,
-          gameId,
-        });
+      try {
+        // Notify submitter that their report is pending confirmation
+        if (req.session.userId) {
+          await coachMsg.notifyReportSubmitted({
+            leagueId,
+            userId: req.session.userId,
+            homeTeamName: homeTeam?.name ?? "Home",
+            awayTeamName: awayTeam?.name ?? "Away",
+            homeScore,
+            awayScore,
+            gameId,
+          });
+        }
+
+        // Coach reports notify the opposition; on-behalf reports notify both
+        // participating teams. Each real user receives at most one pending alert.
+        await Promise.all(reportPendingRecipientIds(coaches, game, req.session.userId!, report.reporterTeamId)
+          .map(userId => coachMsg.notifyReportPending({
+            leagueId,
+            userId,
+            homeTeamName: homeTeam?.name ?? "Home",
+            awayTeamName: awayTeam?.name ?? "Away",
+            gameId,
+            onBehalf: !isInvolvedCoach,
+          })));
+
+      } catch (error) {
+        console.error("Report submission secondary notification failed:", error);
       }
-
-      // Coach reports notify the opposition; on-behalf reports notify both
-      // participating teams. Each real user receives at most one pending alert.
-      await Promise.all(reportPendingRecipientIds(coaches, game, req.session.userId!, report.reporterTeamId)
-        .map(userId => coachMsg.notifyReportPending({
-          leagueId,
-          userId,
-          homeTeamName: homeTeam?.name ?? "Home",
-          awayTeamName: awayTeam?.name ?? "Away",
-          gameId,
-          onBehalf: !isInvolvedCoach,
-        })));
-
       res.json(report);
     } catch (error) {
+      if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
       console.error("Failed to create game report:", error);
       res.status(500).json({ message: "Failed to create game report" });
@@ -774,7 +722,6 @@ export function registerGameRoutes(app: Express): void {
 
       const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
-      if (report.status !== "pending") return res.status(409).json({ message: "Report is not pending. Reload its current state." });
 
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
@@ -801,13 +748,16 @@ export function registerGameRoutes(app: Express): void {
       }
 
       const expectedEditVersion = requireReviewedVersion(req.body?.expectedEditVersion);
+      const receipt = await findAcceptanceReceipt(db, { gameId, reportId: report.id, expectedEditVersion, userId: req.session.userId!, action: "Game Report Confirmed", resolution: "reported" });
+      if (receipt) return res.json({ message: "This report decision was already accepted", alreadyFinalized: true, receipt });
 
       const leagueTeamsForNotify = await storage.getTeamsByLeague(leagueId);
       const homeTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.homeTeamId);
       const awayTeamForNotify = leagueTeamsForNotify.find(t => t.id === game.awayTeamId);
 
-      await finalizeReportedGame(report, game, leagueId, { expectedEditVersion, userId: req.session.userId!, action: "Game Report Confirmed" });
+      const acceptance = await finalizeReportedGame(report, game, leagueId, { expectedEditVersion, userId: req.session.userId!, action: "Game Report Confirmed" });
 
+      if (acceptance.alreadyFinalized) return res.json({ message: "This report decision was already accepted", ...acceptance });
       invalidateLeague(leagueId);
       // The official decision is committed. Ancillary feed/inbox failures must not report a failed decision.
       try {
@@ -843,7 +793,7 @@ export function registerGameRoutes(app: Express): void {
       } catch (error) {
         console.error("Report confirm secondary notification failed:", error);
       }
-      res.json({ message: "Report confirmed and game finalized" });
+      res.json({ message: "Report confirmed and game finalized", ...acceptance });
     } catch (error) {
       if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
@@ -969,18 +919,22 @@ export function registerGameRoutes(app: Express): void {
 
 
       const expectedEditVersion = requireReviewedVersion(req.body?.expectedEditVersion);
+      const receipt = await findAcceptanceReceipt(db, { gameId, reportId: report.id, expectedEditVersion, userId: req.session.userId!, action: "Game Report Force-Finalized", resolution: req.body?.useCorrectedScore === true ? "corrected" : "reported" });
+      if (receipt) return res.json({ message: "This report decision was already accepted", alreadyFinalized: true, receipt });
 
       // Commissioner may opt to apply the disputing coach's proposed corrected score
       // instead of the originally reported one when resolving a dispute.
       const useCorrectedScore = req.body?.useCorrectedScore === true &&
         typeof report.disputeCorrectedHomeScore === "number" &&
         typeof report.disputeCorrectedAwayScore === "number";
+      if (req.body?.useCorrectedScore === true && !useCorrectedScore) return res.status(422).json({ message: "This report has no complete proposed corrected score to accept." });
       const reportToFinalize = useCorrectedScore
         ? { ...report, homeScore: report.disputeCorrectedHomeScore!, awayScore: report.disputeCorrectedAwayScore! }
         : report;
 
-      await finalizeReportedGame(reportToFinalize, game, leagueId, { expectedEditVersion, userId: req.session.userId!, action: "Game Report Force-Finalized", snapshot: report, resolution: useCorrectedScore ? "corrected" : "reported" });
+      const acceptance = await finalizeReportedGame(reportToFinalize, game, leagueId, { expectedEditVersion, userId: req.session.userId!, action: "Game Report Force-Finalized", snapshot: report, resolution: useCorrectedScore ? "corrected" : "reported" });
 
+      if (acceptance.alreadyFinalized) return res.json({ message: "This report decision was already accepted", ...acceptance });
       invalidateLeague(leagueId);
       // The official decision is committed. Ancillary feed/inbox failures must not report a failed decision.
       try {
@@ -1003,7 +957,7 @@ export function registerGameRoutes(app: Express): void {
       } catch (error) {
         console.error("Report finalize secondary notification failed:", error);
       }
-      res.json({ message: "Game finalized by commissioner" });
+      res.json({ message: "Game finalized by commissioner", ...acceptance });
     } catch (error) {
       if (error instanceof ReportTransitionConflict) return res.status(409).json({ message: error.message });
       if (error instanceof ReportValidationError) return res.status(422).json({ message: error.message, validationErrors: error.issues });
