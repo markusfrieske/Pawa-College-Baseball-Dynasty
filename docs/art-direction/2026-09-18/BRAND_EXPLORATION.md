@@ -1,10 +1,16 @@
 # Independent name and logo exploration
 
-September 18, 2026. Requested by Frisk. **Selected direction: Class of Nine (N02), campus gateway (L04), and L02 italic serif lettering.** Scheduled development remains paused.
+September 18, 2026. Requested by Frisk. **APPROVED: Class of Nine, refined B pennant gateway with enclosed C9 home plate, and L02 italic serif lettering.** Scheduled development remains paused.
 
 [Interactive name/logo comparison](../2026-09-17/brand-lab.html). Four names can be compared across four original SVG logo styles. Selecting a name only changes the local preview; it does not approve or persist a branding decision.
 
-## Selected direction
+## Approval
+
+Frisk explicitly approved the refined identity on September 18: “perfect approved whats next?” The approved artwork is the symmetrical B refinement in `assets/class-of-nine/gateway.svg`, with the light/dark lockups in the same directory, shown in the [identity preview](../2026-09-17/class-of-nine.html). This supersedes earlier direction-only status and completes visual selection. Production asset packaging and game integration remain implementation work; scheduled development stays paused.
+
+Recommended next manual milestone: package the approved identity and apply it to the game shell, then implement the roster manifest, on-demand player profile and lineup workspace as the first complete playable design slice. Verify real role/state behavior and small-screen readability, obtain an independent game-dev audit, and return the playable result for Frisk’s review before extending to recruiting and game reporting. This recommendation is not an automatic restart of development.
+
+## Selection history
 
 Frisk selected **Class of Nine + L04 campus gateway + L02 lettering** on September 18. [Focused combined preview](../2026-09-17/class-of-nine.html). The actual L02 preview uses `Georgia, serif`, italic, weight 800, with tight letter spacing. Preserve that appearance rather than the original L04 uppercase sans-serif. This supersedes the Pennant Foundry / L01 recommendation below, which is retained as exploration history. Forest, brass and cream remain the palette. Name/symbol/lettering are selected; descriptor, tagline, final outlined assets and commercial clearance are not newly approved by this choice.
 

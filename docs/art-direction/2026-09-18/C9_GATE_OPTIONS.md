@@ -22,3 +22,5 @@ Frisk selected B on September 18 and identified the home-plate tip intersecting 
 Geometry is centered on x=100 in a 200 × 208 view box. Pillars, caps, arch and outward-facing pennants are mirrored. The plate spans x=62–138 with its tip at y=166; the baseline is y=188. Both use 7-unit strokes, leaving a 15-unit visible gap between the tip and baseline. C9 is centered in the plate’s rectangular upper area. Wordmark and palette remain selected.
 
 The updated gateway.svg and light/dark lockups use this refinement. Final outlined typography remains future work; no production game identifiers changed.
+
+**Final visual approval:** Frisk approved the balanced B refinement on September 18 (“perfect approved whats next?”). This is the canonical logo geometry for the next manually directed implementation milestone.
