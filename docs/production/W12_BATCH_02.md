@@ -1,6 +1,6 @@
 # W12 batch 02 — Class of Nine roster and lineup slice
 
-September 18, 2026. Manually authorized by Frisk after approving the refined B gateway identity. Scheduled development remains paused. This batch is a playable roster milestone, not completion of W12 or the full screen redesign.
+September 18, 2026. Implementation: `f7b27fb`. Manually authorized by Frisk after approving the refined B gateway identity. Scheduled development remains paused. This batch is a playable roster milestone, not completion of W12 or the full screen redesign.
 
 ## Delivered
 

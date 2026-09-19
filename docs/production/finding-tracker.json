@@ -721,7 +721,7 @@
     {
       "id": "UX-06",
       "title": "P1: The keyboard and touch experience is inconsistent in core management controls",
-      "status": "planned",
+      "status": "implementing",
       "owner": "JD Player Experience Lead",
       "targetWeek": 12,
       "targetStart": "2026-11-30",
@@ -730,9 +730,13 @@
       "acceptance": "Keyboard and touch can inspect, assign and reorder the full roster; narrow widths/focus/zoom pass.",
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
-      "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "implementationCommit": "f7b27fb5dbf15ae7e0f693fbebf44403eae2398e",
+      "evidence": [
+        "W12_BATCH_02.md",
+        "audits/W12_BATCH_02_AUDIT.md",
+        "../../scripts/verify-roster-context.ts"
+      ],
+      "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open."
     },
     {
       "id": "UX-07",
@@ -839,6 +843,23 @@
         "../../tests/unit/reportRosterIdentity.test.ts"
       ],
       "verifiedBy": "Independent JD/Gibs identity audit: 19 pure tests, 45 component-browser assertions and 83 real HTTP/PostgreSQL assertions passed on 2026-09-14; full application browser gate remains separate"
+    },
+    {
+      "id": "W12-LINEUP-01",
+      "priority": "P1",
+      "status": "verified",
+      "title": "Manual lineup writes permit foreign-league players and partial updates",
+      "owner": "Gilfoyle technical integrity + JD player experience",
+      "target": "W12 batch 02",
+      "acceptance": "All four manual assignment routes validate every player against the route league and actor teams, commit atomically, preserve sibling fields, reject new slot collisions and allow monotonic repair of old conflicts. Verify real rollback/retry, concurrent manual assignments and built UI saves in both modes.",
+      "source": "audits/W12_BATCH_02_AUDIT.md",
+      "implementationCommit": "f7b27fb5dbf15ae7e0f693fbebf44403eae2398e",
+      "evidence": [
+        "W12_BATCH_02.md",
+        "audits/W12_BATCH_02_AUDIT.md",
+        "../../scripts/verify-roster-context.ts"
+      ],
+      "verifiedBy": "Parent: 241 complete built UI/HTTP/PostgreSQL checks; independent read-only source and integration audits. Manual-vs-manual concurrency only; auto-lineup/advance writers remain outside this gate."
     }
   ],
   "followUps": [
