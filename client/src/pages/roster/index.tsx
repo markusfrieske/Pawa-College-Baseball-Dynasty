@@ -41,7 +41,7 @@ export default function RosterPage() {
   const [sort, setSort] = useState("overall");
   const [positionFilter, setPositionFilter] = useState("all");
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
-  const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
+  const [viewingTeamId, setViewingTeamId] = useState<string | null>(() => new URLSearchParams(search).get("teamId"));
   const [viewMode, setViewMode] = useState<"list" | "depth" | "development">(() => {
     const params = new URLSearchParams(search);
     if (params.get("view") === "depth") return "depth";
@@ -58,6 +58,7 @@ export default function RosterPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(search);
+    setViewingTeamId(params.get("teamId"));
     if (params.get("view") === "depth") setViewMode("depth");
     else if (params.get("view") === "development") setViewMode("development");
     else setViewMode("list");

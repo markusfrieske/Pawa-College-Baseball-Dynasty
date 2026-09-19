@@ -138,3 +138,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Recruiting board and dossier — September 18
 
 [W12 batch 07](W12_BATCH_07.md) introduces a stable selected-prospect panel, compact board, resource/need context, keyboard selection and bounded PC panes. Runtime and independent audit evidence are separate. Dossier art/action grouping, broader scaling and enjoyment remain open; W12/UX-06 stays implementing. Scheduled work remains paused.
+
+## Team diamond and personnel — September 19
+
+[W12 batch 09](W12_BATCH_09.md) adds the saved-assignment Team diamond, batting order, paged staff/bench inspection, rating/potential labels and a context-preserving lineup workspace link. Other Team chapters and broader usability gates remain open; W12/UX-06 stays implementing. Manual work only; scheduled development remains paused.

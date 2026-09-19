@@ -236,6 +236,16 @@ try {
         await expect(page.getByTestId("avail-strip-"+role+"-player-FRI")).toContainText("IP"); checks++;
         await page.goto(origin+'/league/roster-context/team/'+role+'-team');
         await page.getByRole('tab',{name:'Roster',exact:true}).click();
+        await expect(page.getByTestId('team-diamond')).toBeVisible();checks++;
+        await expect(page.locator('[data-testid^="team-field-"]')).toHaveCount(9);checks++;
+        // No assignments are inferred from the player's natural position.
+        await expect(page.getByTestId('team-field-CF')).toContainText('Unassigned');checks++;
+        for (const viewport of [{width:1280,height:720},{width:1366,height:768},{width:1920,height:1080},{width:2560,height:1440},{width:3440,height:1440}]) {
+          await page.setViewportSize(viewport);
+          check(await page.locator('.c9-team-layout').evaluate(el=>el.scrollWidth<=el.clientWidth+1),'Team scene has no horizontal overflow '+viewport.width);
+          check(await page.locator('.c9-team-field').evaluate(el=>Array.from(el.querySelectorAll('.c9-team-position')).every(slot=>slot.scrollWidth<=slot.clientWidth+1)),'Field positions retain their contents '+viewport.width);
+        }
+        await page.setViewportSize({width:1366,height:768});
         const teamPlayer=page.getByTestId('row-player-'+role+'-player').getByRole('button');
         await teamPlayer.focus();await page.keyboard.press('Enter');
         await expect(page.getByTestId('complete-player-card')).toBeVisible();checks++;
@@ -428,6 +438,44 @@ try {
       check(await page.locator('[data-testid^="assign-"]').count()===0,'Opponent lineup read only');
       await page.getByTestId('select-view-roster').selectOption('member-team');await page.getByTestId('tab-field').click();
       for(const width of [1440,768,390]) {await page.setViewportSize({width,height:1000});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Field fits '+width);}
+      await page.goto(origin+'/league/roster-context/team/member-team');
+      await expect(page.getByTestId('team-diamond')).toBeVisible();checks++;
+      await expect(page.getByTestId('team-field-RF')).toContainText('Roster Player6');checks++;
+      await expect(page.locator('.c9-team-unplaced')).toContainText('Roster Player11');checks++;
+      await expect(page.locator('.c9-team-personnel>div').first()).toContainText('Second Pitcher');checks++;
+      for(const viewport of [{width:1280,height:720},{width:1366,height:768},{width:1920,height:1080},{width:2560,height:1440},{width:3440,height:1440}]) {
+        await page.setViewportSize(viewport);
+        check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Populated Team fits width '+viewport.width);
+        check(await page.locator('.c9-team-layout').evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight),'Populated diamond and personnel fit height '+viewport.height);
+        await page.screenshot({path:'.local-db/team-scene-'+viewport.width+'.png'});
+      }
+      await page.getByRole('button',{name:'All',exact:true}).click();
+      const seen = new Set<string>();
+      for(let n=0;n<3;n++) {
+        for(const value of await page.locator('.c9-team-personnel [data-testid^="row-player-"]').evaluateAll(els=>els.map(el=>el.getAttribute('data-testid')!))) seen.add(value);
+        if(n<2)await page.getByRole('button',{name:'Next',exact:true}).click();
+      }
+      check(seen.size===13,'All thirteen players reachable across Team pages');
+      const lastPlayer=page.locator('.c9-team-personnel button').last();await lastPlayer.focus();await page.keyboard.press('Enter');
+      await expect(page.getByTestId('complete-player-card')).toBeVisible();checks++;
+      await page.keyboard.press('Escape');await expect(lastPlayer).toBeFocused();checks++;
+      const fieldPlayer=page.getByTestId('team-field-RF').getByRole('button');await fieldPlayer.focus();await page.keyboard.press('Enter');
+      await expect(page.getByTestId('complete-player-card')).toBeVisible();checks++;
+      await page.keyboard.press('Escape');await expect(fieldPlayer).toBeFocused();checks++;
+      await expect(page.getByRole('link',{name:'Open lineup workspace →'})).toHaveAttribute('href','/league/roster-context/roster?teamId=member-team&view=depth&sub=field');checks++;
+      await page.getByRole('link',{name:'Open lineup workspace →'}).click();
+      await expect(page.getByTestId('select-view-roster')).toHaveValue('member-team');checks++;
+      await expect(page.getByTestId('depth-chart-view')).toBeVisible();checks++;
+      await page.goto(origin+'/league/roster-context/team/opponent-team');
+      await page.getByRole('link',{name:'Open lineup workspace →'}).click();
+      await expect(page.getByTestId('select-view-roster')).toHaveValue('opponent-team');checks++;
+      await expect(page.getByTestId('depth-chart-view')).toBeVisible();checks++;
+      check(await page.locator('[data-testid^="assign-"]').count()===0,'Team opponent handoff has no assignment controls');
+      await page.goto(origin+'/league/roster-context/team/member-team');
+      await page.route('**/api/leagues/roster-context/teams/member-team',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic Team interruption'})}));
+      await page.reload();await expect(page.getByRole('heading',{name:'Team could not load'})).toBeVisible();checks++;
+      await page.unroute('**/api/leagues/roster-context/teams/member-team');
+      await page.getByRole('button',{name:'Retry team',exact:true}).click();await expect(page.getByTestId('team-diamond')).toBeVisible();checks++;
       check(pageErrors.length===0,'Workspace no runtime errors '+pageErrors.join(';'));
       await page.close();
       await pool.query("UPDATE players SET batting_order=CASE WHEN id='h2' THEN 1 ELSE NULL END WHERE id IN ('h2','h11'); UPDATE players SET lineup_position=CASE WHEN id='h6' THEN 'LF' ELSE 'RF' END WHERE id IN ('h6','h8'); UPDATE players SET pitching_role=CASE WHEN id='member-player' THEN 'FRI' ELSE 'SAT' END WHERE id IN ('member-player','pitch2')");

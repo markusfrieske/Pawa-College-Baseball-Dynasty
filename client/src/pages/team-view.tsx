@@ -1,4 +1,4 @@
-import { getPotentialGrade } from "@shared/potential";
+import { TeamDiamond } from "@/components/team-diamond";
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
@@ -75,7 +75,7 @@ export default function TeamViewPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: team, isLoading } = useQuery<TeamDetails>({
+  const { data: team, isLoading, isError: teamLoadFailed, refetch: retryTeam } = useQuery<TeamDetails>({
     queryKey: ["/api/leagues", id, "teams", teamId],
   });
   
@@ -112,7 +112,8 @@ export default function TeamViewPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8">
-          <h2 className="text-gold text-sm mb-4">Team Not Found</h2>
+          <h2 className="text-gold text-sm mb-4">{teamLoadFailed ? "Team could not load" : "Team Not Found"}</h2>
+          {teamLoadFailed && <RetroButton onClick={() => retryTeam()}>Retry team</RetroButton>}
           <Link href={`/league/${id}`}>
             <RetroButton>Back to Dynasty</RetroButton>
           </Link>
@@ -122,7 +123,7 @@ export default function TeamViewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background c9-team-page">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
           <div className="flex items-center gap-4 mb-4">
@@ -176,7 +177,7 @@ export default function TeamViewPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-        <Tabs defaultValue="summary" className="space-y-6">
+        <Tabs defaultValue="roster" className="space-y-6">
           <div className="overflow-x-auto pb-px -mx-1 px-1">
             <TabsList className="bg-card border border-border flex-nowrap min-w-max gap-1">
               <TabsTrigger value="summary" className="text-xs font-semibold data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
@@ -209,7 +210,7 @@ export default function TeamViewPage() {
           </TabsContent>
 
           <TabsContent value="roster">
-            <RosterTab team={team} onSelectPlayer={player=>{profileTrigger.current=document.activeElement as HTMLElement;setSelectedPlayer(player)}} />
+            <RosterTab team={team} leagueId={id!} onSelectPlayer={player=>{profileTrigger.current=document.activeElement as HTMLElement;setSelectedPlayer(player)}} />
           </TabsContent>
 
           <TabsContent value="coaches">
@@ -901,105 +902,8 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   );
 }
 
-function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer: (player: Player) => void }) {
-  const players = team.players || [];
-
-  const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
-  const catchers = players.filter(p => p.position === "C").sort((a, b) => b.overall - a.overall);
-  const infielders = players.filter(p => ["1B", "2B", "SS", "3B"].includes(p.position)).sort((a, b) => b.overall - a.overall);
-  const outfielders = players.filter(p => ["OF", "LF", "CF", "RF"].includes(p.position)).sort((a, b) => b.overall - a.overall);
-
-  const positionGroups = [
-    { label: "Pitchers", players: pitchers },
-    { label: "Catchers", players: catchers },
-    { label: "Infielders", players: infielders },
-    { label: "Outfielders", players: outfielders },
-    { label: "Other roles", players: players.filter(p=>![...pitchers,...catchers,...infielders,...outfielders].some(known=>known.id===p.id)) },
-  ];
-
-  return (
-    <div className="space-y-4">
-      {positionGroups.map(group => (
-        <RetroCard key={group.label}>
-          <RetroCardHeader className="flex items-center justify-between gap-4">
-            <span>{group.label}</span>
-            <span className="text-muted-foreground text-xs">{group.players.length} Players</span>
-          </RetroCardHeader>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-3 px-2">#</th>
-                  <th className="text-left py-3 px-2">Name</th>
-                  <th className="text-center py-3 px-2">Pos</th>
-                  <th className="text-center py-3 px-2">Year</th>
-                  <th className="text-center py-3 px-2">OVR</th>
-                  <th className="text-center py-3 px-2">Potential</th>
-                  <th className="text-center py-3 px-2">Rank</th>
-                  <th className="text-center py-3 px-2">B/T</th>
-                  <th className="text-left py-3 px-2 hidden sm:table-cell">Hometown</th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.players.map((player) => (
-                  <tr 
-                    key={player.id} 
-                    className="border-b border-border/50 hover:bg-card/50 cursor-pointer transition-colors"
-                    onClick={() => onSelectPlayer(player)}
-                    data-testid={`row-player-${player.id}`}
-                  >
-                    <td className="py-3 px-2 text-muted-foreground">{player.jerseyNumber}</td>
-                    <td className="py-3 px-2 font-medium">
-                      <button type="button" className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold" onClick={event=>{event.stopPropagation();onSelectPlayer(player)}}>{player.firstName} {player.lastName}</button>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <Badge variant="outline" className="text-xs">
-                        {player.position}
-                      </Badge>
-                    </td>
-                    <td className="text-center py-3 px-2 text-muted-foreground">
-                      {player.eligibility}
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <span className="font-bold text-gold">{player.overall}</span>
-                    </td>
-                    <td className="text-center py-3 px-2">{player.potential==null?"—":getPotentialGrade(player.potential)}</td>
-                    <td className="text-center py-3 px-2">
-                      <span className={`text-xs font-semibold ${
-                        player.starRating >= 4
-                          ? "text-gold"
-                          : player.starRating >= 3
-                          ? "text-blue-400"
-                          : "text-muted-foreground"
-                      }`}>
-                        {"★".repeat(player.starRating || 1)}
-                      </span>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-${player.id}`}>
-                        B:{player.batHand || "R"} T:{player.throwHand || "R"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-muted-foreground hidden sm:table-cell">
-                      {player.hometown}, {player.homeState}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </RetroCard>
-      ))}
-
-      {players.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>No players on roster yet</p>
-        </div>
-      )}
-    </div>
-  );
+function RosterTab({ team, leagueId, onSelectPlayer }: { team: TeamDetails; leagueId: string; onSelectPlayer: (player: Player) => void }) {
+  return <TeamDiamond lineupUrl={`/league/${leagueId}/roster?teamId=${encodeURIComponent(team.id)}&view=depth&sub=field`} key={team.id} players={team.players ?? []} color={team.primaryColor} onSelectPlayer={onSelectPlayer} />;
 }
 
 function TeamViewSkeleton() {
