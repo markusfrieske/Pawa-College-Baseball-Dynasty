@@ -276,6 +276,7 @@ try {
     assert.deepEqual(results.map(r=>r.status()).sort(),[200,409]);checks++;
     check((await pool.query("SELECT count(*)::int AS n FROM players WHERE team_id='member-team' AND batting_order=9")).rows[0].n===1,'Concurrent slot stays unique');
     await pool.query("UPDATE players SET batting_order=CASE WHEN id='h9' THEN 9 ELSE NULL END WHERE id IN ('h9','h10')");
+    await pool.query("UPDATE players SET fielding=NULL WHERE id='member-player'");
     // Built UI: both game modes use the same real assignment contract.
     for(const mode of ['simulated','reported']) {
       await pool.query("UPDATE leagues SET game_mode=$1 WHERE id='roster-context'",[mode]);invalidateLeague('roster-context');
@@ -291,6 +292,39 @@ try {
         await expect(page.locator('[data-testid^="row-player-desktop-"]')).toHaveCount(height >= 1000 ? 12 : 8);
         check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight+1),'PC roster fits '+width+'x'+height);
       }
+      await page.getByRole('button',{name:'Batting ratings',exact:true}).click();
+      await expect(page.getByTestId('rating-member-player-power')).toHaveText('0');checks++;
+      await page.getByRole('button',{name:'Sort by Power',exact:true}).click();
+      await expect(page.getByTestId('selected-athlete')).toContainText('Test');checks++;
+      await expect(page.getByTestId('link-player-member-player')).toBeVisible();checks++;
+      await page.locator('#roster-sort').selectOption('name');
+      await expect(page.getByTestId('selected-athlete')).toContainText('Test');checks++;
+      await expect(page.getByTestId('link-player-member-player')).toBeVisible();checks++;
+      await page.locator('#roster-sort').selectOption('overall');
+      await expect(page.getByTestId('selected-athlete')).toContainText('Test');checks++;
+      await page.getByTestId('roster-search').fill('Test Pitcher');
+      await expect(page.getByRole('button',{name:'Batting ratings',exact:true})).toHaveAttribute('aria-pressed','true');checks++;
+      await expect(page.getByTestId('rating-member-player-power')).toHaveText('0');checks++;
+      await page.getByTestId('roster-search').fill('');
+      await page.getByRole('button',{name:'Pitching ratings',exact:true}).click();
+      await expect(page.getByTestId('selected-athlete')).toContainText('Test');checks++;
+      await page.getByTestId('select-position-filter').selectOption('P');
+      await expect(page.getByRole('button',{name:'Pitching ratings',exact:true})).toHaveAttribute('aria-pressed','true');checks++;
+      await expect(page.getByTestId('rating-member-player-control')).toBeVisible();checks++;
+      await page.getByTestId('select-position-filter').selectOption('all');
+      await expect(page.getByTestId('rating-h1-control')).toHaveText('—');checks++;
+      await page.getByRole('button',{name:'Fielding ratings',exact:true}).click();
+      await expect(page.getByTestId('rating-member-player-errorResistance')).toBeVisible();checks++;
+      await expect(page.getByTestId('rating-member-player-fielding')).toHaveText('—');checks++;
+      for(const [width,height] of [[1280,720],[1366,768],[1920,1080],[2560,1440],[3440,1440]]) {
+        await page.setViewportSize({width,height});
+        check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight+1),'Metric view fits '+width+'x'+height);
+      }
+      await page.getByRole('button',{name:'Overview',exact:true}).click();
+      await page.getByTestId('link-player-member-player').focus();await page.keyboard.press('/');
+      await expect(page.getByTestId('roster-search')).toBeFocused();checks++;
+      await page.keyboard.press('/');await expect(page.getByTestId('roster-search')).toHaveValue('/');checks++;
+      await page.getByTestId('roster-search').fill('');
       await page.setViewportSize({width:1366,height:768});
       await page.locator('[data-testid^="link-player-"]').first().focus();
       await page.keyboard.press('ArrowDown');

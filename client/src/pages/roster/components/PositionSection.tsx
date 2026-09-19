@@ -1,3 +1,4 @@
+import { rosterMetrics, rosterRating, type RosterLens, type RatingKey } from "../lib/metrics";
 import { RetroCard } from "@/components/ui/retro-card";
 import { Table } from "@/components/ui/table";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
@@ -17,6 +18,9 @@ const TRAJECTORY_ICONS: Record<number, React.ReactNode> = {
 };
 
 interface PositionSectionProps {
+  lens?: RosterLens;
+  metricSort?: { key: RatingKey; ascending: boolean } | null;
+  onSortMetric?: (key: RatingKey) => void;
   totalCount?: number;
   activeId?: string;
   onHighlight?: (player: Player) => void;
@@ -30,7 +34,8 @@ interface PositionSectionProps {
   onSetCaptain?: (playerId: string) => void;
 }
 
-export function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain, captainPending, activeId, onHighlight, totalCount }: PositionSectionProps) {
+export function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain, captainPending, activeId, onHighlight, totalCount, lens = "overview", metricSort, onSortMetric }: PositionSectionProps) {
+  const metrics = rosterMetrics[lens];
   if (players.length === 0) return null;
 
   return (
@@ -126,10 +131,10 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
             <col />
             <col className="w-12" />
             <col className="w-12" />
-            <col className="w-24" />
+            {lens === "overview" ? <><col className="w-24" />
             <col className="w-12" />
             {progressionEnabled && <col className="w-12" />}
-            <col className="w-36 hidden lg:table-column" />
+            <col className="w-36 hidden lg:table-column" /></> : metrics.map(metric => <col key={metric.key} className="w-14" />)}
           </colgroup>
           <thead>
             <tr className="border-b border-border text-muted-foreground">
@@ -137,12 +142,12 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
               <th className="text-left py-3 px-2">Name</th>
               <th className="text-center py-3 px-2">Pos</th>
               <th className="text-center py-3 px-2">Year</th>
-              <th className="text-center py-3 px-2">B/T</th>
+              {lens === "overview" ? <><th className="text-center py-3 px-2">B/T</th>
               <th className="text-center py-3 px-2" title="Overall rating">OVR</th>
               {progressionEnabled && (
                 <th className="text-center py-3 px-2">POT</th>
               )}
-              <th className="text-left py-3 px-2 hidden lg:table-cell">Hometown</th>
+              <th className="c9-hometown text-left py-3 px-2 hidden lg:table-cell">Hometown</th></> : metrics.map(metric => <th key={metric.key} className="text-center px-1" aria-sort={metricSort?.key === metric.key ? metricSort.ascending ? "ascending" : "descending" : "none"}><button type="button" title={`${metric.label} · rating 0–100`} aria-label={`Sort by ${metric.label}`} onClick={() => onSortMetric?.(metric.key)}>{metric.short}{metricSort?.key === metric.key ? metricSort.ascending ? " ↑" : " ↓" : ""}</button></th>)}
             </tr>
           </thead>
           <tbody>
@@ -210,7 +215,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                 <td className="text-center py-1 px-2 text-muted-foreground">
                   {player.eligibility}
                 </td>
-                <td className="text-center py-1 px-2">
+                {lens === "overview" ? <><td className="text-center py-1 px-2">
                   {isPitcher(player.position) ? (
                     <div className="flex items-center gap-1 justify-center flex-wrap">
                       <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
@@ -246,9 +251,9 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                     })() : <span className="text-muted-foreground">—</span>}
                   </td>
                 )}
-                <td className="py-1 px-2 text-muted-foreground hidden lg:table-cell">
+                <td className="c9-hometown py-1 px-2 text-muted-foreground hidden lg:table-cell">
                   {player.hometown}, {player.homeState}
-                </td>
+                </td></> : metrics.map(metric => <td key={metric.key} className="text-center px-1 c9-rating-cell" data-testid={`rating-${player.id}-${metric.key}`} title={rosterRating(player, metric.key) == null ? "Not recorded or not applicable to this position" : `${metric.label}: ${rosterRating(player, metric.key)} / 100`}>{rosterRating(player, metric.key) ?? "—"}</td>)}
               </tr>
             ))}
           </tbody>

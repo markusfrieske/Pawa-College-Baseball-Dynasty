@@ -128,3 +128,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## PC frame and roster scene — September 18
 
 [W12 batch 05](W12_BATCH_05.md) replaces the permanent sidebar with compact PC navigation and adds a paged comparison ledger with persistent selected athlete. Existing actions remain available. Broader roster metric lenses, individual screen migrations, scaling and enjoyment gates remain open; UX-06 stays implementing. Manual work only; scheduled development remains paused.
+
+## Roster rating comparisons — September 18
+
+[W12 batch 06](W12_BATCH_06.md) adds explicit batting/pitching/fielding rating lenses, metric sorting, stable selected identity, search shortcut and player role/workload context. Other screen designs and broader scaling/enjoyment gates remain open. Next distinct scene is recruiting. Scheduled work remains paused.

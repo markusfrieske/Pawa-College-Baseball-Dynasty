@@ -62,6 +62,7 @@ export default function RosterPage() {
     else if (params.get("view") === "development") setViewMode("development");
     else setViewMode("list");
   }, [search]);
+  useEffect(() => { const focusSearch = (event: KeyboardEvent) => { const target = event.target as HTMLElement | null; if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey || target?.closest("input, textarea, select, [contenteditable=true], [role=dialog]" ) || document.querySelector("[role=dialog]")) return; const field = document.getElementById("roster-search"); if (field) {event.preventDefault();field.focus();} }; window.addEventListener("keydown", focusSearch); return () => window.removeEventListener("keydown", focusSearch); }, []);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
 
@@ -263,7 +264,9 @@ export default function RosterPage() {
         ) : viewMode === "depth" ? (
           <DepthChartView key={data?.team?.id} players={data?.players || []} onSelectPlayer={openProfile} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={isOwnTeam} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.currentWeek ?? 1} />
         ) : (
-          <RosterScene key={`${data?.team?.id}:${positionFilter}:${eligibilityFilter}:${searchTerm}:${sort}`}
+          <RosterScene key={data?.team?.id} orderBy={sort} resetKey={`${positionFilter}:${eligibilityFilter}:${searchTerm}`}
+            onLineup={() => setViewMode("depth")}
+            onDevelopment={canViewDevelopment ? () => setViewMode("development") : undefined}
             title={positionFilter === "all" ? "Program roster" : positionOptions.find(o => o.value === positionFilter)?.label || "Players"}
             players={allSorted}
             onSelectPlayer={openProfile}
