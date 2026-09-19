@@ -1,3 +1,4 @@
+import { publicRecruitStars } from "../recruit-disclosure";
 /**
  * Stats and historical data routes.
  *
@@ -1052,8 +1053,8 @@ export function registerStatsRoutes(app: Express): void {
             firstName: r.firstName,
             lastName: r.lastName,
             position: r.position,
-            starRating: r.starRating,
-            overall: r.overall,
+            starRating: publicRecruitStars(r),
+            overall: r.signingDayRevealed || r.isBlueChip ? r.overall : null,
             homeState: r.homeState,
             isBlueChip: r.isBlueChip,
           }));
@@ -1068,9 +1069,9 @@ export function registerStatsRoutes(app: Express): void {
           recruits: teamRecruits,
           totalRecruits: teamRecruits.length,
           avgRating: teamRecruits.length > 0 
-            ? Math.round(teamRecruits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamRecruits.length * 10) / 10
+            ? Math.round(teamRecruits.reduce((sum, r) => sum + r.starRating, 0) / teamRecruits.length * 10) / 10
             : 0,
-          totalStars: teamRecruits.reduce((sum, r) => sum + (r.starRating || 3), 0),
+          totalStars: teamRecruits.reduce((sum, r) => sum + r.starRating, 0),
         };
       })
       .filter(t => t.totalRecruits > 0)

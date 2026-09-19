@@ -146,3 +146,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Recruiting evaluation and new integrity blocker — September 19
 
 [W12 batch 10](W12_BATCH_10.md) adds chaptered evaluation, explicit knowledge states and approved pitch segments;209 workspace checks pass. New supplemental audit finding TI-15 is a P1 release blocker: recruiting responses still contain unscouted exact values. Prioritize its server disclosure contract and real HTTP gates before further arrival work. W12/UX-06 remains implementing. Original42-finding baseline now has this additional finding; no release closure is implied. Scheduled work remains paused.
+
+## Manual continuation — disclosure and Arrival
+
+[W12 batch11](W12_BATCH_11.md) closes the bounded TI-15 recruiting transport leak and implements approved Clubhouse Arrival with full-card/ class PNG keepsakes.331 disclosure/arrival checks and209 workspace checks pass; independent findings and policy exceptions are recorded in its audit. W12 remains implementing. Next manual review: ceremony pacing and share-card composition; then durable arrival history/roster linkage and Clubhouse audio. Broader W03 integrity/recovery work remains open. Automation remains paused.

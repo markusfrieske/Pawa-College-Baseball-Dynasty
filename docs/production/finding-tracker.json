@@ -908,20 +908,23 @@
     {
       "id": "TI-15",
       "title": "P1: recruiting responses expose unscouted exact values despite UI masking",
-      "status": "planned",
-      "owner": "Gilfoyle Roblox Technical Director",
+      "status": "verified",
+      "owner": "Technical integrity + player experience",
       "targetWeek": 10,
       "targetStart": "2026-09-19",
-      "targetEnd": null,
+      "targetEnd": "2026-09-19",
       "dependsOn": "Authoritative recruiting disclosure contract",
       "acceptance": "List, detail and action HTTP responses withhold hidden exact values at all scouting thresholds; signing/elite/role rules and inference channels tested without breaking authorized consumers.",
       "source": "W12_BATCH_10.md",
       "mitigationWeek": null,
       "implementationCommit": null,
       "evidence": [
-        "W12_BATCH_10.md"
+        "W12_BATCH_10.md",
+        "W12_BATCH_11.md",
+        "audits/W12_BATCH_11_AUDIT.md",
+        "../../scripts/verify-recruit-disclosure.ts"
       ],
-      "verifiedBy": null
+      "verifiedBy": "Parent:331 real HTTP/PostgreSQL/browser checks; independent source audit issues corrected;209 existing workspace checks. Explicit commissioner/blue-chip/public-roster exceptions documented."
     }
   ],
   "followUps": [

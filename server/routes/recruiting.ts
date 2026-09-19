@@ -1,3 +1,4 @@
+import { discloseRecruit, arrivalPhase, publicRecruitStars } from "../recruit-disclosure";
 /**
  * Recruiting routes.
  *
@@ -319,7 +320,7 @@ export function registerRecruitingRoutes(app: Express): void {
         const premiumUsed = premiumActionsUsed[recruit.id] ?? new Set<string>();
 
         const decision = decideRecruitAction({
-          starRating: recruit.starRating || 0,
+          starRating: publicRecruitStars(recruit),
           interestLevel,
           scoutPct,
           stage,
@@ -343,7 +344,7 @@ export function registerRecruitingRoutes(app: Express): void {
           firstName: recruit.firstName,
           lastName: recruit.lastName,
           position: recruit.position,
-          starRating: recruit.starRating || 0,
+          starRating: publicRecruitStars(recruit),
           stage,
           ...decision,
           interestLevel,
@@ -1813,7 +1814,7 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       invalidateLeague(req.params.id as string);
-      res.json(updatedRecruit);
+      res.json(discloseRecruit(updatedRecruit!, interest));
     } catch (error) {
       console.error("Failed to sign recruit:", error);
       res.status(500).json({ message: "Failed to sign recruit" });
@@ -1837,15 +1838,15 @@ export function registerRecruitingRoutes(app: Express): void {
       const commitsByTeam = leagueTeams.map(team => {
         const teamCommits = signedRecruits.filter(r => r.signedTeamId === team.id);
         const avgStarRating = teamCommits.length > 0 
-          ? teamCommits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamCommits.length 
+          ? teamCommits.reduce((sum, r) => sum + (publicRecruitStars(r) || 3), 0) / teamCommits.length
           : 0;
         const avgOverall = teamCommits.length > 0
-          ? teamCommits.reduce((sum, r) => sum + (r.overall || 300), 0) / teamCommits.length
+          ? teamCommits.reduce((sum, r) => sum + (r.signingDayRevealed || r.isBlueChip ? r.overall : 0), 0) / teamCommits.length
           : 0;
-        const fiveStars = teamCommits.filter(r => r.starRating === 5).length;
-        const fourStars = teamCommits.filter(r => r.starRating >= 4).length;
+        const fiveStars = teamCommits.filter(r => publicRecruitStars(r) === 5).length;
+        const fourStars = teamCommits.filter(r => publicRecruitStars(r) >= 4).length;
         const classScore = teamCommits.length > 0
-          ? (avgStarRating * 20) + (avgOverall / 50) + (fiveStars * 15) + (fourStars * 5) + (teamCommits.length * 3)
+          ? (avgStarRating * 20) + (fiveStars * 15) + (fourStars * 5) + (teamCommits.length * 3)
           : 0;
         return {
           team: {
@@ -1862,8 +1863,8 @@ export function registerRecruitingRoutes(app: Express): void {
             firstName: r.firstName,
             lastName: r.lastName,
             position: r.position,
-            starRating: r.starRating,
-            overall: r.overall,
+            starRating: publicRecruitStars(r),
+            overall: r.signingDayRevealed || r.isBlueChip ? r.overall : null,
             classRank: r.classRank,
             positionRank: r.positionRank,
             homeState: r.homeState,
@@ -1872,7 +1873,7 @@ export function registerRecruitingRoutes(app: Express): void {
           })),
           commitCount: teamCommits.length,
           avgStarRating,
-          avgOverall,
+          avgOverall: teamCommits.every(r=>r.signingDayRevealed || r.isBlueChip) ? avgOverall : null,
           fiveStars,
           fourStars,
           classScore,
@@ -1908,7 +1909,11 @@ export function registerRecruitingRoutes(app: Express): void {
       const teamId = req.query.teamId as string | undefined;
       const leagueTeams = await storage.getTeamsByLeague(league.id);
       const recruits = await storage.getRecruitsByLeague(league.id);
-      const signedRecruits = recruits.filter(r => r.signedTeamId);
+      const revealCoaches = await storage.getCoachesByLeague(league.id);
+      const viewerTeam = revealCoaches.find(c=>c.userId===req.session.userId)?.teamId;
+      const commissioner = league.commissionerId===req.session.userId || (league.coCommissionerIds ?? []).includes(req.session.userId!);
+      const signedRecruits = recruits.filter(r=>r.signedTeamId && (r.signingDayRevealed || (arrivalPhase(league.currentPhase) && (r.signedTeamId===viewerTeam || commissioner))));
+      if(!arrivalPhase(league.currentPhase) && !signedRecruits.length)return res.status(409).json({message:'Arrival reveal opens on Signing Day. Previously revealed classes remain available.'});
 
       // Batch-load analytics data for Battle Reports (no per-recruit DB fetches)
       const [allTopSchoolsRaw, allActionsRaw] = await Promise.all([
@@ -1953,7 +1958,13 @@ export function registerRecruitingRoutes(app: Express): void {
             prestige: team.prestige,
             isCpu: team.isCpu,
           },
+          canCompleteReveal: arrivalPhase(league.currentPhase) && (team.id===viewerTeam || commissioner),
           recruits: teamRecruits.map(r => ({
+            signingDayRevealed: r.signingDayRevealed,
+            storyLockedAbilities: r.storyLockedAbilities,
+            eyeStyle: r.eyeStyle,
+            eyebrowStyle: r.eyebrowStyle,
+            mouthStyle: r.mouthStyle,
             id: r.id,
             firstName: r.firstName,
             lastName: r.lastName,
@@ -1976,6 +1987,8 @@ export function registerRecruitingRoutes(app: Express): void {
             gemBustRevealed: r.gemBustRevealed,
             potential: r.potential,
             abilities: r.abilities,
+            trajectory: r.trajectory,
+            ...Object.fromEntries(Object.entries(r).filter(([key])=>key.startsWith("pitch"))),
             hitForAvg: r.hitForAvg,
             power: r.power,
             speed: r.speed,
@@ -2119,30 +2132,36 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       const recruits = await storage.getRecruitsByLeague(league.id);
+      if(!arrivalPhase(league.currentPhase) && recruits.some(r=>r.signedTeamId && !r.signingDayRevealed && (!teamId||r.signedTeamId===teamId)))return res.status(409).json({message:'Arrival reveal opens on Signing Day.'});
       const toReveal = recruits.filter(r =>
         r.signedTeamId &&
         !r.signingDayRevealed &&
         (!teamId || r.signedTeamId === teamId)
       );
 
-      for (const r of toReveal) {
-        await storage.updateRecruit(r.id, { signingDayRevealed: true });
-        // Also unlock exact OVR and full abilities in every team's recruiting_interests row
-        const interests = await storage.getRecruitingInterestsByRecruit(r.id);
-        const totalAbilities = (r.abilities as string[] || []).length;
-        for (const interest of interests) {
-          await storage.updateRecruitingInterest(interest.id, {
-            minOverall: r.overall,
-            maxOverall: r.overall,
-            revealedAbilitiesCount: totalAbilities,
-          });
+      // Completion and scouting unlock persist together. Serialize against phase changes.
+      const connection = await pool.connect();
+      let revealedCount = 0;
+      try {
+        await connection.query('BEGIN');
+        const phase = await connection.query('SELECT current_phase FROM leagues WHERE id=$1 FOR UPDATE',[league.id]);
+        const pending = await connection.query('SELECT id FROM recruits WHERE league_id=$1 AND signed_team_id IS NOT NULL AND signing_day_revealed=false AND ($2::text IS NULL OR signed_team_id=$2)',[league.id,teamId ?? null]);
+        if (pending.rowCount && !arrivalPhase(phase.rows[0]?.current_phase)) {
+          await connection.query('ROLLBACK');
+          return res.status(409).json({message:'Arrival reveal opens on Signing Day.'});
         }
-      }
+        const updated = await connection.query('UPDATE recruits SET signing_day_revealed=true WHERE league_id=$1 AND signed_team_id IS NOT NULL AND signing_day_revealed=false AND ($2::text IS NULL OR signed_team_id=$2) RETURNING id',[league.id,teamId ?? null]);
+        revealedCount = updated.rowCount ?? 0;
+        if(revealedCount) await connection.query("UPDATE recruiting_interests i SET min_overall=r.overall,max_overall=r.overall,revealed_abilities_count=json_array_length(COALESCE(r.abilities,'[]'::json)) FROM recruits r WHERE i.recruit_id=r.id AND r.id=ANY($1::varchar[])",[updated.rows.map(r=>r.id)]);
+        await connection.query('COMMIT');
+      } catch(error) { await connection.query('ROLLBACK'); throw error; }
+      finally { connection.release(); }
 
-      console.log(`[signing-day-reveal/complete] Set signingDayRevealed=true for ${toReveal.length} recruits` +
+      console.log(`[signing-day-reveal/complete] Set signingDayRevealed=true for ${revealedCount} recruits` +
         (teamId ? ` (teamId=${teamId})` : " (all teams)"));
 
-      res.json({ revealed: toReveal.length });
+      invalidateLeague(league.id);
+      res.json({ revealed: revealedCount });
     } catch (error) {
       console.error("Failed to complete signing-day reveal:", error);
       res.status(500).json({ message: "Failed to complete reveal" });
@@ -2277,7 +2296,7 @@ export function registerRecruitingRoutes(app: Express): void {
             lastName: recruit.lastName,
             position: recruit.position,
             starRank: recruit.starRank,
-            starRating: recruit.starRating,
+            starRating: publicRecruitStars(recruit),
             hometown: recruit.hometown,
             homeState: recruit.homeState,
             stage,
@@ -2535,51 +2554,6 @@ export function registerRecruitingRoutes(app: Express): void {
         const teamsIn: number | null = userScoutPct >= 10 ? rawTeamsIn.teamsIn : null;
         const offersOut: number | null = userScoutPct >= 10 ? rawTeamsIn.offersOut : null;
 
-        // Signing-day holdback: hold back last 40% of attribute fields and last 50% of common-ability
-        // fields until signingDayRevealed = true.  Blue chips are fully exempt.
-        const SIGNING_ATTR_KEYS = new Set([
-          'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
-          'velocity', 'control', 'stamina',
-          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU',
-        ]);
-        const SIGNING_COMMON_KEYS = new Set([
-          'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
-          'wRISP', 'vsLefty', 'poise', 'heater', 'agile', 'catcherAbility',
-        ]);
-        // Default field ordering for recruits whose scoutingOrder was generated before
-        // attribute/common-ability keys were included (prevents empty holdbackFields).
-        const isPitcherRecruit = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
-        const defaultAttrOrder = isPitcherRecruit
-          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchVSL', 'pitchFK', 'pitchSFF', 'pitchSHU']
-          : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
-        const defaultCommonOrder = isPitcherRecruit
-          ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
-          : ['clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
-        const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
-        const attrOrderFromScouting   = scoutingOrder.filter(f => SIGNING_ATTR_KEYS.has(f));
-        const commonOrderFromScouting = scoutingOrder.filter(f => SIGNING_COMMON_KEYS.has(f));
-        // Fall back to defaults when scoutingOrder predates these key groups
-        const attrOrder   = attrOrderFromScouting.length   > 0 ? attrOrderFromScouting   : defaultAttrOrder;
-        const commonOrder = commonOrderFromScouting.length > 0 ? commonOrderFromScouting : defaultCommonOrder;
-        // Signing-day holdback: fields are nulled before reaching the client and the client
-        // renders them as gold lock icons. Blue chips / generational gems are fully revealed
-        // with no holdback (coaches have been following them all year). Regular recruits hold
-        // back exactly half of attrs and half of common abilities. All locks clear on signing day.
-        const holdbackFields: string[] = recruit.signingDayRevealed
-          ? []
-          : (recruit.isBlueChip || recruit.isGenerationalGem)
-            ? []  // fully revealed — no locks for elite recruits
-            : [
-                ...attrOrder.slice(Math.floor(attrOrder.length * 0.50)),    // hold back last 50%
-                ...commonOrder.slice(Math.floor(commonOrder.length * 0.50)), // hold back last 50%
-              ];
-
-        // Null out holdback field values so they never reach the client before signing day
-        const maskedRecruit: Record<string, unknown> = { ...recruit };
-        for (const field of holdbackFields) {
-          maskedRecruit[field] = null;
-        }
-
         // Stadium atmosphere signal: high-stadium programs get an intel flag when a recruit
         // strongly values reputation. Revealed once scouted ≥ 10% — the recruit's buzz
         // about the venue is part of what you learn from early contact.
@@ -2622,7 +2596,7 @@ export function registerRecruitingRoutes(app: Express): void {
         if (rivalryAlert) dramaTags.push("Rivalry");
 
         return {
-          ...maskedRecruit,
+          ...recruit,
           potential: actualPotential,
           potentialFloor: dynamicPotentialFloor,
           potentialCeiling: dynamicPotentialCeiling,
@@ -2637,7 +2611,6 @@ export function registerRecruitingRoutes(app: Express): void {
           teamsIn,
           offersOut,
           stadiumAffinitySignal,
-          signingDayLockedFields: holdbackFields,
           dramaTags,
           rivalryAlert,
           myMovementDelta,
@@ -2756,7 +2729,7 @@ export function registerRecruitingRoutes(app: Express): void {
       }
 
       res.json({
-        recruits: pagedRecruits,
+        recruits: pagedRecruits.map(r => discloseRecruit(r)),
         total: totalRecruits,
         page,
         totalPages,
@@ -3327,7 +3300,7 @@ export function registerRecruitingRoutes(app: Express): void {
           recruitId,
           name: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
           position: recruit?.position || "?",
-          starRating: recruit?.starRating || 0,
+          starRating: recruit ? publicRecruitStars(recruit) : 0,
           otherTeamActionCount: rivalCount,
           activityLevel: getActivityLevel(rivalCount),
         };
@@ -3347,7 +3320,7 @@ export function registerRecruitingRoutes(app: Express): void {
             recruitId,
             name: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
             position: recruit?.position || "?",
-            starRating: recruit?.starRating || 0,
+            starRating: recruit ? publicRecruitStars(recruit) : 0,
             otherTeamActionCount: count,
             activityLevel: getActivityLevel(count),
           };

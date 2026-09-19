@@ -2735,9 +2735,9 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
   }
   // ─────────────────────────────────────────────────────────────────────────
 
-  // NOTE: signingDayRevealed is NOT set here anymore.
-  // The attr/common-ability holdback (40%/50%) stays in place until coaches watch the Signing Day screen.
-  // The reveal screen calls POST /api/leagues/:id/signing-day-reveal/complete to lift it.
+  // Finalization publishes the class through active rosters and historical class records.
+  // Arrival confidentiality ends at that public roster boundary, even if the coach skips the cinematic.
+  // Coaches can also open their class earlier during Signing Day through the authorized reveal route.
 
   // Persist accumulated NIL recruiting-envelope spending back to each team
   for (const [teamId, recSpent] of nilRecSpentAccum) {
@@ -2748,7 +2748,212 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     }
   }
 
-  // Snapshot class rankings before recruits are converted to players
+  console.log(`[finalizeSigningDay] Processing ${teams.length} teams for transfers/eligibility/recruits`);
+  for (const team of teams) {
+    const roster = await storage.getPlayersByTeam(team.id);
+    const remainingPortal = roster.filter(p => p.inTransferPortal);
+    for (const player of remainingPortal) {
+      const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+
+      const recruits = await storage.getRecruitsByLeague(leagueId);
+      const wasSignedAsRecruit = recruits.some(r => r.sourcePlayerId === player.id && r.signedTeamId);
+
+      await storage.createPlayerHistory({
+        leagueId,
+        teamId: team.id,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        finalEligibility: player.eligibility,
+        overall: player.overall,
+        starRating: player.starRating,
+        signingOvr: player.signingOvr ?? player.overall,
+        ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
+        departureType: wasSignedAsRecruit ? "transfer_signed" : "transfer_juco",
+        departedSeason: completedSeason,
+        seasonsPlayed: eligMap[player.eligibility] || 1,
+        abilities: player.abilities || [],
+        homeState: player.homeState,
+        hometown: player.hometown,
+        sourcePlayerId: player.id,
+      });
+
+      if (!wasSignedAsRecruit) {
+        const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
+        const newElig = jucoEligMap[player.eligibility] || player.eligibility;
+        if (newElig !== "SR") {
+          const transferRecruit = recruits.find(r => r.sourcePlayerId === player.id);
+          await storage.createWalkon({
+            leagueId,
+            firstName: player.firstName,
+            lastName: player.lastName,
+            position: player.position,
+            throwHand: player.throwHand || "R",
+            batHand: player.batHand || "R",
+            homeState: player.homeState || "TX",
+            hometown: player.hometown || "Unknown",
+            eligibility: player.eligibility,
+            overall: player.overall,
+            starRating: player.starRating,
+            hitForAvg: player.hitForAvg || 50,
+            power: player.power || 50,
+            speed: player.speed || 50,
+            arm: player.arm || 50,
+            fielding: player.fielding || 50,
+            errorResistance: player.errorResistance || 50,
+            clutch: player.clutch || 50,
+            vsLHP: player.vsLHP || 50,
+            grit: player.grit || 50,
+            stealing: player.stealing || 50,
+            running: player.running || 50,
+            throwing: player.throwing || 50,
+            recovery: player.recovery || 50,
+            catcherAbility: player.catcherAbility || 50,
+            velocity: player.velocity || 50,
+            control: player.control || 50,
+            stamina: player.stamina || 50,
+            stuff: player.stuff || 50,
+            wRISP: player.wRISP || 50,
+            vsLefty: player.vsLefty || 50,
+            poise: player.poise || 50,
+            heater: player.heater || 50,
+            agile: player.agile || 50,
+            abilities: player.abilities || [],
+            potential: player.potential ?? null,
+            isGenerated: false,
+            portraitId: player.portraitId ?? null,
+
+            skinTone: player.skinTone || "light",
+            hairColor: player.hairColor || "brown",
+            hairStyle: player.hairStyle || "short",
+            headwear: player.headwear || "cap",
+            sourceRecruitId: transferRecruit?.id ?? null,
+          });
+        }
+      }
+
+      await storage.deletePlayer(player.id);
+      totalTransferred++;
+    }
+
+    const remainingPlayers = await storage.getPlayersByTeam(team.id);
+    for (const player of remainingPlayers) {
+      const eligProgression: Record<string, string> = {
+        "FR": "SO",
+        "SO": "JR",
+        "JR": "SR",
+        "RS": "SR",
+      };
+      const newEligibility = eligProgression[player.eligibility];
+      if (newEligibility) {
+        await storage.updatePlayer(player.id, {
+          eligibility: newEligibility,
+          declaredForDraft: false,
+          inTransferPortal: false,
+        });
+      }
+    }
+
+    const recruits = await storage.getRecruitsByLeague(leagueId);
+    const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
+
+    // Dedup guard: build a name-key set from current roster so re-running
+    // this function (double-advance, retry) cannot insert the same player twice.
+    const existingAfterElig = await storage.getPlayersByTeam(team.id);
+    const existingNameKeys = new Set(existingAfterElig.map(p => `${p.firstName}|${p.lastName}`));
+    const insertedThisPass = new Set<string>();
+
+    for (const recruit of signedRecruits) {
+      const nameKey = `${recruit.firstName}|${recruit.lastName}`;
+      if (existingNameKeys.has(nameKey) || insertedThisPass.has(nameKey)) {
+        console.warn(`[finalizeSigningDay] Skipping duplicate player ${recruit.firstName} ${recruit.lastName} on team ${team.name}`);
+        continue;
+      }
+      insertedThisPass.add(nameKey);
+      const jerseyNumber = 1 + Math.floor(Math.random() * 99);
+      const recruitElig = recruit.recruitType === "TRANSFER" ? (recruit.recruitYear || "SO") : "FR";
+      const finalElig = recruit.recruitType === "JUCO" ? (recruit.recruitYear || "FR") : recruitElig;
+      await storage.createPlayer({
+        teamId: team.id,
+        firstName: recruit.firstName,
+        lastName: recruit.lastName,
+        position: recruit.position,
+        eligibility: finalElig,
+        throwHand: recruit.throwHand || "R",
+        batHand: recruit.batHand || "R",
+        homeState: recruit.homeState,
+        hometown: recruit.hometown,
+        jerseyNumber,
+        overall: recruit.overall,
+        starRating: recruit.starRating,
+        hitForAvg: recruit.hitForAvg || 50,
+        power: recruit.power || 50,
+        speed: recruit.speed || 50,
+        arm: recruit.arm || 50,
+        fielding: recruit.fielding || 50,
+        errorResistance: recruit.errorResistance || 50,
+        clutch: recruit.clutch || 50,
+        vsLHP: recruit.vsLHP || 50,
+        grit: recruit.grit || 50,
+        stealing: recruit.stealing || 50,
+        running: recruit.running || 50,
+        throwing: recruit.throwing || 50,
+        recovery: recruit.recovery || 50,
+        catcherAbility: recruit.catcherAbility || 50,
+        velocity: recruit.velocity || 50,
+        control: recruit.control || 50,
+        stamina: recruit.stamina || 50,
+        stuff: recruit.stuff || 50,
+        wRISP: recruit.wRISP || 50,
+        vsLefty: recruit.vsLefty || 50,
+        poise: recruit.poise || 50,
+        heater: recruit.heater || 50,
+        agile: recruit.agile || 50,
+        pitchFB: recruit.pitchFB ?? 1,
+        pitch2S: recruit.pitch2S ?? 0,
+        pitchSL: recruit.pitchSL ?? 0,
+        pitchCB: recruit.pitchCB ?? 0,
+        pitchCH: recruit.pitchCH ?? 0,
+        pitchCT: recruit.pitchCT ?? 0,
+        pitchSNK: recruit.pitchSNK ?? 0,
+        pitchVSL: recruit.pitchVSL ?? 0,
+        pitchSPL: (recruit as any).pitchSPL ?? 0,
+        pitchFK:  (recruit as any).pitchFK  ?? 0,
+        pitchSFF: (recruit as any).pitchSFF ?? 0,
+        pitchSHU: (recruit as any).pitchSHU ?? 0,
+        pitchCCH: (recruit as any).pitchCCH ?? 0,
+        pitchHSL: (recruit as any).pitchHSL ?? 0,
+        pitchSWP: (recruit as any).pitchSWP ?? 0,
+        pitchKN:  (recruit as any).pitchKN  ?? 0,
+        pitchSCB: (recruit as any).pitchSCB ?? 0,
+        pitchPCB: (recruit as any).pitchPCB ?? 0,
+        abilities: recruit.abilities || [],
+        trajectory: (recruit as any).trajectory ?? 2,
+        tools: recruit.tools || [],
+        workEthicScore: recruit.workEthicScore ?? 70,
+        coachability: recruit.coachability ?? 70,
+        portraitId: recruit.portraitId ?? null,
+
+        skinTone: recruit.skinTone || "light",
+        hairColor: recruit.hairColor || "brown",
+        hairStyle: recruit.hairStyle || "short",
+        headwear: (recruit as any).headwear || "cap",
+        facialHair: (recruit as any).facialHair || "none",
+        eyeStyle: (recruit as any).eyeStyle || "standard",
+        eyebrowStyle: (recruit as any).eyebrowStyle || "flat",
+        mouthStyle: (recruit as any).mouthStyle || "neutral",
+        eyeBlack: (recruit as any).eyeBlack || false,
+        potential: recruit.potential ?? null,
+        // V3: new signed players use the archetype-aware development engine
+        developmentModelVersion: 3,
+        playArchetypeId: assignArchetype(recruit.position, recruit as any),
+      });
+      await storage.updateRecruit(recruit.id, { signingDayRevealed: true });
+      totalRecruitsAdded++;
+    }
+  }
+
+  // Publish class rankings and coach history only after roster conversion succeeds
   try {
     const snapRecruits = await storage.getRecruitsByLeague(leagueId);
     const snapByTeam = teams.map(team => {
@@ -3113,210 +3318,6 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     console.log(`[finalizeSigningDay] National ranks updated for season ${completedSeason}`);
   } catch (rankErr) {
     console.error("[finalizeSigningDay] Failed to update national ranks:", rankErr);
-  }
-
-  console.log(`[finalizeSigningDay] Processing ${teams.length} teams for transfers/eligibility/recruits`);
-  for (const team of teams) {
-    const roster = await storage.getPlayersByTeam(team.id);
-    const remainingPortal = roster.filter(p => p.inTransferPortal);
-    for (const player of remainingPortal) {
-      const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
-
-      const recruits = await storage.getRecruitsByLeague(leagueId);
-      const wasSignedAsRecruit = recruits.some(r => r.sourcePlayerId === player.id && r.signedTeamId);
-
-      await storage.createPlayerHistory({
-        leagueId,
-        teamId: team.id,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        position: player.position,
-        finalEligibility: player.eligibility,
-        overall: player.overall,
-        starRating: player.starRating,
-        signingOvr: player.signingOvr ?? player.overall,
-        ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
-        departureType: wasSignedAsRecruit ? "transfer_signed" : "transfer_juco",
-        departedSeason: completedSeason,
-        seasonsPlayed: eligMap[player.eligibility] || 1,
-        abilities: player.abilities || [],
-        homeState: player.homeState,
-        hometown: player.hometown,
-        sourcePlayerId: player.id,
-      });
-
-      if (!wasSignedAsRecruit) {
-        const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
-        const newElig = jucoEligMap[player.eligibility] || player.eligibility;
-        if (newElig !== "SR") {
-          const transferRecruit = recruits.find(r => r.sourcePlayerId === player.id);
-          await storage.createWalkon({
-            leagueId,
-            firstName: player.firstName,
-            lastName: player.lastName,
-            position: player.position,
-            throwHand: player.throwHand || "R",
-            batHand: player.batHand || "R",
-            homeState: player.homeState || "TX",
-            hometown: player.hometown || "Unknown",
-            eligibility: player.eligibility,
-            overall: player.overall,
-            starRating: player.starRating,
-            hitForAvg: player.hitForAvg || 50,
-            power: player.power || 50,
-            speed: player.speed || 50,
-            arm: player.arm || 50,
-            fielding: player.fielding || 50,
-            errorResistance: player.errorResistance || 50,
-            clutch: player.clutch || 50,
-            vsLHP: player.vsLHP || 50,
-            grit: player.grit || 50,
-            stealing: player.stealing || 50,
-            running: player.running || 50,
-            throwing: player.throwing || 50,
-            recovery: player.recovery || 50,
-            catcherAbility: player.catcherAbility || 50,
-            velocity: player.velocity || 50,
-            control: player.control || 50,
-            stamina: player.stamina || 50,
-            stuff: player.stuff || 50,
-            wRISP: player.wRISP || 50,
-            vsLefty: player.vsLefty || 50,
-            poise: player.poise || 50,
-            heater: player.heater || 50,
-            agile: player.agile || 50,
-            abilities: player.abilities || [],
-            potential: player.potential ?? null,
-            isGenerated: false,
-            portraitId: player.portraitId ?? null,
-
-            skinTone: player.skinTone || "light",
-            hairColor: player.hairColor || "brown",
-            hairStyle: player.hairStyle || "short",
-            headwear: player.headwear || "cap",
-            sourceRecruitId: transferRecruit?.id ?? null,
-          });
-        }
-      }
-
-      await storage.deletePlayer(player.id);
-      totalTransferred++;
-    }
-
-    const remainingPlayers = await storage.getPlayersByTeam(team.id);
-    for (const player of remainingPlayers) {
-      const eligProgression: Record<string, string> = {
-        "FR": "SO",
-        "SO": "JR",
-        "JR": "SR",
-        "RS": "SR",
-      };
-      const newEligibility = eligProgression[player.eligibility];
-      if (newEligibility) {
-        await storage.updatePlayer(player.id, {
-          eligibility: newEligibility,
-          declaredForDraft: false,
-          inTransferPortal: false,
-        });
-      }
-    }
-
-    const recruits = await storage.getRecruitsByLeague(leagueId);
-    const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
-
-    // Dedup guard: build a name-key set from current roster so re-running
-    // this function (double-advance, retry) cannot insert the same player twice.
-    const existingAfterElig = await storage.getPlayersByTeam(team.id);
-    const existingNameKeys = new Set(existingAfterElig.map(p => `${p.firstName}|${p.lastName}`));
-    const insertedThisPass = new Set<string>();
-
-    for (const recruit of signedRecruits) {
-      const nameKey = `${recruit.firstName}|${recruit.lastName}`;
-      if (existingNameKeys.has(nameKey) || insertedThisPass.has(nameKey)) {
-        console.warn(`[finalizeSigningDay] Skipping duplicate player ${recruit.firstName} ${recruit.lastName} on team ${team.name}`);
-        continue;
-      }
-      insertedThisPass.add(nameKey);
-      const jerseyNumber = 1 + Math.floor(Math.random() * 99);
-      const recruitElig = recruit.recruitType === "TRANSFER" ? (recruit.recruitYear || "SO") : "FR";
-      const finalElig = recruit.recruitType === "JUCO" ? (recruit.recruitYear || "FR") : recruitElig;
-      await storage.createPlayer({
-        teamId: team.id,
-        firstName: recruit.firstName,
-        lastName: recruit.lastName,
-        position: recruit.position,
-        eligibility: finalElig,
-        throwHand: recruit.throwHand || "R",
-        batHand: recruit.batHand || "R",
-        homeState: recruit.homeState,
-        hometown: recruit.hometown,
-        jerseyNumber,
-        overall: recruit.overall,
-        starRating: recruit.starRating,
-        hitForAvg: recruit.hitForAvg || 50,
-        power: recruit.power || 50,
-        speed: recruit.speed || 50,
-        arm: recruit.arm || 50,
-        fielding: recruit.fielding || 50,
-        errorResistance: recruit.errorResistance || 50,
-        clutch: recruit.clutch || 50,
-        vsLHP: recruit.vsLHP || 50,
-        grit: recruit.grit || 50,
-        stealing: recruit.stealing || 50,
-        running: recruit.running || 50,
-        throwing: recruit.throwing || 50,
-        recovery: recruit.recovery || 50,
-        catcherAbility: recruit.catcherAbility || 50,
-        velocity: recruit.velocity || 50,
-        control: recruit.control || 50,
-        stamina: recruit.stamina || 50,
-        stuff: recruit.stuff || 50,
-        wRISP: recruit.wRISP || 50,
-        vsLefty: recruit.vsLefty || 50,
-        poise: recruit.poise || 50,
-        heater: recruit.heater || 50,
-        agile: recruit.agile || 50,
-        pitchFB: recruit.pitchFB ?? 1,
-        pitch2S: recruit.pitch2S ?? 0,
-        pitchSL: recruit.pitchSL ?? 0,
-        pitchCB: recruit.pitchCB ?? 0,
-        pitchCH: recruit.pitchCH ?? 0,
-        pitchCT: recruit.pitchCT ?? 0,
-        pitchSNK: recruit.pitchSNK ?? 0,
-        pitchVSL: recruit.pitchVSL ?? 0,
-        pitchSPL: (recruit as any).pitchSPL ?? 0,
-        pitchFK:  (recruit as any).pitchFK  ?? 0,
-        pitchSFF: (recruit as any).pitchSFF ?? 0,
-        pitchSHU: (recruit as any).pitchSHU ?? 0,
-        pitchCCH: (recruit as any).pitchCCH ?? 0,
-        pitchHSL: (recruit as any).pitchHSL ?? 0,
-        pitchSWP: (recruit as any).pitchSWP ?? 0,
-        pitchKN:  (recruit as any).pitchKN  ?? 0,
-        pitchSCB: (recruit as any).pitchSCB ?? 0,
-        pitchPCB: (recruit as any).pitchPCB ?? 0,
-        abilities: recruit.abilities || [],
-        trajectory: (recruit as any).trajectory ?? 2,
-        tools: recruit.tools || [],
-        workEthicScore: recruit.workEthicScore ?? 70,
-        coachability: recruit.coachability ?? 70,
-        portraitId: recruit.portraitId ?? null,
-
-        skinTone: recruit.skinTone || "light",
-        hairColor: recruit.hairColor || "brown",
-        hairStyle: recruit.hairStyle || "short",
-        headwear: (recruit as any).headwear || "cap",
-        facialHair: (recruit as any).facialHair || "none",
-        eyeStyle: (recruit as any).eyeStyle || "standard",
-        eyebrowStyle: (recruit as any).eyebrowStyle || "flat",
-        mouthStyle: (recruit as any).mouthStyle || "neutral",
-        eyeBlack: (recruit as any).eyeBlack || false,
-        potential: recruit.potential ?? null,
-        // V3: new signed players use the archetype-aware development engine
-        developmentModelVersion: 3,
-        playArchetypeId: assignArchetype(recruit.position, recruit as any),
-      });
-      totalRecruitsAdded++;
-    }
   }
 
   // #87 — surface roster violations in the activity feed so coaches see them, not just server logs

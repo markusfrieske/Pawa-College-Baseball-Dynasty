@@ -1,3 +1,4 @@
+import { discloseRecruit } from "./recruit-disclosure";
 import type { Express, Request, Response } from "express";
 import { pool } from "./db";
 import { storage } from "./storage";
@@ -9,6 +10,26 @@ import { isPitcher } from "@shared/positions";
 import { requireAuth, hasCommissionerAccess, isLeagueMember } from "./route-helpers";
 import { checkStorylineHealth } from "./lib/storylineHealth";
 import { getSeasonMaxWeeks } from "@shared/phase";
+
+
+
+function publicStoryEvent(event: any): any {
+  if(!event)return event;
+  const {choiceAWeights,choiceBWeights,choiceCWeights,choiceDWeights,storyOutcomes,templateId,archetypeAtEvent,...visible}=event;
+  return {...visible,archetypeAtEvent:archetypeAtEvent?(PUBLIC_STORY_LABELS[archetypeAtEvent as Archetype] ?? "Scouting Report"):null};
+}
+function publicStoryline(story: any) {
+  const {hiddenVars,imagePrompt,usedTemplateIds,tier,isLegendary,archetype,...visible}=story;
+  return {...visible,archetype:PUBLIC_STORY_LABELS[archetype as Archetype] ?? "Scouting Report"};
+}
+
+async function disclosedStoryRecruit(recruit: any, leagueId: string, userId: string | undefined) {
+  if(!recruit)return null;
+  const coaches=await storage.getCoachesByLeague(leagueId);
+  const teamId=coaches.find(c=>c.userId===userId)?.teamId;
+  const interest=teamId?await storage.getRecruitingInterest(recruit.id,teamId):null;
+  return discloseRecruit(recruit,interest);
+}
 
 // ─── Advance Index Mapping ─────────────────────────────────────────────────────
 // Maps league phase + week to a 0–9 advance index used for slot-based story scheduling.
@@ -443,10 +464,7 @@ export function registerStorylineRoutes(app: Express) {
         // Scrub gem/bust/tier spoilers from the recruit sub-object before
         // returning — coaches must not be able to discover isGenerationalGem,
         // isGenerationalBust, or isBlueChip via the storylines endpoint.
-        const publicRecruit = recruit ? (() => {
-          const { isGenerationalGem: _g, isGenerationalBust: _b, ...safeRecruit } = recruit as Record<string, unknown>;
-          return safeRecruit;
-        })() : null;
+        const publicRecruit = await disclosedStoryRecruit(recruit, leagueId, req.session.userId);
 
         const archetypeKey = sl.archetype as Archetype;
         const publicStoryLabel = PUBLIC_STORY_LABELS[archetypeKey] ?? "Scouting Report";
@@ -455,7 +473,7 @@ export function registerStorylineRoutes(app: Express) {
 
         return {
           // Spread storyline_recruit columns but override identity-revealing fields
-          ...sl,
+          ...publicStoryline(sl),
           // Replace raw internal archetype key with the neutral public label so coaches
           // cannot identify gem/bust/phenom/collapse archetypes from network traffic.
           archetype: publicStoryLabel,
@@ -477,12 +495,12 @@ export function registerStorylineRoutes(app: Express) {
           archetypeFlavor: undefined,
           archetypeImageUrl: archetypeDef?.imageUrl ?? null,
           totalArcEvents: (archetypeDef?.events.length ?? 3) + (sl.isLegendary ? (archetypeDef?.legendaryEvents?.length ?? 0) : 0),
-          activeEvent,
-          latestResolvedEvent,
+          activeEvent: publicStoryEvent(activeEvent),
+          latestResolvedEvent: publicStoryEvent(latestResolvedEvent),
           latestResolvedVoteCounts,
           latestResolvedMyVote,
-          latestEvent,
-          allEvents: events,
+          latestEvent: publicStoryEvent(latestEvent),
+          allEvents: events.map(publicStoryEvent),
           totalEvents: events.length,
           resolvedEvents: resolvedEvents.length,
           voteCounts,
@@ -528,7 +546,7 @@ export function registerStorylineRoutes(app: Express) {
           myVote = myVoteRow?.choice ?? null;
         }
 
-        return { ...event, voteCounts: counts, myVote, storylineRecruit: sl, recruit };
+        return { ...publicStoryEvent(event), voteCounts: counts, myVote, storylineRecruit: sl ? { ...publicStoryline(sl), archetype: PUBLIC_STORY_LABELS[sl.archetype as Archetype] ?? "Scouting Report", hiddenVars: undefined, tier: undefined, isLegendary: undefined, imagePrompt: undefined } : null, recruit: await disclosedStoryRecruit(recruit, leagueId, req.session.userId) };
       }));
 
       res.json(enriched);
@@ -562,19 +580,16 @@ export function registerStorylineRoutes(app: Express) {
           const myVoteRow = await storage.getStorylineVoteByTeam(event.id, myCoach.teamId);
           myVote = myVoteRow?.choice ?? null;
         }
-        return { ...event, voteCounts: counts, myVote };
+        return { ...publicStoryEvent(event), voteCounts: counts, myVote };
       }));
 
       const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
       const archetypeKey = sl.archetype as Archetype;
-      const publicRecruit = recruit ? (() => {
-        const { isGenerationalGem: _g, isGenerationalBust: _b, ...safeRecruit } = recruit as Record<string, unknown>;
-        return safeRecruit;
-      })() : null;
+      const publicRecruit = await disclosedStoryRecruit(recruit, leagueId, req.session.userId);
 
       const singlePublicLabel = PUBLIC_STORY_LABELS[archetypeKey] ?? "Scouting Report";
       res.json({
-        ...sl,
+        ...publicStoryline(sl),
         archetype: singlePublicLabel,
         isHighInterest: sl.isLegendary,
         isLegendary: undefined,

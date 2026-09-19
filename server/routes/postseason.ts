@@ -1,3 +1,4 @@
+import { publicRecruitStars } from "../recruit-disclosure";
 /**
  * Postseason data and statistics routes.
  *
@@ -1318,14 +1319,14 @@ export function registerPostseasonRoutes(app: Express): void {
           firstName: recruit.firstName,
           lastName: recruit.lastName,
           position: recruit.position,
-          starRating: recruit.starRating || 3,
+          starRating: publicRecruitStars(recruit),
           homeState: recruit.homeState,
           topSchools: topInterests,
           committingTo,
-          isGenerationalGem: recruit.isGenerationalGem,
-          isGenerationalBust: recruit.isGenerationalBust,
-          isGem: recruit.isGem,
-          isBust: recruit.isBust,
+          isGenerationalGem: recruit.gemBustRevealed || recruit.signingDayRevealed ? recruit.isGenerationalGem : null,
+          isGenerationalBust: recruit.gemBustRevealed || recruit.signingDayRevealed ? recruit.isGenerationalBust : null,
+          isGem: recruit.gemBustRevealed || recruit.signingDayRevealed ? recruit.isGem : null,
+          isBust: recruit.gemBustRevealed || recruit.signingDayRevealed ? recruit.isBust : null,
           isBlueChip: recruit.isBlueChip,
           isStoryline: storylineRecruitIds.has(recruit.id),
           recruitType: recruit.recruitType || "HS",
