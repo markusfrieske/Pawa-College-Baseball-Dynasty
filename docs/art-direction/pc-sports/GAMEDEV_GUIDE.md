@@ -1,5 +1,7 @@
 # Class of Nine — PC sports-game interface guide
 
+September 19: before further Roster, Team, Recruiting or Arrival art integration, read [the coaching-room follow-up](research/coaching-room.md) and review `coaching-lab.html`. Frisk requested richer coaching workflows and references to Eikan Nine 2026 and Hakkyu No Kiseki. These four new proposals are awaiting review; they do not authorize replacement of production rules or approve the cinematic.
+
 Frisk's direction, September 18, 2026: the current screens still feel like a website. Design for PC play only. This supersedes earlier mobile-first and phone-layout targets; no mobile launch or phone interaction contract is intended. Approved Class of Nine identity and Varsity Club art direction remain in force. The proposed arrival reveal is not approved by this change.
 
 ## What the references actually show
