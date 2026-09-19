@@ -1,0 +1,905 @@
+{
+  "screens": [
+    {
+      "id": "title",
+      "zones": [
+        {
+          "label": "Play choices",
+          "x": 0,
+          "y": 18,
+          "w": 28,
+          "h": 82
+        },
+        {
+          "label": "Campus gate",
+          "x": 30,
+          "y": 0,
+          "w": 50,
+          "h": 100
+        },
+        {
+          "label": "Account identity",
+          "x": 82,
+          "y": 0,
+          "w": 18,
+          "h": 20
+        },
+        {
+          "label": "Selected dynasty",
+          "x": 82,
+          "y": 62,
+          "w": 18,
+          "h": 38
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "zones": [
+        {
+          "label": "Credentials",
+          "x": 0,
+          "y": 17,
+          "w": 38,
+          "h": 83
+        },
+        {
+          "label": "Campus entrance",
+          "x": 50,
+          "y": 17,
+          "w": 50,
+          "h": 83
+        },
+        {
+          "label": "Return destination",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "register",
+      "zones": [
+        {
+          "label": "Identity preview",
+          "x": 0,
+          "y": 10,
+          "w": 25,
+          "h": 80
+        },
+        {
+          "label": "Required credentials",
+          "x": 27,
+          "y": 0,
+          "w": 43,
+          "h": 100
+        },
+        {
+          "label": "Requirements and destination",
+          "x": 72,
+          "y": 22,
+          "w": 28,
+          "h": 66
+        }
+      ]
+    },
+    {
+      "id": "guest",
+      "zones": [
+        {
+          "label": "Temporary pass",
+          "x": 0,
+          "y": 15,
+          "w": 30,
+          "h": 70
+        },
+        {
+          "label": "Session limits",
+          "x": 32,
+          "y": 28,
+          "w": 34,
+          "h": 45
+        },
+        {
+          "label": "Choose entry",
+          "x": 68,
+          "y": 40,
+          "w": 32,
+          "h": 45
+        }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "zones": [
+        {
+          "label": "Dynasty spines",
+          "x": 0,
+          "y": 0,
+          "w": 35,
+          "h": 100
+        },
+        {
+          "label": "Selected campus",
+          "x": 37,
+          "y": 19,
+          "w": 63,
+          "h": 52
+        },
+        {
+          "label": "Season and access",
+          "x": 37,
+          "y": 73,
+          "w": 63,
+          "h": 27
+        },
+        {
+          "label": "New or join",
+          "x": 37,
+          "y": 0,
+          "w": 63,
+          "h": 17
+        }
+      ]
+    },
+    {
+      "id": "create",
+      "zones": [
+        {
+          "label": "Setup stages",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Current decisions",
+          "x": 0,
+          "y": 17,
+          "w": 60,
+          "h": 83
+        },
+        {
+          "label": "Context illustration",
+          "x": 62,
+          "y": 17,
+          "w": 38,
+          "h": 64
+        },
+        {
+          "label": "Next or create",
+          "x": 62,
+          "y": 83,
+          "w": 38,
+          "h": 17
+        }
+      ]
+    },
+    {
+      "id": "team-selection",
+      "zones": [
+        {
+          "label": "Selection requirements",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Conference field",
+          "x": 0,
+          "y": 17,
+          "w": 65,
+          "h": 83
+        },
+        {
+          "label": "Selected schools",
+          "x": 67,
+          "y": 17,
+          "w": 33,
+          "h": 61
+        },
+        {
+          "label": "Confirm competition",
+          "x": 67,
+          "y": 80,
+          "w": 33,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "id": "coach-setup",
+      "zones": [
+        {
+          "label": "Coach media day",
+          "x": 0,
+          "y": 17,
+          "w": 45,
+          "h": 83
+        },
+        {
+          "label": "Identity and school",
+          "x": 47,
+          "y": 17,
+          "w": 53,
+          "h": 33
+        },
+        {
+          "label": "Skill allocation",
+          "x": 47,
+          "y": 52,
+          "w": 53,
+          "h": 48
+        },
+        {
+          "label": "Creation stage",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "dynasty-lobby",
+      "zones": [
+        {
+          "label": "School seats",
+          "x": 0,
+          "y": 17,
+          "w": 65,
+          "h": 83
+        },
+        {
+          "label": "League charter",
+          "x": 67,
+          "y": 17,
+          "w": 33,
+          "h": 29
+        },
+        {
+          "label": "Start blockers",
+          "x": 67,
+          "y": 48,
+          "w": 33,
+          "h": 52
+        },
+        {
+          "label": "Commissioner context",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "creation-progress",
+      "zones": [
+        {
+          "label": "Dynasty identity",
+          "x": 0,
+          "y": 20,
+          "w": 25,
+          "h": 60
+        },
+        {
+          "label": "Operation stages",
+          "x": 27,
+          "y": 5,
+          "w": 36,
+          "h": 90
+        },
+        {
+          "label": "Recovery details",
+          "x": 65,
+          "y": 35,
+          "w": 35,
+          "h": 65
+        }
+      ]
+    },
+    {
+      "id": "invite",
+      "zones": [
+        {
+          "label": "League identity",
+          "x": 0,
+          "y": 0,
+          "w": 26,
+          "h": 100
+        },
+        {
+          "label": "Invitation letter",
+          "x": 28,
+          "y": 12,
+          "w": 42,
+          "h": 76
+        },
+        {
+          "label": "Account and acceptance",
+          "x": 72,
+          "y": 35,
+          "w": 28,
+          "h": 55
+        }
+      ]
+    },
+    {
+      "id": "stats",
+      "zones": [
+        {
+          "label": "Scope and qualification",
+          "x": 0,
+          "y": 0,
+          "w": 70,
+          "h": 15
+        },
+        {
+          "label": "Metric families",
+          "x": 0,
+          "y": 17,
+          "w": 15,
+          "h": 83
+        },
+        {
+          "label": "Ranked performance",
+          "x": 17,
+          "y": 17,
+          "w": 83,
+          "h": 83
+        },
+        {
+          "label": "Chosen sort",
+          "x": 72,
+          "y": 0,
+          "w": 28,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "records",
+      "zones": [
+        {
+          "label": "Category index",
+          "x": 0,
+          "y": 17,
+          "w": 22,
+          "h": 83
+        },
+        {
+          "label": "Record holders",
+          "x": 24,
+          "y": 17,
+          "w": 48,
+          "h": 83
+        },
+        {
+          "label": "Record provenance",
+          "x": 74,
+          "y": 17,
+          "w": 26,
+          "h": 83
+        },
+        {
+          "label": "Season or career",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "archive",
+      "zones": [
+        {
+          "label": "Year ruler",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 18
+        },
+        {
+          "label": "Archive chapters",
+          "x": 0,
+          "y": 20,
+          "w": 18,
+          "h": 80
+        },
+        {
+          "label": "Season contents",
+          "x": 20,
+          "y": 20,
+          "w": 50,
+          "h": 80
+        },
+        {
+          "label": "Archive cover",
+          "x": 72,
+          "y": 20,
+          "w": 28,
+          "h": 80
+        }
+      ]
+    },
+    {
+      "id": "archive-team",
+      "zones": [
+        {
+          "label": "Historical team identity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 22
+        },
+        {
+          "label": "Season chapters",
+          "x": 0,
+          "y": 24,
+          "w": 16,
+          "h": 76
+        },
+        {
+          "label": "Historical roster results",
+          "x": 18,
+          "y": 24,
+          "w": 60,
+          "h": 76
+        },
+        {
+          "label": "Retained season facts",
+          "x": 80,
+          "y": 24,
+          "w": 20,
+          "h": 76
+        }
+      ]
+    },
+    {
+      "id": "digests",
+      "zones": [
+        {
+          "label": "Weekly masthead",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Lead story",
+          "x": 0,
+          "y": 18,
+          "w": 60,
+          "h": 62
+        },
+        {
+          "label": "Results briefs",
+          "x": 62,
+          "y": 18,
+          "w": 38,
+          "h": 62
+        },
+        {
+          "label": "Required decisions",
+          "x": 0,
+          "y": 82,
+          "w": 100,
+          "h": 18
+        }
+      ]
+    },
+    {
+      "id": "ticker",
+      "zones": [
+        {
+          "label": "Date and filter",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Event categories",
+          "x": 0,
+          "y": 17,
+          "w": 20,
+          "h": 83
+        },
+        {
+          "label": "Chronological wire",
+          "x": 22,
+          "y": 17,
+          "w": 48,
+          "h": 83
+        },
+        {
+          "label": "Selected event",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        }
+      ]
+    },
+    {
+      "id": "inbox",
+      "zones": [
+        {
+          "label": "Message status filters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Correspondence queue",
+          "x": 0,
+          "y": 17,
+          "w": 32,
+          "h": 83
+        },
+        {
+          "label": "Selected letter",
+          "x": 34,
+          "y": 17,
+          "w": 66,
+          "h": 60
+        },
+        {
+          "label": "Message action receipt",
+          "x": 34,
+          "y": 79,
+          "w": 66,
+          "h": 21
+        }
+      ]
+    },
+    {
+      "id": "storylines",
+      "zones": [
+        {
+          "label": "Participants and place",
+          "x": 0,
+          "y": 17,
+          "w": 45,
+          "h": 83
+        },
+        {
+          "label": "Recorded situation",
+          "x": 47,
+          "y": 17,
+          "w": 53,
+          "h": 37
+        },
+        {
+          "label": "Eligible decisions",
+          "x": 47,
+          "y": 56,
+          "w": 53,
+          "h": 44
+        },
+        {
+          "label": "Story arc",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "war-room",
+      "zones": [
+        {
+          "label": "Retired destination notice",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Current destination",
+          "x": 15,
+          "y": 33,
+          "w": 48,
+          "h": 42
+        },
+        {
+          "label": "Open league hub",
+          "x": 65,
+          "y": 44,
+          "w": 25,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "id": "not-found",
+      "zones": [
+        {
+          "label": "Neutral diamond",
+          "x": 0,
+          "y": 22,
+          "w": 30,
+          "h": 58
+        },
+        {
+          "label": "Recovery explanation",
+          "x": 32,
+          "y": 28,
+          "w": 34,
+          "h": 40
+        },
+        {
+          "label": "Safe destinations",
+          "x": 68,
+          "y": 40,
+          "w": 32,
+          "h": 44
+        }
+      ]
+    },
+    {
+      "id": "league-standings",
+      "zones": [
+        {
+          "label": "Conference and season",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Conference race table",
+          "x": 0,
+          "y": 17,
+          "w": 70,
+          "h": 63
+        },
+        {
+          "label": "Race context",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 63
+        },
+        {
+          "label": "Qualification legend",
+          "x": 0,
+          "y": 82,
+          "w": 100,
+          "h": 18
+        }
+      ]
+    },
+    {
+      "id": "league-teams",
+      "zones": [
+        {
+          "label": "Conference chooser",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Program directory",
+          "x": 0,
+          "y": 17,
+          "w": 35,
+          "h": 48
+        },
+        {
+          "label": "Selected program",
+          "x": 37,
+          "y": 17,
+          "w": 63,
+          "h": 48
+        },
+        {
+          "label": "Matched program comparison",
+          "x": 0,
+          "y": 67,
+          "w": 100,
+          "h": 33
+        }
+      ]
+    },
+    {
+      "id": "league-rankings",
+      "zones": [
+        {
+          "label": "Release date source",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Featured top program",
+          "x": 0,
+          "y": 17,
+          "w": 25,
+          "h": 83
+        },
+        {
+          "label": "Ordered ranking",
+          "x": 27,
+          "y": 17,
+          "w": 47,
+          "h": 83
+        },
+        {
+          "label": "Movement context",
+          "x": 76,
+          "y": 17,
+          "w": 24,
+          "h": 83
+        }
+      ]
+    },
+    {
+      "id": "league-awards",
+      "zones": [
+        {
+          "label": "Honor categories",
+          "x": 0,
+          "y": 8,
+          "w": 30,
+          "h": 84
+        },
+        {
+          "label": "Recipient stage",
+          "x": 32,
+          "y": 0,
+          "w": 43,
+          "h": 100
+        },
+        {
+          "label": "Achievement evidence",
+          "x": 77,
+          "y": 28,
+          "w": 23,
+          "h": 56
+        }
+      ]
+    },
+    {
+      "id": "league-history",
+      "zones": [
+        {
+          "label": "Year range",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Championship wall",
+          "x": 0,
+          "y": 17,
+          "w": 40,
+          "h": 83
+        },
+        {
+          "label": "Year ledger",
+          "x": 42,
+          "y": 17,
+          "w": 29,
+          "h": 83
+        },
+        {
+          "label": "Selected season",
+          "x": 73,
+          "y": 17,
+          "w": 27,
+          "h": 83
+        }
+      ]
+    },
+    {
+      "id": "league-edits",
+      "zones": [
+        {
+          "label": "Correction filter",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Correction log",
+          "x": 0,
+          "y": 17,
+          "w": 40,
+          "h": 83
+        },
+        {
+          "label": "Before values",
+          "x": 42,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        },
+        {
+          "label": "After and reason",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        }
+      ]
+    },
+    {
+      "id": "season-recap",
+      "zones": [
+        {
+          "label": "Completed season chapters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Season presentation",
+          "x": 0,
+          "y": 17,
+          "w": 76,
+          "h": 83
+        },
+        {
+          "label": "Archived evidence",
+          "x": 78,
+          "y": 17,
+          "w": 22,
+          "h": 61
+        },
+        {
+          "label": "Chapter navigation",
+          "x": 78,
+          "y": 80,
+          "w": 22,
+          "h": 20
+        }
+      ]
+    },
+    {
+      "id": "system-shell",
+      "zones": [
+        {
+          "label": "League mode week",
+          "x": 0,
+          "y": 0,
+          "w": 76,
+          "h": 15
+        },
+        {
+          "label": "Destination tabs",
+          "x": 0,
+          "y": 17,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Screen canvas",
+          "x": 0,
+          "y": 34,
+          "w": 100,
+          "h": 66
+        },
+        {
+          "label": "Menu and account",
+          "x": 78,
+          "y": 0,
+          "w": 22,
+          "h": 15
+        }
+      ]
+    }
+  ]
+}

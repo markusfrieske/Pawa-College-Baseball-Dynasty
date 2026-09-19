@@ -1,0 +1,829 @@
+{
+  "status": "PC-only redesign briefs; not implementation or user approval",
+  "scope": "All 29 setup, story, history and system screens preserved from setup-stories.json. Arrival reveal remains unapproved.",
+  "sources": [
+    {
+      "id": "pc-fc25-hub",
+      "title": "EA SPORTS FC 25 career hub screenshot",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-25/news/pitch-notes-fc-25-career-mode-deep-dive",
+      "imageUrl": "https://drop-assets.ea.com/images/2x1PYfKD2jvUlGF9j629H1/b745fb2118d193490a17cece583358bf/FC_25_-_Career_Deep_Dive_-_New_Menu_Visuals.jpg",
+      "observed": "Directly inspected screenshot: top navigation, large date, left task list with bright selected row, one editorial stadium image on right, contextual command hints below.",
+      "adaptation": "Use a task-specific stage, clear selection and one visual anchor. Replace controller hints with genuine PC interactions; avoid copying social-feed clutter.",
+      "evidenceType": "Direct screenshot inspection in browser, 2026-09-18. No hands-on game test."
+    },
+    {
+      "id": "pc-fc25-career-text",
+      "title": "EA SPORTS FC 25 Career Mode Deep Dive",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-25/news/pitch-notes-fc-25-career-mode-deep-dive",
+      "observed": "Article describes a task list surfacing pending actions and social stories covering results and transfers; setup has distinct career origins.",
+      "adaptation": "Keep actionable correspondence separate from editorial storytelling. Entry decisions deserve their own scene and explicit consequences.",
+      "evidenceType": "Official developer article text; adaptation is Class of Nine design inference."
+    },
+    {
+      "id": "pc-2k26-roster",
+      "title": "NBA 2K26 official MyNBA roster viewer screenshot",
+      "url": "https://nba.2k.com/2k26/courtside-report/mynba/",
+      "imageUrl": "https://assets.2k.com/1a6ngf98576c/4F2pH6zs5Tb3EVKTNnZdid/8e9926deb4df061c58acfd65bce38577/N26-ALL-MYNBA_ERAS_ALT-NA-STATIC-ENUS-NO_RATING-AGN-1920X1080-FINAL.jpg",
+      "observed": "Directly inspected roster screenshot: broad selected-player identity band, tabbed metric families, dense aligned ledger, strong full-row selection and contextual hints. Source labels image Historical Eras; visible content is roster viewer.",
+      "adaptation": "Preserve uninterrupted tables and selected context. Use metric groups instead of giant horizontal scrolling; do not copy basketball ratings or presentation marks.",
+      "evidenceType": "Direct official screenshot inspection in browser, 2026-09-18. No hands-on test."
+    },
+    {
+      "id": "pc-2k26-legacy-text",
+      "title": "NBA 2K26 MyNBA and MyGM Courtside Report",
+      "url": "https://nba.2k.com/2k26/courtside-report/mynba/",
+      "observed": "Report describes dynamic championship banners, save-specific legacy tracking and team-specific narrative scenarios.",
+      "adaptation": "Make history, awards and story scenes spatially different. Every achievement must derive from stored Class of Nine evidence.",
+      "evidenceType": "Official developer article text; Class of Nine compositions are original design inference."
+    }
+  ],
+  "screens": [
+    {
+      "id": "title",
+      "title": "Campus after hours",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A full-frame campus gate scene with a typographic play list cut into the dark left third.",
+      "primaryDecision": "Resume a named dynasty or begin/join one.",
+      "spatialHierarchy": [
+        "Left 28%: Continue/New/Join",
+        "Center 52%: campus gate art",
+        "Upper right: account identity",
+        "Lower right: selected save team, week and mode"
+      ],
+      "pcInteraction": "Up/Down selects, Enter opens, mouse targets the full text row; Continue never auto-launches.",
+      "artTreatment": "Dusk forest scene, brass gateway mark and cream oversized title.",
+      "removeWebsitePatterns": [
+        "Hero followed by marketing sections",
+        "KPI cards",
+        "footer destination menu"
+      ],
+      "emptyErrorState": "No accessible save replaces Continue with New dynasty, without disabling Join.",
+      "acceptance": [
+        "Menu and save identity fit at 1280x720 without body scrolling.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "login",
+      "title": "Enter the clubhouse",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A narrow authentication plane over the same campus entry scene, with the intended destination fixed beside it.",
+      "primaryDecision": "Authenticate into the named destination.",
+      "spatialHierarchy": [
+        "Left 38%: labeled credentials",
+        "Right 50%: campus entrance",
+        "Top: destination identity"
+      ],
+      "pcInteraction": "Tab order follows fields; Enter submits once; Escape returns safely.",
+      "artTreatment": "Low-contrast gate background; no artificial character scene.",
+      "removeWebsitePatterns": [
+        "Public website sign-in page",
+        "social marketing",
+        "in-league navigation"
+      ],
+      "emptyErrorState": "Keep identity after failure, clear or protect secrets; error beside Submit.",
+      "acceptance": [
+        "Failed authentication leaves return destination and valid identity intact.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "register",
+      "title": "Create your identity",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A single registration station beside a quiet C9 identity preview; account ownership is explicit.",
+      "primaryDecision": "Create the account, then continue to coach setup.",
+      "spatialHierarchy": [
+        "Left: identity preview",
+        "Center: required fields",
+        "Right: requirements and destination"
+      ],
+      "pcInteraction": "Tab through actual fields, named Create action; no auto-submit on dropdown change.",
+      "artTreatment": "Paper credential strip against forest glass; initials preview only.",
+      "removeWebsitePatterns": [
+        "Admin profile dashboard",
+        "unsupported Steam sign-in promises"
+      ],
+      "emptyErrorState": "Field-specific errors retain valid entries; account creation status stays visible.",
+      "acceptance": [
+        "At 1280x720 required fields and creation consequence remain in one stage.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "guest",
+      "title": "Temporary clubhouse pass",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A large temporary pass and two named choices occupy a quiet entry scene.",
+      "primaryDecision": "Proceed with actual temporary-session limits or create an account.",
+      "spatialHierarchy": [
+        "Left: TEMPORARY pass",
+        "Center: persistence limitation",
+        "Right: Guest/Create choices"
+      ],
+      "pcInteraction": "Arrow/Tab chooses; Enter submits only focused action.",
+      "artTreatment": "One cream pass with brass edge, not an illustrated permanent ID.",
+      "removeWebsitePatterns": [
+        "Legal wall",
+        "signup funnel",
+        "false save permanence"
+      ],
+      "emptyErrorState": "Failure keeps limitation and Retry together; no guessed expiry.",
+      "acceptance": [
+        "Actual persistence limits visible before action and throughout pending request.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "dashboard",
+      "title": "Dynasty locker",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A vertical rack of save spines at left changes one large selected dynasty scene at right.",
+      "primaryDecision": "Choose the world to resume.",
+      "spatialHierarchy": [
+        "Left 35%: named saves",
+        "Right upper: selected team and campus",
+        "Right lower: season/mode/access",
+        "Top right: New/Join"
+      ],
+      "pcInteraction": "Single click previews, double click or Enter continues; context menu separates destructive tools.",
+      "artTreatment": "Team-colored pennant changes within fixed forest frame.",
+      "removeWebsitePatterns": [
+        "Equal dashboard cards",
+        "global KPIs",
+        "account-management table framing"
+      ],
+      "emptyErrorState": "No worlds shows New and Join in same room; inaccessible worlds explain permission.",
+      "acceptance": [
+        "Selecting a save does not launch it; Continue always names target.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "create",
+      "title": "Build a dynasty",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A full-width mode choice becomes sequential configuration screens, ending on a tournament charter.",
+      "primaryDecision": "Create exactly the reviewed simulated or companion league.",
+      "spatialHierarchy": [
+        "Top: four named stages",
+        "Center: current choices only",
+        "Right: context illustration",
+        "Lower right: explicit next/create"
+      ],
+      "pcInteraction": "Mouse and Tab access all choices; Back retains values; mode switching clearly explains reset.",
+      "artTreatment": "Mode illustrations differ: dugout simulation and scorekeeper companion.",
+      "removeWebsitePatterns": [
+        "All-settings form",
+        "fake cards for unsupported modes"
+      ],
+      "emptyErrorState": "Validation names blocking stage; failed Create retains selections.",
+      "acceptance": [
+        "No Create before Review; simulation and reported mode never visually conflated.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "team-selection",
+      "title": "Conference field",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A conference board of compact monogram buttons beside a selected-field list.",
+      "primaryDecision": "Choose a valid competition field.",
+      "spatialHierarchy": [
+        "Top: required/selected total",
+        "Left 65%: conference school grid",
+        "Right 30%: selected schools",
+        "Bottom right: confirm field"
+      ],
+      "pcInteraction": "Search, keyboard grid arrows and Space toggle; selected list supports removal without dragging.",
+      "artTreatment": "Monograms and conference rulings, not large school biography cards.",
+      "removeWebsitePatterns": [
+        "Logo carousel",
+        "endless card directory",
+        "decorative map not tied to eligibility"
+      ],
+      "emptyErrorState": "Unavailable schools show reason; invalid total blocks confirmation visibly.",
+      "acceptance": [
+        "All selection constraints remain visible; selected schools cannot disappear behind tabs.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "coach-setup",
+      "title": "Media day",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "Coach portrait at life-size screen scale stands beside a compact identity and skill-allocation board.",
+      "primaryDecision": "Commit to coach and available school.",
+      "spatialHierarchy": [
+        "Left 45%: coach/media backdrop",
+        "Right upper: identity/school",
+        "Right lower: skill budget",
+        "Top: stage"
+      ],
+      "pcInteraction": "Direct field editing and keyboard steppers; one named confirmation.",
+      "artTreatment": "Approved cel direction only; placeholder portrait explicitly identified until production art.",
+      "removeWebsitePatterns": [
+        "Admin user editor",
+        "unsupported archetypes",
+        "mobile stack"
+      ],
+      "emptyErrorState": "School claim conflict preserves identity and returns school selection.",
+      "acceptance": [
+        "Displayed budget equals validation; art never implies unimplemented perks.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "dynasty-lobby",
+      "title": "Clubhouse rollcall",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A school-seat wall and a separate readiness board make the league feel assembled.",
+      "primaryDecision": "Claim an open seat or resolve a start blocker.",
+      "spatialHierarchy": [
+        "Left 65%: seat rows",
+        "Right upper: league charter",
+        "Right lower: readiness blockers",
+        "Top: commissioner identity"
+      ],
+      "pcInteraction": "Click/Enter open seat details; only authorized Start can commit.",
+      "artTreatment": "School pennants with text human/CPU labels.",
+      "removeWebsitePatterns": [
+        "Presence dots posing as readiness",
+        "fake avatar room",
+        "KPI cards"
+      ],
+      "emptyErrorState": "Disconnected fetch shows unknown occupants, not empty seats.",
+      "acceptance": [
+        "Start rechecks current prerequisites; all blockers readable without extra route.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "creation-progress",
+      "title": "Preparing the season",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "Named dynasty sits over a restrained diamond scene while an exact operation log occupies the side.",
+      "primaryDecision": "Wait, enter confirmed world, or recover a failed operation.",
+      "spatialHierarchy": [
+        "Left: dynasty identity",
+        "Center: stage status",
+        "Right: factual details/recovery"
+      ],
+      "pcInteraction": "Escape returns only if safely supported; Retry cannot create duplicate operations.",
+      "artTreatment": "Subtle field line animation with reduced-motion still state.",
+      "removeWebsitePatterns": [
+        "Invented percent/ETA",
+        "fake construction mechanics"
+      ],
+      "emptyErrorState": "Failed stage plus retained operation identity, supported Retry only.",
+      "acceptance": [
+        "Never show Enter before actual successful creation.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "invite",
+      "title": "Invitation to the program",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "One signed invitation sheet and account identity check sit over the gate scene.",
+      "primaryDecision": "Join this league as this account.",
+      "spatialHierarchy": [
+        "Left: league crest/name",
+        "Center: actual invitation details",
+        "Right: current account and Accept/Switch"
+      ],
+      "pcInteraction": "Tab between Accept and Switch; Enter scoped to focused button.",
+      "artTreatment": "Cream invitation stock, restrained brass seal.",
+      "removeWebsitePatterns": [
+        "Token as decorative code",
+        "unauthorized roster browsing"
+      ],
+      "emptyErrorState": "Expired/revoked/already-member states each have specific next action.",
+      "acceptance": [
+        "Safe invitation context survives authentication.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "stats",
+      "title": "League statistical board",
+      "referenceIds": [
+        "pc-2k26-roster"
+      ],
+      "composition": "Wide broadcast table with a narrow scope rail; chosen metric dominates without hiding sample size.",
+      "primaryDecision": "Compare qualifying performance under the chosen scope.",
+      "spatialHierarchy": [
+        "Top: season/source/qualification",
+        "Left 15%: metric family",
+        "Center 80%: aligned rows",
+        "Upper right: chosen sort"
+      ],
+      "pcInteraction": "Click headers sorts; keyboard row navigation; fixed name column and metric-page controls.",
+      "artTreatment": "Small leader portrait only in header, flat forest table.",
+      "removeWebsitePatterns": [
+        "One card per player",
+        "repeated KPI totals",
+        "giant portrait inspector"
+      ],
+      "emptyErrorState": "No qualifying sample shown plainly; missing values remain unknown.",
+      "acceptance": [
+        "At 1280x720 names, sample and chosen metric stay visible; sort and position survive Back.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "records",
+      "title": "Program record book",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "An open almanac spread with category tabs and oversized record typography.",
+      "primaryDecision": "Inspect a record, tied holders, and provenance.",
+      "spatialHierarchy": [
+        "Left 22%: category index",
+        "Center: record values/holders",
+        "Right: selected record source",
+        "Top: season/career scope"
+      ],
+      "pcInteraction": "Arrow categories, click holder/source, Escape restores selected record.",
+      "artTreatment": "Cream typeset spread, forest chapter rule.",
+      "removeWebsitePatterns": [
+        "Trophy cards for every metric",
+        "profile workspace copied here"
+      ],
+      "emptyErrorState": "Unsupported category says no retained evidence; never a zero record.",
+      "acceptance": [
+        "Every displayed record preserves scope, ties and source year.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "archive",
+      "title": "Season volumes",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A horizontal year ruler above an archive contents spread, always marked historical.",
+      "primaryDecision": "Choose a year and chapter to inspect.",
+      "spatialHierarchy": [
+        "Top: selected year ruler",
+        "Left: chapter index",
+        "Center: champion and retained outcomes",
+        "Right: archival cover illustration"
+      ],
+      "pcInteraction": "Wheel or keys move year ruler; explicit year buttons available; chapter click opens data.",
+      "artTreatment": "Faded campus print with strong readable foreground.",
+      "removeWebsitePatterns": [
+        "Current hub clone",
+        "live action buttons",
+        "infinite history feed"
+      ],
+      "emptyErrorState": "Missing snapshots labeled unavailable, not reconstructed.",
+      "acceptance": [
+        "Selected year remains visible in every chapter and Back restores it.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "archive-team",
+      "title": "Team season dossier",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "Historical team banner spans the top above roster/results chapters.",
+      "primaryDecision": "Inspect what this team actually did in this season.",
+      "spatialHierarchy": [
+        "Top: team + year + archive stamp",
+        "Left: chapter tabs",
+        "Center: retained roster/results",
+        "Right: season summary facts"
+      ],
+      "pcInteraction": "Direct chapter shortcuts; player opens historical identity where available.",
+      "artTreatment": "Team pennant and archival paper, no live team controls.",
+      "removeWebsitePatterns": [
+        "Live roster editor reused with disabled buttons"
+      ],
+      "emptyErrorState": "Missing historical field explicitly unknown.",
+      "acceptance": [
+        "No accidental navigation from archived stats to an unlabeled current profile.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "digests",
+      "title": "The weekly edition",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "An editorial broadsheet uses a lead story image, asymmetric factual briefs and a decision strip.",
+      "primaryDecision": "Understand this week and act on its real unresolved decisions.",
+      "spatialHierarchy": [
+        "Top: issue/week masthead",
+        "Left 60%: lead story",
+        "Right 35%: results briefs",
+        "Bottom: actionable decisions"
+      ],
+      "pcInteraction": "Issue chooser and chapter paging; click factual source; no autoplay.",
+      "artTreatment": "Cream newsprint, forest headlines, licensed-original art only.",
+      "removeWebsitePatterns": [
+        "Social feed clone",
+        "equal news cards",
+        "long blog column"
+      ],
+      "emptyErrorState": "No issue yet has truthful timing; incomplete sources identified.",
+      "acceptance": [
+        "Lead text cannot invent causal stories; actions separate from editorial claims.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "ticker",
+      "title": "League wire",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A flat event wire fills most of the viewport with category rail and selected-event expansion.",
+      "primaryDecision": "Find the specific recent event.",
+      "spatialHierarchy": [
+        "Top: date/category filter",
+        "Left 20%: event categories",
+        "Center: chronological lines",
+        "Right: selected event details"
+      ],
+      "pcInteraction": "Wheel scrolls bounded wire; Home/End and date jump; new events wait behind count button.",
+      "artTreatment": "Broadcast typography and small factual category symbols.",
+      "removeWebsitePatterns": [
+        "Auto-scrolling marquee",
+        "infinite feed",
+        "large rounded event cards"
+      ],
+      "emptyErrorState": "Failed refresh retains last known events with timestamp.",
+      "acceptance": [
+        "New arrivals never move the focused row; chronology and freshness explicit.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "inbox",
+      "title": "Coach correspondence",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A bounded sender/subject list at left and a full letter plane at right, with actions attached to their message.",
+      "primaryDecision": "Resolve a specific message, separately from reading it.",
+      "spatialHierarchy": [
+        "Top: unread/action-required filters",
+        "Left 32%: message queue",
+        "Right upper: sender/body",
+        "Right lower: permitted action/status"
+      ],
+      "pcInteraction": "Up/Down selects; Enter opens; reply/action accessible by Tab; no forced controller key mapping.",
+      "artTreatment": "Sender monogram and restrained letterhead.",
+      "removeWebsitePatterns": [
+        "Email-app toolbar clutter",
+        "message cards",
+        "decorative dashboard charts"
+      ],
+      "emptyErrorState": "Empty unread differs from empty required; stale action rejected without losing letter.",
+      "acceptance": [
+        "Read status never equates to resolved; pending action prevents duplicate submit.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "storylines",
+      "title": "Inside the program",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A character-and-headline scene owns the left half while one actual decision owns the right.",
+      "primaryDecision": "Make an eligible story decision with supported consequences.",
+      "spatialHierarchy": [
+        "Left 45%: participants/scene",
+        "Right upper: factual situation",
+        "Right middle: choices/vote",
+        "Top: arc timeline"
+      ],
+      "pcInteraction": "Number shortcuts only when text fields unfocused; pointer and Tab equivalent; confirm consequential choice.",
+      "artTreatment": "Cel scene framed like a sports documentary, optional reduced motion.",
+      "removeWebsitePatterns": [
+        "Generic quest cards",
+        "invented dialogue",
+        "multiple unrelated arcs per page"
+      ],
+      "emptyErrorState": "No eligible choice shows observation state; failed vote retains selection.",
+      "acceptance": [
+        "Unknown effects stay unknown; arrival cinematic remains unapproved.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "war-room",
+      "title": "Retired destination",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "Immediate safe transfer to supported hub with a minimal fallback.",
+      "primaryDecision": "Return to a valid destination.",
+      "spatialHierarchy": [
+        "Top: retired-route notice",
+        "Center: destination name",
+        "Right: Open hub"
+      ],
+      "pcInteraction": "Automatic replace navigation if authorized; fallback link keyboard reachable.",
+      "artTreatment": "No new art budget for obsolete route.",
+      "removeWebsitePatterns": [
+        "A new dashboard for a retired screen"
+      ],
+      "emptyErrorState": "No accessible league offers Dynasty selection.",
+      "acceptance": [
+        "No redirect loop, no extra history trap.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "not-found",
+      "title": "Return to the diamond",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A neutral diamond outline and two safe routes replace a web-style 404 page.",
+      "primaryDecision": "Recover without losing the user's context.",
+      "spatialHierarchy": [
+        "Left: neutral diamond",
+        "Center: plain problem",
+        "Right: accessible hub/library choices"
+      ],
+      "pcInteraction": "Escape to known safe destination only; explicit buttons always available.",
+      "artTreatment": "Quiet forest scene and brass route line.",
+      "removeWebsitePatterns": [
+        "Technical stack traces",
+        "humorous blame",
+        "site footer"
+      ],
+      "emptyErrorState": "Permission and missing route do not expose private league identity.",
+      "acceptance": [
+        "Recovery works with no session and no league membership.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "league-standings",
+      "title": "Conference race",
+      "referenceIds": [
+        "pc-2k26-roster"
+      ],
+      "composition": "A competition table sits next to a compact race diagram using only supported qualification rules.",
+      "primaryDecision": "Locate your team in the actual conference race.",
+      "spatialHierarchy": [
+        "Top: season/conference",
+        "Center 70%: standings",
+        "Right 25%: supported cutline/race notes",
+        "Bottom: qualification legend"
+      ],
+      "pcInteraction": "Header sort, conference keys, team row Enter; stable user-team marker.",
+      "artTreatment": "Broadcast league masthead and brass qualification rule.",
+      "removeWebsitePatterns": [
+        "Generic summary tiles",
+        "unnecessary team portraits"
+      ],
+      "emptyErrorState": "Incomplete reported results marked provisional.",
+      "acceptance": [
+        "Ties, games played and qualification logic visible; no invented cutline.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "league-teams",
+      "title": "Program directory",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A conference monogram board selects a program identity spread; comparison is a separate matched two-column view.",
+      "primaryDecision": "Inspect or compare programs.",
+      "spatialHierarchy": [
+        "Top: conference chooser",
+        "Left 35%: compact programs",
+        "Right: selected identity/facts",
+        "Comparison mode: equal columns"
+      ],
+      "pcInteraction": "Single click selects, Enter opens; Compare pins two named teams.",
+      "artTreatment": "School pennants and miniature campus crop.",
+      "removeWebsitePatterns": [
+        "Card catalog with identical art",
+        "random metric periods"
+      ],
+      "emptyErrorState": "Missing program facts are unknown; failed fetch retains selection.",
+      "acceptance": [
+        "Compare uses matching season/source and shows identities simultaneously.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "league-rankings",
+      "title": "The ranking release",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A broadcast ranking slate with the week's top program prominent above a flat ordered list.",
+      "primaryDecision": "Understand movement in this dated release.",
+      "spatialHierarchy": [
+        "Top: week/source",
+        "Left: featured top program",
+        "Center: ordered ranking",
+        "Right: prior rank/movement context"
+      ],
+      "pcInteraction": "Week arrows and keyboard list navigation; explicit new-entry label.",
+      "artTreatment": "Large rank numerals, team marks, no trophy art.",
+      "removeWebsitePatterns": [
+        "Current rankings masquerading as historical",
+        "colored movement without text"
+      ],
+      "emptyErrorState": "No prior release yields no fabricated delta.",
+      "acceptance": [
+        "Release date/source and new-versus-moved status remain visible.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "league-awards",
+      "title": "Honors gallery",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "One selected award dominates a stage while a compact roll of honors anchors the side.",
+      "primaryDecision": "Inspect a recipient and actual achievement.",
+      "spatialHierarchy": [
+        "Left 30%: award categories",
+        "Center: recipient/award stage",
+        "Right: factual season achievement"
+      ],
+      "pcInteraction": "Keyboard categories, click recipient, reduced-motion award transition.",
+      "artTreatment": "Brass honor silhouette and approved cel portrait.",
+      "removeWebsitePatterns": [
+        "Identical award cards",
+        "confetti on routine empty state"
+      ],
+      "emptyErrorState": "Unawarded season says not decided; ties or co-recipients retained.",
+      "acceptance": [
+        "No fabricated trophy or winner; evidence accessible in one action.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "league-history",
+      "title": "Years on the wall",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "Chronological championship pennants stand above a compact year ledger.",
+      "primaryDecision": "Choose a season to open its archive.",
+      "spatialHierarchy": [
+        "Top: year range",
+        "Left: championship wall",
+        "Center: year/champion list",
+        "Right: selected season retained facts"
+      ],
+      "pcInteraction": "Page/year keys and mouse rows; Enter opens Archive.",
+      "artTreatment": "Original pennant motifs; no copied licensed banners.",
+      "removeWebsitePatterns": [
+        "Endless timeline cards",
+        "a second archive implementation"
+      ],
+      "emptyErrorState": "No completed season has anticipatory blank wall, no dummy champion.",
+      "acceptance": [
+        "History indexes archived evidence rather than inventing richer summaries.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "league-edits",
+      "title": "Official corrections ledger",
+      "referenceIds": [
+        "pc-2k26-roster"
+      ],
+      "composition": "A sober correction log with one selected before/after spread.",
+      "primaryDecision": "Understand who corrected what and why.",
+      "spatialHierarchy": [
+        "Top: date/object filter",
+        "Left 40%: edit log",
+        "Center: before values",
+        "Right: after values/actor/reason"
+      ],
+      "pcInteraction": "Keyboard log selection; field difference toggles; Back retains exact edit.",
+      "artTreatment": "Scorekeeper correction marks, restrained amber.",
+      "removeWebsitePatterns": [
+        "Generic admin audit dashboard",
+        "exposed technical payloads"
+      ],
+      "emptyErrorState": "Unauthorized values omitted; fetch error not 'no edits'.",
+      "acceptance": [
+        "Actor, time, affected entity and authorized differences are explicit.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "season-recap",
+      "title": "The season film",
+      "referenceIds": [
+        "pc-2k26-legacy-text",
+        "pc-fc25-career-text"
+      ],
+      "composition": "Chaptered closing presentation alternates a record cover, results spread, honors stage and class ledger.",
+      "primaryDecision": "Reflect on the completed year and choose the next supported step.",
+      "spatialHierarchy": [
+        "Top: completed year/chapter",
+        "Center: chapter-specific presentation",
+        "Side: evidence link",
+        "Lower right: next/back"
+      ],
+      "pcInteraction": "Arrow/click chapters; skip to contents; reduced motion; no timed reading.",
+      "artTreatment": "Original team photo/miniature diamond direction; arrival reveal not included.",
+      "removeWebsitePatterns": [
+        "Long annual-report page",
+        "repeating KPI cards",
+        "unapproved cinematic"
+      ],
+      "emptyErrorState": "Missing snapshot chapter stays factual and marked unavailable.",
+      "acceptance": [
+        "Can revisit any chapter; never advances actual season from a presentation key.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    },
+    {
+      "id": "system-shell",
+      "title": "PC game frame",
+      "referenceIds": [
+        "pc-fc25-hub",
+        "pc-fc25-career-text"
+      ],
+      "composition": "A thin competition/status band and contextual top tabs surround a viewport-sized work area; game menu is an overlay.",
+      "primaryDecision": "Reach the next named task while retaining league/mode context.",
+      "spatialHierarchy": [
+        "Top 64px: league/mode/week",
+        "Below: destination tabs",
+        "Center: screen-specific canvas",
+        "Upper right: menu/account/status"
+      ],
+      "pcInteraction": "Mouse hit areas and Tab focus match; Escape closes overlays; shortcuts discoverable and disabled in text fields.",
+      "artTreatment": "Forest frame, brass active rule, cream text, sharp edges and modest corner radii.",
+      "removeWebsitePatterns": [
+        "Mobile bottom navigation",
+        "hamburger as sole nav",
+        "website footer",
+        "unlimited body page"
+      ],
+      "emptyErrorState": "Offline/stale indicators remain contextual; overlay focus restores origin.",
+      "acceptance": [
+        "Validate 1280x720, 1920x1080, 2560x1440 and 3440x1440; bounded panes, scalable text, no clipped action.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ]
+    }
+  ]
+}

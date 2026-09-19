@@ -748,9 +748,12 @@
         "../../scripts/verify-roster-context.ts",
         "W12_BATCH_03.md",
         "audits/W12_BATCH_03_AUDIT.md",
-        "../../scripts/verify-management-workspaces.ts"
+        "../../scripts/verify-management-workspaces.ts",
+        "../art-direction/pc-sports/README.md",
+        "../art-direction/pc-sports/AUDIT.md"
       ],
-      "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open."
+      "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open.",
+      "notes": " Frisk now specifies PC-only. The new research/atlas is design evidence only; replace web frame and implement individual screen compositions before claiming closure."
     },
     {
       "id": "UX-07",

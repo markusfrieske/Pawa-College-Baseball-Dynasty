@@ -1,0 +1,919 @@
+{
+  "schemaVersion": 1,
+  "note": "Authored non-overlapping wireframe maps, not pixel-final layouts. Zone order matches team.json spatialHierarchy. Environment/background zones show representative exposed scene area; final background art continues behind foreground objects. Header and status zones are exaggerated for blueprint label readability.",
+  "screens": [
+    {
+      "id": "hub",
+      "zones": [
+        {
+          "label": "Team and week",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Weekly agenda",
+          "x": 0,
+          "y": 17,
+          "w": 22,
+          "h": 83
+        },
+        {
+          "label": "Selected task scene",
+          "x": 24,
+          "y": 17,
+          "w": 49,
+          "h": 66
+        },
+        {
+          "label": "Coach and readiness",
+          "x": 75,
+          "y": 17,
+          "w": 25,
+          "h": 83
+        },
+        {
+          "label": "Next game strip",
+          "x": 24,
+          "y": 85,
+          "w": 49,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "roster",
+      "zones": [
+        {
+          "label": "Team roster identity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Comparable player rows",
+          "x": 0,
+          "y": 34,
+          "w": 70,
+          "h": 49
+        },
+        {
+          "label": "Selected athlete portrait",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        },
+        {
+          "label": "Position and metrics",
+          "x": 0,
+          "y": 17,
+          "w": 70,
+          "h": 15
+        },
+        {
+          "label": "Roster range controls",
+          "x": 0,
+          "y": 85,
+          "w": 70,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "team",
+      "zones": [
+        {
+          "label": "Record and opponent",
+          "x": 0,
+          "y": 0,
+          "w": 73,
+          "h": 15
+        },
+        {
+          "label": "Defensive diamond",
+          "x": 18,
+          "y": 17,
+          "w": 63,
+          "h": 83
+        },
+        {
+          "label": "Dugout batting order",
+          "x": 0,
+          "y": 17,
+          "w": 16,
+          "h": 83
+        },
+        {
+          "label": "Bullpen roles",
+          "x": 83,
+          "y": 17,
+          "w": 17,
+          "h": 83
+        },
+        {
+          "label": "Inspect or edit",
+          "x": 75,
+          "y": 0,
+          "w": 25,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "program",
+      "zones": [
+        {
+          "label": "School and season",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Season archive rail",
+          "x": 0,
+          "y": 17,
+          "w": 23,
+          "h": 57
+        },
+        {
+          "label": "Selected season record",
+          "x": 25,
+          "y": 17,
+          "w": 48,
+          "h": 57
+        },
+        {
+          "label": "Honors and alumni",
+          "x": 75,
+          "y": 17,
+          "w": 25,
+          "h": 57
+        },
+        {
+          "label": "Campus heritage mural",
+          "x": 0,
+          "y": 76,
+          "w": 100,
+          "h": 24
+        }
+      ]
+    },
+    {
+      "id": "coach",
+      "zones": [
+        {
+          "label": "Coach and chapters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Coach portrait",
+          "x": 0,
+          "y": 17,
+          "w": 29,
+          "h": 83
+        },
+        {
+          "label": "Selected chapter canvas",
+          "x": 31,
+          "y": 34,
+          "w": 69,
+          "h": 49
+        },
+        {
+          "label": "Points and prerequisites",
+          "x": 31,
+          "y": 17,
+          "w": 69,
+          "h": 15
+        },
+        {
+          "label": "Selected skill action",
+          "x": 56,
+          "y": 85,
+          "w": 44,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "identity",
+      "zones": [
+        {
+          "label": "Philosophy chapters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Current approach",
+          "x": 0,
+          "y": 17,
+          "w": 32,
+          "h": 83
+        },
+        {
+          "label": "Candidate approach",
+          "x": 54,
+          "y": 17,
+          "w": 46,
+          "h": 66
+        },
+        {
+          "label": "Changed consequences",
+          "x": 34,
+          "y": 17,
+          "w": 18,
+          "h": 83
+        },
+        {
+          "label": "Apply or cancel",
+          "x": 54,
+          "y": 85,
+          "w": 46,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "rivalries",
+      "zones": [
+        {
+          "label": "Rival and series",
+          "x": 0,
+          "y": 0,
+          "w": 66,
+          "h": 15
+        },
+        {
+          "label": "Opposing team monograms",
+          "x": 0,
+          "y": 17,
+          "w": 100,
+          "h": 29
+        },
+        {
+          "label": "Series and selected score",
+          "x": 18,
+          "y": 48,
+          "w": 64,
+          "h": 35
+        },
+        {
+          "label": "Meeting chronology",
+          "x": 0,
+          "y": 85,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Next scheduled meeting",
+          "x": 68,
+          "y": 0,
+          "w": 32,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "recruiting",
+      "zones": [
+        {
+          "label": "Needs and resources",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Target selection table",
+          "x": 0,
+          "y": 34,
+          "w": 64,
+          "h": 66
+        },
+        {
+          "label": "Selected prospect identity",
+          "x": 66,
+          "y": 17,
+          "w": 34,
+          "h": 37
+        },
+        {
+          "label": "Action and cost",
+          "x": 66,
+          "y": 56,
+          "w": 34,
+          "h": 44
+        },
+        {
+          "label": "Pool search filters",
+          "x": 0,
+          "y": 17,
+          "w": 64,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "recruit-profile",
+      "zones": [
+        {
+          "label": "Recruit media portrait",
+          "x": 0,
+          "y": 17,
+          "w": 33,
+          "h": 83
+        },
+        {
+          "label": "Chapter and knowledge",
+          "x": 35,
+          "y": 0,
+          "w": 65,
+          "h": 15
+        },
+        {
+          "label": "Scouting evidence sheet",
+          "x": 35,
+          "y": 17,
+          "w": 65,
+          "h": 66
+        },
+        {
+          "label": "Eligible next action",
+          "x": 35,
+          "y": 85,
+          "w": 65,
+          "h": 15
+        },
+        {
+          "label": "Return to board",
+          "x": 0,
+          "y": 0,
+          "w": 33,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "portal",
+      "zones": [
+        {
+          "label": "Portal and capacity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Transfer candidate list",
+          "x": 0,
+          "y": 34,
+          "w": 53,
+          "h": 66
+        },
+        {
+          "label": "Vacancy and incumbent",
+          "x": 55,
+          "y": 17,
+          "w": 45,
+          "h": 32
+        },
+        {
+          "label": "Candidate and offer",
+          "x": 55,
+          "y": 51,
+          "w": 45,
+          "h": 49
+        },
+        {
+          "label": "Needed role selector",
+          "x": 0,
+          "y": 17,
+          "w": 53,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "commits",
+      "zones": [
+        {
+          "label": "Class year and counts",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Class portrait sheet",
+          "x": 0,
+          "y": 34,
+          "w": 68,
+          "h": 66
+        },
+        {
+          "label": "Selected athlete status",
+          "x": 70,
+          "y": 17,
+          "w": 30,
+          "h": 66
+        },
+        {
+          "label": "Position groups",
+          "x": 0,
+          "y": 17,
+          "w": 68,
+          "h": 15
+        },
+        {
+          "label": "Inspect or spotlight",
+          "x": 70,
+          "y": 85,
+          "w": 30,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "arrival",
+      "zones": [
+        {
+          "label": "Miniature diamond scene",
+          "x": 0,
+          "y": 0,
+          "w": 64,
+          "h": 24
+        },
+        {
+          "label": "Arrival athlete",
+          "x": 55,
+          "y": 26,
+          "w": 45,
+          "h": 57
+        },
+        {
+          "label": "Nameplate and profile",
+          "x": 0,
+          "y": 26,
+          "w": 53,
+          "h": 57
+        },
+        {
+          "label": "Skip and sound",
+          "x": 66,
+          "y": 0,
+          "w": 34,
+          "h": 24
+        },
+        {
+          "label": "Class spotlight selection",
+          "x": 0,
+          "y": 85,
+          "w": 100,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "leaving",
+      "zones": [
+        {
+          "label": "Season and sources",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Team departure matrix",
+          "x": 0,
+          "y": 34,
+          "w": 73,
+          "h": 49
+        },
+        {
+          "label": "Selected departing athletes",
+          "x": 75,
+          "y": 17,
+          "w": 25,
+          "h": 83
+        },
+        {
+          "label": "Team category filters",
+          "x": 0,
+          "y": 17,
+          "w": 73,
+          "h": 15
+        },
+        {
+          "label": "Matrix row position",
+          "x": 0,
+          "y": 85,
+          "w": 73,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "departures",
+      "zones": [
+        {
+          "label": "Pending player cases",
+          "x": 0,
+          "y": 17,
+          "w": 18,
+          "h": 83
+        },
+        {
+          "label": "Athlete and reason",
+          "x": 20,
+          "y": 17,
+          "w": 38,
+          "h": 83
+        },
+        {
+          "label": "Retention consequences",
+          "x": 60,
+          "y": 17,
+          "w": 40,
+          "h": 66
+        },
+        {
+          "label": "Phase and resources",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Confirm selected choice",
+          "x": 60,
+          "y": 85,
+          "w": 40,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "walkons",
+      "zones": [
+        {
+          "label": "Capacity and obligations",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Tryout candidate sheet",
+          "x": 0,
+          "y": 34,
+          "w": 63,
+          "h": 66
+        },
+        {
+          "label": "Athlete role evidence",
+          "x": 65,
+          "y": 17,
+          "w": 35,
+          "h": 37
+        },
+        {
+          "label": "Bid and review",
+          "x": 65,
+          "y": 56,
+          "w": 35,
+          "h": 44
+        },
+        {
+          "label": "Role filter",
+          "x": 0,
+          "y": 17,
+          "w": 63,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "roster-depth",
+      "zones": [
+        {
+          "label": "Lineup mode and save",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Active lineup canvas",
+          "x": 12,
+          "y": 17,
+          "w": 59,
+          "h": 83
+        },
+        {
+          "label": "Eligible bench players",
+          "x": 73,
+          "y": 17,
+          "w": 27,
+          "h": 66
+        },
+        {
+          "label": "Slot order index",
+          "x": 0,
+          "y": 17,
+          "w": 10,
+          "h": 83
+        },
+        {
+          "label": "Review and save",
+          "x": 73,
+          "y": 85,
+          "w": 27,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "roster-development",
+      "zones": [
+        {
+          "label": "Offseason and source",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Recorded change ranking",
+          "x": 0,
+          "y": 17,
+          "w": 40,
+          "h": 83
+        },
+        {
+          "label": "Before after metrics",
+          "x": 42,
+          "y": 34,
+          "w": 58,
+          "h": 49
+        },
+        {
+          "label": "Metric group lens",
+          "x": 42,
+          "y": 17,
+          "w": 58,
+          "h": 15
+        },
+        {
+          "label": "Change evidence explanation",
+          "x": 42,
+          "y": 85,
+          "w": 58,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "player-profile",
+      "zones": [
+        {
+          "label": "Player portrait identity",
+          "x": 0,
+          "y": 0,
+          "w": 30,
+          "h": 83
+        },
+        {
+          "label": "Profile data chapters",
+          "x": 32,
+          "y": 0,
+          "w": 46,
+          "h": 15
+        },
+        {
+          "label": "Selected chapter metrics",
+          "x": 32,
+          "y": 17,
+          "w": 68,
+          "h": 83
+        },
+        {
+          "label": "Team role status",
+          "x": 0,
+          "y": 85,
+          "w": 30,
+          "h": 15
+        },
+        {
+          "label": "Permitted player actions",
+          "x": 80,
+          "y": 0,
+          "w": 20,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "recruit-compare",
+      "zones": [
+        {
+          "label": "Candidate identities",
+          "x": 20,
+          "y": 0,
+          "w": 58,
+          "h": 22
+        },
+        {
+          "label": "Aligned comparison metrics",
+          "x": 20,
+          "y": 24,
+          "w": 80,
+          "h": 59
+        },
+        {
+          "label": "Metric knowledge legend",
+          "x": 0,
+          "y": 24,
+          "w": 18,
+          "h": 59
+        },
+        {
+          "label": "Costs and eligibility",
+          "x": 20,
+          "y": 85,
+          "w": 80,
+          "h": 15
+        },
+        {
+          "label": "Metric comparison lens",
+          "x": 80,
+          "y": 0,
+          "w": 20,
+          "h": 22
+        }
+      ]
+    },
+    {
+      "id": "recruit-filters",
+      "zones": [
+        {
+          "label": "Criteria and count",
+          "x": 12,
+          "y": 10,
+          "w": 78,
+          "h": 15
+        },
+        {
+          "label": "Scouting criteria form",
+          "x": 12,
+          "y": 27,
+          "w": 49,
+          "h": 51
+        },
+        {
+          "label": "Conditions and presets",
+          "x": 63,
+          "y": 27,
+          "w": 27,
+          "h": 34
+        },
+        {
+          "label": "Apply and reset",
+          "x": 63,
+          "y": 63,
+          "w": 27,
+          "h": 15
+        },
+        {
+          "label": "Retained board selection",
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 100
+        }
+      ]
+    },
+    {
+      "id": "walkon-results",
+      "zones": [
+        {
+          "label": "Auction outcome total",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 20
+        },
+        {
+          "label": "Signed outbid ledger",
+          "x": 0,
+          "y": 22,
+          "w": 73,
+          "h": 61
+        },
+        {
+          "label": "Confirmed athlete",
+          "x": 75,
+          "y": 22,
+          "w": 25,
+          "h": 61
+        },
+        {
+          "label": "Actual roster effects",
+          "x": 0,
+          "y": 85,
+          "w": 73,
+          "h": 15
+        },
+        {
+          "label": "Return to roster",
+          "x": 75,
+          "y": 85,
+          "w": 25,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "departure-dialogs",
+      "zones": [
+        {
+          "label": "Affected player names",
+          "x": 8,
+          "y": 37,
+          "w": 20,
+          "h": 40
+        },
+        {
+          "label": "Consequences and cost",
+          "x": 30,
+          "y": 37,
+          "w": 42,
+          "h": 40
+        },
+        {
+          "label": "Cancel then confirm",
+          "x": 74,
+          "y": 37,
+          "w": 18,
+          "h": 40
+        },
+        {
+          "label": "Phase and decision",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 15
+        }
+      ]
+    },
+    {
+      "id": "league-prospects",
+      "zones": [
+        {
+          "label": "Class and pool",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "National prospect index",
+          "x": 0,
+          "y": 34,
+          "w": 76,
+          "h": 49
+        },
+        {
+          "label": "Selected player origin",
+          "x": 78,
+          "y": 17,
+          "w": 22,
+          "h": 83
+        },
+        {
+          "label": "Search and sorting",
+          "x": 0,
+          "y": 17,
+          "w": 76,
+          "h": 15
+        },
+        {
+          "label": "Prospect result range",
+          "x": 0,
+          "y": 85,
+          "w": 76,
+          "h": 15
+        }
+      ]
+    }
+  ]
+}

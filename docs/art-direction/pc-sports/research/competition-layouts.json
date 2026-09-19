@@ -1,0 +1,940 @@
+[
+  {
+    "id": "schedule",
+    "zones": [
+      {
+        "label": "Season week rail",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Home and away series",
+        "x": 0,
+        "y": 18,
+        "w": 100,
+        "h": 48
+      },
+      {
+        "label": "Selected game status",
+        "x": 0,
+        "y": 68,
+        "w": 69,
+        "h": 32
+      },
+      {
+        "label": "Fixture actions",
+        "x": 71,
+        "y": 68,
+        "w": 29,
+        "h": 32
+      }
+    ]
+  },
+  {
+    "id": "prep",
+    "zones": [
+      {
+        "label": "Away team starter",
+        "x": 0,
+        "y": 0,
+        "w": 37,
+        "h": 69
+      },
+      {
+        "label": "Home team starter",
+        "x": 63,
+        "y": 0,
+        "w": 37,
+        "h": 69
+      },
+      {
+        "label": "Matchup metrics spine",
+        "x": 39,
+        "y": 0,
+        "w": 22,
+        "h": 69
+      },
+      {
+        "label": "Your lineup availability",
+        "x": 0,
+        "y": 71,
+        "w": 100,
+        "h": 29
+      }
+    ]
+  },
+  {
+    "id": "report",
+    "zones": [
+      {
+        "label": "Editable inning strip",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 18
+      },
+      {
+        "label": "Team stat worksheet",
+        "x": 0,
+        "y": 20,
+        "w": 65,
+        "h": 61
+      },
+      {
+        "label": "Source image lens",
+        "x": 67,
+        "y": 20,
+        "w": 33,
+        "h": 80
+      },
+      {
+        "label": "Validate and submit",
+        "x": 0,
+        "y": 83,
+        "w": 65,
+        "h": 17
+      }
+    ]
+  },
+  {
+    "id": "play-unavailable",
+    "zones": [
+      {
+        "label": "Known game identity",
+        "x": 18,
+        "y": 9,
+        "w": 64,
+        "h": 23
+      },
+      {
+        "label": "Why play is unavailable",
+        "x": 18,
+        "y": 34,
+        "w": 64,
+        "h": 34
+      },
+      {
+        "label": "Supported continuations",
+        "x": 18,
+        "y": 70,
+        "w": 64,
+        "h": 20
+      }
+    ]
+  },
+  {
+    "id": "postseason",
+    "zones": [
+      {
+        "label": "Tournament round headings",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Connected series bracket",
+        "x": 0,
+        "y": 18,
+        "w": 100,
+        "h": 58
+      },
+      {
+        "label": "Selected series evidence",
+        "x": 0,
+        "y": 78,
+        "w": 73,
+        "h": 22
+      },
+      {
+        "label": "Path and round focus",
+        "x": 75,
+        "y": 78,
+        "w": 25,
+        "h": 22
+      }
+    ]
+  },
+  {
+    "id": "championship",
+    "zones": [
+      {
+        "label": "Verified champion",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 20
+      },
+      {
+        "label": "Trophy and program",
+        "x": 14,
+        "y": 22,
+        "w": 72,
+        "h": 45
+      },
+      {
+        "label": "Final series record",
+        "x": 5,
+        "y": 69,
+        "w": 90,
+        "h": 16
+      },
+      {
+        "label": "Record and skip",
+        "x": 25,
+        "y": 87,
+        "w": 50,
+        "h": 13
+      }
+    ]
+  },
+  {
+    "id": "commissioner",
+    "zones": [
+      {
+        "label": "Current league operation",
+        "x": 0,
+        "y": 0,
+        "w": 76,
+        "h": 18
+      },
+      {
+        "label": "Blocking obligations",
+        "x": 0,
+        "y": 20,
+        "w": 31,
+        "h": 80
+      },
+      {
+        "label": "Team readiness panorama",
+        "x": 33,
+        "y": 20,
+        "w": 43,
+        "h": 80
+      },
+      {
+        "label": "Office chapter navigation",
+        "x": 78,
+        "y": 0,
+        "w": 22,
+        "h": 100
+      }
+    ]
+  },
+  {
+    "id": "edit-rosters",
+    "zones": [
+      {
+        "label": "League and team scope",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Player correction ledger",
+        "x": 0,
+        "y": 18,
+        "w": 100,
+        "h": 44
+      },
+      {
+        "label": "Selected attribute bench",
+        "x": 0,
+        "y": 64,
+        "w": 70,
+        "h": 36
+      },
+      {
+        "label": "Named change review",
+        "x": 72,
+        "y": 64,
+        "w": 28,
+        "h": 36
+      }
+    ]
+  },
+  {
+    "id": "edit-recruits",
+    "zones": [
+      {
+        "label": "Class visibility scope",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 17
+      },
+      {
+        "label": "Prospect correction list",
+        "x": 0,
+        "y": 19,
+        "w": 57,
+        "h": 81
+      },
+      {
+        "label": "Public attributes",
+        "x": 59,
+        "y": 19,
+        "w": 41,
+        "h": 29
+      },
+      {
+        "label": "Restricted trait fields",
+        "x": 59,
+        "y": 50,
+        "w": 41,
+        "h": 29
+      },
+      {
+        "label": "Recruit save receipt",
+        "x": 59,
+        "y": 81,
+        "w": 41,
+        "h": 19
+      }
+    ]
+  },
+  {
+    "id": "roster-library",
+    "zones": [
+      {
+        "label": "File version identity",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Source team tree",
+        "x": 0,
+        "y": 18,
+        "w": 19,
+        "h": 63
+      },
+      {
+        "label": "Roster file grid",
+        "x": 21,
+        "y": 18,
+        "w": 52,
+        "h": 63
+      },
+      {
+        "label": "Selected field inspector",
+        "x": 75,
+        "y": 18,
+        "w": 25,
+        "h": 63
+      },
+      {
+        "label": "Save destination review",
+        "x": 0,
+        "y": 83,
+        "w": 100,
+        "h": 17
+      }
+    ]
+  },
+  {
+    "id": "roster-viewer",
+    "zones": [
+      {
+        "label": "Source roster selector",
+        "x": 0,
+        "y": 0,
+        "w": 28,
+        "h": 18
+      },
+      {
+        "label": "Browse source ledger",
+        "x": 0,
+        "y": 20,
+        "w": 28,
+        "h": 80
+      },
+      {
+        "label": "Player comparison identities",
+        "x": 30,
+        "y": 0,
+        "w": 70,
+        "h": 30
+      },
+      {
+        "label": "Shared metric plane",
+        "x": 30,
+        "y": 32,
+        "w": 70,
+        "h": 68
+      }
+    ]
+  },
+  {
+    "id": "class-library",
+    "zones": [
+      {
+        "label": "Class archive shelf",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 23
+      },
+      {
+        "label": "Class manifest table",
+        "x": 0,
+        "y": 25,
+        "w": 49,
+        "h": 53
+      },
+      {
+        "label": "Selected recruit editor",
+        "x": 51,
+        "y": 25,
+        "w": 49,
+        "h": 53
+      },
+      {
+        "label": "Save share load review",
+        "x": 0,
+        "y": 80,
+        "w": 100,
+        "h": 20
+      }
+    ]
+  },
+  {
+    "id": "import-class",
+    "zones": [
+      {
+        "label": "Source class identity",
+        "x": 0,
+        "y": 0,
+        "w": 36,
+        "h": 24
+      },
+      {
+        "label": "Import destination identity",
+        "x": 64,
+        "y": 0,
+        "w": 36,
+        "h": 24
+      },
+      {
+        "label": "Transfer consequence",
+        "x": 38,
+        "y": 0,
+        "w": 24,
+        "h": 24
+      },
+      {
+        "label": "Read only class manifest",
+        "x": 0,
+        "y": 26,
+        "w": 100,
+        "h": 53
+      },
+      {
+        "label": "Import outcome receipt",
+        "x": 0,
+        "y": 81,
+        "w": 100,
+        "h": 19
+      }
+    ]
+  },
+  {
+    "id": "class-share",
+    "zones": [
+      {
+        "label": "Shared class cover",
+        "x": 0,
+        "y": 0,
+        "w": 32,
+        "h": 41
+      },
+      {
+        "label": "Prospect ranking spread",
+        "x": 34,
+        "y": 0,
+        "w": 66,
+        "h": 72
+      },
+      {
+        "label": "Public player profile",
+        "x": 0,
+        "y": 43,
+        "w": 32,
+        "h": 57
+      },
+      {
+        "label": "Source and import",
+        "x": 34,
+        "y": 74,
+        "w": 66,
+        "h": 26
+      }
+    ]
+  },
+  {
+    "id": "score-review",
+    "zones": [
+      {
+        "label": "Report matchup revision",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 20
+      },
+      {
+        "label": "Submitted stat chapters",
+        "x": 0,
+        "y": 22,
+        "w": 48,
+        "h": 54
+      },
+      {
+        "label": "Report evidence plane",
+        "x": 50,
+        "y": 22,
+        "w": 50,
+        "h": 54
+      },
+      {
+        "label": "Decision and reason",
+        "x": 0,
+        "y": 78,
+        "w": 100,
+        "h": 22
+      }
+    ]
+  },
+  {
+    "id": "box-score",
+    "zones": [
+      {
+        "label": "Authoritative line score",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 24
+      },
+      {
+        "label": "Team stat chapters",
+        "x": 0,
+        "y": 26,
+        "w": 19,
+        "h": 58
+      },
+      {
+        "label": "Game performance table",
+        "x": 21,
+        "y": 26,
+        "w": 79,
+        "h": 58
+      },
+      {
+        "label": "Source and completeness",
+        "x": 0,
+        "y": 86,
+        "w": 100,
+        "h": 14
+      }
+    ]
+  },
+  {
+    "id": "commission-command",
+    "zones": [
+      {
+        "label": "Week operation status",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Team obligation matrix",
+        "x": 0,
+        "y": 18,
+        "w": 100,
+        "h": 53
+      },
+      {
+        "label": "Selected blocker evidence",
+        "x": 0,
+        "y": 73,
+        "w": 68,
+        "h": 27
+      },
+      {
+        "label": "Server readiness summary",
+        "x": 70,
+        "y": 73,
+        "w": 30,
+        "h": 27
+      }
+    ]
+  },
+  {
+    "id": "commission-actions",
+    "zones": [
+      {
+        "label": "Selected operation",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 17
+      },
+      {
+        "label": "Affected league scope",
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 81
+      },
+      {
+        "label": "Current preflight evidence",
+        "x": 26,
+        "y": 19,
+        "w": 46,
+        "h": 81
+      },
+      {
+        "label": "Execute and status",
+        "x": 74,
+        "y": 19,
+        "w": 26,
+        "h": 81
+      }
+    ]
+  },
+  {
+    "id": "commission-settings",
+    "zones": [
+      {
+        "label": "League mode scope",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Rule category rail",
+        "x": 0,
+        "y": 18,
+        "w": 100,
+        "h": 17
+      },
+      {
+        "label": "Saved and draft values",
+        "x": 0,
+        "y": 37,
+        "w": 75,
+        "h": 63
+      },
+      {
+        "label": "Apply or discard",
+        "x": 77,
+        "y": 37,
+        "w": 23,
+        "h": 63
+      }
+    ]
+  },
+  {
+    "id": "commission-audit",
+    "zones": [
+      {
+        "label": "Time action filters",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 16
+      },
+      {
+        "label": "Immutable event ledger",
+        "x": 0,
+        "y": 18,
+        "w": 100,
+        "h": 49
+      },
+      {
+        "label": "Target actor evidence",
+        "x": 0,
+        "y": 69,
+        "w": 38,
+        "h": 31
+      },
+      {
+        "label": "Available event payload",
+        "x": 40,
+        "y": 69,
+        "w": 60,
+        "h": 31
+      }
+    ]
+  },
+  {
+    "id": "commission-invites",
+    "zones": [
+      {
+        "label": "Invitation validity register",
+        "x": 0,
+        "y": 0,
+        "w": 60,
+        "h": 62
+      },
+      {
+        "label": "Selected invite scope",
+        "x": 62,
+        "y": 0,
+        "w": 38,
+        "h": 28
+      },
+      {
+        "label": "Coach seat assignment",
+        "x": 62,
+        "y": 30,
+        "w": 38,
+        "h": 32
+      },
+      {
+        "label": "Copy revoke consequences",
+        "x": 0,
+        "y": 64,
+        "w": 100,
+        "h": 36
+      }
+    ]
+  },
+  {
+    "id": "commission-reports",
+    "zones": [
+      {
+        "label": "Report exception queue",
+        "x": 0,
+        "y": 0,
+        "w": 25,
+        "h": 100
+      },
+      {
+        "label": "Selected report revision",
+        "x": 27,
+        "y": 0,
+        "w": 73,
+        "h": 20
+      },
+      {
+        "label": "Evidence validation stage",
+        "x": 27,
+        "y": 22,
+        "w": 73,
+        "h": 54
+      },
+      {
+        "label": "Revision bound decision",
+        "x": 27,
+        "y": 78,
+        "w": 73,
+        "h": 22
+      }
+    ]
+  },
+  {
+    "id": "commission-nil",
+    "zones": [
+      {
+        "label": "League budget basis",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 18
+      },
+      {
+        "label": "Team financial sheet",
+        "x": 0,
+        "y": 20,
+        "w": 100,
+        "h": 43
+      },
+      {
+        "label": "Known team obligations",
+        "x": 0,
+        "y": 65,
+        "w": 60,
+        "h": 35
+      },
+      {
+        "label": "Correction scope receipt",
+        "x": 62,
+        "y": 65,
+        "w": 38,
+        "h": 35
+      }
+    ]
+  },
+  {
+    "id": "commission-schedule",
+    "zones": [
+      {
+        "label": "Week team coverage",
+        "x": 0,
+        "y": 0,
+        "w": 66,
+        "h": 69
+      },
+      {
+        "label": "Verified diagnostic list",
+        "x": 68,
+        "y": 0,
+        "w": 32,
+        "h": 69
+      },
+      {
+        "label": "Affected fixture evidence",
+        "x": 0,
+        "y": 71,
+        "w": 66,
+        "h": 29
+      },
+      {
+        "label": "Check scope timestamp",
+        "x": 68,
+        "y": 71,
+        "w": 32,
+        "h": 29
+      }
+    ]
+  },
+  {
+    "id": "commission-editor",
+    "zones": [
+      {
+        "label": "Entity type rail",
+        "x": 0,
+        "y": 0,
+        "w": 100,
+        "h": 17
+      },
+      {
+        "label": "Stable entity ledger",
+        "x": 0,
+        "y": 19,
+        "w": 27,
+        "h": 81
+      },
+      {
+        "label": "Selected category editor",
+        "x": 29,
+        "y": 19,
+        "w": 71,
+        "h": 53
+      },
+      {
+        "label": "History reversal boundary",
+        "x": 29,
+        "y": 74,
+        "w": 71,
+        "h": 26
+      }
+    ]
+  },
+  {
+    "id": "commission-saves",
+    "zones": [
+      {
+        "label": "Snapshot chronology",
+        "x": 0,
+        "y": 0,
+        "w": 43,
+        "h": 100
+      },
+      {
+        "label": "Selected recovery point",
+        "x": 45,
+        "y": 0,
+        "w": 55,
+        "h": 23
+      },
+      {
+        "label": "Coverage and exclusions",
+        "x": 45,
+        "y": 25,
+        "w": 55,
+        "h": 44
+      },
+      {
+        "label": "Restore restriction stage",
+        "x": 45,
+        "y": 71,
+        "w": 55,
+        "h": 29
+      }
+    ]
+  },
+  {
+    "id": "advance-progress",
+    "zones": [
+      {
+        "label": "Current operation identity",
+        "x": 12,
+        "y": 0,
+        "w": 76,
+        "h": 17
+      },
+      {
+        "label": "Confirmed phase transition",
+        "x": 12,
+        "y": 19,
+        "w": 76,
+        "h": 22
+      },
+      {
+        "label": "Checkpoint and observation",
+        "x": 12,
+        "y": 43,
+        "w": 76,
+        "h": 19
+      },
+      {
+        "label": "Recovery status log",
+        "x": 12,
+        "y": 64,
+        "w": 76,
+        "h": 36
+      }
+    ]
+  },
+  {
+    "id": "file-dialogs",
+    "zones": [
+      {
+        "label": "Operation and source",
+        "x": 17,
+        "y": 7,
+        "w": 66,
+        "h": 18
+      },
+      {
+        "label": "Destination and visibility",
+        "x": 17,
+        "y": 27,
+        "w": 66,
+        "h": 20
+      },
+      {
+        "label": "Exact file consequences",
+        "x": 17,
+        "y": 49,
+        "w": 66,
+        "h": 25
+      },
+      {
+        "label": "Cancel commit receipt",
+        "x": 17,
+        "y": 76,
+        "w": 66,
+        "h": 17
+      }
+    ]
+  }
+]

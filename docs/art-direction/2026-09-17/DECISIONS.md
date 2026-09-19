@@ -194,3 +194,7 @@ These are sound-direction descriptions, not auditioned audio samples. Audio stay
 The generated [portrait studies](assets/portrait-studies.png) and [environment studies](assets/environment-studies.png) are visual exploration, not production-ready assets. They do not demonstrate a complete modular character kit, all responsive crops, tested accessibility or a working game screen. No production UI is replaced by this package.
 
 After Frisk selects or combines options, apply the chosen system to the six screens above using actual information hierarchy and representative data. Validate desktop and narrow mobile layouts, keyboard access, contrast, empty/loading/error states, a 24-character sheet and multiple team colors before migrating shared components. Keep the chosen decisions and subsequent revisions in this directory so implementation follows one durable art brief.
+
+## PC-only design override — September 18, 2026
+
+Frisk explicitly rejected the remaining website-like menu presentation and removed mobile play as a target. The new [PC sports-game guide](../pc-sports/GAMEDEV_GUIDE.md) supersedes prior compact/mobile composition requirements. Approved Class of Nine branding remains; arrival proposal stays unapproved. All screen proposals are mapped in the [PC atlas](../pc-sports/README.md). Scheduled work remains paused.

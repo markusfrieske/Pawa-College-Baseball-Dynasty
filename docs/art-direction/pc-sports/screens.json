@@ -1,0 +1,5307 @@
+{
+  "status": "PC design proposals, not production functionality",
+  "sources": [
+    {
+      "id": "team-cfb26-hub-image",
+      "title": "College Football 26 — Dynasty Hub / Marcus Freeman",
+      "url": "https://drop-assets.ea.com/images/6vm4cGTcc50es0MAL1i008/f5732bd7946afa16ec16b87e2231b721/MarcusFreeman4.png",
+      "observed": "Parent research agent directly viewed official 1920x1080 image: top dynasty/week context, horizontal categories, quarter-width actions, selected cream Play Game, oversized matchup scene, full-height coach on right, bottom input/status band.",
+      "adaptation": "Let the selected weekly decision own a baseball scene; use a small context HUD instead of a web sidebar.",
+      "evidenceType": "Official screenshot visually inspected by parent through browser; no game execution."
+    },
+    {
+      "id": "team-cfb26-recruit-image",
+      "title": "College Football 26 — ASU prospect list",
+      "url": "https://drop-assets.ea.com/images/6SFdNjQrT1bFHVUXZR6yM3/7d14b85340c8c3d8e61408a00b874db8/ASURecruiting5.png",
+      "observed": "Direct image inspection: 16:9 canvas, title and category tabs top-left; resource counters top-right; pinned positional-needs band above a roughly ten-row table; selected row cream; portrait, identity and dealbreaker panel on right; textured school-color perimeter.",
+      "adaptation": "A baseball recruiting operations surface can reserve space for a selected target and needs without placing every action in every row.",
+      "evidenceType": "Official screenshot visually inspected in CUA on September 18, 2026; source image itself, not only caption."
+    },
+    {
+      "id": "team-cfb26-dynasty-text",
+      "title": "College Football 26 — Dynasty & Team Builder Deep Dive",
+      "url": "https://www.ea.com/games/ea-sports-college-football/college-football-26/news/cfb26-campus-huddle-dynasty-deep-dive",
+      "observed": "EA describes pinned team needs and board indicators intended to reduce view switching. Historical records have a dedicated destination.",
+      "adaptation": "Keep the decision's constraints in view. Separate active operations from institutional memory; import no football budgets or mechanics.",
+      "evidenceType": "Official developer text read; workflow intent, not hands-on usability proof."
+    },
+    {
+      "id": "team-madden26-coach-image",
+      "title": "Madden NFL 26 — Coach Central approval overview",
+      "url": "https://drop-assets.ea.com/images/5x8ukJeBjIaKPNGPYTYZp/3726f1b7d310f8d64fc6d31d93a3cedd/APPROVALRATING.jpg",
+      "observed": "Direct inspection: dark field environment fills the canvas; chapter tabs sit top-left; four staff entries occupy a scoped left selector; coach portrait/name leads center; selected approval metric dominates upper-right; restrained rules divide supporting data.",
+      "adaptation": "Make coach identity physically present and give each chapter a focused surface; avoid repeating summary cards around an avatar.",
+      "evidenceType": "Official screenshot visually inspected in CUA on September 18, 2026."
+    },
+    {
+      "id": "team-madden26-franchise-text",
+      "title": "Madden NFL 26 — Franchise Deep Dive",
+      "url": "https://www.ea.com/games/madden-nfl/madden-nfl-26/news/madden-26-gridiron-notes-franchise-deep-dive",
+      "observed": "Developer text places overview, abilities and playsheets in Coach Central and describes separate weekly preparation choices.",
+      "adaptation": "Use contextual chapters and explicit preparation state. Do not import coach approval, staff simulation or playsheets absent from Class of Nine.",
+      "evidenceType": "Official developer text read; no hands-on test."
+    },
+    {
+      "id": "team-retro-bowl-hub-image",
+      "title": "Retro Bowl — publisher Google Play season hub screenshot",
+      "url": "https://play-lh.googleusercontent.com/FUOnDDnAcauy7egG6rISBqOiPEw6D41pxk_17WqkLaFSA6LWhBtNUkkysAFcO4ThW9WKYANDA5JCArzy541i%3Dw526-h296",
+      "observed": "Publisher screenshot viewed directly: bounded landscape screen; week timeline across top; compact division standings and team condition below; clear Continue at bottom-right. Its bottom destination buttons are visible and intentionally rejected for this project.",
+      "adaptation": "Keep an immediately legible next step and whole-screen rhythm. Do not copy bottom navigation, pixel typography or simplified football stats.",
+      "evidenceType": "Publisher-provided Google Play screenshot visually inspected in CUA, September 18, 2026; original asset 526x296."
+    },
+    {
+      "id": "team-retro-bowl-official",
+      "title": "Retro Bowl — New Star Games",
+      "url": "https://www.newstargames.com/retro-bowl",
+      "observed": "Developer describes simple roster management alongside on-field play.",
+      "adaptation": "Reduce the number of decisions competing on one screen while retaining baseball simulation depth in deliberate chapters.",
+      "evidenceType": "Official developer description read; simplicity principle is our design inference, not a measured usability finding."
+    },
+    {
+      "id": "competition-pc-nhl-hub",
+      "title": "NHL 25 official Franchise Deep Dive — hub screenshots",
+      "url": "https://www.ea.com/games/nhl/nhl-25/news/franchise-blog",
+      "observed": "Inspected the Vancouver/Ottawa hub image: calendar ribbon above central opposing crests; projected goalies underneath; quick commands left and league leaders right. Background and oversized matchup lettering unify the screen.",
+      "adaptation": "Use opposing team identity for prep and a narrow week ribbon for schedule. The canvas belongs to the match, with ancillary information subordinate.",
+      "evidenceType": "Direct visual inspection of official embedded screenshot in browser, 2026-09-18. No hands-on game evaluation."
+    },
+    {
+      "id": "competition-pc-nhl-result",
+      "title": "NHL 25 official Franchise Deep Dive — box scores",
+      "url": "https://www.ea.com/games/nhl/nhl-25/news/franchise-blog",
+      "observed": "Inspected official result images: scoreboard matrix for game selection; selected result has large team names aligned with period totals, FINAL label and broad destinations for events, team stats and stars.",
+      "adaptation": "Build a baseball line-score anchor with team-stat chapters. Use FINAL only for accepted or authoritative simulated results; this restriction is C9-specific.",
+      "evidenceType": "Direct visual inspection of official embedded box-score screenshots in browser, 2026-09-18. No hands-on."
+    },
+    {
+      "id": "competition-pc-show-ledger",
+      "title": "MLB The Show 25 — Fielding Feedback: Franchise Front Office Experience, 1:50",
+      "url": "https://www.youtube.com/watch?v=yMKktvft4Jo&t=110s",
+      "observed": "At 1:50 the official PlayStation video shows a wide free-agent table with rank/name/OVR/potential/position/age/bats/throws; a single outlined row carries selection. Week and budget remain above.",
+      "adaptation": "Make sport-relevant rows the primary plane for player and budget work. Share selection semantics, not identical page composition. C9 knowledge boundaries replace MLB rating assumptions.",
+      "evidenceType": "Direct visual inspection of official PlayStation video frame at 1:50 in browser, 2026-09-18; not hands-on."
+    },
+    {
+      "id": "competition-pc-show-decision",
+      "title": "MLB The Show 25 — Fielding Feedback: Franchise Front Office Experience, 2:02",
+      "url": "https://www.youtube.com/watch?v=yMKktvft4Jo&t=122s",
+      "observed": "At 2:02 a player model fills the left; a response and action occupy the center; a separate right strip retains identity, demand and declined offer. The decision does not become a new generic dashboard.",
+      "adaptation": "Use bounded action stages where target identity, consequence and exact action can be read together. C9 permission, revision and restore restrictions are proposed safeguards, not sourced MLB behavior.",
+      "evidenceType": "Direct visual inspection of official PlayStation video frame at 2:02 in browser, 2026-09-18; not hands-on."
+    },
+    {
+      "id": "experience-pc-fc25-hub",
+      "title": "EA SPORTS FC 25 career hub screenshot",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-25/news/pitch-notes-fc-25-career-mode-deep-dive",
+      "imageUrl": "https://drop-assets.ea.com/images/2x1PYfKD2jvUlGF9j629H1/b745fb2118d193490a17cece583358bf/FC_25_-_Career_Deep_Dive_-_New_Menu_Visuals.jpg",
+      "observed": "Directly inspected screenshot: top navigation, large date, left task list with bright selected row, one editorial stadium image on right, contextual command hints below.",
+      "adaptation": "Use a task-specific stage, clear selection and one visual anchor. Replace controller hints with genuine PC interactions; avoid copying social-feed clutter.",
+      "evidenceType": "Direct screenshot inspection in browser, 2026-09-18. No hands-on game test."
+    },
+    {
+      "id": "experience-pc-fc25-career-text",
+      "title": "EA SPORTS FC 25 Career Mode Deep Dive",
+      "url": "https://www.ea.com/games/ea-sports-fc/fc-25/news/pitch-notes-fc-25-career-mode-deep-dive",
+      "observed": "Article describes a task list surfacing pending actions and social stories covering results and transfers; setup has distinct career origins.",
+      "adaptation": "Keep actionable correspondence separate from editorial storytelling. Entry decisions deserve their own scene and explicit consequences.",
+      "evidenceType": "Official developer article text; adaptation is Class of Nine design inference."
+    },
+    {
+      "id": "experience-pc-2k26-roster",
+      "title": "NBA 2K26 official MyNBA roster viewer screenshot",
+      "url": "https://nba.2k.com/2k26/courtside-report/mynba/",
+      "imageUrl": "https://assets.2k.com/1a6ngf98576c/4F2pH6zs5Tb3EVKTNnZdid/8e9926deb4df061c58acfd65bce38577/N26-ALL-MYNBA_ERAS_ALT-NA-STATIC-ENUS-NO_RATING-AGN-1920X1080-FINAL.jpg",
+      "observed": "Directly inspected roster screenshot: broad selected-player identity band, tabbed metric families, dense aligned ledger, strong full-row selection and contextual hints. Source labels image Historical Eras; visible content is roster viewer.",
+      "adaptation": "Preserve uninterrupted tables and selected context. Use metric groups instead of giant horizontal scrolling; do not copy basketball ratings or presentation marks.",
+      "evidenceType": "Direct official screenshot inspection in browser, 2026-09-18. No hands-on test."
+    },
+    {
+      "id": "experience-pc-2k26-legacy-text",
+      "title": "NBA 2K26 MyNBA and MyGM Courtside Report",
+      "url": "https://nba.2k.com/2k26/courtside-report/mynba/",
+      "observed": "Report describes dynamic championship banners, save-specific legacy tracking and team-specific narrative scenarios.",
+      "adaptation": "Make history, awards and story scenes spatially different. Every achievement must derive from stored Class of Nine evidence.",
+      "evidenceType": "Official developer article text; Class of Nine compositions are original design inference."
+    }
+  ],
+  "screens": [
+    {
+      "id": "title",
+      "title": "Campus after hours",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A full-frame campus gate scene with a typographic play list cut into the dark left third.",
+      "primaryDecision": "Resume a named dynasty or begin/join one.",
+      "spatialHierarchy": [
+        "Left 28%: Continue/New/Join",
+        "Center 52%: campus gate art",
+        "Upper right: account identity",
+        "Lower right: selected save team, week and mode"
+      ],
+      "pcInteraction": "Up/Down selects, Enter opens, mouse targets the full text row; Continue never auto-launches.",
+      "artTreatment": "Dusk forest scene, brass gateway mark and cream oversized title.",
+      "removeWebsitePatterns": [
+        "Hero followed by marketing sections",
+        "KPI cards",
+        "footer destination menu"
+      ],
+      "emptyErrorState": "No accessible save replaces Continue with New dynasty, without disabling Join.",
+      "acceptance": [
+        "Menu and save identity fit at 1280x720 without body scrolling.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Play choices",
+          "x": 0,
+          "y": 18,
+          "w": 28,
+          "h": 82
+        },
+        {
+          "label": "Campus gate",
+          "x": 30,
+          "y": 0,
+          "w": 50,
+          "h": 100
+        },
+        {
+          "label": "Account identity",
+          "x": 82,
+          "y": 0,
+          "w": 18,
+          "h": 20
+        },
+        {
+          "label": "Selected dynasty",
+          "x": 82,
+          "y": 62,
+          "w": 18,
+          "h": 38
+        }
+      ],
+      "originalTitle": "Title screen",
+      "group": "Start & setup",
+      "routes": [
+        "/"
+      ]
+    },
+    {
+      "id": "login",
+      "title": "Enter the clubhouse",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A narrow authentication plane over the same campus entry scene, with the intended destination fixed beside it.",
+      "primaryDecision": "Authenticate into the named destination.",
+      "spatialHierarchy": [
+        "Left 38%: labeled credentials",
+        "Right 50%: campus entrance",
+        "Top: destination identity"
+      ],
+      "pcInteraction": "Tab order follows fields; Enter submits once; Escape returns safely.",
+      "artTreatment": "Low-contrast gate background; no artificial character scene.",
+      "removeWebsitePatterns": [
+        "Public website sign-in page",
+        "social marketing",
+        "in-league navigation"
+      ],
+      "emptyErrorState": "Keep identity after failure, clear or protect secrets; error beside Submit.",
+      "acceptance": [
+        "Failed authentication leaves return destination and valid identity intact.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Credentials",
+          "x": 0,
+          "y": 17,
+          "w": 38,
+          "h": 83
+        },
+        {
+          "label": "Campus entrance",
+          "x": 50,
+          "y": 17,
+          "w": 50,
+          "h": 83
+        },
+        {
+          "label": "Return destination",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Sign in",
+      "group": "Start & setup",
+      "routes": [
+        "/login"
+      ]
+    },
+    {
+      "id": "register",
+      "title": "Create your identity",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A single registration station beside a quiet C9 identity preview; account ownership is explicit.",
+      "primaryDecision": "Create the account, then continue to coach setup.",
+      "spatialHierarchy": [
+        "Left: identity preview",
+        "Center: required fields",
+        "Right: requirements and destination"
+      ],
+      "pcInteraction": "Tab through actual fields, named Create action; no auto-submit on dropdown change.",
+      "artTreatment": "Paper credential strip against forest glass; initials preview only.",
+      "removeWebsitePatterns": [
+        "Admin profile dashboard",
+        "unsupported Steam sign-in promises"
+      ],
+      "emptyErrorState": "Field-specific errors retain valid entries; account creation status stays visible.",
+      "acceptance": [
+        "At 1280x720 required fields and creation consequence remain in one stage.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Identity preview",
+          "x": 0,
+          "y": 10,
+          "w": 25,
+          "h": 80
+        },
+        {
+          "label": "Required credentials",
+          "x": 27,
+          "y": 0,
+          "w": 43,
+          "h": 100
+        },
+        {
+          "label": "Requirements and destination",
+          "x": 72,
+          "y": 22,
+          "w": 28,
+          "h": 66
+        }
+      ],
+      "originalTitle": "Create account",
+      "group": "Start & setup",
+      "routes": [
+        "/register"
+      ]
+    },
+    {
+      "id": "guest",
+      "title": "Temporary clubhouse pass",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A large temporary pass and two named choices occupy a quiet entry scene.",
+      "primaryDecision": "Proceed with actual temporary-session limits or create an account.",
+      "spatialHierarchy": [
+        "Left: TEMPORARY pass",
+        "Center: persistence limitation",
+        "Right: Guest/Create choices"
+      ],
+      "pcInteraction": "Arrow/Tab chooses; Enter submits only focused action.",
+      "artTreatment": "One cream pass with brass edge, not an illustrated permanent ID.",
+      "removeWebsitePatterns": [
+        "Legal wall",
+        "signup funnel",
+        "false save permanence"
+      ],
+      "emptyErrorState": "Failure keeps limitation and Retry together; no guessed expiry.",
+      "acceptance": [
+        "Actual persistence limits visible before action and throughout pending request.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Temporary pass",
+          "x": 0,
+          "y": 15,
+          "w": 30,
+          "h": 70
+        },
+        {
+          "label": "Session limits",
+          "x": 32,
+          "y": 28,
+          "w": 34,
+          "h": 45
+        },
+        {
+          "label": "Choose entry",
+          "x": 68,
+          "y": 40,
+          "w": 32,
+          "h": 45
+        }
+      ],
+      "originalTitle": "Guest entry",
+      "group": "Start & setup",
+      "routes": [
+        "/guest"
+      ]
+    },
+    {
+      "id": "dashboard",
+      "title": "Dynasty locker",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A vertical rack of save spines at left changes one large selected dynasty scene at right.",
+      "primaryDecision": "Choose the world to resume.",
+      "spatialHierarchy": [
+        "Left 35%: named saves",
+        "Right upper: selected team and campus",
+        "Right lower: season/mode/access",
+        "Top right: New/Join"
+      ],
+      "pcInteraction": "Single click previews, double click or Enter continues; context menu separates destructive tools.",
+      "artTreatment": "Team-colored pennant changes within fixed forest frame.",
+      "removeWebsitePatterns": [
+        "Equal dashboard cards",
+        "global KPIs",
+        "account-management table framing"
+      ],
+      "emptyErrorState": "No worlds shows New and Join in same room; inaccessible worlds explain permission.",
+      "acceptance": [
+        "Selecting a save does not launch it; Continue always names target.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Dynasty spines",
+          "x": 0,
+          "y": 0,
+          "w": 35,
+          "h": 100
+        },
+        {
+          "label": "Selected campus",
+          "x": 37,
+          "y": 19,
+          "w": 63,
+          "h": 52
+        },
+        {
+          "label": "Season and access",
+          "x": 37,
+          "y": 73,
+          "w": 63,
+          "h": 27
+        },
+        {
+          "label": "New or join",
+          "x": 37,
+          "y": 0,
+          "w": 63,
+          "h": 17
+        }
+      ],
+      "originalTitle": "Dynasty selection",
+      "group": "Start & setup",
+      "routes": [
+        "/dashboard"
+      ]
+    },
+    {
+      "id": "create",
+      "title": "Build a dynasty",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A full-width mode choice becomes sequential configuration screens, ending on a tournament charter.",
+      "primaryDecision": "Create exactly the reviewed simulated or companion league.",
+      "spatialHierarchy": [
+        "Top: four named stages",
+        "Center: current choices only",
+        "Right: context illustration",
+        "Lower right: explicit next/create"
+      ],
+      "pcInteraction": "Mouse and Tab access all choices; Back retains values; mode switching clearly explains reset.",
+      "artTreatment": "Mode illustrations differ: dugout simulation and scorekeeper companion.",
+      "removeWebsitePatterns": [
+        "All-settings form",
+        "fake cards for unsupported modes"
+      ],
+      "emptyErrorState": "Validation names blocking stage; failed Create retains selections.",
+      "acceptance": [
+        "No Create before Review; simulation and reported mode never visually conflated.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Setup stages",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Current decisions",
+          "x": 0,
+          "y": 17,
+          "w": 60,
+          "h": 83
+        },
+        {
+          "label": "Context illustration",
+          "x": 62,
+          "y": 17,
+          "w": 38,
+          "h": 64
+        },
+        {
+          "label": "Next or create",
+          "x": 62,
+          "y": 83,
+          "w": 38,
+          "h": 17
+        }
+      ],
+      "originalTitle": "New dynasty",
+      "group": "Start & setup",
+      "routes": [
+        "/league/create"
+      ]
+    },
+    {
+      "id": "team-selection",
+      "title": "Conference field",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A conference board of compact monogram buttons beside a selected-field list.",
+      "primaryDecision": "Choose a valid competition field.",
+      "spatialHierarchy": [
+        "Top: required/selected total",
+        "Left 65%: conference school grid",
+        "Right 30%: selected schools",
+        "Bottom right: confirm field"
+      ],
+      "pcInteraction": "Search, keyboard grid arrows and Space toggle; selected list supports removal without dragging.",
+      "artTreatment": "Monograms and conference rulings, not large school biography cards.",
+      "removeWebsitePatterns": [
+        "Logo carousel",
+        "endless card directory",
+        "decorative map not tied to eligibility"
+      ],
+      "emptyErrorState": "Unavailable schools show reason; invalid total blocks confirmation visibly.",
+      "acceptance": [
+        "All selection constraints remain visible; selected schools cannot disappear behind tabs.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Selection requirements",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Conference field",
+          "x": 0,
+          "y": 17,
+          "w": 65,
+          "h": 83
+        },
+        {
+          "label": "Selected schools",
+          "x": 67,
+          "y": 17,
+          "w": 33,
+          "h": 61
+        },
+        {
+          "label": "Confirm competition",
+          "x": 67,
+          "y": 80,
+          "w": 33,
+          "h": 20
+        }
+      ],
+      "originalTitle": "Competition selection",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/team-selection"
+      ]
+    },
+    {
+      "id": "coach-setup",
+      "title": "Media day",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "Coach portrait at life-size screen scale stands beside a compact identity and skill-allocation board.",
+      "primaryDecision": "Commit to coach and available school.",
+      "spatialHierarchy": [
+        "Left 45%: coach/media backdrop",
+        "Right upper: identity/school",
+        "Right lower: skill budget",
+        "Top: stage"
+      ],
+      "pcInteraction": "Direct field editing and keyboard steppers; one named confirmation.",
+      "artTreatment": "Approved cel direction only; placeholder portrait explicitly identified until production art.",
+      "removeWebsitePatterns": [
+        "Admin user editor",
+        "unsupported archetypes",
+        "mobile stack"
+      ],
+      "emptyErrorState": "School claim conflict preserves identity and returns school selection.",
+      "acceptance": [
+        "Displayed budget equals validation; art never implies unimplemented perks.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Coach media day",
+          "x": 0,
+          "y": 17,
+          "w": 45,
+          "h": 83
+        },
+        {
+          "label": "Identity and school",
+          "x": 47,
+          "y": 17,
+          "w": 53,
+          "h": 33
+        },
+        {
+          "label": "Skill allocation",
+          "x": 47,
+          "y": 52,
+          "w": 53,
+          "h": 48
+        },
+        {
+          "label": "Creation stage",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Coach and school setup",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/setup"
+      ]
+    },
+    {
+      "id": "dynasty-lobby",
+      "title": "Clubhouse rollcall",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A school-seat wall and a separate readiness board make the league feel assembled.",
+      "primaryDecision": "Claim an open seat or resolve a start blocker.",
+      "spatialHierarchy": [
+        "Left 65%: seat rows",
+        "Right upper: league charter",
+        "Right lower: readiness blockers",
+        "Top: commissioner identity"
+      ],
+      "pcInteraction": "Click/Enter open seat details; only authorized Start can commit.",
+      "artTreatment": "School pennants with text human/CPU labels.",
+      "removeWebsitePatterns": [
+        "Presence dots posing as readiness",
+        "fake avatar room",
+        "KPI cards"
+      ],
+      "emptyErrorState": "Disconnected fetch shows unknown occupants, not empty seats.",
+      "acceptance": [
+        "Start rechecks current prerequisites; all blockers readable without extra route.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "School seats",
+          "x": 0,
+          "y": 17,
+          "w": 65,
+          "h": 83
+        },
+        {
+          "label": "League charter",
+          "x": 67,
+          "y": 17,
+          "w": 33,
+          "h": 29
+        },
+        {
+          "label": "Start blockers",
+          "x": 67,
+          "y": 48,
+          "w": 33,
+          "h": 52
+        },
+        {
+          "label": "Commissioner context",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Dynasty lobby",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/dynasty-setup"
+      ]
+    },
+    {
+      "id": "creation-progress",
+      "title": "Preparing the season",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "Named dynasty sits over a restrained diamond scene while an exact operation log occupies the side.",
+      "primaryDecision": "Wait, enter confirmed world, or recover a failed operation.",
+      "spatialHierarchy": [
+        "Left: dynasty identity",
+        "Center: stage status",
+        "Right: factual details/recovery"
+      ],
+      "pcInteraction": "Escape returns only if safely supported; Retry cannot create duplicate operations.",
+      "artTreatment": "Subtle field line animation with reduced-motion still state.",
+      "removeWebsitePatterns": [
+        "Invented percent/ETA",
+        "fake construction mechanics"
+      ],
+      "emptyErrorState": "Failed stage plus retained operation identity, supported Retry only.",
+      "acceptance": [
+        "Never show Enter before actual successful creation.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Dynasty identity",
+          "x": 0,
+          "y": 20,
+          "w": 25,
+          "h": 60
+        },
+        {
+          "label": "Operation stages",
+          "x": 27,
+          "y": 5,
+          "w": 36,
+          "h": 90
+        },
+        {
+          "label": "Recovery details",
+          "x": 65,
+          "y": 35,
+          "w": 35,
+          "h": 65
+        }
+      ],
+      "originalTitle": "Creating dynasty",
+      "group": "Start & setup",
+      "routes": [
+        "/league/:id/creating"
+      ]
+    },
+    {
+      "id": "invite",
+      "title": "Invitation to the program",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "One signed invitation sheet and account identity check sit over the gate scene.",
+      "primaryDecision": "Join this league as this account.",
+      "spatialHierarchy": [
+        "Left: league crest/name",
+        "Center: actual invitation details",
+        "Right: current account and Accept/Switch"
+      ],
+      "pcInteraction": "Tab between Accept and Switch; Enter scoped to focused button.",
+      "artTreatment": "Cream invitation stock, restrained brass seal.",
+      "removeWebsitePatterns": [
+        "Token as decorative code",
+        "unauthorized roster browsing"
+      ],
+      "emptyErrorState": "Expired/revoked/already-member states each have specific next action.",
+      "acceptance": [
+        "Safe invitation context survives authentication.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "League identity",
+          "x": 0,
+          "y": 0,
+          "w": 26,
+          "h": 100
+        },
+        {
+          "label": "Invitation letter",
+          "x": 28,
+          "y": 12,
+          "w": 42,
+          "h": 76
+        },
+        {
+          "label": "Account and acceptance",
+          "x": 72,
+          "y": 35,
+          "w": 28,
+          "h": 55
+        }
+      ],
+      "originalTitle": "League invitation",
+      "group": "Start & setup",
+      "routes": [
+        "/invite/:code"
+      ]
+    },
+    {
+      "id": "hub",
+      "title": "Clubhouse command scene",
+      "referenceIds": [
+        "team-cfb26-hub-image",
+        "team-retro-bowl-hub-image"
+      ],
+      "composition": "A full-viewport clubhouse overlooks the miniature home diamond. A five-item weekly agenda overlays the left wall; selecting a task changes the central scene treatment. Next matchup is a broadcast plate across the lower center, not another card.",
+      "primaryDecision": "What is the next meaningful action this week?",
+      "spatialHierarchy": [
+        "Top 72px: Class of Nine gateway, team, season/week and mode",
+        "Left 24%: ranked actual tasks with selected brass rule",
+        "Center 51%: matchup or selected task's scene",
+        "Right 25%: coach half-body and current readiness",
+        "Lower scene: next/last game strip, not navigation"
+      ],
+      "pcInteraction": "Up/Down moves agenda focus; Enter opens; Escape returns from a task to the same selection. Next week requires a separate explicit action.",
+      "artTreatment": "Original clubhouse and campus depth, cel coach, Georgia italic matchup title; subdued moving light only.",
+      "removeWebsitePatterns": "Remove permanent app sidebar, six-stat card grid, breadcrumb, page-sized welcome paragraph and repeated giant Continue buttons.",
+      "emptyErrorState": "No next fixture displays phase-specific preparation. Failed readiness loads block advance and offer retry in the agenda.",
+      "acceptance": "At 1920x1080 and 1366x768 the next action and blocker fit without document scroll; simulated and reported modes show different supported actions.",
+      "zones": [
+        {
+          "label": "Team and week",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Weekly agenda",
+          "x": 0,
+          "y": 17,
+          "w": 22,
+          "h": 83
+        },
+        {
+          "label": "Selected task scene",
+          "x": 24,
+          "y": 17,
+          "w": 49,
+          "h": 66
+        },
+        {
+          "label": "Coach and readiness",
+          "x": 75,
+          "y": 17,
+          "w": 25,
+          "h": 83
+        },
+        {
+          "label": "Next game strip",
+          "x": 24,
+          "y": 85,
+          "w": 49,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Matchday brief",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "roster",
+      "title": "Clubhouse roster wall",
+      "referenceIds": [
+        "team-cfb26-recruit-image",
+        "team-retro-bowl-official"
+      ],
+      "composition": "A uniform dense roster sheet occupies three quarters of a locker-room wall; a selected athlete appears as a waist-up cel figure on the remaining quarter. Position chips are attached to the table header, not stacked cards.",
+      "primaryDecision": "Which player fills this role?",
+      "spatialHierarchy": [
+        "Top: team identity plus roster count",
+        "Left 72%: 12–16 aligned rows in current metric view",
+        "Right 28%: selected player's portrait, role and three relevant facts",
+        "Above rows: position and Ratings/Batting/Pitching lens",
+        "Bottom of sheet: row range and local controls"
+      ],
+      "pcInteraction": "Arrow keys move selected row; click headers sorts; slash focuses search; Enter opens profile; Escape restores selected row. Wheel scrolls roster only.",
+      "artTreatment": "Dark locker scene behind a crisp cream/forest manifest, brass selection rail; player art is linked to selection.",
+      "removeWebsitePatterns": "Remove position section boxes, per-row Manage buttons, repeated card margins and persistent web sidebar.",
+      "emptyErrorState": "Unknown stats print em dash with reason; empty filter offers Clear filters; failed roster load never displays zero players.",
+      "acceptance": "At least 12 comparable rows at 1080p and eight at 768p; no horizontal page overflow; ratings and performance never share unlabeled scale.",
+      "zones": [
+        {
+          "label": "Team roster identity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Comparable player rows",
+          "x": 0,
+          "y": 34,
+          "w": 70,
+          "h": 49
+        },
+        {
+          "label": "Selected athlete portrait",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        },
+        {
+          "label": "Position and metrics",
+          "x": 0,
+          "y": 17,
+          "w": 70,
+          "h": 15
+        },
+        {
+          "label": "Roster range controls",
+          "x": 0,
+          "y": 85,
+          "w": 70,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Roster command",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/roster"
+      ]
+    },
+    {
+      "id": "team",
+      "title": "Diamond team tableau",
+      "referenceIds": [
+        "team-cfb26-hub-image"
+      ],
+      "composition": "The entire working canvas is a stylized home diamond with readable assigned-player nameplates at field positions. Batting-order rail belongs to the dugout edge; pitching staff is in a separate bullpen alcove.",
+      "primaryDecision": "Where is the team's current on-field weakness or vacancy?",
+      "spatialHierarchy": [
+        "Top: team record and actual next opponent",
+        "Center 65%: nine labeled field assignments",
+        "Left dugout: ordered batting names",
+        "Right bullpen: named rotation/relief roles",
+        "Upper-right: inspect versus edit permission"
+      ],
+      "pcInteraction": "Click a position to illuminate eligible alternatives; arrows traverse logical baseball slots; Enter inspects. Assignment requires entering the edit state.",
+      "artTreatment": "Miniature stadium at low oblique angle, restrained depth; field labels stay flat screen-space for legibility.",
+      "removeWebsitePatterns": "Remove roster table above the diamond, campus hero strip and generic strengths cards.",
+      "emptyErrorState": "Unassigned slots remain visible; no fabricated starters. Failed lineup loads retain a retry marker instead of an empty projected team.",
+      "acceptance": "Every actual assigned slot readable at 1366x768; no portrait overlaps another position; opponent team cannot expose edit actions.",
+      "zones": [
+        {
+          "label": "Record and opponent",
+          "x": 0,
+          "y": 0,
+          "w": 73,
+          "h": 15
+        },
+        {
+          "label": "Defensive diamond",
+          "x": 18,
+          "y": 17,
+          "w": 63,
+          "h": 83
+        },
+        {
+          "label": "Dugout batting order",
+          "x": 0,
+          "y": 17,
+          "w": 16,
+          "h": 83
+        },
+        {
+          "label": "Bullpen roles",
+          "x": 83,
+          "y": 17,
+          "w": 17,
+          "h": 83
+        },
+        {
+          "label": "Inspect or edit",
+          "x": 75,
+          "y": 0,
+          "w": 25,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Team scouting dossier",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/team/:teamId"
+      ]
+    },
+    {
+      "id": "program",
+      "title": "Program heritage room",
+      "referenceIds": [
+        "team-cfb26-dynasty-text",
+        "team-cfb26-hub-image"
+      ],
+      "composition": "A full-screen trophy-room wall frames one selected season. Three archival objects—season plate, honors case, alumni photograph—are interactive destinations, with a horizontal year selector below the title.",
+      "primaryDecision": "Which earned season or achievement do I want to revisit?",
+      "spatialHierarchy": [
+        "Top: crest, school name and selected year",
+        "Left 25%: season/year rail",
+        "Center 50%: selected season's large editorial record",
+        "Right 25%: verified honors and alumni caption",
+        "Back wall: campus/heritage art"
+      ],
+      "pcInteraction": "Left/Right changes year; Tab cycles archival objects; Enter opens evidence; Escape returns to the same year.",
+      "artTreatment": "Warm brass trophy-room lighting and original campus miniature; no invented trophies rendered as earned.",
+      "removeWebsitePatterns": "Remove profile dashboard cards, current recruiting meters and infinite milestone feed.",
+      "emptyErrorState": "No archived seasons shows an unfilled display with Start your story copy; missing evidence labels unavailable.",
+      "acceptance": "Season changes update all facts together; latest roster cannot masquerade as historical alumni; only stored honors populate objects.",
+      "zones": [
+        {
+          "label": "School and season",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Season archive rail",
+          "x": 0,
+          "y": 17,
+          "w": 23,
+          "h": 57
+        },
+        {
+          "label": "Selected season record",
+          "x": 25,
+          "y": 17,
+          "w": 48,
+          "h": 57
+        },
+        {
+          "label": "Honors and alumni",
+          "x": 75,
+          "y": 17,
+          "w": 25,
+          "h": 57
+        },
+        {
+          "label": "Campus heritage mural",
+          "x": 0,
+          "y": 76,
+          "w": 100,
+          "h": 24
+        }
+      ],
+      "originalTitle": "Program profile",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/team/:teamId/profile"
+      ]
+    },
+    {
+      "id": "coach",
+      "title": "Coach sideline portrait",
+      "referenceIds": [
+        "team-madden26-coach-image",
+        "team-madden26-franchise-text"
+      ],
+      "composition": "A large standing coach anchors the left third over the dugout environment. Career, Skills and Strategy are chapter tabs; the right two thirds becomes a different surface for each, with skills arranged in actual prerequisite lanes.",
+      "primaryDecision": "What defines my coach and which eligible upgrade matters?",
+      "spatialHierarchy": [
+        "Top: coach name, team and chapter tabs",
+        "Left 30%: full coach portrait and career identity",
+        "Right 70%: one selected chapter",
+        "Skills chapter header: actual points and prerequisite legend",
+        "Context action beside selected skill"
+      ],
+      "pcInteraction": "Q/E cycles chapters outside text fields; arrows move skill nodes; mouse hover or focus shows exact effect; purchase requires confirmation and persists selection.",
+      "artTreatment": "Cel coach at human scale, Georgian italic surname, thin brass skill links; career chapter uses a timeline instead of nodes.",
+      "removeWebsitePatterns": "Remove badge-card collage, public settings and large avatar inside a small rounded box.",
+      "emptyErrorState": "Missing portrait uses an intentional silhouette; locked skill states reason and actual unmet requirement.",
+      "acceptance": "Read-only opposing coach has no private settings; prerequisite focus path and click path yield the same selection; no invented XP.",
+      "zones": [
+        {
+          "label": "Coach and chapters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Coach portrait",
+          "x": 0,
+          "y": 17,
+          "w": 29,
+          "h": 83
+        },
+        {
+          "label": "Selected chapter canvas",
+          "x": 31,
+          "y": 34,
+          "w": 69,
+          "h": 49
+        },
+        {
+          "label": "Points and prerequisites",
+          "x": 31,
+          "y": 17,
+          "w": 69,
+          "h": 15
+        },
+        {
+          "label": "Selected skill action",
+          "x": 56,
+          "y": 85,
+          "w": 44,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Coach profile",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/coach",
+        "/league/:id/coach/:coachId",
+        "/coach/:coachId"
+      ]
+    },
+    {
+      "id": "identity",
+      "title": "Strategy board",
+      "referenceIds": [
+        "team-madden26-franchise-text"
+      ],
+      "composition": "Four tabs printed on a dugout strategy board select offense, pitching, recruiting pitch or culture. The canvas shows current approach as a fixed left notation and highlighted candidate as the right tactical plate; the exact difference is between them.",
+      "primaryDecision": "Which existing philosophy should become active?",
+      "spatialHierarchy": [
+        "Top: four philosophy chapters",
+        "Left 34%: current identity and its actual effects",
+        "Right 46%: candidate and actual effects",
+        "Center seam: explicit changed consequences",
+        "Lower-right: Apply and Cancel local action"
+      ],
+      "pcInteraction": "Left/Right changes candidate; Enter previews only; explicit Apply commits; Escape discards preview. Keyboard focus never silently saves.",
+      "artTreatment": "Original chalk/baseball markings and restrained pennant texture; philosophy diagrams illustrate supported rules only.",
+      "removeWebsitePatterns": "Remove four expanded card grids, generic dropdown forms and unexplained fit percentages.",
+      "emptyErrorState": "Unavailable choices state phase/permission reason; save failure keeps candidate preview and current truth distinct.",
+      "acceptance": "Switching chapter cannot save; current and candidate are visually labeled; all tradeoffs match server rules.",
+      "zones": [
+        {
+          "label": "Philosophy chapters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Current approach",
+          "x": 0,
+          "y": 17,
+          "w": 32,
+          "h": 83
+        },
+        {
+          "label": "Candidate approach",
+          "x": 54,
+          "y": 17,
+          "w": 46,
+          "h": 66
+        },
+        {
+          "label": "Changed consequences",
+          "x": 34,
+          "y": 17,
+          "w": 18,
+          "h": 83
+        },
+        {
+          "label": "Apply or cancel",
+          "x": 54,
+          "y": 85,
+          "w": 46,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Program identity",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/identity"
+      ]
+    },
+    {
+      "id": "rivalries",
+      "title": "Rivalry broadcast poster",
+      "referenceIds": [
+        "team-cfb26-hub-image",
+        "team-cfb26-dynasty-text"
+      ],
+      "composition": "Two oversized opposing monograms face across a central series score. A selected historical game becomes the central broadcast headline; the actual next meeting sits as a small contrasting upcoming strip.",
+      "primaryDecision": "Which meeting defines this rivalry?",
+      "spatialHierarchy": [
+        "Top: rival selector and series name",
+        "Left/right: opposing original monograms",
+        "Center: series record and selected game score",
+        "Lower center: chronological game markers",
+        "Upper-right: next scheduled meeting"
+      ],
+      "pcInteraction": "Left/Right steps meetings; Home jumps oldest and End newest; Enter opens a supported box score; rival dropdown remains keyboard accessible.",
+      "artTreatment": "Forest and opponent accent split scene with neutral brass seam; no borrowed team identities.",
+      "removeWebsitePatterns": "Remove generic league stats, fake rivalry heat meter and repeated result cards.",
+      "emptyErrorState": "No played meetings means Series awaits its first game; no next meeting is explicitly unscheduled.",
+      "acceptance": "Played scores and upcoming fixture are visually distinct; chronology matches stored season/date; long team names fit at 768p.",
+      "zones": [
+        {
+          "label": "Rival and series",
+          "x": 0,
+          "y": 0,
+          "w": 66,
+          "h": 15
+        },
+        {
+          "label": "Opposing team monograms",
+          "x": 0,
+          "y": 17,
+          "w": 100,
+          "h": 29
+        },
+        {
+          "label": "Series and selected score",
+          "x": 18,
+          "y": 48,
+          "w": 64,
+          "h": 35
+        },
+        {
+          "label": "Meeting chronology",
+          "x": 0,
+          "y": 85,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Next scheduled meeting",
+          "x": 68,
+          "y": 0,
+          "w": 32,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Coaching rivalries",
+      "group": "Team & league",
+      "routes": [
+        "/league/:id/rivalries"
+      ]
+    },
+    {
+      "id": "recruiting",
+      "title": "Recruiting operations board",
+      "referenceIds": [
+        "team-cfb26-recruit-image",
+        "team-cfb26-dynasty-text"
+      ],
+      "composition": "A fixed-height scouting-room board gives roughly two thirds to an aligned target table and one third to the selected prospect's actionable scouting surface. Resources and positional need sit in a single header; selecting a row changes the dossier without expanding the table.",
+      "primaryDecision": "Which recruit deserves my next scarce action?",
+      "spatialHierarchy": [
+        "Top: needs strip plus contact/scout/NIL balances",
+        "Left 66%: selected-row target table",
+        "Right 34% upper: prospect face, identity and disclosed ability",
+        "Right lower: ONE current action group and exact costs",
+        "Table header: target pool, search and filter trigger"
+      ],
+      "pcInteraction": "Arrow navigation updates selection without spending; Enter opens action group; space toggles target only through explicit button focus; slash search; Escape backs out of action. No global single-key spending.",
+      "artTreatment": "Scouting-room wall texture recedes behind clean table. Cream selected row, brass actions, unknown ratings remain neutral.",
+      "removeWebsitePatterns": "Remove giant expanded row trays, resource cards, page-long command disclosures and a shared dashboard inspector used everywhere.",
+      "emptyErrorState": "No targets offers Find prospects; exhausted resource leaves costs and reset rule readable; errors preserve selected recruit and draft notes.",
+      "acceptance": "Ten readable rows plus selected action at 1080p; all spend controls fit 768p; selecting/scouting refreshes same selected ID; no hidden-rating sorting leak.",
+      "zones": [
+        {
+          "label": "Needs and resources",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Target selection table",
+          "x": 0,
+          "y": 34,
+          "w": 64,
+          "h": 66
+        },
+        {
+          "label": "Selected prospect identity",
+          "x": 66,
+          "y": 17,
+          "w": 34,
+          "h": 37
+        },
+        {
+          "label": "Action and cost",
+          "x": 66,
+          "y": 56,
+          "w": 34,
+          "h": 44
+        },
+        {
+          "label": "Pool search filters",
+          "x": 0,
+          "y": 17,
+          "w": 64,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Recruiting desk",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/recruiting"
+      ]
+    },
+    {
+      "id": "recruit-profile",
+      "title": "Scout's projection room",
+      "referenceIds": [
+        "team-cfb26-recruit-image"
+      ],
+      "composition": "Recruit identity is a media-day half-body against a scouting-room backdrop on the left; the right is a large evaluation sheet with visible known/unknown separation. Scouting, Motivation and Recruitment replace the sheet rather than append below it.",
+      "primaryDecision": "What evidence is missing before I pursue this athlete?",
+      "spatialHierarchy": [
+        "Left 35%: portrait, name, public identity",
+        "Top-right: chapter selector and scouting coverage",
+        "Right 65%: chapter-specific evidence sheet",
+        "Lower-right: phase-correct next action",
+        "Upper-left: return to exact board selection"
+      ],
+      "pcInteraction": "Q/E chapters, Escape board return; Compare pins through labeled control; unknown metrics are not focusable fake values.",
+      "artTreatment": "Original cel portrait, paper-like cream evaluation inset, brass rule and forest surroundings.",
+      "removeWebsitePatterns": "Remove stacked bio cards, simultaneous full attribute sections and gem/bust visual spoilers.",
+      "emptyErrorState": "Unscouted areas explicitly say Not yet scouted; failed refresh retains last-known label with action retry.",
+      "acceptance": "Knowledge boundary identical in list/profile/compare; public recruiting stars never styled as scouted OVR; board selection restored.",
+      "zones": [
+        {
+          "label": "Recruit media portrait",
+          "x": 0,
+          "y": 17,
+          "w": 33,
+          "h": 83
+        },
+        {
+          "label": "Chapter and knowledge",
+          "x": 35,
+          "y": 0,
+          "w": 65,
+          "h": 15
+        },
+        {
+          "label": "Scouting evidence sheet",
+          "x": 35,
+          "y": 17,
+          "w": 65,
+          "h": 66
+        },
+        {
+          "label": "Eligible next action",
+          "x": 35,
+          "y": 85,
+          "w": 65,
+          "h": 15
+        },
+        {
+          "label": "Return to board",
+          "x": 0,
+          "y": 0,
+          "w": 33,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Recruit scouting profile",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/recruit/:recruitId"
+      ]
+    },
+    {
+      "id": "portal",
+      "title": "Transfer deadline room",
+      "referenceIds": [
+        "team-cfb26-recruit-image",
+        "team-cfb26-dynasty-text"
+      ],
+      "composition": "A transfer candidate table spans the left half, a selected vacancy/current player occupies a small upper-right diamond segment, and the candidate's eligibility/known ability fills lower-right. This is a replacement decision, not a high-school relationship wall.",
+      "primaryDecision": "Does this transfer resolve an actual vacancy?",
+      "spatialHierarchy": [
+        "Top: actual portal phase and roster space",
+        "Left 55%: candidate list by position and eligibility",
+        "Right upper: selected role and current occupant",
+        "Right lower: candidate comparison and legal offer",
+        "Above table: role filter"
+      ],
+      "pcInteraction": "Select vacancy then candidate; arrows stay within active pane; Tab cycles panes; explicit offer opens terms; Escape cancels without resetting candidate.",
+      "artTreatment": "Cooler clubhouse transfer desk, school colors on origin label, no fake deadline countdown.",
+      "removeWebsitePatterns": "Remove high-school stars as dominant metric, full recruiting histories and repeating resource widgets.",
+      "emptyErrorState": "Closed portal explains phase; no eligible candidates keeps chosen role and clears only candidate.",
+      "acceptance": "Current versus candidate rows align; remaining eligibility visible without opening profile; no invented transfer guarantee.",
+      "zones": [
+        {
+          "label": "Portal and capacity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Transfer candidate list",
+          "x": 0,
+          "y": 34,
+          "w": 53,
+          "h": 66
+        },
+        {
+          "label": "Vacancy and incumbent",
+          "x": 55,
+          "y": 17,
+          "w": 45,
+          "h": 32
+        },
+        {
+          "label": "Candidate and offer",
+          "x": 55,
+          "y": 51,
+          "w": 45,
+          "h": 49
+        },
+        {
+          "label": "Needed role selector",
+          "x": 0,
+          "y": 17,
+          "w": 53,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Transfer portal",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/transfer-portal"
+      ]
+    },
+    {
+      "id": "commits",
+      "title": "Class photograph wall",
+      "referenceIds": [
+        "team-retro-bowl-official",
+        "team-cfb26-dynasty-text"
+      ],
+      "composition": "A bounded class contact sheet resembles a team media-day wall: equal player portraits in position groups, with a single selected portrait enlarged center-right. Status is printed as verbal or signed; this is a recognition screen.",
+      "primaryDecision": "Who is confirmed to join, and what is still unresolved?",
+      "spatialHierarchy": [
+        "Top: class year/team and verified counts",
+        "Left 70%: evenly spaced class portrait sheet",
+        "Right 30%: selected athlete caption and actual status",
+        "Above contact sheet: position grouping",
+        "Lower-right: inspect or approved spotlight eligibility"
+      ],
+      "pcInteraction": "Arrows move by contact-sheet coordinates; Enter profile; year/team changes retain explicit scope; no automatic celebration.",
+      "artTreatment": "Cel yearbook portraits, forest matting, brass signed stamp and neutral verbal label.",
+      "removeWebsitePatterns": "Remove spend controls, dense acquisition ledger and repeated large biographies.",
+      "emptyErrorState": "Empty class uses an unfilled team-photo arrangement with recruiting link; missing art uses consistent silhouette.",
+      "acceptance": "Every card prints status; verbal athletes cannot launch confirmed-arrival ceremony; class rank uses actual data only.",
+      "zones": [
+        {
+          "label": "Class year and counts",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Class portrait sheet",
+          "x": 0,
+          "y": 34,
+          "w": 68,
+          "h": 66
+        },
+        {
+          "label": "Selected athlete status",
+          "x": 70,
+          "y": 17,
+          "w": 30,
+          "h": 66
+        },
+        {
+          "label": "Position groups",
+          "x": 0,
+          "y": 17,
+          "w": 68,
+          "h": 15
+        },
+        {
+          "label": "Inspect or spotlight",
+          "x": 70,
+          "y": 85,
+          "w": 30,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Committed class",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/commits"
+      ]
+    },
+    {
+      "id": "arrival",
+      "title": "Home-diamond spotlight",
+      "referenceIds": [
+        "team-cfb26-hub-image"
+      ],
+      "composition": "A dedicated scene takeover clears management UI. The athlete enters a miniature home-diamond gate; a nameplate resolves beside the media-day figure, then the final arrival sports profile settles into a keepsake composition.",
+      "primaryDecision": "Whose confirmed arrival do I spotlight, and when do I continue?",
+      "spatialHierarchy": [
+        "Full canvas: miniature home diamond",
+        "Center-right: selected athlete half-body",
+        "Center-left: nameplate then final profile",
+        "Top-right: Skip, Mute, reduced-motion state",
+        "After reveal: class selection contact strip"
+      ],
+      "pcInteraction": "Escape/Skip immediately resolves final profile; Enter continues after readable state; class selection is deliberate; no timed forced input.",
+      "artTreatment": "Proposed Clubhouse Arrival with approved C9 gateway; original art only. Reveal recipe remains unapproved and no new sound is assumed.",
+      "removeWebsitePatterns": "Remove dashboard behind ceremony, random-pack rarity language and unskippable chained reveals.",
+      "emptyErrorState": "Missing asset resolves to legible signed profile; no confirmed arrival shows class view instead.",
+      "acceptance": "Proposal only until Frisk approves reveal. Reduced motion shows final readable frame; signing cannot be created by animation.",
+      "zones": [
+        {
+          "label": "Miniature diamond scene",
+          "x": 0,
+          "y": 0,
+          "w": 64,
+          "h": 24
+        },
+        {
+          "label": "Arrival athlete",
+          "x": 55,
+          "y": 26,
+          "w": 45,
+          "h": 57
+        },
+        {
+          "label": "Nameplate and profile",
+          "x": 0,
+          "y": 26,
+          "w": 53,
+          "h": 57
+        },
+        {
+          "label": "Skip and sound",
+          "x": 66,
+          "y": 0,
+          "w": 34,
+          "h": 24
+        },
+        {
+          "label": "Class spotlight selection",
+          "x": 0,
+          "y": 85,
+          "w": 100,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Signing day and arrival ceremony",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/signing-day-reveal"
+      ]
+    },
+    {
+      "id": "leaving",
+      "title": "League turnover board",
+      "referenceIds": [
+        "team-cfb26-recruit-image",
+        "team-cfb26-dynasty-text"
+      ],
+      "composition": "A full-screen league matrix treats teams as rows and graduation/draft/portal as columns. Selecting a count turns the right quarter into a concise name list; the table stays at the same row.",
+      "primaryDecision": "Which programs lose which players?",
+      "spatialHierarchy": [
+        "Top: season and departure source legend",
+        "Left 75%: teams by departure-category matrix",
+        "Right 25%: selected cell's named athletes",
+        "Header: team/category filters",
+        "Lower table edge: row position indicator"
+      ],
+      "pcInteraction": "Arrow keys traverse cells; Enter opens athlete list; Escape returns to selected cell; sort compares actual totals.",
+      "artTreatment": "Conference-office board with subtle school monograms and strong aligned numerals.",
+      "removeWebsitePatterns": "Remove individual athlete cards across the whole page and speculative roster forecasts.",
+      "emptyErrorState": "Zero is distinct from unavailable; failed category query does not produce zeros.",
+      "acceptance": "Displayed count equals named entries or explicitly states incomplete source; every departure carries reason and source status.",
+      "zones": [
+        {
+          "label": "Season and sources",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Team departure matrix",
+          "x": 0,
+          "y": 34,
+          "w": 73,
+          "h": 49
+        },
+        {
+          "label": "Selected departing athletes",
+          "x": 75,
+          "y": 17,
+          "w": 25,
+          "h": 83
+        },
+        {
+          "label": "Team category filters",
+          "x": 0,
+          "y": 17,
+          "w": 73,
+          "h": 15
+        },
+        {
+          "label": "Matrix row position",
+          "x": 0,
+          "y": 85,
+          "w": 73,
+          "h": 15
+        }
+      ],
+      "originalTitle": "League departures overview",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/players-leaving"
+      ]
+    },
+    {
+      "id": "departures",
+      "title": "Retention interview",
+      "referenceIds": [
+        "team-madden26-coach-image"
+      ],
+      "composition": "One athlete sits at the visual center of a clubhouse conversation scene. A compact pending-case rail at left drives the scene; two legally available outcomes and their factual costs flank the player.",
+      "primaryDecision": "Is this allowed retention choice worth its cost?",
+      "spatialHierarchy": [
+        "Left 20%: pending case queue",
+        "Center 40%: athlete portrait and departure reason",
+        "Right 40%: retain/depart consequence comparison",
+        "Top: phase and actual available resources",
+        "Near choices: local confirm control"
+      ],
+      "pcInteraction": "Up/Down selects case; Tab moves legal options; selection previews only; Enter on explicit confirmation commits; pending request locks case changes.",
+      "artTreatment": "Respectful cel portrait, quiet clubhouse scene, no manipulative red alarm or triumphant departure art.",
+      "removeWebsitePatterns": "Remove tiny destructive row buttons, league-wide browsing and generic confirmation overlays.",
+      "emptyErrorState": "Ineligible case states why no choice exists; stale-server rejection refreshes facts while preserving case.",
+      "acceptance": "Finalized cases cannot resubmit; before/after figures use verified rules; irreversible scope named with athlete.",
+      "zones": [
+        {
+          "label": "Pending player cases",
+          "x": 0,
+          "y": 17,
+          "w": 18,
+          "h": 83
+        },
+        {
+          "label": "Athlete and reason",
+          "x": 20,
+          "y": 17,
+          "w": 38,
+          "h": 83
+        },
+        {
+          "label": "Retention consequences",
+          "x": 60,
+          "y": 17,
+          "w": 40,
+          "h": 66
+        },
+        {
+          "label": "Phase and resources",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Confirm selected choice",
+          "x": 60,
+          "y": 85,
+          "w": 40,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Departure decisions",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/departures"
+      ]
+    },
+    {
+      "id": "walkons",
+      "title": "Walk-on tryout board",
+      "referenceIds": [
+        "team-cfb26-recruit-image",
+        "team-retro-bowl-official"
+      ],
+      "composition": "A tryout-field backdrop carries a candidate sheet on the left and one selected athlete's bid ticket on the right. Capacity and committed resources form a slim scoreboard at top.",
+      "primaryDecision": "Which permitted bid fills a roster gap?",
+      "spatialHierarchy": [
+        "Top: roster capacity and available obligations",
+        "Left 65%: compact tryout list",
+        "Right upper: selected athlete and known role traits",
+        "Right lower: bid amount and review terms",
+        "Above sheet: role filter"
+      ],
+      "pcInteraction": "Mouse or arrows select; numeric bid entry supports typing; Enter reviews rather than blindly spends; cuts require a separate explicit destination.",
+      "artTreatment": "Original practice-field miniature; cream bid ticket with brass total, neutral status labels.",
+      "removeWebsitePatterns": "Remove marketplace product cards, predicted winning price, cuts beside bids and giant numeric steppers.",
+      "emptyErrorState": "Auction closed states phase; no capacity explains required roster action; failed bid retains amount.",
+      "acceptance": "Actual budget and pending obligations remain visible during bid entry; no automatic bid escalation or concealed cut action.",
+      "zones": [
+        {
+          "label": "Capacity and obligations",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Tryout candidate sheet",
+          "x": 0,
+          "y": 34,
+          "w": 63,
+          "h": 66
+        },
+        {
+          "label": "Athlete role evidence",
+          "x": 65,
+          "y": 17,
+          "w": 35,
+          "h": 37
+        },
+        {
+          "label": "Bid and review",
+          "x": 65,
+          "y": 56,
+          "w": 35,
+          "h": 44
+        },
+        {
+          "label": "Role filter",
+          "x": 0,
+          "y": 17,
+          "w": 63,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Cuts and walk-on bids",
+      "group": "Recruiting & offseason",
+      "routes": [
+        "/league/:id/walkons"
+      ]
+    },
+    {
+      "id": "schedule",
+      "title": "Season fixture wall",
+      "referenceIds": [
+        "competition-pc-nhl-hub",
+        "competition-pc-nhl-result"
+      ],
+      "composition": "A full-width week ribbon feeds a series strip across the central canvas; the selected fixture expands into a horizontal matchup band beneath it.",
+      "primaryDecision": "Which fixture needs my next action?",
+      "spatialHierarchy": [
+        "Week/season rail",
+        "Series lanes with home/away marks",
+        "Selected game score/state band",
+        "Prepare, report or inspect command area"
+      ],
+      "pcInteraction": "Arrow keys move fixture selection; PgUp/PgDn change verified week; Enter opens permitted game action; Back restores week and fixture.",
+      "artTreatment": "Faint diamond lines across forest; cream team marks and brass selected series.",
+      "removeWebsitePatterns": [
+        "Long vertically stacked game cards",
+        "redundant hero",
+        "mobile day accordion."
+      ],
+      "emptyErrorState": "No fixtures retains week and filters with Clear filters; fetch failure says schedule unavailable, never no games.",
+      "acceptance": [
+        "At 1366x768 and 1920x1080, week, selected fixture and next action are visible together; a pending score never resembles FINAL.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Week and home/away context",
+        "Explicit pending, disputed and accepted labels",
+        "Prepare / Report / Review / Result according to permission"
+      ],
+      "unapprovedDependencies": [
+        "Explicit date/day grouping requires verified schedule fields; do not manufacture dates from week numbers."
+      ],
+      "zones": [
+        {
+          "label": "Season week rail",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Home and away series",
+          "x": 0,
+          "y": 18,
+          "w": 100,
+          "h": 48
+        },
+        {
+          "label": "Selected game status",
+          "x": 0,
+          "y": 68,
+          "w": 69,
+          "h": 32
+        },
+        {
+          "label": "Fixture actions",
+          "x": 71,
+          "y": 68,
+          "w": 29,
+          "h": 32
+        }
+      ],
+      "originalTitle": "Season schedule",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/schedule"
+      ]
+    },
+    {
+      "id": "prep",
+      "title": "Matchup broadcast",
+      "referenceIds": [
+        "competition-pc-nhl-hub"
+      ],
+      "composition": "Opposing teams occupy two balanced halves, with probable starters nearest the center seam and lineup comparisons below.",
+      "primaryDecision": "What lineup or availability issue should I resolve before this game?",
+      "spatialHierarchy": [
+        "Away crest and starter",
+        "Home crest and starter",
+        "Shared matchup metrics spine",
+        "Own lineup availability band"
+      ],
+      "pcInteraction": "Tab cycles lineup and starter inspection; Enter opens player; preparation returns to exact fixture.",
+      "artTreatment": "Stadium dusk washes behind crests; media-day portraits only when real art exists.",
+      "removeWebsitePatterns": [
+        "Narrow checklist column",
+        "multiple detached KPI tiles",
+        "oversized decorative banner."
+      ],
+      "emptyErrorState": "Unknown starter is explicit; inaccessible opponent data does not become zero; lineup failure retains game identity.",
+      "acceptance": [
+        "Two actual starters, away/home and availability fit one PC viewport; companion prep never implies writing into Power Pros.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Away/home labels",
+        "Actual pitcher and lineup availability",
+        "Analysis distinguished from known facts"
+      ],
+      "unapprovedDependencies": [
+        "Any new matchup calculation, export packet or lineup-writing control needs separate approval and backend evidence."
+      ],
+      "zones": [
+        {
+          "label": "Away team starter",
+          "x": 0,
+          "y": 0,
+          "w": 37,
+          "h": 69
+        },
+        {
+          "label": "Home team starter",
+          "x": 63,
+          "y": 0,
+          "w": 37,
+          "h": 69
+        },
+        {
+          "label": "Matchup metrics spine",
+          "x": 39,
+          "y": 0,
+          "w": 22,
+          "h": 69
+        },
+        {
+          "label": "Your lineup availability",
+          "x": 0,
+          "y": 71,
+          "w": 100,
+          "h": 29
+        }
+      ],
+      "originalTitle": "Game preparation",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/games/:gameId/prep"
+      ]
+    },
+    {
+      "id": "report",
+      "title": "Scorer control room",
+      "referenceIds": [
+        "competition-pc-nhl-result"
+      ],
+      "composition": "An editable line score spans the top; batting/pitching worksheet occupies center-left and a source-image light table occupies the right. Review replaces entry, preserving the same matchup anchor.",
+      "primaryDecision": "Is the played result accurate enough to submit for review?",
+      "spatialHierarchy": [
+        "Editable inning strip",
+        "Team/stat worksheet",
+        "Source image and uncertainty lens",
+        "Validation and submission command strip"
+      ],
+      "pcInteraction": "Spreadsheet Tab/Shift+Tab traversal; direct typing and mouse selection; error list focuses affected cell; only implemented hotkeys are printed.",
+      "artTreatment": "Cream scorebook surface against forest with brass active cell; no faux paper shadows that reduce contrast.",
+      "removeWebsitePatterns": [
+        "Narrow web form",
+        "stacked collapsible sections",
+        "upload success styled as acceptance."
+      ],
+      "emptyErrorState": "Unknown stats stay blank; failed OCR stays failed; rejected submission retains draft and exact server error.",
+      "acceptance": [
+        "A nine-batter worksheet, game identity and review command are visible without page scrolling; rejected/stale writes cannot show submitted success.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Exact game/player identity",
+        "Unknown values remain unknown",
+        "OCR uncertainty and server validation beside the affected field"
+      ],
+      "unapprovedDependencies": [
+        "Durable cross-device draft saving and new OCR capabilities are not approved by this layout."
+      ],
+      "zones": [
+        {
+          "label": "Editable inning strip",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 18
+        },
+        {
+          "label": "Team stat worksheet",
+          "x": 0,
+          "y": 20,
+          "w": 65,
+          "h": 61
+        },
+        {
+          "label": "Source image lens",
+          "x": 67,
+          "y": 20,
+          "w": 33,
+          "h": 80
+        },
+        {
+          "label": "Validate and submit",
+          "x": 0,
+          "y": 83,
+          "w": 65,
+          "h": 17
+        }
+      ],
+      "originalTitle": "Report a Power Pros game",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/report-game/:gameId"
+      ]
+    },
+    {
+      "id": "play-unavailable",
+      "title": "Game continuation interstitial",
+      "referenceIds": [
+        "competition-pc-nhl-hub"
+      ],
+      "composition": "A restrained matchup stage carries one availability explanation and a short row of supported continuations.",
+      "primaryDecision": "Where can I continue with this game?",
+      "spatialHierarchy": [
+        "Known matchup title",
+        "Availability explanation",
+        "Schedule/result continuation choices"
+      ],
+      "pcInteraction": "Escape returns to schedule; focus defaults to supported return, never unavailable Play.",
+      "artTreatment": "Dim diamond with two real team marks, no fake live playfield.",
+      "removeWebsitePatterns": [
+        "404-style marketing page",
+        "dead Play button",
+        "empty dashboard."
+      ],
+      "emptyErrorState": "Missing or forbidden identity is not guessed; return remains available if lookup fails.",
+      "acceptance": [
+        "There is no replay timeline or playable claim; one keyboard action reaches supported schedule.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Honest unavailability explanation",
+        "Game context when accessible",
+        "Return to schedule or accepted result"
+      ],
+      "unapprovedDependencies": [
+        "Playable pitch-by-pitch sessions remain a separate engineering gate."
+      ],
+      "zones": [
+        {
+          "label": "Known game identity",
+          "x": 18,
+          "y": 9,
+          "w": 64,
+          "h": 23
+        },
+        {
+          "label": "Why play is unavailable",
+          "x": 18,
+          "y": 34,
+          "w": 64,
+          "h": 34
+        },
+        {
+          "label": "Supported continuations",
+          "x": 18,
+          "y": 70,
+          "w": 64,
+          "h": 20
+        }
+      ],
+      "originalTitle": "Play-by-play unavailable",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/game/:gameId/play-by-play"
+      ]
+    },
+    {
+      "id": "postseason",
+      "title": "Championship path",
+      "referenceIds": [
+        "competition-pc-nhl-result"
+      ],
+      "composition": "The entire bracket is the stage: rounds advance left to right with a selected matchup enlarged in a shallow lower band.",
+      "primaryDecision": "What is the next eligible matchup, and how does it affect the path?",
+      "spatialHierarchy": [
+        "Round headings",
+        "Connected series nodes",
+        "Selected matchup evidence strip",
+        "Path legend and round focus"
+      ],
+      "pcInteraction": "Arrow navigation follows actual bracket edges; keyboard and mouse focus the same node; selecting result preserves round context.",
+      "artTreatment": "Brass path only for earned advancement; forest empty rounds; no winner art before confirmation.",
+      "removeWebsitePatterns": [
+        "List-only postseason",
+        "repeated schedule cards",
+        "ornament covering bracket topology."
+      ],
+      "emptyErrorState": "Unresolved seeds are labeled TBD; pending/disputed results leave next node unresolved; failed load is not an empty bracket.",
+      "acceptance": [
+        "At 1920x1080 the approved format is legible; 1366x768 uses explicit round focus rather than shrinking text or horizontal page scroll.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Existing seeds and bracket source",
+        "Accepted results determine advancement",
+        "Pending/disputed nodes stay unresolved"
+      ],
+      "unapprovedDependencies": [
+        "Do not invent elimination formats, tie rules, bracket repair or qualification guarantees."
+      ],
+      "zones": [
+        {
+          "label": "Tournament round headings",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Connected series bracket",
+          "x": 0,
+          "y": 18,
+          "w": 100,
+          "h": 58
+        },
+        {
+          "label": "Selected series evidence",
+          "x": 0,
+          "y": 78,
+          "w": 73,
+          "h": 22
+        },
+        {
+          "label": "Path and round focus",
+          "x": 75,
+          "y": 78,
+          "w": 25,
+          "h": 22
+        }
+      ],
+      "originalTitle": "Postseason hub",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/postseason"
+      ]
+    },
+    {
+      "id": "championship",
+      "title": "Season closing scene",
+      "referenceIds": [
+        "competition-pc-nhl-result"
+      ],
+      "composition": "Champion name and C9 program mark dominate a centered stadium presentation; final-series evidence sits in a quiet lower band.",
+      "primaryDecision": "Celebrate this verified season or inspect its record?",
+      "spatialHierarchy": [
+        "Verified champion identity",
+        "Central trophy/program artwork",
+        "Actual final-series line",
+        "Record and skip controls"
+      ],
+      "pcInteraction": "Escape or visible Skip ends animation only; record opens factual season history; reduced motion gets static composition.",
+      "artTreatment": "Warm brass floodlights and forest evening; use original approved C9 trophy art only.",
+      "removeWebsitePatterns": [
+        "Administrative cards",
+        "speculative MVP",
+        "confetti over factual evidence."
+      ],
+      "emptyErrorState": "Without confirmed champion show season unfinished; missing final details remain unknown, not invented celebration.",
+      "acceptance": [
+        "Celebration requires server-confirmed champion; skipping cannot advance season; all facts remain readable without motion.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Confirmed champion and season",
+        "Actual final-series results",
+        "Skip/reduced-motion access"
+      ],
+      "unapprovedDependencies": [
+        "New trophies, team art, audio and ceremony animation require art/implementation approval."
+      ],
+      "zones": [
+        {
+          "label": "Verified champion",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 20
+        },
+        {
+          "label": "Trophy and program",
+          "x": 14,
+          "y": 22,
+          "w": 72,
+          "h": 45
+        },
+        {
+          "label": "Final series record",
+          "x": 5,
+          "y": 69,
+          "w": 90,
+          "h": 16
+        },
+        {
+          "label": "Record and skip",
+          "x": 25,
+          "y": 87,
+          "w": 50,
+          "h": 13
+        }
+      ],
+      "originalTitle": "Championship presentation",
+      "group": "Games & competition",
+      "routes": [
+        "/league/:id/championship/:season"
+      ]
+    },
+    {
+      "id": "stats",
+      "title": "League statistical board",
+      "referenceIds": [
+        "experience-pc-2k26-roster"
+      ],
+      "composition": "Wide broadcast table with a narrow scope rail; chosen metric dominates without hiding sample size.",
+      "primaryDecision": "Compare qualifying performance under the chosen scope.",
+      "spatialHierarchy": [
+        "Top: season/source/qualification",
+        "Left 15%: metric family",
+        "Center 80%: aligned rows",
+        "Upper right: chosen sort"
+      ],
+      "pcInteraction": "Click headers sorts; keyboard row navigation; fixed name column and metric-page controls.",
+      "artTreatment": "Small leader portrait only in header, flat forest table.",
+      "removeWebsitePatterns": [
+        "One card per player",
+        "repeated KPI totals",
+        "giant portrait inspector"
+      ],
+      "emptyErrorState": "No qualifying sample shown plainly; missing values remain unknown.",
+      "acceptance": [
+        "At 1280x720 names, sample and chosen metric stay visible; sort and position survive Back.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Scope and qualification",
+          "x": 0,
+          "y": 0,
+          "w": 70,
+          "h": 15
+        },
+        {
+          "label": "Metric families",
+          "x": 0,
+          "y": 17,
+          "w": 15,
+          "h": 83
+        },
+        {
+          "label": "Ranked performance",
+          "x": 17,
+          "y": 17,
+          "w": 83,
+          "h": 83
+        },
+        {
+          "label": "Chosen sort",
+          "x": 72,
+          "y": 0,
+          "w": 28,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Statistics desk",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/stats"
+      ]
+    },
+    {
+      "id": "records",
+      "title": "Program record book",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "An open almanac spread with category tabs and oversized record typography.",
+      "primaryDecision": "Inspect a record, tied holders, and provenance.",
+      "spatialHierarchy": [
+        "Left 22%: category index",
+        "Center: record values/holders",
+        "Right: selected record source",
+        "Top: season/career scope"
+      ],
+      "pcInteraction": "Arrow categories, click holder/source, Escape restores selected record.",
+      "artTreatment": "Cream typeset spread, forest chapter rule.",
+      "removeWebsitePatterns": [
+        "Trophy cards for every metric",
+        "profile workspace copied here"
+      ],
+      "emptyErrorState": "Unsupported category says no retained evidence; never a zero record.",
+      "acceptance": [
+        "Every displayed record preserves scope, ties and source year.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Category index",
+          "x": 0,
+          "y": 17,
+          "w": 22,
+          "h": 83
+        },
+        {
+          "label": "Record holders",
+          "x": 24,
+          "y": 17,
+          "w": 48,
+          "h": 83
+        },
+        {
+          "label": "Record provenance",
+          "x": 74,
+          "y": 17,
+          "w": 26,
+          "h": 83
+        },
+        {
+          "label": "Season or career",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Record book",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/record-book"
+      ]
+    },
+    {
+      "id": "archive",
+      "title": "Season volumes",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A horizontal year ruler above an archive contents spread, always marked historical.",
+      "primaryDecision": "Choose a year and chapter to inspect.",
+      "spatialHierarchy": [
+        "Top: selected year ruler",
+        "Left: chapter index",
+        "Center: champion and retained outcomes",
+        "Right: archival cover illustration"
+      ],
+      "pcInteraction": "Wheel or keys move year ruler; explicit year buttons available; chapter click opens data.",
+      "artTreatment": "Faded campus print with strong readable foreground.",
+      "removeWebsitePatterns": [
+        "Current hub clone",
+        "live action buttons",
+        "infinite history feed"
+      ],
+      "emptyErrorState": "Missing snapshots labeled unavailable, not reconstructed.",
+      "acceptance": [
+        "Selected year remains visible in every chapter and Back restores it.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Year ruler",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 18
+        },
+        {
+          "label": "Archive chapters",
+          "x": 0,
+          "y": 20,
+          "w": 18,
+          "h": 80
+        },
+        {
+          "label": "Season contents",
+          "x": 20,
+          "y": 20,
+          "w": 50,
+          "h": 80
+        },
+        {
+          "label": "Archive cover",
+          "x": 72,
+          "y": 20,
+          "w": 28,
+          "h": 80
+        }
+      ],
+      "originalTitle": "Season archive",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/archive"
+      ]
+    },
+    {
+      "id": "archive-team",
+      "title": "Team season dossier",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "Historical team banner spans the top above roster/results chapters.",
+      "primaryDecision": "Inspect what this team actually did in this season.",
+      "spatialHierarchy": [
+        "Top: team + year + archive stamp",
+        "Left: chapter tabs",
+        "Center: retained roster/results",
+        "Right: season summary facts"
+      ],
+      "pcInteraction": "Direct chapter shortcuts; player opens historical identity where available.",
+      "artTreatment": "Team pennant and archival paper, no live team controls.",
+      "removeWebsitePatterns": [
+        "Live roster editor reused with disabled buttons"
+      ],
+      "emptyErrorState": "Missing historical field explicitly unknown.",
+      "acceptance": [
+        "No accidental navigation from archived stats to an unlabeled current profile.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Historical team identity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 22
+        },
+        {
+          "label": "Season chapters",
+          "x": 0,
+          "y": 24,
+          "w": 16,
+          "h": 76
+        },
+        {
+          "label": "Historical roster results",
+          "x": 18,
+          "y": 24,
+          "w": 60,
+          "h": 76
+        },
+        {
+          "label": "Retained season facts",
+          "x": 80,
+          "y": 24,
+          "w": 20,
+          "h": 76
+        }
+      ],
+      "originalTitle": "Archived team",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/archive/team/:teamId"
+      ]
+    },
+    {
+      "id": "digests",
+      "title": "The weekly edition",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "An editorial broadsheet uses a lead story image, asymmetric factual briefs and a decision strip.",
+      "primaryDecision": "Understand this week and act on its real unresolved decisions.",
+      "spatialHierarchy": [
+        "Top: issue/week masthead",
+        "Left 60%: lead story",
+        "Right 35%: results briefs",
+        "Bottom: actionable decisions"
+      ],
+      "pcInteraction": "Issue chooser and chapter paging; click factual source; no autoplay.",
+      "artTreatment": "Cream newsprint, forest headlines, licensed-original art only.",
+      "removeWebsitePatterns": [
+        "Social feed clone",
+        "equal news cards",
+        "long blog column"
+      ],
+      "emptyErrorState": "No issue yet has truthful timing; incomplete sources identified.",
+      "acceptance": [
+        "Lead text cannot invent causal stories; actions separate from editorial claims.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Weekly masthead",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Lead story",
+          "x": 0,
+          "y": 18,
+          "w": 60,
+          "h": 62
+        },
+        {
+          "label": "Results briefs",
+          "x": 62,
+          "y": 18,
+          "w": 38,
+          "h": 62
+        },
+        {
+          "label": "Required decisions",
+          "x": 0,
+          "y": 82,
+          "w": 100,
+          "h": 18
+        }
+      ],
+      "originalTitle": "League news digest",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/digests"
+      ]
+    },
+    {
+      "id": "ticker",
+      "title": "League wire",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A flat event wire fills most of the viewport with category rail and selected-event expansion.",
+      "primaryDecision": "Find the specific recent event.",
+      "spatialHierarchy": [
+        "Top: date/category filter",
+        "Left 20%: event categories",
+        "Center: chronological lines",
+        "Right: selected event details"
+      ],
+      "pcInteraction": "Wheel scrolls bounded wire; Home/End and date jump; new events wait behind count button.",
+      "artTreatment": "Broadcast typography and small factual category symbols.",
+      "removeWebsitePatterns": [
+        "Auto-scrolling marquee",
+        "infinite feed",
+        "large rounded event cards"
+      ],
+      "emptyErrorState": "Failed refresh retains last known events with timestamp.",
+      "acceptance": [
+        "New arrivals never move the focused row; chronology and freshness explicit.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Date and filter",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Event categories",
+          "x": 0,
+          "y": 17,
+          "w": 20,
+          "h": 83
+        },
+        {
+          "label": "Chronological wire",
+          "x": 22,
+          "y": 17,
+          "w": 48,
+          "h": 83
+        },
+        {
+          "label": "Selected event",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        }
+      ],
+      "originalTitle": "League ticker",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/ticker"
+      ]
+    },
+    {
+      "id": "inbox",
+      "title": "Coach correspondence",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A bounded sender/subject list at left and a full letter plane at right, with actions attached to their message.",
+      "primaryDecision": "Resolve a specific message, separately from reading it.",
+      "spatialHierarchy": [
+        "Top: unread/action-required filters",
+        "Left 32%: message queue",
+        "Right upper: sender/body",
+        "Right lower: permitted action/status"
+      ],
+      "pcInteraction": "Up/Down selects; Enter opens; reply/action accessible by Tab; no forced controller key mapping.",
+      "artTreatment": "Sender monogram and restrained letterhead.",
+      "removeWebsitePatterns": [
+        "Email-app toolbar clutter",
+        "message cards",
+        "decorative dashboard charts"
+      ],
+      "emptyErrorState": "Empty unread differs from empty required; stale action rejected without losing letter.",
+      "acceptance": [
+        "Read status never equates to resolved; pending action prevents duplicate submit.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Message status filters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Correspondence queue",
+          "x": 0,
+          "y": 17,
+          "w": 32,
+          "h": 83
+        },
+        {
+          "label": "Selected letter",
+          "x": 34,
+          "y": 17,
+          "w": 66,
+          "h": 60
+        },
+        {
+          "label": "Message action receipt",
+          "x": 34,
+          "y": 79,
+          "w": 66,
+          "h": 21
+        }
+      ],
+      "originalTitle": "Coach inbox",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/inbox"
+      ]
+    },
+    {
+      "id": "storylines",
+      "title": "Inside the program",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A character-and-headline scene owns the left half while one actual decision owns the right.",
+      "primaryDecision": "Make an eligible story decision with supported consequences.",
+      "spatialHierarchy": [
+        "Left 45%: participants/scene",
+        "Right upper: factual situation",
+        "Right middle: choices/vote",
+        "Top: arc timeline"
+      ],
+      "pcInteraction": "Number shortcuts only when text fields unfocused; pointer and Tab equivalent; confirm consequential choice.",
+      "artTreatment": "Cel scene framed like a sports documentary, optional reduced motion.",
+      "removeWebsitePatterns": [
+        "Generic quest cards",
+        "invented dialogue",
+        "multiple unrelated arcs per page"
+      ],
+      "emptyErrorState": "No eligible choice shows observation state; failed vote retains selection.",
+      "acceptance": [
+        "Unknown effects stay unknown; arrival cinematic remains unapproved.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Participants and place",
+          "x": 0,
+          "y": 17,
+          "w": 45,
+          "h": 83
+        },
+        {
+          "label": "Recorded situation",
+          "x": 47,
+          "y": 17,
+          "w": 53,
+          "h": 37
+        },
+        {
+          "label": "Eligible decisions",
+          "x": 47,
+          "y": 56,
+          "w": 53,
+          "h": 44
+        },
+        {
+          "label": "Story arc",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Storyline hub",
+      "group": "Records & stories",
+      "routes": [
+        "/league/:id/storylines"
+      ]
+    },
+    {
+      "id": "commissioner",
+      "title": "League operations floor",
+      "referenceIds": [
+        "competition-pc-nhl-hub"
+      ],
+      "composition": "A dominant current-week command stage uses a ranked obligation lane and a broad readiness panorama; secondary office destinations are terse top chapters.",
+      "primaryDecision": "What prevents the league from progressing safely?",
+      "spatialHierarchy": [
+        "Current phase/operation masthead",
+        "Blocking obligations lane",
+        "Team readiness panorama",
+        "Office chapter navigation"
+      ],
+      "pcInteraction": "Keyboard selects exact blocker then opens its record; mouse supports same path; return keeps selected obligation.",
+      "artTreatment": "C9 league seal and subdued stadium control-room backdrop; danger uses text and restrained amber.",
+      "removeWebsitePatterns": [
+        "Equal-weight mutation tile grid",
+        "decorative KPIs",
+        "marketing welcome copy."
+      ],
+      "emptyErrorState": "Unknown readiness remains unknown; failed preflight does not render all clear; no pending score counted as accepted.",
+      "acceptance": [
+        "First viewport identifies the actual next blocker and server operation state without inferring presence or offering bypass.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual readiness and report state",
+        "Current operation identity/status",
+        "Role-aware access"
+      ],
+      "unapprovedDependencies": [
+        "New priority scoring, presence telemetry or force-advance behavior is not implied."
+      ],
+      "zones": [
+        {
+          "label": "Current league operation",
+          "x": 0,
+          "y": 0,
+          "w": 76,
+          "h": 18
+        },
+        {
+          "label": "Blocking obligations",
+          "x": 0,
+          "y": 20,
+          "w": 31,
+          "h": 80
+        },
+        {
+          "label": "Team readiness panorama",
+          "x": 33,
+          "y": 20,
+          "w": 43,
+          "h": 80
+        },
+        {
+          "label": "Office chapter navigation",
+          "x": 78,
+          "y": 0,
+          "w": 22,
+          "h": 100
+        }
+      ],
+      "originalTitle": "Commissioner office",
+      "group": "Administration & tools",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "edit-rosters",
+      "title": "Live roster correction bench",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "A broad roster ledger sits above a shallow selected-player attribute bench; team switcher is in the top scope band.",
+      "primaryDecision": "Which exact live player field am I correcting?",
+      "spatialHierarchy": [
+        "League/team scope band",
+        "Player correction ledger",
+        "Selected attribute bench",
+        "Named change review strip"
+      ],
+      "pcInteraction": "Arrow moves record; Enter edits selected category; Tab traverses fields; Escape cancels local edit with dirty-state handling.",
+      "artTreatment": "Portrait stamp only beside selected identity; uniform rows remain readable on dark forest.",
+      "removeWebsitePatterns": [
+        "Player card stacks",
+        "all-fields modal",
+        "hidden bulk replacement."
+      ],
+      "emptyErrorState": "No team selected prompts selection; failed save retains values and names player; forbidden fields stay read-only.",
+      "acceptance": [
+        "Correction scope stays visible while editing; one failed save cannot switch target or discard typed value.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "League and team scope",
+        "Player identity and authorization",
+        "Validation and dirty-state preservation"
+      ],
+      "unapprovedDependencies": [
+        "New bulk edits, undo guarantees and before/after persistence require dedicated validation."
+      ],
+      "zones": [
+        {
+          "label": "League and team scope",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Player correction ledger",
+          "x": 0,
+          "y": 18,
+          "w": 100,
+          "h": 44
+        },
+        {
+          "label": "Selected attribute bench",
+          "x": 0,
+          "y": 64,
+          "w": 70,
+          "h": 36
+        },
+        {
+          "label": "Named change review",
+          "x": 72,
+          "y": 64,
+          "w": 28,
+          "h": 36
+        }
+      ],
+      "originalTitle": "Commissioner roster editor",
+      "group": "Administration & tools",
+      "routes": [
+        "/league/:id/edit-rosters"
+      ]
+    },
+    {
+      "id": "edit-recruits",
+      "title": "Class correction board",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "Class roster forms a position-grouped ledger; an attribute drawer occupies the lower third with public/private field bands.",
+      "primaryDecision": "Which class record needs an authorized correction?",
+      "spatialHierarchy": [
+        "Class and visibility header",
+        "Prospect correction list",
+        "Public attribute band",
+        "Restricted trait band",
+        "Save receipt"
+      ],
+      "pcInteraction": "Search and keyboard list navigation retain selected recruit; hidden traits require authorized view, never public preview.",
+      "artTreatment": "Small class seal, no signing celebration; restricted information visually labeled beyond color.",
+      "removeWebsitePatterns": [
+        "Gem/bust hero badges",
+        "sprawling per-recruit cards",
+        "private values in public summary."
+      ],
+      "emptyErrorState": "Empty class names its source; permission failure closes privileged detail without substituting public guesses.",
+      "acceptance": [
+        "Public preview exposes no hidden trait; rejected save retains the named recruit and intended changes.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Class and recruit identity",
+        "Public/private field distinction",
+        "Save error with retained values"
+      ],
+      "unapprovedDependencies": [
+        "No new reveal rules, hidden scouting exports or unsupported class-wide edits."
+      ],
+      "zones": [
+        {
+          "label": "Class visibility scope",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 17
+        },
+        {
+          "label": "Prospect correction list",
+          "x": 0,
+          "y": 19,
+          "w": 57,
+          "h": 81
+        },
+        {
+          "label": "Public attributes",
+          "x": 59,
+          "y": 19,
+          "w": 41,
+          "h": 29
+        },
+        {
+          "label": "Restricted trait fields",
+          "x": 59,
+          "y": 50,
+          "w": 41,
+          "h": 29
+        },
+        {
+          "label": "Recruit save receipt",
+          "x": 59,
+          "y": 81,
+          "w": 41,
+          "h": 19
+        }
+      ],
+      "originalTitle": "Commissioner recruit editor",
+      "group": "Administration & tools",
+      "routes": [
+        "/league/:id/edit-recruits"
+      ]
+    },
+    {
+      "id": "roster-library",
+      "title": "Roster file workshop",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "A file identity ribbon anchors a team tree, broad roster grid, and docked field inspector; file commands sit above the work plane.",
+      "primaryDecision": "Which reusable roster file am I creating or saving?",
+      "spatialHierarchy": [
+        "File/version ribbon",
+        "Team tree",
+        "Roster grid",
+        "Attribute inspector",
+        "Save destination review"
+      ],
+      "pcInteraction": "Ctrl+S only after real binding implemented; keyboard tree-to-grid-to-inspector; save-as explicitly names new file.",
+      "artTreatment": "C9 folio spine and restrained monogram watermark; utility outweighs athlete spectacle.",
+      "removeWebsitePatterns": [
+        "Live league advance chrome",
+        "ambiguous Publish",
+        "tiny nested editor dialogs."
+      ],
+      "emptyErrorState": "Unsaved file stays named Untitled; unavailable source differs from empty roster; failed save keeps dirty state.",
+      "acceptance": [
+        "Saved receipt names file and destination; file editing never mutates a live league without a separate explicit operation.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Source file identity",
+        "Unsaved-work indication",
+        "Team/player contents"
+      ],
+      "unapprovedDependencies": [
+        "New formats, binary Power Pros export and cloud conflict merging remain unapproved."
+      ],
+      "zones": [
+        {
+          "label": "File version identity",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Source team tree",
+          "x": 0,
+          "y": 18,
+          "w": 19,
+          "h": 63
+        },
+        {
+          "label": "Roster file grid",
+          "x": 21,
+          "y": 18,
+          "w": 52,
+          "h": 63
+        },
+        {
+          "label": "Selected field inspector",
+          "x": 75,
+          "y": 18,
+          "w": 25,
+          "h": 63
+        },
+        {
+          "label": "Save destination review",
+          "x": 0,
+          "y": 83,
+          "w": 100,
+          "h": 17
+        }
+      ],
+      "originalTitle": "Roster file studio",
+      "group": "Administration & tools",
+      "routes": [
+        "/manage-rosters"
+      ]
+    },
+    {
+      "id": "roster-viewer",
+      "title": "Player comparison stage",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "A full roster list transitions to two aligned player identity columns sharing a central metric-label spine.",
+      "primaryDecision": "Which player or source roster best fits my intended use?",
+      "spatialHierarchy": [
+        "Source roster selector",
+        "Browse ledger",
+        "Player A/B identity caps",
+        "Shared metric comparison plane"
+      ],
+      "pcInteraction": "Select A then B deliberately; keyboard toggles metric chapters together; Back returns to source selection and sort.",
+      "artTreatment": "Paired equal-sized portrait cutouts above actual numbers, no decorative radar dominance.",
+      "removeWebsitePatterns": [
+        "Unequal profile cards",
+        "duplicated comparison controls",
+        "unlabeled rating scales."
+      ],
+      "emptyErrorState": "Missing metric is Unknown; no second player prompts selection; load error cannot zero-fill comparator.",
+      "acceptance": [
+        "Both source file names and rating scales remain visible; comparison uses equivalent rows without invented conversion.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Both player identities",
+        "Source and rating scale labels",
+        "Read-only versus editable distinction"
+      ],
+      "unapprovedDependencies": [
+        "Cross-edition rating conversion and automatic roster recommendations are not approved."
+      ],
+      "zones": [
+        {
+          "label": "Source roster selector",
+          "x": 0,
+          "y": 0,
+          "w": 28,
+          "h": 18
+        },
+        {
+          "label": "Browse source ledger",
+          "x": 0,
+          "y": 20,
+          "w": 28,
+          "h": 80
+        },
+        {
+          "label": "Player comparison identities",
+          "x": 30,
+          "y": 0,
+          "w": 70,
+          "h": 30
+        },
+        {
+          "label": "Shared metric plane",
+          "x": 30,
+          "y": 32,
+          "w": 70,
+          "h": 68
+        }
+      ],
+      "originalTitle": "Roster browser and comparison",
+      "group": "Administration & tools",
+      "routes": [
+        "/roster-viewer"
+      ]
+    },
+    {
+      "id": "class-library",
+      "title": "Recruit class archive studio",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "A shallow shelf of named classes opens into one class manifest; recruit authoring occupies full width with three separate outbound command paths.",
+      "primaryDecision": "Save this reusable class or deliberately load it into a named league?",
+      "spatialHierarchy": [
+        "Class shelf and ownership",
+        "Class manifest table",
+        "Selected recruit editor",
+        "Save/share/load command review"
+      ],
+      "pcInteraction": "Mouse or keyboard selects class; editing does not select a destination league; load requires named target and explicit existing permission.",
+      "artTreatment": "Program-year spines in brass; archive tone rather than arrival celebration.",
+      "removeWebsitePatterns": [
+        "Generic Publish button",
+        "endless class cards",
+        "live-season navigation within file authoring."
+      ],
+      "emptyErrorState": "Empty archive offers supported create/import; source error keeps draft; failed league load cannot claim imported.",
+      "acceptance": [
+        "Save, Share and Load into league remain distinct outcomes with truthful destination receipts.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Class name and count",
+        "Dirty state",
+        "Explicit destination for league loading"
+      ],
+      "unapprovedDependencies": [
+        "New sharing permissions, marketplace metadata or non-destructive merge require approval."
+      ],
+      "zones": [
+        {
+          "label": "Class archive shelf",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 23
+        },
+        {
+          "label": "Class manifest table",
+          "x": 0,
+          "y": 25,
+          "w": 49,
+          "h": 53
+        },
+        {
+          "label": "Selected recruit editor",
+          "x": 51,
+          "y": 25,
+          "w": 49,
+          "h": 53
+        },
+        {
+          "label": "Save share load review",
+          "x": 0,
+          "y": 80,
+          "w": 100,
+          "h": 20
+        }
+      ],
+      "originalTitle": "Recruiting class studio",
+      "group": "Administration & tools",
+      "routes": [
+        "/manage-recruiting"
+      ]
+    },
+    {
+      "id": "import-class",
+      "title": "Transfer review stage",
+      "referenceIds": [
+        "competition-pc-show-decision"
+      ],
+      "composition": "Source class and target destination flank a directional transfer line, with a read-only manifest across the lower half.",
+      "primaryDecision": "Do I want this shared file in the stated destination?",
+      "spatialHierarchy": [
+        "Source identity",
+        "Destination identity",
+        "Transfer consequence statement",
+        "Read-only recruit manifest",
+        "Import result"
+      ],
+      "pcInteraction": "Tab follows source, destination, manifest, final command; Escape cancels without changing either side.",
+      "artTreatment": "Brass transfer line and C9 library stamp; no live-team signing visual.",
+      "removeWebsitePatterns": [
+        "One-click link importing into active league",
+        "editable source controls",
+        "stacked confirmation modals."
+      ],
+      "emptyErrorState": "Revoked link explains unavailability; forbidden destination is blocked; network failure preserves selected target without success.",
+      "acceptance": [
+        "Before commit, library import versus league load is unmistakable; receipt names actual created artifact.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Class identity/count",
+        "Visible source and destination",
+        "Invalid or revoked-link state"
+      ],
+      "unapprovedDependencies": [
+        "Duplicate detection, provenance signing and compatibility conversions need separate implementation."
+      ],
+      "zones": [
+        {
+          "label": "Source class identity",
+          "x": 0,
+          "y": 0,
+          "w": 36,
+          "h": 24
+        },
+        {
+          "label": "Import destination identity",
+          "x": 64,
+          "y": 0,
+          "w": 36,
+          "h": 24
+        },
+        {
+          "label": "Transfer consequence",
+          "x": 38,
+          "y": 0,
+          "w": 24,
+          "h": 24
+        },
+        {
+          "label": "Read only class manifest",
+          "x": 0,
+          "y": 26,
+          "w": 100,
+          "h": 53
+        },
+        {
+          "label": "Import outcome receipt",
+          "x": 0,
+          "y": 81,
+          "w": 100,
+          "h": 19
+        }
+      ],
+      "originalTitle": "Shared class import",
+      "group": "Administration & tools",
+      "routes": [
+        "/import-class/:token"
+      ]
+    },
+    {
+      "id": "class-share",
+      "title": "Shared class showcase",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "Class identity headlines a ranked prospect spread with selectable rows; source/visibility facts occupy a compact publication colophon.",
+      "primaryDecision": "Is this shared class worth exploring or importing?",
+      "spatialHierarchy": [
+        "Class cover title",
+        "Prospect ranking spread",
+        "Selected public profile",
+        "Source and import command"
+      ],
+      "pcInteraction": "Keyboard browse is read-only; import opens transfer review; copying link is separate explicit action.",
+      "artTreatment": "Original program-cover treatment; no private scouting stickers or fake official license marks.",
+      "removeWebsitePatterns": [
+        "Marketing landing page funnel",
+        "hidden data teaser",
+        "auto import."
+      ],
+      "emptyErrorState": "Unavailable share retains safe return; missing author/metadata says unavailable; never claims verified authenticity.",
+      "acceptance": [
+        "Only authorized public fields render; no imported status until real transfer completion.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Public class identity",
+        "Only token-authorized fields",
+        "Revoked/unavailable states"
+      ],
+      "unapprovedDependencies": [
+        "New ratings, download counters, public author identity and sharing modes require approval."
+      ],
+      "zones": [
+        {
+          "label": "Shared class cover",
+          "x": 0,
+          "y": 0,
+          "w": 32,
+          "h": 41
+        },
+        {
+          "label": "Prospect ranking spread",
+          "x": 34,
+          "y": 0,
+          "w": 66,
+          "h": 72
+        },
+        {
+          "label": "Public player profile",
+          "x": 0,
+          "y": 43,
+          "w": 32,
+          "h": 57
+        },
+        {
+          "label": "Source and import",
+          "x": 34,
+          "y": 74,
+          "w": 66,
+          "h": 26
+        }
+      ],
+      "originalTitle": "Shared class showcase",
+      "group": "Administration & tools",
+      "routes": [
+        "/class-share/:token"
+      ]
+    },
+    {
+      "id": "war-room",
+      "title": "Retired destination",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "Immediate safe transfer to supported hub with a minimal fallback.",
+      "primaryDecision": "Return to a valid destination.",
+      "spatialHierarchy": [
+        "Top: retired-route notice",
+        "Center: destination name",
+        "Right: Open hub"
+      ],
+      "pcInteraction": "Automatic replace navigation if authorized; fallback link keyboard reachable.",
+      "artTreatment": "No new art budget for obsolete route.",
+      "removeWebsitePatterns": [
+        "A new dashboard for a retired screen"
+      ],
+      "emptyErrorState": "No accessible league offers Dynasty selection.",
+      "acceptance": [
+        "No redirect loop, no extra history trap.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Retired destination notice",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Current destination",
+          "x": 15,
+          "y": 33,
+          "w": 48,
+          "h": 42
+        },
+        {
+          "label": "Open league hub",
+          "x": 65,
+          "y": 44,
+          "w": 25,
+          "h": 20
+        }
+      ],
+      "originalTitle": "Retired War Room link",
+      "group": "System & recovery",
+      "routes": [
+        "/league/:id/war-room"
+      ]
+    },
+    {
+      "id": "not-found",
+      "title": "Return to the diamond",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A neutral diamond outline and two safe routes replace a web-style 404 page.",
+      "primaryDecision": "Recover without losing the user's context.",
+      "spatialHierarchy": [
+        "Left: neutral diamond",
+        "Center: plain problem",
+        "Right: accessible hub/library choices"
+      ],
+      "pcInteraction": "Escape to known safe destination only; explicit buttons always available.",
+      "artTreatment": "Quiet forest scene and brass route line.",
+      "removeWebsitePatterns": [
+        "Technical stack traces",
+        "humorous blame",
+        "site footer"
+      ],
+      "emptyErrorState": "Permission and missing route do not expose private league identity.",
+      "acceptance": [
+        "Recovery works with no session and no league membership.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Neutral diamond",
+          "x": 0,
+          "y": 22,
+          "w": 30,
+          "h": 58
+        },
+        {
+          "label": "Recovery explanation",
+          "x": 32,
+          "y": 28,
+          "w": 34,
+          "h": 40
+        },
+        {
+          "label": "Safe destinations",
+          "x": 68,
+          "y": 40,
+          "w": 32,
+          "h": 44
+        }
+      ],
+      "originalTitle": "Page not found",
+      "group": "System & recovery",
+      "routes": []
+    },
+    {
+      "id": "league-standings",
+      "title": "Conference race",
+      "referenceIds": [
+        "experience-pc-2k26-roster"
+      ],
+      "composition": "A competition table sits next to a compact race diagram using only supported qualification rules.",
+      "primaryDecision": "Locate your team in the actual conference race.",
+      "spatialHierarchy": [
+        "Top: season/conference",
+        "Center 70%: standings",
+        "Right 25%: supported cutline/race notes",
+        "Bottom: qualification legend"
+      ],
+      "pcInteraction": "Header sort, conference keys, team row Enter; stable user-team marker.",
+      "artTreatment": "Broadcast league masthead and brass qualification rule.",
+      "removeWebsitePatterns": [
+        "Generic summary tiles",
+        "unnecessary team portraits"
+      ],
+      "emptyErrorState": "Incomplete reported results marked provisional.",
+      "acceptance": [
+        "Ties, games played and qualification logic visible; no invented cutline.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Conference and season",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Conference race table",
+          "x": 0,
+          "y": 17,
+          "w": 70,
+          "h": 63
+        },
+        {
+          "label": "Race context",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 63
+        },
+        {
+          "label": "Qualification legend",
+          "x": 0,
+          "y": 82,
+          "w": 100,
+          "h": 18
+        }
+      ],
+      "originalTitle": "League detail — Standings",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "league-teams",
+      "title": "Program directory",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A conference monogram board selects a program identity spread; comparison is a separate matched two-column view.",
+      "primaryDecision": "Inspect or compare programs.",
+      "spatialHierarchy": [
+        "Top: conference chooser",
+        "Left 35%: compact programs",
+        "Right: selected identity/facts",
+        "Comparison mode: equal columns"
+      ],
+      "pcInteraction": "Single click selects, Enter opens; Compare pins two named teams.",
+      "artTreatment": "School pennants and miniature campus crop.",
+      "removeWebsitePatterns": [
+        "Card catalog with identical art",
+        "random metric periods"
+      ],
+      "emptyErrorState": "Missing program facts are unknown; failed fetch retains selection.",
+      "acceptance": [
+        "Compare uses matching season/source and shows identities simultaneously.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Conference chooser",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Program directory",
+          "x": 0,
+          "y": 17,
+          "w": 35,
+          "h": 48
+        },
+        {
+          "label": "Selected program",
+          "x": 37,
+          "y": 17,
+          "w": 63,
+          "h": 48
+        },
+        {
+          "label": "Matched program comparison",
+          "x": 0,
+          "y": 67,
+          "w": 100,
+          "h": 33
+        }
+      ],
+      "originalTitle": "League detail — Teams and comparison",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "league-rankings",
+      "title": "The ranking release",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A broadcast ranking slate with the week's top program prominent above a flat ordered list.",
+      "primaryDecision": "Understand movement in this dated release.",
+      "spatialHierarchy": [
+        "Top: week/source",
+        "Left: featured top program",
+        "Center: ordered ranking",
+        "Right: prior rank/movement context"
+      ],
+      "pcInteraction": "Week arrows and keyboard list navigation; explicit new-entry label.",
+      "artTreatment": "Large rank numerals, team marks, no trophy art.",
+      "removeWebsitePatterns": [
+        "Current rankings masquerading as historical",
+        "colored movement without text"
+      ],
+      "emptyErrorState": "No prior release yields no fabricated delta.",
+      "acceptance": [
+        "Release date/source and new-versus-moved status remain visible.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Release date source",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Featured top program",
+          "x": 0,
+          "y": 17,
+          "w": 25,
+          "h": 83
+        },
+        {
+          "label": "Ordered ranking",
+          "x": 27,
+          "y": 17,
+          "w": 47,
+          "h": 83
+        },
+        {
+          "label": "Movement context",
+          "x": 76,
+          "y": 17,
+          "w": 24,
+          "h": 83
+        }
+      ],
+      "originalTitle": "League detail — Rankings",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "league-prospects",
+      "title": "National scouting index",
+      "referenceIds": [
+        "team-cfb26-recruit-image"
+      ],
+      "composition": "A league discovery sheet fills most of the screen, with a narrow original map or origin panel tied to the selected prospect. The search/index vocabulary differs from the own-team spending board; no actions consume resources here.",
+      "primaryDecision": "Which prospect merits deeper investigation?",
+      "spatialHierarchy": [
+        "Top: class/year and combined/group selector",
+        "Left 78%: wide authorized prospect index",
+        "Right 22%: selected origin and identity",
+        "Table header: search and explicit sort criteria",
+        "Lower sheet edge: result range"
+      ],
+      "pcInteraction": "Type to search through focused field; arrows move selection; Enter opens dossier; Escape returns with sort and scroll. Map markers are navigational only.",
+      "artTreatment": "National scouting-room wall and subdued original geographic treatment; forest table, cream selected row.",
+      "removeWebsitePatterns": "Remove own-team resource HUD, routine spend controls and full biography per row.",
+      "emptyErrorState": "No matches keeps query; missing hometown omits marker; failure never produces empty confirmed pool.",
+      "acceptance": "Public knowledge permissions identical across combined/group views; hidden ratings cannot sort; at least12 rows at1080p.",
+      "zones": [
+        {
+          "label": "Class and pool",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "National prospect index",
+          "x": 0,
+          "y": 34,
+          "w": 76,
+          "h": 49
+        },
+        {
+          "label": "Selected player origin",
+          "x": 78,
+          "y": 17,
+          "w": 22,
+          "h": 83
+        },
+        {
+          "label": "Search and sorting",
+          "x": 0,
+          "y": 17,
+          "w": 76,
+          "h": 15
+        },
+        {
+          "label": "Prospect result range",
+          "x": 0,
+          "y": 85,
+          "w": 76,
+          "h": 15
+        }
+      ],
+      "originalTitle": "League detail — Prospects",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "league-awards",
+      "title": "Honors gallery",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "One selected award dominates a stage while a compact roll of honors anchors the side.",
+      "primaryDecision": "Inspect a recipient and actual achievement.",
+      "spatialHierarchy": [
+        "Left 30%: award categories",
+        "Center: recipient/award stage",
+        "Right: factual season achievement"
+      ],
+      "pcInteraction": "Keyboard categories, click recipient, reduced-motion award transition.",
+      "artTreatment": "Brass honor silhouette and approved cel portrait.",
+      "removeWebsitePatterns": [
+        "Identical award cards",
+        "confetti on routine empty state"
+      ],
+      "emptyErrorState": "Unawarded season says not decided; ties or co-recipients retained.",
+      "acceptance": [
+        "No fabricated trophy or winner; evidence accessible in one action.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Honor categories",
+          "x": 0,
+          "y": 8,
+          "w": 30,
+          "h": 84
+        },
+        {
+          "label": "Recipient stage",
+          "x": 32,
+          "y": 0,
+          "w": 43,
+          "h": 100
+        },
+        {
+          "label": "Achievement evidence",
+          "x": 77,
+          "y": 28,
+          "w": 23,
+          "h": 56
+        }
+      ],
+      "originalTitle": "League detail — Awards",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "league-history",
+      "title": "Years on the wall",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "Chronological championship pennants stand above a compact year ledger.",
+      "primaryDecision": "Choose a season to open its archive.",
+      "spatialHierarchy": [
+        "Top: year range",
+        "Left: championship wall",
+        "Center: year/champion list",
+        "Right: selected season retained facts"
+      ],
+      "pcInteraction": "Page/year keys and mouse rows; Enter opens Archive.",
+      "artTreatment": "Original pennant motifs; no copied licensed banners.",
+      "removeWebsitePatterns": [
+        "Endless timeline cards",
+        "a second archive implementation"
+      ],
+      "emptyErrorState": "No completed season has anticipatory blank wall, no dummy champion.",
+      "acceptance": [
+        "History indexes archived evidence rather than inventing richer summaries.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Year range",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Championship wall",
+          "x": 0,
+          "y": 17,
+          "w": 40,
+          "h": 83
+        },
+        {
+          "label": "Year ledger",
+          "x": 42,
+          "y": 17,
+          "w": 29,
+          "h": 83
+        },
+        {
+          "label": "Selected season",
+          "x": 73,
+          "y": 17,
+          "w": 27,
+          "h": 83
+        }
+      ],
+      "originalTitle": "League detail — History",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "league-edits",
+      "title": "Official corrections ledger",
+      "referenceIds": [
+        "experience-pc-2k26-roster"
+      ],
+      "composition": "A sober correction log with one selected before/after spread.",
+      "primaryDecision": "Understand who corrected what and why.",
+      "spatialHierarchy": [
+        "Top: date/object filter",
+        "Left 40%: edit log",
+        "Center: before values",
+        "Right: after values/actor/reason"
+      ],
+      "pcInteraction": "Keyboard log selection; field difference toggles; Back retains exact edit.",
+      "artTreatment": "Scorekeeper correction marks, restrained amber.",
+      "removeWebsitePatterns": [
+        "Generic admin audit dashboard",
+        "exposed technical payloads"
+      ],
+      "emptyErrorState": "Unauthorized values omitted; fetch error not 'no edits'.",
+      "acceptance": [
+        "Actor, time, affected entity and authorized differences are explicit.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Correction filter",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Correction log",
+          "x": 0,
+          "y": 17,
+          "w": 40,
+          "h": 83
+        },
+        {
+          "label": "Before values",
+          "x": 42,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        },
+        {
+          "label": "After and reason",
+          "x": 72,
+          "y": 17,
+          "w": 28,
+          "h": 83
+        }
+      ],
+      "originalTitle": "League detail — Edits",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "roster-depth",
+      "title": "Dugout lineup canvas",
+      "referenceIds": [
+        "team-cfb26-hub-image",
+        "team-cfb26-recruit-image"
+      ],
+      "composition": "Three purposeful modes occupy the same viewport: Field is a large nine-position diamond, Order is a tall nine-slot lineup card beside a bench, and Pitching is a rotation lane plus bullpen. No single table pretends to be all three.",
+      "primaryDecision": "Who belongs in this exact assignment?",
+      "spatialHierarchy": [
+        "Top: Field/Order/Pitching and save state",
+        "Center 62%: selected baseball-specific surface",
+        "Right 28%: eligible substitutes for active slot",
+        "Left 10%: compact slot/order index",
+        "Lower-right: review and save changes"
+      ],
+      "pcInteraction": "Click slot then athlete; arrows traverse slots; explicit swap menu duplicates drag operations; Ctrl+Z only local unsaved changes if implemented, never implied by label.",
+      "artTreatment": "Readable stadium/dugout tactical geometry, original player mini-portraits, cream nameplates.",
+      "removeWebsitePatterns": "Remove roster spreadsheet above lineup, drag-only chips and per-position boxed tables.",
+      "emptyErrorState": "Vacancies stay selectable; ineligible replacements explain reason; save failure preserves draft.",
+      "acceptance": "Duplicate/illegal assignment warnings before save; all nine batting slots fit 768p; reported mode says game-tracking lineup and never implies console synchronization.",
+      "zones": [
+        {
+          "label": "Lineup mode and save",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Active lineup canvas",
+          "x": 12,
+          "y": 17,
+          "w": 59,
+          "h": 83
+        },
+        {
+          "label": "Eligible bench players",
+          "x": 73,
+          "y": 17,
+          "w": 27,
+          "h": 66
+        },
+        {
+          "label": "Slot order index",
+          "x": 0,
+          "y": 17,
+          "w": 10,
+          "h": 83
+        },
+        {
+          "label": "Review and save",
+          "x": 73,
+          "y": 85,
+          "w": 27,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Roster — Field, lineup and pitching",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/roster"
+      ]
+    },
+    {
+      "id": "roster-development",
+      "title": "Offseason film review",
+      "referenceIds": [
+        "team-cfb26-dynasty-text",
+        "team-madden26-coach-image"
+      ],
+      "composition": "A before/after athlete comparison fills the right half while a ranked actual-change list occupies the left. The selected player's two recorded states sit on one horizontal metric baseline; no decorative potential forecast.",
+      "primaryDecision": "What actually changed this offseason?",
+      "spatialHierarchy": [
+        "Top: exact season and evidence source",
+        "Left 42%: players sorted by recorded delta",
+        "Right 58%: aligned before/after metric rows",
+        "Upper-right: Hitting/Pitching/Common metric lens",
+        "Lower-right: source explanation"
+      ],
+      "pcInteraction": "Arrows compare consecutive players rapidly; metric shortcuts change view only; Enter opens player history and Escape restores selection.",
+      "artTreatment": "Training-ground background muted; brass for selected metric, text plus signed delta for change.",
+      "removeWebsitePatterns": "Remove future-growth meters, stacked change cards and unlabeled radar polygons.",
+      "emptyErrorState": "No prior record says No baseline; missing value is not zero; failed history leaves a retry state.",
+      "acceptance": "Before and after use same scale and date labels; negative and zero deltas remain legible; no prediction inferred from potential.",
+      "zones": [
+        {
+          "label": "Offseason and source",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Recorded change ranking",
+          "x": 0,
+          "y": 17,
+          "w": 40,
+          "h": 83
+        },
+        {
+          "label": "Before after metrics",
+          "x": 42,
+          "y": 34,
+          "w": 58,
+          "h": 49
+        },
+        {
+          "label": "Metric group lens",
+          "x": 42,
+          "y": 17,
+          "w": 58,
+          "h": 15
+        },
+        {
+          "label": "Change evidence explanation",
+          "x": 42,
+          "y": 85,
+          "w": 58,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Roster — Development",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/roster"
+      ]
+    },
+    {
+      "id": "player-profile",
+      "title": "Player media-day stage",
+      "referenceIds": [
+        "team-madden26-coach-image",
+        "team-cfb26-recruit-image"
+      ],
+      "composition": "A half-body player at left sits outside the data frame, with oversized surname and number. The right two thirds is a single chapter: Attributes, Season, Career or Role. Actions appear in a small authorized action menu.",
+      "primaryDecision": "What can this athlete do, and what permitted decision follows?",
+      "spatialHierarchy": [
+        "Left 32%: large cel athlete and identity",
+        "Top-right: profile chapters",
+        "Right 68%: chapter-specific metrics or record",
+        "Lower-left: actual team/role and status",
+        "Upper-right corner: authorized actions"
+      ],
+      "pcInteraction": "Q/E chapter changes; Left/Right next roster player preserves chapter; Escape restores invoking roster row; actions require deliberate menu selection.",
+      "artTreatment": "Sports-profile photography composition translated to cel art; Georgia italic name, forest vignette, cream stat rules.",
+      "removeWebsitePatterns": "Remove avatar-in-card, biography wall and commissioner edit forms from public profile.",
+      "emptyErrorState": "Missing portrait uses branded silhouette; absent career history is labeled; restricted actions absent rather than fake enabled.",
+      "acceptance": "Known attributes and recorded performance are clearly separate; opponent/private fields respect response permissions; no unsourced achievement badges.",
+      "zones": [
+        {
+          "label": "Player portrait identity",
+          "x": 0,
+          "y": 0,
+          "w": 30,
+          "h": 83
+        },
+        {
+          "label": "Profile data chapters",
+          "x": 32,
+          "y": 0,
+          "w": 46,
+          "h": 15
+        },
+        {
+          "label": "Selected chapter metrics",
+          "x": 32,
+          "y": 17,
+          "w": 68,
+          "h": 83
+        },
+        {
+          "label": "Team role status",
+          "x": 0,
+          "y": 85,
+          "w": 30,
+          "h": 15
+        },
+        {
+          "label": "Permitted player actions",
+          "x": 80,
+          "y": 0,
+          "w": 20,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Player profile and authorized edit",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/roster"
+      ]
+    },
+    {
+      "id": "recruit-compare",
+      "title": "Draft-room comparison wall",
+      "referenceIds": [
+        "team-cfb26-recruit-image"
+      ],
+      "composition": "Two or three equal-width athlete columns share one metric baseline and a quiet scouting-room background. Portraits are shallow top identifiers; a single selected metric row crosses all columns with disclosed knowledge state.",
+      "primaryDecision": "Which candidate is the better use of my specific resource?",
+      "spatialHierarchy": [
+        "Top: candidate identities and remove/replace controls",
+        "Center: aligned metric rows across all candidates",
+        "Left gutter: metric labels and knowledge legend",
+        "Bottom: exact action cost and eligibility per candidate",
+        "Top-right: metric lens"
+      ],
+      "pcInteraction": "Arrows move metric row; Tab changes candidate; Enter opens only that candidate's action review; column replacement never spends.",
+      "artTreatment": "Minimal scene texture; cream column headings, thin brass active row; no arbitrary winner crown.",
+      "removeWebsitePatterns": "Remove unequal card heights, separate scroll containers and fabricated weighted fit scores.",
+      "emptyErrorState": "Unknowns occupy same cell geometry as known metrics; removed candidate leaves Replace slot.",
+      "acceptance": "At least three candidates and eight metric rows readable at1080p; all columns scroll in lockstep; unknown values cannot determine winner styling.",
+      "zones": [
+        {
+          "label": "Candidate identities",
+          "x": 20,
+          "y": 0,
+          "w": 58,
+          "h": 22
+        },
+        {
+          "label": "Aligned comparison metrics",
+          "x": 20,
+          "y": 24,
+          "w": 80,
+          "h": 59
+        },
+        {
+          "label": "Metric knowledge legend",
+          "x": 0,
+          "y": 24,
+          "w": 18,
+          "h": 59
+        },
+        {
+          "label": "Costs and eligibility",
+          "x": 20,
+          "y": 85,
+          "w": 80,
+          "h": 15
+        },
+        {
+          "label": "Metric comparison lens",
+          "x": 80,
+          "y": 0,
+          "w": 20,
+          "h": 22
+        }
+      ],
+      "originalTitle": "Recruit comparison and action preview",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/recruiting"
+      ]
+    },
+    {
+      "id": "recruit-filters",
+      "title": "Scouting criteria overlay",
+      "referenceIds": [
+        "team-cfb26-recruit-image"
+      ],
+      "composition": "A centered command overlay over a dimmed board shows criteria as labeled rows, with live matching count and active conditions on the right. Visits and History are separate full working surfaces, not sections inside this form.",
+      "primaryDecision": "Which precise criteria define this search?",
+      "spatialHierarchy": [
+        "Overlay top: criteria title and result count",
+        "Left 65%: Position/State/Class/Knowledge/Status controls",
+        "Right 35%: active conditions and saved presets",
+        "Lower-right: Apply and Reset",
+        "Behind overlay: dimmed selected board row retained"
+      ],
+      "pcInteraction": "Tab traverses labeled criteria; Enter Apply from button only; Escape discards pending changes; search accepts typing without global shortcuts.",
+      "artTreatment": "A clean cream scouting sheet over the forest scene; zero ornamental cards.",
+      "removeWebsitePatterns": "Remove search drawer full of recaps, mobile filter sheets and save-on-close ambiguity.",
+      "emptyErrorState": "Invalid preset explains and offers reset; zero matches displays count before Apply; failed count says unavailable.",
+      "acceptance": "Escape preserves applied state; Apply returns to board with visible criteria; unknown NIL cannot leak through affordability filters.",
+      "zones": [
+        {
+          "label": "Criteria and count",
+          "x": 12,
+          "y": 10,
+          "w": 78,
+          "h": 15
+        },
+        {
+          "label": "Scouting criteria form",
+          "x": 12,
+          "y": 27,
+          "w": 49,
+          "h": 51
+        },
+        {
+          "label": "Conditions and presets",
+          "x": 63,
+          "y": 27,
+          "w": 27,
+          "h": 34
+        },
+        {
+          "label": "Apply and reset",
+          "x": 63,
+          "y": 63,
+          "w": 27,
+          "h": 15
+        },
+        {
+          "label": "Retained board selection",
+          "x": 0,
+          "y": 0,
+          "w": 10,
+          "h": 100
+        }
+      ],
+      "originalTitle": "Recruiting filters, visits and action history",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/recruiting"
+      ]
+    },
+    {
+      "id": "score-review",
+      "title": "Result adjudication stage",
+      "referenceIds": [
+        "competition-pc-nhl-result",
+        "competition-pc-show-decision"
+      ],
+      "composition": "A reported line score anchors two aligned evidence/stat planes; a compact decision band binds revision, authority and accept/dispute controls.",
+      "primaryDecision": "Can I accept this exact report revision?",
+      "spatialHierarchy": [
+        "Reported matchup and revision",
+        "Submitted stat chapters",
+        "Evidence/source plane",
+        "Decision and reason band"
+      ],
+      "pcInteraction": "Keyboard moves evidence and stat chapters; explicit action review; stale revision locks final command pending rereview.",
+      "artTreatment": "Neutral cream score line and amber pending state; no victory glow while unresolved.",
+      "removeWebsitePatterns": [
+        "Generic success modal",
+        "entry form look-alike",
+        "optimistic green OCR check."
+      ],
+      "emptyErrorState": "Unknown numbers remain unknown; fetch error preserves known revision but disables decision; stale conflict asks rereview.",
+      "acceptance": [
+        "Accept/reject targets exactly displayed revision; failed request keeps reason; FINAL styling begins only after confirmed authority.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Current submitted revision and status",
+        "Unknown versus supplied values",
+        "Authorized confirmation/dispute controls"
+      ],
+      "unapprovedDependencies": [
+        "New automatic arbitration or evidence authentication is not implied."
+      ],
+      "zones": [
+        {
+          "label": "Report matchup revision",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 20
+        },
+        {
+          "label": "Submitted stat chapters",
+          "x": 0,
+          "y": 22,
+          "w": 48,
+          "h": 54
+        },
+        {
+          "label": "Report evidence plane",
+          "x": 50,
+          "y": 22,
+          "w": 50,
+          "h": 54
+        },
+        {
+          "label": "Decision and reason",
+          "x": 0,
+          "y": 78,
+          "w": 100,
+          "h": 22
+        }
+      ],
+      "originalTitle": "Pending report review and dispute",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/schedule"
+      ]
+    },
+    {
+      "id": "box-score",
+      "title": "Final broadcast record",
+      "referenceIds": [
+        "competition-pc-nhl-result"
+      ],
+      "composition": "Oversized team names and baseball line score span the top; read-only batting or pitching occupies the broad central plane with a selected player inspection inset.",
+      "primaryDecision": "What happened, and which supported performance explains it?",
+      "spatialHierarchy": [
+        "Authoritative line score",
+        "Team/stat chapter rail",
+        "Performance table",
+        "Source/completeness footnote"
+      ],
+      "pcInteraction": "Mouse column sorting and keyboard row inspection; player opens real profile; Back restores fixture and chapter.",
+      "artTreatment": "Cream numbers over forest broadcast field; brass winner emphasis only after accepted outcome.",
+      "removeWebsitePatterns": [
+        "Editable report controls",
+        "invented event feed",
+        "decorative charts hiding stats."
+      ],
+      "emptyErrorState": "Score-only acceptance labels missing statistics; pending report redirects to review treatment, not final; load failure is explicit.",
+      "acceptance": [
+        "Score-only record never manufactures batting totals or game log; result and data completeness remain separate labels.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Accepted score and source",
+        "Missing statistics labeled unavailable",
+        "Player identity links"
+      ],
+      "unapprovedDependencies": [
+        "New derived advanced metrics and factual recap claims require suitable supplied data."
+      ],
+      "zones": [
+        {
+          "label": "Authoritative line score",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 24
+        },
+        {
+          "label": "Team stat chapters",
+          "x": 0,
+          "y": 26,
+          "w": 19,
+          "h": 58
+        },
+        {
+          "label": "Game performance table",
+          "x": 21,
+          "y": 26,
+          "w": 79,
+          "h": 58
+        },
+        {
+          "label": "Source and completeness",
+          "x": 0,
+          "y": 86,
+          "w": 100,
+          "h": 14
+        }
+      ],
+      "originalTitle": "Box score and game recap",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/schedule"
+      ]
+    },
+    {
+      "id": "departure-dialogs",
+      "title": "Final decision slate",
+      "referenceIds": [
+        "team-madden26-franchise-text"
+      ],
+      "composition": "A centered wide consequence slate pauses the dimmed retention scene. Exact athlete identity sits left, verified consequence list center, and two distinct actions at right; it never becomes a second profile page.",
+      "primaryDecision": "Am I confirming this exact irreversible decision?",
+      "spatialHierarchy": [
+        "Left 25%: affected player names",
+        "Center 50%: exact consequence and cost",
+        "Right 25%: Cancel then explicit named Confirm",
+        "Top: current phase and action verb"
+      ],
+      "pcInteraction": "Initial focus Cancel; Escape cancels; Enter only activates focused control; pending state prevents duplicate submission and close.",
+      "artTreatment": "Cream slate with forest type and brass rule; destructive state conveyed by text, not red alone.",
+      "removeWebsitePatterns": "Remove generic Are you sure, default destructive focus and nested modal stacks.",
+      "emptyErrorState": "Stale state rejection refreshes consequences; uncertain response shows checking status rather than retrying blindly.",
+      "acceptance": "Confirmation names all affected players; resource version checked server-side; failed request retains readable evidence.",
+      "zones": [
+        {
+          "label": "Affected player names",
+          "x": 8,
+          "y": 37,
+          "w": 20,
+          "h": 40
+        },
+        {
+          "label": "Consequences and cost",
+          "x": 30,
+          "y": 37,
+          "w": 42,
+          "h": 40
+        },
+        {
+          "label": "Cancel then confirm",
+          "x": 74,
+          "y": 37,
+          "w": 18,
+          "h": 40
+        },
+        {
+          "label": "Phase and decision",
+          "x": 8,
+          "y": 20,
+          "w": 84,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Retention, declaration and finalization",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/departures"
+      ]
+    },
+    {
+      "id": "walkon-results",
+      "title": "Signing receipt board",
+      "referenceIds": [
+        "team-retro-bowl-hub-image"
+      ],
+      "composition": "A large outcome headline is followed by one orderly signed/outbid ledger, with a selected successful athlete's small portrait at the edge. The verified spending total is the visual anchor, not confetti.",
+      "primaryDecision": "What happened to each bid and my roster?",
+      "spatialHierarchy": [
+        "Top: auction/season and actual outcome total",
+        "Center 75%: signed and outbid ledger",
+        "Right 25%: selected confirmed athlete",
+        "Lower center: verified cost/capacity effects",
+        "Lower-right: Return to roster"
+      ],
+      "pcInteraction": "Arrows move outcomes; Enter profile for confirmed signing; Escape returns to relevant phase; no Replay purchase action.",
+      "artTreatment": "Class of Nine brass receipt stamp and calm club-office background.",
+      "removeWebsitePatterns": "Remove carousel hiding failed bids, blanket victory banner and rival-price speculation.",
+      "emptyErrorState": "No wins states no successful bids; missing cost is unavailable rather than zero; unresolved auction is Pending.",
+      "acceptance": "Every submitted bid has an outcome or pending label; result selection cannot replay mutation; actual cost reconciles.",
+      "zones": [
+        {
+          "label": "Auction outcome total",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 20
+        },
+        {
+          "label": "Signed outbid ledger",
+          "x": 0,
+          "y": 22,
+          "w": 73,
+          "h": 61
+        },
+        {
+          "label": "Confirmed athlete",
+          "x": 75,
+          "y": 22,
+          "w": 25,
+          "h": 61
+        },
+        {
+          "label": "Actual roster effects",
+          "x": 0,
+          "y": 85,
+          "w": 73,
+          "h": 15
+        },
+        {
+          "label": "Return to roster",
+          "x": 75,
+          "y": 85,
+          "w": 25,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Walk-on auction results",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/walkons"
+      ]
+    },
+    {
+      "id": "commission-command",
+      "title": "Readiness control matrix",
+      "referenceIds": [
+        "competition-pc-nhl-hub"
+      ],
+      "composition": "Team rows cross readiness/report obligations in a full-width matrix; selected obligation opens a shallow detail bay underneath.",
+      "primaryDecision": "Whose unresolved obligation needs attention?",
+      "spatialHierarchy": [
+        "Week and active operation strip",
+        "Team obligation matrix",
+        "Selected blocker detail",
+        "Server readiness summary"
+      ],
+      "pcInteraction": "Arrow selection across actual cells; Enter opens linked report; no automatic messages or implicit ready toggles.",
+      "artTreatment": "Team monograms at row heads; restrained amber against forest for unresolved obligations.",
+      "removeWebsitePatterns": [
+        "Readiness donut",
+        "coach profile cards",
+        "presence used as readiness."
+      ],
+      "emptyErrorState": "Stale row labeled stale; failed readiness query disables progression; unknown is never treated ready.",
+      "acceptance": [
+        "Each blocked cell links exact supporting record; all clear requires current server evidence.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Readiness separate from presence",
+        "Actual game/report references",
+        "Unknown or stale states"
+      ],
+      "unapprovedDependencies": [
+        "Presence tracking and new reminders require explicit scope."
+      ],
+      "zones": [
+        {
+          "label": "Week operation status",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Team obligation matrix",
+          "x": 0,
+          "y": 18,
+          "w": 100,
+          "h": 53
+        },
+        {
+          "label": "Selected blocker evidence",
+          "x": 0,
+          "y": 73,
+          "w": 68,
+          "h": 27
+        },
+        {
+          "label": "Server readiness summary",
+          "x": 70,
+          "y": 73,
+          "w": 30,
+          "h": 27
+        }
+      ],
+      "originalTitle": "Commissioner — Command center",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-actions",
+      "title": "Progression operation stage",
+      "referenceIds": [
+        "competition-pc-show-decision"
+      ],
+      "composition": "A short action roster gives way to one centered preflight stage with scope on the left, actual blockers central and execution outcome on the right.",
+      "primaryDecision": "Is this specific operation currently permitted and understood?",
+      "spatialHierarchy": [
+        "Selected operation identity",
+        "Affected league scope",
+        "Current preflight evidence",
+        "Execute/status bay"
+      ],
+      "pcInteraction": "Select then review operation; Enter never executes from initial list; pending disables repeat; Escape leaves only when safe.",
+      "artTreatment": "League seal watermark; concise operational typography and amber consequential verbs.",
+      "removeWebsitePatterns": [
+        "Dangerous shortcut grid",
+        "many equal primary buttons",
+        "auto retry."
+      ],
+      "emptyErrorState": "Failed preflight stays blocked; interrupted operation shows unknown status and operation ID, not safe-to-repeat.",
+      "acceptance": [
+        "One request cannot produce two operations; visual completion follows server outcome, not animation timer.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Live phase/week",
+        "Server preflight",
+        "Operation status and outcome"
+      ],
+      "unapprovedDependencies": [
+        "New force, rollback or exactly-once retry guarantees remain unapproved."
+      ],
+      "zones": [
+        {
+          "label": "Selected operation",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 17
+        },
+        {
+          "label": "Affected league scope",
+          "x": 0,
+          "y": 19,
+          "w": 24,
+          "h": 81
+        },
+        {
+          "label": "Current preflight evidence",
+          "x": 26,
+          "y": 19,
+          "w": 46,
+          "h": 81
+        },
+        {
+          "label": "Execute and status",
+          "x": 74,
+          "y": 19,
+          "w": 26,
+          "h": 81
+        }
+      ],
+      "originalTitle": "Commissioner — Actions and recovery",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-settings",
+      "title": "League rules console",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "Horizontal rule categories open a compact settings plane with saved/draft values aligned and phase restrictions below the affected control.",
+      "primaryDecision": "Which supported league setting should change?",
+      "spatialHierarchy": [
+        "League/mode scope",
+        "Rule category rail",
+        "Saved versus draft values",
+        "Apply/discard band"
+      ],
+      "pcInteraction": "Tab traversal matches categories then fields; Escape reviews dirty changes; keyboard shortcuts appear only after tested binding.",
+      "artTreatment": "Rulebook typography, brass category underline; no sports hero needed.",
+      "removeWebsitePatterns": [
+        "Long web preferences accordion",
+        "unsupported sliders",
+        "immediate operations embedded in settings."
+      ],
+      "emptyErrorState": "Unavailable saved state blocks edit; validation pins to field; locked rule explains actual phase restriction.",
+      "acceptance": [
+        "Failed save retains draft; no rule appears adjustable unless supported by authorized endpoint.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Saved versus unsaved values",
+        "Mode/phase restrictions",
+        "Role and scope context"
+      ],
+      "unapprovedDependencies": [
+        "New rules, effective-date scheduling and role-transfer behavior require approval."
+      ],
+      "zones": [
+        {
+          "label": "League mode scope",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Rule category rail",
+          "x": 0,
+          "y": 18,
+          "w": 100,
+          "h": 17
+        },
+        {
+          "label": "Saved and draft values",
+          "x": 0,
+          "y": 37,
+          "w": 75,
+          "h": 63
+        },
+        {
+          "label": "Apply or discard",
+          "x": 77,
+          "y": 37,
+          "w": 23,
+          "h": 63
+        }
+      ],
+      "originalTitle": "Commissioner — Settings",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-audit",
+      "title": "League record reel",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "A chronological event ledger fills the canvas, with selected event expanded in a lower evidence tray rather than a timeline of cards.",
+      "primaryDecision": "Who changed this record, and what evidence is available?",
+      "spatialHierarchy": [
+        "Time/action filter strip",
+        "Immutable event rows",
+        "Selected target/actor evidence",
+        "Available payload detail"
+      ],
+      "pcInteraction": "Keyboard row browsing, source filters and explicit copy nonsecret identifier; no edit action on historical row.",
+      "artTreatment": "Subtle scorekeeper record lines; readable tabular numerals, no drama or celebratory color.",
+      "removeWebsitePatterns": [
+        "Activity-card feed",
+        "reconstructed before/after claims",
+        "unexplained green checks."
+      ],
+      "emptyErrorState": "Missing actor or payload remains unavailable; no events differs from query failure.",
+      "acceptance": [
+        "Event identity and observed evidence remain distinguishable from inference; history cannot imply unsupported undo.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Server event ordering",
+        "Actor and target identity",
+        "Restricted/missing evidence states"
+      ],
+      "unapprovedDependencies": [
+        "New diff reconstruction, export formats or audit retention promises are unapproved."
+      ],
+      "zones": [
+        {
+          "label": "Time action filters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 16
+        },
+        {
+          "label": "Immutable event ledger",
+          "x": 0,
+          "y": 18,
+          "w": 100,
+          "h": 49
+        },
+        {
+          "label": "Target actor evidence",
+          "x": 0,
+          "y": 69,
+          "w": 38,
+          "h": 31
+        },
+        {
+          "label": "Available event payload",
+          "x": 40,
+          "y": 69,
+          "w": 60,
+          "h": 31
+        }
+      ],
+      "originalTitle": "Commissioner — Audit",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-invites",
+      "title": "League access register",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "Invite rows pair named scope and validity; seat/coach assignment occupies a distinct shallow bay; copy and revoke enter separate action stages.",
+      "primaryDecision": "Which invitation should remain usable?",
+      "spatialHierarchy": [
+        "Invitation validity register",
+        "Selected invite scope",
+        "Seat assignment bay",
+        "Copy/revoke consequence stage"
+      ],
+      "pcInteraction": "Select does not expose token; Copy is explicit; Revoke requires selected identity and server acknowledgment.",
+      "artTreatment": "Administrative C9 crest stamp, no welcome splash obscuring validity.",
+      "removeWebsitePatterns": [
+        "Token thumbnails",
+        "revoke beside harmless selection",
+        "fake expiry metadata."
+      ],
+      "emptyErrorState": "Unknown validity requires refresh; unavailable invite cannot be copied as valid; failed revoke stays unresolved.",
+      "acceptance": [
+        "Tokens excluded from generic visual exports; a copied token is never described as accepted membership.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual token validity",
+        "Role-aware controls",
+        "Copy/revoke feedback"
+      ],
+      "unapprovedDependencies": [
+        "New invite expiry, seat limits or roles need backend support and approval."
+      ],
+      "zones": [
+        {
+          "label": "Invitation validity register",
+          "x": 0,
+          "y": 0,
+          "w": 60,
+          "h": 62
+        },
+        {
+          "label": "Selected invite scope",
+          "x": 62,
+          "y": 0,
+          "w": 38,
+          "h": 28
+        },
+        {
+          "label": "Coach seat assignment",
+          "x": 62,
+          "y": 30,
+          "w": 38,
+          "h": 32
+        },
+        {
+          "label": "Copy revoke consequences",
+          "x": 0,
+          "y": 64,
+          "w": 100,
+          "h": 36
+        }
+      ],
+      "originalTitle": "Commissioner — Invitations",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-reports",
+      "title": "Report exception broadcast desk",
+      "referenceIds": [
+        "competition-pc-nhl-result"
+      ],
+      "composition": "A narrow exception ticker becomes an ordered report list; the selected matchup dominates a broad evidence stage, with accepted history in a separate chapter.",
+      "primaryDecision": "Which report exception should I resolve now?",
+      "spatialHierarchy": [
+        "Pending/disputed queue",
+        "Selected matchup/revision scoreband",
+        "Evidence and validation plane",
+        "Bound decision command"
+      ],
+      "pcInteraction": "Keyboard selects report; deep review preserves queue position; filter accepted history separately from actionable exceptions.",
+      "artTreatment": "Amber exception stripe, neutral scores; winner art only in accepted record chapter.",
+      "removeWebsitePatterns": [
+        "Mixed status cards",
+        "bulk accept",
+        "detached actions lacking revision."
+      ],
+      "emptyErrorState": "Queue error says unavailable; stale selection stops action; missing evidence stays missing.",
+      "acceptance": [
+        "Two reports with equal scores remain distinguishable by game and revision; no blind bulk approval.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Exact game and revision",
+        "Dispute/validation details",
+        "Authority and submission provenance"
+      ],
+      "unapprovedDependencies": [
+        "New dispute rules, batch decisions and automated conflict resolution require approval."
+      ],
+      "zones": [
+        {
+          "label": "Report exception queue",
+          "x": 0,
+          "y": 0,
+          "w": 25,
+          "h": 100
+        },
+        {
+          "label": "Selected report revision",
+          "x": 27,
+          "y": 0,
+          "w": 73,
+          "h": 20
+        },
+        {
+          "label": "Evidence validation stage",
+          "x": 27,
+          "y": 22,
+          "w": 73,
+          "h": 54
+        },
+        {
+          "label": "Revision bound decision",
+          "x": 27,
+          "y": 78,
+          "w": 73,
+          "h": 22
+        }
+      ],
+      "originalTitle": "Commissioner — Reported results",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-nil",
+      "title": "Program finance sheet",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "Team allocations form one aligned accounting sheet; selecting a team opens documented obligations below, with correction in a separate exact-field stage.",
+      "primaryDecision": "What money is actually available, and does a correction need to be made?",
+      "spatialHierarchy": [
+        "League budget basis",
+        "Team financial columns",
+        "Selected known obligations",
+        "Correction scope and receipt"
+      ],
+      "pcInteraction": "Keyboard numeric inspection and team selection; edit uses explicit field name and scope; totals are read-only when unsupported.",
+      "artTreatment": "Brass only for available funds; cream tabular currency; no casino or fantasy-market imagery.",
+      "removeWebsitePatterns": [
+        "Pie charts hiding accounting terms",
+        "synthetic transaction history",
+        "budget equals available labeling."
+      ],
+      "emptyErrorState": "Unknown obligations marked unknown; failed query cannot show zero; save rejection retains requested correction.",
+      "acceptance": [
+        "Budget, spent and available are explicitly labeled from real data; no inferred historical ledger.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Budget distinct from spendable amount",
+        "Known obligations and gaps",
+        "Authorized adjustment context"
+      ],
+      "unapprovedDependencies": [
+        "Ledger reconstruction, currency conversion and new NIL policies remain unapproved."
+      ],
+      "zones": [
+        {
+          "label": "League budget basis",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 18
+        },
+        {
+          "label": "Team financial sheet",
+          "x": 0,
+          "y": 20,
+          "w": 100,
+          "h": 43
+        },
+        {
+          "label": "Known team obligations",
+          "x": 0,
+          "y": 65,
+          "w": 60,
+          "h": 35
+        },
+        {
+          "label": "Correction scope receipt",
+          "x": 62,
+          "y": 65,
+          "w": 38,
+          "h": 35
+        }
+      ],
+      "originalTitle": "Commissioner — NIL",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-schedule",
+      "title": "Schedule integrity map",
+      "referenceIds": [
+        "competition-pc-nhl-hub"
+      ],
+      "composition": "A week-by-team matrix provides the dominant spatial map; diagnostic selection highlights actual affected fixtures with a traceable evidence strip.",
+      "primaryDecision": "Which proven schedule problem must be inspected before advance?",
+      "spatialHierarchy": [
+        "Week/team coverage matrix",
+        "Verified diagnostic list",
+        "Highlighted fixture detail",
+        "Check scope and timestamp"
+      ],
+      "pcInteraction": "Keyboard traverses cells; selecting diagnostic highlights affected fixtures; only implemented repair actions can appear.",
+      "artTreatment": "Field-grid motif supports coverage reading; no invented health meter.",
+      "removeWebsitePatterns": [
+        "Generic health dashboard",
+        "unsupported percentages",
+        "blank automatic repair button."
+      ],
+      "emptyErrorState": "Unsupported check says not evaluated; unavailable schedule stops healthy claim; no calendar dates fabricated from weeks.",
+      "acceptance": [
+        "Each warning identifies a real check and linked fixture; warning and blocker semantics remain distinct.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual diagnostic evidence",
+        "Fixture links",
+        "Scope of each check"
+      ],
+      "unapprovedDependencies": [
+        "New diagnostics, automatic repairs and calendar assumptions require specification."
+      ],
+      "zones": [
+        {
+          "label": "Week team coverage",
+          "x": 0,
+          "y": 0,
+          "w": 66,
+          "h": 69
+        },
+        {
+          "label": "Verified diagnostic list",
+          "x": 68,
+          "y": 0,
+          "w": 32,
+          "h": 69
+        },
+        {
+          "label": "Affected fixture evidence",
+          "x": 0,
+          "y": 71,
+          "w": 66,
+          "h": 29
+        },
+        {
+          "label": "Check scope timestamp",
+          "x": 68,
+          "y": 71,
+          "w": 32,
+          "h": 29
+        }
+      ],
+      "originalTitle": "Commissioner — Schedule health",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-editor",
+      "title": "League entity workbench",
+      "referenceIds": [
+        "competition-pc-show-ledger"
+      ],
+      "composition": "Entity categories occupy a narrow top rail; selected type opens an identity ledger above a category editor, with actual history in a separately labeled tray.",
+      "primaryDecision": "Which named league entity and field should be corrected?",
+      "spatialHierarchy": [
+        "Entity type rail",
+        "Stable identity ledger",
+        "Editable category workspace",
+        "Read-only history/reversal boundary"
+      ],
+      "pcInteraction": "Keyboard select entity/category then edit; save targets stable ID; reversal is its own reviewed operation.",
+      "artTreatment": "C9 seal anchors scope; minimal portrait art keeps structural fields primary.",
+      "removeWebsitePatterns": [
+        "All-fields megaform",
+        "automatic bulk edits",
+        "undo-looking navigation."
+      ],
+      "emptyErrorState": "Permission failure blocks privileged fields; missing entity cannot retarget save; validation retains draft.",
+      "acceptance": [
+        "Name and ID remain visible through save; no unimplemented rollback or bulk action implied.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Stable entity identity",
+        "Actual editable fields",
+        "Validation and dirty state"
+      ],
+      "unapprovedDependencies": [
+        "Unsupported bulk mutation, reversible-history guarantees and new appearance controls need approval."
+      ],
+      "zones": [
+        {
+          "label": "Entity type rail",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 17
+        },
+        {
+          "label": "Stable entity ledger",
+          "x": 0,
+          "y": 19,
+          "w": 27,
+          "h": 81
+        },
+        {
+          "label": "Selected category editor",
+          "x": 29,
+          "y": 19,
+          "w": 71,
+          "h": 53
+        },
+        {
+          "label": "History reversal boundary",
+          "x": 29,
+          "y": 74,
+          "w": 71,
+          "h": 26
+        }
+      ],
+      "originalTitle": "Commissioner — League editor",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "commission-saves",
+      "title": "Recovery vault",
+      "referenceIds": [
+        "competition-pc-show-decision"
+      ],
+      "composition": "Snapshot chronology occupies the left half; a selected recovery point opens a large coverage and restriction dossier on the right.",
+      "primaryDecision": "Is this recovery point compatible and actually restorable?",
+      "spatialHierarchy": [
+        "Snapshot chronology",
+        "Selected season/phase/week identity",
+        "Documented coverage and exclusions",
+        "Restore restriction/operation stage"
+      ],
+      "pcInteraction": "Keyboard browse does not restore; explicit consequence review and permitted command only; Back retains selection.",
+      "artTreatment": "Brass archive spine and restrained vault seal; no thumbnail promising full-world backup.",
+      "removeWebsitePatterns": [
+        "Green restore shortcut",
+        "nested confirmation chain",
+        "complete-backup imagery without proof."
+      ],
+      "emptyErrorState": "Unknown coverage says unknown; incompatible snapshot stays blocked; interrupted restore requires actual status lookup.",
+      "acceptance": [
+        "Restorable status comes from verified restriction checks; partial coverage is visible before action.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Snapshot identity and coverage",
+        "Current restore restrictions",
+        "Affected league and confirmed outcome"
+      ],
+      "unapprovedDependencies": [
+        "Complete restore, consistent snapshot coverage and revision-safe recovery remain engineering gates; no new promise."
+      ],
+      "zones": [
+        {
+          "label": "Snapshot chronology",
+          "x": 0,
+          "y": 0,
+          "w": 43,
+          "h": 100
+        },
+        {
+          "label": "Selected recovery point",
+          "x": 45,
+          "y": 0,
+          "w": 55,
+          "h": 23
+        },
+        {
+          "label": "Coverage and exclusions",
+          "x": 45,
+          "y": 25,
+          "w": 55,
+          "h": 44
+        },
+        {
+          "label": "Restore restriction stage",
+          "x": 45,
+          "y": 71,
+          "w": 55,
+          "h": 29
+        }
+      ],
+      "originalTitle": "Commissioner — Save states",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id/commissioner"
+      ]
+    },
+    {
+      "id": "advance-progress",
+      "title": "Season transition monitor",
+      "referenceIds": [
+        "competition-pc-nhl-hub"
+      ],
+      "composition": "A centered phase-to-phase transition strip is supported by the current server checkpoint and an expandable operation log; ordinary game navigation remains secondary.",
+      "primaryDecision": "Is advance complete, still running, or in need of authorized recovery?",
+      "spatialHierarchy": [
+        "Current operation identity",
+        "Confirmed phase transition strip",
+        "Checkpoint and elapsed observation",
+        "Recovery/status log"
+      ],
+      "pcInteraction": "Keyboard can inspect details and safe return; reconnect looks up same operation; no unverified cancel or retry shortcut.",
+      "artTreatment": "Slow stadium light transition may accompany real work; reduced motion is static and never signals success itself.",
+      "removeWebsitePatterns": [
+        "Fake percentage based on elapsed time",
+        "full-screen loading movie",
+        "celebration before completion."
+      ],
+      "emptyErrorState": "Lost connection says status unknown; failed checkpoint names actual error; no inferred success or automatic rerun.",
+      "acceptance": [
+        "Completion is emitted only after server terminal success; refresh retains operation identity and honest status.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual operation identity",
+        "Unknown/interrupted state",
+        "Server-confirmed completion"
+      ],
+      "unapprovedDependencies": [
+        "New cancellation, resumption guarantees and lease telemetry require verified endpoints."
+      ],
+      "zones": [
+        {
+          "label": "Current operation identity",
+          "x": 12,
+          "y": 0,
+          "w": 76,
+          "h": 17
+        },
+        {
+          "label": "Confirmed phase transition",
+          "x": 12,
+          "y": 19,
+          "w": 76,
+          "h": 22
+        },
+        {
+          "label": "Checkpoint and observation",
+          "x": 12,
+          "y": 43,
+          "w": 76,
+          "h": 19
+        },
+        {
+          "label": "Recovery status log",
+          "x": 12,
+          "y": 64,
+          "w": 76,
+          "h": 36
+        }
+      ],
+      "originalTitle": "Advance progress and failure",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "season-recap",
+      "title": "The season film",
+      "referenceIds": [
+        "experience-pc-2k26-legacy-text",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "Chaptered closing presentation alternates a record cover, results spread, honors stage and class ledger.",
+      "primaryDecision": "Reflect on the completed year and choose the next supported step.",
+      "spatialHierarchy": [
+        "Top: completed year/chapter",
+        "Center: chapter-specific presentation",
+        "Side: evidence link",
+        "Lower right: next/back"
+      ],
+      "pcInteraction": "Arrow/click chapters; skip to contents; reduced motion; no timed reading.",
+      "artTreatment": "Original team photo/miniature diamond direction; arrival reveal not included.",
+      "removeWebsitePatterns": [
+        "Long annual-report page",
+        "repeating KPI cards",
+        "unapproved cinematic"
+      ],
+      "emptyErrorState": "Missing snapshot chapter stays factual and marked unavailable.",
+      "acceptance": [
+        "Can revisit any chapter; never advances actual season from a presentation key.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "Completed season chapters",
+          "x": 0,
+          "y": 0,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Season presentation",
+          "x": 0,
+          "y": 17,
+          "w": 76,
+          "h": 83
+        },
+        {
+          "label": "Archived evidence",
+          "x": 78,
+          "y": 17,
+          "w": 22,
+          "h": 61
+        },
+        {
+          "label": "Chapter navigation",
+          "x": 78,
+          "y": 80,
+          "w": 22,
+          "h": 20
+        }
+      ],
+      "originalTitle": "Season recap and program scrapbook",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "system-shell",
+      "title": "PC game frame",
+      "referenceIds": [
+        "experience-pc-fc25-hub",
+        "experience-pc-fc25-career-text"
+      ],
+      "composition": "A thin competition/status band and contextual top tabs surround a viewport-sized work area; game menu is an overlay.",
+      "primaryDecision": "Reach the next named task while retaining league/mode context.",
+      "spatialHierarchy": [
+        "Top 64px: league/mode/week",
+        "Below: destination tabs",
+        "Center: screen-specific canvas",
+        "Upper right: menu/account/status"
+      ],
+      "pcInteraction": "Mouse hit areas and Tab focus match; Escape closes overlays; shortcuts discoverable and disabled in text fields.",
+      "artTreatment": "Forest frame, brass active rule, cream text, sharp edges and modest corner radii.",
+      "removeWebsitePatterns": [
+        "Mobile bottom navigation",
+        "hamburger as sole nav",
+        "website footer",
+        "unlimited body page"
+      ],
+      "emptyErrorState": "Offline/stale indicators remain contextual; overlay focus restores origin.",
+      "acceptance": [
+        "Validate 1280x720, 1920x1080, 2560x1440 and 3440x1440; bounded panes, scalable text, no clipped action.",
+        "Mouse and keyboard have equivalent access. No mobile layout is in scope. Art and data are original or authorized; no copied franchise marks."
+      ],
+      "zones": [
+        {
+          "label": "League mode week",
+          "x": 0,
+          "y": 0,
+          "w": 76,
+          "h": 15
+        },
+        {
+          "label": "Destination tabs",
+          "x": 0,
+          "y": 17,
+          "w": 100,
+          "h": 15
+        },
+        {
+          "label": "Screen canvas",
+          "x": 0,
+          "y": 34,
+          "w": 100,
+          "h": 66
+        },
+        {
+          "label": "Menu and account",
+          "x": 78,
+          "y": 0,
+          "w": 22,
+          "h": 15
+        }
+      ],
+      "originalTitle": "Game menu, audio and system states",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/league/:id"
+      ]
+    },
+    {
+      "id": "file-dialogs",
+      "title": "File command overlay",
+      "referenceIds": [
+        "competition-pc-show-decision"
+      ],
+      "composition": "A bounded centered overlay replaces only the command stage, retaining dimmed source workspace and clearly named destination.",
+      "primaryDecision": "What will this file action change, and where?",
+      "spatialHierarchy": [
+        "Operation verb and source",
+        "Destination and visibility",
+        "Exact consequence fields",
+        "Cancel/commit result"
+      ],
+      "pcInteraction": "Focus trap, Escape cancel and restored source focus; Enter submits only from explicit control, not incidental field selection.",
+      "artTreatment": "Flat forest overlay with thin brass edge; source remains recognizable behind it.",
+      "removeWebsitePatterns": [
+        "Generic Are you sure",
+        "nested modals",
+        "mobile bottom sheet."
+      ],
+      "emptyErrorState": "Failed command retains filename; destination unavailable blocks commit; cancel leaves source draft unchanged.",
+      "acceptance": [
+        "Every supported Save/Save as/Share/replacement has specific wording and a server-confirmed result.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Named destination",
+        "Unsaved draft preserved on Cancel",
+        "Separate replacement/share consequences"
+      ],
+      "unapprovedDependencies": [
+        "New overwrite detection, recovery storage and share permission modes are unapproved."
+      ],
+      "zones": [
+        {
+          "label": "Operation and source",
+          "x": 17,
+          "y": 7,
+          "w": 66,
+          "h": 18
+        },
+        {
+          "label": "Destination and visibility",
+          "x": 17,
+          "y": 27,
+          "w": 66,
+          "h": 20
+        },
+        {
+          "label": "Exact file consequences",
+          "x": 17,
+          "y": 49,
+          "w": 66,
+          "h": 25
+        },
+        {
+          "label": "Cancel commit receipt",
+          "x": 17,
+          "y": 76,
+          "w": 66,
+          "h": 17
+        }
+      ],
+      "originalTitle": "File save, share, overwrite and unsaved changes",
+      "group": "Tabs & overlays",
+      "routes": [
+        "/manage-recruiting"
+      ]
+    }
+  ]
+}

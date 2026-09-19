@@ -1,0 +1,1055 @@
+{
+  "title": "Class of Nine — PC competition and league operations",
+  "status": "Research and proposed screen-specific redesign; no production implementation claimed",
+  "reviewedAt": "2026-09-18",
+  "platform": "PC only; mouse and keyboard first. Gamepad hints require implemented and tested bindings. No mobile layout target.",
+  "evidenceLimits": "Visual observations are limited to the official screenshots and exact video frames described. No hands-on game evaluation. C9 approval, financial, restore, permission and data-completeness rules below are design proposals and existing repository constraints, not claims about reference games.",
+  "principles": [
+    "Design a bounded game canvas around one dominant sporting task, not a page of website sections.",
+    "Share typography, color, selection and motion while varying each screen topology: fixture wall, paired matchup, worksheet, bracket, ceremony, matrix, ledger, review stage.",
+    "Use fixed frame with explicit chapters, paging or bounded pane scrolling; never conceal overflow or data merely to remove native scrollbar appearance.",
+    "At PC resolutions prioritize readable rows, pointer precision, keyboard focus and window/scale behavior over mobile stacking.",
+    "Retain Class of Nine forest, brass, cream, approved C9 gateway and restrained varsity type. Borrow hierarchy, not licensed logos, characters or exact visual trade dress.",
+    "Entry, pending review, disputed, accepted and unknown must look different. Reference-game spectacle cannot overwrite companion data authority."
+  ],
+  "implementationPriorities": [
+    {
+      "priority": 1,
+      "title": "Replace the shared web-page frame",
+      "scope": "One PC viewport, top game chapters, contextual command strip, page-specific body regions; remove mobile navigation and mobile breakpoint compositions.",
+      "proof": "Test 1366x768, 1920x1080 and 2560x1440, keyboard traversal, 125/150 percent scaling; preserve all actions and text."
+    },
+    {
+      "priority": 2,
+      "title": "Prove four genuinely different competition screens",
+      "scope": "Implement schedule fixture wall, opposing-team prep broadcast, editable scorer room and accepted box-score record as a coherent fixture journey.",
+      "proof": "One real synthetic fixture survives all four routes with exact identity, draft/error recovery and pending-versus-final authority."
+    },
+    {
+      "priority": 3,
+      "title": "Build operations from exact obligations",
+      "scope": "Commission readiness matrix, version-bound result review, narrow operation preflight and recovery vault; reuse semantic controls rather than a generic card layout.",
+      "proof": "Exercise missing, stale, denied, rejected and interrupted states; no fake ready status, optimistic acceptance or unsupported restore."
+    }
+  ],
+  "sources": [
+    {
+      "id": "pc-nhl-hub",
+      "title": "NHL 25 official Franchise Deep Dive — hub screenshots",
+      "url": "https://www.ea.com/games/nhl/nhl-25/news/franchise-blog",
+      "observed": "Inspected the Vancouver/Ottawa hub image: calendar ribbon above central opposing crests; projected goalies underneath; quick commands left and league leaders right. Background and oversized matchup lettering unify the screen.",
+      "adaptation": "Use opposing team identity for prep and a narrow week ribbon for schedule. The canvas belongs to the match, with ancillary information subordinate.",
+      "evidenceType": "Direct visual inspection of official embedded screenshot in browser, 2026-09-18. No hands-on game evaluation."
+    },
+    {
+      "id": "pc-nhl-result",
+      "title": "NHL 25 official Franchise Deep Dive — box scores",
+      "url": "https://www.ea.com/games/nhl/nhl-25/news/franchise-blog",
+      "observed": "Inspected official result images: scoreboard matrix for game selection; selected result has large team names aligned with period totals, FINAL label and broad destinations for events, team stats and stars.",
+      "adaptation": "Build a baseball line-score anchor with team-stat chapters. Use FINAL only for accepted or authoritative simulated results; this restriction is C9-specific.",
+      "evidenceType": "Direct visual inspection of official embedded box-score screenshots in browser, 2026-09-18. No hands-on."
+    },
+    {
+      "id": "pc-show-ledger",
+      "title": "MLB The Show 25 — Fielding Feedback: Franchise Front Office Experience, 1:50",
+      "url": "https://www.youtube.com/watch?v=yMKktvft4Jo&t=110s",
+      "observed": "At 1:50 the official PlayStation video shows a wide free-agent table with rank/name/OVR/potential/position/age/bats/throws; a single outlined row carries selection. Week and budget remain above.",
+      "adaptation": "Make sport-relevant rows the primary plane for player and budget work. Share selection semantics, not identical page composition. C9 knowledge boundaries replace MLB rating assumptions.",
+      "evidenceType": "Direct visual inspection of official PlayStation video frame at 1:50 in browser, 2026-09-18; not hands-on."
+    },
+    {
+      "id": "pc-show-decision",
+      "title": "MLB The Show 25 — Fielding Feedback: Franchise Front Office Experience, 2:02",
+      "url": "https://www.youtube.com/watch?v=yMKktvft4Jo&t=122s",
+      "observed": "At 2:02 a player model fills the left; a response and action occupy the center; a separate right strip retains identity, demand and declined offer. The decision does not become a new generic dashboard.",
+      "adaptation": "Use bounded action stages where target identity, consequence and exact action can be read together. C9 permission, revision and restore restrictions are proposed safeguards, not sourced MLB behavior.",
+      "evidenceType": "Direct visual inspection of official PlayStation video frame at 2:02 in browser, 2026-09-18; not hands-on."
+    }
+  ],
+  "screens": [
+    {
+      "id": "schedule",
+      "title": "Season fixture wall",
+      "referenceIds": [
+        "pc-nhl-hub",
+        "pc-nhl-result"
+      ],
+      "composition": "A full-width week ribbon feeds a series strip across the central canvas; the selected fixture expands into a horizontal matchup band beneath it.",
+      "primaryDecision": "Which fixture needs my next action?",
+      "spatialHierarchy": [
+        "Week/season rail",
+        "Series lanes with home/away marks",
+        "Selected game score/state band",
+        "Prepare, report or inspect command area"
+      ],
+      "pcInteraction": "Arrow keys move fixture selection; PgUp/PgDn change verified week; Enter opens permitted game action; Back restores week and fixture.",
+      "artTreatment": "Faint diamond lines across forest; cream team marks and brass selected series.",
+      "removeWebsitePatterns": [
+        "Long vertically stacked game cards",
+        "redundant hero",
+        "mobile day accordion."
+      ],
+      "emptyErrorState": "No fixtures retains week and filters with Clear filters; fetch failure says schedule unavailable, never no games.",
+      "acceptance": [
+        "At 1366x768 and 1920x1080, week, selected fixture and next action are visible together; a pending score never resembles FINAL.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Week and home/away context",
+        "Explicit pending, disputed and accepted labels",
+        "Prepare / Report / Review / Result according to permission"
+      ],
+      "unapprovedDependencies": [
+        "Explicit date/day grouping requires verified schedule fields; do not manufacture dates from week numbers."
+      ]
+    },
+    {
+      "id": "prep",
+      "title": "Matchup broadcast",
+      "referenceIds": [
+        "pc-nhl-hub"
+      ],
+      "composition": "Opposing teams occupy two balanced halves, with probable starters nearest the center seam and lineup comparisons below.",
+      "primaryDecision": "What lineup or availability issue should I resolve before this game?",
+      "spatialHierarchy": [
+        "Away crest and starter",
+        "Home crest and starter",
+        "Shared matchup metrics spine",
+        "Own lineup availability band"
+      ],
+      "pcInteraction": "Tab cycles lineup and starter inspection; Enter opens player; preparation returns to exact fixture.",
+      "artTreatment": "Stadium dusk washes behind crests; media-day portraits only when real art exists.",
+      "removeWebsitePatterns": [
+        "Narrow checklist column",
+        "multiple detached KPI tiles",
+        "oversized decorative banner."
+      ],
+      "emptyErrorState": "Unknown starter is explicit; inaccessible opponent data does not become zero; lineup failure retains game identity.",
+      "acceptance": [
+        "Two actual starters, away/home and availability fit one PC viewport; companion prep never implies writing into Power Pros.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Away/home labels",
+        "Actual pitcher and lineup availability",
+        "Analysis distinguished from known facts"
+      ],
+      "unapprovedDependencies": [
+        "Any new matchup calculation, export packet or lineup-writing control needs separate approval and backend evidence."
+      ]
+    },
+    {
+      "id": "report",
+      "title": "Scorer control room",
+      "referenceIds": [
+        "pc-nhl-result"
+      ],
+      "composition": "An editable line score spans the top; batting/pitching worksheet occupies center-left and a source-image light table occupies the right. Review replaces entry, preserving the same matchup anchor.",
+      "primaryDecision": "Is the played result accurate enough to submit for review?",
+      "spatialHierarchy": [
+        "Editable inning strip",
+        "Team/stat worksheet",
+        "Source image and uncertainty lens",
+        "Validation and submission command strip"
+      ],
+      "pcInteraction": "Spreadsheet Tab/Shift+Tab traversal; direct typing and mouse selection; error list focuses affected cell; only implemented hotkeys are printed.",
+      "artTreatment": "Cream scorebook surface against forest with brass active cell; no faux paper shadows that reduce contrast.",
+      "removeWebsitePatterns": [
+        "Narrow web form",
+        "stacked collapsible sections",
+        "upload success styled as acceptance."
+      ],
+      "emptyErrorState": "Unknown stats stay blank; failed OCR stays failed; rejected submission retains draft and exact server error.",
+      "acceptance": [
+        "A nine-batter worksheet, game identity and review command are visible without page scrolling; rejected/stale writes cannot show submitted success.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Exact game/player identity",
+        "Unknown values remain unknown",
+        "OCR uncertainty and server validation beside the affected field"
+      ],
+      "unapprovedDependencies": [
+        "Durable cross-device draft saving and new OCR capabilities are not approved by this layout."
+      ]
+    },
+    {
+      "id": "play-unavailable",
+      "title": "Game continuation interstitial",
+      "referenceIds": [
+        "pc-nhl-hub"
+      ],
+      "composition": "A restrained matchup stage carries one availability explanation and a short row of supported continuations.",
+      "primaryDecision": "Where can I continue with this game?",
+      "spatialHierarchy": [
+        "Known matchup title",
+        "Availability explanation",
+        "Schedule/result continuation choices"
+      ],
+      "pcInteraction": "Escape returns to schedule; focus defaults to supported return, never unavailable Play.",
+      "artTreatment": "Dim diamond with two real team marks, no fake live playfield.",
+      "removeWebsitePatterns": [
+        "404-style marketing page",
+        "dead Play button",
+        "empty dashboard."
+      ],
+      "emptyErrorState": "Missing or forbidden identity is not guessed; return remains available if lookup fails.",
+      "acceptance": [
+        "There is no replay timeline or playable claim; one keyboard action reaches supported schedule.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Honest unavailability explanation",
+        "Game context when accessible",
+        "Return to schedule or accepted result"
+      ],
+      "unapprovedDependencies": [
+        "Playable pitch-by-pitch sessions remain a separate engineering gate."
+      ]
+    },
+    {
+      "id": "postseason",
+      "title": "Championship path",
+      "referenceIds": [
+        "pc-nhl-result"
+      ],
+      "composition": "The entire bracket is the stage: rounds advance left to right with a selected matchup enlarged in a shallow lower band.",
+      "primaryDecision": "What is the next eligible matchup, and how does it affect the path?",
+      "spatialHierarchy": [
+        "Round headings",
+        "Connected series nodes",
+        "Selected matchup evidence strip",
+        "Path legend and round focus"
+      ],
+      "pcInteraction": "Arrow navigation follows actual bracket edges; keyboard and mouse focus the same node; selecting result preserves round context.",
+      "artTreatment": "Brass path only for earned advancement; forest empty rounds; no winner art before confirmation.",
+      "removeWebsitePatterns": [
+        "List-only postseason",
+        "repeated schedule cards",
+        "ornament covering bracket topology."
+      ],
+      "emptyErrorState": "Unresolved seeds are labeled TBD; pending/disputed results leave next node unresolved; failed load is not an empty bracket.",
+      "acceptance": [
+        "At 1920x1080 the approved format is legible; 1366x768 uses explicit round focus rather than shrinking text or horizontal page scroll.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Existing seeds and bracket source",
+        "Accepted results determine advancement",
+        "Pending/disputed nodes stay unresolved"
+      ],
+      "unapprovedDependencies": [
+        "Do not invent elimination formats, tie rules, bracket repair or qualification guarantees."
+      ]
+    },
+    {
+      "id": "championship",
+      "title": "Season closing scene",
+      "referenceIds": [
+        "pc-nhl-result"
+      ],
+      "composition": "Champion name and C9 program mark dominate a centered stadium presentation; final-series evidence sits in a quiet lower band.",
+      "primaryDecision": "Celebrate this verified season or inspect its record?",
+      "spatialHierarchy": [
+        "Verified champion identity",
+        "Central trophy/program artwork",
+        "Actual final-series line",
+        "Record and skip controls"
+      ],
+      "pcInteraction": "Escape or visible Skip ends animation only; record opens factual season history; reduced motion gets static composition.",
+      "artTreatment": "Warm brass floodlights and forest evening; use original approved C9 trophy art only.",
+      "removeWebsitePatterns": [
+        "Administrative cards",
+        "speculative MVP",
+        "confetti over factual evidence."
+      ],
+      "emptyErrorState": "Without confirmed champion show season unfinished; missing final details remain unknown, not invented celebration.",
+      "acceptance": [
+        "Celebration requires server-confirmed champion; skipping cannot advance season; all facts remain readable without motion.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Confirmed champion and season",
+        "Actual final-series results",
+        "Skip/reduced-motion access"
+      ],
+      "unapprovedDependencies": [
+        "New trophies, team art, audio and ceremony animation require art/implementation approval."
+      ]
+    },
+    {
+      "id": "commissioner",
+      "title": "League operations floor",
+      "referenceIds": [
+        "pc-nhl-hub"
+      ],
+      "composition": "A dominant current-week command stage uses a ranked obligation lane and a broad readiness panorama; secondary office destinations are terse top chapters.",
+      "primaryDecision": "What prevents the league from progressing safely?",
+      "spatialHierarchy": [
+        "Current phase/operation masthead",
+        "Blocking obligations lane",
+        "Team readiness panorama",
+        "Office chapter navigation"
+      ],
+      "pcInteraction": "Keyboard selects exact blocker then opens its record; mouse supports same path; return keeps selected obligation.",
+      "artTreatment": "C9 league seal and subdued stadium control-room backdrop; danger uses text and restrained amber.",
+      "removeWebsitePatterns": [
+        "Equal-weight mutation tile grid",
+        "decorative KPIs",
+        "marketing welcome copy."
+      ],
+      "emptyErrorState": "Unknown readiness remains unknown; failed preflight does not render all clear; no pending score counted as accepted.",
+      "acceptance": [
+        "First viewport identifies the actual next blocker and server operation state without inferring presence or offering bypass.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual readiness and report state",
+        "Current operation identity/status",
+        "Role-aware access"
+      ],
+      "unapprovedDependencies": [
+        "New priority scoring, presence telemetry or force-advance behavior is not implied."
+      ]
+    },
+    {
+      "id": "edit-rosters",
+      "title": "Live roster correction bench",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "A broad roster ledger sits above a shallow selected-player attribute bench; team switcher is in the top scope band.",
+      "primaryDecision": "Which exact live player field am I correcting?",
+      "spatialHierarchy": [
+        "League/team scope band",
+        "Player correction ledger",
+        "Selected attribute bench",
+        "Named change review strip"
+      ],
+      "pcInteraction": "Arrow moves record; Enter edits selected category; Tab traverses fields; Escape cancels local edit with dirty-state handling.",
+      "artTreatment": "Portrait stamp only beside selected identity; uniform rows remain readable on dark forest.",
+      "removeWebsitePatterns": [
+        "Player card stacks",
+        "all-fields modal",
+        "hidden bulk replacement."
+      ],
+      "emptyErrorState": "No team selected prompts selection; failed save retains values and names player; forbidden fields stay read-only.",
+      "acceptance": [
+        "Correction scope stays visible while editing; one failed save cannot switch target or discard typed value.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "League and team scope",
+        "Player identity and authorization",
+        "Validation and dirty-state preservation"
+      ],
+      "unapprovedDependencies": [
+        "New bulk edits, undo guarantees and before/after persistence require dedicated validation."
+      ]
+    },
+    {
+      "id": "edit-recruits",
+      "title": "Class correction board",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "Class roster forms a position-grouped ledger; an attribute drawer occupies the lower third with public/private field bands.",
+      "primaryDecision": "Which class record needs an authorized correction?",
+      "spatialHierarchy": [
+        "Class and visibility header",
+        "Prospect correction list",
+        "Public attribute band",
+        "Restricted trait band",
+        "Save receipt"
+      ],
+      "pcInteraction": "Search and keyboard list navigation retain selected recruit; hidden traits require authorized view, never public preview.",
+      "artTreatment": "Small class seal, no signing celebration; restricted information visually labeled beyond color.",
+      "removeWebsitePatterns": [
+        "Gem/bust hero badges",
+        "sprawling per-recruit cards",
+        "private values in public summary."
+      ],
+      "emptyErrorState": "Empty class names its source; permission failure closes privileged detail without substituting public guesses.",
+      "acceptance": [
+        "Public preview exposes no hidden trait; rejected save retains the named recruit and intended changes.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Class and recruit identity",
+        "Public/private field distinction",
+        "Save error with retained values"
+      ],
+      "unapprovedDependencies": [
+        "No new reveal rules, hidden scouting exports or unsupported class-wide edits."
+      ]
+    },
+    {
+      "id": "roster-library",
+      "title": "Roster file workshop",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "A file identity ribbon anchors a team tree, broad roster grid, and docked field inspector; file commands sit above the work plane.",
+      "primaryDecision": "Which reusable roster file am I creating or saving?",
+      "spatialHierarchy": [
+        "File/version ribbon",
+        "Team tree",
+        "Roster grid",
+        "Attribute inspector",
+        "Save destination review"
+      ],
+      "pcInteraction": "Ctrl+S only after real binding implemented; keyboard tree-to-grid-to-inspector; save-as explicitly names new file.",
+      "artTreatment": "C9 folio spine and restrained monogram watermark; utility outweighs athlete spectacle.",
+      "removeWebsitePatterns": [
+        "Live league advance chrome",
+        "ambiguous Publish",
+        "tiny nested editor dialogs."
+      ],
+      "emptyErrorState": "Unsaved file stays named Untitled; unavailable source differs from empty roster; failed save keeps dirty state.",
+      "acceptance": [
+        "Saved receipt names file and destination; file editing never mutates a live league without a separate explicit operation.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Source file identity",
+        "Unsaved-work indication",
+        "Team/player contents"
+      ],
+      "unapprovedDependencies": [
+        "New formats, binary Power Pros export and cloud conflict merging remain unapproved."
+      ]
+    },
+    {
+      "id": "roster-viewer",
+      "title": "Player comparison stage",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "A full roster list transitions to two aligned player identity columns sharing a central metric-label spine.",
+      "primaryDecision": "Which player or source roster best fits my intended use?",
+      "spatialHierarchy": [
+        "Source roster selector",
+        "Browse ledger",
+        "Player A/B identity caps",
+        "Shared metric comparison plane"
+      ],
+      "pcInteraction": "Select A then B deliberately; keyboard toggles metric chapters together; Back returns to source selection and sort.",
+      "artTreatment": "Paired equal-sized portrait cutouts above actual numbers, no decorative radar dominance.",
+      "removeWebsitePatterns": [
+        "Unequal profile cards",
+        "duplicated comparison controls",
+        "unlabeled rating scales."
+      ],
+      "emptyErrorState": "Missing metric is Unknown; no second player prompts selection; load error cannot zero-fill comparator.",
+      "acceptance": [
+        "Both source file names and rating scales remain visible; comparison uses equivalent rows without invented conversion.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Both player identities",
+        "Source and rating scale labels",
+        "Read-only versus editable distinction"
+      ],
+      "unapprovedDependencies": [
+        "Cross-edition rating conversion and automatic roster recommendations are not approved."
+      ]
+    },
+    {
+      "id": "class-library",
+      "title": "Recruit class archive studio",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "A shallow shelf of named classes opens into one class manifest; recruit authoring occupies full width with three separate outbound command paths.",
+      "primaryDecision": "Save this reusable class or deliberately load it into a named league?",
+      "spatialHierarchy": [
+        "Class shelf and ownership",
+        "Class manifest table",
+        "Selected recruit editor",
+        "Save/share/load command review"
+      ],
+      "pcInteraction": "Mouse or keyboard selects class; editing does not select a destination league; load requires named target and explicit existing permission.",
+      "artTreatment": "Program-year spines in brass; archive tone rather than arrival celebration.",
+      "removeWebsitePatterns": [
+        "Generic Publish button",
+        "endless class cards",
+        "live-season navigation within file authoring."
+      ],
+      "emptyErrorState": "Empty archive offers supported create/import; source error keeps draft; failed league load cannot claim imported.",
+      "acceptance": [
+        "Save, Share and Load into league remain distinct outcomes with truthful destination receipts.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Class name and count",
+        "Dirty state",
+        "Explicit destination for league loading"
+      ],
+      "unapprovedDependencies": [
+        "New sharing permissions, marketplace metadata or non-destructive merge require approval."
+      ]
+    },
+    {
+      "id": "import-class",
+      "title": "Transfer review stage",
+      "referenceIds": [
+        "pc-show-decision"
+      ],
+      "composition": "Source class and target destination flank a directional transfer line, with a read-only manifest across the lower half.",
+      "primaryDecision": "Do I want this shared file in the stated destination?",
+      "spatialHierarchy": [
+        "Source identity",
+        "Destination identity",
+        "Transfer consequence statement",
+        "Read-only recruit manifest",
+        "Import result"
+      ],
+      "pcInteraction": "Tab follows source, destination, manifest, final command; Escape cancels without changing either side.",
+      "artTreatment": "Brass transfer line and C9 library stamp; no live-team signing visual.",
+      "removeWebsitePatterns": [
+        "One-click link importing into active league",
+        "editable source controls",
+        "stacked confirmation modals."
+      ],
+      "emptyErrorState": "Revoked link explains unavailability; forbidden destination is blocked; network failure preserves selected target without success.",
+      "acceptance": [
+        "Before commit, library import versus league load is unmistakable; receipt names actual created artifact.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Class identity/count",
+        "Visible source and destination",
+        "Invalid or revoked-link state"
+      ],
+      "unapprovedDependencies": [
+        "Duplicate detection, provenance signing and compatibility conversions need separate implementation."
+      ]
+    },
+    {
+      "id": "class-share",
+      "title": "Shared class showcase",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "Class identity headlines a ranked prospect spread with selectable rows; source/visibility facts occupy a compact publication colophon.",
+      "primaryDecision": "Is this shared class worth exploring or importing?",
+      "spatialHierarchy": [
+        "Class cover title",
+        "Prospect ranking spread",
+        "Selected public profile",
+        "Source and import command"
+      ],
+      "pcInteraction": "Keyboard browse is read-only; import opens transfer review; copying link is separate explicit action.",
+      "artTreatment": "Original program-cover treatment; no private scouting stickers or fake official license marks.",
+      "removeWebsitePatterns": [
+        "Marketing landing page funnel",
+        "hidden data teaser",
+        "auto import."
+      ],
+      "emptyErrorState": "Unavailable share retains safe return; missing author/metadata says unavailable; never claims verified authenticity.",
+      "acceptance": [
+        "Only authorized public fields render; no imported status until real transfer completion.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Public class identity",
+        "Only token-authorized fields",
+        "Revoked/unavailable states"
+      ],
+      "unapprovedDependencies": [
+        "New ratings, download counters, public author identity and sharing modes require approval."
+      ]
+    },
+    {
+      "id": "score-review",
+      "title": "Result adjudication stage",
+      "referenceIds": [
+        "pc-nhl-result",
+        "pc-show-decision"
+      ],
+      "composition": "A reported line score anchors two aligned evidence/stat planes; a compact decision band binds revision, authority and accept/dispute controls.",
+      "primaryDecision": "Can I accept this exact report revision?",
+      "spatialHierarchy": [
+        "Reported matchup and revision",
+        "Submitted stat chapters",
+        "Evidence/source plane",
+        "Decision and reason band"
+      ],
+      "pcInteraction": "Keyboard moves evidence and stat chapters; explicit action review; stale revision locks final command pending rereview.",
+      "artTreatment": "Neutral cream score line and amber pending state; no victory glow while unresolved.",
+      "removeWebsitePatterns": [
+        "Generic success modal",
+        "entry form look-alike",
+        "optimistic green OCR check."
+      ],
+      "emptyErrorState": "Unknown numbers remain unknown; fetch error preserves known revision but disables decision; stale conflict asks rereview.",
+      "acceptance": [
+        "Accept/reject targets exactly displayed revision; failed request keeps reason; FINAL styling begins only after confirmed authority.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Current submitted revision and status",
+        "Unknown versus supplied values",
+        "Authorized confirmation/dispute controls"
+      ],
+      "unapprovedDependencies": [
+        "New automatic arbitration or evidence authentication is not implied."
+      ]
+    },
+    {
+      "id": "box-score",
+      "title": "Final broadcast record",
+      "referenceIds": [
+        "pc-nhl-result"
+      ],
+      "composition": "Oversized team names and baseball line score span the top; read-only batting or pitching occupies the broad central plane with a selected player inspection inset.",
+      "primaryDecision": "What happened, and which supported performance explains it?",
+      "spatialHierarchy": [
+        "Authoritative line score",
+        "Team/stat chapter rail",
+        "Performance table",
+        "Source/completeness footnote"
+      ],
+      "pcInteraction": "Mouse column sorting and keyboard row inspection; player opens real profile; Back restores fixture and chapter.",
+      "artTreatment": "Cream numbers over forest broadcast field; brass winner emphasis only after accepted outcome.",
+      "removeWebsitePatterns": [
+        "Editable report controls",
+        "invented event feed",
+        "decorative charts hiding stats."
+      ],
+      "emptyErrorState": "Score-only acceptance labels missing statistics; pending report redirects to review treatment, not final; load failure is explicit.",
+      "acceptance": [
+        "Score-only record never manufactures batting totals or game log; result and data completeness remain separate labels.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Accepted score and source",
+        "Missing statistics labeled unavailable",
+        "Player identity links"
+      ],
+      "unapprovedDependencies": [
+        "New derived advanced metrics and factual recap claims require suitable supplied data."
+      ]
+    },
+    {
+      "id": "commission-command",
+      "title": "Readiness control matrix",
+      "referenceIds": [
+        "pc-nhl-hub"
+      ],
+      "composition": "Team rows cross readiness/report obligations in a full-width matrix; selected obligation opens a shallow detail bay underneath.",
+      "primaryDecision": "Whose unresolved obligation needs attention?",
+      "spatialHierarchy": [
+        "Week and active operation strip",
+        "Team obligation matrix",
+        "Selected blocker detail",
+        "Server readiness summary"
+      ],
+      "pcInteraction": "Arrow selection across actual cells; Enter opens linked report; no automatic messages or implicit ready toggles.",
+      "artTreatment": "Team monograms at row heads; restrained amber against forest for unresolved obligations.",
+      "removeWebsitePatterns": [
+        "Readiness donut",
+        "coach profile cards",
+        "presence used as readiness."
+      ],
+      "emptyErrorState": "Stale row labeled stale; failed readiness query disables progression; unknown is never treated ready.",
+      "acceptance": [
+        "Each blocked cell links exact supporting record; all clear requires current server evidence.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Readiness separate from presence",
+        "Actual game/report references",
+        "Unknown or stale states"
+      ],
+      "unapprovedDependencies": [
+        "Presence tracking and new reminders require explicit scope."
+      ]
+    },
+    {
+      "id": "commission-actions",
+      "title": "Progression operation stage",
+      "referenceIds": [
+        "pc-show-decision"
+      ],
+      "composition": "A short action roster gives way to one centered preflight stage with scope on the left, actual blockers central and execution outcome on the right.",
+      "primaryDecision": "Is this specific operation currently permitted and understood?",
+      "spatialHierarchy": [
+        "Selected operation identity",
+        "Affected league scope",
+        "Current preflight evidence",
+        "Execute/status bay"
+      ],
+      "pcInteraction": "Select then review operation; Enter never executes from initial list; pending disables repeat; Escape leaves only when safe.",
+      "artTreatment": "League seal watermark; concise operational typography and amber consequential verbs.",
+      "removeWebsitePatterns": [
+        "Dangerous shortcut grid",
+        "many equal primary buttons",
+        "auto retry."
+      ],
+      "emptyErrorState": "Failed preflight stays blocked; interrupted operation shows unknown status and operation ID, not safe-to-repeat.",
+      "acceptance": [
+        "One request cannot produce two operations; visual completion follows server outcome, not animation timer.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Live phase/week",
+        "Server preflight",
+        "Operation status and outcome"
+      ],
+      "unapprovedDependencies": [
+        "New force, rollback or exactly-once retry guarantees remain unapproved."
+      ]
+    },
+    {
+      "id": "commission-settings",
+      "title": "League rules console",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "Horizontal rule categories open a compact settings plane with saved/draft values aligned and phase restrictions below the affected control.",
+      "primaryDecision": "Which supported league setting should change?",
+      "spatialHierarchy": [
+        "League/mode scope",
+        "Rule category rail",
+        "Saved versus draft values",
+        "Apply/discard band"
+      ],
+      "pcInteraction": "Tab traversal matches categories then fields; Escape reviews dirty changes; keyboard shortcuts appear only after tested binding.",
+      "artTreatment": "Rulebook typography, brass category underline; no sports hero needed.",
+      "removeWebsitePatterns": [
+        "Long web preferences accordion",
+        "unsupported sliders",
+        "immediate operations embedded in settings."
+      ],
+      "emptyErrorState": "Unavailable saved state blocks edit; validation pins to field; locked rule explains actual phase restriction.",
+      "acceptance": [
+        "Failed save retains draft; no rule appears adjustable unless supported by authorized endpoint.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Saved versus unsaved values",
+        "Mode/phase restrictions",
+        "Role and scope context"
+      ],
+      "unapprovedDependencies": [
+        "New rules, effective-date scheduling and role-transfer behavior require approval."
+      ]
+    },
+    {
+      "id": "commission-audit",
+      "title": "League record reel",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "A chronological event ledger fills the canvas, with selected event expanded in a lower evidence tray rather than a timeline of cards.",
+      "primaryDecision": "Who changed this record, and what evidence is available?",
+      "spatialHierarchy": [
+        "Time/action filter strip",
+        "Immutable event rows",
+        "Selected target/actor evidence",
+        "Available payload detail"
+      ],
+      "pcInteraction": "Keyboard row browsing, source filters and explicit copy nonsecret identifier; no edit action on historical row.",
+      "artTreatment": "Subtle scorekeeper record lines; readable tabular numerals, no drama or celebratory color.",
+      "removeWebsitePatterns": [
+        "Activity-card feed",
+        "reconstructed before/after claims",
+        "unexplained green checks."
+      ],
+      "emptyErrorState": "Missing actor or payload remains unavailable; no events differs from query failure.",
+      "acceptance": [
+        "Event identity and observed evidence remain distinguishable from inference; history cannot imply unsupported undo.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Server event ordering",
+        "Actor and target identity",
+        "Restricted/missing evidence states"
+      ],
+      "unapprovedDependencies": [
+        "New diff reconstruction, export formats or audit retention promises are unapproved."
+      ]
+    },
+    {
+      "id": "commission-invites",
+      "title": "League access register",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "Invite rows pair named scope and validity; seat/coach assignment occupies a distinct shallow bay; copy and revoke enter separate action stages.",
+      "primaryDecision": "Which invitation should remain usable?",
+      "spatialHierarchy": [
+        "Invitation validity register",
+        "Selected invite scope",
+        "Seat assignment bay",
+        "Copy/revoke consequence stage"
+      ],
+      "pcInteraction": "Select does not expose token; Copy is explicit; Revoke requires selected identity and server acknowledgment.",
+      "artTreatment": "Administrative C9 crest stamp, no welcome splash obscuring validity.",
+      "removeWebsitePatterns": [
+        "Token thumbnails",
+        "revoke beside harmless selection",
+        "fake expiry metadata."
+      ],
+      "emptyErrorState": "Unknown validity requires refresh; unavailable invite cannot be copied as valid; failed revoke stays unresolved.",
+      "acceptance": [
+        "Tokens excluded from generic visual exports; a copied token is never described as accepted membership.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual token validity",
+        "Role-aware controls",
+        "Copy/revoke feedback"
+      ],
+      "unapprovedDependencies": [
+        "New invite expiry, seat limits or roles need backend support and approval."
+      ]
+    },
+    {
+      "id": "commission-reports",
+      "title": "Report exception broadcast desk",
+      "referenceIds": [
+        "pc-nhl-result"
+      ],
+      "composition": "A narrow exception ticker becomes an ordered report list; the selected matchup dominates a broad evidence stage, with accepted history in a separate chapter.",
+      "primaryDecision": "Which report exception should I resolve now?",
+      "spatialHierarchy": [
+        "Pending/disputed queue",
+        "Selected matchup/revision scoreband",
+        "Evidence and validation plane",
+        "Bound decision command"
+      ],
+      "pcInteraction": "Keyboard selects report; deep review preserves queue position; filter accepted history separately from actionable exceptions.",
+      "artTreatment": "Amber exception stripe, neutral scores; winner art only in accepted record chapter.",
+      "removeWebsitePatterns": [
+        "Mixed status cards",
+        "bulk accept",
+        "detached actions lacking revision."
+      ],
+      "emptyErrorState": "Queue error says unavailable; stale selection stops action; missing evidence stays missing.",
+      "acceptance": [
+        "Two reports with equal scores remain distinguishable by game and revision; no blind bulk approval.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Exact game and revision",
+        "Dispute/validation details",
+        "Authority and submission provenance"
+      ],
+      "unapprovedDependencies": [
+        "New dispute rules, batch decisions and automated conflict resolution require approval."
+      ]
+    },
+    {
+      "id": "commission-nil",
+      "title": "Program finance sheet",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "Team allocations form one aligned accounting sheet; selecting a team opens documented obligations below, with correction in a separate exact-field stage.",
+      "primaryDecision": "What money is actually available, and does a correction need to be made?",
+      "spatialHierarchy": [
+        "League budget basis",
+        "Team financial columns",
+        "Selected known obligations",
+        "Correction scope and receipt"
+      ],
+      "pcInteraction": "Keyboard numeric inspection and team selection; edit uses explicit field name and scope; totals are read-only when unsupported.",
+      "artTreatment": "Brass only for available funds; cream tabular currency; no casino or fantasy-market imagery.",
+      "removeWebsitePatterns": [
+        "Pie charts hiding accounting terms",
+        "synthetic transaction history",
+        "budget equals available labeling."
+      ],
+      "emptyErrorState": "Unknown obligations marked unknown; failed query cannot show zero; save rejection retains requested correction.",
+      "acceptance": [
+        "Budget, spent and available are explicitly labeled from real data; no inferred historical ledger.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Budget distinct from spendable amount",
+        "Known obligations and gaps",
+        "Authorized adjustment context"
+      ],
+      "unapprovedDependencies": [
+        "Ledger reconstruction, currency conversion and new NIL policies remain unapproved."
+      ]
+    },
+    {
+      "id": "commission-schedule",
+      "title": "Schedule integrity map",
+      "referenceIds": [
+        "pc-nhl-hub"
+      ],
+      "composition": "A week-by-team matrix provides the dominant spatial map; diagnostic selection highlights actual affected fixtures with a traceable evidence strip.",
+      "primaryDecision": "Which proven schedule problem must be inspected before advance?",
+      "spatialHierarchy": [
+        "Week/team coverage matrix",
+        "Verified diagnostic list",
+        "Highlighted fixture detail",
+        "Check scope and timestamp"
+      ],
+      "pcInteraction": "Keyboard traverses cells; selecting diagnostic highlights affected fixtures; only implemented repair actions can appear.",
+      "artTreatment": "Field-grid motif supports coverage reading; no invented health meter.",
+      "removeWebsitePatterns": [
+        "Generic health dashboard",
+        "unsupported percentages",
+        "blank automatic repair button."
+      ],
+      "emptyErrorState": "Unsupported check says not evaluated; unavailable schedule stops healthy claim; no calendar dates fabricated from weeks.",
+      "acceptance": [
+        "Each warning identifies a real check and linked fixture; warning and blocker semantics remain distinct.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual diagnostic evidence",
+        "Fixture links",
+        "Scope of each check"
+      ],
+      "unapprovedDependencies": [
+        "New diagnostics, automatic repairs and calendar assumptions require specification."
+      ]
+    },
+    {
+      "id": "commission-editor",
+      "title": "League entity workbench",
+      "referenceIds": [
+        "pc-show-ledger"
+      ],
+      "composition": "Entity categories occupy a narrow top rail; selected type opens an identity ledger above a category editor, with actual history in a separately labeled tray.",
+      "primaryDecision": "Which named league entity and field should be corrected?",
+      "spatialHierarchy": [
+        "Entity type rail",
+        "Stable identity ledger",
+        "Editable category workspace",
+        "Read-only history/reversal boundary"
+      ],
+      "pcInteraction": "Keyboard select entity/category then edit; save targets stable ID; reversal is its own reviewed operation.",
+      "artTreatment": "C9 seal anchors scope; minimal portrait art keeps structural fields primary.",
+      "removeWebsitePatterns": [
+        "All-fields megaform",
+        "automatic bulk edits",
+        "undo-looking navigation."
+      ],
+      "emptyErrorState": "Permission failure blocks privileged fields; missing entity cannot retarget save; validation retains draft.",
+      "acceptance": [
+        "Name and ID remain visible through save; no unimplemented rollback or bulk action implied.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Stable entity identity",
+        "Actual editable fields",
+        "Validation and dirty state"
+      ],
+      "unapprovedDependencies": [
+        "Unsupported bulk mutation, reversible-history guarantees and new appearance controls need approval."
+      ]
+    },
+    {
+      "id": "commission-saves",
+      "title": "Recovery vault",
+      "referenceIds": [
+        "pc-show-decision"
+      ],
+      "composition": "Snapshot chronology occupies the left half; a selected recovery point opens a large coverage and restriction dossier on the right.",
+      "primaryDecision": "Is this recovery point compatible and actually restorable?",
+      "spatialHierarchy": [
+        "Snapshot chronology",
+        "Selected season/phase/week identity",
+        "Documented coverage and exclusions",
+        "Restore restriction/operation stage"
+      ],
+      "pcInteraction": "Keyboard browse does not restore; explicit consequence review and permitted command only; Back retains selection.",
+      "artTreatment": "Brass archive spine and restrained vault seal; no thumbnail promising full-world backup.",
+      "removeWebsitePatterns": [
+        "Green restore shortcut",
+        "nested confirmation chain",
+        "complete-backup imagery without proof."
+      ],
+      "emptyErrorState": "Unknown coverage says unknown; incompatible snapshot stays blocked; interrupted restore requires actual status lookup.",
+      "acceptance": [
+        "Restorable status comes from verified restriction checks; partial coverage is visible before action.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Snapshot identity and coverage",
+        "Current restore restrictions",
+        "Affected league and confirmed outcome"
+      ],
+      "unapprovedDependencies": [
+        "Complete restore, consistent snapshot coverage and revision-safe recovery remain engineering gates; no new promise."
+      ]
+    },
+    {
+      "id": "advance-progress",
+      "title": "Season transition monitor",
+      "referenceIds": [
+        "pc-nhl-hub"
+      ],
+      "composition": "A centered phase-to-phase transition strip is supported by the current server checkpoint and an expandable operation log; ordinary game navigation remains secondary.",
+      "primaryDecision": "Is advance complete, still running, or in need of authorized recovery?",
+      "spatialHierarchy": [
+        "Current operation identity",
+        "Confirmed phase transition strip",
+        "Checkpoint and elapsed observation",
+        "Recovery/status log"
+      ],
+      "pcInteraction": "Keyboard can inspect details and safe return; reconnect looks up same operation; no unverified cancel or retry shortcut.",
+      "artTreatment": "Slow stadium light transition may accompany real work; reduced motion is static and never signals success itself.",
+      "removeWebsitePatterns": [
+        "Fake percentage based on elapsed time",
+        "full-screen loading movie",
+        "celebration before completion."
+      ],
+      "emptyErrorState": "Lost connection says status unknown; failed checkpoint names actual error; no inferred success or automatic rerun.",
+      "acceptance": [
+        "Completion is emitted only after server terminal success; refresh retains operation identity and honest status.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Actual operation identity",
+        "Unknown/interrupted state",
+        "Server-confirmed completion"
+      ],
+      "unapprovedDependencies": [
+        "New cancellation, resumption guarantees and lease telemetry require verified endpoints."
+      ]
+    },
+    {
+      "id": "file-dialogs",
+      "title": "File command overlay",
+      "referenceIds": [
+        "pc-show-decision"
+      ],
+      "composition": "A bounded centered overlay replaces only the command stage, retaining dimmed source workspace and clearly named destination.",
+      "primaryDecision": "What will this file action change, and where?",
+      "spatialHierarchy": [
+        "Operation verb and source",
+        "Destination and visibility",
+        "Exact consequence fields",
+        "Cancel/commit result"
+      ],
+      "pcInteraction": "Focus trap, Escape cancel and restored source focus; Enter submits only from explicit control, not incidental field selection.",
+      "artTreatment": "Flat forest overlay with thin brass edge; source remains recognizable behind it.",
+      "removeWebsitePatterns": [
+        "Generic Are you sure",
+        "nested modals",
+        "mobile bottom sheet."
+      ],
+      "emptyErrorState": "Failed command retains filename; destination unavailable blocks commit; cancel leaves source draft unchanged.",
+      "acceptance": [
+        "Every supported Save/Save as/Share/replacement has specific wording and a server-confirmed result.",
+        "PC-only target: 1366x768 minimum working layout, 1920x1080 reference and 2560x1440 scale check; no mobile footer, no page-length dashboard. These are proposed validation targets, not existing certification."
+      ],
+      "authorityBoundaries": [
+        "Named destination",
+        "Unsaved draft preserved on Cancel",
+        "Separate replacement/share consequences"
+      ],
+      "unapprovedDependencies": [
+        "New overwrite detection, recovery storage and share permission modes are unapproved."
+      ]
+    }
+  ]
+}

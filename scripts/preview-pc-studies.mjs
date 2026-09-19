@@ -1,0 +1,6 @@
+/** Local, read-only PC design review server. No game session/database or external writes. */
+import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
+const root=path.resolve('docs/art-direction');
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.ttf':'font/ttf','.md':'text/plain; charset=utf-8'};
+const server=http.createServer((req,res)=>{if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405);res.end();return;}let route;try{route=decodeURIComponent(new URL(req.url,'http://local').pathname);}catch{res.writeHead(400);res.end();return;}const file=path.resolve(root,'.'+(route==='/'?'/pc-sports/index.html':route));if(!file.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}try{const data=fs.readFileSync(file);res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:data);}catch{res.writeHead(404);res.end('Study file not found');}});
+server.listen(Number(process.env.C9_PC_STUDY_PORT||49746),'127.0.0.1',()=>console.log('C9 PC STUDY http://127.0.0.1:'+server.address().port+'/pc-sports/index.html'));
