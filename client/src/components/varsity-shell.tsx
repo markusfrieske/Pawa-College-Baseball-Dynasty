@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
 import { VarsityIcon } from "./ui/varsity-icon";
@@ -10,6 +10,10 @@ import { DynastyLogo } from "./dynasty-logo";
 
 interface ShellLeague {
   name: string;
+  currentSeason?: number;
+  currentWeek?: number;
+  currentPhase?: string;
+  gameMode?: string;
   commissionerId: string;
   coCommissionerIds?: string[] | null;
   teams?: Array<{
@@ -34,6 +38,8 @@ export function VarsityShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const search = useSearch();
   const [menuOpen, setMenuOpen] = useState(false);
+  const frameRef = useRef<HTMLElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   useEffect(() => { setMenuOpen(false); }, [location, search]);
   const match = location.match(/^\/league\/([^/]+)(?:\/([^/]+))?/);
   const leagueId = match?.[1];
@@ -41,6 +47,15 @@ export function VarsityShell({ children }: { children: ReactNode }) {
   const { data: league, isError: leagueError } = useQuery<ShellLeague>({ queryKey: ["/api/leagues", leagueId], enabled: inLeague });
   const { data: user } = useQuery<{ id: string }>({ queryKey: ["/api/auth/me"], enabled: inLeague });
   const { data: inbox } = useQuery<{ count: number }>({ queryKey: ["/api/leagues", leagueId, "messages", "unread-count"], enabled: inLeague && !!user, refetchInterval: 60_000 });
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!inLeague || !frame) return;
+    const measure = () => shellRef.current?.style.setProperty("--varsity-frame-height", `${frame.getBoundingClientRect().height}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [inLeague]);
   if (!inLeague) return <><div className="fixed top-3 right-3 z-40"><VolumeControl /></div>{children}</>;
 
   const base = `/league/${leagueId}`;
@@ -75,26 +90,25 @@ export function VarsityShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="varsity-shell" data-testid="varsity-shell">
+    <div ref={shellRef} className="varsity-shell" data-testid="varsity-shell">
       <a className="varsity-skip" href="#varsity-main">Skip to game content</a>
-      <aside className="varsity-sidebar" aria-label="Your clubhouse">
+      <header ref={frameRef} className="varsity-frame" data-testid="pc-game-frame">
+      <div className="varsity-gamebar" data-testid="game-topbar">
         <Link href="/dashboard" className="varsity-brand" aria-label="Class of Nine — your dynasties">
-          <DynastyLogo className="c9-shell-mark" /><span className="c9-wordmark">Class of Nine</span><small>COLLEGE BASEBALL DYNASTY</small>
+          <DynastyLogo className="c9-shell-mark" /><span className="c9-wordmark">Class of Nine</span>
         </Link>
         <div className="varsity-club">
-          {team && <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} name={team.name} size="md" />}
-          <div className="varsity-club-copy">
-            {team && <strong>{team.name}</strong>}
-            <span>{league?.name || (leagueError ? "League unavailable" : "Loading league…")}</span>
-          </div>
+          {team && <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} name={team.name} size="sm" />}
+          <div className="varsity-gamebar-identity"><strong title={team?.name}>{team?.name || "Your clubhouse"}</strong><span title={league?.name}>{league?.name || (leagueError ? "League unavailable" : "Loading league…")}</span></div>
         </div>
-        <p className="varsity-nav-label">CLUBHOUSE</p>
-        <nav aria-label="League navigation">
-          {links.map(link => navLink(link))}
-        </nav>
-        <div className="varsity-sidebar-foot"><span>BUILD YOUR PROGRAM.</span><p>Every season<br />has a story.</p><Link href="/dashboard">Your dynasties</Link></div>
-      </aside>
-      <div className="varsity-gamebar" data-testid="game-topbar">
+        <div className="varsity-season-context" aria-label="Season context">
+          <strong>{league?.currentSeason != null ? `Season ${league.currentSeason}` : "Season —"}{league?.currentWeek != null && <span> · Week {league.currentWeek}</span>}</strong>
+          <span>{league?.currentPhase?.replaceAll("_", " ") || "Phase unavailable"}<i aria-hidden="true"> / </i>{league?.gameMode === "reported" ? "Reported results" : league?.gameMode === "simulated" ? "Simulation" : "Mode unavailable"}</span>
+        </div>
+        <VolumeControl />
+      </div>
+      <div className="varsity-commandbar">
+        <nav className="varsity-chapters" aria-label="League navigation">{[links[0], links[1], links[2], links[3], links[4], links[8]].map(link => navLink(link))}</nav>
         <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
           <SheetTrigger asChild><button type="button" className="varsity-menu-button" data-testid="game-menu-trigger"><VarsityIcon name="More" size={20} />Game menu</button></SheetTrigger>
           <SheetContent side="left" className="varsity-game-menu" data-testid="game-menu">
@@ -102,9 +116,8 @@ export function VarsityShell({ children }: { children: ReactNode }) {
             <nav aria-label="All game destinations">{groups.map(group => <section key={group.title}><h2>{group.title}</h2>{group.items.map(link => navLink(link, true))}</section>)}<Link href="/dashboard" onClick={() => setMenuOpen(false)}>Your dynasties</Link></nav>
           </SheetContent>
         </Sheet>
-        <div className="varsity-gamebar-identity"><strong>{team?.name || "Class of Nine"}</strong><span>{league?.name || "Your clubhouse"}</span></div>
-        <VolumeControl />
       </div>
+      </header>
       <div id="varsity-main" className="varsity-main" tabIndex={-1}>{children}</div>
     </div>
   );

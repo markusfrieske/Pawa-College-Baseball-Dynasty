@@ -27,6 +27,7 @@ import { PositionSection } from "./components/PositionSection";
 import { DevelopmentTab } from "./components/DevelopmentTab";
 import { PlayerEditModal } from "./components/PlayerEditModal";
 import "./roster-workspace.css";
+import { RosterScene } from "./components/RosterScene";
 import { DepthChartView } from "./components/depth-chart/DepthChartView";
 
 export default function RosterPage() {
@@ -127,7 +128,7 @@ export default function RosterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="c9-roster-page bg-background">
       <header className="border-b border-border bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3 flex-wrap mb-4">
@@ -262,7 +263,7 @@ export default function RosterPage() {
         ) : viewMode === "depth" ? (
           <DepthChartView key={data?.team?.id} players={data?.players || []} onSelectPlayer={openProfile} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={isOwnTeam} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.currentWeek ?? 1} />
         ) : (
-          <PositionSection
+          <RosterScene key={`${data?.team?.id}:${positionFilter}:${eligibilityFilter}:${searchTerm}:${sort}`}
             title={positionFilter === "all" ? "Program roster" : positionOptions.find(o => o.value === positionFilter)?.label || "Players"}
             players={allSorted}
             onSelectPlayer={openProfile}

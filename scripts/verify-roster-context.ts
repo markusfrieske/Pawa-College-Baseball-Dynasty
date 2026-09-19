@@ -283,6 +283,30 @@ try {
       await page.goto(origin+'/league/roster-context/roster');
       await expect(page.getByTestId('roster-manifest')).toBeVisible();checks++;
       await expect(page).toHaveTitle('Class of Nine — College Baseball Dynasty');checks++;
+      // PC frame + selected-athlete scene: real roster, keyboard paging and viewport fit.
+      await expect(page.locator('.varsity-sidebar')).toHaveCount(0);checks++;
+      await expect(page.getByTestId('selected-athlete')).toBeVisible();checks++;
+      for (const [width,height] of [[1280,720],[1366,768],[1920,1080],[2560,1440],[3440,1440]]) {
+        await page.setViewportSize({width,height});
+        await expect(page.locator('[data-testid^="row-player-desktop-"]')).toHaveCount(height >= 1000 ? 12 : 8);
+        check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight+1),'PC roster fits '+width+'x'+height);
+      }
+      await page.setViewportSize({width:1366,height:768});
+      await page.locator('[data-testid^="link-player-"]').first().focus();
+      await page.keyboard.press('ArrowDown');
+      await expect(page.getByTestId('selected-athlete')).toContainText('Second');checks++;
+      await page.keyboard.press('PageDown');
+      await expect(page.locator('[data-testid^="link-player-"]').first()).toBeFocused();checks++;
+      await page.keyboard.press('ArrowDown');
+      const boundaryName = await page.getByTestId('selected-athlete').innerText();
+      await page.keyboard.press('PageDown');
+      await expect(page.getByTestId('selected-athlete')).toHaveText(boundaryName, {useInnerText:true});checks++;
+      await expect(page.locator('[data-testid^="link-player-"]').nth(1)).toBeFocused();checks++;
+      await page.keyboard.press('PageUp');
+      await expect(page.locator('[data-testid^="link-player-"]').first()).toBeFocused();checks++;
+      await page.keyboard.press('Enter');await expect(page.getByTestId('dialog-player-profile')).toBeVisible();
+      await page.keyboard.press('Escape');await expect(page.locator('[data-testid^="link-player-"]').first()).toBeFocused();checks++;
+      await page.setViewportSize({width:1440,height:1000});
       await page.getByTestId('select-position-filter').selectOption('P');
       await expect(page.locator('[data-testid^="row-player-desktop-"]')).toHaveCount(2);checks++;
       await page.getByTestId('select-position-filter').selectOption('OF');
@@ -347,3 +371,4 @@ try {
   if(created)await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
   await admin.end();
 }
+

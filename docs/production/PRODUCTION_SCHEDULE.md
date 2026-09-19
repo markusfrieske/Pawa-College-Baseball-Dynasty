@@ -124,3 +124,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Approved cel portrait integration — September 18
 
 [W12 batch 04](W12_BATCH_04.md) adds persistent optional portrait IDs, commissioner selection, shared rendered views, team-independent face identity and validated conversion/import handling for the approved library. W12/UX-06 remain implementing: PC-frame migration, automatic new-class assignment, historical portrait snapshots and full lifecycle/Steam/enjoyment gates are not complete. Scheduled work remains paused.
+
+## PC frame and roster scene — September 18
+
+[W12 batch 05](W12_BATCH_05.md) replaces the permanent sidebar with compact PC navigation and adds a paged comparison ledger with persistent selected athlete. Existing actions remain available. Broader roster metric lenses, individual screen migrations, scaling and enjoyment gates remain open; UX-06 stays implementing. Manual work only; scheduled development remains paused.

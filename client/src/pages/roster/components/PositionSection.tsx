@@ -17,6 +17,9 @@ const TRAJECTORY_ICONS: Record<number, React.ReactNode> = {
 };
 
 interface PositionSectionProps {
+  totalCount?: number;
+  activeId?: string;
+  onHighlight?: (player: Player) => void;
   title: string;
   players: Player[];
   onSelectPlayer: (player: Player) => void;
@@ -27,14 +30,14 @@ interface PositionSectionProps {
   onSetCaptain?: (playerId: string) => void;
 }
 
-export function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain, captainPending }: PositionSectionProps) {
+export function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain, captainPending, activeId, onHighlight, totalCount }: PositionSectionProps) {
   if (players.length === 0) return null;
 
   return (
     <RetroCard className="mb-4 p-0 sm:p-0 overflow-hidden" data-testid="roster-manifest">
       <div className="px-4 py-2 bg-card/80 border-b border-border">
         <h3 className="text-gold text-xs uppercase tracking-wider">
-          {title} ({players.length})
+          {title} ({totalCount ?? players.length})
         </h3>
       </div>
 
@@ -148,6 +151,9 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                 key={player.id}
                 className="group border-b border-border/50 hover:bg-card/50 transition-colors"
                 style={player.starRating >= 5 ? { borderLeft: "3px solid rgba(196,163,90,0.7)", background: "rgba(196,163,90,0.04)" } : undefined}
+                data-active={activeId === player.id ? "true" : undefined}
+                onClick={() => onHighlight?.(player)}
+                onFocus={() => onHighlight?.(player)}
                 data-testid={`row-player-desktop-${player.id}`}
               >
                 <td className="py-1 px-2 text-muted-foreground font-mono">

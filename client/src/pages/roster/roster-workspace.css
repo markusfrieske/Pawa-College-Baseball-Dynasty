@@ -21,3 +21,76 @@
 .c9-pos-C { grid-area: 4 / 3 / 5 / 5; }
 .c9-diamond .c9-mound { position: relative; grid-area: 3 / 3 / 4 / 5; align-self: center; top: auto; left: auto; transform: none; width: auto; }
 @media (max-width: 720px) { .c9-diamond { padding: 24px 6px; gap: 14px 6px; } }
+/* PC personnel scene: continuous comparison ledger and media-day identity. */
+.c9-roster-page { padding: 0 clamp(16px, 2.2vw, 44px) 16px; }
+.c9-roster-page > header { background: transparent; }
+.c9-roster-page > header > .container { padding: 14px 0 0; max-width: none; }
+.c9-roster-page > header .mb-4 { margin-bottom: 12px; }
+.c9-roster-page > main { padding: 12px 0 0; max-width: none; }
+.c9-roster-page .c9-roster-tools { padding: 10px 0 0; }
+.c9-roster-page .c9-captains { margin: 0; }
+.c9-roster-page .c9-captains summary { padding: 6px 0; }
+.c9-roster-scene { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 29%); gap: 24px; align-items: start; }
+.c9-ledger { min-width: 0; }
+.c9-ledger [data-testid="roster-manifest"] { border-radius: 0; border-width: 1px 0 0; margin-bottom: 0; }
+.c9-ledger th { padding-top: 8px; padding-bottom: 8px; }
+.c9-ledger tr[data-active="true"] { background: #ede5cf !important; color: #14291e; }
+.c9-ledger tr[data-active="true"] .text-muted-foreground, .c9-ledger tr[data-active="true"] .text-gold { color: #38513d; }
+.c9-ledger tr[data-active="true"] button:hover { color: #14291e; }
+.c9-ledger button:focus-visible, .c9-roster-range button:focus-visible, .c9-athlete-inspect:focus-visible { outline: 2px solid #ba9750; outline-offset: 2px; }
+.c9-ledger table col.w-36, .c9-ledger table th:last-child, .c9-ledger table td:last-child { display: none; }
+.c9-roster-range { display: flex; gap: 14px; align-items: center; padding: 10px 0; border-top: 1px solid hsl(var(--border)); font-size: 12px; }
+.c9-roster-range span { margin-right: auto; font-variant-numeric: tabular-nums; }
+.c9-roster-range button { padding: 5px 14px; border: 1px solid hsl(var(--border)); }
+.c9-roster-range button:disabled { opacity: .4; }
+.c9-roster-input-hint { color: hsl(var(--muted-foreground)); font-size: 11px; }
+.c9-athlete-stage { border-top: 3px solid #c7ad6f; background: linear-gradient(145deg,#243e2e,#101f19); overflow: hidden; }
+.c9-athlete-art { position: relative; height: clamp(190px, 26vh, 340px); background: radial-gradient(ellipse at 60% 100%,#667753,#233d2d 70%); }
+.c9-athlete-number { position: absolute; right: 12px; top: -20px; font-size: clamp(100px, 12vw, 200px); font-weight: 900; color: #f1e8cf16; line-height: 1; }
+.c9-athlete-portrait { height: 100%; width: 100%; border-radius: 0; }
+.c9-athlete-portrait canvas { object-fit: contain; }
+.c9-athlete-copy { padding: 16px 22px 20px; }
+.c9-athlete-copy h2 { font: bold italic clamp(28px, 2.5vw, 44px)/1.05 Georgia,serif; overflow-wrap: anywhere; }
+.c9-athlete-copy h2 span { display: block; font: 500 16px/1.4 var(--font-body); }
+.c9-athlete-origin { font-size: 12px; color: #bbc6b8; margin: 10px 0; }
+.c9-athlete-ratings { display: flex; gap: 22px; margin: 16px 0; }
+.c9-athlete-ratings dt { color: #bbc6b8; font-size: 11px; }
+.c9-athlete-ratings dd { color: #e4d19a; font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.c9-athlete-inspect { width: 100%; background: #ede5cf; color: #14291e; padding: 10px; font-size: 13px; font-weight: 700; text-align: left; }
+@media (min-width: 1800px) { .c9-roster-scene { gap: 40px; } .c9-ledger td { padding-top: 8px; padding-bottom: 8px; } }
+@media (max-width: 1100px) { .c9-roster-scene { grid-template-columns: minmax(0,1fr) 260px; gap: 14px; } }
+@media (max-width: 850px) { .c9-roster-scene { grid-template-columns: 1fr; } .c9-athlete-stage { display: grid; grid-template-columns: 1fr 1fr; } }
+@media (min-width: 851px) and (max-height: 900px) {
+  .c9-roster-page > header > .container { padding-top: 8px; }
+  .c9-roster-page > main { padding-top: 6px; }
+  .c9-roster-page .c9-roster-heading { font-size: 26px; }
+  .c9-roster-page .c9-roster-tools input, .c9-roster-page .c9-roster-tools select { min-height: 32px; height: 32px; padding-top: 4px; padding-bottom: 4px; }
+  .c9-roster-page .c9-roster-caption { padding: 5px 0; }
+  .c9-roster-page .c9-roster-kicker { margin-bottom: 4px; }
+  .c9-ledger td { padding-top: 1px; padding-bottom: 1px; }
+  .c9-ledger td button { min-height: 32px; }
+  .c9-ledger [data-testid="player-portrait"] { width: 28px; height: 28px; }
+  .c9-athlete-art { height: 170px; }
+  .c9-athlete-copy { padding: 10px 16px 12px; }
+  .c9-athlete-ratings { margin: 10px 0; }
+}
+/* Compact controls leave the primary comparison task on-screen at 720p. */
+.c9-roster-page > main > .c9-roster-kicker { display: none; }
+.c9-roster-page > main > .c9-view-tabs button { min-height: 30px; height: 30px; padding: 4px 12px; }
+.c9-roster-page > header button { min-height: 32px; height: 32px; }
+.c9-roster-page > header .mb-4 { margin-bottom: 6px; }
+.c9-roster-page .c9-roster-caption { display: inline-block; margin-right: 18px; font-size: 11px; }
+.c9-roster-page .c9-captains { display: inline-block; vertical-align: top; }
+.c9-roster-page .c9-captains[open] { display: block; }
+.c9-roster-page .c9-captains summary { font-size: 11px; }
+.c9-roster-page .c9-roster-tools { padding-top: 6px; }
+.c9-roster-page .c9-roster-tools label { margin-bottom: 3px; }
+.c9-ledger th { padding-top: 5px; padding-bottom: 5px; }
+@media (min-width: 851px) and (max-height: 900px) {
+ .c9-roster-page .c9-roster-caption { line-height: 18px; }
+ .c9-ledger [data-testid="roster-manifest"] > div:first-child { padding-top: 4px; padding-bottom: 4px; }
+ .c9-roster-range { padding: 5px 0; }
+ .c9-athlete-art { height: 145px; }
+}
+@media (min-width: 1800px) { .c9-ledger td { padding-top: 3px; padding-bottom: 3px; } }
+@media (min-width: 1800px) { .c9-ledger td { padding-top: 1px; padding-bottom: 1px; } }
