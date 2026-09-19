@@ -326,6 +326,7 @@ export type Scout = typeof scouts.$inferSelect;
 
 // Players table (roster players)
 export const players = pgTable("players", {
+  arrivalSourceRecruitId: varchar("arrival_source_recruit_id"), // Internal conversion identity; not a public editable field.
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   teamId: varchar("team_id").notNull().references(() => teams.id),
   firstName: text("first_name").notNull(),
@@ -2547,3 +2548,16 @@ export const league_advances = pgTable("league_advances", {
 
 export type LeagueAdvance = typeof league_advances.$inferSelect;
 export type InsertLeagueAdvance = typeof league_advances.$inferInsert;
+
+// Original arrival cards outlive replaceable recruit pools and departed roster rows.
+export const arrivalRecords = pgTable("arrival_records", {
+ id: varchar("id").primaryKey().default(sql`gen_random_uuid()::text`),
+ leagueId: varchar("league_id").notNull().references(()=>leagues.id,{onDelete:"cascade"}),
+ sourceRecruitId: varchar("source_recruit_id").notNull(),
+ teamId: varchar("team_id").notNull(),
+ season: integer("season").notNull(),
+ schemaVersion: integer("schema_version").notNull().default(1),
+ playerSnapshot: jsonb("player_snapshot").notNull(),
+ teamSnapshot: jsonb("team_snapshot").notNull(),
+ createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+}, t=>[uniqueIndex("arrival_records_source_unique").on(t.leagueId,t.sourceRecruitId),index("arrival_records_league_season_idx").on(t.leagueId,t.season)]);

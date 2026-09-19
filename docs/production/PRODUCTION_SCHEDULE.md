@@ -150,3 +150,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Manual continuation — disclosure and Arrival
 
 [W12 batch11](W12_BATCH_11.md) closes the bounded TI-15 recruiting transport leak and implements approved Clubhouse Arrival with full-card/ class PNG keepsakes.331 disclosure/arrival checks and209 workspace checks pass; independent findings and policy exceptions are recorded in its audit. W12 remains implementing. Next manual review: ceremony pacing and share-card composition; then durable arrival history/roster linkage and Clubhouse audio. Broader W03 integrity/recovery work remains open. Automation remains paused.
+
+## Permanent arrival scrapbook — September 19
+
+[W12 batch12](W12_BATCH_12.md) adds immutable season/player arrival history, replayable original cards, and current roster links.362 normal and341 failure-mode checks plus39 migration assertions pass. Independent audit fixes include per-record original colors and explicit interrupted Signing Day containment; the legacy season shortcut cannot bypass it. W03 recovery and W12/UX-06 remain open. Next manual review then Clubhouse audio. Scheduling remains paused.

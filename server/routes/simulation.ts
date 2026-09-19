@@ -1,3 +1,4 @@
+import { publishConvertedArrival } from "../arrival-scrapbook";
 /**
  * Simulation routes — play-by-play, advance-week, and quick-sim shortcuts.
  *
@@ -2836,8 +2837,13 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
       totalTransferred++;
     }
 
+    const recruits = await storage.getRecruitsByLeague(leagueId);
+    const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
+    const currentArrivalIds = new Set(signedRecruits.map(r=>r.id));
     const remainingPlayers = await storage.getPlayersByTeam(team.id);
     for (const player of remainingPlayers) {
+      // A retry must not age a newcomer already inserted by this same class conversion.
+      if(player.arrivalSourceRecruitId && currentArrivalIds.has(player.arrivalSourceRecruitId))continue;
       const eligProgression: Record<string, string> = {
         "FR": "SO",
         "SO": "JR",
@@ -2854,22 +2860,13 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
       }
     }
 
-    const recruits = await storage.getRecruitsByLeague(leagueId);
-    const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
-
-    // Dedup guard: build a name-key set from current roster so re-running
-    // this function (double-advance, retry) cannot insert the same player twice.
+    // Recruit IDs, not names, identify conversions; two recruits can share a name.
     const existingAfterElig = await storage.getPlayersByTeam(team.id);
-    const existingNameKeys = new Set(existingAfterElig.map(p => `${p.firstName}|${p.lastName}`));
-    const insertedThisPass = new Set<string>();
-
     for (const recruit of signedRecruits) {
-      const nameKey = `${recruit.firstName}|${recruit.lastName}`;
-      if (existingNameKeys.has(nameKey) || insertedThisPass.has(nameKey)) {
-        console.warn(`[finalizeSigningDay] Skipping duplicate player ${recruit.firstName} ${recruit.lastName} on team ${team.name}`);
+      if(existingAfterElig.some(p=>p.arrivalSourceRecruitId===recruit.id)) {
+        await publishConvertedArrival(leagueId,completedSeason,recruit.id);
         continue;
       }
-      insertedThisPass.add(nameKey);
       const jerseyNumber = 1 + Math.floor(Math.random() * 99);
       const recruitElig = recruit.recruitType === "TRANSFER" ? (recruit.recruitYear || "SO") : "FR";
       const finalElig = recruit.recruitType === "JUCO" ? (recruit.recruitYear || "FR") : recruitElig;
@@ -2947,8 +2944,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         // V3: new signed players use the archetype-aware development engine
         developmentModelVersion: 3,
         playArchetypeId: assignArchetype(recruit.position, recruit as any),
-      });
-      await storage.updateRecruit(recruit.id, { signingDayRevealed: true });
+      }, recruit.id);
+      await publishConvertedArrival(leagueId,completedSeason,recruit.id);
       totalRecruitsAdded++;
     }
   }
@@ -5766,6 +5763,8 @@ export async function advanceLeagueStep(
   }
 
   if (league.currentPhase === "offseason_signing_day") {
+    // Persist entry before nontransactional finalization; interrupted attempts need reconciliation.
+    await setAdvanceProgress(leagueId, "phase_transition", 0);
     const signingResult = await finalizeSigningDay(leagueId, league.currentSeason);
     await generateWalkonPool(leagueId);
     await processCpuWalkons(leagueId);
@@ -8330,28 +8329,9 @@ export function registerSimulationRoutes(app: Express): void {
         return res.status(403).json({ message: "Only commissioner can advance the season" });
       }
       
-      const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
-      if (!offseasonPhaseList.includes(league.currentPhase)) {
-        return res.status(400).json({ message: "Season can only be advanced during offseason phase" });
-      }
-      
-      invalidateLeague(league.id);
-      const transitionResult = await performSeasonTransition(league.id, league.currentSeason);
-      
-      const updatedLeague = await storage.updateLeague(league.id, {
-        currentWeek: 1,
-        currentSeason: league.currentSeason + 1,
-        currentPhase: "preseason",
-      });
-
-      await storage.createAuditLog({
-        leagueId: league.id,
-        userId: req.session.userId,
-        action: "Season Advanced",
-        details: `Season ${league.currentSeason} ended. ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated.`,
-      });
-
-      res.json({ ...updatedLeague, seasonTransition: transitionResult });
+      // This legacy shortcut bypasses owned checkpoints and reruns Signing Day.
+      // Use the normal phase-by-phase advance until season recovery is transactional.
+      return res.status(409).json({ message: "Direct season advance is unavailable. Use the normal league advance controls; interrupted finalizations require reconciliation.", normalAdvanceRequired: true });
     } catch (error) {
       console.error("Failed to advance season:", error);
       res.status(500).json({ message: "Failed to advance season" });

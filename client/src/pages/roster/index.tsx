@@ -94,6 +94,16 @@ export default function RosterPage() {
 
   useEffect(() => { setSelectedPlayer(null); setEditingPlayer(null); }, [viewingTeamId]);
 
+  const openedArrivalLink=useRef<string|null>(null);
+  useEffect(()=>{
+    const requested=new URLSearchParams(search).get('playerId');
+    const key=id+'/'+viewingTeamId+'/'+requested;
+    if(!requested){openedArrivalLink.current=null;return;}
+    if(data?.team?.id!==viewingTeamId || openedArrivalLink.current===key)return;
+    const player=data.players.find(p=>p.id===requested);
+    if(player){openedArrivalLink.current=key;setSelectedPlayer(player);}
+  },[id,search,viewingTeamId,data]);
+
   const filteredPlayers = data?.players.filter(p => {
     if (searchTerm.trim() && !`${p.firstName} ${p.lastName} ${p.jerseyNumber}`.toLowerCase().includes(searchTerm.trim().toLowerCase())) return false;
     if (positionFilter !== "all") {

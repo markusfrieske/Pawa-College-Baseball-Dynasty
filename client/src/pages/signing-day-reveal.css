@@ -40,3 +40,5 @@
 @media(max-width:1100px){.c9-arrival-page{padding:20px}.c9-arrival-home-copy{width:46%}.c9-arrival-gallery{grid-template-columns:repeat(auto-fill,minmax(175px,1fr))}.c9-arrival-dialog-tools{align-items:start}.c9-arrival-dialog-tools>div:last-child{justify-content:flex-end}.c9-arrival-stage{padding:24px}.c9-arrival-stage-copy{padding:20px}}
 @media(max-height:800px){.c9-arrival-dialog{padding:10px;max-height:98dvh}.c9-arrival-dialog-tools{margin-bottom:7px}.c9-arrival-dialog-tools h2{font-size:19px}.c9-arrival-dialog-tools button{min-height:32px;padding:6px 11px}.c9-arrival-stage{min-height:330px}.c9-arrival-dialog-status{margin-top:5px}}
 @media(prefers-reduced-motion:reduce){.c9-arrival-page *,.c9-arrival-page *::before,.c9-arrival-page *::after{animation:none!important;transition:none!important}}
+
+.c9-arrival-season{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:12px;color:#dec38a}.c9-arrival-season select{background:#25433b;color:#f3eddc;padding:9px 12px;border:0}.c9-arrival-dialog-tools a{color:#dec38a;font-size:12px;padding:8px}

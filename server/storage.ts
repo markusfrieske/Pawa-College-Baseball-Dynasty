@@ -131,7 +131,7 @@ export interface IStorage {
 
   getPlayersByTeam(teamId: string): Promise<Player[]>;
   getPlayersByTeamIds(teamIds: string[]): Promise<Player[]>;
-  createPlayer(player: InsertPlayer): Promise<Player>;
+  createPlayer(player: InsertPlayer, arrivalSourceRecruitId?: string): Promise<Player>;
   batchCreatePlayers(playersData: InsertPlayer[]): Promise<Player[]>;
 
   getRecruitsByLeague(leagueId: string): Promise<Recruit[]>;
@@ -692,9 +692,16 @@ export class DatabaseStorage implements IStorage {
     return map;
   }
 
-  async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
-    const [player] = await db.insert(players).values(insertPlayer).returning();
-    return player;
+  async createPlayer(insertPlayer: InsertPlayer, arrivalSourceRecruitId?: string): Promise<Player> {
+    if (!arrivalSourceRecruitId) {
+      const [player] = await db.insert(players).values(insertPlayer).returning();
+      return player;
+    }
+    const [created] = await db.insert(players).values({...insertPlayer,arrivalSourceRecruitId}).onConflictDoNothing({target:players.arrivalSourceRecruitId}).returning();
+    if(created)return created;
+    const [existing]=await db.select().from(players).where(eq(players.arrivalSourceRecruitId,arrivalSourceRecruitId));
+    if(!existing || existing.teamId!==insertPlayer.teamId)throw new Error("Arrival player identity conflict");
+    return existing;
   }
 
   async getRecruitsByLeague(leagueId: string): Promise<Recruit[]> {

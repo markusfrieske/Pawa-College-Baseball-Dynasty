@@ -1,3 +1,4 @@
+import { captureArrival, readScrapbook } from "../arrival-scrapbook";
 import { discloseRecruit, arrivalPhase, publicRecruitStars } from "../recruit-disclosure";
 /**
  * Recruiting routes.
@@ -1901,6 +1902,17 @@ export function registerRecruitingRoutes(app: Express): void {
   });
 
   // Signing-day reveal: full recruit data for signed recruits on a team
+  app.get("/api/leagues/:id/arrival-scrapbook", requireAuth, async (req,res)=>{
+    try {
+      const league=await storage.getLeague(req.params.id as string);if(!league)return res.status(404).json({message:'League not found'});
+      const raw=req.query.season;
+      if(raw!==undefined && (typeof raw!=='string'||!/^\d+$/.test(raw)||Number(raw)<1||!Number.isSafeInteger(Number(raw))))return res.status(400).json({message:'Invalid scrapbook season'});
+      const coaches=await storage.getCoachesByLeague(league.id);
+      const result=await readScrapbook(league.id,raw===undefined?undefined:Number(raw));
+      res.json({...result,league:{id:league.id,name:league.name,currentSeason:league.currentSeason},myTeamId:coaches.find(c=>c.userId===req.session.userId)?.teamId??null});
+    }catch(error){console.error('Scrapbook read failed',error);res.status(500).json({message:'Could not load the class scrapbook'});}
+  });
+
   app.get("/api/leagues/:id/signing-day-reveal", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
@@ -2144,7 +2156,7 @@ export function registerRecruitingRoutes(app: Express): void {
       let revealedCount = 0;
       try {
         await connection.query('BEGIN');
-        const phase = await connection.query('SELECT current_phase FROM leagues WHERE id=$1 FOR UPDATE',[league.id]);
+        const phase = await connection.query('SELECT current_phase,current_season FROM leagues WHERE id=$1 FOR UPDATE',[league.id]);
         const pending = await connection.query('SELECT id FROM recruits WHERE league_id=$1 AND signed_team_id IS NOT NULL AND signing_day_revealed=false AND ($2::text IS NULL OR signed_team_id=$2)',[league.id,teamId ?? null]);
         if (pending.rowCount && !arrivalPhase(phase.rows[0]?.current_phase)) {
           await connection.query('ROLLBACK');
@@ -2153,6 +2165,7 @@ export function registerRecruitingRoutes(app: Express): void {
         const updated = await connection.query('UPDATE recruits SET signing_day_revealed=true WHERE league_id=$1 AND signed_team_id IS NOT NULL AND signing_day_revealed=false AND ($2::text IS NULL OR signed_team_id=$2) RETURNING id',[league.id,teamId ?? null]);
         revealedCount = updated.rowCount ?? 0;
         if(revealedCount) await connection.query("UPDATE recruiting_interests i SET min_overall=r.overall,max_overall=r.overall,revealed_abilities_count=json_array_length(COALESCE(r.abilities,'[]'::json)) FROM recruits r WHERE i.recruit_id=r.id AND r.id=ANY($1::varchar[])",[updated.rows.map(r=>r.id)]);
+        for(const row of updated.rows)await captureArrival(connection,league.id,phase.rows[0].current_season,row.id);
         await connection.query('COMMIT');
       } catch(error) { await connection.query('ROLLBACK'); throw error; }
       finally { connection.release(); }

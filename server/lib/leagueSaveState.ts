@@ -4,9 +4,9 @@ import { invalidateLeague } from "../cache";
 export class ReportHistoryRestoreBlocked extends Error {}
 
 async function assertHistorySafeRestore(client: any, leagueId: string, snapshot: Record<string, any>): Promise<void> {
-  const { rows } = await client.query("SELECT EXISTS (SELECT 1 FROM game_reports WHERE league_id = $1) OR EXISTS (SELECT 1 FROM games WHERE league_id = $1 AND is_complete = true) OR EXISTS (SELECT 1 FROM game_coach_effects WHERE league_id = $1) OR EXISTS (SELECT 1 FROM league_advances WHERE league_id = $1) OR EXISTS (SELECT 1 FROM postseason_coach_awards WHERE league_id = $1) OR EXISTS (SELECT 1 FROM postseason_award_legacy_seasons WHERE league_id = $1) OR EXISTS (SELECT 1 FROM game_finalizations f JOIN games g ON g.id = f.game_id WHERE g.league_id = $1) AS present", [leagueId]);
-  if (rows[0].present || (Array.isArray(snapshot.leagueAdvances) && snapshot.leagueAdvances.length > 0) || (Array.isArray(snapshot.gameReports) && snapshot.gameReports.length > 0) || (Array.isArray(snapshot.games) && snapshot.games.some((game: any) => game.is_complete === true || game.isComplete === true)) || (Array.isArray(snapshot.gameFinalizations) && snapshot.gameFinalizations.length > 0) || (Array.isArray(snapshot.gameCoachEffects) && snapshot.gameCoachEffects.length > 0) || (Array.isArray(snapshot.postseasonCoachAwards) && snapshot.postseasonCoachAwards.length > 0) || (Array.isArray(snapshot.postseasonAwardLegacySeasons) && snapshot.postseasonAwardLegacySeasons.length > 0)) {
-    throw new ReportHistoryRestoreBlocked("Restore is temporarily unavailable for leagues with game reports, completed games, advance operations or postseason award history until history-safe recovery is supported. Your current reports and results are unchanged.");
+  const { rows } = await client.query("SELECT EXISTS (SELECT 1 FROM arrival_records WHERE league_id = $1) OR EXISTS (SELECT 1 FROM game_reports WHERE league_id = $1) OR EXISTS (SELECT 1 FROM games WHERE league_id = $1 AND is_complete = true) OR EXISTS (SELECT 1 FROM game_coach_effects WHERE league_id = $1) OR EXISTS (SELECT 1 FROM league_advances WHERE league_id = $1) OR EXISTS (SELECT 1 FROM postseason_coach_awards WHERE league_id = $1) OR EXISTS (SELECT 1 FROM postseason_award_legacy_seasons WHERE league_id = $1) OR EXISTS (SELECT 1 FROM game_finalizations f JOIN games g ON g.id = f.game_id WHERE g.league_id = $1) AS present", [leagueId]);
+  if (rows[0].present || (Array.isArray(snapshot.arrivalRecords) && snapshot.arrivalRecords.length > 0) || (Array.isArray(snapshot.leagueAdvances) && snapshot.leagueAdvances.length > 0) || (Array.isArray(snapshot.gameReports) && snapshot.gameReports.length > 0) || (Array.isArray(snapshot.games) && snapshot.games.some((game: any) => game.is_complete === true || game.isComplete === true)) || (Array.isArray(snapshot.gameFinalizations) && snapshot.gameFinalizations.length > 0) || (Array.isArray(snapshot.gameCoachEffects) && snapshot.gameCoachEffects.length > 0) || (Array.isArray(snapshot.postseasonCoachAwards) && snapshot.postseasonCoachAwards.length > 0) || (Array.isArray(snapshot.postseasonAwardLegacySeasons) && snapshot.postseasonAwardLegacySeasons.length > 0)) {
+    throw new ReportHistoryRestoreBlocked("Restore is temporarily unavailable for leagues with game reports, completed games, advance operations, arrival scrapbooks or postseason award history until history-safe recovery is supported. Your current reports and results are unchanged.");
   }
 }
 
@@ -136,6 +136,7 @@ async function buildSnapshot(client: any, leagueId: string): Promise<Record<stri
   ]);
 
   return {
+    arrivalRecords: await q("SELECT * FROM arrival_records WHERE league_id = $1",[leagueId]),
     version: SNAPSHOT_VERSION,
     capturedAt: new Date().toISOString(),
     league: leagueRows[0] ?? null,
@@ -265,6 +266,7 @@ async function reinsertLeagueData(client: any, snapshot: Record<string, any>): P
   await ins("players", snapshot.players);
   // recruits must exist before recruiting_interests, recruit_top_schools, recruiting_actions_log
   await ins("recruits", snapshot.recruits);
+  await ins("arrival_records", snapshot.arrivalRecords);
   // games must exist before game_reports, game_report_images, game_report_corrections, standings
   await ins("games", snapshot.games);
   await ins("standings", snapshot.standings);

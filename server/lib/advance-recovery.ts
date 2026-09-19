@@ -19,6 +19,7 @@ const stages = new Set(["initializing", "cpu_recruiting", "storylines", "recruit
 function completedStages(row: UnfinishedAdvance): Set<string> {
   const value = row.checkpoints;
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new AdvanceRecoveryRequired(row.id);
+  if (row.from_phase === "offseason_signing_day" && Object.prototype.hasOwnProperty.call(value, "phase_transition")) throw new AdvanceRecoveryRequired(row.id);
   const completed = new Set<string>();
   for (const [name, checkpoint] of Object.entries(value)) {
     if (!stages.has(name) || !checkpoint || typeof checkpoint !== "object" || Array.isArray(checkpoint)
