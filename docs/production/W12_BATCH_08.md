@@ -39,3 +39,7 @@ Frisk clarified that yes/no pitches should show one notch. FB and2S now show one
 ### Compact binary-pitch tiles
 
 Frisk requested red binary notches and less empty space so another break pitch fits the row. FB/2S tiles now occupy70px each; breaking-pitch tiles occupy155px and wrap when needed. Added a level5 cutter to the synthetic six-pitch review. Browser geometry confirms all six tiles share the same top coordinate; FB/2S computed fill is rgb(239,68,68), each has exactly one notch, and break fills remain4/2/7/5. Visually inspected the actual built game. Production build/typecheck pass. Updated the existing regression fixture/count expectations to six pitches; the full database suite was not rerun for this bounded layout/color correction. Previous457-check evidence remains historical.
+
+### Seven-pitch row
+
+Frisk requested room for one more pitch. Break tiles narrowed from155px to140px; binary tiles remain70px. Added a level3 sinker only to the synthetic review player. Browser measurement confirms seven pitches on one row with no tile overflow; final screenshot inspected. Production build passes. Existing regression fixture expectations updated to seven; full database suite not rerun for this CSS sizing change.

@@ -8,4 +8,4 @@
 .c9-card-pitches dl{grid-template-columns:repeat(5,minmax(0,1fr))}.c9-pitch-segments.c9-pitch-binary{grid-template-columns:20px;max-width:20px}
 
 /* Binary pitches occupy only their label/notch width; six-pitch sets fit one row. */
-.c9-card-pitches dl{display:flex;flex-wrap:wrap;gap:5px}.c9-card-pitches dl>div{flex:0 1 155px}.c9-card-pitches dl>.c9-pitch-tile-binary{flex:0 0 70px}.c9-pitch-binary i.filled{background:#ef4444}
+.c9-card-pitches dl{display:flex;flex-wrap:wrap;gap:5px}.c9-card-pitches dl>div{flex:0 1 140px}.c9-card-pitches dl>.c9-pitch-tile-binary{flex:0 0 70px}.c9-pitch-binary i.filled{background:#ef4444}
