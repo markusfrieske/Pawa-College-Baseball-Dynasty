@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CelCharacter } from "@/components/ui/cel-character";
+
 
 interface CoachAvatarProps {
   skinTone?: string;
@@ -28,8 +28,7 @@ export function CoachAvatar({
 
   return (
     <div className={cn("relative overflow-hidden rounded-lg", sizes[size], className)}>
-      <CelCharacter skinTone={skinTone} hairColor={hairColor} hairStyle={hairStyle} facialHair={facialHair}
-        jerseyColor={teamPrimaryColor || "#2563eb"} mouthStyle="smile" coach />
+      <span role="img" aria-label="Coach" className="flex h-full w-full items-center justify-center font-bold text-amber-100" style={{backgroundColor:teamPrimaryColor || "#234734"}}>COACH</span>
     </div>
   );
 }

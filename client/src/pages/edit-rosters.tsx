@@ -407,10 +407,10 @@ export default function EditRostersPage() {
                                         <div className="space-y-0.5">
                                           <label className="text-xs font-semibold text-gold" htmlFor={"portrait-"+player.id}>Illustrated portrait</label>
                                           <select id={"portrait-"+player.id} aria-label={"Portrait for "+player.firstName+" "+player.lastName} value={(currentPortraitId as string) || "legacy"} onChange={e=>updatePlayer(player.id,"portraitId",e.target.value==="legacy"?null:e.target.value)} className="w-full bg-background border border-border p-1 text-xs">
-                                            <option value="legacy">Legacy appearance</option>
+                                            <option value="legacy">Automatic illustrated portrait</option>
                                             {Array.from({length:30},(_,i)=>{const id="c9-face-"+String(i+1).padStart(2,"0");return <option key={id} value={id}>Cel player {i+1}</option>})}
                                           </select>
-                                          <p className="text-xs text-muted-foreground">Illustrated faces are fixed. Skin and hair controls below apply only to Legacy appearance.</p>
+                                          <p className="text-xs text-muted-foreground">Illustrated faces are fixed. With Automatic selected, skin and hair choose the closest approved portrait.</p>
                                           <p className="text-xs font-semibold text-gold uppercase tracking-wide">Skin Tone</p>
                                           <Select value={currentSkinTone} onValueChange={(v) => updatePlayer(player.id, "skinTone", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-skintone-${player.id}`}>

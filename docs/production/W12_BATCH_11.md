@@ -23,3 +23,9 @@ Synthetic small rosters intentionally trigger expected25-player structure warnin
 ## Remaining scope
 
 This is a playable arrival slice, not W12 or release completion. Clubhouse audio, a durable historical scrapbook with stable season/player-event identity, large-class curation, controller support and human enjoyment remain future gates. PNGs are local keepsakes, not a database archive or automatic social publishing. Existing saved classes without durable season identity are not relabeled as a permanent multi-year archive. Next: Frisk review of the live arrival, then durable arrival history/roster linkage and audio polish; continue the separately tracked integrity plan manually.
+
+## Portrait cleanup following Frisk review
+
+Removed the retired cartoon renderer from all live player portrait/avatar fallbacks. Missing portrait IDs use a deterministic closest skin/hair match from the approved30-face manifest, independent of player ID and team color; saved explicit IDs take priority and no save rows are rewritten. Coach avatars use a flat COACH team-color badge until dedicated coach art is approved. Historical art-study source remains archived, with no live game import. The roster appearance selector now describes Automatic illustrated selection accurately.
+
+Cleanup validation: TypeScript and production build pass;331 disclosure/arrival checks pass again. Live six-player gallery verified with six loaded approved canvases and zero legacy SVG portraits; the previously circled missing-ID player was inspected directly.
