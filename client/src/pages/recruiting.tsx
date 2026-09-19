@@ -567,14 +567,23 @@ export default function RecruitingPage() {
     data?.team?.id
   );
 
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [sceneHeight, setSceneHeight] = useState(400);
+  useEffect(() => { const scene=sceneRef.current; if(!scene)return; const measure=()=>setSceneHeight(Math.max(180,window.innerHeight-scene.getBoundingClientRect().top-140)); measure(); const observer=new ResizeObserver(measure);if(scene.parentElement)observer.observe(scene.parentElement);window.addEventListener("resize",measure);return()=>{observer.disconnect();window.removeEventListener("resize",measure);}; }, [data]);
+  const [detailHost, setDetailHost] = useState<HTMLDivElement | null>(null);
+  const [boardRecruitId, setBoardRecruitId] = useState<string | null>(null);
   const recruitListRef = useRef<HTMLDivElement>(null);
   const pageCount = Math.max(1, Math.ceil(filteredRecruits.length / 24));
   const currentPage = Math.min(boardPage, pageCount - 1);
   const pageRecruits = filteredRecruits.slice(currentPage * 24, (currentPage + 1) * 24);
-  useEffect(() => { setBoardPage(0); }, [searchQuery, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showWatchlistOnly, showTopAvailable, showTeamNeeds, showPipeline, showContested, showStory, showOfferedOnly, showInStateOnly, showAffordableOnly, showHighRivalPressure, pipelineFilter]);
+  const activeBoardRecruitId = pageRecruits.some(r => r.id === boardRecruitId) ? boardRecruitId : pageRecruits[0]?.id;
+  useEffect(() => { if (boardRecruitId) { const index=filteredRecruits.findIndex(r => r.id===boardRecruitId); if(index>=0) setBoardPage(Math.floor(index/24)); } }, [data]);
+  useEffect(() => { if(!boardRecruitId && pageRecruits[0])setBoardRecruitId(pageRecruits[0].id); }, [currentPage, boardRecruitId, data]);
+  useEffect(() => { setBoardPage(0); setBoardRecruitId(filteredRecruits[0]?.id ?? null); }, [searchQuery, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showWatchlistOnly, showTopAvailable, showTeamNeeds, showPipeline, showContested, showStory, showOfferedOnly, showInStateOnly, showAffordableOnly, showHighRivalPressure, pipelineFilter]);
   scrollToRecruitRef.current = (recruitId: string) => {
     const index = filteredRecruits.findIndex(r => r.id === recruitId);
     if (index < 0) { setSelectedRecruitId(recruitId); return; }
+    setBoardRecruitId(recruitId);
     setBoardPage(Math.floor(index / 24));
     requestAnimationFrame(() => requestAnimationFrame(() => {
       document.getElementById('recruit-toggle-' + recruitId)?.focus();
@@ -1174,13 +1183,16 @@ export default function RecruitingPage() {
         </RetroCard>
 
 
-        <div className="c9-ledger-heading"><h2>Recruit board</h2><span>Public rating · scouting knowledge · your interest</span></div>
-        <div ref={recruitListRef} className="c9-recruit-list">
+        <div className="c9-ledger-heading"><h2>Recruit board</h2><span>{pipelineData ? `Needs: ${pipelineData.positionNeeds.filter(p => p.need).map(p => p.position).join(" · ") || "No flagged gaps"}` : "Team needs unavailable"} · Public rating / scouting knowledge</span></div>
+        <div ref={sceneRef} className="c9-scouting-scene" style={{height:sceneHeight}}>
+        <div ref={recruitListRef} className="c9-recruit-list" tabIndex={0} aria-label="Prospect board" onKeyDown={event => { if (!event.target || !(event.target as HTMLElement).closest(".c9-recruit-summary")) return; if(event.key !== "ArrowDown" && event.key !== "ArrowUp")return; event.preventDefault(); const index=pageRecruits.findIndex(r => r.id===activeBoardRecruitId); const next=pageRecruits[Math.max(0,Math.min(pageRecruits.length-1,index+(event.key==="ArrowDown"?1:-1)))];if(next){setBoardRecruitId(next.id);recruitListRef.current?.querySelector<HTMLButtonElement>(`[data-testid="inspect-recruit-${next.id}"]`)?.focus();} }}>
             {pageRecruits.map(recruit => (
                 <div key={recruit.id}>
                   <RecruitRow
                     compact
-                    onInspect={() => setSelectedRecruit(recruit)}
+                    detailHost={detailHost}
+                    boardSelected={activeBoardRecruitId === recruit.id}
+                    onInspect={() => setBoardRecruitId(recruit.id)}
                     recruit={recruit}
                     leagueId={id!}
                     onTarget={() => targetMutation.mutate(recruit.id, targetCallbacks)}
@@ -1226,7 +1238,9 @@ export default function RecruitingPage() {
                 </div>
             ))}
         </div>
-        <nav className="c9-recruit-pagination" aria-label="Recruit board pages"><RetroButton variant="outline" disabled={currentPage === 0} onClick={() => { setBoardPage(currentPage - 1); requestAnimationFrame(() => { const first = recruitListRef.current?.querySelector<HTMLElement>("button"); first?.focus(); first?.scrollIntoView({ block: "center" }); }); }}>Previous</RetroButton><span aria-live="polite">Page {currentPage + 1} of {pageCount} · {filteredRecruits.length} recruits</span><RetroButton variant="outline" disabled={currentPage + 1 >= pageCount} onClick={() => { setBoardPage(currentPage + 1); requestAnimationFrame(() => { const first = recruitListRef.current?.querySelector<HTMLElement>("button"); first?.focus(); first?.scrollIntoView({ block: "center" }); }); }}>Next</RetroButton></nav>
+        <aside className="c9-prospect-panel" aria-label="Selected prospect"><div className="c9-prospect-heading">SCOUTING DOSSIER</div><div ref={setDetailHost} className="c9-prospect-content" tabIndex={0} aria-label="Prospect details and actions" />{!activeBoardRecruitId && <p className="p-4 text-muted-foreground">No prospects match this board. Adjust your filters.</p>}</aside>
+        </div>
+        <nav className="c9-recruit-pagination" aria-label="Recruit board pages"><RetroButton variant="outline" disabled={currentPage === 0} onClick={() => { setBoardRecruitId(null); setBoardPage(currentPage - 1); requestAnimationFrame(() => { const first = recruitListRef.current?.querySelector<HTMLElement>("button"); first?.focus(); first?.scrollIntoView({ block: "center" }); }); }}>Previous</RetroButton><span aria-live="polite">Page {currentPage + 1} of {pageCount} · {filteredRecruits.length} recruits</span><RetroButton variant="outline" disabled={currentPage + 1 >= pageCount} onClick={() => { setBoardRecruitId(null); setBoardPage(currentPage + 1); requestAnimationFrame(() => { const first = recruitListRef.current?.querySelector<HTMLElement>("button"); first?.focus(); first?.scrollIntoView({ block: "center" }); }); }}>Next</RetroButton></nav>
 
         {filteredRecruits.length === 0 && (
           <RetroCard variant="bordered" className="text-center py-12">

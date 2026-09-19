@@ -132,3 +132,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Roster rating comparisons — September 18
 
 [W12 batch 06](W12_BATCH_06.md) adds explicit batting/pitching/fielding rating lenses, metric sorting, stable selected identity, search shortcut and player role/workload context. Other screen designs and broader scaling/enjoyment gates remain open. Next distinct scene is recruiting. Scheduled work remains paused.
+
+## Recruiting board and dossier — September 18
+
+[W12 batch 07](W12_BATCH_07.md) introduces a stable selected-prospect panel, compact board, resource/need context, keyboard selection and bounded PC panes. Runtime and independent audit evidence are separate. Dossier art/action grouping, broader scaling and enjoyment remain open; W12/UX-06 stays implementing. Scheduled work remains paused.

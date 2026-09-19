@@ -753,7 +753,8 @@
         "../art-direction/pc-sports/AUDIT.md",
         "docs/production/W12_BATCH_04.md",
         "docs/production/W12_BATCH_05.md",
-        "docs/production/W12_BATCH_06.md"
+        "docs/production/W12_BATCH_06.md",
+        "docs/production/W12_BATCH_07.md"
       ],
       "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open.",
       "notes": " Frisk now specifies PC-only. The new research/atlas is design evidence only; replace web frame and implement individual screen compositions before claiming closure."

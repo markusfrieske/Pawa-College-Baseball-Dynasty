@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState, useRef } from "react";
 import type { RecruitingEconomy } from "@/hooks/use-recruiting";
 import { Link } from "wouter";
@@ -43,6 +44,8 @@ export
 function RecruitRow({
   recruit,
   compact = false,
+  detailHost,
+  boardSelected = false,
   onInspect,
   leagueId,
   onTarget,
@@ -87,6 +90,8 @@ function RecruitRow({
 }: {
   recruit: RecruitWithInterest;
   compact?: boolean;
+  detailHost?: HTMLElement | null;
+  boardSelected?: boolean;
   onInspect?: () => void;
   leagueId: string;
   onTarget: () => void;
@@ -296,24 +301,15 @@ function RecruitRow({
     return undefined;
   })();
 
-  return (
-    <RetroCard 
-      id={`recruit-card-${recruit.id}`}
-      className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} 
-      data-testid={`card-recruit-${recruit.id}`}
-      style={rowStyle}
-    >
-      {compact && <div className="c9-recruit-summary">
-        <button type="button" className="c9-recruit-identity" onClick={onInspect} data-testid={'inspect-recruit-' + recruit.id}><strong>{recruit.firstName} {recruit.lastName}</strong><small>{recruit.position} · {recruit.homeState} · Public {recruit.starRank ?? "?"}★</small></button>
-        <div><span className="c9-ledger-label">Knowledge</span><strong>{scoutPct}% scouted</strong><small>OVR {getOverallDisplay()}</small></div>
-        <div><span className="c9-ledger-label">Your standing</span><strong>{isSigned ? "Signed" : interestMeta?.label ?? "No contact"}</strong><small>{recruit.interest?.hasOffer ? "Offer made" : "No offer"} · {recruit.stage}</small></div>
-        <button type="button" id={'recruit-toggle-' + recruit.id} className="c9-recruit-manage" aria-expanded={expanded} aria-controls={'recruit-actions-' + recruit.id} onClick={() => setExpanded(v => !v)} data-testid={'manage-recruit-' + recruit.id}>{expanded ? "Close details" : "Manage"}</button>
-      </div>}
-      <div id={'recruit-actions-' + recruit.id} hidden={compact && !expanded} className={compact ? "c9-recruit-tray" : undefined}>
+  const detailContent = (
+      <div id={'recruit-actions-' + recruit.id} hidden={!detailHost && compact && !expanded} className={compact ? "c9-recruit-tray" : undefined}>
+      {detailHost && <p className="c9-prospect-costs">Scout 1 scout pt · Phone 2 contact pts · Email 1 contact pt · Visit {visitCost} · Coach visit {headCoachVisitCost} contact pts</p>}
       <div className="flex flex-col lg:flex-row lg:items-center gap-2">
         <div className="flex items-center gap-4 flex-1">
           {!isSigned && (
             <button
+              aria-label={`Compare ${recruit.firstName} ${recruit.lastName}`}
+              aria-pressed={isSelected}
               onClick={onToggleCompare}
               className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                 isSelected ? "bg-gold border-gold text-forest-dark" : "border-muted-foreground/50 hover:border-gold"
@@ -867,7 +863,7 @@ function RecruitRow({
             </div>
 
             {/* Desktop full actions — hidden on mobile */}
-            <div className="hidden lg:flex items-center gap-4 flex-wrap">
+            <div className="hidden lg:flex items-center gap-4 flex-wrap c9-prospect-actions">
               <div className="w-36 space-y-1.5">
                 <div>
                   <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
@@ -1485,6 +1481,21 @@ function RecruitRow({
         </div>
       )}
       </div>
+  );
+  return (
+    <RetroCard 
+      id={`recruit-card-${recruit.id}`}
+      className={`hover:border-gold/30 transition-colors ${boardSelected ? "c9-board-selected" : ""} ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} 
+      data-testid={`card-recruit-${recruit.id}`}
+      style={rowStyle}
+    >
+      {compact && <div className="c9-recruit-summary" onFocus={() => { if(detailHost) onInspect?.(); }}>
+        <button type="button" className="c9-recruit-identity" aria-pressed={detailHost ? boardSelected : undefined} onClick={onInspect} data-testid={'inspect-recruit-' + recruit.id}><strong>{recruit.firstName} {recruit.lastName}</strong><small>{recruit.position} · {recruit.homeState} · Public {recruit.starRank ?? "?"}★</small></button>
+        <div><span className="c9-ledger-label">Knowledge</span><strong>{scoutPct}% scouted</strong><small>OVR {getOverallDisplay()}</small></div>
+        <div><span className="c9-ledger-label">Your standing</span><strong>{isSigned ? "Signed" : interestMeta?.label ?? "No contact"}</strong><small>{recruit.interest?.hasOffer ? "Offer made" : "No offer"} · {recruit.stage}</small></div>
+        <button type="button" id={'recruit-toggle-' + recruit.id} className="c9-recruit-manage" aria-expanded={detailHost ? undefined : expanded} aria-controls={'recruit-actions-' + recruit.id} onClick={() => detailHost ? onInspect?.() : setExpanded(v => !v)} data-testid={'manage-recruit-' + recruit.id}>{detailHost ? "Select" : expanded ? "Close details" : "Manage"}</button>
+      </div>}
+      {detailHost ? (boardSelected ? createPortal(detailContent, detailHost) : null) : detailContent}
     </RetroCard>
   );
 }

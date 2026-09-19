@@ -77,6 +77,7 @@ try {
   await new Promise<void>(resolve=>server.listen(0,"127.0.0.1",resolve));
   const address=server.address(); assert(address&&typeof address==="object");
   const origin=`http://127.0.0.1:${address.port}`;
+  if(process.env.PAWA_WORKSPACE_REVIEW === "1") console.log(`C9_WORKSPACE_BOOT ${origin}/__test/review`);
   browser=await chromium.launch({channel:process.platform==="win32"?"msedge":undefined,headless:true});
   await pool.query("UPDATE leagues SET current_phase='regular_season', current_week=1,current_season=1,season_length='standard',dynasty_preset='custom' WHERE id='roster-context'");
   await pool.query("UPDATE coaches SET archetype='Balanced',pitching_recruiting_skill=5,hitting_recruiting_skill=5,scouting_skill=5,evaluation_skill=5,recruit_actions_used=0,scout_actions_used=0,perks='{}' WHERE id='member-coach'");
@@ -98,12 +99,24 @@ try {
       await page.goto(origin+'/league/roster-context/recruiting');
       await expect(page.getByTestId('recruiting-ledger')).toBeVisible();checks++;
       await expect(page.locator('.c9-recruit-summary')).toHaveCount(24);checks++;
+      for(const [width,height] of [[1280,720],[1366,768],[1920,1080],[2560,1440],[3440,1440]]) {
+        await page.setViewportSize({width,height});
+        await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight+1)).toBe(true);checks++;
+      }
+      await page.setViewportSize({width:1366,height:768});
+      for(const action of ['scout','phone','email','visit','head-coach-visit','offer']) {await expect(page.getByTestId('button-'+action+'-r1')).toBeInViewport();checks++;}
+      await page.setViewportSize({width:1440,height:1000});
       await page.getByRole('navigation',{name:'Recruit board pages'}).getByRole('button',{name:'Next',exact:true}).focus(); await page.keyboard.press('Enter');
       await expect(page.locator('.c9-recruit-summary')).toHaveCount(6);checks++;
+      let spendRequests=0;page.on('request',r=>{if(r.method()==='POST' && /recruits/.test(r.url()))spendRequests++;});
+      await page.getByTestId('inspect-recruit-r26').focus();await page.keyboard.press('ArrowDown');
+      await expect(page.getByTestId('inspect-recruit-r27')).toBeFocused();checks++;
+      await expect(page.getByTestId('inspect-recruit-r27')).toHaveAttribute('aria-pressed','true');checks++;
+      check(spendRequests===0,'Keyboard selection spends nothing');
       const rid=mode==='simulated'?'r29':'r30';
       await page.getByTestId('manage-recruit-'+rid).click();
-      await expect(page.getByTestId('manage-recruit-'+rid)).toHaveAttribute('aria-expanded','true');checks++;
-      const row=page.getByTestId('card-recruit-'+rid);
+      await expect(page.getByTestId('card-recruit-'+rid)).toHaveClass(/c9-board-selected/);checks++;
+      const row=page.getByRole('complementary',{name:'Selected prospect'});
       const targetResponse=page.waitForResponse(r=>r.url().endsWith('/'+rid+'/target')&&r.request().method()==='POST');
       await row.getByTestId('button-target-'+rid).click();check((await targetResponse).ok(),'Target persisted');
       const before=(await context.request.get(api+'/recruiting')).json();
@@ -112,22 +125,27 @@ try {
       await page.getByTestId('manage-recruit-r25').click();await page.getByTestId('checkbox-compare-r25').click();
       await page.getByTestId('manage-recruit-r26').click();await page.getByTestId('checkbox-compare-r26').click();
       await page.getByTestId('inspect-recruit-'+rid).click();
-      const modal=page.getByRole('dialog');await expect(modal).toBeVisible();
+      const modal=page.getByRole('complementary',{name:'Selected prospect'});await expect(modal).toBeVisible();
+      await page.route('**/'+rid+'/scout',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic scouting interruption'})}),{times:1});
+      await page.getByTestId('button-scout-'+rid).click();
+      await expect(page.getByTestId('action-result-modal')).toHaveAttribute('role','alert');checks++;
+      await expect(page.getByTestId('inspect-recruit-'+rid)).toHaveAttribute('aria-pressed','true');checks++;
+      check((await (await context.request.get(api+'/recruiting')).json()).remainingScoutPoints===beforeData.remainingScoutPoints,'Failed scouting keeps budget');
       const scoutResponse=page.waitForResponse(r=>r.url().endsWith('/'+rid+'/scout')&&r.request().method()==='POST');
-      await page.getByTestId('button-scout-modal').click();check((await scoutResponse).ok(),'Scout saved');
-      await expect(page.getByTestId('button-scout-modal')).toBeEnabled();
+      await page.getByTestId('button-scout-'+rid).click();check((await scoutResponse).ok(),'Scout saved');
+      await expect(page.getByTestId('button-scout-'+rid)).toBeEnabled();
       const afterData=await (await context.request.get(api+'/recruiting')).json();
       check(afterData.remainingScoutPoints===beforeData.remainingScoutPoints-1,'One scout point spent');
       const knowledge=afterData.recruits.find((r:any)=>r.id===rid).interest.scoutPercentage;
       check(knowledge>0,'Scouting changes knowledge');
       await expect(modal).toContainText(knowledge+'%');checks++;
-      await page.keyboard.press('Escape');await expect(modal).toHaveCount(0);
+      await expect(page.getByRole('dialog')).toHaveCount(0);checks++;
       await page.getByTestId('button-open-compare').click();await expect(page.getByTestId('compare-card-'+rid)).toContainText('Scouted: '+knowledge+'%');checks++;
-      await page.setViewportSize({width:390,height:1000});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Comparison fits 390');
+      await page.setViewportSize({width:1280,height:1000});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Comparison fits PC window');
       check((await page.getByTestId('compare-modal').boundingBox())!.height<=900,'Compare dialog vertically bounded');
       await page.getByTestId('compare-card-r26').scrollIntoViewIfNeeded();await expect(page.getByTestId('compare-card-r26')).toBeInViewport();checks++;
       await page.getByTestId('button-close-compare').click();
-      await expect(page.getByTestId('compare-modal')).toHaveCount(0);check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Three-name compare tray fits 390');await page.setViewportSize({width:1440,height:1000});
+      await expect(page.getByTestId('compare-modal')).toHaveCount(0);check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Three-name compare tray fits PC window');await page.setViewportSize({width:1440,height:1000});
       await row.getByTestId('button-notes-'+rid).click();
       await page.getByTestId('textarea-notes').fill('Keep this scouting note '+mode);
       await page.route('**/'+rid+'/notes',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic notes interruption'})}),{times:1});
@@ -138,7 +156,7 @@ try {
       await page.reload();await page.getByTestId('input-search-recruits').fill(mode==='simulated'?'Prospect29':'Prospect30');
       await expect(page.locator('.c9-recruit-summary')).toHaveCount(1);checks++;
       await expect(page.getByTestId('card-recruit-'+rid)).toContainText(knowledge+'% scouted');checks++;
-      for(const width of [1440,768,390]) {await page.setViewportSize({width,height:1000});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Recruit ledger fits '+width);}
+      for(const [width,height] of [[1280,720],[1366,768],[1920,1080],[2560,1440],[3440,1440]]) {await page.setViewportSize({width,height});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Recruit board fits '+width);}
       check(errors.length===0,'Recruit runtime errors: '+errors.join(';'));
       await page.close();
     } finally {await context.close();}

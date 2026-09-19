@@ -34,3 +34,54 @@
   .c9-recruit-manage { grid-column:1 / -1; }
   .c9-recruit-list>div>div { padding:12px; }
 }
+/* PC scouting room: a stable prospect ledger and separately scrolling dossier. */
+.c9-scouting-scene { display:grid;grid-template-columns:minmax(0, 1.65fr) minmax(360px,1fr);gap:20px;align-items:start; }
+.c9-scouting-scene .c9-recruit-list { display:block;max-height:calc(100vh - 350px);min-height:260px;overflow-y:auto;scrollbar-width:none; }
+.c9-scouting-scene .c9-recruit-list::-webkit-scrollbar,.c9-prospect-content::-webkit-scrollbar {display:none;}
+.c9-scouting-scene .c9-recruit-list>div>div {padding:6px 10px;border-radius:0;border-width:0 0 1px;}
+.c9-scouting-scene .c9-recruit-summary {grid-template-columns:minmax(150px,1.4fr) minmax(90px,1fr) minmax(95px,1fr) 46px;gap:8px;}
+.c9-scouting-scene .c9-recruit-summary strong {font-size:12px;}
+.c9-scouting-scene .c9-recruit-summary small {font-size:10px;margin-top:2px;}
+.c9-scouting-scene .c9-recruit-manage {border:0;padding:0;font-size:10px;min-height:32px;}
+.c9-scouting-scene .c9-board-selected {background:#ece3ca;color:#172b21;}
+.c9-scouting-scene .c9-board-selected small,.c9-scouting-scene .c9-board-selected .c9-ledger-label,.c9-scouting-scene .c9-board-selected button {color:#385340;}
+.c9-prospect-panel {border-top:3px solid #cbb171;background:#172d23;min-width:0;}
+.c9-prospect-heading {padding:10px 14px;font-size:10px;letter-spacing:.12em;color:#e8d299;border-bottom:1px solid #cbb17140;}
+.c9-prospect-content {max-height:calc(100vh - 385px);min-height:220px;overflow-y:auto;scrollbar-width:none;padding:14px;}
+.c9-prospect-content .c9-recruit-tray {margin:0;padding:0;border:0;}
+.c9-prospect-content .c9-recruit-tray>div:first-of-type {display:flex;flex-direction:column;align-items:stretch;}
+.c9-prospect-content [data-testid=player-portrait] {width:80px;height:80px;}
+.c9-prospect-content .c9-recruit-tray>div:first-of-type>div:first-child>.w-12 {width:80px;height:80px;}
+.c9-recruiting-workspace>header .container {padding-top:8px;padding-bottom:8px;max-width:none;}
+.c9-recruiting-workspace>header nav[aria-label=breadcrumb] {display:none;}
+.c9-recruiting-workspace>header .mb-4 {margin-bottom:6px;}
+.c9-recruiting-workspace>main {max-width:none;padding-top:10px;}
+.c9-recruiting-workspace .c9-resource-strip {padding-top:6px;}
+.c9-recruiting-workspace .c9-ledger-heading {margin:8px 0;}
+.c9-recruiting-workspace .c9-search-tools {margin-bottom:8px;padding:6px 10px;}
+.c9-recruiting-workspace .c9-recruit-pagination {margin:8px 0;}
+.c9-prospect-content button:focus-visible,.c9-prospect-content:focus-visible,.c9-recruit-list:focus-visible {outline:2px solid #e1c886;outline-offset:-2px;}
+@media(max-width:1000px){.c9-scouting-scene{grid-template-columns:minmax(0,1fr) 340px;gap:12px;}.c9-scouting-scene .c9-recruit-summary{grid-template-columns:minmax(130px,1fr) 90px 90px;}.c9-scouting-scene .c9-recruit-manage{display:none;}}
+.c9-prospect-costs {font-size:11px;color:#e1c886;border-bottom:1px solid #cbb17140;padding-bottom:9px;margin-bottom:10px;line-height:1.5;}
+.c9-scouting-scene .c9-recruit-list {height:100%;max-height:100%;min-height:0;}
+.c9-prospect-panel {height:100%;display:flex;flex-direction:column;}
+.c9-prospect-content {flex:1;min-height:0;max-height:none;}
+.c9-scouting-scene .c9-ledger-label {display:none;}
+.c9-scouting-scene .c9-recruit-identity {min-height:40px;}
+.c9-recruiting-workspace .c9-search-tools>.space-y-4 {grid-template-columns:minmax(180px,1fr) auto auto;align-items:center;}
+.c9-recruiting-workspace .c9-results-count {grid-column:auto;}
+.c9-recruiting-workspace .c9-search-tools input {height:32px;min-height:32px;}
+.c9-recruiting-workspace .c9-recruit-filters>summary {min-height:32px;padding:6px 0;}
+.c9-recruiting-workspace .c9-recruit-filters {margin-bottom:0;}
+.c9-recruiting-workspace .c9-resource-strip>div {background:none;border-width:0 0 0 1px;border-radius:0;padding:3px 8px;}
+.c9-prospect-content .c9-prospect-actions {gap:8px;}
+.c9-prospect-content .c9-prospect-actions>.w-36 {display:none;}
+.c9-prospect-content .c9-prospect-actions button {min-height:30px;padding:4px 8px;}
+.c9-prospect-content .c9-recruit-tray>div:first-of-type {gap:8px;}
+.c9-scouting-scene {grid-template-rows:minmax(0,1fr);min-height:0;}
+.c9-prospect-panel {min-height:0;}
+.c9-recruiting-workspace .c9-recruit-intel {margin-bottom:0;}
+.c9-recruiting-workspace .c9-recruit-intel>summary {min-height:28px;padding:5px 0;font-size:11px;}
+.c9-recruiting-workspace .c9-recruit-pagination button {min-height:30px;height:30px;}
+@media(max-height:900px){.c9-prospect-content .c9-prospect-actions{order:-1;}.c9-prospect-costs{font-size:10px;padding-bottom:5px;margin-bottom:6px;}.c9-prospect-content{padding:10px;}}
+.varsity-main .c9-recruiting-workspace {min-height:0;}
