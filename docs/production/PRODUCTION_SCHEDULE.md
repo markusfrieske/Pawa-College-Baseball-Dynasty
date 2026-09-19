@@ -120,3 +120,7 @@ CommandCenter owns planning, review and lightweight source work. BuildLab should
 Every actual handoff goes through the Cross-Device Command Queue and links this Git artifact plus the selected work packet. Handoffs must identify branch, exact starting commit, active writer, acceptance evidence and return conditions. Pull before editing; stop one writer before another takes ownership. No cross-device handoff is dispatched by this schedule.
 
 Create small commits on this branch and review them by completed outcome. Do not force-push, merge to main or deploy merely because a target date arrived. Rebaseline the schedule weekly with evidence and preserve scope changes in this document.
+
+## Approved cel portrait integration — September 18
+
+[W12 batch 04](W12_BATCH_04.md) adds persistent optional portrait IDs, commissioner selection, shared rendered views, team-independent face identity and validated conversion/import handling for the approved library. W12/UX-06 remain implementing: PC-frame migration, automatic new-class assignment, historical portrait snapshots and full lifecycle/Steam/enjoyment gates are not complete. Scheduled work remains paused.

@@ -339,6 +339,8 @@ export async function finalizeDeparturesInternal(leagueId: string, league: any) 
           prestigePriority: "Extremely Important",
           facilitiesPriority: "Somewhat",
           originPrestige: allTeamsForTransfers.find(t => t.name === teamName)?.prestige ?? null,
+          portraitId: player.portraitId ?? null,
+
           skinTone: player.skinTone || "light",
           hairColor: player.hairColor || "brown",
           hairStyle: player.hairStyle || "short",

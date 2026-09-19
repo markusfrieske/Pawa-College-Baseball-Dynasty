@@ -23,3 +23,5 @@ The original four-player comparison sheet remains historical art reference with 
 The canonical generation prompt and all 30 individual specifications are in `docs/art-direction/pc-sports/face-generation.json`. Method: one built-in image-generation call per asset, using the approved four-player sheet as style reference. No reference-game art was used.
 
 Preview: run `node scripts/preview-player-library.mjs`; open the loopback URL it prints. The server is read-only and uses no game database. Scheduled development remains paused.
+
+Integration update: Frisk approved this library. Shared game avatars now accept persisted optional IDs, and the commissioner roster editor can assign or clear them. See `docs/production/W12_BATCH_04.md` for migration 0055, runtime evidence and remaining lifecycle limits. Legacy null identities still use the prior appearance renderer; no automatic remap occurred.

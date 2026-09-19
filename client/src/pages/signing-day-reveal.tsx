@@ -550,7 +550,7 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
 
       {/* Avatar */}
       <div style={{ height: "80px", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)", overflow: "hidden" }}>
-        <PlayerAvatar
+        <PlayerAvatar portraitId={recruit.portraitId}
           skinTone={(recruit as unknown as Record<string, string>).skinTone ?? "medium"}
           playerId={recruit.id}
           size="lg"

@@ -1,3 +1,4 @@
+import { portraitIdSchema } from "@shared/portrait-identity";
 /**
  * Departures, roster management, and player lifecycle routes.
  *
@@ -652,10 +653,13 @@ export function registerDeparturesRoutes(app: Express): void {
         return res.status(400).json({ message: "Updates must be an array" });
       }
 
+      if (updates.some(update => !update?.changes || !portraitIdSchema.safeParse(update.changes.portraitId).success)) {
+        return res.status(400).json({ message: "Invalid portrait identity" });
+      }
       const allowedFields = [
         'firstName', 'lastName', 'position', 'hometown', 'homeState',
         'batHand', 'throwHand', 'eligibility',
-        'skinTone', 'hairColor', 'hairStyle', 'headwear',
+        'portraitId', 'skinTone', 'hairColor', 'hairStyle', 'headwear',
         'overall', 'starRating',
         'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
@@ -687,8 +691,10 @@ export function registerDeparturesRoutes(app: Express): void {
           }
           // Recalculate OVR using the new (merged) position — converted players get
           // the correct positional attribute weights applied immediately.
-          sanitizedData['overall'] = calculateOVR(mergedPlayer as any);
-          sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall'] as number);
+          if (!(Object.keys(sanitizedData).length === 1 && 'portraitId' in sanitizedData)) {
+            sanitizedData['overall'] = calculateOVR(mergedPlayer as any);
+            sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall'] as number);
+          }
           const updated = await storage.updatePlayer(update.id, sanitizedData);
           results.push(updated);
 

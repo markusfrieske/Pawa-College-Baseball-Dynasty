@@ -80,6 +80,8 @@ export interface RevealRecruit {
   scoutingOrder?: string[];
   scoutPct?: number;
   isFullyRevealed?: boolean;
+  portraitId?: string | null;
+
   skinTone?: string;
   recruitingResult?: {
     finalInterest: number | null;
@@ -194,7 +196,7 @@ function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryC
 
         {/* Avatar centered */}
         <div className="relative z-10 flex-1 flex items-center justify-center">
-          <PlayerAvatar
+          <PlayerAvatar portraitId={recruit.portraitId}
             skinTone={recruit.skinTone ?? "medium"}
             playerId={recruit.id}
             size="lg"

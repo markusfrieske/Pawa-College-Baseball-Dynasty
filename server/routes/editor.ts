@@ -1,3 +1,4 @@
+import { portraitIdSchema } from "@shared/portrait-identity";
 /**
  * Commissioner League Editor API
  *
@@ -63,6 +64,7 @@ const TEAM_ALL_SCHEMA = z.object({
 }).strict();
 
 const PLAYER_IDENTITY_SCHEMA = z.object({
+  portraitId: portraitIdSchema,
   firstName: z.string().min(1).max(50).optional(),
   lastName: z.string().min(1).max(50).optional(),
   jerseyNumber: z.number().int().min(0).max(99).optional(),
@@ -322,6 +324,7 @@ export function registerEditorRoutes(app: Express): void {
           pitchPCB: r.pitch_pcb,
           abilities: r.abilities ?? [],
           editorVersion: r.editor_version ?? 1,
+          portraitId: r.portrait_id ?? null,
           skinTone: r.skin_tone,
           hairColor: r.hair_color,
           hairStyle: r.hair_style,
@@ -540,8 +543,9 @@ export function registerEditorRoutes(app: Express): void {
       for (const [key, val] of Object.entries(validChanges)) {
         merged[toSnake(key)] = val;
       }
-      const newOvr = calculateOVR(merged as any);
-      const newStar = getStarRatingFromOVR(newOvr);
+      const portraitOnly = Object.keys(validChanges).length === 1 && "portraitId" in validChanges;
+      const newOvr = portraitOnly ? player.overall : calculateOVR(merged as any);
+      const newStar = portraitOnly ? player.star_rating : getStarRatingFromOVR(newOvr);
 
       // Apply changes + OVR + version bump
       const { setClause, values } = buildSetClause({ ...validChanges, overall: newOvr, starRating: newStar });
@@ -740,8 +744,9 @@ export function registerEditorRoutes(app: Express): void {
         [batch.entity_id],
       );
 
-      // Recompute OVR if reversing a player batch
-      if (batch.entity_type === "player") {
+      // Reversing a cosmetic portrait edit must not change competitive state.
+      const portraitOnlyReversal = changeRows.length > 0 && changeRows.every(change => change.field_name === "portraitId");
+      if (batch.entity_type === "player" && !portraitOnlyReversal) {
         const { rows: pRows } = await client.query(`SELECT * FROM players WHERE id = $1`, [batch.entity_id]);
         if (pRows.length > 0) {
           const p = pRows[0];

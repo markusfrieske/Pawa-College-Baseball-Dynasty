@@ -54,7 +54,7 @@ function PortalPlayerCard({
     <RetroCard className="h-fit">
       <RetroCardContent className="p-3 space-y-3">
         <div className="flex items-start gap-3">
-          <PlayerPortrait
+          <PlayerPortrait portraitId={player.portraitId}
             skinTone={player.skinTone}
             hairColor={player.hairColor}
             hairStyle={player.hairStyle}

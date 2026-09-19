@@ -107,6 +107,8 @@ export function convertRecruitToPlayer(
     workEthicScore: recruit.workEthicScore ?? 70,
     coachability: recruit.coachability ?? 70,
     // Appearance
+    portraitId: recruit.portraitId ?? null,
+
     skinTone: recruit.skinTone || "light",
     hairColor: recruit.hairColor || "brown",
     hairStyle: recruit.hairStyle || "short",
@@ -186,6 +188,8 @@ export function convertWalkonToPlayer(
     heater: walkon.heater || 50,
     agile: walkon.agile || 50,
     abilities: walkon.abilities || [],
+    portraitId: walkon.portraitId ?? null,
+
     skinTone: walkon.skinTone || "light",
     hairColor: walkon.hairColor || "brown",
     hairStyle: walkon.hairStyle || "short",

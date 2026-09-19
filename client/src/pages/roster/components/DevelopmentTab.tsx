@@ -85,7 +85,7 @@ export function DevelopmentTab({
                       className="flex items-center gap-2 px-3 py-2 rounded-lg bg-green-900/20 border border-green-700/40 hover:bg-green-900/35 transition-colors"
                       data-testid={`card-breakout-${p.id}`}
                     >
-                      <PlayerPortrait
+                      <PlayerPortrait portraitId={p.portraitId}
                         skinTone={p.skinTone || "light"}
                         hairColor={p.hairColor || "brown"}
                         hairStyle={p.hairStyle || "short"}
@@ -130,7 +130,7 @@ export function DevelopmentTab({
                 className="w-full text-left px-4 py-3 hover:bg-card/50 transition-colors flex items-center gap-3"
                 data-testid={`row-dev-player-${p.id}`}
               >
-                <PlayerPortrait
+                <PlayerPortrait portraitId={p.portraitId}
                   skinTone={p.skinTone || "light"}
                   hairColor={p.hairColor || "brown"}
                   hairStyle={p.hairStyle || "short"}

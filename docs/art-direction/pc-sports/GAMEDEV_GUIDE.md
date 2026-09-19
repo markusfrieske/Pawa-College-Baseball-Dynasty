@@ -64,3 +64,7 @@ The review atlas provides 23 bespoke visual composition studies plus 57 individu
 Player art refinement: read [the cel identity follow-up](PLAYER_ART_REFINEMENT.md) for Frisk's request to bring faces and cards back toward the original approved illustration. The four illustrated examples are a review target, not a complete modular kit or permission to overwrite saved appearances.
 
 Frisk approved the refined cel style and requested 30 more varied faces with variable team colors. Use the versioned library in `client/public/art/players/v1/` and `IllustratedPlayerPortrait` for explicitly assigned illustrated identities. Read its README before integration. Never display magenta-key source PNGs directly, recolor the entire face, or derive a player's identity from their team. Source portraits are fixed illustrations; arbitrary trait editing and existing-save migration are not implemented.
+
+## Approved portrait library integration
+
+Frisk approved the 30 additional cel faces and variable uniform colors. [W12 batch 04](../../production/W12_BATCH_04.md) integrates explicit portrait IDs into shared game views and commissioner roster editing. Preserve legacy appearances unless an explicit assignment is saved. Automatic new-class allocation and historical portrait snapshots remain separate work; approval of the art does not approve the pending arrival cinematic.

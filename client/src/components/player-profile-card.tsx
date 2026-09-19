@@ -86,6 +86,8 @@ export interface Player {
   throwHand?: string;
   abilities?: string[] | null;
   storyLockedAbilities?: string[] | null;
+  portraitId?: string | null;
+
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;
@@ -411,7 +413,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             </span>
           )}
           <div className="flex items-center gap-3">
-            <PlayerPortrait
+            <PlayerPortrait portraitId={player.portraitId}
               skinTone={player.skinTone || "light"}
               hairColor={player.hairColor || "brown"}
               hairStyle={player.hairStyle || "short"}

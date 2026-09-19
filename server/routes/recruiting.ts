@@ -1999,6 +1999,8 @@ export function registerRecruitingRoutes(app: Express): void {
             poise: r.poise,
             heater: r.heater,
             agile: r.agile,
+            portraitId: r.portraitId ?? null,
+
             skinTone: r.skinTone,
             hairColor: r.hairColor,
             hairStyle: r.hairStyle,

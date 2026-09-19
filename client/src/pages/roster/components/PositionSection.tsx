@@ -48,7 +48,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
             data-testid={`card-player-mobile-${player.id}`}
           >
             <div className="flex items-center gap-2">
-              <PlayerPortrait
+              <PlayerPortrait portraitId={player.portraitId}
                 skinTone={player.skinTone || "light"}
                 hairColor={player.hairColor || "brown"}
                 hairStyle={player.hairStyle || "short"}
@@ -160,7 +160,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                       className="font-medium min-w-0 min-h-11 text-left hover:text-gold transition-colors cursor-pointer flex items-center gap-2"
                       data-testid={`link-player-${player.id}`}
                     >
-                      <PlayerPortrait
+                      <PlayerPortrait portraitId={player.portraitId}
                         skinTone={player.skinTone || "light"}
                         hairColor={player.hairColor || "brown"}
                         hairStyle={player.hairStyle || "short"}

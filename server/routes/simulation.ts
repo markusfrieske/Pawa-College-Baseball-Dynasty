@@ -1914,6 +1914,8 @@ async function generateWalkonPool(leagueId: string) {
       potential: recruit.potential ?? null,
       isGenerated: false,
       sourceRecruitId: recruit.id,
+      portraitId: recruit.portraitId ?? null,
+
       skinTone: recruit.skinTone || "light",
       hairColor: recruit.hairColor || "brown",
       hairStyle: recruit.hairStyle || "short",
@@ -3186,6 +3188,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
             abilities: player.abilities || [],
             potential: player.potential ?? null,
             isGenerated: false,
+            portraitId: player.portraitId ?? null,
+
             skinTone: player.skinTone || "light",
             hairColor: player.hairColor || "brown",
             hairStyle: player.hairStyle || "short",
@@ -3295,6 +3299,8 @@ async function finalizeSigningDay(leagueId: string, completedSeason: number) {
         tools: recruit.tools || [],
         workEthicScore: recruit.workEthicScore ?? 70,
         coachability: recruit.coachability ?? 70,
+        portraitId: recruit.portraitId ?? null,
+
         skinTone: recruit.skinTone || "light",
         hairColor: recruit.hairColor || "brown",
         hairStyle: recruit.hairStyle || "short",
@@ -3683,6 +3689,8 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number, s
         tools: (walkon as any).tools || [],
         workEthicScore: (walkon as any).workEthicScore ?? 70,
         coachability: (walkon as any).coachability ?? 70,
+        portraitId: walkon.portraitId ?? null,
+
         skinTone: walkon.skinTone || "light",
         hairColor: walkon.hairColor || "brown",
         hairStyle: walkon.hairStyle || "short",
@@ -3896,6 +3904,8 @@ async function finalizeWalkonsPhase(leagueId: string, completedSeason: number, s
         heater: walkon.heater ?? 50,
         agile: walkon.agile ?? 50,
         abilities: walkon.abilities || [],
+        portraitId: walkon.portraitId ?? null,
+
         skinTone: walkon.skinTone || "light",
         hairColor: walkon.hairColor || "brown",
         hairStyle: walkon.hairStyle || "short",
@@ -6060,6 +6070,8 @@ export function registerSimulationRoutes(app: Express): void {
             clutch: p.clutch || 50,
             stealing: p.stealing || 50,
             batHand: p.batHand || "R",
+            portraitId: p.portraitId ?? null,
+
             skinTone: p.skinTone || "light",
             hairColor: p.hairColor || "brown",
             hairStyle: p.hairStyle || "short",
@@ -6082,6 +6094,7 @@ export function registerSimulationRoutes(app: Express): void {
             order: lineup.length + 1,
             contact: 50, power: 40, speed: 50, fielding: 50,
             vsLHP: 50, clutch: 50, stealing: 40, batHand: "R" as string,
+            portraitId: null,
             skinTone: "light",
             hairColor: "brown",
             hairStyle: "short",
@@ -6106,6 +6119,7 @@ export function registerSimulationRoutes(app: Express): void {
         throwHand: string;
         wRISP: number;
         pitchingRole: string;
+        portraitId: string | null;
         skinTone: string;
         hairColor: string;
         hairStyle: string;
@@ -6122,6 +6136,8 @@ export function registerSimulationRoutes(app: Express): void {
           throwHand: p.throwHand || "R",
           wRISP: p.wRISP || 50,
           pitchingRole: p.pitchingRole || "",
+          portraitId: p.portraitId ?? null,
+
           skinTone: p.skinTone || "light",
           hairColor: p.hairColor || "brown",
           hairStyle: p.hairStyle || "short",

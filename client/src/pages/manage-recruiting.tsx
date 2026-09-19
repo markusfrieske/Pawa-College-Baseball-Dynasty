@@ -18,6 +18,8 @@ import { RecruitingWizard } from "@/components/recruiting-wizard";
 import { ShareClassDialog } from "@/components/share-class-dialog";
 
 interface PlayerAppearance {
+  portraitId?: string | null;
+
   skinTone: string;
   hairColor: string;
   hairStyle: string;
@@ -1005,7 +1007,7 @@ export default function ManageRecruitingPage() {
                               <td className="px-2 py-1 text-muted-foreground text-xs">{idx + 1}</td>
                               <td className="px-2 py-1">
                                 <div className="flex items-center gap-2">
-                                  <PlayerPortrait
+                                  <PlayerPortrait portraitId={recruit.appearance?.portraitId}
                                     skinTone={recruit.appearance?.skinTone || "light"}
                                     hairColor={recruit.appearance?.hairColor || "brown"}
                                     hairStyle={recruit.appearance?.hairStyle || "short"}
@@ -1271,7 +1273,7 @@ function RecruitEditPanel({
         <div className="space-y-2">
           <p className="text-xs font-semibold text-gold mb-1">RECRUIT AVATAR</p>
           <div className="flex items-center gap-4">
-            <PlayerPortrait
+            <PlayerPortrait portraitId={appearance.portraitId}
               skinTone={appearance.skinTone}
               hairColor={appearance.hairColor}
               hairStyle={appearance.hairStyle}

@@ -1,6 +1,8 @@
+import { IllustratedPlayerPortrait } from "@/components/ui/illustrated-player-portrait";
 import { CelCharacter } from "./cel-character";
 
 interface PlayerPortraitProps {
+  portraitId?: string | null;
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;
@@ -25,6 +27,7 @@ function hashStr(s: string): number {
 }
 
 export function PlayerPortrait({ 
+  portraitId,
   skinTone = "light",
   hairColor = "brown",
   hairStyle = "short",
@@ -57,11 +60,11 @@ export function PlayerPortrait({
 
   return (
     <div className={`relative overflow-hidden rounded-lg ${className}`} data-testid="player-portrait">
-      <CelCharacter
+      {portraitId ? <IllustratedPlayerPortrait portraitId={portraitId} teamColor={isRecruit ? "#707983" : jerseyColor} alt="Player portrait" className="h-full w-full" /> : <CelCharacter
         skinTone={skinTone} hairColor={hairColor} hairStyle={normHairStyle} facialHair={facialHair}
         eyeStyle={resolvedEyeStyle} eyebrowStyle={resolvedEyebrowStyle} mouthStyle={resolvedMouthStyle}
         eyeBlack={resolvedEyeBlack} headwear={headwear} jerseyColor={jerseyColor} isRecruit={isRecruit}
-      />
+      />}
     </div>
   );
 }

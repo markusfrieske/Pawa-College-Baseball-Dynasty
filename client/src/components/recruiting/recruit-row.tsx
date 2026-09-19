@@ -324,7 +324,7 @@ function RecruitRow({
             </button>
           )}
           <div className="w-12 h-12 relative flex-shrink-0">
-            <PlayerPortrait 
+            <PlayerPortrait portraitId={recruit.portraitId}
               skinTone={recruit.skinTone || "light"}
               hairColor={recruit.hairColor || "brown"}
               hairStyle={recruit.hairStyle || "short"}

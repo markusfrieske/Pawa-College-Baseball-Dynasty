@@ -17,6 +17,7 @@
  */
 
 import { calculateOVR, getStarRatingFromOVR } from "../../shared/abilities";
+import { portraitIdSchema } from "../../shared/portrait-identity";
 
 // ── Error type ──────────────────────────────────────────────────────────────
 
@@ -165,12 +166,18 @@ export function validateAndNormalizeRecruitingClass(
     }
 
     // ── Build clean output object — strip unsafe fields first ──
+    const portrait = portraitIdSchema.safeParse(src.portraitId);
+    if (!portrait.success) {
+      warnings.push(`Row ${i + 1}: invalid portrait identity — skipped.`);
+      continue;
+    }
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(src)) {
       if (!STRIP_FIELDS.has(k)) out[k] = v;
     }
 
     // ── Normalized required strings ──
+    out.portraitId = portrait.data ?? null;
     out.firstName = firstName;
     out.lastName  = lastName;
     out.position  = rawPos;

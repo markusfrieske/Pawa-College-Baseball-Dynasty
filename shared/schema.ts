@@ -1,3 +1,4 @@
+import { portraitIdSchema } from "./portrait-identity";
 import { sql, relations } from "drizzle-orm";
 import { pgTable, text, varchar, integer, boolean, timestamp, json, jsonb, real, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -398,6 +399,7 @@ export const players = pgTable("players", {
   nilOffered: integer("nil_offered"),
   signingOvr: integer("signing_ovr"),
   transferReason: text("transfer_reason"),
+  portraitId: text("portrait_id"),
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
@@ -433,7 +435,7 @@ export const players = pgTable("players", {
   index("idx_players_team_id_overall").on(t.teamId, t.overall),
 ]);
 
-export const insertPlayerSchema = createInsertSchema(players).pick({
+export const insertPlayerSchema = createInsertSchema(players, { portraitId: portraitIdSchema }).pick({
   teamId: true,
   firstName: true,
   lastName: true,
@@ -502,6 +504,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   draftRound: true,
   nilOffered: true,
   transferReason: true,
+  portraitId: true,
   skinTone: true,
   hairColor: true,
   hairStyle: true,
@@ -619,6 +622,7 @@ export const recruits = pgTable("recruits", {
   gemBustRevealed: boolean("gem_bust_revealed").notNull().default(false),
   sourcePlayerId: varchar("source_player_id"),
   fromTeamName: text("from_team_name"),
+  portraitId: text("portrait_id"),
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
@@ -647,7 +651,7 @@ export const recruits = pgTable("recruits", {
   index("idx_recruits_signed_team_id").on(t.signedTeamId),
 ]);
 
-export const insertRecruitSchema = createInsertSchema(recruits).pick({
+export const insertRecruitSchema = createInsertSchema(recruits, { portraitId: portraitIdSchema }).pick({
   leagueId: true,
   firstName: true,
   lastName: true,
@@ -729,6 +733,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   gemBustRevealed: true,
   sourcePlayerId: true,
   fromTeamName: true,
+  portraitId: true,
   skinTone: true,
   hairColor: true,
   hairStyle: true,
@@ -797,6 +802,7 @@ export const walkonPool = pgTable("walkon_pool", {
   signedTeamName: text("signed_team_name"),
   isGenerated: boolean("is_generated").notNull().default(false),
   sourceRecruitId: varchar("source_recruit_id"),
+  portraitId: text("portrait_id"),
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
@@ -806,7 +812,7 @@ export const walkonPool = pgTable("walkon_pool", {
   awardedPrice: integer("awarded_price"),
 });
 
-export const insertWalkonSchema = createInsertSchema(walkonPool).pick({
+export const insertWalkonSchema = createInsertSchema(walkonPool, { portraitId: portraitIdSchema }).pick({
   leagueId: true,
   firstName: true,
   lastName: true,
@@ -847,6 +853,7 @@ export const insertWalkonSchema = createInsertSchema(walkonPool).pick({
   signedTeamName: true,
   isGenerated: true,
   sourceRecruitId: true,
+  portraitId: true,
   skinTone: true,
   hairColor: true,
   hairStyle: true,

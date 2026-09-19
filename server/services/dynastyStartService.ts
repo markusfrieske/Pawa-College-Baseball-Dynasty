@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { savedPortraitId } from "@shared/portrait-identity";
 import { pool } from "../db";
 import { storage } from "../storage";
 import {
@@ -208,8 +209,20 @@ async function checkpoint(
 }
 
 async function applySavedRosters(input: DynastyStartInput): Promise<void> {
+  // Validate every requested template's portrait IDs before any roster mutation.
+  // Reuse the fetched records so validation and application see the same snapshot.
+  const savedTemplates = new Map<string, NonNullable<Awaited<ReturnType<typeof storage.getSavedRoster>>>>();
+  for (const id of new Set([input.rosterId, ...Object.values(input.perTeamRosters ?? {})].filter((id): id is string => !!id))) {
+    const saved = await storage.getSavedRoster(id);
+    if (!saved || saved.userId !== input.userId) throw new DynastyStartConflictError('Saved roster not found or not authorized');
+    const data = saved.rosterData as any;
+    const rows = Array.isArray(data) ? data : (Array.isArray(data?.teams) ? data.teams.flatMap((t: any) => Array.isArray(t.players) ? t.players : []) : []);
+    try { for (const row of rows) savedPortraitId(row); }
+    catch { throw new DynastyStartConflictError('Saved roster contains an invalid or conflicting portrait identity'); }
+    savedTemplates.set(id, saved);
+  }
   if (input.rosterId) {
-    const savedRoster = await storage.getSavedRoster(input.rosterId);
+    const savedRoster = savedTemplates.get(input.rosterId);
     if (!savedRoster || savedRoster.userId !== input.userId) {
       throw new DynastyStartConflictError("Saved roster not found or not authorized");
     }
@@ -221,7 +234,7 @@ async function applySavedRosters(input: DynastyStartInput): Promise<void> {
         if (!matchingTeam || !Array.isArray(teamData.players)) continue;
         await storage.deletePlayersByTeam(matchingTeam.id);
         for (const playerData of teamData.players) {
-          await storage.createPlayer({ ...playerData, teamId: matchingTeam.id, leagueId: input.leagueId } as any);
+          await storage.createPlayer({ ...playerData, portraitId: savedPortraitId(playerData) ?? null, teamId: matchingTeam.id, leagueId: input.leagueId } as any);
         }
       }
     }
@@ -237,7 +250,7 @@ async function applySavedRosters(input: DynastyStartInput): Promise<void> {
     const teams = await storage.getTeamsByLeague(input.leagueId);
     for (const [teamName, savedRosterId] of Object.entries(input.perTeamRosters)) {
       if (!savedRosterId) continue;
-      const savedRoster = await storage.getSavedRoster(savedRosterId);
+      const savedRoster = savedTemplates.get(savedRosterId);
       if (!savedRoster || savedRoster.userId !== input.userId) {
         throw new DynastyStartConflictError(`Saved roster for ${teamName} is not authorized`);
       }
@@ -252,6 +265,8 @@ async function applySavedRosters(input: DynastyStartInput): Promise<void> {
         );
         if (!existing) continue;
         const updates: Record<string, unknown> = {};
+        const portraitId = savedPortraitId(savedPlayer);
+        if (portraitId !== undefined) updates.portraitId = portraitId;
         for (const attr of numericAttrs) if (typeof savedPlayer[attr] === "number") updates[attr] = savedPlayer[attr];
         if (Array.isArray(savedPlayer.abilities)) updates.abilities = savedPlayer.abilities;
         if (Object.keys(updates).length > 0) await storage.updatePlayer(existing.id, updates as any);

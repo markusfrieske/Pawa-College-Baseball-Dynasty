@@ -1,3 +1,4 @@
+import { portraitIdSchema } from "@shared/portrait-identity";
 /**
  * Roster and player management routes.
  *
@@ -33,6 +34,7 @@ import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 
 /** Identity / structural fields — non-competitive (name, jersey, appearance, eligibility). */
 export const playerIdentityPatchSchema = z.object({
+  portraitId: portraitIdSchema,
   firstName:   z.string().min(1).max(50).optional(),
   lastName:    z.string().min(1).max(50).optional(),
   jerseyNumber: z.number().int().min(0).max(99).optional(),
@@ -282,8 +284,9 @@ export function registerRosterRoutes(app: Express): void {
       const mergedPlayer = { ...player, ...patchData };
       // Recalculate OVR using the new (merged) position — converted players get the
       // correct positional attribute weights applied immediately.
-      const recalcedOverall = calculateOVR(mergedPlayer);
-      const recalcedStar = getStarRatingFromOVR(recalcedOverall);
+      const portraitOnly = Object.keys(patchData).length === 1 && "portraitId" in patchData;
+      const recalcedOverall = portraitOnly ? player.overall : calculateOVR(mergedPlayer);
+      const recalcedStar = portraitOnly ? player.starRating : getStarRatingFromOVR(recalcedOverall);
       const positionChanged = patchData.position != null && patchData.position !== player.position;
       const shouldSetOriginal = positionChanged && !player.originalPosition;
       const updated = await storage.updatePlayer(req.params.playerId as string, {

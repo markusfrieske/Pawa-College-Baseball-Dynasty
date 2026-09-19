@@ -62,7 +62,7 @@ function PlayerMiniCard({ player, reason }: { player: Player; reason: "graduate"
 
   return (
     <div className="flex items-center gap-2 p-2 bg-[#1a2b1a] rounded border border-[#2d3d2d]">
-      <PlayerPortrait
+      <PlayerPortrait portraitId={player.portraitId}
         skinTone={player.skinTone}
         hairColor={player.hairColor}
         hairStyle={player.hairStyle}

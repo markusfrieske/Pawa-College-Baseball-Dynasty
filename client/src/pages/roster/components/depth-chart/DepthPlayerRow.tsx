@@ -64,7 +64,7 @@ export function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, 
           data-testid={`depth-drag-handle-${p.id}`}
         />
       )}
-      <PlayerPortrait
+      <PlayerPortrait portraitId={p.portraitId}
         skinTone={p.skinTone || "light"}
         hairColor={p.hairColor || "brown"}
         hairStyle={p.hairStyle || "short"}

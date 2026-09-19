@@ -1,7 +1,9 @@
+import { IllustratedPlayerPortrait } from "@/components/ui/illustrated-player-portrait";
 import { cn } from "@/lib/utils";
 import { CelCharacter } from "@/components/ui/cel-character";
 
 interface PlayerAvatarProps {
+  portraitId?: string | null;
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;
@@ -27,6 +29,7 @@ function hashStr(s: string): number {
 }
 
 export function PlayerAvatar({
+  portraitId,
   skinTone = "light",
   hairColor = "brown",
   hairStyle = "short",
@@ -65,11 +68,11 @@ export function PlayerAvatar({
 
   return (
     <div className={cn("relative overflow-hidden rounded-lg", sizes[size], className)}>
-      <CelCharacter
+      {portraitId ? <IllustratedPlayerPortrait portraitId={portraitId} teamColor={isRecruit ? "#707983" : jerseyColor} alt="Player portrait" className="h-full w-full" /> : <CelCharacter
         skinTone={skinTone} hairColor={hairColor} hairStyle={normHairStyle} facialHair={facialHair}
         eyeStyle={resolvedEyeStyle} eyebrowStyle={resolvedEyebrowStyle} mouthStyle={resolvedMouthStyle}
         eyeBlack={resolvedEyeBlack} headwear={headwear} jerseyColor={jerseyColor} isRecruit={isRecruit}
-      />
+      />}
     </div>
   );
 }

@@ -366,6 +366,7 @@ export default function EditRostersPage() {
                           {sortedPlayers.map((player, idx) => {
                             const isPitcher = player.position === "P";
                             const isChanged = !!changes[player.id];
+                            const currentPortraitId = changes[player.id] && "portraitId" in changes[player.id] ? changes[player.id].portraitId : player.portraitId;
                             const currentSkinTone = (changes[player.id]?.skinTone as string | undefined) ?? player.skinTone ?? "light";
                             const currentHairColor = (changes[player.id]?.hairColor as string | undefined) ?? player.hairColor ?? "brown";
                             const currentHairStyle = (changes[player.id]?.hairStyle as string | undefined) ?? player.hairStyle ?? "short";
@@ -383,7 +384,7 @@ export default function EditRostersPage() {
                                         title="Edit appearance"
                                         data-testid={`button-appearance-${player.id}`}
                                       >
-                                        <PlayerPortrait
+                                        <PlayerPortrait portraitId={currentPortraitId as string | null}
                                           skinTone={currentSkinTone}
                                           hairColor={currentHairColor}
                                           hairStyle={currentHairStyle}
@@ -395,7 +396,7 @@ export default function EditRostersPage() {
                                     <PopoverContent className="w-52 p-3 bg-background border-border" align="start" side="right">
                                       <div className="space-y-2">
                                         <div className="flex justify-center pb-1 border-b border-border">
-                                          <PlayerPortrait
+                                          <PlayerPortrait portraitId={currentPortraitId as string | null}
                                             skinTone={currentSkinTone}
                                             hairColor={currentHairColor}
                                             hairStyle={currentHairStyle}
@@ -404,6 +405,12 @@ export default function EditRostersPage() {
                                           />
                                         </div>
                                         <div className="space-y-0.5">
+                                          <label className="text-xs font-semibold text-gold" htmlFor={"portrait-"+player.id}>Illustrated portrait</label>
+                                          <select id={"portrait-"+player.id} aria-label={"Portrait for "+player.firstName+" "+player.lastName} value={(currentPortraitId as string) || "legacy"} onChange={e=>updatePlayer(player.id,"portraitId",e.target.value==="legacy"?null:e.target.value)} className="w-full bg-background border border-border p-1 text-xs">
+                                            <option value="legacy">Legacy appearance</option>
+                                            {Array.from({length:30},(_,i)=>{const id="c9-face-"+String(i+1).padStart(2,"0");return <option key={id} value={id}>Cel player {i+1}</option>})}
+                                          </select>
+                                          <p className="text-xs text-muted-foreground">Illustrated faces are fixed. Skin and hair controls below apply only to Legacy appearance.</p>
                                           <p className="text-xs font-semibold text-gold uppercase tracking-wide">Skin Tone</p>
                                           <Select value={currentSkinTone} onValueChange={(v) => updatePlayer(player.id, "skinTone", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-skintone-${player.id}`}>

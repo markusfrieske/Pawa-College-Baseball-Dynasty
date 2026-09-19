@@ -459,7 +459,7 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
                 {impactPlayers.map((player, idx) => (
                   <div key={player.id} className="flex items-center gap-3 p-2 bg-background/50 rounded">
                     <span className="text-gold font-bold w-6 text-center">#{idx + 1}</span>
-                    <PlayerAvatar 
+                    <PlayerAvatar portraitId={player.portraitId}
                       skinTone={player.skinTone || "medium"}
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}

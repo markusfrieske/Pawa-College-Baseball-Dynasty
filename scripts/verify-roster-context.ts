@@ -77,6 +77,33 @@ try {
   const address=server.address(); assert(address&&typeof address==="object");
   const origin=`http://127.0.0.1:${address.port}`;
   browser=await chromium.launch({channel:process.platform==="win32"?"msedge":undefined,headless:true});
+  {
+    const context=await browser.newContext({viewport:{width:1440,height:1000}});
+    await context.request.post(origin+'/__test/session',{data:{role:'commissioner'}});
+    const page=await context.newPage();await page.goto(origin+'/league/roster-context/edit-rosters');
+    await page.getByTestId('tab-team-commissioner-team').click();
+    await page.getByTestId('button-appearance-commissioner-player').click();
+    await page.locator('#portrait-commissioner-player').selectOption('c9-face-05');
+    await expect(page.locator('canvas[data-portrait-id="c9-face-05"]:visible').first()).toBeVisible();checks++;
+    await page.keyboard.press('Escape');
+    const saved=page.waitForResponse(r=>r.url().endsWith('/players/batch')&&r.request().method()==='PATCH');
+    await page.getByTestId('button-save').click();check((await saved).ok(),'Portrait saved through commissioner UI');
+    const unchanged=(await pool.query("SELECT overall,star_rating,power,grit FROM players WHERE id='commissioner-player'")).rows[0];
+    check(unchanged.overall===550&&unchanged.star_rating===4&&unchanged.power===0&&unchanged.grit===null,'Portrait-only UI save preserves rating and stats');
+    await pool.query("UPDATE teams SET primary_color='#bd2737' WHERE id='commissioner-team'");invalidateLeague('roster-context');
+    await page.reload();await page.getByTestId('tab-team-commissioner-team').click();await page.getByTestId('button-appearance-commissioner-player').click();
+    await expect(page.locator('canvas[data-portrait-id="c9-face-05"][data-team-color="#bd2737"]:visible').first()).toBeVisible();checks++;
+    await expect(page.locator('#portrait-commissioner-player')).toHaveValue('c9-face-05');checks++;
+    await page.locator('#portrait-commissioner-player').selectOption('legacy');await page.keyboard.press('Escape');
+    const cleared=page.waitForResponse(r=>r.url().endsWith('/players/batch')&&r.request().method()==='PATCH');await page.getByTestId('button-save').click();check((await cleared).ok(),'Legacy portrait restored through UI');
+    check((await pool.query("SELECT portrait_id FROM players WHERE id='commissioner-player'")).rows[0].portrait_id===null,'Null identity persisted');
+    const expectedVersion=(await pool.query("SELECT coalesce(editor_version,1) AS version FROM players WHERE id='commissioner-player'")).rows[0].version;
+    const edit=await context.request.patch(origin+'/api/leagues/roster-context/editor/players/commissioner-player',{data:{expectedVersion,changes:{portraitId:'c9-face-08'},reason:'Portrait identity test',idempotencyKey:randomUUID()}});
+    check(edit.status()===200,'Audited editor portrait assignment');const batch=await edit.json();
+    const reversed=await context.request.post(origin+'/api/leagues/roster-context/editor/batches/'+batch.batchId+'/reverse',{data:{reason:'Restore original portrait'}});check(reversed.status()===200,'Audited portrait reversal');
+    const restored=(await pool.query("SELECT portrait_id,overall,star_rating FROM players WHERE id='commissioner-player'")).rows[0];check(restored.portrait_id===null&&restored.overall===550&&restored.star_rating===4,'Portrait reversal preserves ratings');
+    await context.close();
+  }
   for (const mode of ["simulated","reported"]) {
     await pool.query("UPDATE leagues SET game_mode=$1 WHERE id='roster-context'",[mode]); invalidateLeague("roster-context");
     // Identity saves deliberately recalculate ratings server-side. Reset only this
@@ -88,6 +115,17 @@ try {
         const sessionResponse=await context.request.post(origin+"/__test/session",{data:{role}});
         check(sessionResponse.status()===204,"Test session "+role);
         const api=origin+"/api/leagues/roster-context";
+        const canAssign=role==='commissioner'||role==='co';
+        if(canAssign){
+          const invalid=await context.request.patch(api+'/players/batch',{data:{updates:[{id:role+'-player',changes:{portraitId:'c9-face-99'}}]}});
+          check(invalid.status()===400,'Unknown portrait rejected');
+          const assigned=await context.request.patch(api+'/players/batch',{data:{updates:[{id:role+'-player',changes:{portraitId:'c9-face-02'}}]}});
+          check(assigned.status()===200,'Commissioner portrait assignment');
+          check((await pool!.query('SELECT portrait_id FROM players WHERE id=$1',[role+'-player'])).rows[0].portrait_id==='c9-face-02','Portrait persisted');
+          invalidateLeague('roster-context');
+        }else{
+          check((await context.request.patch(api+'/players/batch',{data:{updates:[{id:role+'-player',changes:{portraitId:'c9-face-02'}}]}})).status()===403,'Noncommissioner portrait denied');
+        }
         const dtoResponse=await context.request.get(api);
         if(role==="outsider") {
           check(dtoResponse.status()===403,"Outsider league denied");
@@ -102,6 +140,7 @@ try {
         page.on("pageerror",error=>errors.push(error.message));
         await page.goto(origin+"/league/roster-context/roster");
         await expect(page.getByTestId("button-development-view")).toBeVisible(); checks++;
+        if(canAssign){await expect(page.locator('canvas[data-portrait-id="c9-face-02"]:visible').first()).toBeVisible();checks++;}
         await page.getByTestId("button-save-roster-file").click();
         await expect(page.getByTestId("input-save-roster-name")).toHaveValue(role+" College - Season 7"); checks++;
         const savedResponse=page.waitForResponse(r=>r.url().endsWith("/api/saved-rosters")&&r.request().method()==="POST");
@@ -111,6 +150,7 @@ try {
         await page.getByTestId("select-view-roster").selectOption(role+"-team");
         await expect(page.getByTestId("button-development-view")).toBeVisible(); checks++;
         await page.getByTestId("link-player-"+role+"-player").click();
+        if(canAssign){await expect(page.getByTestId('dialog-player-profile').locator('canvas[data-portrait-id="c9-face-02"]')).toBeVisible();checks++;}
         const commissioner=role==="commissioner"||role==="co";
         check(await page.getByTestId("button-edit-player").count()===(commissioner?1:0),"Edit matches server role "+role);
         check(await page.getByTestId("button-declare-draft").count()===1,"Own eligible draft control "+mode+" "+role);
@@ -289,6 +329,10 @@ try {
 
   console.log(`Roster context: ${checks} checks passed against built UI and real HTTP/PostgreSQL in both modes.`);
   if (process.env.PAWA_ROSTER_REVIEW === "1") {
+    await pool.query("WITH numbered AS (SELECT p.id, row_number() OVER (ORDER BY p.id) AS n FROM players p JOIN teams t ON p.team_id=t.id WHERE t.league_id='roster-context') UPDATE players SET portrait_id='c9-face-' || lpad((((numbered.n-1)%30)+1)::text,2,'0') FROM numbered WHERE players.id=numbered.id");
+    invalidateLeague('roster-context');
+    const reviewPage=await browser.newPage();await reviewPage.goto(origin+'/__test/review');
+    await expect(reviewPage.locator('canvas[data-portrait-id]:visible').first()).toBeVisible();await reviewPage.close();
     console.log(`C9_ROSTER_REVIEW ${origin}/__test/review`);
     console.log("Disposable review server retained. Ctrl+C stops it and removes its test database.");
     await new Promise<void>(resolve => {

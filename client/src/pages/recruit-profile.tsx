@@ -585,7 +585,7 @@ export default function RecruitProfilePage() {
 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <PlayerAvatar
+              <PlayerAvatar portraitId={recruit.portraitId}
                 skinTone={recruit.skinTone}
                 hairColor={recruit.hairColor}
                 hairStyle={recruit.hairStyle}

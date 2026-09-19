@@ -79,7 +79,7 @@ function CompareModal({
             return (
               <div key={recruit.id} className="min-w-0 break-words bg-background/50 rounded-lg p-4 border border-border" data-testid={`compare-card-${recruit.id}`}>
                 <div className="flex items-center gap-3 mb-4">
-                  <PlayerPortrait
+                  <PlayerPortrait portraitId={recruit.portraitId}
                     skinTone={recruit.skinTone || "light"}
                     hairColor={recruit.hairColor || "brown"}
                     hairStyle={recruit.hairStyle || "short"}

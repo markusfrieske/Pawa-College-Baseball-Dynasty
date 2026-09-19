@@ -329,7 +329,7 @@ function RecruitDetailModal({
 
   const headerContent = (
     <div className="flex items-start gap-4">
-      <PlayerPortrait 
+      <PlayerPortrait portraitId={recruit.portraitId}
         skinTone={recruit.skinTone || "light"}
         hairColor={recruit.hairColor || "brown"}
         hairStyle={recruit.hairStyle || "short"}

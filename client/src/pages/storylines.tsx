@@ -63,7 +63,7 @@ interface StorylineRecruit {
     stage: string;
     signedTeamAbbreviation?: string | null;
     signedTeamPrimaryColor?: string | null;
-    skinTone?: string | null; hairColor?: string | null; hairStyle?: string | null;
+    portraitId?: string | null; skinTone?: string | null; hairColor?: string | null; hairStyle?: string | null;
     facialHair?: string | null; eyeStyle?: string | null; eyebrowStyle?: string | null;
     mouthStyle?: string | null; eyeBlack?: string | null;
     abilities?: string[] | null; storyLockedAbilities?: string[] | null;
@@ -271,7 +271,7 @@ function VoteCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) 
       {/* Recruit identity row */}
       <div className="px-4 py-3 flex items-center gap-3">
         <div className={`w-14 h-14 rounded-xl border overflow-hidden flex-shrink-0 ${sl.isHighInterest ? "border-gold/40" : "border-border/40"}`}>
-          <PlayerPortrait
+          <PlayerPortrait portraitId={r?.portraitId}
             skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
             hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
             eyeStyle={r?.eyeStyle || undefined} eyebrowStyle={r?.eyebrowStyle || undefined}
@@ -509,8 +509,8 @@ function ArcCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
       <div className="p-3">
         <div className="flex items-center gap-2.5">
           <div className={`w-11 h-11 rounded-lg border overflow-hidden flex-shrink-0 ${sl.isHighInterest ? "border-gold/30" : "border-border/30"}`}>
-            <PlayerPortrait
-              skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
+            <PlayerPortrait portraitId={r?.portraitId}
+            skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
               hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
               eyeStyle={r?.eyeStyle || undefined} eyebrowStyle={r?.eyebrowStyle || undefined}
               mouthStyle={r?.mouthStyle || undefined} eyeBlack={r?.eyeBlack ? true : undefined}
@@ -720,8 +720,8 @@ function LegendarySpotlight({ storylines, leagueId }: { storylines: StorylineRec
             >
               <div className="p-4 flex items-center gap-3">
                 <div className="w-16 h-16 rounded-xl border border-gold/40 overflow-hidden flex-shrink-0">
-                  <PlayerPortrait
-                    skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
+                  <PlayerPortrait portraitId={r?.portraitId}
+            skinTone={r?.skinTone ?? "light"} hairColor={r?.hairColor ?? "brown"}
                     hairStyle={r?.hairStyle ?? "short"} facialHair={r?.facialHair ?? "none"}
                     eyeStyle={r?.eyeStyle || undefined} eyebrowStyle={r?.eyebrowStyle || undefined}
                     mouthStyle={r?.mouthStyle || undefined} eyeBlack={r?.eyeBlack ? true : undefined}

@@ -1729,7 +1729,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                       className="rounded overflow-hidden ring-1 ring-transparent hover:ring-gold transition-all cursor-pointer"
                       data-testid={`wizard-avatar-${r._tempId}`}
                     >
-                      <PlayerAvatar
+                      <PlayerAvatar portraitId={r.portraitId}
                         size="sm"
                         isRecruit
                         skinTone={r.skinTone}
