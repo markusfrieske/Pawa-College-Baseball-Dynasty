@@ -75,6 +75,12 @@ function RecruitDetailModal({
   onOffer,
   isOffering,
   outOfRecruitingActions,
+  outOfScoutActions,
+  phonedThisWeek,
+  emailedThisWeek,
+  campusCapReached,
+  headCoachCapReached,
+  onReturnFocus,
   remainingPoints,
   visitCost,
   headCoachVisitCost,
@@ -104,6 +110,12 @@ function RecruitDetailModal({
   onOffer: (recruitId: string) => void;
   isOffering: boolean;
   outOfRecruitingActions?: boolean;
+  outOfScoutActions?: boolean;
+  phonedThisWeek?: boolean;
+  emailedThisWeek?: boolean;
+  campusCapReached?: boolean;
+  headCoachCapReached?: boolean;
+  onReturnFocus?: () => void;
   remainingPoints: number;
   visitCost: number;
   headCoachVisitCost: number;
@@ -350,7 +362,7 @@ function RecruitDetailModal({
   if (isMobile) {
     return (
       <Sheet open={!!recruit} onOpenChange={() => onClose()}>
-        <SheetContent
+        <SheetContent onCloseAutoFocus={onReturnFocus ? e => { e.preventDefault(); onReturnFocus(); } : undefined}
           side="bottom"
           className="h-dvh overflow-y-auto p-0 border-t border-gold bg-card"
           data-testid="recruit-detail-sheet-mobile"
@@ -770,7 +782,7 @@ function RecruitDetailModal({
                 className="border-green-500 text-green-400 hover:bg-green-500/10"
                 data-testid="button-scout-modal"
                 onClick={() => onScout(recruit.id)}
-                disabled={isScouting || scoutPct >= 100}
+                disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
               >
                 <Eye className="w-4 h-4 mr-2" />
                 {isScouting ? "Scouting..." : `Scout (${scoutPct}%)`}
@@ -780,7 +792,7 @@ function RecruitDetailModal({
                 data-testid="button-phone"
                 variant={showModalPhonePicker ? "primary" : "outline"}
                 onClick={() => { setShowModalPhonePicker(!showModalPhonePicker); setShowModalEmailPicker(false); setModalPhonePitches([]); }}
-                disabled={isPhoning}
+                disabled={isPhoning || remainingPoints < 2 || phonedThisWeek}
               >
                 <Phone className="w-4 h-4 mr-2" />
                 {isPhoning ? "Calling..." : "Phone (3 pitches)"}
@@ -790,7 +802,7 @@ function RecruitDetailModal({
                 className="flex-1" 
                 data-testid="button-email"
                 onClick={() => { setShowModalEmailPicker(!showModalEmailPicker); setShowModalPhonePicker(false); setModalEmailPitch(null); }}
-                disabled={isEmailing}
+                disabled={isEmailing || remainingPoints < 1 || emailedThisWeek}
               >
                 <Mail className="w-4 h-4 mr-2" />
                 {isEmailing ? "Sending..." : "Email (1 pitch)"}
@@ -802,7 +814,7 @@ function RecruitDetailModal({
                     className="flex-1" 
                     data-testid="button-visit"
                     onClick={() => onVisit(recruit.id)}
-                    disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
+                    disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached || campusCapReached}
                   >
                     <Building2 className="w-4 h-4 mr-2" />
                     {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
@@ -817,7 +829,7 @@ function RecruitDetailModal({
                     className="flex-1" 
                     data-testid="button-head-coach-visit"
                     onClick={() => onHeadCoachVisit(recruit.id)}
-                    disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
+                    disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached || headCoachCapReached}
                   >
                     <Crown className="w-4 h-4 mr-2" />
                     {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
@@ -855,7 +867,7 @@ function RecruitDetailModal({
                   className="border-gold text-gold"
                   data-testid="button-offer-scholarship"
                   onClick={() => onOffer(recruit.id)}
-                  disabled={isOffering || recruit.interest?.hasOffer}
+                  disabled={isOffering || recruit.interest?.hasOffer || remainingPoints < 1}
                 >
                   <GraduationCap className="w-4 h-4 mr-2" />
                   {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
@@ -891,7 +903,7 @@ function RecruitDetailModal({
                     setShowModalPhonePicker(false);
                     setModalPhonePitches([]);
                   }}
-                  disabled={modalPhonePitches.length === 0 || isPhoning}
+                  disabled={modalPhonePitches.length === 0 || isPhoning || remainingPoints < 2 || phonedThisWeek}
                   data-testid="modal-button-send-phone"
                 >
                   <Phone className="w-3 h-3 mr-1" />
@@ -931,7 +943,7 @@ function RecruitDetailModal({
                     setShowModalEmailPicker(false);
                     setModalEmailPitch(null);
                   }}
-                  disabled={!modalEmailPitch || isEmailing}
+                  disabled={!modalEmailPitch || isEmailing || remainingPoints < 1 || emailedThisWeek}
                   data-testid="modal-button-send-email"
                 >
                   <Mail className="w-3 h-3 mr-1" />
@@ -971,7 +983,7 @@ function RecruitDetailModal({
 
   return (
     <Dialog open={!!recruit} onOpenChange={() => onClose()}>
-      <DialogContent className="bg-card border-gold max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="recruit-detail-dialog-desktop">
+      <DialogContent onCloseAutoFocus={onReturnFocus ? e => { e.preventDefault(); onReturnFocus(); } : undefined} className="bg-card border-gold max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="recruit-detail-dialog-desktop">
         <DialogHeader>
           <DialogTitle asChild>{headerContent}</DialogTitle>
         </DialogHeader>
@@ -1387,7 +1399,7 @@ function RecruitDetailModal({
                 className="border-green-500 text-green-400 hover:bg-green-500/10"
                 data-testid="button-scout-modal"
                 onClick={() => onScout(recruit.id)}
-                disabled={isScouting || scoutPct >= 100}
+                disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
               >
                 <Eye className="w-4 h-4 mr-2" />
                 {isScouting ? "Scouting..." : `Scout (${scoutPct}%)`}
@@ -1397,7 +1409,7 @@ function RecruitDetailModal({
                 data-testid="button-phone"
                 variant={showModalPhonePicker ? "primary" : "outline"}
                 onClick={() => { setShowModalPhonePicker(!showModalPhonePicker); setShowModalEmailPicker(false); setModalPhonePitches([]); }}
-                disabled={isPhoning}
+                disabled={isPhoning || remainingPoints < 2 || phonedThisWeek}
               >
                 <Phone className="w-4 h-4 mr-2" />
                 {isPhoning ? "Calling..." : "Phone (3 pitches)"}
@@ -1407,7 +1419,7 @@ function RecruitDetailModal({
                 className="flex-1" 
                 data-testid="button-email"
                 onClick={() => { setShowModalEmailPicker(!showModalEmailPicker); setShowModalPhonePicker(false); setModalEmailPitch(null); }}
-                disabled={isEmailing}
+                disabled={isEmailing || remainingPoints < 1 || emailedThisWeek}
               >
                 <Mail className="w-4 h-4 mr-2" />
                 {isEmailing ? "Sending..." : "Email (1 pitch)"}
@@ -1419,7 +1431,7 @@ function RecruitDetailModal({
                     className="flex-1" 
                     data-testid="button-visit"
                     onClick={() => onVisit(recruit.id)}
-                    disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
+                    disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached || campusCapReached}
                   >
                     <Building2 className="w-4 h-4 mr-2" />
                     {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
@@ -1434,7 +1446,7 @@ function RecruitDetailModal({
                     className="flex-1" 
                     data-testid="button-head-coach-visit"
                     onClick={() => onHeadCoachVisit(recruit.id)}
-                    disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
+                    disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached || headCoachCapReached}
                   >
                     <Crown className="w-4 h-4 mr-2" />
                     {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
@@ -1472,7 +1484,7 @@ function RecruitDetailModal({
                   className="border-gold text-gold"
                   data-testid="button-offer-scholarship"
                   onClick={() => onOffer(recruit.id)}
-                  disabled={isOffering || recruit.interest?.hasOffer}
+                  disabled={isOffering || recruit.interest?.hasOffer || remainingPoints < 1}
                 >
                   <GraduationCap className="w-4 h-4 mr-2" />
                   {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
@@ -1508,7 +1520,7 @@ function RecruitDetailModal({
                     setShowModalPhonePicker(false);
                     setModalPhonePitches([]);
                   }}
-                  disabled={modalPhonePitches.length === 0 || isPhoning}
+                  disabled={modalPhonePitches.length === 0 || isPhoning || remainingPoints < 2 || phonedThisWeek}
                   data-testid="modal-button-send-phone"
                 >
                   <Phone className="w-3 h-3 mr-1" />
@@ -1548,7 +1560,7 @@ function RecruitDetailModal({
                     setShowModalEmailPicker(false);
                     setModalEmailPitch(null);
                   }}
-                  disabled={!modalEmailPitch || isEmailing}
+                  disabled={!modalEmailPitch || isEmailing || remainingPoints < 1 || emailedThisWeek}
                   data-testid="modal-button-send-email"
                 >
                   <Mail className="w-3 h-3 mr-1" />

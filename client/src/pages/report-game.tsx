@@ -1,3 +1,5 @@
+import "@/components/report-workspace.css";
+import { isPitcher as isPitcherPosition } from "@shared/positions";
 import { ReportEntryMode } from "@/components/report-entry-mode";
 import { buildScoreOnlyReport, isReportEditVersion, reportOverrideReasonError, type ReportRole } from "@shared/reporting";
 import { ReportOverrideReason } from "@/components/report-override-reason";
@@ -194,6 +196,7 @@ function CollapsibleSection({
     <div className="border border-border/60 rounded-lg overflow-hidden">
       <button
         type="button"
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-4 py-3 bg-muted/20 hover:bg-muted/40 transition-colors text-left"
         onClick={onToggle}
         data-testid={testId ?? `toggle-${label.toLowerCase().replace(/\s+/g, "-")}`}
@@ -215,6 +218,8 @@ function ReportGameInner() {
   const queryClient = useQueryClient();
 
   const [phase, setPhase] = useState<Phase>("score");
+  const [manualDirty, setManualDirty] = useState(false);
+  const submissionSaved = useRef(false);
   const [overrideReason, setOverrideReason] = useState("");
   const [entryMode, setEntryMode] = useState<"full" | "score-only">("full");
   const [scoreOnlyDraft, setScoreOnlyDraft] = useState<{ home: number; away: number } | null>(null);
@@ -280,8 +285,8 @@ function ReportGameInner() {
   // Unsaved OCR-data guard: warn the coach before they navigate away with auto-filled stats
   // that haven't been submitted yet.  Active as soon as any OCR data lands in fieldMeta and
   // deactivated automatically once the report is submitted (phase === "submitted").
-  const guardActive = Object.keys(fieldMeta).length > 0 && phase !== "submitted";
-  const LEAVE_MSG = "You have auto-filled stats from screenshots that haven't been submitted yet. Leave anyway?";
+  const guardActive = (manualDirty || Object.keys(fieldMeta).length > 0) && phase !== "submitted";
+  const LEAVE_MSG = "This report has unsubmitted changes stored only in this tab. Leave and discard them?";
 
   useEffect(() => {
     if (!guardActive) return;
@@ -304,7 +309,7 @@ function ReportGameInner() {
 
     // Patch pushState — called by Wouter's setLocation / Link clicks.
     window.history.pushState = function (...args: Parameters<typeof window.history.pushState>) {
-      if (bypassing) { origPushState.apply(window.history, args); return; }
+      if (bypassing || submissionSaved.current) { origPushState.apply(window.history, args); return; }
       if (window.confirm(LEAVE_MSG)) {
         origPushState.apply(window.history, args);
         // Dispatch popstate so Wouter's location subscription picks up the URL change.
@@ -317,7 +322,7 @@ function ReportGameInner() {
     // Listen for popstate — fired by browser Back/Forward (not pushState).
     const handlePopState = () => {
       // Ignore popstate events we dispatched ourselves (prevents double-prompting).
-      if (ownPopstate) return;
+      if (ownPopstate || submissionSaved.current) return;
       if (!window.confirm(LEAVE_MSG)) {
         // Undo the back navigation: push the saved path back, bypass our own patch,
         // then sync Wouter so the route shows the correct page again.
@@ -344,7 +349,9 @@ function ReportGameInner() {
     (img) => img.ocrStatus === "pending" || img.ocrStatus === "processing"
   ).length;
   const hasAnyScreenshots = (screenshotImages ?? []).length > 0;
-  const allOcrSettled = hasAnyScreenshots && pendingOcrCount === 0;
+  const failedOcrCount = (screenshotImages ?? []).filter(img => img.ocrStatus === "failed").length;
+  const readOcrCount = (screenshotImages ?? []).filter(img => img.ocrStatus === "done").length;
+  const allOcrSettled = hasAnyScreenshots && pendingOcrCount === 0 && failedOcrCount === 0 && readOcrCount === (screenshotImages ?? []).length;
 
   function reassignIdentity(side: "home" | "away", section: "batting" | "pitching", index: number, selectedPlayerId: string) {
     const rows = section === "batting" ? (side === "home" ? homeBatting : awayBatting) : (side === "home" ? homePitching : awayPitching);
@@ -354,6 +361,7 @@ function ReportGameInner() {
     const safeState = ambiguousSource ? pruneReportPlayerCorrections(correctionState, side, section, sourceId) : correctionState;
     const result = reassignReportRosterPlayer<BatterEntry | PitcherEntry>({ rows, rowIndex: index, selectedPlayerId, roster: (side === "home" ? homePlayers : awayPlayers) ?? [], fieldMeta: safeState.fieldMeta, side, section });
     if (!result.ok) { setValidationError(result.error.message); return; }
+    setManualDirty(true);
     const previousId = rows[index].playerId;
     const oldPrefix = section + "." + side + "." + previousId + ".";
     const newPrefix = section + "." + side + "." + selectedPlayerId + ".";
@@ -379,6 +387,7 @@ function ReportGameInner() {
   }
 
   function changeReportRows(side: "home" | "away", section: "batting" | "pitching", nextRows: (BatterEntry | PitcherEntry)[]) {
+    setManualDirty(true);
     const previousRows = section === "batting" ? (side === "home" ? homeBatting : awayBatting) : (side === "home" ? homePitching : awayPitching);
     setCorrectionState(state => reconcileReportRowCorrections({ state, previousRows, nextRows, side, section }));
     if (section === "batting") (side === "home" ? setHomeBatting : setAwayBatting)(nextRows as BatterEntry[]);
@@ -485,6 +494,7 @@ function ReportGameInner() {
   const awayHits = awayBatting.reduce((a, b) => a + b.h, 0);
 
   function updateDirectScore(side: "home" | "away", value: number) {
+    setManualDirty(true);
     if (isScoreOnly) { setScoreOnlyDraft(previous => ({ home: previous?.home ?? fullHomeScore, away: previous?.away ?? fullAwayScore, [side]: value })); return; }
     const old = side === "home" ? homeScore : awayScore;
     markFieldCorrected("score." + side + "Score", old, value);
@@ -500,6 +510,7 @@ function ReportGameInner() {
   }
 
   function changeInnings(n: number) {
+    setManualDirty(true);
     const home = Array.from({ length: n }, (_, i) => homeInnings[i] ?? 0);
     const away = Array.from({ length: n }, (_, i) => awayInnings[i] ?? 0);
     markFieldCorrected("score.homeScore", homeScore, home.reduce((a, b) => a + b, 0));
@@ -535,11 +546,11 @@ function ReportGameInner() {
   }
   function initPitchers() {
     if (homePlayers && !homePitchersInitialized) {
-      setHomePitching(homePlayers.filter(p => p.position === "P").slice(0, 3).map(defaultPitcher));
+      setHomePitching(homePlayers.filter(p => isPitcherPosition(p.position)).slice(0, 3).map(defaultPitcher));
       setHomePitchersInitialized(true);
     }
     if (awayPlayers && !awayPitchersInitialized) {
-      setAwayPitching(awayPlayers.filter(p => p.position === "P").slice(0, 3).map(defaultPitcher));
+      setAwayPitching(awayPlayers.filter(p => isPitcherPosition(p.position)).slice(0, 3).map(defaultPitcher));
       setAwayPitchersInitialized(true);
     }
   }
@@ -696,6 +707,7 @@ function ReportGameInner() {
   const submitMutation = useMutation({
     mutationFn: async (payload: SubmissionPayload) => apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, payload),
     onSuccess: () => {
+      submissionSaved.current = true;
       import("@/lib/sfx").then(({ playScoreSubmitSfx }) => playScoreSubmitSfx());
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "games", gameId] });
@@ -710,6 +722,7 @@ function ReportGameInner() {
   const updateMutation = useMutation({
     mutationFn: async (payload: SubmissionPayload) => apiRequest("PATCH", `/api/leagues/${id}/games/${gameId}/report`, payload),
     onSuccess: () => {
+      submissionSaved.current = true;
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "games", gameId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       toast({ title: "Report Updated", description: "The submitted report has been corrected." });
@@ -742,6 +755,19 @@ function ReportGameInner() {
   );
 
   const isMutating = submitMutation.isPending || updateMutation.isPending;
+  function openEntrySection(section: "score" | "home" | "away" | "pitching") {
+    if (isMutating) return;
+    setPhase("score");
+    setShowHomeBatting(section === "home"); setShowAwayBatting(section === "away"); setShowPitching(section === "pitching");
+    if (section === "home") initHomeBatting();
+    if (section === "away") initAwayBatting();
+    if (section === "pitching") initPitchers();
+    requestAnimationFrame(() => {
+      const testId = section === "score" ? (!isScoreOnly && hasLineScore ? "toggle-innings" : "score-home-input") : section === "pitching" ? "toggle-pitching" : `toggle-${section}-batting`;
+      const control = document.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+      control?.focus(); control?.scrollIntoView({ block: "center" });
+    });
+  }
   const playersLoading = homePlayersLoading || awayPlayersLoading;
 
   function validateScores(): string | null {
@@ -832,6 +858,7 @@ function ReportGameInner() {
             {phase === "review" ? (
               <button
                 type="button"
+                disabled={isMutating}
                 onClick={() => { setPhase("score"); }}
                 className="text-muted-foreground hover:text-gold transition-colors p-1 -ml-1"
                 data-testid="button-back-to-score"
@@ -854,7 +881,7 @@ function ReportGameInner() {
             </div>
             {phase !== "submitted" && (
               <div className="flex items-center gap-1 shrink-0 text-xs">
-                <span className={phase === "score" ? "text-gold" : "text-muted-foreground"} data-testid="step-upload">1 Upload</span>
+                <span className={phase === "score" ? "text-gold" : "text-muted-foreground"} data-testid="step-upload">1 Enter</span>
                 <ChevronRight className="w-2 h-2 text-muted-foreground/50" />
                 <span className={phase === "review" ? "text-gold" : "text-muted-foreground"} data-testid="step-review">2 Review</span>
                 <ChevronRight className="w-2 h-2 text-muted-foreground/50" />
@@ -865,18 +892,22 @@ function ReportGameInner() {
         </div>
       </header>
 
-      <ArtworkBackground
-        desktopSrc={artBackgrounds.reporting.desktop}
-        mobileSrc={artBackgrounds.reporting.mobile}
-        focalPoint="center center"
-        overlayStrength="heavy"
-        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
-      >
-        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">Bring the game back here</p><p className="mt-1 text-sm text-foreground/80">{phase === "submitted" ? "Your report status and next steps are below." : isEditMode ? "Review and correct the recorded Power Pros result." : "Record your Power Pros result, review it, then submit."}</p></div>
-      </ArtworkBackground>
-
-      <main className="container mx-auto px-4 py-5 max-w-lg space-y-4 pb-20 md:pb-8">
-
+      <main className="c9-report-workspace" data-testid="report-workspace">
+        <aside className="c9-report-context" aria-label="Report context">
+          <span className="c9-report-kicker">SCORER'S DESK</span>
+          <h2>{awayTeam.name}<small>at</small>{homeTeam.name}</h2>
+          <p className="c9-report-state" data-testid="report-workspace-state">{phase === "submitted" ? "Submission received — see report status" : isEditMode ? "Editing a submitted report" : "Unsubmitted report"}</p>
+          <p>Week {game.week} · {entryMode === "score-only" ? "Score only" : "Full scorebook"}{isEditMode && loadedEditVersion !== null ? ' · Editing revision ' + loadedEditVersion : ''}</p>
+          {phase !== "submitted" && <>
+            <p className="c9-report-local-note">Changes stay in this tab until submitted. Screenshot reading does not validate a result.</p>
+            <nav aria-label="Scorebook sections">
+              <button type="button" disabled={isMutating} onClick={() => openEntrySection("score")}>Score & sources</button>
+              {!isScoreOnly && <><button type="button" disabled={isMutating} onClick={() => openEntrySection("away")}>{awayTeam.abbreviation} batting</button><button type="button" disabled={isMutating} onClick={() => openEntrySection("home")}>{homeTeam.abbreviation} batting</button><button type="button" disabled={isMutating} onClick={() => openEntrySection("pitching")}>Pitching</button></>}
+            </nav>
+            <div className="c9-report-evidence"><strong>Screenshot reading</strong><p>{readOcrCount} read · {pendingOcrCount} processing · {failedOcrCount} failed</p><small>Review names, totals and warnings before submission.</small></div>
+          </>}
+        </aside>
+        <fieldset disabled={isMutating} className="c9-report-editor" onChangeCapture={() => setManualDirty(true)} aria-busy={isMutating}>
         {phase === "submitted" && (
           <SubmittedPhase
             leagueId={id!}
@@ -893,6 +924,8 @@ function ReportGameInner() {
           <>
             {canUseScoreOnly && <ReportEntryMode value={entryMode} onChange={changeEntryMode} />}
             {!isScoreOnly && id && gameId && (
+              <details className="c9-report-sources">
+              <summary>Evidence screenshots · {readOcrCount} read · {pendingOcrCount} processing · {failedOcrCount} failed</summary>
               <GameScreenshotUpload
                 leagueId={id}
                 gameId={gameId}
@@ -901,6 +934,7 @@ function ReportGameInner() {
                 enableAutoApply={!isEditMode}
                 correctedCategories={correctedCategories}
               />
+              </details>
             )}
 
             {requiresOverrideReason && <ReportOverrideReason value={overrideReason} onChange={value => { setOverrideReason(value); setAckReviewWarnings(false); }} />}
@@ -1024,10 +1058,11 @@ function ReportGameInner() {
               </div>
             )}
 
+            {!isScoreOnly && failedOcrCount > 0 && <p role="alert" className="c9-report-ocr-failure" data-testid="banner-ocr-failed">{failedOcrCount} screenshot(s) could not be read. Retry the failed image or enter its statistics manually; completed reading is not validation.</p>}
             {!isScoreOnly && allOcrSettled && (
               <div className="flex items-center gap-2 p-2.5 bg-green-900/20 border border-green-700/40 rounded text-xs text-green-300" data-testid="banner-ocr-complete">
                 <CheckCircle className="w-3 h-3 shrink-0" />
-                <span>All screenshots read — form is ready to review.</span>
+                <span>Screenshot reading finished. Check the extracted data and validation issues before submitting.</span>
               </div>
             )}
 
@@ -1125,6 +1160,7 @@ function ReportGameInner() {
               <RetroButton
                 variant="outline"
                 onClick={() => { setPhase("score"); setAckReviewWarnings(false); }}
+                disabled={isMutating}
                 data-testid="button-back-to-score-from-review"
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Edit Score
@@ -1142,6 +1178,7 @@ function ReportGameInner() {
             </div>
           </>
         )}
+        </fieldset>
       </main>
     </div>
   );
@@ -1649,7 +1686,7 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
   }
   function addPitcher(list: PitcherEntry[], setList: (l: PitcherEntry[]) => void, players: Player[]) {
     const usedIds = new Set(list.map(p => p.playerId));
-    const pitcher = players.find(p => p.position === "P" && !usedIds.has(p.id));
+    const pitcher = players.find(p => isPitcherPosition(p.position) && !usedIds.has(p.id));
     if (pitcher) setList([...list, defaultPitcher(pitcher)]);
   }
   function removePitcher(list: PitcherEntry[], setList: (l: PitcherEntry[]) => void, idx: number) {

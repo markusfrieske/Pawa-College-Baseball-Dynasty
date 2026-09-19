@@ -247,7 +247,8 @@ export function filterRecruits(
     }
     if (filters.showOfferedOnly && !r.interest?.hasOffer) return false;
     if (filters.showInStateOnly && filters.teamState && r.homeState !== filters.teamState) return false;
-    if (filters.showAffordableOnly && r.nilCost != null && filters.nilRemaining != null) {
+    if (filters.showAffordableOnly) {
+      if ((r.interest?.scoutPercentage ?? 0) < NIL_SCOUT_THRESHOLD || r.nilCost == null || filters.nilRemaining == null) return false;
       if (Math.ceil(r.nilCost * 1.25) > filters.nilRemaining) return false;
     }
     if (filters.showHighRivalPressure && !(r.teamsIn && r.teamsIn >= 2)) return false;

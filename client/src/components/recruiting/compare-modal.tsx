@@ -62,13 +62,13 @@ function CompareModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-3xl" data-testid="compare-modal">
+      <DialogContent className="bg-card border-border max-w-3xl max-h-[90dvh] overflow-y-auto" data-testid="compare-modal">
         <DialogHeader>
           <DialogTitle className="text-gold text-sm">
             Compare Recruits
           </DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {recruits.map((recruit) => {
             const scoutPct = recruit.interest?.scoutPercentage || 0;
             const overallDisplay = getOverallDisplay(recruit);
@@ -77,7 +77,7 @@ function CompareModal({
             const fullyKnown = isFullyScouted(recruit);
             
             return (
-              <div key={recruit.id} className="bg-background/50 rounded-lg p-4 border border-border" data-testid={`compare-card-${recruit.id}`}>
+              <div key={recruit.id} className="min-w-0 break-words bg-background/50 rounded-lg p-4 border border-border" data-testid={`compare-card-${recruit.id}`}>
                 <div className="flex items-center gap-3 mb-4">
                   <PlayerPortrait
                     skinTone={recruit.skinTone || "light"}

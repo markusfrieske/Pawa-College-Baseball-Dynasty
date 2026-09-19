@@ -42,6 +42,8 @@ import { CompetingSchoolsList, SeeUponSigningBadge } from "./recruiting-shared";
 export 
 function RecruitRow({
   recruit,
+  compact = false,
+  onInspect,
   leagueId,
   onTarget,
   onScout,
@@ -84,6 +86,8 @@ function RecruitRow({
   economy,
 }: {
   recruit: RecruitWithInterest;
+  compact?: boolean;
+  onInspect?: () => void;
   leagueId: string;
   onTarget: () => void;
   onScout: () => void;
@@ -92,7 +96,7 @@ function RecruitRow({
   onVisit: () => void;
   onHeadCoachVisit: () => void;
   onOffer: () => void;
-  onSaveNotes: (notes: string) => void;
+  onSaveNotes: (notes: string) => void | Promise<unknown>;
   onSetBoardRank: (boardRank: number | null) => void;
   onToggleCompare: () => void;
   isTargeting: boolean;
@@ -125,6 +129,8 @@ function RecruitRow({
   visitCap?: number;
   economy?: RecruitingEconomy;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const [notesError, setNotesError] = useState("");
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
   const [showRankEditor, setShowRankEditor] = useState(false);
@@ -297,6 +303,13 @@ function RecruitRow({
       data-testid={`card-recruit-${recruit.id}`}
       style={rowStyle}
     >
+      {compact && <div className="c9-recruit-summary">
+        <button type="button" className="c9-recruit-identity" onClick={onInspect} data-testid={'inspect-recruit-' + recruit.id}><strong>{recruit.firstName} {recruit.lastName}</strong><small>{recruit.position} · {recruit.homeState} · Public {recruit.starRank ?? "?"}★</small></button>
+        <div><span className="c9-ledger-label">Knowledge</span><strong>{scoutPct}% scouted</strong><small>OVR {getOverallDisplay()}</small></div>
+        <div><span className="c9-ledger-label">Your standing</span><strong>{isSigned ? "Signed" : interestMeta?.label ?? "No contact"}</strong><small>{recruit.interest?.hasOffer ? "Offer made" : "No offer"} · {recruit.stage}</small></div>
+        <button type="button" id={'recruit-toggle-' + recruit.id} className="c9-recruit-manage" aria-expanded={expanded} aria-controls={'recruit-actions-' + recruit.id} onClick={() => setExpanded(v => !v)} data-testid={'manage-recruit-' + recruit.id}>{expanded ? "Close details" : "Manage"}</button>
+      </div>}
+      <div id={'recruit-actions-' + recruit.id} hidden={compact && !expanded} className={compact ? "c9-recruit-tray" : undefined}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-2">
         <div className="flex items-center gap-4 flex-1">
           {!isSigned && (
@@ -822,7 +835,7 @@ function RecruitRow({
                     <button
                       className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${isOverNilBudget ? "text-red-400/60" : recruit.interest?.hasOffer ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
                       onClick={() => { if (!isOverNilBudget) { onOffer(); setShowMobileMore(false); } }}
-                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget}
+                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget || remainingPoints < 1}
                       data-testid={`button-offer-mobile-${recruit.id}`}
                       title={isOverNilBudget ? `Over NIL budget — need ~${formatNilRange(recruit.nilCost || 0)} to sign` : undefined}
                     >
@@ -998,7 +1011,7 @@ function RecruitRow({
                       variant={recruit.interest?.hasOffer ? "primary" : "outline"}
                       size="sm"
                       onClick={onOffer}
-                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget}
+                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget || remainingPoints < 1}
                       className={isOverNilBudget ? "border-red-500/40 text-red-400/60" : ""}
                       data-testid={`button-offer-${recruit.id}`}
                     >
@@ -1294,7 +1307,7 @@ function RecruitRow({
                 setShowPhonePicker(false);
                 setSelectedPhonePitches([]);
               }}
-              disabled={selectedPhonePitches.length === 0 || isPhoning}
+              disabled={selectedPhonePitches.length === 0 || isPhoning || !recruit.interest || outOfRecruitingActions || contactExhausted || phonedThisWeek || remainingPoints < 2}
               data-testid={`button-send-phone-${recruit.id}`}
             >
               <Phone className="w-3 h-3 mr-1" />
@@ -1334,7 +1347,7 @@ function RecruitRow({
                 setShowEmailPicker(false);
                 setSelectedEmailPitch(null);
               }}
-              disabled={!selectedEmailPitch || isEmailing}
+              disabled={!selectedEmailPitch || isEmailing || !recruit.interest || outOfRecruitingActions || contactExhausted || emailedThisWeek || remainingPoints < 1}
               data-testid={`button-send-email-${recruit.id}`}
             >
               <Mail className="w-3 h-3 mr-1" />
@@ -1354,7 +1367,7 @@ function RecruitRow({
         </div>
       )}
 
-      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+      <Dialog open={showNotesDialog} onOpenChange={open => { if (!isSavingNotes) setShowNotesDialog(open); }}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-gold text-sm">
@@ -1367,22 +1380,26 @@ function RecruitRow({
               onChange={(e) => setNotesValue(e.target.value)}
               placeholder="Add your personal notes about this recruit..."
               className="min-h-[100px] bg-background border-border"
+              disabled={isSavingNotes}
               data-testid="textarea-notes"
             />
+            {notesError && <p role="alert">{notesError}</p>}
             <div className="flex gap-2 justify-end">
               <RetroButton
                 variant="outline"
                 size="sm"
                 onClick={() => setShowNotesDialog(false)}
+                disabled={isSavingNotes}
                 data-testid="button-cancel-notes"
               >
                 Cancel
               </RetroButton>
               <RetroButton
                 size="sm"
-                onClick={() => {
-                  onSaveNotes(notesValue);
-                  setShowNotesDialog(false);
+                onClick={async () => {
+                  setNotesError("");
+                  try { await onSaveNotes(notesValue); setShowNotesDialog(false); }
+                  catch { setNotesError("Notes were not saved. Your draft is retained; retry or cancel."); }
                 }}
                 disabled={isSavingNotes}
                 data-testid="button-save-notes"
@@ -1467,6 +1484,7 @@ function RecruitRow({
           )}
         </div>
       )}
+      </div>
     </RetroCard>
   );
 }

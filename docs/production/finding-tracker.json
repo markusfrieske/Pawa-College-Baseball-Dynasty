@@ -637,7 +637,10 @@
         "audits/W02_BATCH_04_AUDIT.md",
         "../../scripts/verify-report-override.ts",
         "W02_BATCH_05.md",
-        "audits/W02_BATCH_05_AUDIT.md"
+        "audits/W02_BATCH_05_AUDIT.md",
+        "W12_BATCH_03.md",
+        "audits/W12_BATCH_03_AUDIT.md",
+        "../../scripts/verify-management-workspaces.ts"
       ],
       "verifiedBy": null,
       "notes": "W02 batch05 adds explicit commissioner score-only entry with retained full draft and correct participant inbox routing. Complete authenticated report-page role/error/retry and reload/media verification remain open."
@@ -645,7 +648,7 @@
     {
       "id": "UX-02",
       "title": "P1: Manual reporting work can disappear without even the OCR warning",
-      "status": "planned",
+      "status": "implementing",
       "owner": "JD Player Experience Lead",
       "targetWeek": 6,
       "targetStart": "2026-10-19",
@@ -655,8 +658,13 @@
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
-      "verifiedBy": null
+      "evidence": [
+        "W12_BATCH_03.md",
+        "audits/W12_BATCH_03_AUDIT.md",
+        "../../scripts/verify-management-workspaces.ts"
+      ],
+      "verifiedBy": null,
+      "notes": "W12 batch03 verifies manual typed/button-change navigation warnings and retained failed submissions. Durable refresh/interruption recovery, offline sync and conflict handling remain open."
     },
     {
       "id": "UX-03",
@@ -681,7 +689,10 @@
         "audits/W02_BATCH_04_AUDIT.md",
         "../../scripts/verify-report-override.ts",
         "W02_BATCH_05.md",
-        "audits/W02_BATCH_05_AUDIT.md"
+        "audits/W02_BATCH_05_AUDIT.md",
+        "W12_BATCH_03.md",
+        "audits/W12_BATCH_03_AUDIT.md",
+        "../../scripts/verify-management-workspaces.ts"
       ],
       "verifiedBy": null,
       "notes": "W02 batch05 adds explicit commissioner score-only entry with retained full draft and correct participant inbox routing. Complete authenticated report-page role/error/retry and reload/media verification remain open."
@@ -734,7 +745,10 @@
       "evidence": [
         "W12_BATCH_02.md",
         "audits/W12_BATCH_02_AUDIT.md",
-        "../../scripts/verify-roster-context.ts"
+        "../../scripts/verify-roster-context.ts",
+        "W12_BATCH_03.md",
+        "audits/W12_BATCH_03_AUDIT.md",
+        "../../scripts/verify-management-workspaces.ts"
       ],
       "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open."
     },
@@ -771,7 +785,11 @@
       "source": "../audits/2026-09-14/player-experience.md",
       "mitigationWeek": null,
       "implementationCommit": null,
-      "evidence": [],
+      "evidence": [
+        "W12_BATCH_03.md",
+        "audits/W12_BATCH_03_AUDIT.md",
+        "../../scripts/verify-management-workspaces.ts"
+      ],
       "verifiedBy": null
     },
     {
@@ -860,6 +878,22 @@
         "../../scripts/verify-roster-context.ts"
       ],
       "verifiedBy": "Parent: 241 complete built UI/HTTP/PostgreSQL checks; independent read-only source and integration audits. Manual-vs-manual concurrency only; auto-lineup/advance writers remain outside this gate."
+    },
+    {
+      "id": "W12-SCHEDULE-01",
+      "title": "P2: Schedule approval failures discard dialog context and report-read errors resemble missing reports",
+      "status": "planned",
+      "owner": "JD Player Experience + Gilfoyle",
+      "targetWeek": 12,
+      "dependsOn": "Manual schedule/game-day slice",
+      "acceptance": "Await confirmation/dispute success before closing; retain failed inputs and show retry; distinguish absent report from transport/authorization failure. Verify held/failed writes and fetch failures against the built UI.",
+      "source": "audits/W12_BATCH_03_AUDIT.md",
+      "implementationCommit": null,
+      "evidence": [
+        "W12_BATCH_03.md",
+        "audits/W12_BATCH_03_AUDIT.md"
+      ],
+      "verifiedBy": null
     }
   ],
   "followUps": [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from "react";
-import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import "@/components/recruiting/recruiting-workspace.css";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { ArtworkBackground } from "@/components/artwork-background";
 import { artBackgrounds } from "@/lib/art-assets";
@@ -20,13 +20,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPotentialRangeLabel, getDevTraitGrade } from "@shared/potential";
-import { 
+import {
   ArrowLeft,
-  Target, 
-  Search, 
-  Eye, 
-  Phone, 
-  Mail, 
+  Target,
+  Search,
+  Eye,
+  Phone,
+  Mail,
   MapPin,
   GraduationCap,
   DollarSign,
@@ -146,16 +146,16 @@ interface RecruitingData {
   autoPilotPendingAlert: AutoPilotAlertEntry[];
 }
 
-import { 
-  formatNilRange, 
-  getInterestLabel, 
-  getInterestBarColor, 
-  quantizeInterestWidth, 
-  qualifyTrend, 
-  getInterestChangeLabel, 
-  NIL_SCOUT_THRESHOLD, 
-  positionOptions, 
-  starOptions, 
+import {
+  formatNilRange,
+  getInterestLabel,
+  getInterestBarColor,
+  quantizeInterestWidth,
+  qualifyTrend,
+  getInterestChangeLabel,
+  NIL_SCOUT_THRESHOLD,
+  positionOptions,
+  starOptions,
   sortOptions,
   COMMON_KEY_TO_GOLD_LIST,
   recruitSGoldBadge,
@@ -197,13 +197,17 @@ function ActionResultFlipIcon({ back }: { back: React.ReactNode }) {
 
 export default function RecruitingPage() {
   const { id } = useParams<{ id: string }>();
-  const [selectedRecruit, setSelectedRecruit] = useState<RecruitWithInterest | null>(null);
+  const [selectedRecruitId, setSelectedRecruitId] = useState<string | null>(null);
+  const recruitTrigger = useRef<HTMLElement | null>(null);
+  const setSelectedRecruit = (recruit: RecruitWithInterest | null) => { if (recruit) recruitTrigger.current = document.activeElement as HTMLElement; setSelectedRecruitId(recruit?.id ?? null); };
+  const [boardPage, setBoardPage] = useState(0);
 
   const storedFiltersRef = useRef<Record<string, unknown> | null>(null);
   if (storedFiltersRef.current === null) {
     try {
       const raw = localStorage.getItem(`recruiting-filters-${id}`);
-      storedFiltersRef.current = raw ? JSON.parse(raw) : {};
+      const parsed = raw ? JSON.parse(raw) : {};
+      storedFiltersRef.current = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
     } catch {
       storedFiltersRef.current = {};
     }
@@ -238,11 +242,13 @@ export default function RecruitingPage() {
   const [showWatchlistOnly, setShowWatchlistOnly] = useState<boolean>((sf.showWatchlistOnly as boolean) ?? false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
-    const saved = localStorage.getItem(`recruiting-presets-${id}`);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = JSON.parse(localStorage.getItem(`recruiting-presets-${id}`) || "[]");
+      return Array.isArray(saved) ? saved.filter(p => p && [p.id,p.name,p.position,p.star,p.sort].every(v => typeof v === "string")) : [];
+    } catch { return []; }
   });
   const [newPresetName, setNewPresetName] = useState("");
-  const [compareRecruits, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
+  const [compareSelection, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>((sf.searchQuery as string) ?? "");
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
@@ -364,6 +370,8 @@ export default function RecruitingPage() {
     recapSeason,
     hasPriorWeek,
   } = useRecruitingData(id!);
+  const compareRecruits = compareSelection.map(selected => data?.recruits.find(r => r.id === selected.id) ?? selected);
+  const selectedRecruit = data?.recruits.find(r => r.id === selectedRecruitId) ?? null;
 
   const recommendationsByRecruit = useMemo(() => {
     const map = new Map<string, RecruitRecommendation>();
@@ -560,25 +568,18 @@ export default function RecruitingPage() {
   );
 
   const recruitListRef = useRef<HTMLDivElement>(null);
-  const virtualizer = useWindowVirtualizer({
-    count: filteredRecruits.length,
-    estimateSize: () => 108,
-    overscan: 8,
-    scrollMargin: recruitListRef.current?.offsetTop ?? 0,
-  });
-
+  const pageCount = Math.max(1, Math.ceil(filteredRecruits.length / 24));
+  const currentPage = Math.min(boardPage, pageCount - 1);
+  const pageRecruits = filteredRecruits.slice(currentPage * 24, (currentPage + 1) * 24);
+  useEffect(() => { setBoardPage(0); }, [searchQuery, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showWatchlistOnly, showTopAvailable, showTeamNeeds, showPipeline, showContested, showStory, showOfferedOnly, showInStateOnly, showAffordableOnly, showHighRivalPressure, pipelineFilter]);
   scrollToRecruitRef.current = (recruitId: string) => {
-    const idx = filteredRecruits.findIndex((r) => r.id === recruitId);
-    if (idx >= 0) {
-      virtualizer.scrollToIndex(idx, { align: "center" });
-      setTimeout(() => {
-        const el = document.getElementById(`recruit-card-${recruitId}`);
-        if (el) {
-          el.classList.add("ring-2", "ring-gold");
-          setTimeout(() => el.classList.remove("ring-2", "ring-gold"), 1500);
-        }
-      }, 300);
-    }
+    const index = filteredRecruits.findIndex(r => r.id === recruitId);
+    if (index < 0) { setSelectedRecruitId(recruitId); return; }
+    setBoardPage(Math.floor(index / 24));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.getElementById('recruit-toggle-' + recruitId)?.focus();
+      document.getElementById('recruit-card-' + recruitId)?.scrollIntoView({ block: 'center' });
+    }));
   };
 
   if (isLoading) {
@@ -599,7 +600,7 @@ export default function RecruitingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background c9-recruiting-workspace">
       {/* ── Auto-Pilot / Deadline-Forced CPU Activity Alert ── */}
       {showAutoPilotAlert && data?.autoPilotPendingAlert && data.autoPilotPendingAlert.length > 0 && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
@@ -650,7 +651,7 @@ export default function RecruitingPage() {
         </div>
       )}
 
-      <header className="border-b border-border sticky top-0 bg-background z-[1000]">
+      <header className="border-b border-border bg-background">
         <div className="h-[2px] w-full" style={{ background: "rgb(var(--atm-accent) / 0.55)" }} aria-hidden="true" />
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">
@@ -738,7 +739,7 @@ export default function RecruitingPage() {
               : undefined;
 
             return (
-              <div className="grid grid-cols-6 gap-1">
+              <div className="c9-resource-strip" aria-label="Recruiting resources">
                 <StatCard
                   icon={<Target className="w-4 h-4" />}
                   label="Targets"
@@ -752,13 +753,13 @@ export default function RecruitingPage() {
                 />
                 <StatCard
                   icon={<Phone className="w-4 h-4" />}
-                  label="Contact Pts"
+                  label="Contact used"
                   value={`${eco?.contactPoints.spent ?? data?.pointsUsed ?? 0}/${eco?.contactPoints.cap ?? data?.maxPoints ?? 0}`}
                   data-testid="stat-card-contact-pts"
                 />
                 <StatCard
                   icon={<Eye className="w-4 h-4" />}
-                  label="Scout Pts"
+                  label="Scout used"
                   value={`${eco?.scoutPoints.spent ?? data?.scoutPointsUsed ?? 0}/${eco?.scoutPoints.cap ?? data?.maxScoutPoints ?? 0}`}
                 />
                 <StatCard
@@ -805,228 +806,16 @@ export default function RecruitingPage() {
         </div>
       </header>
 
-      <ArtworkBackground
-        desktopSrc={artBackgrounds.recruiting.desktop}
-        mobileSrc={artBackgrounds.recruiting.mobile}
-        focalPoint="center center"
-        overlayStrength="heavy"
-        className="min-h-28 sm:min-h-32 flex items-end border-b border-border"
-      >
-        <div className="container mx-auto px-4 py-5"><p className="font-display text-lg sm:text-xl font-semibold text-foreground">Recruiting desk</p><p className="mt-1 text-sm text-foreground/80">Find your next cornerstone. Scout, compare, and build relationships.</p></div>
-      </ArtworkBackground>
+      <main className="container mx-auto px-4 py-5" data-testid="recruiting-ledger">
+        {actionResultModal && <div className="c9-action-receipt" role={actionResultModal.type === "error" ? "alert" : "status"} data-testid="action-result-modal"><div><strong data-testid="action-result-title">{actionResultModal.title}</strong><p data-testid="action-result-description">{actionResultModal.description}</p></div><button type="button" onClick={() => setActionResultModal(null)} aria-label="Dismiss action result" data-testid="action-result-dismiss">Dismiss</button></div>}
 
-      {isMobile ? (
-        <>
-          <div className="pb-20">
-            <MobileRecruitingBoard
-              filteredRecruits={filteredRecruits}
-              allRecruits={data?.recruits ?? []}
-              pipelineData={pipelineData}
-              trendsData={trendsData}
-              weekRecapData={weekRecapData}
-              visibleDecommits={visibleDecommits}
-              historyData={historyData}
-              recommendationsByRecruit={recommendationsByRecruit}
-              storylineRecruitIds={storylineRecruitIds}
-              currentWeek={currentWeek}
-              onSelectRecruit={setSelectedRecruit}
-              onOpenFilterSheet={() => setShowFilterSheet(true)}
-              onDismissDecommit={dismissDecommit}
-              onPhone={(recruitId, pitchTopic) => phoneMutation.mutate({ recruitId, pitchTopic }, phoneCallbacks)}
-              onEmail={(recruitId, pitchTopic) => emailMutation.mutate({ recruitId, pitchTopic }, emailCallbacks)}
-              onScout={(recruitId) => scoutMutation.mutate(recruitId, scoutCallbacks)}
-              onVisit={(recruitId) => visitMutation.mutate(recruitId, visitCallbacks)}
-              onHeadCoachVisit={(recruitId) => headCoachVisitMutation.mutate(recruitId, headCoachVisitCallbacks)}
-              onOffer={(recruitId) => offerMutation.mutate(recruitId, offerCallbacks)}
-              onTarget={(recruitId) => targetMutation.mutate(recruitId, targetCallbacks)}
-              isPhoning={phoneMutation.isPending}
-              isEmailing={emailMutation.isPending}
-              isScouting={scoutMutation.isPending}
-              isVisiting={visitMutation.isPending}
-              isHeadCoachVisiting={headCoachVisitMutation.isPending}
-              isOffering={offerMutation.isPending}
-              isTargeting={targetMutation.isPending}
-              actionState={{
-                premiumActionsUsed: data?.premiumActionsUsed ?? {},
-                weeklyActionsUsed: weekDataFresh ? (data?.weeklyActionsUsed ?? {}) : {},
-                remainingPoints: data?.remainingPoints ?? 1,
-                remainingScoutPoints: data?.remainingScoutPoints ?? 1,
-                seasonVisitCount: data?.seasonVisitCount ?? { total: 0, campusVisits: 0, hcVisits: 0 },
-                nilRemaining,
-                recruitPointCosts: data?.recruitPointCosts ?? {},
-                economy: data?.economy,
-              }}
-              leagueId={id!}
-              battlesData={battlesData}
-              activeFilterChips={(() => {
-                const chips: string[] = [];
-                if (positionFilter !== "all") chips.push(positionFilter);
-                if (starFilter !== "all") chips.push(starFilter.replace("star", "★").replace("stars", "★"));
-                if (typeFilter !== "all") chips.push(typeFilter);
-                if (stateFilter !== "all") chips.push(stateFilter);
-                if (sortBy !== "classRank") chips.push(`Sort: ${sortBy}`);
-                if (showWatchlistOnly) chips.push("Watchlist");
-                if (showTopAvailable) chips.push("Top Available");
-                if (showTeamNeeds) chips.push("Needs");
-                if (showPipeline) chips.push("Pipeline");
-                if (showContested) chips.push("Contested");
-                if (showStory) chips.push("Story");
-                if (showOfferedOnly) chips.push("Offered");
-                if (showInStateOnly) chips.push("In-State");
-                if (showAffordableOnly) chips.push("Affordable");
-                if (showHighRivalPressure) chips.push("High Rivals");
-                return chips;
-              })()}
-            />
-          </div>
-          <MobileFilterSheet
-            isOpen={showFilterSheet}
-            onOpenChange={setShowFilterSheet}
-            positionFilter={positionFilter}
-            setPositionFilter={setPositionFilter}
-            starFilter={starFilter}
-            setStarFilter={setStarFilter}
-            typeFilter={typeFilter}
-            setTypeFilter={setTypeFilter}
-            stateFilter={stateFilter}
-            setStateFilter={setStateFilter}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            showWatchlistOnly={showWatchlistOnly}
-            setShowWatchlistOnly={setShowWatchlistOnly}
-            showTopAvailable={showTopAvailable}
-            setShowTopAvailable={setShowTopAvailable}
-            showTeamNeeds={showTeamNeeds}
-            setShowTeamNeeds={setShowTeamNeeds}
-            showPipeline={showPipeline}
-            setShowPipeline={setShowPipeline}
-            showContested={showContested}
-            setShowContested={setShowContested}
-            showStory={showStory}
-            setShowStory={setShowStory}
-            showOfferedOnly={showOfferedOnly}
-            setShowOfferedOnly={setShowOfferedOnly}
-            showInStateOnly={showInStateOnly}
-            setShowInStateOnly={setShowInStateOnly}
-            showAffordableOnly={showAffordableOnly}
-            setShowAffordableOnly={setShowAffordableOnly}
-            showHighRivalPressure={showHighRivalPressure}
-            setShowHighRivalPressure={setShowHighRivalPressure}
-            filteredRecruitsCount={filteredRecruits.length}
-            positionOptions={positionOptions}
-            starOptions={starOptions}
-            sortOptions={sortOptions}
-            stateOptions={[
-              { label: "All States", value: "all" },
-              ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
-            ]}
-            teamState={pipelineData?.teamState}
-            onReset={() => {
-              skipPersistRef.current = true;
-              localStorage.removeItem(`recruiting-filters-${id}`);
-              setPositionFilter("all");
-              setStarFilter("all");
-              setTypeFilter("all");
-              setStateFilter("all");
-              setSortBy("classRank");
-              setShowWatchlistOnly(false);
-              setShowTopAvailable(false);
-              setShowTeamNeeds(false);
-              setShowPipeline(false);
-              setShowContested(false);
-              setShowStory(false);
-              setShowOfferedOnly(false);
-              setShowInStateOnly(false);
-              setShowAffordableOnly(false);
-              setShowHighRivalPressure(false);
-              setShowFilterSheet(false);
-            }}
-          />
-        </>
-      ) : (
-      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-        <RecruitingCommandCenter
-          recruitingData={data}
-          battlesData={battlesData}
-          pipelineData={pipelineData}
-          recommendationsData={recommendationsData}
-          allRecruits={data?.recruits ?? []}
-          onSelectRecruit={setSelectedRecruit}
-        />
-        {recommendationsData && (
-          <RetroCard className="mb-6">
-            <button
-              type="button"
-              className="w-full flex items-center justify-between gap-2 py-1"
-              onClick={toggleWeeklyPlan}
-              data-testid="button-toggle-weekly-plan"
-            >
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-gold" />
-                <span className="text-xs font-semibold text-gold">WEEKLY RECRUITING PLAN</span>
-                {recommendationsData.weeklyPlan.highRisk.length > 0 && (
-                  <span className="text-xs text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
-                    {recommendationsData.weeklyPlan.highRisk.length} at risk
-                  </span>
-                )}
-              </div>
-              {showWeeklyPlan ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-            </button>
-            {showWeeklyPlan && (
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <WeeklyPlanSection
-                  title="Top Actions"
-                  icon={<Target className="w-3.5 h-3.5 text-gold" />}
-                  items={recommendationsData.weeklyPlan.topActions}
-                  emptyLabel="No priority actions this week"
-                  onItemClick={scrollToRecruit}
-                />
-                <WeeklyPlanSection
-                  title="High-Risk Recruits"
-                  icon={<AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
-                  items={recommendationsData.weeklyPlan.highRisk}
-                  emptyLabel="No recruits currently at risk"
-                  onItemClick={scrollToRecruit}
-                />
-                <WeeklyPlanSection
-                  title="Soon to Commit"
-                  icon={<CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
-                  items={recommendationsData.weeklyPlan.soonToCommit}
-                  emptyLabel="No recruits close to committing"
-                  onItemClick={scrollToRecruit}
-                />
-                <WeeklyPlanSection
-                  title="Slipping Away"
-                  icon={<TrendingDown className="w-3.5 h-3.5 text-orange-400" />}
-                  items={recommendationsData.weeklyPlan.slippingAway}
-                  emptyLabel="No recruits slipping away"
-                  onItemClick={scrollToRecruit}
-                />
-                {recommendationsData.weeklyPlan.uncoveredNeeds.length > 0 && (
-                  <div className="md:col-span-2 border-t border-border pt-2">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Uncovered Position Needs</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {recommendationsData.weeklyPlan.uncoveredNeeds.map((pos) => (
-                        <Badge key={pos} variant="outline" className="text-xs border-red-500/50 text-red-400" data-testid={`badge-uncovered-need-${pos}`}>
-                          {pos}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </RetroCard>
-        )}
-        <RetroCard className="mb-6">
+        <RetroCard className="mb-4 c9-search-tools">
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <RetroInput
                 placeholder="Search recruits..."
+                aria-label="Find a recruit"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 w-full"
@@ -1034,6 +823,7 @@ export default function RecruitingPage() {
               />
             </div>
 
+            <details className="c9-recruit-filters"><summary>Filters, sorting and board presets</summary>
             {/* Mobile: compact filter trigger row */}
             {(() => {
               const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0) + (showTeamNeeds ? 1 : 0) + (showPipeline ? 1 : 0) + (showContested ? 1 : 0) + (showStory ? 1 : 0);
@@ -1123,9 +913,9 @@ export default function RecruitingPage() {
               <div>
                 <p className="text-xs font-semibold text-gold mb-2">VIEWS</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <RetroButton 
-                    variant={showWatchlistOnly ? "primary" : "outline"} 
-                    size="sm" 
+                  <RetroButton
+                    variant={showWatchlistOnly ? "primary" : "outline"}
+                    size="sm"
                     onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
                     className="w-full justify-center"
                     data-testid="button-watchlist-filter"
@@ -1252,7 +1042,8 @@ export default function RecruitingPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-border/50">
+            </details>
+            <div className="c9-results-count text-muted-foreground">
               <span className="text-sm text-muted-foreground">
                 {filteredRecruits.length} recruits found
               </span>
@@ -1322,11 +1113,11 @@ export default function RecruitingPage() {
               }}
             />
           </div>
-          
+
           {showTeamNeeds && data?.nextYearDepth && (
-            <TeamNeedsIndicator 
-              nextYearDepth={data.nextYearDepth} 
-              nextYearRosterSize={data.nextYearRosterSize} 
+            <TeamNeedsIndicator
+              nextYearDepth={data.nextYearDepth}
+              nextYearRosterSize={data.nextYearRosterSize}
               seniorsGraduating={data.seniorsGraduating}
               positionFilter={positionFilter}
               onPositionClick={(pos) => setPositionFilter(positionFilter === pos ? "all" : pos)}
@@ -1382,6 +1173,165 @@ export default function RecruitingPage() {
           )}
         </RetroCard>
 
+
+        <div className="c9-ledger-heading"><h2>Recruit board</h2><span>Public rating · scouting knowledge · your interest</span></div>
+        <div ref={recruitListRef} className="c9-recruit-list">
+            {pageRecruits.map(recruit => (
+                <div key={recruit.id}>
+                  <RecruitRow
+                    compact
+                    onInspect={() => setSelectedRecruit(recruit)}
+                    recruit={recruit}
+                    leagueId={id!}
+                    onTarget={() => targetMutation.mutate(recruit.id, targetCallbacks)}
+                    onScout={() => scoutMutation.mutate(recruit.id, scoutCallbacks)}
+                    onPhone={(pitchTopic?: string) => phoneMutation.mutate({ recruitId: recruit.id, pitchTopic }, phoneCallbacks)}
+                    onEmail={(pitchTopic?: string) => emailMutation.mutate({ recruitId: recruit.id, pitchTopic }, emailCallbacks)}
+                    onVisit={() => visitMutation.mutate(recruit.id, visitCallbacks)}
+                    onHeadCoachVisit={() => headCoachVisitMutation.mutate(recruit.id, headCoachVisitCallbacks)}
+                    onOffer={() => offerMutation.mutate(recruit.id, offerCallbacks)}
+                    onSaveNotes={(notes) => notesMutation.mutateAsync({ recruitId: recruit.id, notes })}
+                    onSetBoardRank={(boardRank) => boardRankMutation.mutate({ recruitId: recruit.id, boardRank })}
+                    onToggleCompare={() => toggleCompare(recruit)}
+                    isTargeting={targetMutation.isPending}
+                    isScouting={scoutMutation.isPending}
+                    isPhoning={phoneMutation.isPending}
+                    isEmailing={emailMutation.isPending}
+                    isVisiting={visitMutation.isPending}
+                    isHeadCoachVisiting={headCoachVisitMutation.isPending}
+                    isOffering={offerMutation.isPending}
+                    hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
+                    hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
+                    phonedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false)}
+                    emailedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false)}
+                    isSavingNotes={notesMutation.isPending}
+                    isSavingBoardRank={boardRankMutation.isPending}
+                    isSelected={compareRecruits.some(r => r.id === recruit.id)}
+                    trend={trendsData?.trends?.[recruit.id]}
+                    userTeamId={data?.team?.id}
+                    recommendation={recommendationsByRecruit.get(recruit.id)}
+                    positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
+                    isStorylineRecruit={storylineRecruitIds.has(recruit.id)}
+                    outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
+                    remainingPoints={data?.remainingPoints ?? 0}
+                    visitCost={data?.recruitPointCosts?.[recruit.id]?.visit ?? 2}
+                    headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
+                    outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
+                    progressionEnabled={leagueData?.progressionEnabled}
+                    nilRemaining={nilRemaining}
+                    seasonVisitCapReached={(data?.economy?.visits?.totalUsed ?? data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits?.totalCap ?? Infinity)}
+                    visitCap={data?.economy?.visits?.totalCap}
+                    economy={data?.economy}
+                  />
+                </div>
+            ))}
+        </div>
+        <nav className="c9-recruit-pagination" aria-label="Recruit board pages"><RetroButton variant="outline" disabled={currentPage === 0} onClick={() => { setBoardPage(currentPage - 1); requestAnimationFrame(() => { const first = recruitListRef.current?.querySelector<HTMLElement>("button"); first?.focus(); first?.scrollIntoView({ block: "center" }); }); }}>Previous</RetroButton><span aria-live="polite">Page {currentPage + 1} of {pageCount} · {filteredRecruits.length} recruits</span><RetroButton variant="outline" disabled={currentPage + 1 >= pageCount} onClick={() => { setBoardPage(currentPage + 1); requestAnimationFrame(() => { const first = recruitListRef.current?.querySelector<HTMLElement>("button"); first?.focus(); first?.scrollIntoView({ block: "center" }); }); }}>Next</RetroButton></nav>
+
+        {filteredRecruits.length === 0 && (
+          <RetroCard variant="bordered" className="text-center py-12">
+            {showWatchlistOnly ? (
+              <>
+                <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">No recruits on your watchlist</p>
+                <p className="text-xs text-muted-foreground">Click the target icon on any recruit to add them</p>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setShowWatchlistOnly(false)}
+                  data-testid="button-clear-watchlist-filter"
+                >
+                  Show All Recruits
+                </RetroButton>
+              </>
+            ) : (
+              <>
+                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No recruits match your filters</p>
+              </>
+            )}
+          </RetroCard>
+        )}
+<details className="c9-recruit-intel"><summary>Weekly intelligence · battles, needs and recommendations</summary>
+        <RecruitingCommandCenter
+          recruitingData={data}
+          battlesData={battlesData}
+          pipelineData={pipelineData}
+          recommendationsData={recommendationsData}
+          allRecruits={data?.recruits ?? []}
+          onSelectRecruit={setSelectedRecruit}
+        />
+        {recommendationsData && (
+          <RetroCard className="mb-6">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between gap-2 py-1"
+              onClick={toggleWeeklyPlan}
+              data-testid="button-toggle-weekly-plan"
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-gold" />
+                <span className="text-xs font-semibold text-gold">WEEKLY RECRUITING PLAN</span>
+                {recommendationsData.weeklyPlan.highRisk.length > 0 && (
+                  <span className="text-xs text-red-400 border border-red-500/40 rounded px-1.5 py-0.5">
+                    {recommendationsData.weeklyPlan.highRisk.length} at risk
+                  </span>
+                )}
+              </div>
+              {showWeeklyPlan ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+            {showWeeklyPlan && (
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <WeeklyPlanSection
+                  title="Top Actions"
+                  icon={<Target className="w-3.5 h-3.5 text-gold" />}
+                  items={recommendationsData.weeklyPlan.topActions}
+                  emptyLabel="No priority actions this week"
+                  onItemClick={scrollToRecruit}
+                />
+                <WeeklyPlanSection
+                  title="High-Risk Recruits"
+                  icon={<AlertTriangle className="w-3.5 h-3.5 text-red-400" />}
+                  items={recommendationsData.weeklyPlan.highRisk}
+                  emptyLabel="No recruits currently at risk"
+                  onItemClick={scrollToRecruit}
+                />
+                <WeeklyPlanSection
+                  title="Soon to Commit"
+                  icon={<CheckCircle className="w-3.5 h-3.5 text-emerald-400" />}
+                  items={recommendationsData.weeklyPlan.soonToCommit}
+                  emptyLabel="No recruits close to committing"
+                  onItemClick={scrollToRecruit}
+                />
+                <WeeklyPlanSection
+                  title="Slipping Away"
+                  icon={<TrendingDown className="w-3.5 h-3.5 text-orange-400" />}
+                  items={recommendationsData.weeklyPlan.slippingAway}
+                  emptyLabel="No recruits slipping away"
+                  onItemClick={scrollToRecruit}
+                />
+                {recommendationsData.weeklyPlan.uncoveredNeeds.length > 0 && (
+                  <div className="md:col-span-2 border-t border-border pt-2">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Uncovered Position Needs</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recommendationsData.weeklyPlan.uncoveredNeeds.map((pos) => (
+                        <Badge key={pos} variant="outline" className="text-xs border-red-500/50 text-red-400" data-testid={`badge-uncovered-need-${pos}`}>
+                          {pos}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </RetroCard>
+        )}
+        </details>
+<details className="c9-recruit-intel"><summary>Class reports and activity history</summary>
         {/* Class Rankings Panel — shown after signing day completes */}
         {isPostSigningDay && classRankingsData?.snapshots && classRankingsData.snapshots.length > 0 && (() => {
           const snaps = classRankingsData.snapshots;
@@ -1851,109 +1801,16 @@ export default function RecruitingPage() {
           </div>
         )}
 
-        <div ref={recruitListRef}>
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              position: "relative",
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const recruit = filteredRecruits[virtualItem.index];
-              if (!recruit) return null;
-              return (
-                <div
-                  key={recruit.id}
-                  id={`recruit-card-${recruit.id}`}
-                  data-index={virtualItem.index}
-                  ref={virtualizer.measureElement}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualItem.start - virtualizer.options.scrollMargin}px)`,
-                    paddingBottom: "12px",
-                  }}
-                >
-                  <RecruitRow
-                    recruit={recruit}
-                    leagueId={id!}
-                    onTarget={() => targetMutation.mutate(recruit.id, targetCallbacks)}
-                    onScout={() => scoutMutation.mutate(recruit.id, scoutCallbacks)}
-                    onPhone={(pitchTopic?: string) => phoneMutation.mutate({ recruitId: recruit.id, pitchTopic }, phoneCallbacks)}
-                    onEmail={(pitchTopic?: string) => emailMutation.mutate({ recruitId: recruit.id, pitchTopic }, emailCallbacks)}
-                    onVisit={() => visitMutation.mutate(recruit.id, visitCallbacks)}
-                    onHeadCoachVisit={() => headCoachVisitMutation.mutate(recruit.id, headCoachVisitCallbacks)}
-                    onOffer={() => offerMutation.mutate(recruit.id, offerCallbacks)}
-                    onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
-                    onSetBoardRank={(boardRank) => boardRankMutation.mutate({ recruitId: recruit.id, boardRank })}
-                    onToggleCompare={() => toggleCompare(recruit)}
-                    isTargeting={targetMutation.isPending}
-                    isScouting={scoutMutation.isPending}
-                    isPhoning={phoneMutation.isPending}
-                    isEmailing={emailMutation.isPending}
-                    isVisiting={visitMutation.isPending}
-                    isHeadCoachVisiting={headCoachVisitMutation.isPending}
-                    isOffering={offerMutation.isPending}
-                    hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
-                    hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
-                    phonedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false)}
-                    emailedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false)}
-                    isSavingNotes={notesMutation.isPending}
-                    isSavingBoardRank={boardRankMutation.isPending}
-                    isSelected={compareRecruits.some(r => r.id === recruit.id)}
-                    trend={trendsData?.trends?.[recruit.id]}
-                    userTeamId={data?.team?.id}
-                    recommendation={recommendationsByRecruit.get(recruit.id)}
-                    positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
-                    isStorylineRecruit={storylineRecruitIds.has(recruit.id)}
-                    outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
-                    remainingPoints={data?.remainingPoints ?? 0}
-                    visitCost={data?.recruitPointCosts?.[recruit.id]?.visit ?? 2}
-                    headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
-                    outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
-                    progressionEnabled={leagueData?.progressionEnabled}
-                    nilRemaining={nilRemaining}
-                    seasonVisitCapReached={(data?.economy?.visits?.totalUsed ?? data?.seasonVisitCount?.total ?? 0) >= (data?.economy?.visits?.totalCap ?? Infinity)}
-                    visitCap={data?.economy?.visits?.totalCap}
-                    economy={data?.economy}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {filteredRecruits.length === 0 && (
-          <RetroCard variant="bordered" className="text-center py-12">
-            {showWatchlistOnly ? (
-              <>
-                <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">No recruits on your watchlist</p>
-                <p className="text-xs text-muted-foreground">Click the target icon on any recruit to add them</p>
-                <RetroButton 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4"
-                  onClick={() => setShowWatchlistOnly(false)}
-                  data-testid="button-clear-watchlist-filter"
-                >
-                  Show All Recruits
-                </RetroButton>
-              </>
-            ) : (
-              <>
-                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No recruits match your filters</p>
-              </>
-            )}
-          </RetroCard>
-        )}
+        </details>
       </main>
-      )}
 
       <RecruitDetailModal
+        outOfScoutActions={(data?.remainingScoutPoints ?? 0) <= 0}
+        phonedThisWeek={!!selectedRecruit && weekDataFresh && !!data?.weeklyActionsUsed?.[selectedRecruit.id]?.includes("phone")}
+        emailedThisWeek={!!selectedRecruit && weekDataFresh && !!data?.weeklyActionsUsed?.[selectedRecruit.id]?.includes("email")}
+        campusCapReached={!!data?.economy && data.economy.visits.campusUsed >= data.economy.visits.campusCap}
+        headCoachCapReached={!!data?.economy && data.economy.visits.headCoachUsed >= data.economy.visits.headCoachCap}
+        onReturnFocus={() => requestAnimationFrame(() => recruitTrigger.current?.focus())}
         recruit={selectedRecruit}
         onClose={() => setSelectedRecruit(null)}
         leagueId={id!}
@@ -2024,57 +1881,7 @@ export default function RecruitingPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!actionResultModal} onOpenChange={() => setActionResultModal(null)}>
-        <DialogContent className="max-w-sm border-2 border-[#1a3a1a] bg-[#0d1f0d]" data-testid="action-result-modal">
-          <div className="flex flex-col items-center gap-4 py-4">
-            {actionResultModal?.type === "success" ? (
-              actionResultModal.icon === "scout" ? (
-                <ActionResultFlipIcon
-                  back={<Eye className="h-7 w-7 text-[#c8aa6e]" />}
-                  key={modalRevealKey}
-                />
-              ) : (
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a] tap-pulse"
-                  key={actionResultModal.title}
-                  data-haptic={
-                    actionResultModal.icon === "offer" ? "success" :
-                    actionResultModal.icon === "visit" || actionResultModal.icon === "coach" ? "success" : "light"
-                  }
-                >
-                  {actionResultModal.icon === "phone" && <Phone className="h-7 w-7 text-[#c8aa6e]" />}
-                  {actionResultModal.icon === "email" && <Mail className="h-7 w-7 text-[#c8aa6e]" />}
-                  {actionResultModal.icon === "visit" && <Building2 className="h-7 w-7 text-[#c8aa6e]" />}
-                  {actionResultModal.icon === "coach" && <Crown className="h-7 w-7 text-[#c8aa6e]" />}
-                  {actionResultModal.icon === "offer" && <GraduationCap className="h-7 w-7 text-[#c8aa6e]" />}
-                  {actionResultModal.icon === "check" && <CheckCircle className="h-7 w-7 text-green-400" />}
-                  {!actionResultModal.icon && <CheckCircle className="h-7 w-7 text-green-400" />}
-                </div>
-              )
-            ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-900/30">
-                <XCircle className="h-7 w-7 text-red-400" />
-              </div>
-            )}
-            <div className="text-center">
-              <h3 className="font-display text-sm text-[#c8aa6e]" data-testid="action-result-title">
-                {actionResultModal?.title}
-              </h3>
-              <p className="mt-2 text-sm text-gray-300" data-testid="action-result-description">
-                {actionResultModal?.description}
-              </p>
-            </div>
-            <RetroButton
-              onClick={() => setActionResultModal(null)}
-              className="mt-2"
-              data-haptic="light"
-              data-testid="action-result-dismiss"
-            >
-              OK
-            </RetroButton>
-          </div>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Auto-Pilot / CPU Fill-In Return Alert — unread entries only */}
       <Dialog open={showAutoPilotLog} onOpenChange={(open) => { if (!open) dismissAutoPilotLogMutation.mutate(); }}>
@@ -2141,9 +1948,9 @@ export default function RecruitingPage() {
       </Dialog>
 
       {compareRecruits.length > 0 && (
-        <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card border border-gold rounded-lg shadow-lg p-3 flex items-center gap-4 z-50" data-testid="compare-bar">
+        <div className="c9-recruit-compare bg-card border border-gold rounded-lg p-3 flex flex-wrap items-center gap-4" data-testid="compare-bar">
           <span className="text-xs font-semibold text-gold">COMPARE:</span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             {compareRecruits.map((r) => (
               <div key={r.id} className="flex items-center gap-1 bg-background/50 px-2 py-1 rounded">
                 <span className="text-xs">{r.firstName} {r.lastName}</span>

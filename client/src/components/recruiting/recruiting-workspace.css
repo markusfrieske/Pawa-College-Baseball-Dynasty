@@ -1,0 +1,36 @@
+.c9-resource-strip { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; border-top:1px solid hsl(var(--border)); padding-top:12px; }
+.c9-recruit-intel,.c9-recruit-filters { border-bottom:1px solid hsl(var(--border)); margin-bottom:14px; }
+.c9-recruit-intel>summary,.c9-recruit-filters>summary { min-height:44px; padding:12px 0; font-size:13px; color:hsl(var(--primary)); cursor:pointer; }
+.c9-recruit-intel[open]>summary,.c9-recruit-filters[open]>summary { margin-bottom:12px; }
+.c9-ledger-heading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:20px 0 10px; }
+.c9-ledger-heading h2 { font:600 22px var(--font-display); }
+.c9-ledger-heading span,.c9-ledger-label { font-size:11px; color:hsl(var(--muted-foreground)); }
+.c9-recruit-list { display:grid; gap:8px; }
+.c9-search-tools { padding:12px; }
+.c9-search-tools>.space-y-4 { display:grid; grid-template-columns:minmax(180px,1fr) auto; gap:8px 16px; align-items:start; }
+.c9-search-tools>.space-y-4>* { margin:0; }
+.c9-search-tools .c9-recruit-filters { border:0; }
+.c9-search-tools .c9-recruit-filters[open] { grid-column:1 / -1; grid-row:2; }
+.c9-results-count { grid-column:1 / -1; font-size:12px; }
+.c9-recruit-list>[data-testid],.c9-recruit-list>div>div { padding:12px 16px; }
+.c9-recruit-summary { display:grid; grid-template-columns:minmax(180px,2fr) minmax(110px,1fr) minmax(130px,1fr) 112px; gap:16px; align-items:center; }
+.c9-recruit-summary strong { display:block; font-size:13px; }
+.c9-recruit-summary small { display:block; font-size:11px; color:hsl(var(--muted-foreground)); margin-top:4px; }
+.c9-recruit-identity { text-align:left; min-height:44px; overflow-wrap:anywhere; }
+.c9-recruit-identity strong { font-size:15px; }
+.c9-recruit-manage { border:1px solid hsl(var(--border)); border-radius:4px; min-height:44px; font-size:12px; color:hsl(var(--primary)); padding:6px; }
+.c9-recruit-tray { margin-top:16px; border-top:1px solid hsl(var(--border)); padding-top:16px; }
+.c9-recruit-tray[hidden] { display:none; }
+.c9-recruit-pagination { display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; margin:20px 0; font-size:12px; }
+.c9-action-receipt { display:flex; justify-content:space-between; gap:16px; border-left:3px solid hsl(var(--primary)); background:hsl(var(--card)); padding:12px; margin-bottom:16px; font-size:13px; }
+.c9-action-receipt[role=alert] { border-color:#e89c83; }
+.c9-action-receipt button { min-height:44px; color:hsl(var(--primary)); }
+.c9-recruiting-workspace button:focus-visible,.c9-recruiting-workspace summary:focus-visible { outline:2px solid hsl(var(--primary)); outline-offset:3px; }
+@media(max-width:760px) {
+  .c9-search-tools>.space-y-4 { grid-template-columns:minmax(0,1fr); }
+  .c9-resource-strip { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .c9-recruit-summary { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+  .c9-recruit-identity { grid-column:1 / -1; }
+  .c9-recruit-manage { grid-column:1 / -1; }
+  .c9-recruit-list>div>div { padding:12px; }
+}

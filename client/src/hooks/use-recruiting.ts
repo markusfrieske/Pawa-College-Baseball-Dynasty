@@ -384,8 +384,8 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
 
   const clearAutoPilotAlert = useMutation({
     mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/recruiting/clear-autopilot-alert`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
     },
   });
 
@@ -394,8 +394,8 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/my-team/auto-pilot-log/dismiss`, {});
       return res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "my-team/auto-pilot-log"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "my-team/auto-pilot-log"] });
     },
   });
 
@@ -408,7 +408,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
         classData,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({ title: "Class Saved", description: "Recruiting class saved to your dashboard." });
     },
     onError: () => {
@@ -421,9 +421,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/scout`, {});
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
     },
   });
 
@@ -432,9 +432,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/target`, {});
       return await res.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "pipeline"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "pipeline"] });
     },
   });
 
@@ -442,8 +442,8 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
     mutationFn: async ({ recruitId, notes }: { recruitId: string; notes: string }) => {
       return apiRequest("PATCH", `/api/leagues/${leagueId}/recruiting/${recruitId}/notes`, { notes });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
       toast({ title: "Notes saved", description: "Your notes have been updated." });
     },
     onError: (error: Error) => {
@@ -455,8 +455,8 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
     mutationFn: async ({ recruitId, boardRank }: { recruitId: string; boardRank: number | null }) => {
       return apiRequest("PATCH", `/api/leagues/${leagueId}/recruiting/${recruitId}/board-rank`, { boardRank });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -469,7 +469,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/phone`, { pitchTopics });
       return await res.json();
     },
-    onSuccess: (data: any, variables: { recruitId: string; pitchTopic?: string }) => {
+    onSuccess: async (data: any, variables: { recruitId: string; pitchTopic?: string }) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const weeklyActionsUsed = { ...old.weeklyActionsUsed };
@@ -494,9 +494,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
           ...(economy !== old.economy && { economy }),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
     },
   });
 
@@ -505,7 +505,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/email`, { pitchTopic });
       return await res.json();
     },
-    onSuccess: (data: any, variables: { recruitId: string; pitchTopic?: string }) => {
+    onSuccess: async (data: any, variables: { recruitId: string; pitchTopic?: string }) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const weeklyActionsUsed = { ...old.weeklyActionsUsed };
@@ -530,9 +530,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
           ...(economy !== old.economy && { economy }),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
     },
   });
 
@@ -541,7 +541,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/visit`, {});
       return await res.json();
     },
-    onSuccess: (data: any, recruitId: string) => {
+    onSuccess: async (data: any, recruitId: string) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const premiumActionsUsed = { ...old.premiumActionsUsed };
@@ -577,9 +577,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
           economy,
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
     },
   });
 
@@ -588,7 +588,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/head-coach-visit`, {});
       return await res.json();
     },
-    onSuccess: (data: any, recruitId: string) => {
+    onSuccess: async (data: any, recruitId: string) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const premiumActionsUsed = { ...old.premiumActionsUsed };
@@ -624,9 +624,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
           economy,
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
     },
   });
 
@@ -635,7 +635,7 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/${recruitId}/offer`, {});
       return await res.json();
     },
-    onSuccess: (data: any, recruitId: string) => {
+    onSuccess: async (data: any, recruitId: string) => {
       queryClient.setQueryData(["/api/leagues", leagueId, "recruiting"], (old: any) => {
         if (!old) return old;
         const recruits = old.recruits.map((r: any) =>
@@ -658,9 +658,9 @@ export function useRecruitingActions(leagueId: string, currentWeek?: number, cur
           ...(economy !== old.economy && { economy }),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting-history"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting", "recommendations"] });
     },
   });
 
