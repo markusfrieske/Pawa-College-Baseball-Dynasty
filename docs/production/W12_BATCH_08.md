@@ -43,3 +43,7 @@ Frisk requested red binary notches and less empty space so another break pitch f
 ### Seven-pitch row
 
 Frisk requested room for one more pitch. Break tiles narrowed from155px to140px; binary tiles remain70px. Added a level3 sinker only to the synthetic review player. Browser measurement confirms seven pitches on one row with no tile overflow; final screenshot inspected. Production build passes. Existing regression fixture expectations updated to seven; full database suite not rerun for this CSS sizing change.
+
+### Full-width repertoire balance
+
+Frisk requested that the repertoire reach the card's right edge. Breaking-pitch tiles now grow evenly into available row space, and their seven-segment bars fill each tile. Binary tiles remain compact at 70px with one red notch. Built-game browser measurements confirm seven pitches on one row, widths 70/70/158/158/158/158/158px, and zero gap between the final tile and the row's right edge. Screenshot visually inspected; production build passes. Full database suite not rerun for this CSS-only refinement.
