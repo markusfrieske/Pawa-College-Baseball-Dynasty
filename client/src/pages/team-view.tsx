@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { getPotentialGrade } from "@shared/potential";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -69,6 +70,7 @@ export default function TeamViewPage() {
   const { id, teamId } = useParams<{ id: string; teamId: string }>();
   const [, setLocation] = useLocation();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const profileTrigger = useRef<HTMLElement|null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -207,7 +209,7 @@ export default function TeamViewPage() {
           </TabsContent>
 
           <TabsContent value="roster">
-            <RosterTab team={team} onSelectPlayer={setSelectedPlayer} />
+            <RosterTab team={team} onSelectPlayer={player=>{profileTrigger.current=document.activeElement as HTMLElement;setSelectedPlayer(player)}} />
           </TabsContent>
 
           <TabsContent value="coaches">
@@ -226,6 +228,9 @@ export default function TeamViewPage() {
 
       {selectedPlayer && (
         <PlayerProfileCard
+          completeFront
+          onReturnFocus={()=>requestAnimationFrame(()=>profileTrigger.current?.focus())}
+          teamPrimaryColor={team.primaryColor}
           player={{
             ...selectedPlayer,
             bats: (selectedPlayer as Player & { batHand?: string }).batHand,
@@ -899,16 +904,17 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer: (player: Player) => void }) {
   const players = team.players || [];
 
-  const pitchers = players.filter(p => p.position === "P").sort((a, b) => b.overall - a.overall);
+  const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
   const catchers = players.filter(p => p.position === "C").sort((a, b) => b.overall - a.overall);
   const infielders = players.filter(p => ["1B", "2B", "SS", "3B"].includes(p.position)).sort((a, b) => b.overall - a.overall);
-  const outfielders = players.filter(p => ["LF", "CF", "RF"].includes(p.position)).sort((a, b) => b.overall - a.overall);
+  const outfielders = players.filter(p => ["OF", "LF", "CF", "RF"].includes(p.position)).sort((a, b) => b.overall - a.overall);
 
   const positionGroups = [
     { label: "Pitchers", players: pitchers },
     { label: "Catchers", players: catchers },
     { label: "Infielders", players: infielders },
     { label: "Outfielders", players: outfielders },
+    { label: "Other roles", players: players.filter(p=>![...pitchers,...catchers,...infielders,...outfielders].some(known=>known.id===p.id)) },
   ];
 
   return (
@@ -929,6 +935,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                   <th className="text-center py-3 px-2">Pos</th>
                   <th className="text-center py-3 px-2">Year</th>
                   <th className="text-center py-3 px-2">OVR</th>
+                  <th className="text-center py-3 px-2">Potential</th>
                   <th className="text-center py-3 px-2">Rank</th>
                   <th className="text-center py-3 px-2">B/T</th>
                   <th className="text-left py-3 px-2 hidden sm:table-cell">Hometown</th>
@@ -944,7 +951,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                   >
                     <td className="py-3 px-2 text-muted-foreground">{player.jerseyNumber}</td>
                     <td className="py-3 px-2 font-medium">
-                      {player.firstName} {player.lastName}
+                      <button type="button" className="text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold" onClick={event=>{event.stopPropagation();onSelectPlayer(player)}}>{player.firstName} {player.lastName}</button>
                     </td>
                     <td className="text-center py-3 px-2">
                       <Badge variant="outline" className="text-xs">
@@ -957,6 +964,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                     <td className="text-center py-3 px-2">
                       <span className="font-bold text-gold">{player.overall}</span>
                     </td>
+                    <td className="text-center py-3 px-2">{player.potential==null?"—":getPotentialGrade(player.potential)}</td>
                     <td className="text-center py-3 px-2">
                       <span className={`text-xs font-semibold ${
                         player.starRating >= 4

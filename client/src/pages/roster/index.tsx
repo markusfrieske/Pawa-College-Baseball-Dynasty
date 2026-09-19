@@ -290,6 +290,7 @@ export default function RosterPage() {
 
       {selectedPlayer && (
         <PlayerProfileCard
+          completeFront
           player={{
             ...selectedPlayer,
             bats: selectedPlayer.batHand,

@@ -1,3 +1,4 @@
+import { PlayerCardFront } from "./player-card-front";
 import { useState, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -108,6 +109,7 @@ function DeltaArrow({ delta }: { delta: number }) {
 }
 
 interface PlayerProfileCardProps {
+  completeFront?: boolean;
   player: Player;
   open: boolean;
   onClose: () => void;
@@ -252,9 +254,10 @@ const positionColors: Record<string, string> = {
 };
 
 
-export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId, onUpdate, onReturnFocus }: PlayerProfileCardProps) {
+export function PlayerProfileCard({ completeFront = false, player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId, onUpdate, onReturnFocus }: PlayerProfileCardProps) {
   const isMobile = useIsMobile();
   const [editOpen, setEditOpen] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
   const isPitcher = getIsPitcher(player.position);
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
@@ -392,6 +395,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
   const cardContent = (
     <>
+        {completeFront ? <PlayerCardFront key={player.id} player={player} leagueId={leagueId} teamColor={teamPrimaryColor}/> : <>
         {/* Name, Bio & Details Section */}
         <div
           className="p-4 border-b border-border relative overflow-hidden"
@@ -670,6 +674,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           <CareerStatsSection playerId={player.id} leagueId={leagueId} />
         )}
 
+        </>}
         {/* Edit Stats Panel (roster-viewer custom roster editing) */}
         {onUpdate && (
           <div className="border-b border-border">
@@ -835,7 +840,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
         <div className="p-4 space-y-2">
           {/* Draft Declaration Button */}
           {canDeclareDraft && onDeclareDraft && !player.declaredForDraft && (
-            <AlertDialog>
+            <AlertDialog open={draftOpen} onOpenChange={setDraftOpen}>
               <AlertDialogTrigger asChild>
                 <RetroButton
                   variant="outline"
@@ -847,7 +852,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                   {isDeclaringDraft ? "Declaring..." : "Declare for MLB Draft"}
                 </RetroButton>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-card border-border">
+              <AlertDialogContent className="bg-card border-border" onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setDraftOpen(false); } }} onEscapeKeyDown={event => { event.preventDefault(); setDraftOpen(false); }}>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-gold text-sm">
                     Declare for MLB Draft?
@@ -888,7 +893,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     </>
   );
 
-  if (isMobile) {
+  if (isMobile && !completeFront) {
     return (
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent
@@ -910,7 +915,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent onKeyDown={e => { if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(e.target as Node)) { e.stopPropagation(); onClose(); } }} onCloseAutoFocus={onReturnFocus ? e => { e.preventDefault(); onReturnFocus(); } : undefined} className="bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] overflow-y-auto w-full sm:w-auto" data-testid="dialog-player-profile">
+      <DialogContent overlayClassName={completeFront ? "c9-card-overlay" : undefined} onKeyDown={e => { if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(e.target as Node)) { e.stopPropagation(); onClose(); } }} onCloseAutoFocus={onReturnFocus ? e => { e.preventDefault(); onReturnFocus(); } : undefined} className={completeFront ? "c9-profile-dialog overflow-y-auto gap-0" : "bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] overflow-y-auto w-full sm:w-auto"} data-testid="dialog-player-profile">
         <DialogHeader className="sr-only">
           <DialogTitle>Player Profile</DialogTitle>
           <DialogDescription>View player attributes and abilities</DialogDescription>

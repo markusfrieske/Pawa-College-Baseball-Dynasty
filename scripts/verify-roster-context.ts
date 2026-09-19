@@ -51,6 +51,8 @@ try {
     await pool.query("INSERT INTO coaches(id,user_id,team_id,league_id,first_name,last_name) VALUES($1,$2,$3,$4,'Test','Coach')",[role+"-coach",role,role+"-team",league]);
     await pool.query("INSERT INTO players(id,team_id,first_name,last_name,position,eligibility,home_state,hometown,jersey_number,overall,star_rating,power,grit,stamina,last_pitched_week,last_pitched_day,last_pitched_outs,pitching_role) VALUES($1,$2,'Test','Pitcher','SP','RS','IA','Test',12,550,4,0,NULL,60,7,'SUN',21,'SP1')",[role+"-player",role+"-team"]);
   }
+  await pool.query("INSERT INTO player_season_stats(id,player_id,player_name,team_id,league_id,season,position,games,ab,h,hbp,cs) VALUES('card-record','member-player','Test Pitcher','member-team','roster-context',7,'P',4,10,0,9,2)");
+  await pool.query("UPDATE players SET w_risp=50,abilities=$1 WHERE id='member-player'",[JSON.stringify(['Sangfroid'])]);
   app.use(express.json());
   app.use(session({secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false}));
   app.post("/__test/session",(req,res)=>{
@@ -151,7 +153,38 @@ try {
         await expect(page.getByTestId("button-development-view")).toBeVisible(); checks++;
         await page.getByTestId("link-player-"+role+"-player").click();
         if(canAssign){await expect(page.getByTestId('dialog-player-profile').locator('canvas[data-portrait-id="c9-face-02"]')).toBeVisible();checks++;}
-        const commissioner=role==="commissioner"||role==="co";
+        await expect(page.getByTestId('complete-player-card')).toBeVisible(); checks++;
+        await expect(page.getByTestId('card-rating-grit')).toHaveText('—'); checks++;
+        await expect(page.locator('.c9-card-pitches dt')).toHaveCount(18); checks++;
+        await expect(page.locator('.c9-card-stat-groups dt')).toHaveCount(43); checks++;
+        await expect(page.locator('.c9-card-bio')).toContainText('Test, IA'); checks++;
+        if(role==='member') {
+          await expect(page.getByTestId('card-stat-Batting-AB')).toHaveText('10'); checks++;
+          await expect(page.getByTestId('card-rating-wRISP')).toContainText('50'); checks++;
+          await expect(page.getByTestId('card-rating-wRISP')).toContainText('S effect'); checks++;
+          await page.getByRole('button',{name:'Sangfroid',exact:true}).focus(); await page.keyboard.press('Enter');
+          await expect(page.locator('.c9-card-ability-note')).toContainText('Sangfroid'); checks++;
+          await page.keyboard.press('Enter');
+          await expect(page.getByTestId('card-stat-Batting-AVG')).toHaveText('0.000'); checks++;
+          await expect(page.getByTestId('card-stat-Batting-HBP')).toHaveText('—'); checks++;
+          await expect(page.getByTestId('card-stat-Pitching-ERA')).toHaveText('—'); checks++;
+          for(const [width,height] of [[1280,720],[1366,768],[1920,1080],[2560,1440],[3440,1440]]) {
+            await page.setViewportSize({width,height});
+            const bounds=await page.getByTestId('complete-player-card').boundingBox();
+            check(!!bounds&&bounds.y>=0&&bounds.y+bounds.height<=height,'Complete card front fits '+width+'x'+height);
+          }
+          await page.screenshot({path:'.local-db/flat-card-runtime.png'});
+          await page.setViewportSize({width:1280,height:900});
+          await page.keyboard.press('Escape');
+          await page.route('**/players/member-player/career-stats',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic unavailable'})}));
+          await page.reload();await page.getByTestId('link-player-member-player').click();
+          await expect(page.getByRole('alert')).toContainText('Season record could not load');checks++;
+          await expect(page.getByTestId('card-stat-Batting-AB')).toHaveText('—');checks++;
+          await page.unroute('**/players/member-player/career-stats');
+          await page.getByRole('button',{name:'Retry statistics',exact:true}).click();
+          await expect(page.getByTestId('card-stat-Batting-AB')).toHaveText('10');checks++;
+        }
+        const commissioner=role==='commissioner'||role==='co';
         check(await page.getByTestId("button-edit-player").count()===(commissioner?1:0),"Edit matches server role "+role);
         check(await page.getByTestId("button-declare-draft").count()===1,"Own eligible draft control "+mode+" "+role);
         if(commissioner) {
@@ -192,6 +225,13 @@ try {
         }
         await page.goto(origin+"/league/roster-context/roster?view=depth&sub=pitching");
         await expect(page.getByTestId("avail-strip-"+role+"-player-FRI")).toContainText("IP"); checks++;
+        await page.goto(origin+'/league/roster-context/team/'+role+'-team');
+        await page.getByRole('tab',{name:'Roster',exact:true}).click();
+        const teamPlayer=page.getByTestId('row-player-'+role+'-player').getByRole('button');
+        await teamPlayer.focus();await page.keyboard.press('Enter');
+        await expect(page.getByTestId('complete-player-card')).toBeVisible();checks++;
+        await expect(page.locator('.c9-card-pitches dt')).toHaveCount(18);checks++;
+        await page.keyboard.press('Escape');await expect(teamPlayer).toBeFocused();checks++;
         check(errors.length===0,"No page runtime errors: "+errors.join("; "));
       } finally { await context.close(); }
     }

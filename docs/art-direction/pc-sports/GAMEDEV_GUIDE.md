@@ -1,5 +1,7 @@
 # Class of Nine — PC sports-game interface guide
 
+September 19 approved flat-card implementation: [W12 batch 08](../../production/W12_BATCH_08.md) integrates the reusable complete front into Roster and Team inspection. Flat fills only; no decorative gradients, bevels, shadows or outlines. Preserve PAWA core/common/ability colors and explicit unknown data. Wider Team composition, Recruiting and Arrival remain subsequent milestones.
+
 Latest manual direction: Frisk accepted the coaching mock compositions and explicitly approved Arrival, with arrival becoming the **first complete ratings and ability reveal**. Read [the information pass](research/COACHING_INFORMATION_PASS.md) before implementing these screens. It supersedes older unapproved-arrival language below. Known scouting details/ranges remain distinct from the complete arrival profile; production must enforce that boundary server-side.
 
 September 19: before further Roster, Team, Recruiting or Arrival art integration, read [the coaching-room follow-up](research/coaching-room.md) and review `coaching-lab.html`. Frisk requested richer coaching workflows and references to Eikan Nine 2026 and Hakkyu No Kiseki. These four new proposals are awaiting review; they do not authorize replacement of production rules or approve the cinematic.

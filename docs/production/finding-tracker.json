@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-09-18",
+  "updated": "2026-09-19",
   "branch": "codex/pawa-quality-overhaul",
   "auditedCommit": "8a1e113070c1e809da83cc66fc7eb84ffb9bec21",
   "schedule": "PRODUCTION_SCHEDULE.md",
@@ -754,7 +754,8 @@
         "docs/production/W12_BATCH_04.md",
         "docs/production/W12_BATCH_05.md",
         "docs/production/W12_BATCH_06.md",
-        "docs/production/W12_BATCH_07.md"
+        "docs/production/W12_BATCH_07.md",
+        "W12_BATCH_08.md"
       ],
       "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open.",
       "notes": " Frisk now specifies PC-only. The new research/atlas is design evidence only; replace web frame and implement individual screen compositions before claiming closure."
