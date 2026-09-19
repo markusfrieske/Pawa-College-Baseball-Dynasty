@@ -1,5 +1,9 @@
 # College Baseball Dynasty
 
+## Current product direction: Class of Nine
+
+Frisk approved the PC/Steam direction on September 18, 2026: preserve this React/TypeScript dynasty foundation, add approachable 2D playable baseball with Phaser, and plan Electron desktop packaging. Read [Class of Nine vision](docs/CLASS_OF_NINE_VISION.md) and [gameplay/dynasty integration plan](docs/GAMEPLAY_DYNASTY_PLAN.md) before new architecture or scope decisions. Playable baseball and offline desktop persistence are planned work, not implemented capabilities. The historical overview below describes the existing foundation; existing Power Pros companion workflows remain supported.
+
 ## Overview
 College Baseball Dynasty is a league-first, story-driven simulator where users manage college baseball programs. The project aims to provide a competitive environment for human coaches focusing on recruiting, roster management, and long-term program building within a retro pixel art aesthetic. The game envisions a robust multiplayer experience where coaches compete in a persistent league structure.
 

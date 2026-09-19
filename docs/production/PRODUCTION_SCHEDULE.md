@@ -1,5 +1,7 @@
 # Pawa quality overhaul — production schedule
 
+**September 18 product-direction update:** Frisk approved developing **Class of Nine as a PC game for Steam**, retaining the React/TypeScript dynasty system and adding Phaser playable baseball with planned Electron desktop packaging. The [approved vision](../CLASS_OF_NINE_VISION.md) and [gameplay integration plan](../GAMEPLAY_DYNASTY_PLAN.md) govern this direction. Existing integrity/remediation work remains foundational. Dates below are the historical audit baseline, not a Steam release commitment; scheduled development remains paused. The gameplay work starts with a small roster-to-result connection spike and batting prototype before expanding scope.
+
 **Planning baseline:** September 14–December 18, 2026. **Branch:** `codex/pawa-quality-overhaul`.
 
 **Scope:** Resolve all 42 findings in the [September 14 studio audit](../audits/2026-09-14/README.md), including the measurement and design work needed to resolve its balance hypotheses. Deliver a reliable Power Pros league companion and a coherent standalone text simulation. The detailed [implementation packets](../audits/2026-09-14/implementation-plan.md) remain the acceptance reference.
