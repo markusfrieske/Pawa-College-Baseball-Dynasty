@@ -273,6 +273,64 @@ try {
   await pool.query("DELETE FROM players WHERE id=$1",[original.rosterPlayerId]);
   const deleted=(await get('/arrival-scrapbook?season=1')).teamData.find((t:any)=>t.team.id==='member-team').recruits.find((r:any)=>r.id==='r1');check(deleted.rosterPlayerId===null&&deleted.overall===211,'Departed player retains original card without dead roster link');
   }
+  // Presentation stress fixture: intercepted archive response, not a claim of 25 real signings.
+  if(process.env.PAWA_TEST_ARCHIVE_FAILURE!=='1') {
+    const presentation=await context.newPage();
+    await presentation.addInitScript(()=>{
+      const Native=window.AudioContext;
+      const metrics={created:0,started:0,closed:0};(window as any).__arrivalAudio=metrics;
+      window.AudioContext=class extends Native {
+        constructor(){super();metrics.created++;}
+        createOscillator(){const osc=super.createOscillator();const start=osc.start.bind(osc);osc.start=(...args)=>{metrics.started++;start(...args);};return osc;}
+        close(){metrics.closed++;return super.close();}
+      };
+    });
+    const base=(await get('/arrival-scrapbook?season=1'));
+    const team=base.teamData.find((t:any)=>t.team.id==='member-team');
+    const seed=team.recruits[0];
+    let count=25;
+    await presentation.route('**/arrival-scrapbook*',route=>route.fulfill({json:{...base,teamData:[{...team,recruits:Array.from({length:count},(_,i)=>({...seed,id:'stress-'+i,firstName:'Athlete '+String(i).padStart(2,'0'),lastName:i===24?'Montgomery-Worthington-Santiago':'Example',rosterPlayerId:null}))}]}}));
+    await presentation.goto(origin+'/league/roster-context/signing-day-reveal?season=1');
+    await expect(presentation.locator('.c9-arrival-person')).toHaveCount(12);checks++;
+    check(await presentation.evaluate(()=>(window as any).__arrivalAudio.created)===0,'No audio context or autoplay on arrival');
+    await presentation.getByRole('button',{name:'Next sheet',exact:true}).focus();await presentation.keyboard.press('Enter');
+    await expect(presentation.getByRole('navigation',{name:'Class sheets'})).toContainText('Players 13–24 of 25');checks++;
+    await presentation.getByRole('button',{name:'Preview class keepsake PNG'}).click();await expect(presentation.locator('.c9-arrival-export')).toBeVisible({timeout:20000});checks++;
+    const download=presentation.waitForEvent('download');await presentation.getByRole('link',{name:'Download PNG'}).click();const file=await download;check(file.suggestedFilename().includes('sheet-2'),'Sheet identity in PNG filename');await file.saveAs(path.resolve('.local-db/arrival-class-sheet-2.png'));
+    await presentation.getByRole('button',{name:'Close preview'}).click();
+    await presentation.getByRole('button',{name:'Next sheet',exact:true}).click();await expect(presentation.locator('.c9-arrival-person')).toHaveCount(1);checks++;
+    await presentation.locator('.c9-arrival-person').screenshot({path:path.resolve('.local-db/arrival-long-name.png')});
+    await presentation.getByLabel('Find player').fill('Athlete 00');await expect(presentation.locator('.c9-arrival-person')).toHaveCount(1);await expect(presentation.getByRole('navigation',{name:'Class sheets'})).toContainText('Sheet 1 of 1');checks++;
+    await presentation.getByLabel('Find player').fill('');
+    await presentation.getByRole('button',{name:'Unmute game audio',exact:true}).click();
+    await presentation.getByLabel('Game volume').fill('30');
+    await presentation.getByRole('button',{name:'Preview welcome sound'}).click();
+    await expect.poll(()=>presentation.evaluate(()=>(window as any).__arrivalAudio.started)).toBeGreaterThan(0);checks++;
+    await presentation.getByRole('button',{name:'Mute game audio',exact:true}).click();
+    await expect.poll(()=>presentation.evaluate(()=>(window as any).__arrivalAudio.closed)).toBeGreaterThan(0);checks++;
+    const started=await presentation.evaluate(()=>(window as any).__arrivalAudio.started);
+    await presentation.getByRole('button',{name:'Meet this player'}).first().click();await expect(presentation.getByTestId('complete-player-card')).toBeVisible();checks++;
+    check(await presentation.evaluate(()=>(window as any).__arrivalAudio.started)===started,'Muted reduced-motion spotlight is silent');
+    await presentation.keyboard.press('Escape');await expect(presentation.getByRole('button',{name:'Replay spotlight'}).first()).toBeFocused();checks++;
+    await presentation.reload();await expect(presentation.getByRole('button',{name:'Unmute game audio',exact:true})).toBeVisible();checks++;
+    await expect(presentation.getByLabel('Game volume')).toHaveValue('30');checks++;
+    for(const n of [0,1,12,13]){count=n;await presentation.reload();await expect(presentation.locator('.c9-arrival-person')).toHaveCount(Math.min(12,n));checks++;}
+    count=25;await presentation.reload();await presentation.emulateMedia({reducedMotion:'no-preference'});
+    await presentation.getByRole('button',{name:'Meet this player'}).first().click();await expect(presentation.locator('.c9-arrival-stage')).toBeVisible();checks++;
+    await presentation.emulateMedia({reducedMotion:'reduce'});await expect(presentation.getByTestId('complete-player-card')).toBeVisible();checks++;
+    await presentation.keyboard.press('Escape');
+    await presentation.evaluate(()=>{document.documentElement.style.zoom='1.5';});check(await presentation.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Class scene fits at 150% scaling');
+    await presentation.evaluate(()=>{document.documentElement.style.zoom='1';});
+    await presentation.getByRole('button',{name:'Unmute game audio',exact:true}).click();
+    await presentation.evaluate(()=>{const proto=window.AudioContext.prototype;const resume=proto.resume;proto.resume=function(){return new Promise<void>(resolve=>setTimeout(()=>{if(this.state==='closed')resolve();else resume.call(this).then(resolve);},1800));};});
+    const prior=await presentation.evaluate(()=>(window as any).__arrivalAudio.started);
+    await presentation.getByRole('button',{name:'Preview welcome sound'}).click();await presentation.waitForTimeout(2000);
+    check(await presentation.evaluate(()=>(window as any).__arrivalAudio.started)===prior,'Delayed resume cannot start expired welcome cue');
+    await presentation.evaluate(()=>{window.AudioContext.prototype.resume=()=>Promise.reject(new Error('Synthetic audio denied'));});
+    await presentation.getByRole('button',{name:'Preview welcome sound'}).click();await expect(presentation.getByText('Audio unavailable. The complete reveal is still available.')).toBeVisible();checks++;
+    await presentation.getByRole('button',{name:'Meet this player'}).first().click();await expect(presentation.getByTestId('complete-player-card')).toBeVisible();checks++;
+    await presentation.close();
+  }
   // Retained preview opens directly into recorded Season1 while live Season2 has no fabricated class.
   await context.close();
   console.log('Scrapbook + disclosure + Arrival: '+checks+' real HTTP/PostgreSQL/browser checks passed.');

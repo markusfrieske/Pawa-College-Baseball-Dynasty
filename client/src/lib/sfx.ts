@@ -28,6 +28,7 @@ export function isSfxEnabled(): boolean {
 export function setSfxEnabled(enabled: boolean): void {
   try {
     localStorage.setItem(STORAGE_KEY_SFX_ENABLED, String(enabled));
+    window.dispatchEvent(new Event("c9-sfx-change"));
   } catch {}
 }
 

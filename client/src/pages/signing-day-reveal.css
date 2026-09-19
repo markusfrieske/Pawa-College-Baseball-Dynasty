@@ -42,3 +42,5 @@
 @media(prefers-reduced-motion:reduce){.c9-arrival-page *,.c9-arrival-page *::before,.c9-arrival-page *::after{animation:none!important;transition:none!important}}
 
 .c9-arrival-season{display:flex;align-items:center;gap:12px;margin-bottom:16px;font-size:12px;color:#dec38a}.c9-arrival-season select{background:#25433b;color:#f3eddc;padding:9px 12px;border:0}.c9-arrival-dialog-tools a{color:#dec38a;font-size:12px;padding:8px}
+
+.c9-arrival-audio,.c9-arrival-paging{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0;font-size:12px}.c9-arrival-audio label{display:flex;align-items:center;gap:8px}.c9-arrival-audio input{width:120px;accent-color:#dfc58f}.c9-arrival-paging{justify-content:space-between}.c9-arrival-brand{display:flex;align-items:center;gap:12px;background:#173b2c;color:#dfc58f;padding:12px 16px;margin-bottom:16px}.c9-arrival-brand img{width:36px;height:36px}.c9-arrival-brand strong{font:bold italic 26px Georgia}.c9-arrival-brand span{margin-left:auto;font-size:10px;letter-spacing:2px}.c9-arrival-page :focus-visible{outline:2px solid #dfc58f;outline-offset:3px}.c9-arrival-class-title p{overflow-wrap:anywhere;max-width:40%}

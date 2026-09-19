@@ -6,6 +6,7 @@ import { PlayerCardFront } from "@/components/player-card-front";
 import type { Player } from "@/components/player-profile-card";
 import type { RevealRecruit } from "@/components/recruit-card";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
+import { useArrivalAudio } from "@/lib/arrival-audio";
 import campus from "@/assets/art/varsity-campus.png";
 import "./signing-day-reveal.css";
 
@@ -47,6 +48,8 @@ export default function SigningDayRevealPage() {
   const [exporting, setExporting] = useState(false), [exportError, setExportError] = useState("");
   const [exportImage, setExportImage] = useState<{ url: string; filename: string } | null>(null);
   const reduced = useReducedMotion();
+  const audio = useArrivalAudio();
+  const [sheetPage,setSheetPage]=useState(0);
   const dialog = useRef<HTMLDialogElement>(null), exportDialog = useRef<HTMLDialogElement>(null);
   const completeCard = useRef<HTMLDivElement>(null), classSheet = useRef<HTMLDivElement>(null);
   const requestInFlight = useRef(false), context = useRef(leagueId);
@@ -65,10 +68,15 @@ export default function SigningDayRevealPage() {
   const selected = teams.find(t => t.team.id === teamId) ?? teams.find(t => t.team.id === data?.myTeamId) ?? teams[0];
   const recruits = useMemo(() => [...(selected?.recruits ?? [])].sort((a, b) => fullName(a).localeCompare(fullName(b)) || a.id.localeCompare(b.id)), [selected]);
   const filtered = recruits.filter(r => `${fullName(r)} ${r.position}`.toLowerCase().includes(search.toLowerCase()));
+  const pageCount=Math.max(1,Math.ceil(filtered.length/12));
+  const pageIndex=Math.min(sheetPage,pageCount-1);
+  const pagePlayers=filtered.slice(pageIndex*12,pageIndex*12+12);
+  const sheetRange=filtered.length ? `Players ${pageIndex*12+1}–${pageIndex*12+pagePlayers.length} of ${filtered.length} · Sheet ${pageIndex+1} of ${pageCount}` : "No players";
+  useEffect(()=>{setSheetPage(0);},[leagueId,seasonView,selected?.team.id,search]);
   const unopened = recruits.some(r => !r.signingDayRevealed), allOpened = recruits.length > 0 && !unopened;
   const selectedKey = selected?.team.id ?? "", permission = selected?.canCompleteReveal === true;
   const exportContext = useRef("");
-  exportContext.current = `${leagueId}/${seasonView}/${selectedKey}/${spotlight?.recruit.id ?? "class"}`;
+  exportContext.current = `${leagueId}/${seasonView}/${selectedKey}/${pageIndex}/${search}/${spotlight?.recruit.id ?? "class"}`;
   useEffect(() => { setTeamId(""); setSearch(""); setSpotlight(null); setPlaying(false); setSaveError(""); setNotice(""); setViewed(new Set()); setExportImage(null); }, [leagueId,seasonView]);
   useEffect(() => { setSaveError(""); setNotice(""); setSearch(""); setExportError(""); }, [selectedKey]);
   useEffect(() => { if (spotlight && dialog.current && !dialog.current.open) dialog.current.showModal(); if (!spotlight && dialog.current?.open) dialog.current.close(); }, [spotlight]);
@@ -95,17 +103,20 @@ export default function SigningDayRevealPage() {
     } catch (error) { if (context.current === requestLeague) setSaveError(error instanceof Error ? error.message : "Could not open the class record. Please retry."); }
     finally { requestInFlight.current = false; setSaving(false); }
   }
+  useEffect(()=>{ if(reduced && playing){audio.stop();setPlaying(false);} },[reduced,playing]);
+  useEffect(()=>{audio.stop();},[leagueId,seasonView,selectedKey]);
   function openSpotlight(recruit: ArrivalRecruit) {
     if (!selected || !data || !recruit.signingDayRevealed) return;
+    if(!reduced)void audio.play();
     setSpotlight({ recruit, team: recruit.arrivalTeam ?? selected.team, season: displaySeason! });
     setViewed(old => new Set(old).add(recruit.id)); setExportError(""); setRun(n => n + 1); setPlaying(!reduced);
   }
-  function closeSpotlight() { setPlaying(false); setSpotlight(null); }
+  function closeSpotlight() { audio.stop();setPlaying(false); setSpotlight(null); }
   async function exportPNG(kind: "player" | "class") {
     const target = kind === "player" ? completeCard.current : classSheet.current;
     if (!target || exporting || playing || (kind === "class" && !allOpened)) return;
     const startedIn = exportContext.current;
-    setExporting(true); setExportError("");
+    audio.stop();setExporting(true); setExportError("");
     try {
       await document.fonts.ready;
       await Promise.all(Array.from(target.querySelectorAll("img")).map(img => img.decode()));
@@ -115,12 +126,14 @@ export default function SigningDayRevealPage() {
         await new Promise(resolve => window.setTimeout(resolve, 80));
       }
       if (target.scrollHeight > 10000) throw new Error("This image is too tall. Narrow the name or position filter and export that selection.");
+      const rasterImages=new Map<string,string>();
+      for(const img of Array.from(target.querySelectorAll("img"))) { if(img.src.includes(".svg")){ const raster=document.createElement("canvas");raster.width=160;raster.height=168;raster.getContext("2d")?.drawImage(img,0,0,160,168);rasterImages.set(img.src,raster.toDataURL()); } }
       const html2canvas = (await import("html2canvas")).default;
       if (!target.isConnected || startedIn !== exportContext.current) return;
-      const canvas = await html2canvas(target, { backgroundColor: "#eee5d0", scale: 2, logging: false, useCORS: true, onclone: doc => { const style=doc.createElement("style"); style.textContent=".c9-card-stat-groups h4{line-height:20px;padding:3px 5px 7px}.c9-card-portrait strong{line-height:20px;padding-bottom:5px}.c9-card-values dd>span:first-child{height:24px;min-height:24px;line-height:18px;padding-bottom:4px}"; doc.head.appendChild(style); } });
+      const canvas = await html2canvas(target, { backgroundColor: "#eee5d0", scale: 2, logging: false, useCORS: true, onclone: doc => { doc.querySelectorAll("img").forEach(img=>{const raster=rasterImages.get(img.src);if(raster)img.src=raster;});const style=doc.createElement("style"); style.textContent=".c9-card-stat-groups h4{line-height:20px;padding:3px 5px 7px}.c9-card-portrait strong{line-height:20px;padding-bottom:5px}.c9-card-front header{padding:16px;min-height:96px}.c9-card-summary>span{padding:8px 12px 18px;line-height:30px}.c9-card-front header h2{line-height:1.3;padding-bottom:12px;margin:0}.c9-card-values dt{line-height:18px}.c9-card-values dd{padding-top:4px;padding-bottom:5px}.c9-card-values dd>span:first-child{display:block;text-align:center;height:24px;min-height:24px;line-height:18px;padding:0 0 5px;width:24px}"; doc.head.appendChild(style); } });
       if (!target.isConnected || startedIn !== exportContext.current) return;
       const slug = (kind === "player" && spotlight ? fullName(spotlight.recruit) : selected?.team.name ?? "class").replace(/[^a-z0-9-]+/gi, "-");
-      setExportImage({ url: canvas.toDataURL("image/png"), filename: `class-of-nine-${slug}-season-${displaySeason ?? ""}.png` });
+      setExportImage({ url: canvas.toDataURL("image/png"), filename: `class-of-nine-${slug}-season-${displaySeason ?? ""}${kind==="class"?`-sheet-${pageIndex+1}${search?"-filtered":""}`:""}.png` });
     } catch (error) { setExportError(error instanceof Error ? error.message : "Image creation failed. Please retry."); }
     finally { setExporting(false); }
   }
@@ -130,23 +143,26 @@ export default function SigningDayRevealPage() {
   return <main className="c9-arrival-page">
     {seasonPicker}{seasonView!=="live"&&<p className="c9-arrival-notice">Class scrapbook · Original arrival cards preserved from Season {displaySeason}.</p>}<header className="c9-arrival-heading"><div><span className="c9-arrival-kicker">{data?.league.name} / SEASON {displaySeason}</span><h1>A new class. A place to belong.</h1><p>Choose the spotlight. Get to know the whole player.</p></div><Link href={`/league/${leagueId}`}>Return to program ↗</Link></header>
     <section className="c9-arrival-home"><img src={campus} alt="" className="c9-arrival-campus"/><div className="c9-arrival-home-copy"><img src="/brand/gateway.svg" alt="" className="c9-arrival-gateway"/><span className="c9-arrival-kicker">THE CLUBHOUSE / CLASS OF NINE</span><h2>{selected?.team.name ?? "The incoming class"}</h2><p>{recruits.length} committed {recruits.length === 1 ? "player" : "players"} · Season {displaySeason}</p><p>Every player gets the same welcome. Open the class record for complete ratings and abilities.</p></div></section>
+    <div className="c9-arrival-audio" aria-label="Arrival audio controls"><button aria-pressed={!audio.muted} onClick={audio.toggleMute}>{audio.muted ? "Unmute game audio" : "Mute game audio"}</button><label>Game volume <input aria-label="Game volume" type="range" min="0" max="100" value={Math.round(audio.volume*100)} onChange={e=>audio.setVolume(Number(e.target.value)/100)}/><output>{Math.round(audio.volume*100)}%</output></label><button onClick={()=>void audio.play()} disabled={audio.muted||audio.volume===0}>Preview welcome sound</button><span role="status">{audio.status}</span></div>
     <div className="c9-arrival-toolbar"><label>Program <select value={selectedKey} disabled={saving || exporting} onChange={e => setTeamId(e.target.value)}>{teams.map(t => <option key={t.team.id} value={t.team.id}>{t.team.name}{t.team.id === data?.myTeamId ? " · Your program" : ""}</option>)}</select></label><label>Find player <input value={search} disabled={exporting} onChange={e => setSearch(e.target.value)} placeholder="Name or position"/></label><span>{filtered.length} of {recruits.length} players</span>{allOpened && <button onClick={() => exportPNG("class")} disabled={exporting || !filtered.length}>{exporting ? "Preparing image…" : "Preview class keepsake PNG"}</button>}</div>
     {unopened && <section className="c9-arrival-open"><div><h2>{permission ? "Open this class record" : "The complete record is not open yet"}</h2><p>{permission ? "This records the class reveal. Replays afterward do not change players, scouting, or the season." : "An authorized coach must open the class during its eligible arrival phase. Previously opened records remain available."}</p></div>{permission && <button className="c9-arrival-primary" disabled={saving} onClick={completeReveal}>{saving ? "Opening class record…" : saveError ? "Retry opening class" : "Open class record"}</button>}</section>}
     {saveError && <p className="c9-arrival-error" role="alert">{saveError} <button onClick={() => query.refetch()}>Reload class status</button></p>}
     <p className="c9-arrival-notice" role="status">{notice}</p>
+    <nav className="c9-arrival-paging" aria-label="Class sheets"><button disabled={pageIndex===0||exporting} onClick={()=>setSheetPage(pageIndex-1)}>Previous sheet</button><span aria-live="polite">{sheetRange}</span><button disabled={pageIndex+1>=pageCount||exporting} onClick={()=>setSheetPage(pageIndex+1)}>Next sheet</button></nav>
     <div ref={classSheet} className="c9-arrival-class-sheet">
-      <div className="c9-arrival-class-title"><div><span className="c9-arrival-kicker">{selected?.team.name} / SEASON {displaySeason}</span><h2>Remember these names.</h2></div><p>Committed class · {filtered.length}{filtered.length !== recruits.length ? ` of ${recruits.length} shown` : " players"}<br/>Alphabetical order</p></div>
-      <div className="c9-arrival-gallery" data-testid="arrival-class-gallery">{filtered.map(r => <article className="c9-arrival-person" key={r.id}><Portrait recruit={r} color={r.arrivalTeam?.primaryColor ?? selected?.team.primaryColor ?? "#234734"}/><div><span>{r.position} · {entryType(r)}</span><h3>{fullName(r)}</h3><p>{r.signingDayRevealed ? "Complete class record open" : "Awaiting class reveal"}</p><button data-html2canvas-ignore="true" onClick={() => openSpotlight(r)} disabled={!r.signingDayRevealed}>{viewed.has(r.id) ? "Replay spotlight" : "Meet this player"} <span aria-hidden="true">↗</span></button></div></article>)}</div>
+      <div className="c9-arrival-brand"><img src="/brand/gateway.svg" alt=""/><strong>Class of Nine</strong><span>PROGRAM SCRAPBOOK</span></div>
+      <div className="c9-arrival-class-title"><div><span className="c9-arrival-kicker">{selected?.team.name} / SEASON {displaySeason}</span><h2>Remember these names.</h2></div><p>{sheetRange}<br/>{filtered.length !== recruits.length ? `${filtered.length} matching of ${recruits.length} in class · Filter: ${search}` : "Committed class · Alphabetical order"}</p></div>
+      <div className="c9-arrival-gallery" data-testid="arrival-class-gallery">{pagePlayers.map(r => <article className="c9-arrival-person" key={r.id}><Portrait recruit={r} color={r.arrivalTeam?.primaryColor ?? selected?.team.primaryColor ?? "#234734"}/><div><span>{r.position} · {entryType(r)}</span><h3>{fullName(r)}</h3><p>{r.signingDayRevealed ? "Complete class record open" : "Awaiting class reveal"}</p><button data-html2canvas-ignore="true" onClick={() => openSpotlight(r)} disabled={!r.signingDayRevealed}>{viewed.has(r.id) ? "Replay spotlight" : "Meet this player"} <span aria-hidden="true">↗</span></button></div></article>)}</div>
       {!recruits.length && <p className="c9-arrival-empty">No captured arrival records are available for this program.</p>}
       {!!recruits.length && !filtered.length && <p className="c9-arrival-empty">No players match this filter. Clear the search to see the class.</p>}
       <p className="c9-arrival-provenance">Committed class · Names, positions and portraits to remember.</p>
     </div>
     <p className="c9-arrival-footnote">Opened classes are preserved in your season scrapbook. Download a PNG to share a keepsake. Earlier uncaptured classes are not reconstructed.</p>
     {exportError && !spotlight && <p className="c9-arrival-error" role="alert">{exportError}</p>}
-    <dialog ref={dialog} className="c9-arrival-dialog" data-testid="arrival-spotlight" aria-labelledby="arrival-dialog-title" onCancel={e => { if (playing) { e.preventDefault(); setPlaying(false); } }} onClose={closeSpotlight}>
-      {spotlight && <><div className="c9-arrival-dialog-tools"><div><span className="c9-arrival-kicker">{spotlight.team.name} / SEASON {spotlight.season}</span><h2 id="arrival-dialog-title">{fullName(spotlight.recruit)}</h2></div><div>{playing ? <button className="c9-arrival-primary" onClick={() => setPlaying(false)}>Skip to complete profile</button> : <><button onClick={() => { setRun(n => n + 1); setPlaying(!reduced); }}>Replay spotlight</button><button onClick={() => exportPNG("player")} disabled={exporting}>{exporting ? "Preparing image…" : "Preview full card PNG"}</button></>}{spotlight.recruit.rosterPlayerId && spotlight.recruit.rosterTeamId && <Link href={`/league/${leagueId}/roster?teamId=${encodeURIComponent(spotlight.recruit.rosterTeamId)}&playerId=${encodeURIComponent(spotlight.recruit.rosterPlayerId)}`}>View current roster record ↗</Link>}<button onClick={() => dialog.current?.close()}>Back to class</button></div></div>
-      {playing ? <section key={run} className="c9-arrival-stage" aria-label="Player welcome"><img src={campus} className="c9-arrival-campus" alt=""/><div className="c9-arrival-stage-copy"><img src="/brand/gateway.svg" alt="" className="c9-arrival-gateway"/><span className="c9-arrival-kicker">WELCOME TO {spotlight.team.name}</span><h2>A new name in<br/>the clubhouse.</h2><div className="c9-arrival-nameplate"><h3>{fullName(spotlight.recruit)}</h3><p>{spotlight.recruit.position} · {entryType(spotlight.recruit)} · Committed class</p></div></div><div className="c9-arrival-stage-player"><Portrait recruit={spotlight.recruit} color={spotlight.team.primaryColor}/></div></section> : <div ref={completeCard} tabIndex={-1} className="c9-arrival-complete"><div className="c9-arrival-record-label">CLASS OF NINE / {spotlight.team.name} / SEASON {spotlight.season} / COMMITTED CLASS RECORD</div><PlayerCardFront player={toPlayer(spotlight.recruit)} teamColor={spotlight.team.primaryColor}/><p>College statistics begin with the first recorded game.</p></div>}
-      <p role="status" className="c9-arrival-dialog-status">{playing ? "Coach’s cut · 1.5 seconds · Escape skips to profile." : reduced ? "Reduced motion · Complete profile shown immediately." : "Complete profile · All ratings and statistics remain on the front."}</p>{exportError && <p role="alert" className="c9-arrival-error">{exportError}</p>}</>}
+    <dialog ref={dialog} className="c9-arrival-dialog" data-testid="arrival-spotlight" aria-labelledby="arrival-dialog-title" onCancel={e => { if (playing) { e.preventDefault(); audio.stop();setPlaying(false); } }} onClose={closeSpotlight}>
+      {spotlight && <><div className="c9-arrival-dialog-tools"><div><span className="c9-arrival-kicker">{spotlight.team.name} / SEASON {spotlight.season}</span><h2 id="arrival-dialog-title">{fullName(spotlight.recruit)}</h2></div><div><button aria-pressed={!audio.muted} onClick={audio.toggleMute}>{audio.muted ? "Unmute game audio" : "Mute game audio"}</button>{playing ? <button className="c9-arrival-primary" onClick={() => {audio.stop();setPlaying(false);}}>Skip to complete profile</button> : <><button onClick={() => { if(!reduced)void audio.play();setRun(n => n + 1); setPlaying(!reduced); }}>Replay spotlight</button><button onClick={() => exportPNG("player")} disabled={exporting}>{exporting ? "Preparing image…" : "Preview full card PNG"}</button></>}{spotlight.recruit.rosterPlayerId && spotlight.recruit.rosterTeamId && <Link href={`/league/${leagueId}/roster?teamId=${encodeURIComponent(spotlight.recruit.rosterTeamId)}&playerId=${encodeURIComponent(spotlight.recruit.rosterPlayerId)}`}>View current roster record ↗</Link>}<button onClick={() => dialog.current?.close()}>Back to class</button></div></div>
+      {playing ? <section key={run} className="c9-arrival-stage" aria-label="Player welcome"><img src={campus} className="c9-arrival-campus" alt=""/><div className="c9-arrival-stage-copy"><img src="/brand/gateway.svg" alt="" className="c9-arrival-gateway"/><span className="c9-arrival-kicker">WELCOME TO {spotlight.team.name}</span><h2>A new name in<br/>the clubhouse.</h2><div className="c9-arrival-nameplate"><h3>{fullName(spotlight.recruit)}</h3><p>{spotlight.recruit.position} · {entryType(spotlight.recruit)} · Committed class</p></div></div><div className="c9-arrival-stage-player"><Portrait recruit={spotlight.recruit} color={spotlight.team.primaryColor}/></div></section> : <div ref={completeCard} tabIndex={-1} className="c9-arrival-complete"><div className="c9-arrival-brand"><img src="/brand/gateway.svg" alt=""/><strong>Class of Nine</strong><span>ARRIVAL RECORD</span></div><div className="c9-arrival-record-label"> {spotlight.team.name} / SEASON {spotlight.season} / COMMITTED CLASS RECORD</div><PlayerCardFront player={toPlayer(spotlight.recruit)} teamColor={spotlight.team.primaryColor}/><p>Original arrival card · Season {spotlight.season} · {spotlight.team.name}. College statistics begin with the first recorded game.</p></div>}
+      {audio.status && <p role="status">{audio.status}</p>}<p role="status" className="c9-arrival-dialog-status">{playing ? "Coach’s cut · 1.5 seconds · Escape skips to profile." : reduced ? "Reduced motion · Complete profile shown immediately." : "Complete profile · All ratings and statistics remain on the front."}</p>{exportError && <p role="alert" className="c9-arrival-error">{exportError}</p>}</>}
     </dialog>
     <dialog ref={exportDialog} className="c9-arrival-export" aria-labelledby="arrival-export-title" onClose={() => setExportImage(null)}>{exportImage && <><div className="c9-arrival-dialog-tools"><h2 id="arrival-export-title">Review your keepsake</h2><button onClick={() => exportDialog.current?.close()}>Close preview</button></div><p>Review the exact image before downloading or sharing. Full player cards contain disclosed ratings and abilities.</p><img src={exportImage.url} alt="Preview of the prepared Class of Nine keepsake"/><a className="c9-arrival-primary" href={exportImage.url} download={exportImage.filename}>Download PNG</a></>}</dialog>
   </main>;

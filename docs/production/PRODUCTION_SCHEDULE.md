@@ -154,3 +154,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Permanent arrival scrapbook — September 19
 
 [W12 batch12](W12_BATCH_12.md) adds immutable season/player arrival history, replayable original cards, and current roster links.362 normal and341 failure-mode checks plus39 migration assertions pass. Independent audit fixes include per-record original colors and explicit interrupted Signing Day containment; the legacy season shortcut cannot bypass it. W03 recovery and W12/UX-06 remain open. Next manual review then Clubhouse audio. Scheduling remains paused.
+
+## Clubhouse audio and keepsakes — September 19
+
+[W12 batch13](W12_BATCH_13.md) adds bounded original arrival audio respecting existing preferences, branded PNGs and12-player keepsake sheets.387 checks plus build/typecheck pass; creative/audio and UX reviews led to lifecycle/export corrections. Await Frisk listening/enjoyment review; next production priority remains W03 interrupted-season recovery. W12 stays implementing; automation paused.
