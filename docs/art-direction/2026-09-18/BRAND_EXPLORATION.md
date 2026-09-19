@@ -10,6 +10,8 @@ Frisk explicitly approved the refined identity on September 18: “perfect appro
 
 Recommended next manual milestone: package the approved identity and apply it to the game shell, then implement the roster manifest, on-demand player profile and lineup workspace as the first complete playable design slice. Verify real role/state behavior and small-screen readability, obtain an independent game-dev audit, and return the playable result for Frisk’s review before extending to recruiting and game reporting. This recommendation is not an automatic restart of development.
 
+Frisk subsequently authorized this milestone with “ok lets continue.” [W12 batch 02](../../production/W12_BATCH_02.md) records the implemented shell/app identity, roster and saved-lineup workspace, actual database verification and independent audit. The local review uses a disposable synthetic league. Scheduled development remains paused; the broader screen proposals and arrival ceremony do not become approved by this bounded implementation.
+
 ## Selection history
 
 Frisk selected **Class of Nine + L04 campus gateway + L02 lettering** on September 18. [Focused combined preview](../2026-09-17/class-of-nine.html). The actual L02 preview uses `Georgia, serif`, italic, weight 800, with tight letter spacing. Preserve that appearance rather than the original L04 uppercase sans-serif. This supersedes the Pennant Foundry / L01 recommendation below, which is retained as exploration history. Forest, brass and cream remain the palette. Name/symbol/lettering are selected; descriptor, tagline, final outlined assets and commercial clearance are not newly approved by this choice.

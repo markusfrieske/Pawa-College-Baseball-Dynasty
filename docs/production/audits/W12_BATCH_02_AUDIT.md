@@ -1,0 +1,18 @@
+# W12 batch 02 independent game-dev audit
+
+September 18, 2026. Reviewer: independent `c9_roster_audit` agent, read-only source/integration review. Parent owns implementation and executed runtime checks. No claim of independently rerun tests or human enjoyment.
+
+| Severity | Reproduction / finding | Acceptance and disposition |
+| --- | --- | --- |
+| P1 | Commissioner submits a valid local player plus a player from another league to manual depth/batting/defense/pitching routes; old per-player lookup bypasses league membership. Sequential writes can leave partial state. | Every requested player must belong to the route league, authority must cover each team, and all changes commit or roll back together. Fixed in `server/routes/lineup.ts`; real HTTP/database snapshot, post-first-write SQL fault and retry cases pass. |
+| P1 | Field view infers defense from natural position and fills DH rather than displaying persisted assignments. | Show only active batters' saved defensive positions; identify missing and duplicate assignments. Fixed in `DepthChartView.tsx`; saved RF swap verified in both modes. |
+| P1 | A roster with two legacy duplicate batting slots cannot repair one because whole-team uniqueness rejects the remaining unrelated collision. | Permit a change that strictly reduces existing conflicts without introducing another. Fixed; two sequential real API repairs pass. |
+| P2 | Keyboard users cannot reliably inspect assigned players or restore focus after the profile closes; pending saves allow overlapping changes. | Semantic profile/assignment buttons, explicit focus restoration, and mutations pending through roster refetch. Real keyboard open/save/close/focus and retained retry pass. Parent also corrected test timing to wait for profile focus before Escape. |
+| P2 | P excludes SP/RP; OF includes DH or excludes specific outfield positions; RS absent; list filters visible when not applied to field. | Shared pitcher classification, explicit outfield/DH groups, RS option, and list-only filters. Verified by built UI checks. Compact captain action restored; captain mutation execution remains outside this gate. |
+| P2 | Natural-position depth sorting of a truncated candidate list can promote a hidden player. | New workspace uses explicit saved slot assignment instead of the old truncated depth reorder UI. Old unused components are retained; this is removal from the active flow, not a claim that every legacy helper was repaired. |
+| P2 | Visual review finds sidebar subtitle inherits the large logo font; field boundary clips outer cards. | Valid UI font token, growing field grid with visible controls. Corrected and inspected in the built preview. |
+| P2 | Final Escape fallback also receives bubbling events from portaled draft confirmations/selects, potentially closing both layers. | Ignore already-handled events and targets outside the actual profile DOM. Guard added; full gate checks draft confirmation Escape leaves the profile open and returns focus to its trigger in both modes. |
+
+Independent source review found no remaining milestone blocker after the conflict repair, guarded connection cleanup, profile-return hook and reserve availability changes. Its follow-up caught the nested Escape issue above, which was corrected before final verification. Runtime evidence is the parent's complete gate plus the affected final-layout regression, documented in [batch evidence](../W12_BATCH_02.md).
+
+Remaining limits: manual endpoints serialize with each other, not every auto-lineup/advance writer; batting changes may leave draft defensive conflicts; Steam/controller/full-game accessibility and persistent comparison inspector remain separate work. These limits prevent closing the broader UX-06 finding.

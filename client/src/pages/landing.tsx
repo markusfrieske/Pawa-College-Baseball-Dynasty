@@ -15,6 +15,7 @@ import {
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, applySessionIdentity } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import campusArt from "@/assets/art/varsity-campus.png";
 import { DynastyLogo } from "@/components/dynasty-logo";
 
 const TICKER_ITEMS = [
@@ -85,7 +86,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             <DynastyLogo className="w-10 h-10" />
             <span className="text-gold text-sm hidden sm:block">
-              パワプロ College Baseball Dynasty
+              Class of Nine
             </span>
           </div>
 
@@ -129,8 +130,8 @@ export default function LandingPage() {
         <section className="relative min-h-[90vh] flex items-center overflow-hidden">
           <div className="absolute inset-0 z-0 pointer-events-none select-none">
             <img
-              src="/chibi-hero.png"
-              alt="College Baseball Dynasty chibi baseball players"
+              src={campusArt}
+              alt="Miniature college baseball campus"
               className="absolute inset-0 w-full h-full object-cover object-center"
             />
           </div>
@@ -166,16 +167,7 @@ export default function LandingPage() {
                 )}
               </div>
 
-              <h1
-                className="font-brand-pixel text-gold leading-tight mb-6"
-                style={{
-                  fontSize: "clamp(1.6rem, 4.5vw, 3.5rem)",
-                  textShadow: "0 2px 16px rgba(0,0,0,0.95), 0 4px 32px rgba(0,0,0,0.8), 0 0 40px rgba(196,163,90,0.35)",
-                }}
-              >
-                College Baseball<br />
-                <span className="ml-4 sm:ml-6">Dynasty</span>
-              </h1>
+              <h1 className="mb-6"><img src="/brand/lockup-dark.svg" alt="Class of Nine — College Baseball Dynasty" className="w-full max-w-lg" /></h1>
 
               <div
                 className="text-white/90 text-lg leading-relaxed max-w-md mb-10"

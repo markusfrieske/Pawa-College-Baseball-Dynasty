@@ -111,6 +111,7 @@ interface PlayerProfileCardProps {
   onClose: () => void;
   isCommissioner?: boolean;
   onEdit?: () => void;
+  onReturnFocus?: () => void;
   teamPrimaryColor?: string;
   canDeclareDraft?: boolean;
   onDeclareDraft?: () => void;
@@ -249,7 +250,7 @@ const positionColors: Record<string, string> = {
 };
 
 
-export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId, onUpdate }: PlayerProfileCardProps) {
+export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId, onUpdate, onReturnFocus }: PlayerProfileCardProps) {
   const isMobile = useIsMobile();
   const [editOpen, setEditOpen] = useState(false);
   const isPitcher = getIsPitcher(player.position);
@@ -891,6 +892,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
         <SheetContent
           side="bottom"
           className="bg-card border-border p-0 gap-0 h-dvh overflow-y-auto"
+          onCloseAutoFocus={onReturnFocus ? e => { e.preventDefault(); onReturnFocus(); } : undefined}
+          onKeyDown={e => { if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(e.target as Node)) { e.stopPropagation(); onClose(); } }}
           data-testid="sheet-player-profile"
         >
           <SheetHeader className="sr-only">
@@ -905,7 +908,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] overflow-y-auto w-full sm:w-auto" data-testid="dialog-player-profile">
+      <DialogContent onKeyDown={e => { if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(e.target as Node)) { e.stopPropagation(); onClose(); } }} onCloseAutoFocus={onReturnFocus ? e => { e.preventDefault(); onReturnFocus(); } : undefined} className="bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] overflow-y-auto w-full sm:w-auto" data-testid="dialog-player-profile">
         <DialogHeader className="sr-only">
           <DialogTitle>Player Profile</DialogTitle>
           <DialogDescription>View player attributes and abilities</DialogDescription>

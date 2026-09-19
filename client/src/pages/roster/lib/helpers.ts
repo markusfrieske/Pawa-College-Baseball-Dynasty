@@ -7,6 +7,7 @@ export const positionOptions = [
   { value: "C", label: "Catchers" },
   { value: "IF", label: "Infielders" },
   { value: "OF", label: "Outfielders" },
+  { value: "DH", label: "Designated hitters" },
 ];
 
 export const eligibilityOptions = [
@@ -15,6 +16,7 @@ export const eligibilityOptions = [
   { value: "SO", label: "Sophomore" },
   { value: "JR", label: "Junior" },
   { value: "SR", label: "Senior" },
+  { value: "RS", label: "Redshirt" },
 ];
 
 export function ovrToStar(ovr: number): number {

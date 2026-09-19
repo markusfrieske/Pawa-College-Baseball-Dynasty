@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { QueryError } from "@/components/ui/query-error";
 import { useParams, Link, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -26,13 +26,18 @@ import { RosterSkeleton } from "./components/RosterSkeleton";
 import { PositionSection } from "./components/PositionSection";
 import { DevelopmentTab } from "./components/DevelopmentTab";
 import { PlayerEditModal } from "./components/PlayerEditModal";
+import "./roster-workspace.css";
 import { DepthChartView } from "./components/depth-chart/DepthChartView";
 
 export default function RosterPage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearch();
+  const profileTrigger = useRef<HTMLElement | null>(null);
+  const openProfile = (player: Player) => { profileTrigger.current = document.activeElement as HTMLElement; setSelectedPlayer(player); };
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sort, setSort] = useState("overall");
   const [positionFilter, setPositionFilter] = useState("all");
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
@@ -54,6 +59,7 @@ export default function RosterPage() {
     const params = new URLSearchParams(search);
     if (params.get("view") === "depth") setViewMode("depth");
     else if (params.get("view") === "development") setViewMode("development");
+    else setViewMode("list");
   }, [search]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
@@ -83,21 +89,25 @@ export default function RosterPage() {
     },
   });
 
+  useEffect(() => { setSelectedPlayer(null); setEditingPlayer(null); }, [viewingTeamId]);
+
   const filteredPlayers = data?.players.filter(p => {
+    if (searchTerm.trim() && !`${p.firstName} ${p.lastName} ${p.jerseyNumber}`.toLowerCase().includes(searchTerm.trim().toLowerCase())) return false;
     if (positionFilter !== "all") {
       if (positionFilter === "IF" && !isInfielder(p.position)) return false;
-      if (positionFilter === "OF" && !isOutfielder(p.position)) return false;
-      if (positionFilter !== "IF" && positionFilter !== "OF" && p.position !== positionFilter) return false;
+      if (positionFilter === "OF" && !["OF", "LF", "CF", "RF"].includes(p.position)) return false;
+      if (positionFilter === "P" && !isPitcher(p.position)) return false;
+      if (positionFilter !== "IF" && positionFilter !== "OF" && positionFilter !== "P" && p.position !== positionFilter) return false;
     }
     if (eligibilityFilter !== "all" && p.eligibility !== eligibilityFilter) return false;
     return true;
   }) || [];
 
-  const allSorted = [...filteredPlayers].sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
+  const allSorted = [...filteredPlayers].sort((a, b) => sort === "name" ? `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`) : sort === "number" ? a.jerseyNumber - b.jerseyNumber : b.overall - a.overall || a.lastName.localeCompare(b.lastName));
 
   const positionPlayersAll = (data?.players || []).filter(p => !isPitcher(p.position));
   const allPitchersAll = (data?.players || []).filter(p => isPitcher(p.position));
-  const assignedBattingCount = positionPlayersAll.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).length;
+  const assignedBattingCount = new Set(positionPlayersAll.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).map(p=>p.battingOrder)).size;
   const requiredRotationRoles = ["FRI", "SAT", "SUN", "MID"];
   const assignedRotationCount = requiredRotationRoles.filter(role => allPitchersAll.some(p => p.pitchingRole === role)).length;
   const battingIncomplete = isOwnTeam && positionPlayersAll.length >= 9 && assignedBattingCount < 9;
@@ -118,14 +128,14 @@ export default function RosterPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border sticky top-0 bg-background z-10">
+      <header className="border-b border-border bg-background">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3 flex-wrap mb-4">
             <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors shrink-0">
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" /><span className="sr-only">Back to league</span>
             </Link>
-            <h1 className="text-gold text-base sm:text-lg truncate">
-              {data?.team ? `${data.team.name} Roster` : 'Roster'}
+            <h1 className="c9-roster-heading">
+              {data?.team ? `${data.team.name}` : 'Program roster'}
             </h1>
             {isLineupIncomplete && (
               <button
@@ -141,6 +151,7 @@ export default function RosterPage() {
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs text-muted-foreground hidden sm:inline">View:</span>
                   <select
+                    aria-label="View team roster"
                     value={viewingTeamId || ""}
                     onChange={(e) => setViewingTeamId(e.target.value || null)}
                     className="bg-card border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-gold max-w-[140px]"
@@ -177,66 +188,29 @@ export default function RosterPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
-        <RetroCard className="mb-6">
-          <div className="flex flex-wrap gap-4 items-center">
-            <RetroSelect
-              options={positionOptions}
-              value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
-              className="w-40"
-              data-testid="select-position-filter"
-            />
-            <RetroSelect
-              options={eligibilityOptions}
-              value={eligibilityFilter}
-              onChange={(e) => setEligibilityFilter(e.target.value)}
-              className="w-40"
-              data-testid="select-eligibility-filter"
-            />
-            <div className="flex items-center gap-2 ml-auto">
-              <RetroButton
-                variant={viewMode === "list" ? "primary" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-                data-testid="button-list-view"
-              >
-                <List className="w-3 h-3 mr-1" />
-                List
-              </RetroButton>
-              <RetroButton
-                variant={viewMode === "depth" ? "primary" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("depth")}
-                data-testid="button-depth-view"
-              >
-                <LayoutGrid className="w-3 h-3 mr-1" />
-                Depth Chart
-              </RetroButton>
-              {canViewDevelopment && (
-                <RetroButton
-                  variant={viewMode === "development" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode("development")}
-                  data-testid="button-development-view"
-                >
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  Development
-                </RetroButton>
-              )}
-            </div>
-            <span className="text-sm text-muted-foreground">
-              {filteredPlayers.length} players shown
-            </span>
+      <main className="container mx-auto px-4 py-6 pb-6">
+        <p className="c9-roster-kicker">PERSONNEL / SEASON {leagueData?.currentSeason ?? "—"}</p>
+        <div className="c9-view-tabs" aria-label="Roster views">
+          <RetroButton size="sm" variant={viewMode === "list" ? "primary" : "outline"} aria-pressed={viewMode === "list"} onClick={()=>setViewMode("list")} data-testid="button-list-view">Roster</RetroButton>
+          <RetroButton size="sm" variant={viewMode === "depth" ? "primary" : "outline"} aria-pressed={viewMode === "depth"} onClick={()=>setViewMode("depth")} data-testid="button-depth-view">Lineup & field</RetroButton>
+          {canViewDevelopment && <RetroButton size="sm" variant={viewMode === "development" ? "primary" : "outline"} aria-pressed={viewMode === "development"} onClick={()=>setViewMode("development")} data-testid="button-development-view">Development</RetroButton>}
+        </div>
+        {viewMode !== "depth" && <>
+          <div className="c9-roster-tools">
+            <div className="c9-search"><label htmlFor="roster-search">Find a player</label><RetroInput id="roster-search" value={searchTerm} onChange={e=>setSearchTerm(e.target.value)} placeholder="Name or jersey number" data-testid="roster-search" /></div>
+            <div><label htmlFor="roster-position">Position group</label><RetroSelect id="roster-position" options={positionOptions} value={positionFilter} onChange={e=>setPositionFilter(e.target.value)} data-testid="select-position-filter" /></div>
+            <div><label htmlFor="roster-year">Class</label><RetroSelect id="roster-year" options={eligibilityOptions} value={eligibilityFilter} onChange={e=>setEligibilityFilter(e.target.value)} data-testid="select-eligibility-filter" /></div>
+            {viewMode === "list" && <div><label htmlFor="roster-sort">Order by</label><select id="roster-sort" className="c9-select" value={sort} onChange={e=>setSort(e.target.value)}><option value="overall">Overall rating</option><option value="name">Last name</option><option value="number">Jersey number</option></select></div>}
           </div>
-        </RetroCard>
+          <div className="c9-roster-caption" aria-live="polite">{filteredPlayers.length} of {data?.players.length ?? 0} players · Select a player for their sports profile{(searchTerm || positionFilter !== "all" || eligibilityFilter !== "all") && <button className="ml-3 text-gold underline" onClick={()=>{setSearchTerm("");setPositionFilter("all");setEligibilityFilter("all");}}>Reset filters</button>}</div>
+        </>}
 
         {/* Captain Slots — only for own team, list view */}
         {isOwnTeam && viewMode === "list" && data?.players && (() => {
           const pitcherCaptain = data.players.find(p => p.captainRole === "pitcher_captain");
           const fielderCaptain = data.players.find(p => p.captainRole === "fielder_captain");
           return (
-            <RetroCard className="mb-4">
+            <details className="c9-captains"><summary>Team leadership · Manage captains</summary><RetroCard className="mb-4">
               <div className="px-4 py-2 bg-card/80 border-b border-border flex items-center gap-2">
                 <Shield className="w-3.5 h-3.5 text-gold" />
                 <h3 className="text-gold text-xs uppercase tracking-wider">Team Captains</h3>
@@ -261,7 +235,9 @@ export default function RosterPage() {
                         <TooltipTrigger asChild>
                           <button
                             onClick={() => setCaptainMutation.mutate({ playerId: captain.id, action: "clear" })}
-                            className="p-1 rounded text-muted-foreground hover:text-red-400 transition-colors"
+                            aria-label={`Remove ${captain.firstName} ${captain.lastName} as captain`}
+                            disabled={setCaptainMutation.isPending}
+                            className="min-h-11 min-w-11 p-1 rounded text-muted-foreground hover:text-red-400 transition-colors"
                             data-testid={`button-clear-captain-${captain.id}`}
                           >
                             <ShieldOff className="w-3.5 h-3.5" />
@@ -273,31 +249,32 @@ export default function RosterPage() {
                   </div>
                 ))}
               </div>
-            </RetroCard>
+            </RetroCard></details>
           );
         })()}
 
         {viewMode === "development" && canViewDevelopment ? (
           <DevelopmentTab
             players={filteredPlayers}
-            onSelectPlayer={setSelectedPlayer}
+            onSelectPlayer={openProfile}
             teamPrimaryColor={data?.team?.primaryColor}
           />
         ) : viewMode === "depth" ? (
-          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={isOwnTeam} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.currentWeek ?? 1} />
+          <DepthChartView key={data?.team?.id} players={data?.players || []} onSelectPlayer={openProfile} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={isOwnTeam} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.currentWeek ?? 1} />
         ) : (
           <PositionSection
             title={positionFilter === "all" ? "Program roster" : positionOptions.find(o => o.value === positionFilter)?.label || "Players"}
             players={allSorted}
-            onSelectPlayer={setSelectedPlayer}
+            onSelectPlayer={openProfile}
             teamPrimaryColor={data?.team?.primaryColor}
             progressionEnabled={leagueData?.progressionEnabled}
             isOwnTeam={isOwnTeam}
+            captainPending={setCaptainMutation.isPending}
             onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
           />
         )}
 
-        {filteredPlayers.length === 0 && viewMode !== "development" && (
+        {filteredPlayers.length === 0 && viewMode === "list" && (
           <RetroCard>
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -314,6 +291,7 @@ export default function RosterPage() {
             bats: selectedPlayer.batHand,
             throws: selectedPlayer.throwHand,
           }}
+          onReturnFocus={() => { if (!editingPlayer) requestAnimationFrame(() => profileTrigger.current?.focus()); }}
           open={!!selectedPlayer}
           onClose={() => setSelectedPlayer(null)}
           isCommissioner={!!isCommissioner}
@@ -384,4 +362,3 @@ export default function RosterPage() {
     </div>
   );
 }
-

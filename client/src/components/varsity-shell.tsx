@@ -6,6 +6,7 @@ import { VolumeControl } from "./volume-control";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "./ui/sheet";
 import { TeamBadge } from "./ui/team-badge";
 import "./varsity-shell.css";
+import { DynastyLogo } from "./dynasty-logo";
 
 interface ShellLeague {
   name: string;
@@ -77,8 +78,8 @@ export function VarsityShell({ children }: { children: ReactNode }) {
     <div className="varsity-shell" data-testid="varsity-shell">
       <a className="varsity-skip" href="#varsity-main">Skip to game content</a>
       <aside className="varsity-sidebar" aria-label="Your clubhouse">
-        <Link href="/dashboard" className="varsity-brand" aria-label="PAWA — your dynasties">
-          PAWA<span>COLLEGE BASEBALL DYNASTY</span>
+        <Link href="/dashboard" className="varsity-brand" aria-label="Class of Nine — your dynasties">
+          <DynastyLogo className="c9-shell-mark" /><span className="c9-wordmark">Class of Nine</span><small>COLLEGE BASEBALL DYNASTY</small>
         </Link>
         <div className="varsity-club">
           {team && <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} name={team.name} size="md" />}
@@ -101,7 +102,7 @@ export function VarsityShell({ children }: { children: ReactNode }) {
             <nav aria-label="All game destinations">{groups.map(group => <section key={group.title}><h2>{group.title}</h2>{group.items.map(link => navLink(link, true))}</section>)}<Link href="/dashboard" onClick={() => setMenuOpen(false)}>Your dynasties</Link></nav>
           </SheetContent>
         </Sheet>
-        <div className="varsity-gamebar-identity"><strong>{team?.name || "PAWA"}</strong><span>{league?.name || "Your clubhouse"}</span></div>
+        <div className="varsity-gamebar-identity"><strong>{team?.name || "Class of Nine"}</strong><span>{league?.name || "Your clubhouse"}</span></div>
         <VolumeControl />
       </div>
       <div id="varsity-main" className="varsity-main" tabIndex={-1}>{children}</div>

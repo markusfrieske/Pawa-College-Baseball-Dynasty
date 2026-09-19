@@ -8,7 +8,7 @@
 
 ## Manual development and milestone audits
 
-**September 18 manual-control override:** Frisk explicitly turned off scheduled development to direct the design work manually. Automation `pawa-development-and-milestone-audits` is confirmed **PAUSED**. Do not resume it or advance production from an old queued heartbeat. The current authorized task is [sports-game interface research and a revised design proposal](../art-direction/2026-09-18/research/README.md); further implementation follows Frisk's direction. The cadence below is historical context, not active permission to continue hourly.
+**September 18 manual-control override:** Frisk explicitly turned off scheduled development to direct the design work manually. Automation `pawa-development-and-milestone-audits` is confirmed **PAUSED**. Do not resume it or advance production from an old queued heartbeat. Following the [sports-game interface research](../art-direction/2026-09-18/research/README.md), Frisk approved the Class of Nine identity and authorized continuing with the brand/roster/profile/lineup slice. [W12 batch 02](W12_BATCH_02.md) records that implementation and its audit. Return the playable result for manual review before extending the design milestone. The cadence below is historical context, not active permission to continue hourly.
 
 On September 14, Frisk authorized hourly development in the existing task. That automation is now paused by the September 18 override above. Its earlier operating procedure is retained below for context only.
 

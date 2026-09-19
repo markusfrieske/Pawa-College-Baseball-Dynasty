@@ -23,10 +23,11 @@ interface PositionSectionProps {
   teamPrimaryColor?: string;
   progressionEnabled?: boolean;
   isOwnTeam?: boolean;
+  captainPending?: boolean;
   onSetCaptain?: (playerId: string) => void;
 }
 
-export function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain }: PositionSectionProps) {
+export function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain, captainPending }: PositionSectionProps) {
   if (players.length === 0) return null;
 
   return (
@@ -109,6 +110,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
               </div>
             </div>
           </button>
+          {isOwnTeam && onSetCaptain && !player.captainRole && <button type="button" className="min-h-11 px-3 text-xs text-gold" disabled={captainPending} onClick={()=>onSetCaptain(player.id)} aria-label={`Name ${player.firstName} ${player.lastName} as captain`}>Name as captain</button>}
           </div>
         ))}
       </div>
@@ -133,7 +135,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
               <th className="text-center py-3 px-2">Pos</th>
               <th className="text-center py-3 px-2">Year</th>
               <th className="text-center py-3 px-2">B/T</th>
-              <th className="text-center py-3 px-2" title="PAWA overall rating">OVR</th>
+              <th className="text-center py-3 px-2" title="Overall rating">OVR</th>
               {progressionEnabled && (
                 <th className="text-center py-3 px-2">POT</th>
               )}
@@ -184,6 +186,7 @@ export function PositionSection({ title, players, onSelectPlayer, teamPrimaryCol
                           <button
                             onClick={(e) => { e.stopPropagation(); onSetCaptain(player.id); }}
                             className="min-h-11 min-w-11 p-1 rounded text-muted-foreground hover:text-gold focus-visible:ring-2 focus-visible:ring-ring transition-colors"
+                            disabled={captainPending}
                             aria-label={`Name ${player.firstName} ${player.lastName} as captain`}
                             data-testid={`button-set-captain-${player.id}`}
                           >

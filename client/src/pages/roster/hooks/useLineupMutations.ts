@@ -7,7 +7,7 @@ export function useLineupMutations(leagueId: string | undefined, rosterUrl: stri
   const queryClient = useQueryClient();
 
   const invalidateRoster = () => {
-    if (rosterUrl) queryClient.invalidateQueries({ queryKey: [rosterUrl] });
+    if (rosterUrl) return queryClient.invalidateQueries({ queryKey: [rosterUrl] });
   };
 
   const depthOrderMutation = useMutation({

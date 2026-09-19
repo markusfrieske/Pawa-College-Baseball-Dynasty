@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 import path from "node:path";
+import fs from "node:fs";
 import express from "express";
 import session from "express-session";
 import pg from "pg";
@@ -58,6 +59,17 @@ try {
     req.session.save(error=>error?res.sendStatus(500):res.sendStatus(204));
   });
   await registerRoutes(server,app);
+  if (process.env.PAWA_ROSTER_REVIEW === "1") {
+    app.get("/__test/review", (req, res) => {
+      req.session.userId = "member";
+      req.session.save(error => error ? res.sendStatus(500) : res.redirect("/league/roster-context/roster"));
+    });
+    app.use((req, res, next) => {
+      if (req.method !== "GET" || req.path.startsWith("/api/") || path.extname(req.path)) return next();
+      const html = fs.readFileSync(path.resolve("dist/public/index.html"), "utf8");
+      res.type("html").send(html.replace('<div id="root">', '<div style="background:#d6b777;color:#10291f;text-align:center;padding:6px;font:12px system-ui">LOCAL PLAYTEST · Synthetic test league · Changes affect only this disposable database</div><div id="root">'));
+    });
+  }
   app.use(express.static(path.resolve("dist/public")));
   // The managed checkout may have a dot-prefixed ancestor; serve this exact built file.
   app.get("/{*path}",(_req,res)=>res.sendFile(path.resolve("dist/public/index.html"),{dotfiles:"allow"}));
@@ -113,6 +125,15 @@ try {
           check(row.first_name==="Edited"+mode&&row.power===0&&row.grit===null&&row.eligibility==="RS"&&row.position==="SP","Identity-only save preserves zero/null/RS/SP");
         } else {
           check((await context.request.patch(api+"/players/"+role+"-player",{data:{firstName:"Denied"}})).status()===403,"Ordinary owner cannot edit attributes");
+          if (role === "member") {
+            await page.getByTestId("button-declare-draft").click();
+            await expect(page.getByRole("alertdialog")).toBeVisible();
+            await expect.poll(() => page.getByRole("alertdialog").evaluate(el => el.contains(document.activeElement))).toBe(true);
+            await page.keyboard.press("Escape");
+            await expect(page.getByRole("alertdialog")).toHaveCount(0);
+            await expect(page.getByTestId("dialog-player-profile")).toBeVisible(); checks++;
+            await expect(page.getByTestId("button-declare-draft")).toBeFocused(); checks++;
+          }
           await page.keyboard.press("Escape");
         }
         await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -170,7 +191,111 @@ try {
     await expect(page.getByRole("dialog")).toHaveCount(0);
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Compact roster fits after editing");
   } finally {await faultContext.close();}
+  // New workspace and atomic assignment gates, using only this harness's random database.
+  for (let i=1;i<=11;i++) await pool.query("INSERT INTO players(id,team_id,first_name,last_name,position,eligibility,home_state,hometown,jersey_number,overall,star_rating,batting_order,lineup_position) VALUES($1,'member-team','Roster',$2,$3,$4,'IA','Test',$5,300,3,$6,$7)",[`h${i}`,`Player${i}`,['C','1B','2B','3B','SS','LF','CF','RF','DH','OF','LF'][i-1],i===10?'RS':'FR',i,i<=9?i:null,i<=9?['C','1B','2B','3B','SS','LF','CF','RF','DH'][i-1]:null]);
+  await pool.query("INSERT INTO players(id,team_id,first_name,last_name,position,eligibility,home_state,hometown,jersey_number,overall,star_rating,pitching_role) VALUES('pitch2','member-team','Second','Pitcher','RP','FR','IA','Test',22,300,3,'SAT')");
+  await pool.query("UPDATE players SET pitching_role='FRI' WHERE id='member-player'");
+  const writes=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+  try {
+    await writes.request.post(origin+'/__test/session',{data:{role:'commissioner'}});
+    const api=origin+'/api/leagues/roster-context';
+    const put=async(route:string,data:unknown,status:number)=>{const r=await writes.request.put(api+'/'+route,{data});check(r.status()===status,route+' expected '+status+' got '+r.status());return r;};
+    for(const [route,key,field,valid,foreign] of [
+      ['depth-chart','orders','depthOrder','member-player','outsider-player'],
+      ['batting-order','orders','battingOrder','h1','outsider-player'],
+      ['pitching-roles','assignments','pitchingRole','member-player','outsider-player'],
+      ['lineup-position','assignments','lineupPosition','h1','outsider-player'],
+    ]) {
+      const value=field==='depthOrder'?2:field==='battingOrder'?4:field==='pitchingRole'?'SUN':'RF';
+      const snapshot=(await pool.query("SELECT id,depth_order,batting_order,pitching_role,lineup_position FROM players ORDER BY id")).rows;
+      await put(route,{[key]:[{playerId:valid,[field]:value},{playerId:foreign,[field]:value}]},404);
+      assert.deepEqual((await pool.query("SELECT id,depth_order,batting_order,pitching_role,lineup_position FROM players ORDER BY id")).rows,snapshot);checks++;
+      await put(route,{[key]:[{playerId:valid,[field]:value},{playerId:valid,[field]:value}]},400);
+      await put(route,{[key]:[{playerId:valid,[field]:value,overall:999}]},400);
+    }
+    await put('batting-order',{orders:[{playerId:'h1',battingOrder:1.5}]},400);
+    await put('batting-order',{orders:[{playerId:'h1',battingOrder:'2'}]},400);
+    await put('batting-order',{orders:[{playerId:'h1',battingOrder:2}]},409);
+    await put('pitching-roles',{assignments:[{playerId:'h1',pitchingRole:'FRI'}]},400);
+    await writes.request.post(origin+'/__test/session',{data:{role:'member'}});
+    await put('depth-chart',{orders:[{playerId:'opponent-player',depthOrder:2}]},403);
+    // DB failure after one update rolls the entire transaction back.
+    await pool.query("CREATE FUNCTION fail_c9_swap() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id='h2' AND NEW.batting_order=1 THEN RAISE EXCEPTION 'synthetic C9 failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER fail_c9_swap BEFORE UPDATE ON players FOR EACH ROW EXECUTE FUNCTION fail_c9_swap()");
+    await put('batting-order',{orders:[{playerId:'h1',battingOrder:2},{playerId:'h2',battingOrder:1}]},500);
+    check((await pool.query("SELECT batting_order FROM players WHERE id='h1'")).rows[0].batting_order===1,'First write rolled back');
+    await pool.query('DROP TRIGGER fail_c9_swap ON players; DROP FUNCTION fail_c9_swap()');
+    await put('batting-order',{orders:[{playerId:'h1',battingOrder:2},{playerId:'h2',battingOrder:1}]},200);
+    check((await pool.query("SELECT lineup_position FROM players WHERE id='h1'")).rows[0].lineup_position==='C','Batting swap preserves defense');
+    // Two pre-existing collisions are repaired one at a time without wiping others.
+    await pool.query("UPDATE players SET batting_order=CASE WHEN id='h10' THEN 1 ELSE 2 END WHERE id IN ('h10','h11')");
+    await put('batting-order',{orders:[{playerId:'h10',battingOrder:null}]},200);
+    await put('batting-order',{orders:[{playerId:'h11',battingOrder:null}]},200);
+    // Concurrent assignments to one free slot cannot both become occupants.
+    await pool.query("UPDATE players SET batting_order=NULL WHERE id='h9'");
+    const results=await Promise.all(['h9','h10'].map(playerId=>writes.request.put(api+'/batting-order',{data:{orders:[{playerId,battingOrder:9}]}})));
+    assert.deepEqual(results.map(r=>r.status()).sort(),[200,409]);checks++;
+    check((await pool.query("SELECT count(*)::int AS n FROM players WHERE team_id='member-team' AND batting_order=9")).rows[0].n===1,'Concurrent slot stays unique');
+    await pool.query("UPDATE players SET batting_order=CASE WHEN id='h9' THEN 9 ELSE NULL END WHERE id IN ('h9','h10')");
+    // Built UI: both game modes use the same real assignment contract.
+    for(const mode of ['simulated','reported']) {
+      await pool.query("UPDATE leagues SET game_mode=$1 WHERE id='roster-context'",[mode]);invalidateLeague('roster-context');
+      const page=await writes.newPage();const pageErrors:string[]=[];page.on('pageerror',e=>pageErrors.push(e.message));
+      await page.goto(origin+'/league/roster-context/roster');
+      await expect(page.getByTestId('roster-manifest')).toBeVisible();checks++;
+      await expect(page).toHaveTitle('Class of Nine — College Baseball Dynasty');checks++;
+      await page.getByTestId('select-position-filter').selectOption('P');
+      await expect(page.locator('[data-testid^="row-player-desktop-"]')).toHaveCount(2);checks++;
+      await page.getByTestId('select-position-filter').selectOption('OF');
+      await expect(page.locator('[data-testid^="row-player-desktop-"]')).toHaveCount(5);checks++;
+      await page.getByTestId('select-position-filter').selectOption('all');await page.getByTestId('select-eligibility-filter').selectOption('RS');
+      await expect(page.getByTestId('link-player-h10')).toBeVisible();checks++;
+      await page.getByTestId('select-eligibility-filter').selectOption('all');
+      await page.getByTestId('roster-search').fill('Roster Player11');
+      await expect(page.locator('[data-testid^="row-player-desktop-"]')).toHaveCount(1);checks++;
+      await page.getByTestId('button-depth-view').click();
+      check(await page.getByTestId('roster-search').count()===0,'List filters absent from lineup');
+      await page.getByTestId('assign-defense-RF').focus();await page.keyboard.press('Enter');
+      await page.getByTestId('select-lineup-player').selectOption('h6');
+      await page.getByTestId('save-lineup-assignment').focus();await page.keyboard.press('Enter');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByTestId('field-slot-RF')).toContainText('Roster Player6');checks++;
+      await expect(page.getByTestId('assign-defense-RF')).toBeFocused();checks++;
+      await page.getByTestId('slot-profile-defense-h6').focus();await page.keyboard.press('Enter');
+      await expect(page.getByTestId('dialog-player-profile')).toBeVisible();
+      await expect.poll(() => page.getByTestId('dialog-player-profile').evaluate(el => el.contains(document.activeElement))).toBe(true);
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByTestId('slot-profile-defense-h6')).toBeFocused();checks++;
+      await page.getByTestId('tab-lineup').click();await page.getByTestId('assign-batting-1').click();
+      await page.getByTestId('select-lineup-player').selectOption('h11');
+      await page.route('**/batting-order',r=>r.fulfill({status:503,contentType:'application/json',body:JSON.stringify({message:'Synthetic interruption'})}),{times:1});
+      await page.getByTestId('save-lineup-assignment').click();await expect(page.getByRole('dialog').getByRole('alert')).toBeVisible();
+      await expect(page.getByTestId('select-lineup-player')).toHaveValue('h11');checks++;
+      await page.getByTestId('save-lineup-assignment').click();await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByTestId('slot-batting-1')).toContainText('Roster Player11');checks++;
+      await page.reload();await page.getByTestId('button-depth-view').click();await page.getByTestId('tab-lineup').click();
+      await expect(page.getByTestId('slot-batting-1')).toContainText('Roster Player11');checks++;
+      await page.getByTestId('tab-pitching').click();await page.getByTestId('assign-pitching-FRI').click();await page.getByTestId('select-lineup-player').selectOption('pitch2');await page.getByTestId('save-lineup-assignment').click();await expect(page.getByRole('dialog')).toHaveCount(0);
+      await expect(page.getByTestId('slot-pitching-FRI')).toContainText('Second Pitcher');checks++;
+      await page.getByTestId('select-view-roster').selectOption('opponent-team');await page.getByTestId('depth-chart-view').waitFor();
+      check(await page.locator('[data-testid^="assign-"]').count()===0,'Opponent lineup read only');
+      await page.getByTestId('select-view-roster').selectOption('member-team');await page.getByTestId('tab-field').click();
+      for(const width of [1440,768,390]) {await page.setViewportSize({width,height:1000});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Field fits '+width);}
+      check(pageErrors.length===0,'Workspace no runtime errors '+pageErrors.join(';'));
+      await page.close();
+      await pool.query("UPDATE players SET batting_order=CASE WHEN id='h2' THEN 1 ELSE NULL END WHERE id IN ('h2','h11'); UPDATE players SET lineup_position=CASE WHEN id='h6' THEN 'LF' ELSE 'RF' END WHERE id IN ('h6','h8'); UPDATE players SET pitching_role=CASE WHEN id='member-player' THEN 'FRI' ELSE 'SAT' END WHERE id IN ('member-player','pitch2')");
+    }
+  } finally {await writes.close();}
+
   console.log(`Roster context: ${checks} checks passed against built UI and real HTTP/PostgreSQL in both modes.`);
+  if (process.env.PAWA_ROSTER_REVIEW === "1") {
+    console.log(`C9_ROSTER_REVIEW ${origin}/__test/review`);
+    console.log("Disposable review server retained. Ctrl+C stops it and removes its test database.");
+    await new Promise<void>(resolve => {
+      process.once("SIGINT", resolve);
+      process.once("SIGTERM", resolve);
+    });
+  }
 } finally {
   await browser?.close();
   if(server.listening)await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));
