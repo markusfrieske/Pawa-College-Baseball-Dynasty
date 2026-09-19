@@ -52,7 +52,7 @@ try {
     await pool.query("INSERT INTO players(id,team_id,first_name,last_name,position,eligibility,home_state,hometown,jersey_number,overall,star_rating,power,grit,stamina,last_pitched_week,last_pitched_day,last_pitched_outs,pitching_role) VALUES($1,$2,'Test','Pitcher','SP','RS','IA','Test',12,550,4,0,NULL,60,7,'SUN',21,'SP1')",[role+"-player",role+"-team"]);
   }
   await pool.query("INSERT INTO player_season_stats(id,player_id,player_name,team_id,league_id,season,position,games,ab,h,hbp,cs) VALUES('card-record','member-player','Test Pitcher','member-team','roster-context',7,'P',4,10,0,9,2)");
-  await pool.query("UPDATE players SET w_risp=50,pitch_sl=4,pitch_ch=7,abilities=$1 WHERE id='member-player'",[JSON.stringify(['Sangfroid'])]);
+  await pool.query("UPDATE players SET w_risp=50,pitch_sl=4,pitch_ch=7,pitch_2s=1,pitch_cb=2,abilities=$1 WHERE id='member-player'",[JSON.stringify(['Sangfroid'])]);
   app.use(express.json());
   app.use(session({secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false}));
   app.post("/__test/session",(req,res)=>{
@@ -155,7 +155,7 @@ try {
         if(canAssign){await expect(page.getByTestId('dialog-player-profile').locator('canvas[data-portrait-id="c9-face-02"]')).toBeVisible();checks++;}
         await expect(page.getByTestId('complete-player-card')).toBeVisible(); checks++;
         await expect(page.getByTestId('card-rating-grit')).toHaveText('—'); checks++;
-        await expect(page.locator('.c9-card-pitches dt')).toHaveCount(role==='member'?3:1); checks++;
+        await expect(page.locator('.c9-card-pitches dt')).toHaveCount(role==='member'?5:1); checks++;
         await expect(page.locator('.c9-card-stat-groups dt')).toHaveCount(43); checks++;
         await expect(page.locator('.c9-card-bio')).toContainText('Test, IA'); checks++;
         if(role==='member') {
@@ -164,9 +164,11 @@ try {
           await expect(page.getByTestId('card-pitch-SL').locator('.filled')).toHaveCount(4); checks++;
           await expect(page.getByTestId('card-pitch-CH').locator('.filled')).toHaveCount(7); checks++;
           await expect(page.getByTestId('card-pitch-SL').getByRole('img')).toHaveAttribute('aria-label','Slider: break level 4 of 7'); checks++;
-          await expect(page.getByTestId('card-pitch-FB')).toContainText('Equipped'); checks++;
-          await expect(page.getByTestId('card-pitch-2S')).toHaveCount(0); checks++;
-          await expect(page.getByTestId('card-pitch-CB')).toHaveCount(0); checks++;
+          await expect(page.getByTestId('card-pitch-FB').locator('i')).toHaveCount(1); checks++;
+          await expect(page.getByTestId('card-pitch-FB').getByRole('img')).toHaveAttribute('aria-label','Fastball: equipped'); checks++;
+          await expect(page.getByTestId('card-pitch-2S').locator('.filled')).toHaveCount(1); checks++;
+          await expect(page.getByTestId('card-pitch-CB').locator('.filled')).toHaveCount(2); checks++;
+          await expect(page.getByTestId('card-pitch-CT')).toHaveCount(0); checks++;
           await expect(page.getByTestId('card-rating-wRISP')).toContainText('50'); checks++;
           await expect(page.getByTestId('card-rating-wRISP')).toContainText('S effect'); checks++;
           await page.getByRole('button',{name:'Sangfroid',exact:true}).focus(); await page.keyboard.press('Enter');
@@ -237,7 +239,7 @@ try {
         const teamPlayer=page.getByTestId('row-player-'+role+'-player').getByRole('button');
         await teamPlayer.focus();await page.keyboard.press('Enter');
         await expect(page.getByTestId('complete-player-card')).toBeVisible();checks++;
-        await expect(page.locator('.c9-card-pitches dt')).toHaveCount(role==='member'?3:1);checks++;
+        await expect(page.locator('.c9-card-pitches dt')).toHaveCount(role==='member'?5:1);checks++;
         await page.keyboard.press('Escape');await expect(teamPlayer).toBeFocused();checks++;
         check(errors.length===0,"No page runtime errors: "+errors.join("; "));
       } finally { await context.close(); }
@@ -452,4 +454,3 @@ try {
   if(created)await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
   await admin.end();
 }
-

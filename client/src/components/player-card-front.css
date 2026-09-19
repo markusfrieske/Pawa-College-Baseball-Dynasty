@@ -4,3 +4,5 @@
 
 /* Equipped repertoire: flat seven-step break bars, fastballs remain binary. */
 .c9-card-pitches dl{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.c9-card-pitches dt{font-size:10px;font-weight:600}.c9-pitch-segments{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;max-width:155px;height:10px;margin:4px 0}.c9-pitch-segments i{display:block;background:#c8d7df}.c9-pitch-segments i.filled{background:#3697d4}.c9-pitch-segments i.filled:nth-child(n+4){background:#e4bc39}.c9-pitch-segments i.filled:nth-child(n+6){background:#df7138}.c9-fastball-equipped{font-size:10px;color:#285644}.c9-card-pitches>p{font-size:11px;margin:4px 0}
+
+.c9-card-pitches dl{grid-template-columns:repeat(5,minmax(0,1fr))}.c9-pitch-segments.c9-pitch-binary{grid-template-columns:20px;max-width:20px}
