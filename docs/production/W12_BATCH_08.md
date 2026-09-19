@@ -35,3 +35,7 @@ Expanded regression uses a synthetic equipped fastball, level4 slider and level7
 ### Binary notches and five-pitch review
 
 Frisk clarified that yes/no pitches should show one notch. FB and2S now show one filled segment, with accessible equipped labels; other pitches retain seven-step break bars. A five-column repertoire shows fastball,2-seam,slider4,curveball2,changeup7 in one row. Only synthetic fixtures were updated. Visually inspected and DOM-verified exact total/filled notch counts1/1,1/1,7/4,7/2,7/7 in the retained local game. Typecheck and production build pass; expanded regression: **457 checks passed** against built UI and real HTTP/PostgreSQL in both modes.
+
+### Compact binary-pitch tiles
+
+Frisk requested red binary notches and less empty space so another break pitch fits the row. FB/2S tiles now occupy70px each; breaking-pitch tiles occupy155px and wrap when needed. Added a level5 cutter to the synthetic six-pitch review. Browser geometry confirms all six tiles share the same top coordinate; FB/2S computed fill is rgb(239,68,68), each has exactly one notch, and break fills remain4/2/7/5. Visually inspected the actual built game. Production build/typecheck pass. Updated the existing regression fixture/count expectations to six pitches; the full database suite was not rerun for this bounded layout/color correction. Previous457-check evidence remains historical.
