@@ -44,3 +44,9 @@ Mock contact behavior: up to three selected pitch topics, one call per prospect 
 Next: Frisk reviews the information density and front/back distribution before production integration. Scheduled work remains paused.
 
 Final revised-frame check: all four views at 1280×720, 1366×768 and 1920×1080 reported no document overflow (12 combinations); browser error log returned no entries. Temporary viewport overrides were reset after review.
+
+## Complete-front revision — September 19
+
+Frisk requested all ratings and stats on the front. The full card now uses a landscape composition: portrait and identity; core ratings; common attributes; trajectory or all 18 pitch slots; ability names; all 43 batting/pitching/fielding/advanced stat fields. Arrival values remain unrecorded dashes, explicitly explained. Roster's new “Open complete card front” button demonstrates populated season data using the same layout. The reverse is optional ability-description reading; no rating or stat requires flipping. The front PNG now exports at 2400×1800 and includes the same inventory.
+
+Verification: JavaScript syntax check passed. At 1280×720, directly inspected pitcher front contained 11 core/common ratings, 18 pitch fields and 43 stat fields; dialog contentHeight equaled clientHeight (666px), with all content visible without scrolling. Populated fielder front also showed 43 stats and no dialog overflow. Export preview visually inspected and DOM verified as a 2400×1800 PNG. These are local mock checks; no production implementation or OS download completion claimed.
