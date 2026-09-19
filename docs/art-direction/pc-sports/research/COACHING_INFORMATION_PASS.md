@@ -50,3 +50,19 @@ Final revised-frame check: all four views at 1280×720, 1366×768 and 1920×1080
 Frisk requested all ratings and stats on the front. The full card now uses a landscape composition: portrait and identity; core ratings; common attributes; trajectory or all 18 pitch slots; ability names; all 43 batting/pitching/fielding/advanced stat fields. Arrival values remain unrecorded dashes, explicitly explained. Roster's new “Open complete card front” button demonstrates populated season data using the same layout. The reverse is optional ability-description reading; no rating or stat requires flipping. The front PNG now exports at 2400×1800 and includes the same inventory.
 
 Verification: JavaScript syntax check passed. At 1280×720, directly inspected pitcher front contained 11 core/common ratings, 18 pitch fields and 43 stat fields; dialog contentHeight equaled clientHeight (666px), with all content visible without scrolling. Populated fielder front also showed 43 stats and no dialog overflow. Export preview visually inspected and DOM verified as a 2400×1800 PNG. These are local mock checks; no production implementation or OS download completion claimed.
+
+## Sports-card art revision — September 19, 2026
+
+Frisk requested more color, shading and icons while preserving all ratings and statistics on the front. Implemented in the coaching-lab prototype, not the production game.
+
+Reference review:
+- EA SPORTS FC 26 Glory Hunters: https://www.ea.com/games/ea-sports-fc/fc-26/news/fc-26-glory-hunters — official promotional image visually inspected. Faceted frames, directional shading and luminous edges create depth around a quiet information area. Adaptation: restrained brass seams, dark identity gradient and a portrait mount; no copied artwork or rarity economy.
+- MLB The Show 25 official manual: https://mlb25.manual.theshow.com/en/diamond-dynasty-2.html — source describes unique border art for Supercharged state. Adaptation: decoration communicates team identity and profile context; no invented gameplay boosts.
+
+Changes: darkened team-color identity band; separate overall/potential badges; arched portrait with position label; letter-and-number grade chips; labeled section icons; four category color bands; shaded ability badges; matching export category colors, icons and grade palette. PNG retains a rectangular portrait frame and a spacious print layout. Unknown/unrecorded values remain explicit. No ratings or disclosure rules changed.
+
+Independent read-only reviews:
+- Art reviewer: flat hierarchy improved; flagged bright team-color contrast. Fixed with 70% dark-forest mix/overlay. No data loss found.
+- Creative QA: approved direction in source; flagged export icon-key mismatch and lower-grade palette mismatch. Both fixed. An initial regex concern was retracted by reviewer and was not a defect.
+
+Verification: JS syntax and git diff checks pass. Browser visual check of populated fielder and pitcher fronts. At 1280x720 pitcher dialog client/scroll height both 668px, with 43 stat fields and 18 repertoire slots. Mouse access to complete card fixed after finding compact roster header overlap. White team-color visual check prompted stronger darkening; forest final visually checked. Export is a valid 2400x1800 PNG data URL with category icons, grade/ability colors and complete records; final export visually inspected. OS download completion not asserted. Viewport override reset and updated card left open. These are prototype/source/runtime checks, not human-enjoyment or production-integration approval.
