@@ -142,3 +142,7 @@ Create small commits on this branch and review them by completed outcome. Do not
 ## Team diamond and personnel — September 19
 
 [W12 batch 09](W12_BATCH_09.md) adds the saved-assignment Team diamond, batting order, paged staff/bench inspection, rating/potential labels and a context-preserving lineup workspace link. Other Team chapters and broader usability gates remain open; W12/UX-06 stays implementing. Manual work only; scheduled development remains paused.
+
+## Recruiting evaluation and new integrity blocker — September 19
+
+[W12 batch 10](W12_BATCH_10.md) adds chaptered evaluation, explicit knowledge states and approved pitch segments;209 workspace checks pass. New supplemental audit finding TI-15 is a P1 release blocker: recruiting responses still contain unscouted exact values. Prioritize its server disclosure contract and real HTTP gates before further arrival work. W12/UX-06 remains implementing. Original42-finding baseline now has this additional finding; no release closure is implied. Scheduled work remains paused.

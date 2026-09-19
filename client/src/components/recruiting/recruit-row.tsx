@@ -1,3 +1,4 @@
+import { ScoutingSheet } from "./scouting-sheet";
 import { createPortal } from "react-dom";
 import { useState, useRef } from "react";
 import type { RecruitingEconomy } from "@/hooks/use-recruiting";
@@ -135,6 +136,7 @@ function RecruitRow({
   economy?: RecruitingEconomy;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [detailChapter, setDetailChapter] = useState<"recruitment" | "evaluation">("recruitment");
   const [notesError, setNotesError] = useState("");
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -302,9 +304,11 @@ function RecruitRow({
   })();
 
   const detailContent = (
-      <div id={'recruit-actions-' + recruit.id} hidden={!detailHost && compact && !expanded} className={compact ? "c9-recruit-tray" : undefined}>
+      <div data-chapter={detailChapter} id={'recruit-actions-' + recruit.id} hidden={!detailHost && compact && !expanded} className={compact ? "c9-recruit-tray" : undefined}>
+      {detailHost && <div className="c9-dossier-tabs" aria-label="Prospect chapters">{(["recruitment","evaluation"] as const).map(chapter=><button type="button" key={chapter} aria-pressed={detailChapter===chapter} onClick={()=>setDetailChapter(chapter)}>{chapter==="recruitment"?"Recruitment":"Evaluation"}</button>)}</div>}
+      {detailHost && detailChapter==="evaluation" && <ScoutingSheet recruit={recruit} primary={primaryAttrFields} common={recruit.position === "C" ? [...commonAttrFields,{label:"Catching",key:"catcherAbility",val:recruit.catcherAbility}] : commonAttrFields} known={isAttrRevealed} fullyRevealed={isFullyRevealed} pitching={isPitcherRecruit}/>}
       {detailHost && <p className="c9-prospect-costs">Scout 1 scout pt · Phone 2 contact pts · Email 1 contact pt · Visit {visitCost} · Coach visit {headCoachVisitCost} contact pts</p>}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+      <div className="c9-prospect-main flex flex-col lg:flex-row lg:items-center gap-2">
         <div className="flex items-center gap-4 flex-1">
           {!isSigned && (
             <button
@@ -1057,7 +1061,7 @@ function RecruitRow({
       </div>
 
       {/* Stat/Attribute preview strip — always visible on every recruit card */}
-      {showPreviewStrip && (
+      {showPreviewStrip && !detailHost && (
         <div className="mt-2 pt-2 border-t border-border/30 px-1 flex flex-col gap-0.5" data-testid={`stat-preview-${recruit.id}`}>
           {/* Transfer: real last-season stats */}
           {hasTransferStats && (
@@ -1143,6 +1147,7 @@ function RecruitRow({
             </div>
           )}
 
+          <>
           {/* Row 1 — ATTRIBUTES */}
           <div className="flex items-center gap-1 flex-wrap">
             <span className="text-xs font-semibold text-muted-foreground/50 uppercase w-[76px] shrink-0">ATTRIBUTES</span>
@@ -1273,6 +1278,7 @@ function RecruitRow({
               });
             })()}
           </div>
+          </>
         </div>
       )}
 

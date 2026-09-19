@@ -756,7 +756,8 @@
         "docs/production/W12_BATCH_06.md",
         "docs/production/W12_BATCH_07.md",
         "W12_BATCH_08.md",
-        "W12_BATCH_09.md"
+        "W12_BATCH_09.md",
+        "W12_BATCH_10.md"
       ],
       "verifiedBy": "Bounded roster keyboard/assignment/focus and 390/768/1440px layout checks pass. Native touch, zoom, full-game accessibility and controller gates remain open.",
       "notes": " Frisk now specifies PC-only. The new research/atlas is design evidence only; replace web frame and implement individual screen compositions before claiming closure."
@@ -901,6 +902,24 @@
       "evidence": [
         "W12_BATCH_03.md",
         "audits/W12_BATCH_03_AUDIT.md"
+      ],
+      "verifiedBy": null
+    },
+    {
+      "id": "TI-15",
+      "title": "P1: recruiting responses expose unscouted exact values despite UI masking",
+      "status": "planned",
+      "owner": "Gilfoyle Roblox Technical Director",
+      "targetWeek": 10,
+      "targetStart": "2026-09-19",
+      "targetEnd": null,
+      "dependsOn": "Authoritative recruiting disclosure contract",
+      "acceptance": "List, detail and action HTTP responses withhold hidden exact values at all scouting thresholds; signing/elite/role rules and inference channels tested without breaking authorized consumers.",
+      "source": "W12_BATCH_10.md",
+      "mitigationWeek": null,
+      "implementationCommit": null,
+      "evidence": [
+        "W12_BATCH_10.md"
       ],
       "verifiedBy": null
     }

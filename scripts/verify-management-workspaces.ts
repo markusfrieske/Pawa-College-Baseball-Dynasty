@@ -157,6 +157,35 @@ try {
       await expect(page.locator('.c9-recruit-summary')).toHaveCount(1);checks++;
       await expect(page.getByTestId('card-recruit-'+rid)).toContainText(knowledge+'% scouted');checks++;
       for(const [width,height] of [[1280,720],[1366,768],[1920,1080],[2560,1440],[3440,1440]]) {await page.setViewportSize({width,height});check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Recruit board fits '+width);}
+      // Presentation-only adversarial DTO fixtures: hidden values deliberately remain in the payload.
+      await page.getByTestId('input-search-recruits').fill('');
+      const dto=await (await context.request.get(api+'/recruiting')).json();
+      const original=dto.recruits[0];
+      for(const pct of [0,25,49,50,99,100]) {
+        const recruit={...original,id:'r1',position:'P',overall:987,potential:99,velocity:91,control:83,stamina:77,fielding:61,pitchFB:1,pitchSL:5,pitchCCH:3,pitchHSL:4,isBlueChip:false,signingDayRevealed:false,signingDayLockedFields:['control'],scoutingOrder:['pitchFB','pitchSL','pitchCCH','pitchHSL'],abilities:[],interest:{...original.interest,scoutPercentage:pct,revealedAttributes:pct>0?['velocity','control']:[],revealedAbilitiesCount:0,minOverall:pct>0?250:null,maxOverall:pct>0?400:null}};
+        await page.route('**/api/leagues/roster-context/recruiting',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({...dto,recruits:[recruit]})}));
+        await page.reload();await page.getByRole('button',{name:'Evaluation',exact:true}).click();await page.getByTestId('scouting-sheet-r1').waitFor();
+        const sheet=page.getByTestId('scouting-sheet-r1');
+        await expect(sheet.getByTestId('scout-rating-control')).toHaveAttribute('data-knowledge','arrival');checks++;
+        await expect(sheet.getByTestId('scout-rating-stamina')).toHaveAttribute('data-knowledge','unknown');checks++;
+        await expect(sheet.getByTestId('scout-rating-velocity')).toHaveAttribute('data-knowledge',pct>0?'known':'unknown');checks++;
+        await expect(sheet.getByTestId('scout-overall-range')).toHaveText(pct>0?'250–400':'Unknown');checks++;
+        check(!(await sheet.innerText()).includes('987'),'Unscouted exact OVR absent at '+pct);
+        if(pct===0) {await expect(sheet.locator('[data-testid^="scout-pitch-"]')).toHaveCount(0);checks++;}
+        if(pct===49) {await expect(sheet.getByTestId('scout-pitch-SL')).toContainText('break unknown');checks++;}
+        if(pct>=50) {await expect(sheet.getByTestId('scout-pitch-SL').getByRole('img')).toHaveAttribute('aria-label','Slider: break level 5 of 7');checks++;await expect(sheet.getByTestId('scout-pitch-CCH')).toBeAttached();checks++;await expect(sheet.getByTestId('scout-pitch-HSL')).toBeAttached();checks++;}
+        await page.unroute('**/api/leagues/roster-context/recruiting');
+      }
+      for(const arrivalLocked of [true,false]) {
+        const recruit={...original,id:'r1',position:'C',catcherAbility:83,isBlueChip:false,signingDayRevealed:false,signingDayLockedFields:arrivalLocked?['catcherAbility']:[],abilities:['Power Hitter'],interest:{...original.interest,scoutPercentage:100,revealedAttributes:['catcherAbility'],revealedAbilitiesCount:1}};
+        await page.route('**/api/leagues/roster-context/recruiting',r=>r.fulfill({status:200,contentType:'application/json',body:JSON.stringify({...dto,recruits:[recruit]})}));
+        await page.reload();await page.getByRole('button',{name:'Evaluation',exact:true}).click();const sheet=page.getByTestId('scouting-sheet-r1');await sheet.waitFor();
+        await expect(sheet.getByTestId('scout-rating-catcherAbility')).toHaveAttribute('data-knowledge',arrivalLocked?'arrival':'known');checks++;
+        if(!arrivalLocked){await expect(sheet.getByTestId('scout-rating-catcherAbility')).toContainText('83');checks++;}
+        const ability=sheet.locator('summary').filter({hasText:'Power Hitter'});await ability.focus();await page.keyboard.press('Enter');
+        await expect(sheet.getByText('Hitting a homerun with power swing becomes easier')).toBeVisible();checks++;
+        await page.unroute('**/api/leagues/roster-context/recruiting');
+      }
       check(errors.length===0,'Recruit runtime errors: '+errors.join(';'));
       await page.close();
     } finally {await context.close();}
