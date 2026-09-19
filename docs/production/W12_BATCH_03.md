@@ -1,6 +1,6 @@
 # W12 batch 03 - Recruiting ledger and scorer workspace
 
-September 18, 2026. Frisk manually authorized continuing after the roster milestone. Scheduled development remains paused. This is a bounded screen/workflow slice, not completion of W12 or a release candidate.
+September 18, 2026. Implementation: e2b7697. Frisk manually authorized continuing after the roster milestone. Scheduled development remains paused. This is a bounded screen/workflow slice, not completion of W12 or a release candidate.
 
 ## Delivered
 
