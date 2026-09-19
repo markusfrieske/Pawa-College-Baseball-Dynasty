@@ -1,5 +1,7 @@
 # Class of Nine PC design atlas
 
+Latest revision: [complete player information and arrival card fronts/backs](research/COACHING_INFORMATION_PASS.md), including College Football 27 recruiting research and a simulated phone-pitch workflow. Frisk approved Arrival as the first complete profile reveal. Open the same coaching-lab preview to review this pass.
+
 September 19 follow-up: [The coach's room](coaching-lab.html) provides revised interactive **Roster, Team, Recruiting and Arrival** proposals following Frisk's feedback. Use the player-library preview server on port 49748 so the approved cel faces load. [Research and constraints](research/coaching-room.md) · [Actual review evidence](research/COACHING_LAB_QA.md). These are local fictional-data mocks, not production integrations or approved cinematic direction.
 
 Frisk requested reference-based, screen-specific design inspired by Madden, MLB The Show, NHL, FIFA/EA SPORTS FC, NBA 2K, College Football and Retro Bowl. The target is now **PC-only**. The existing approved Class of Nine gateway/wordmark and Varsity Club palette remain. Scheduled development stays paused.

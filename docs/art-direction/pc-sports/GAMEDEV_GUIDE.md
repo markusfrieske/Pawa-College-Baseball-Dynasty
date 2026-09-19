@@ -1,5 +1,7 @@
 # Class of Nine — PC sports-game interface guide
 
+Latest manual direction: Frisk accepted the coaching mock compositions and explicitly approved Arrival, with arrival becoming the **first complete ratings and ability reveal**. Read [the information pass](research/COACHING_INFORMATION_PASS.md) before implementing these screens. It supersedes older unapproved-arrival language below. Known scouting details/ranges remain distinct from the complete arrival profile; production must enforce that boundary server-side.
+
 September 19: before further Roster, Team, Recruiting or Arrival art integration, read [the coaching-room follow-up](research/coaching-room.md) and review `coaching-lab.html`. Frisk requested richer coaching workflows and references to Eikan Nine 2026 and Hakkyu No Kiseki. These four new proposals are awaiting review; they do not authorize replacement of production rules or approve the cinematic.
 
 Frisk's direction, September 18, 2026: the current screens still feel like a website. Design for PC play only. This supersedes earlier mobile-first and phone-layout targets; no mobile launch or phone interaction contract is intended. Approved Class of Nine identity and Varsity Club art direction remain in force. The proposed arrival reveal is not approved by this change.
