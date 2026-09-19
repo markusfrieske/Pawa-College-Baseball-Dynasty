@@ -1,0 +1,250 @@
+{
+  "version": 1,
+  "style": "Class of Nine cel / adult college athletes",
+  "count": 30,
+  "teamColorMode": "magenta-fabric-key-v1",
+  "identityPolicy": "Explicit persistent portraitId; never derive from team or silently overwrite legacy appearance.",
+  "traits": "Art direction descriptions; the illustrations are fixed, not editable trait layers.",
+  "faces": [
+    {
+      "id": "c9-face-01",
+      "skin": "porcelain",
+      "hairColor": "copper red",
+      "hairStyle": "short tousled waves",
+      "eyes": "blue",
+      "features": "round face, broad cheekbones, freckles, easy grin"
+    },
+    {
+      "id": "c9-face-02",
+      "skin": "fair pink",
+      "hairColor": "golden blonde",
+      "hairStyle": "side swept fringe",
+      "eyes": "green",
+      "features": "long narrow face, straight nose, thin eyebrows, reserved smile"
+    },
+    {
+      "id": "c9-face-03",
+      "skin": "light warm",
+      "hairColor": "dark brown",
+      "hairStyle": "tight short curls",
+      "eyes": "hazel",
+      "features": "square jaw, wide nose, thick brows, confident closed smile"
+    },
+    {
+      "id": "c9-face-04",
+      "skin": "light olive",
+      "hairColor": "black",
+      "hairStyle": "long straight hair tucked behind ears",
+      "eyes": "gray",
+      "features": "oval face, prominent nose, relaxed eyelids, thoughtful expression"
+    },
+    {
+      "id": "c9-face-05",
+      "skin": "medium warm",
+      "hairColor": "chestnut brown",
+      "hairStyle": "wavy medium hair",
+      "eyes": "amber",
+      "features": "broad rounded face, full lips, small cleft chin, friendly grin"
+    },
+    {
+      "id": "c9-face-06",
+      "skin": "deep brown",
+      "hairColor": "black",
+      "hairStyle": "short coils",
+      "eyes": "dark brown",
+      "features": "long angular face, strong jaw, wide-set eyes, composed smile"
+    },
+    {
+      "id": "c9-face-07",
+      "skin": "dark warm brown",
+      "hairColor": "black",
+      "hairStyle": "short twists",
+      "eyes": "hazel",
+      "features": "broad square face, rounded nose, arched brows, relaxed grin"
+    },
+    {
+      "id": "c9-face-08",
+      "skin": "rich medium brown",
+      "hairColor": "dark brown",
+      "hairStyle": "close fade with curls visible at sides",
+      "eyes": "green",
+      "features": "diamond face, high cheekbones, full lips, quiet confidence"
+    },
+    {
+      "id": "c9-face-09",
+      "skin": "light golden",
+      "hairColor": "black",
+      "hairStyle": "straight layered fringe",
+      "eyes": "brown",
+      "features": "round cheeks, small chin, softly curved brows, bright smile"
+    },
+    {
+      "id": "c9-face-10",
+      "skin": "medium olive",
+      "hairColor": "black",
+      "hairStyle": "thick wavy hair",
+      "eyes": "blue",
+      "features": "long face, hooked nose, strong brows, crooked smile"
+    },
+    {
+      "id": "c9-face-11",
+      "skin": "fair freckled",
+      "hairColor": "auburn",
+      "hairStyle": "short curls",
+      "eyes": "gray",
+      "features": "broad jaw, upturned nose, visible freckles, open smile"
+    },
+    {
+      "id": "c9-face-12",
+      "skin": "deep cool brown",
+      "hairColor": "black",
+      "hairStyle": "short afro curls",
+      "eyes": "amber",
+      "features": "oval face, broad nose, heavy eyebrows, calm expression"
+    },
+    {
+      "id": "c9-face-13",
+      "skin": "warm tan",
+      "hairColor": "dark brown",
+      "hairStyle": "shoulder length loose curls",
+      "eyes": "brown",
+      "features": "long chin, narrow cheekbones, slightly uneven smile"
+    },
+    {
+      "id": "c9-face-14",
+      "skin": "light beige",
+      "hairColor": "ash blonde",
+      "hairStyle": "short straight crop",
+      "eyes": "hazel",
+      "features": "square forehead, round chin, wide set eyes, calm grin"
+    },
+    {
+      "id": "c9-face-15",
+      "skin": "medium copper",
+      "hairColor": "black",
+      "hairStyle": "straight medium length hair",
+      "eyes": "dark brown",
+      "features": "wide cheekbones, long nose, full brows, gentle smile"
+    },
+    {
+      "id": "c9-face-16",
+      "skin": "dark umber",
+      "hairColor": "black",
+      "hairStyle": "short natural coils",
+      "eyes": "blue",
+      "features": "round face, broad cheeks, strong nose, cheerful smile"
+    },
+    {
+      "id": "c9-face-17",
+      "skin": "light olive",
+      "hairColor": "brown",
+      "hairStyle": "short wavy side part",
+      "eyes": "green",
+      "features": "narrow chin, long straight nose, low brows, determined expression"
+    },
+    {
+      "id": "c9-face-18",
+      "skin": "medium brown",
+      "hairColor": "black",
+      "hairStyle": "neat short braids visible behind ears",
+      "eyes": "brown",
+      "features": "square jaw, wide nose, full lower lip, easy confidence"
+    },
+    {
+      "id": "c9-face-19",
+      "skin": "fair neutral",
+      "hairColor": "strawberry blonde",
+      "hairStyle": "long wavy hair at nape",
+      "eyes": "blue gray",
+      "features": "oval face, freckles, soft brows, friendly grin"
+    },
+    {
+      "id": "c9-face-20",
+      "skin": "golden brown",
+      "hairColor": "dark brown",
+      "hairStyle": "curly mullet",
+      "eyes": "hazel",
+      "features": "broad forehead, pointed chin, strong brows, mischievous smile"
+    },
+    {
+      "id": "c9-face-21",
+      "skin": "very deep brown",
+      "hairColor": "black",
+      "hairStyle": "very short buzz",
+      "eyes": "dark brown",
+      "features": "wide jaw, pronounced cheekbones, broad nose, proud smile"
+    },
+    {
+      "id": "c9-face-22",
+      "skin": "light warm",
+      "hairColor": "black",
+      "hairStyle": "short straight hair",
+      "eyes": "green",
+      "features": "long face, narrow eyelids, rounded nose, subtle smile"
+    },
+    {
+      "id": "c9-face-23",
+      "skin": "medium tan",
+      "hairColor": "auburn brown",
+      "hairStyle": "loose curls",
+      "eyes": "amber",
+      "features": "round face, high cheekbones, dimple, relaxed grin"
+    },
+    {
+      "id": "c9-face-24",
+      "skin": "pale cool",
+      "hairColor": "dark brown",
+      "hairStyle": "long straight hair at nape",
+      "eyes": "brown",
+      "features": "angular jaw, small nose, thick eyebrows, slight smirk"
+    },
+    {
+      "id": "c9-face-25",
+      "skin": "warm brown",
+      "hairColor": "black",
+      "hairStyle": "short twists with tapered sides",
+      "eyes": "gray",
+      "features": "oval face, full lips, heavy eyelids, open smile"
+    },
+    {
+      "id": "c9-face-26",
+      "skin": "medium olive",
+      "hairColor": "black",
+      "hairStyle": "short curls",
+      "eyes": "hazel",
+      "features": "broad nose, square chin, pronounced brows, calm expression"
+    },
+    {
+      "id": "c9-face-27",
+      "skin": "fair golden",
+      "hairColor": "sandy blonde",
+      "hairStyle": "shaggy medium hair",
+      "eyes": "blue",
+      "features": "narrow face, strong cheekbones, freckles, gentle grin"
+    },
+    {
+      "id": "c9-face-28",
+      "skin": "deep warm brown",
+      "hairColor": "dark brown",
+      "hairStyle": "loose medium curls",
+      "eyes": "green",
+      "features": "broad face, strong rounded chin, thick brows, confident smile"
+    },
+    {
+      "id": "c9-face-29",
+      "skin": "light tan",
+      "hairColor": "black",
+      "hairStyle": "straight hair swept to one side",
+      "eyes": "dark brown",
+      "features": "slender face, high cheekbones, small mouth, quiet smile"
+    },
+    {
+      "id": "c9-face-30",
+      "skin": "medium neutral brown",
+      "hairColor": "brown",
+      "hairStyle": "wavy medium hair at sides",
+      "eyes": "amber",
+      "features": "square face, rounded nose, wide smile, light freckles"
+    }
+  ]
+}

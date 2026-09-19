@@ -31,3 +31,7 @@ Implement the PC frame plus stable selected-target recruiting, then roster and f
 ## Player art follow-up
 
 Frisk requested stronger adherence to the original cel faces and sports-profile cards. [Player art refinement](players.html) presents four new illustrated identity examples, full sports profiles and matching compact rows. See the [brief and generation prompt](PLAYER_ART_REFINEMENT.md). This study supplements the atlas; it does not migrate production appearances.
+
+## Thirty-face production asset library
+
+Frisk approved the refined cel direction and requested 30 additional faces with team-dependent colors. [The new gallery](faces.html) uses the canonical `client/public/art/players/v1/` asset library and shared renderer. Run `node scripts/preview-player-library.mjs` to serve this gallery and its game assets. The [generation specifications](face-generation.json) retain the built-in tool prompt and all 30 individual briefs. Team fabric recolors independently of fixed facial identity; the existing four-player comparison sheet remains unchanged. The reusable React component is opt-in; existing saves have not been remapped.
