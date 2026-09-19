@@ -66,3 +66,13 @@ Independent read-only reviews:
 - Creative QA: approved direction in source; flagged export icon-key mismatch and lower-grade palette mismatch. Both fixed. An initial regex concern was retracted by reviewer and was not a defect.
 
 Verification: JS syntax and git diff checks pass. Browser visual check of populated fielder and pitcher fronts. At 1280x720 pitcher dialog client/scroll height both 668px, with 43 stat fields and 18 repertoire slots. Mouse access to complete card fixed after finding compact roster header overlap. White team-color visual check prompted stronger darkening; forest final visually checked. Export is a valid 2400x1800 PNG data URL with category icons, grade/ability colors and complete records; final export visually inspected. OS download completion not asserted. Viewport override reset and updated card left open. These are prototype/source/runtime checks, not human-enjoyment or production-integration approval.
+
+## Flat-color correction — September 19, 2026
+
+Frisk explicitly rejected gradients, bevels and decorative strokes. This supersedes the dimensional sports-card art treatment above. Complete-card surfaces now use flat fills, no decorative outlines, no shadows and solid silhouette icons. Existing approved cel portrait illustration is retained; uniform tint remains team-variable.
+
+Canonical PAWA color reference: client/src/components/ui/letter-grade.tsx. Core S/A/B/C/D/E/F/G uses fuchsia/pink/red/orange/yellow/green/blue/gray; common attributes use their distinct amber/blue/sky/red palette. Special abilities retain gold/blue/red. Removed invented colored stat-category bands. DOM and PNG use the same rating palettes.
+
+Added compact labeled biography: position and batting/throwing hand, eligibility/class, hometown. Hometowns are explicitly synthetic design fixtures, not production player data. Production integration must read player.hometown/homeState/eligibility and hand fields; never derive these from player id. Bio labels retain meaning without icons. Arrival class label is incoming freshman for these fictional freshman fixtures.
+
+Verified in browser: flat pitcher front at 1280x720 with all43 stats and18 pitch slots; dialog clientHeight and scrollHeight both676px. PNG visually checked after palette/flat-fill/bio changes. JS syntax and whitespace checks pass. Preview only; no live game data changed.
