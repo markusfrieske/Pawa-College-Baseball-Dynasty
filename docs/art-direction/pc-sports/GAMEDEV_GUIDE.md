@@ -60,3 +60,5 @@ Before implementation, show a representative composition with realistic long nam
 4. Individual narrative, class, stats, legacy, entry/setup and commissioner screens from their authored briefs. Complete each against its own acceptance criteria and audit between milestones.
 
 The review atlas provides 23 bespoke visual composition studies plus 57 individually authored schematic screen blueprints, backed by all 80 individual specifications. Schematics are not pixel-final designs. Future production implementation must be judged against the specific authored brief, not a schematic alone.
+
+Player art refinement: read [the cel identity follow-up](PLAYER_ART_REFINEMENT.md) for Frisk's request to bring faces and cards back toward the original approved illustration. The four illustrated examples are a review target, not a complete modular kit or permission to overwrite saved appearances.

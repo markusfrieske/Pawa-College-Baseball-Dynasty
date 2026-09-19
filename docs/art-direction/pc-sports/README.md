@@ -27,3 +27,7 @@ Parent visually inspected the hub, recruiting and schedule during refinement. Br
 ## Next production slice
 
 Implement the PC frame plus stable selected-target recruiting, then roster and field as distinct canvases. Run real saved-data/auth/error/retry checks before replacing more screens. Continue schedule/prep/entry/accepted-result as a complete companion journey, including W12-SCHEDULE-01 and durable drafts. Retain source, runtime and enjoyment evidence as separate acceptance types. This supersedes the prior recommendation to move directly to schedule while keeping the website frame.
+
+## Player art follow-up
+
+Frisk requested stronger adherence to the original cel faces and sports-profile cards. [Player art refinement](players.html) presents four new illustrated identity examples, full sports profiles and matching compact rows. See the [brief and generation prompt](PLAYER_ART_REFINEMENT.md). This study supplements the atlas; it does not migrate production appearances.
