@@ -1,4 +1,6 @@
-# Pawa quality overhaul — production schedule
+# Class of Nine quality overhaul — production schedule
+
+> **Current planning revision (September 26):** [Revised production plan](PRODUCTION_PLAN_2026-09-26.md). Its dependency sequence and asset gates supersede the historical dates/process below. Existing findings and acceptance requirements remain open until verified; scheduled development stays paused.
 
 **Planning baseline:** September 14–December 18, 2026. **Branch:** `codex/pawa-quality-overhaul`.
 
